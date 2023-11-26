@@ -28,6 +28,9 @@
 *.so.*
 *.dylib
 
+# Build folder
+build/
+
 # Executables
 *.exe
 *.out
