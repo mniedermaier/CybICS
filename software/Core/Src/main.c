@@ -46,6 +46,7 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart1;
 
 osThreadId defaultTaskHandle;
+osThreadId heartBeatHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -55,7 +56,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
-void StartDefaultTask(void const * argument);
+void FdefaultTask(void const * argument);
+void FheartBeat(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -118,8 +120,12 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, FdefaultTask, osPriorityNormal, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of heartBeat */
+  osThreadDef(heartBeat, FheartBeat, osPriorityIdle, 0, 128);
+  heartBeatHandle = osThreadCreate(osThread(heartBeat), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -298,14 +304,14 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(ST_heartbeat_GPIO_Port, ST_heartbeat_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  /*Configure GPIO pin : ST_heartbeat_Pin */
+  GPIO_InitStruct.Pin = ST_heartbeat_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(ST_heartbeat_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -315,14 +321,14 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_FdefaultTask */
 /**
   * @brief  Function implementing the defaultTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+/* USER CODE END Header_FdefaultTask */
+void FdefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
@@ -331,6 +337,25 @@ void StartDefaultTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_FheartBeat */
+/**
+* @brief Function implementing the heartBeat thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_FheartBeat */
+void FheartBeat(void const * argument)
+{
+  /* USER CODE BEGIN FheartBeat */
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(ST_heartbeat_GPIO_Port, ST_heartbeat_Pin);
+    osDelay(1);
+  }
+  /* USER CODE END FheartBeat */
 }
 
 /**
