@@ -3488,7 +3488,7 @@
     (property "Datasheet" "~" (at 266.7 152.4 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "JLCPCB Part #" "C225257" (at 266.7 152.4 0)
+    (property "JLCPCB Part #" "C225480" (at 266.7 152.4 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid a625c0ca-6163-4a14-9a3c-06d97bebbc17))
