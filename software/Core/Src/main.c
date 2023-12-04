@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "display.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -428,6 +428,7 @@ void FheartBeat(void const * argument)
 void Fdisplay(void const * argument)
 {
   /* USER CODE BEGIN Fdisplay */
+  displayInit();
   /* Infinite loop */
   for(;;)
   {
