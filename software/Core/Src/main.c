@@ -436,10 +436,9 @@ void Fdisplay(void const * argument)
 
   Lcd_HandleTypeDef lcd = Lcd_create(ports, pins, D_rs_GPIO_Port, D_rs_Pin, D_enable_GPIO_Port, D_enable_Pin, LCD_4_BIT_MODE);
 
-  Lcd_string(&lcd, "4ilo");
-
-  Lcd_cursor(&lcd, 1,6);
-  Lcd_int(&lcd, -500);
+  Lcd_string(&lcd, "CybICS");
+  Lcd_cursor(&lcd, 1,0);
+  Lcd_string(&lcd, "v0.1");
   /* Infinite loop */
   for(;;)
   {
