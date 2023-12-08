@@ -413,7 +413,7 @@ void FheartBeat(void const * argument)
   for(;;)
   {
     HAL_GPIO_TogglePin(ST_heartbeat_GPIO_Port, ST_heartbeat_Pin);
-    osDelay(1);
+    osDelay(1000);
   }
   /* USER CODE END FheartBeat */
 }
@@ -428,7 +428,18 @@ void FheartBeat(void const * argument)
 void Fdisplay(void const * argument)
 {
   /* USER CODE BEGIN Fdisplay */
-  displayInit();
+  Lcd_PortType ports[] = {
+		  D_d4_GPIO_Port, D_d5_GPIO_Port, D_d6_GPIO_Port, D_d7_GPIO_Port
+  };
+
+  Lcd_PinType pins[] = {D_d4_Pin, D_d5_Pin, D_d6_Pin, D_d7_Pin};
+
+  Lcd_HandleTypeDef lcd = Lcd_create(ports, pins, D_rs_GPIO_Port, D_rs_Pin, D_enable_GPIO_Port, D_enable_Pin, LCD_4_BIT_MODE);
+
+  Lcd_string(&lcd, "4ilo");
+
+  Lcd_cursor(&lcd, 1,6);
+  Lcd_int(&lcd, -500);
   /* Infinite loop */
   for(;;)
   {
