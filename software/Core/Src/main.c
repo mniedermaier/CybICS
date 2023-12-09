@@ -23,16 +23,21 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "display.h"
+#define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
+/* Size of Transmission buffer */
+#define TXBUFFERSIZE                      (COUNTOF(aTxBuffer))
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+__IO uint32_t     Transfer_Direction = 0;
+__IO uint32_t     Xfer_Complete = 0;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+/* Buffer used for transmission */
+uint8_t aTxBuffer[4];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -50,7 +55,6 @@ osThreadId heartBeatHandle;
 osThreadId displayHandle;
 osThreadId physicalHandle;
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,7 +92,10 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  aTxBuffer[0]=0xAA;
+  aTxBuffer[1]=0xBB;
+  aTxBuffer[2]=0xCC;
+  aTxBuffer[3]=0xDD;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -103,7 +110,11 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  if(HAL_I2C_EnableListen_IT(&hi2c1) != HAL_OK)
+  {
+    /* Transfer error in reception process */
+    Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -220,7 +231,7 @@ static void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x10707DBC;
-  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.OwnAddress1 = 36;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -384,7 +395,85 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief  Tx Transfer completed callback.
+  * @param  I2cHandle: I2C handle.
+  * @note   This example shows a simple way to report end of IT Tx transfer, and
+  *         you can add your own implementation.
+  * @retval None
+  */
 
+void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *I2cHandle)
+{
+  /* Toggle LED4: Transfer in transmission process is correct */
+
+  Xfer_Complete = 1;
+  aTxBuffer[0]++;
+  aTxBuffer[1]++;
+  aTxBuffer[2]++;
+  aTxBuffer[3]++;
+
+}
+
+/**
+  * @brief  Slave Address Match callback.
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *                the configuration information for the specified I2C.
+  * @param  TransferDirection: Master request Transfer Direction (Write/Read), value of @ref I2C_XferOptions_definition
+  * @param  AddrMatchCode: Address Match Code
+  * @retval None
+  */
+void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode)
+{
+  Transfer_Direction = TransferDirection;
+  if (Transfer_Direction != 0)
+  {
+     /*##- Start the transmission process #####################################*/
+  /* While the I2C in reception process, user can transmit data through
+     "aTxBuffer" buffer */
+  if (HAL_I2C_Slave_Seq_Transmit_IT(&hi2c1, (uint8_t *)aTxBuffer, TXBUFFERSIZE, I2C_FIRST_AND_LAST_FRAME) != HAL_OK)
+
+    {
+    /* Transfer error in transmission process */
+    Error_Handler();
+  }
+
+  }
+  else
+  {
+
+  }
+
+}
+
+/**
+  * @brief  Listen Complete callback.
+  * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
+  *                the configuration information for the specified I2C.
+  * @retval None
+  */
+void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+}
+
+/**
+  * @brief  I2C error callbacks.
+  * @param  I2cHandle: I2C handle
+  * @note   This example shows a simple way to report transfer error, and you can
+  *         add your own implementation.
+  * @retval None
+  */
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *I2cHandle)
+{
+  /** Error_Handler() function is called when error occurs.
+    * 1- When Slave doesn't acknowledge its address, Master restarts communication.
+    * 2- When Master doesn't acknowledge the last data transferred, Slave doesn't care in this example.
+    */
+  if (HAL_I2C_GetError(I2cHandle) != HAL_I2C_ERROR_AF)
+  {
+    Error_Handler();
+  }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_FdefaultTask */

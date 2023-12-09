@@ -49,6 +49,7 @@
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void TIM1_BRK_UP_TRG_COM_IRQHandler(void);
+void I2C1_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
