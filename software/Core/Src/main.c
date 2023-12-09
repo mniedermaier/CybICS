@@ -28,7 +28,9 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-uint8_t I2C_REGISTERS[10] = {0,0,0,0,0,0,0,0,0,0};
+uint8_t RxData[10] = {0,0,0,0,0,0,0,0,0,0};
+uint32_t count = 0;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -388,7 +390,32 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_I2C_ListenCpltCallback (I2C_HandleTypeDef *hi2c)
+{
+	HAL_I2C_EnableListen_IT(hi2c);
+}
 
+void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode)
+{
+	if(TransferDirection == I2C_DIRECTION_TRANSMIT)  // if the master wants to transmit the data
+	{
+		HAL_I2C_Slave_Sequential_Receive_IT(hi2c, RxData, 6, I2C_FIRST_AND_LAST_FRAME);
+	}
+	else  // master requesting the data is not supported yet
+	{
+		Error_Handler();
+	}
+}
+
+void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	count++;
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+	HAL_I2C_EnableListen_IT(hi2c);
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_FdefaultTask */
