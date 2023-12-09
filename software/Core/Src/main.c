@@ -26,6 +26,8 @@
 #define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
 /* Size of Transmission buffer */
 #define TXBUFFERSIZE                      (COUNTOF(aTxBuffer))
+/* Size of Reception buffer */
+#define RXBUFFERSIZE                      TXBUFFERSIZE
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,6 +40,8 @@ __IO uint32_t     Xfer_Complete = 0;
 /* USER CODE BEGIN PD */
 /* Buffer used for transmission */
 uint8_t aTxBuffer[4];
+/* Buffer used for reception */
+uint8_t aRxBuffer[4];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -92,6 +96,10 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  aRxBuffer[0]=0x00;
+  aRxBuffer[1]=0x00;
+  aRxBuffer[2]=0x00;
+  aRxBuffer[3]=0x00;
   aTxBuffer[0]=0xAA;
   aTxBuffer[1]=0xBB;
   aTxBuffer[2]=0xCC;
@@ -231,7 +239,7 @@ static void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x10707DBC;
-  hi2c1.Init.OwnAddress1 = 36;
+  hi2c1.Init.OwnAddress1 = 64;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -416,6 +424,24 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 }
 
 /**
+  * @brief  Rx Transfer completed callback.
+  * @param  I2cHandle: I2C handle
+  * @note   This example shows a simple way to report end of IT Rx transfer, and
+  *         you can add your own implementation.
+  * @retval None
+  */
+void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *I2cHandle)
+{
+  /* Toggle LED4: Transfer in reception process is correct */
+
+  Xfer_Complete = 1;
+  aRxBuffer[0]=0x00;
+  aRxBuffer[1]=0x00;
+  aRxBuffer[2]=0x00;
+  aRxBuffer[3]=0x00;
+}
+
+/**
   * @brief  Slave Address Match callback.
   * @param  hi2c Pointer to a I2C_HandleTypeDef structure that contains
   *                the configuration information for the specified I2C.
@@ -441,6 +467,13 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
   }
   else
   {
+
+      /*##- Put I2C peripheral in reception process ###########################*/
+  if (HAL_I2C_Slave_Seq_Receive_IT(&hi2c1, (uint8_t *)aRxBuffer, RXBUFFERSIZE, I2C_FIRST_AND_LAST_FRAME) != HAL_OK)
+    {
+    /* Transfer error in reception process */
+    Error_Handler();
+  }
 
   }
 
@@ -489,6 +522,18 @@ void FdefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+    if (Xfer_Complete ==1)
+           {
+            HAL_Delay(1);
+             /*##- Put I2C peripheral in listen mode process ###########################*/
+         if(HAL_I2C_EnableListen_IT(&hi2c1) != HAL_OK)
+         {
+           /* Transfer error in reception process */
+           Error_Handler();
+         }
+           Xfer_Complete =0;
+           }
+
     osDelay(1);
   }
   /* USER CODE END 5 */
