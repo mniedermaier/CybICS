@@ -71,6 +71,38 @@ void Error_Handler(void);
 #define D_d6_GPIO_Port GPIOB
 #define D_d7_Pin GPIO_PIN_15
 #define D_d7_GPIO_Port GPIOB
+#define SV_red_Pin GPIO_PIN_12
+#define SV_red_GPIO_Port GPIOA
+#define SV_green_Pin GPIO_PIN_15
+#define SV_green_GPIO_Port GPIOA
+#define S_red_Pin GPIO_PIN_8
+#define S_red_GPIO_Port GPIOC
+#define S_green_Pin GPIO_PIN_9
+#define S_green_GPIO_Port GPIOC
+#define BO_green_Pin GPIO_PIN_0
+#define BO_green_GPIO_Port GPIOD
+#define BO_red_Pin GPIO_PIN_1
+#define BO_red_GPIO_Port GPIOD
+#define HPT_empty_Pin GPIO_PIN_2
+#define HPT_empty_GPIO_Port GPIOD
+#define HPT_low_Pin GPIO_PIN_3
+#define HPT_low_GPIO_Port GPIOD
+#define HPT_normal_Pin GPIO_PIN_4
+#define HPT_normal_GPIO_Port GPIOD
+#define HPT_high_Pin GPIO_PIN_5
+#define HPT_high_GPIO_Port GPIOD
+#define HPT_critical_Pin GPIO_PIN_6
+#define HPT_critical_GPIO_Port GPIOD
+#define C_off_Pin GPIO_PIN_3
+#define C_off_GPIO_Port GPIOB
+#define C_on_Pin GPIO_PIN_4
+#define C_on_GPIO_Port GPIOB
+#define GST_low_Pin GPIO_PIN_5
+#define GST_low_GPIO_Port GPIOB
+#define GST_normal_Pin GPIO_PIN_6
+#define GST_normal_GPIO_Port GPIOB
+#define GST_full_Pin GPIO_PIN_9
+#define GST_full_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

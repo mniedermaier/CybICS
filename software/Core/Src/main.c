@@ -48,6 +48,7 @@ UART_HandleTypeDef huart1;
 osThreadId defaultTaskHandle;
 osThreadId heartBeatHandle;
 osThreadId displayHandle;
+osThreadId physicalHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -60,6 +61,7 @@ static void MX_USART1_UART_Init(void);
 void FdefaultTask(void const * argument);
 void FheartBeat(void const * argument);
 void Fdisplay(void const * argument);
+void Fphysical(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -130,8 +132,12 @@ int main(void)
   heartBeatHandle = osThreadCreate(osThread(heartBeat), NULL);
 
   /* definition and creation of display */
-  osThreadDef(display, Fdisplay, osPriorityNormal, 0, 256);
+  osThreadDef(display, Fdisplay, osPriorityNormal, 0, 128);
   displayHandle = osThreadCreate(osThread(display), NULL);
+
+  /* definition and creation of physical */
+  osThreadDef(physical, Fphysical, osPriorityAboveNormal, 0, 256);
+  physicalHandle = osThreadCreate(osThread(physical), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -311,22 +317,22 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, ST_heartbeat_Pin|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, ST_heartbeat_Pin|S_red_Pin|S_green_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, D_enable_Pin|D_rs_Pin|D_d4_Pin|D_d5_Pin
-                          |D_d6_Pin|D_d7_Pin|GPIO_PIN_3|GPIO_PIN_4
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9, GPIO_PIN_RESET);
+                          |D_d6_Pin|D_d7_Pin|C_off_Pin|C_on_Pin
+                          |GST_low_Pin|GST_normal_Pin|GST_full_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12|GPIO_PIN_15, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, SV_red_Pin|SV_green_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, BO_green_Pin|BO_red_Pin|HPT_empty_Pin|HPT_low_Pin
+                          |HPT_normal_Pin|HPT_high_Pin|HPT_critical_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : ST_heartbeat_Pin PC8 PC9 */
-  GPIO_InitStruct.Pin = ST_heartbeat_Pin|GPIO_PIN_8|GPIO_PIN_9;
+  /*Configure GPIO pins : ST_heartbeat_Pin S_red_Pin S_green_Pin */
+  GPIO_InitStruct.Pin = ST_heartbeat_Pin|S_red_Pin|S_green_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -341,27 +347,27 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : D_enable_Pin D_rs_Pin D_d4_Pin D_d5_Pin
-                           D_d6_Pin D_d7_Pin PB3 PB4
-                           PB5 PB6 PB9 */
+                           D_d6_Pin D_d7_Pin C_off_Pin C_on_Pin
+                           GST_low_Pin GST_normal_Pin GST_full_Pin */
   GPIO_InitStruct.Pin = D_enable_Pin|D_rs_Pin|D_d4_Pin|D_d5_Pin
-                          |D_d6_Pin|D_d7_Pin|GPIO_PIN_3|GPIO_PIN_4
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9;
+                          |D_d6_Pin|D_d7_Pin|C_off_Pin|C_on_Pin
+                          |GST_low_Pin|GST_normal_Pin|GST_full_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA12 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_15;
+  /*Configure GPIO pins : SV_red_Pin SV_green_Pin */
+  GPIO_InitStruct.Pin = SV_red_Pin|SV_green_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD0 PD1 PD2 PD3
-                           PD4 PD5 PD6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
+  /*Configure GPIO pins : BO_green_Pin BO_red_Pin HPT_empty_Pin HPT_low_Pin
+                           HPT_normal_Pin HPT_high_Pin HPT_critical_Pin */
+  GPIO_InitStruct.Pin = BO_green_Pin|BO_red_Pin|HPT_empty_Pin|HPT_low_Pin
+                          |HPT_normal_Pin|HPT_high_Pin|HPT_critical_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -445,6 +451,54 @@ void Fdisplay(void const * argument)
     osDelay(1);
   }
   /* USER CODE END Fdisplay */
+}
+
+/* USER CODE BEGIN Header_Fphysical */
+/**
+* @brief Function implementing the physical thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Fphysical */
+void Fphysical(void const * argument)
+{
+  /* USER CODE BEGIN Fphysical */
+
+  // clear Gas Storage Tank LEDs
+  HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
+
+  // clear Compressor LEDs
+  HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_SET);
+
+  // clear High Pressure Tank LEDs
+  HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+
+  // clear Blow Out LEDs
+  HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
+
+  // clear System Valve LEDs
+  HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET); 
+
+  // clear System LEDs
+  HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+
+  /* Infinite loop */
+  for(;;)
+  {
+    
+    osDelay(1);
+  }
+  /* USER CODE END Fphysical */
 }
 
 /**
