@@ -31,14 +31,15 @@
             "svdFile": "STM32G070.svd"
         },
         {
-            "name": "Debug with External",
+            "name": "Debug with External RPi",
+            "preLaunchTask": "Build STM",
             "cwd": "${workspaceRoot}",
             "executable": "./build/CybICS.elf",
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
             "servertype": "external",
-            "gdbTarget": "192.168.178.141:3333",
+            "gdbTarget": "192.168.178.143:3333",
             "device": "stm32g070",
             "svdFile": "STM32G070.svd",
             "overrideRestartCommands": [

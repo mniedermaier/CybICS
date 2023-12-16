@@ -1,35 +1,23 @@
 PROGRAM cybICS
   VAR
-    (* STM32 reset *)
-    stm32reset AT %QX0.0 : BOOL;
     (* heartbeat LED on the PCB *)
-    heartbeat AT %QX0.1 : BOOL;
+    heartbeat AT %QX0.0 : BOOL;
   END_VAR
   VAR
-    (* initialize stm32 *)
-    initialize : UINT := 0;  
-    (* Counter between processes *)
+    (* Counter LED heartbeat *)
     countHeartbeat : UINT := 0;  
   END_VAR
 
-  IF initialize < 10 THEN
-    stm32reset := FALSE;
-    initialize := initialize + 1;
+  IF countHeartbeat < 20 THEN 
+    heartbeat := FALSE;
+  ELSIF countHeartbeat < 40 THEN
+    heartbeat := TRUE;
   ELSE
-    stm32reset := TRUE;
-
-
-    IF countHeartbeat < 20 THEN 
-      heartbeat := FALSE;
-    ELSIF countHeartbeat < 40 THEN
-      heartbeat := TRUE;
-    ELSE
-      countHeartbeat := 0;
-    END_IF;
-
-    (* Increase the counters *)
-    countHeartbeat := countHeartbeat + 1;
+    countHeartbeat := 0;
   END_IF;
+
+  (* Increase the counters *)
+  countHeartbeat := countHeartbeat + 1;
 END_PROGRAM
 
 

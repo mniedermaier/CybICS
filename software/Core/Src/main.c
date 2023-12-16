@@ -29,6 +29,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 uint8_t RxData[10] = {0,0,0,0,0,0,0,0,0,0};
+uint8_t TxData[10] = {'T','E','S','T',0,0,0,0,0,0};
 uint32_t count = 0;
 
 /* USER CODE END PTD */
@@ -399,11 +400,12 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 {
 	if(TransferDirection == I2C_DIRECTION_TRANSMIT)  // if the master wants to transmit the data
 	{
-		HAL_I2C_Slave_Sequential_Receive_IT(hi2c, RxData, 6, I2C_FIRST_AND_LAST_FRAME);
+		HAL_I2C_Slave_Sequential_Receive_IT(hi2c, RxData, sizeof(RxData), I2C_FIRST_AND_LAST_FRAME);
 	}
 	else  // master requesting the data is not supported yet
 	{
-		Error_Handler();
+		HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxData, sizeof(TxData), I2C_LAST_FRAME);
+    //TxData[0]++;
 	}
 }
 
@@ -474,14 +476,18 @@ void Fdisplay(void const * argument)
   Lcd_PinType pins[] = {D_d4_Pin, D_d5_Pin, D_d6_Pin, D_d7_Pin};
 
   Lcd_HandleTypeDef lcd = Lcd_create(ports, pins, D_rs_GPIO_Port, D_rs_Pin, D_enable_GPIO_Port, D_enable_Pin, LCD_4_BIT_MODE);
-
+  uint32_t secondsAfterStart = 0;
+  char displayText[10];
   Lcd_string(&lcd, "CybICS");
-  Lcd_cursor(&lcd, 1,0);
+  Lcd_cursor(&lcd, 1, 0);
   Lcd_string(&lcd, "v0.1");
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    snprintf(displayText, sizeof(displayText), "%i", ++secondsAfterStart);
+    Lcd_cursor(&lcd, 0, 8);
+    Lcd_string(&lcd, displayText);
+    osDelay(1000);    
   }
   /* USER CODE END Fdisplay */
 }
