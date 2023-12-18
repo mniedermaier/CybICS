@@ -1,0 +1,14 @@
+{
+	"name": "CybICS",
+	"dockerComposeFile": "./docker-compose.yml",
+	"service": "dev",
+	"workspaceFolder": "/CybICS/software",
+	"shutdownAction": "stopCompose",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"bmd.stm32-for-vscode"
+			]
+		}
+	}
+}
