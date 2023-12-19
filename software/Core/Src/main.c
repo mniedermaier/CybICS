@@ -28,9 +28,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-uint8_t RxData[10] = {0,0,0,0,0,0,0,0,0,0};
-uint8_t TxData[10] = {'T','E','S','T',0,0,0,0,0,0};
-uint32_t count = 0;
+uint8_t RxData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+uint8_t TxData[20] = {'E','M','P','T','Y',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
+uint8_t GSTpressure=0;
+uint8_t HPTpressure=0;
 
 /* USER CODE END PTD */
 
@@ -53,6 +55,7 @@ osThreadId defaultTaskHandle;
 osThreadId heartBeatHandle;
 osThreadId displayHandle;
 osThreadId physicalHandle;
+osThreadId i2chandlerHandle;
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -65,6 +68,7 @@ void FdefaultTask(void const * argument);
 void FheartBeat(void const * argument);
 void Fdisplay(void const * argument);
 void Fphysical(void const * argument);
+void Fi2chandler(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -145,6 +149,10 @@ int main(void)
   /* definition and creation of physical */
   osThreadDef(physical, Fphysical, osPriorityAboveNormal, 0, 256);
   physicalHandle = osThreadCreate(osThread(physical), NULL);
+
+  /* definition and creation of i2chandler */
+  osThreadDef(i2chandler, Fi2chandler, osPriorityNormal, 0, 128);
+  i2chandlerHandle = osThreadCreate(osThread(i2chandler), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -345,9 +353,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3
+  /*Configure GPIO pins : C_sig_Pin PA1 PA2 PA3
                            PA4 PA5 PA6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+  GPIO_InitStruct.Pin = C_sig_Pin|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
                           |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -380,11 +388,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PC10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  /*Configure GPIO pin : button_Pin */
+  GPIO_InitStruct.Pin = button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(button_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -405,13 +413,12 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 	else  // master requesting the data is not supported yet
 	{
 		HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxData, sizeof(TxData), I2C_LAST_FRAME);
-    //TxData[0]++;
 	}
 }
 
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-	count++;
+
 }
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
@@ -469,6 +476,7 @@ void FheartBeat(void const * argument)
 void Fdisplay(void const * argument)
 {
   /* USER CODE BEGIN Fdisplay */
+  uint8_t shifting=0;
   Lcd_PortType ports[] = {
 		  D_d4_GPIO_Port, D_d5_GPIO_Port, D_d6_GPIO_Port, D_d7_GPIO_Port
   };
@@ -477,17 +485,27 @@ void Fdisplay(void const * argument)
 
   Lcd_HandleTypeDef lcd = Lcd_create(ports, pins, D_rs_GPIO_Port, D_rs_Pin, D_enable_GPIO_Port, D_enable_Pin, LCD_4_BIT_MODE);
   uint32_t secondsAfterStart = 0;
-  char displayText[10];
-  Lcd_string(&lcd, "CybICS");
-  Lcd_cursor(&lcd, 1, 0);
-  Lcd_string(&lcd, "v0.1");
+  char displayText[20];
+  Lcd_string(&lcd, "CybICS v0.1");
   /* Infinite loop */
   for(;;)
   {
     snprintf(displayText, sizeof(displayText), "%i", ++secondsAfterStart);
-    Lcd_cursor(&lcd, 0, 8);
+    Lcd_cursor(&lcd, 0, 12);
     Lcd_string(&lcd, displayText);
-    osDelay(1000);    
+    snprintf(displayText, sizeof(displayText), "IP: %s       ", &rpiIP[shifting]);
+    Lcd_cursor(&lcd, 1, 0);
+    Lcd_string(&lcd, displayText);
+
+    if(strlen(rpiIP)>12)
+    {
+      shifting++;
+    }    
+    if(shifting>3)
+    {
+      shifting=0;
+    }
+    osDelay(1000);
   }
   /* USER CODE END Fdisplay */
 }
@@ -530,14 +548,115 @@ void Fphysical(void const * argument)
   // clear System LEDs
   HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+  
+  GPIO_PinState buttonState;
+  GPIO_PinState cState;
 
+  uint16_t HPTdelay=0;
   /* Infinite loop */
   for(;;)
   {
+    GPIO_PinState buttonState = HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin);
+    GPIO_PinState cState = HAL_GPIO_ReadPin(C_sig_GPIO_Port, C_sig_Pin);
+    /**
+     * When compressor is running:
+     * - Increase HPT pressure
+     * - LED Compressor should be green
+    */
+    if(cState)
+    {
+      HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_SET);
+      if(HPTdelay>100) // increase pressure 1 per second
+      {
+        HPTpressure++;
+        HPTdelay=0;
+      }
+      
+    }
+    else
+    {
+      HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_RESET);      
+      if(HPTdelay>100) // decrease pressure 1 per second
+      {
+        HPTpressure--;
+        HPTdelay=0;
+      }
+    }
+
+    if(HPTpressure<20)
+    {
+      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_RESET);
+    }
+    else if (HPTpressure<50)
+    {
+      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+    }
+    else if (HPTpressure<100)
+    {
+      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+    }
+    else if (HPTpressure<150)
+    {
+      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+    }
+    else
+    {
+      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+    }
     
-    osDelay(1);
+
+    HPTdelay++;
+    osDelay(10);
   }
   /* USER CODE END Fphysical */
+}
+
+/* USER CODE BEGIN Header_Fi2chandler */
+/**
+* @brief Function implementing the i2chandler thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Fi2chandler */
+void Fi2chandler(void const * argument)
+{
+  /* USER CODE BEGIN Fi2chandler */
+  /* Infinite loop */
+  for(;;)
+  {
+    if(RxData[1]=='I' && RxData[2]=='P')
+    {
+      for(u_int8_t counter=0; counter<sizeof(rpiIP); counter++)
+      {
+        rpiIP[counter] = RxData[counter+4];
+      }
+    }
+
+    osDelay(100);
+  }
+  /* USER CODE END Fi2chandler */
 }
 
 /**

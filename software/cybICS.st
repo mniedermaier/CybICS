@@ -2,6 +2,7 @@ PROGRAM cybICS
   VAR
     (* heartbeat LED on the PCB *)
     heartbeat AT %QX0.0 : BOOL;
+    compressor AT %QX0.1 : BOOL;
   END_VAR
   VAR
     (* Counter LED heartbeat *)
@@ -10,11 +11,14 @@ PROGRAM cybICS
 
   IF countHeartbeat < 20 THEN 
     heartbeat := FALSE;
+    
   ELSIF countHeartbeat < 40 THEN
     heartbeat := TRUE;
   ELSE
     countHeartbeat := 0;
   END_IF;
+  
+  compressor := TRUE;
 
   (* Increase the counters *)
   countHeartbeat := countHeartbeat + 1;

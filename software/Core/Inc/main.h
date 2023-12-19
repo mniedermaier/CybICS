@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define ST_heartbeat_Pin GPIO_PIN_3
 #define ST_heartbeat_GPIO_Port GPIOC
+#define C_sig_Pin GPIO_PIN_0
+#define C_sig_GPIO_Port GPIOA
 #define D_enable_Pin GPIO_PIN_10
 #define D_enable_GPIO_Port GPIOB
 #define D_rs_Pin GPIO_PIN_11
@@ -103,6 +105,8 @@ void Error_Handler(void);
 #define GST_normal_GPIO_Port GPIOB
 #define GST_full_Pin GPIO_PIN_9
 #define GST_full_GPIO_Port GPIOB
+#define button_Pin GPIO_PIN_10
+#define button_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
