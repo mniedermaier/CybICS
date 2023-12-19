@@ -3,4 +3,6 @@
 ![C/C++ CI](https://github.com/mniedermaier/CybICS/workflows/KiBot/badge.svg)
 
 
-![3drenderTOP](../blob/master/hardware/pcb/CybICS_top.png?raw=true)
+<table align="center"><tr><td align="center" width="9999">
+<img src="hardware/pcb/CybICS_top.png" width=70%></img>
+</td></tr></table>
