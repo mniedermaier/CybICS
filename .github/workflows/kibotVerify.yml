@@ -101,7 +101,7 @@ jobs:
 
   pushChanges:
     runs-on: ubuntu-latest
-    needs: [render,docs]
+    needs: [render,render3d,docs]
 
     permissions:
       # Give the default GITHUB_TOKEN write permission to commit and push the
