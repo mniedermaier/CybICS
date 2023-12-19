@@ -59,6 +59,8 @@ dkms.conf
 
 # Temporary files
 *.000
+*.kicad_pro-bak
+*.filter
 *.bak
 *.bck
 *.kicad_pcb-bak
