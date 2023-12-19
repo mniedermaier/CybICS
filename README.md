@@ -5,5 +5,5 @@
 
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="hardware/pcb/CybICS_top.png" width=70%></img>
+<img src="hardware/pcb/CybICS_top.png" width=90%></img>
 </td></tr></table>
