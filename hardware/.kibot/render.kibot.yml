@@ -9,7 +9,7 @@ outputs:
       view: 'top'
       transparent_background: true
       auto_crop: true
-      orthographic: true
+      type: 'orthographic'
       solder_mask: '#000000'
       samples: 100
       zoom: 5
