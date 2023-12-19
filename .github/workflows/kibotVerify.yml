@@ -38,6 +38,10 @@ jobs:
   render:
     runs-on: ubuntu-latest
     needs: [DRC]
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
     container:
       image: setsoft/kicad_auto:ki7
     steps:
@@ -55,15 +59,4 @@ jobs:
             ${{env.dir}}/img/**
             !${{env.dir}}/**/*.ogv
             !${{env.dir}}/**/*.log
-
-  # Push changes back
-  push_back:
-    runs-on: ubuntu-latest
-    needs: [render]
-    permissions:
-      # Give the default GITHUB_TOKEN write permission to commit and push the
-      # added or changed files to the repository.
-      contents: write
-
-    steps:
       - uses: stefanzweifel/git-auto-commit-action@v5
