@@ -6,7 +6,7 @@ outputs:
     dir: img/pcb
     options:
       output: '%f_top.%x'
-      view: 'top'
+      #view: 'top'
       transparent_background: true
       auto_crop: true
       type: 'orthographic'
