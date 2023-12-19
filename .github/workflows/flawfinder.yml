@@ -18,3 +18,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: flawfinder-action 
         uses: deep5050/flawfinder-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN}}
