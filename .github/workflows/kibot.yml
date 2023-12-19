@@ -10,6 +10,7 @@ env:
   schema: "hardware/*.kicad_sch"
   board: "hardware/*.kicad_pcb"
   dir: "hardware/"
+  config: "hardware/kibot.yaml"
 
 jobs:
 # checks
@@ -23,10 +24,12 @@ jobs:
       uses: INTI-CMNB/KiBot@v2_k7
       with:
         # Required - kibot config file
-        config: hardware/kibot.yaml
+        
         dir: Generated
         skip: run_drc
         targets: __NONE__
+        run: | 
+          kibot -c ${{env.confiog}} -e ${{env.schema}} -b ${{env.board}} -d ${{env.dir}} -s run_erc -v -i
 
     - name: Retrieve results
       uses: actions/upload-artifact@v3
@@ -50,6 +53,8 @@ jobs:
         dir: Generated
         skip: run_erc
         targets: __NONE__
+        run: | 
+          kibot -c ${{env.confiog}} -e ${{env.schema}} -b ${{env.board}} -d ${{env.dir}} -s run_drc -v -i
 
     - name: Retrieve results
       uses: actions/upload-artifact@v3
