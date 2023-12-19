@@ -3,4 +3,4 @@
 ![C/C++ CI](https://github.com/mniedermaier/CybICS/workflows/KiBot/badge.svg)
 
 
-[[hardware/pcb/CybICS_top.png|3d render top]]
+![3drenderTOP](../blob/master/hardware/pcb/CybICS_top.png?raw=true)
