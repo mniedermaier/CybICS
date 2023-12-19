@@ -1,16 +1,25 @@
 name: KiCad schematic
 
-steps:
-- uses: actions/checkout@v3
-- uses: actions-for-kicad/setup-kicad@v1.0
-  with:
-    version: '7.0'
-- uses: actions-for-kicad/generate-kicad-files@v1.0
-  with:
-    file: 'CybICS.kicad_sch/CybICS.kicad_sch'
-    type: 'schematic_pdf'
-- name: Upload 
-  uses: actions/upload-artifact@v3
-  with:
-    name: 'file.pdf'
-    path: 'hardware/CybICSschematic.pdf'
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-for-kicad/setup-kicad@v1.0
+      with:
+        version: '7.0'
+    - uses: actions-for-kicad/generate-kicad-files@v1.0
+      with:
+        file: 'CybICS.kicad_sch/CybICS.kicad_sch'
+        type: 'schematic_pdf'
+    - name: Upload 
+      uses: actions/upload-artifact@v3
+      with:
+        name: 'file.pdf'
+        path: 'hardware/CybICSschematic.pdf'
