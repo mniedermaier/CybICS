@@ -9,7 +9,7 @@ on:
 env:
   schema: "hardware/*.kicad_sch"
   board: "hardware/*.kicad_pcb"
-  dir: hardware
+  dir: "hardware/production/"
 
 jobs:
 # checks
