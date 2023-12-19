@@ -9,7 +9,9 @@ outputs:
       view: 'top'
       transparent_background: true
       auto_crop: true
-      solder_mask: '#11184c'
+      orthographic: true
+      solder_mask: '#000000'
+      samples: 100
       zoom: 5
       width: 3840
       height: 2160
