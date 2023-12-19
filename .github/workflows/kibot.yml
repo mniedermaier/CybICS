@@ -1,4 +1,4 @@
-name: KiCad schematic
+name: KiBot
 
 on:
   push:
