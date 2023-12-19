@@ -24,7 +24,6 @@ jobs:
       with:
         # Required - kibot config file
         config: hardware/kibot.yaml
-      with:
         dir: Generated
         skip: run_drc
         targets: __NONE__
@@ -48,7 +47,6 @@ jobs:
       with:
         # Required - kibot config file
         config: hardware/kibot.yaml
-      with:
         dir: Generated
         skip: run_erc
         targets: __NONE__
