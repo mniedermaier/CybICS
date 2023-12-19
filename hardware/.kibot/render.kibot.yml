@@ -7,7 +7,8 @@ outputs:
     options:
       output: '%f_top.%x'
       view: 'top'
-      transparent_background: 'true'
+      transparent_background: true
+      auto_crop: true
       solder_mask: '#11184c'
       zoom: 5
       width: 3840
