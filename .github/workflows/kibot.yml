@@ -22,6 +22,9 @@ jobs:
     - name: Run ERC
       uses: INTI-CMNB/KiBot@v2_k7
       with:
+        # Required - kibot config file
+        config: hardware/kibot.yaml
+      with:
         dir: Generated
         skip: run_drc
         targets: __NONE__
@@ -42,6 +45,9 @@ jobs:
 
     - name: Run DRC
       uses: INTI-CMNB/KiBot@v2_k7
+      with:
+        # Required - kibot config file
+        config: hardware/kibot.yaml
       with:
         dir: Generated
         skip: run_erc
