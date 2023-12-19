@@ -7,19 +7,24 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  example:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-for-kicad/setup-kicad@v1.0
+    - uses: actions/checkout@v2
+    - uses: nerdyscout/kicad-exports@v2.3.1
       with:
-        version: '7.0'
-    - uses: actions-for-kicad/generate-kicad-files@v1.0
+      # Required - kibot config file
+        config: any.kibot.yaml
+      # optional - prefix to output defined in config
+        dir: docs
+      # optional - schematic file
+        schema: '*.sch'
+      # optional - PCB design file
+        board: '*.kicad_pcb'
+      # optional - verbose output info
+        verbose: 0
+    - name: upload results
+      uses: actions/upload-artifact@v2
       with:
-        file: 'CybICS.kicad_sch/CybICS.kicad_sch'
-        type: 'schematic_pdf'
-    - name: Upload 
-      uses: actions/upload-artifact@v3
-      with:
-        name: 'file.pdf'
-        path: 'hardware/CybICSschematic.pdf'
+        name: docs
+        path: docs
