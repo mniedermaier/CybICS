@@ -19,4 +19,6 @@ jobs:
       - name: flawfinder-action 
         uses: deep5050/flawfinder-action@master
         with:
+          arguments: '--sarif ./'
+          output: 'flawfinder_results.sarif'
           github_token: ${{ secrets.GITHUB_TOKEN}}
