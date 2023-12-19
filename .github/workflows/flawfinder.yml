@@ -20,3 +20,7 @@ jobs:
       with:
         arguments: '--sarif ./'
         output: 'flawfinder_results.sarif'
+    - name: Upload analysis results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{github.workspace}}/flawfinder_results.sarif
