@@ -1,13 +1,18 @@
 outputs:
   # For more information: https://github.com/INTI-CMNB/KiBoM
-  - name: 'kicad 3d view top'
-    type: 'render_3d'
-    dir: 'img/render'
+  - name: 'render_3d_top'
+    comment: "Render 3D image of board's top"
+    type: render_3d
+    dir: img/pcb
     options:
-      download: true
-      output: '%f-top.%x'
-      ray_tracing: true
-      view: top
+      output: '%f_top.%x'
+      view: 'top'
+      background1: '#FFFFFF'
+      background2: '#C2C2C2'
+      solder_mask: '#11184c'
+      zoom: 5
+      width: 3840
+      height: 2160
 
   - name: 'kicad 3d view bottom'
     type: 'render_3d'
