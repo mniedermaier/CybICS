@@ -21,10 +21,10 @@ outputs:
       variant: ''
 
 # generates bom.csv in gerbers folder
-  - name: bom.csv
-    type: kibom
-    dir: gerbers
-    extends: 'octopart.csv'
+  # - name: bom.csv
+  #   type: kibom
+  #   dir: gerbers
+  #   extends: 'octopart.csv'
 
 # zip fabrication files
   - name: 'fabrication.zip'
