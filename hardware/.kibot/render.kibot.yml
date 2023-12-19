@@ -9,8 +9,11 @@ outputs:
       #view: 'top'
       transparent_background: true
       auto_crop: true
-      type: 'orthographic'
-      solder_mask: '#000000'
+      ray_tracing: true
+      realistic: true
+      rotate_x: 3
+      rotate_y: 0
+      solder_mask: '#202020'
       samples: 100
       zoom: 5
       width: 3840
