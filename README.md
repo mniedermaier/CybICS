@@ -1,6 +1,7 @@
 
 ![C/C++ CI](https://github.com/mniedermaier/CybICS/workflows/C/C++%20CI/badge.svg)
 ![C/C++ CI](https://github.com/mniedermaier/CybICS/workflows/KiBot/badge.svg)
+[![flawFinder C](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml)
 
 
 <table align="center"><tr><td align="center" width="9999">
