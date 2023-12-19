@@ -13,24 +13,25 @@ on:
 jobs:
   flawfinder:
     name: Flawfinder
-
     runs-on: ubuntu-latest
-
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3        
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      - name: Flawfinder scan
-        run: flawfinder --html --context --minlevel=1 ./software/  > flawfinder-report.html
-
-      - name: Upload analysis results
-        uses: actions/upload-artifact@v3
+      - name: Flawfinder action step
+        uses: ./ # Uses an action in the root directory
         with:
-          name: Archive production artifacts
-          path: flawfinder-report.html
-          retention-days: 90
+          arguments: '--sarif ./setup.py'
+          output: 'flawfinder_results.sarif'
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          path: flawfinder_results.sarif   
+
+      - name: Upload analysis results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: ${{github.workspace}}/flawfinder_results.sarif
