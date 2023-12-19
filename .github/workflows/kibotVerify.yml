@@ -50,7 +50,7 @@ jobs:
         run: | 
           kibot -c ${{env.config}} -e ${{env.schema}} -b ${{env.board}} -d ${{env.dir}} -s run_erc,run_drc -v \
             board_black_top.svg board_black_bottom.svg
-      - uses: actions/upload-artifact@v3.1.1
+      - uses: actions/upload-artifact@v4
         if: ${{success()}}
         with:
           name: ${{github.event.repository.name}}_img
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3.1.1
+      - uses: actions/download-artifact@v4
         with:
           name: ${{github.event.repository.name}}
           path: ${{github.event.repository.name}}
