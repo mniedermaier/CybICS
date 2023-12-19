@@ -490,7 +490,7 @@ void Fdisplay(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    snprintf(displayText, sizeof(displayText), "%i", ++secondsAfterStart);
+    snprintf(displayText, sizeof(displayText), "%li", ++secondsAfterStart);
     Lcd_cursor(&lcd, 0, 12);
     Lcd_string(&lcd, displayText);
     snprintf(displayText, sizeof(displayText), "IP: %s       ", &rpiIP[shifting]);
@@ -556,7 +556,7 @@ void Fphysical(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    GPIO_PinState buttonState = HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin);
+    //GPIO_PinState buttonState = HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin);
     GPIO_PinState cState = HAL_GPIO_ReadPin(C_sig_GPIO_Port, C_sig_Pin);
     /**
      * When compressor is running:

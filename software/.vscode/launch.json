@@ -23,7 +23,7 @@
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "external",
-            "gdbTarget": "192.168.178.141:3333",
+            "gdbTarget": "cybics.lan:3333",
             "preLaunchTask": "Build STM",
             "device": "stm32g070",
             "svdFile": "STM32G070.svd"
@@ -37,7 +37,7 @@
             "type": "cortex-debug",
             "runToEntryPoint": "main",
             "servertype": "external",
-            "gdbTarget": "192.168.178.141:3333",
+            "gdbTarget": "cybics.lan:3333",
             "device": "stm32g070",
             "svdFile": "STM32G070.svd",
             "overrideRestartCommands": [
