@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: run kibot
         run: | 
-          kibot -c ${{env.config}} -e ${{env.schema}} -b ${{env.board}} -d ${{env.dir}} -s run_erc -v -i
+          kibot -c ${{env.config}} -e ${{env.schema}} -b ${{env.board}} -d ${{env.dir}} -s run_drc -v -i
 
 # documentation
   docs:
