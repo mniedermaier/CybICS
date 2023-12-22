@@ -493,7 +493,7 @@ void Fdisplay(void const * argument)
     snprintf(displayText, sizeof(displayText), "%li", ++secondsAfterStart);
     Lcd_cursor(&lcd, 0, 12);
     Lcd_string(&lcd, displayText);
-    snprintf(displayText, sizeof(displayText), "IP: %s       ", &rpiIP[shifting]);
+    snprintf(displayText, sizeof(displayText), "IP: %s ", &rpiIP[shifting]);
     Lcd_cursor(&lcd, 1, 0);
     Lcd_string(&lcd, displayText);
 
@@ -520,6 +520,7 @@ void Fdisplay(void const * argument)
 void Fphysical(void const * argument)
 {
   /* USER CODE BEGIN Fphysical */
+  uint8_t HPTuse=0;
 
   // clear Gas Storage Tank LEDs
   HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
@@ -569,7 +570,10 @@ void Fphysical(void const * argument)
       HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_SET);
       if(HPTdelay>100) // increase pressure 1 per second
       {
-        HPTpressure++;
+        if(HPTpressure<255)
+        {
+          HPTpressure++;
+        }        
         HPTdelay=0;
       }
       
@@ -580,7 +584,11 @@ void Fphysical(void const * argument)
       HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_RESET);      
       if(HPTdelay>100) // decrease pressure 1 per second
       {
-        HPTpressure--;
+        HPTuse = rand() % 5;
+        if((HPTpressure-HPTuse)>=0)
+        {
+          HPTpressure = HPTpressure - HPTuse;
+        }        
         HPTdelay=0;
       }
     }
@@ -625,9 +633,44 @@ void Fphysical(void const * argument)
       HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
     }
-    
 
-    HPTdelay++;
+    /**
+     * Blowout if the HPTpressure if over 200
+    */  
+    if(HPTpressure>200)
+    {
+      HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
+    }
+    else
+    {
+      HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_RESET);     
+    }
+
+    /**
+     * System operating, when pressure is in normal range
+    */  
+    if((HPTpressure>50) && (HPTpressure<100))
+    {
+      HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_RESET); 
+    }
+    else
+    {
+      HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+    }
+
+    /**
+     * Set the right values in the TX Data:
+     * - GSTTpressure
+     * - HPTpressure
+     * Format: GST: %03d HPT: %03d
+    */    
+    snprintf(TxData, sizeof(TxData), "GST: %03d HPT: %03d", GSTpressure, HPTpressure);
+
+    HPTdelay = HPTdelay+10;
     osDelay(10);
   }
   /* USER CODE END Fphysical */

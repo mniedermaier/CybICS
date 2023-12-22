@@ -4,5 +4,6 @@
     "files.associations": {
         "cmsis_os.h": "c",
         "display.h": "c"
-    }
+    },
+    "stm32-for-vscode.openOCDPath": false
 }
