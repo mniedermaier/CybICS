@@ -14,14 +14,16 @@ RUN apt-get update && apt-get install -y \
     git \
     tig \
     bash-completion \
+    python3 \
+    python3-pip \
     vim \
     && rm -rf /var/lib/apt/lists/*
+RUN python3 -m pip install pymodbus django
 
 RUN addgroup --gid 1000 devuser \
     && adduser --disabled-password --gecos "" --uid 1000 --gid 1000 devuser \
     && echo 'devuser:devuser' | chpasswd \
     && usermod -a -G sudo devuser
-
 ENV HOME /home/devuser
 
 USER devuser
