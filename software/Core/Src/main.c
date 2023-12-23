@@ -641,6 +641,15 @@ void Fphysical(void const * argument)
     {
       HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
+      if(HPTdelay>100) // decrease pressure 1 per second
+      {
+        HPTuse = rand() % 20;
+        if((HPTpressure-HPTuse)>=0)
+        {
+          HPTpressure = HPTpressure - HPTuse;
+        }        
+        HPTdelay=0;
+      }
     }
     else
     {
@@ -670,7 +679,7 @@ void Fphysical(void const * argument)
     */    
     snprintf(TxData, sizeof(TxData), "GST: %03d HPT: %03d", GSTpressure, HPTpressure);
 
-    HPTdelay = HPTdelay+10;
+    HPTdelay = HPTdelay+1;
     osDelay(10);
   }
   /* USER CODE END Fphysical */

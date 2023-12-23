@@ -75,3 +75,6 @@ _autosave-*
 fp-info-cache
 *.lck
 *auto_saved_files*
+
+# do not push database
+historian.sqlite
