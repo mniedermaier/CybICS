@@ -335,12 +335,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, ST_heartbeat_Pin|S_red_Pin|S_green_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, S_sen_Pin|BO_sen_Pin|SV_red_Pin|SV_green_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, D_enable_Pin|D_rs_Pin|D_d4_Pin|D_d5_Pin
                           |D_d6_Pin|D_d7_Pin|C_off_Pin|C_on_Pin
                           |GST_low_Pin|GST_normal_Pin|GST_full_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SV_red_Pin|SV_green_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, BO_green_Pin|BO_red_Pin|HPT_empty_Pin|HPT_low_Pin
@@ -353,12 +353,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : C_sig_Pin PA1 PA2 PA3
-                           PA4 PA5 PA6 */
-  GPIO_InitStruct.Pin = C_sig_Pin|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
+  /*Configure GPIO pins : C_sig_Pin SV_sig_Pin PA4 PA5
+                           PA6 */
+  GPIO_InitStruct.Pin = C_sig_Pin|SV_sig_Pin|GPIO_PIN_4|GPIO_PIN_5
+                          |GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : S_sen_Pin BO_sen_Pin SV_red_Pin SV_green_Pin */
+  GPIO_InitStruct.Pin = S_sen_Pin|BO_sen_Pin|SV_red_Pin|SV_green_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : D_enable_Pin D_rs_Pin D_d4_Pin D_d5_Pin
@@ -371,13 +378,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SV_red_Pin SV_green_Pin */
-  GPIO_InitStruct.Pin = SV_red_Pin|SV_green_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : BO_green_Pin BO_red_Pin HPT_empty_Pin HPT_low_Pin
                            HPT_normal_Pin HPT_high_Pin HPT_critical_Pin */
@@ -551,14 +551,17 @@ void Fphysical(void const * argument)
   HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
   
   GPIO_PinState buttonState;
-  GPIO_PinState cState;
+  GPIO_PinState cState; // state of the compressor
+  GPIO_PinState svState; // state of the system valve
 
   uint16_t HPTdelay=0;
   /* Infinite loop */
   for(;;)
   {
     //GPIO_PinState buttonState = HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin);
-    GPIO_PinState cState = HAL_GPIO_ReadPin(C_sig_GPIO_Port, C_sig_Pin);
+    cState = HAL_GPIO_ReadPin(C_sig_GPIO_Port, C_sig_Pin);
+    svState = HAL_GPIO_ReadPin(SV_sig_GPIO_Port, SV_sig_Pin);
+
     /**
      * When compressor is running:
      * - Increase HPT pressure
@@ -591,6 +594,17 @@ void Fphysical(void const * argument)
         }        
         HPTdelay=0;
       }
+    }
+
+    if(svState)
+    {
+      HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_RESET); 
+    }
+    else
+    {
+      HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET); 
     }
 
     if(HPTpressure<20)
@@ -641,6 +655,7 @@ void Fphysical(void const * argument)
     {
       HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
+      HAL_GPIO_WritePin(BO_sen_GPIO_Port, BO_sen_Pin, GPIO_PIN_SET);
       if(HPTdelay>100) // decrease pressure 1 per second
       {
         HPTuse = rand() % 20;
@@ -654,7 +669,8 @@ void Fphysical(void const * argument)
     else
     {
       HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_RESET);     
+      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(BO_sen_GPIO_Port, BO_sen_Pin, GPIO_PIN_RESET);     
     }
 
     /**
@@ -664,11 +680,13 @@ void Fphysical(void const * argument)
     {
       HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_RESET); 
+      HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_SET);
     }
     else
     {
       HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+      HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_RESET);
     }
 
     GSTpressure = rand();
