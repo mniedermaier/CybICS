@@ -58,3 +58,8 @@ Start fuxa
 ```sh
 fuxa
 ```
+
+Wireshark Network capture
+```sh
+sshpass -p raspberry ssh pi@192.168.178.141 -p 22 sudo tcpdump -U -s0 'not port 22' -i lo -w - | sudo wireshark -k -i -
+```
