@@ -12,6 +12,16 @@ sudo openocd -f ./openocd_rpi.cfg -c "program build/CybICS.bin verify reset exit
 1. Select Debug target `Debug with External RPi`
 1. Hit F5
 
+## Enable UART on the Raspberry Pi
+```sh
+sudo nano /boot/config.txt
+```
+Change/add in config "enable_uart=1"
+
+```sh
+ln -s /lib/systemd/system/getty@.service /mnt/root/etc/systemd/system/getty.target.wants/getty@ttyGS0.service
+```
+
 ## Install FUXA
 ### Increase SWAP file size
 Temporarily Stop Swap:
