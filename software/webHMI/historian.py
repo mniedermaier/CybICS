@@ -1,6 +1,7 @@
 import sqlite3
 import time
 import os
+from datetime import datetime
 from pymodbus.client import ModbusTcpClient
 
 #path = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -21,8 +22,7 @@ def reset_db():
     db.execute('DROP TABLE IF EXISTS readings')
     db.commit()
 
-    db.execute("CREATE TABLE IF NOT EXISTS readings(time DATETIME, type TEXT, value REAL)")
-
+    db.execute("CREATE TABLE IF NOT EXISTS readings(time TIMESTAMP, valueGST REAL, valueHPT REAL)")
     db.commit()
 
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     while True:
         # Save the current unix time for this measurement.
-        reading_time = int(time.time())
+        reading_time = datetime.now()
 
         request = client.read_holding_registers(1124,1)
         gst = request.registers
@@ -50,9 +50,6 @@ if __name__ == '__main__':
 
         # Save the reading in the readings table.
         db.execute('INSERT INTO readings VALUES (?, ?, ?)',
-                (reading_time, "GST", int(gst[0])))
-        db.commit()
-        db.execute('INSERT INTO readings VALUES (?, ?, ?)',
-                (reading_time, "HPT", int(hpt[0])))
+                (reading_time, int(gst[0]), int(hpt[0])))
         db.commit()
         time.sleep(1.0)

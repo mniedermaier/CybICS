@@ -671,6 +671,7 @@ void Fphysical(void const * argument)
       HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
     }
 
+    GSTpressure = rand();
     /**
      * Set the right values in the TX Data:
      * - GSTTpressure
