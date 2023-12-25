@@ -19,7 +19,7 @@ address = 0x20
 bus = smbus.SMBus(channel)
 
 gst = 0
-got = 0
+hpt = 0
 
 while True:
   ip = ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
@@ -40,17 +40,18 @@ while True:
     data[row] = chr(data[row])
   print(data)
 
-  gst = int(str(data[4] + data[5] + data[6]))
-  hpt = int(str(data[14] + data[15] + data[16]))
+  if(str(data[0]) == "G" and str(data[1]) == "S" and str(data[2]) == "T"):
+    gst = int(str(data[4] + data[5] + data[6]))
+    hpt = int(str(data[14] + data[15] + data[16]))
 
-  print("Setting GST to " + str(gst) + " and HPT to " + str(hpt))
-  client = ModbusTcpClient(host="127.0.0.1",port=502)   # Create client object
-  client.connect()                           # connect to device, reconnect automatically
-  client.write_registers(1124,gst) #(register, value, unit)
-  client.write_registers(1125,hpt) #(register, value, unit)
+    print("Setting GST to " + str(gst) + " and HPT to " + str(hpt))
+    client = ModbusTcpClient(host="127.0.0.1",port=502)   # Create client object
+    client.connect()                           # connect to device, reconnect automatically
+    client.write_registers(1124,gst) #(register, value, unit)
+    client.write_registers(1125,hpt) #(register, value, unit)
 
-  client.close()                             # Disconnect device
-
+    client.close()                             # Disconnect device
+  
   
   time.sleep(0.01)
 

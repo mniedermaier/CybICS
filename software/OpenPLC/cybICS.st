@@ -1,8 +1,11 @@
 PROGRAM cybICS
   VAR
     (* heartbeat LED on the PCB *)
+    systemSen AT %IX0.1 : BOOL;
+    boSen AT %IX0.2 : BOOL;
     heartbeat AT %QX0.0 : BOOL;
     compressor AT %QX0.1 : BOOL;
+    systemValve AT %QX0.2 : BOOL;
     gst AT %MW100 : UINT;
     hpt AT %MW101 : UINT;
     
@@ -23,10 +26,16 @@ PROGRAM cybICS
   
   IF hpt < 60 AND compressorState = 0 THEN    
     compressorState := 1;
-  ELSIF hpt < 140 AND compressorState = 1 THEN    
+  ELSIF hpt < 90 AND compressorState = 1 THEN    
     compressorState := 1;
   ELSE
     compressorState := 0;
+  END_IF;
+  
+  IF hpt > 50 AND hpt<100 THEN
+    systemValve := TRUE;
+  ELSE
+    systemValve := FALSE;
   END_IF;
   
   IF compressorState = 1 THEN

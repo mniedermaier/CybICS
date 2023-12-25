@@ -607,7 +607,7 @@ void Fphysical(void const * argument)
       HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET); 
     }
 
-    if(HPTpressure<20)
+    if(HPTpressure<1)
     {
       HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
