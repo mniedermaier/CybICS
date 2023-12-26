@@ -41,14 +41,14 @@ while True:
   print(data)
 
   if(str(data[0]) == "G" and str(data[1]) == "S" and str(data[2]) == "T"):
-    gst = int(str(data[4] + data[5] + data[6]))
+    gst = int(str(data[5] + data[6] + data[7]))
     hpt = int(str(data[14] + data[15] + data[16]))
 
     print("Setting GST to " + str(gst) + " and HPT to " + str(hpt))
     client = ModbusTcpClient(host="127.0.0.1",port=502)   # Create client object
     client.connect()                           # connect to device, reconnect automatically
     client.write_registers(1124,gst) #(register, value, unit)
-    client.write_registers(1125,hpt) #(register, value, unit)
+    client.write_registers(1126,hpt) #(register, value, unit)
 
     client.close()                             # Disconnect device
   

@@ -576,6 +576,7 @@ void Fphysical(void const * argument)
         if(HPTpressure<255)
         {
           HPTpressure++;
+          GSTpressure = GSTpressure - (rand() % 20);
         }        
         HPTdelay=0;
       }
@@ -688,8 +689,33 @@ void Fphysical(void const * argument)
       HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
       HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_RESET);
     }
+    /**
+     * Gas Storage Tank
+    */  
+    if(GSTpressure<50)
+    {
+      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_RESET);
+    }
+    else if(GSTpressure<150)
+    {
+      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
+    }
+    else
+    {
+      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
+    }
 
-    GSTpressure = rand();
+    if(GSTpressure<255)
+    {
+      GSTpressure++;
+    }
+    
     /**
      * Set the right values in the TX Data:
      * - GSTTpressure

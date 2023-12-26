@@ -7,7 +7,7 @@ PROGRAM cybICS
     compressor AT %QX0.1 : BOOL;
     systemValve AT %QX0.2 : BOOL;
     gst AT %MW100 : UINT;
-    hpt AT %MW101 : UINT;
+    hpt AT %MW102 : UINT;
     
     compressorState AT %MW200 : UINT;
   END_VAR
