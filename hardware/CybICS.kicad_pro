@@ -114,7 +114,7 @@
         "min_clearance": 0.0,
         "min_connection": 0.0,
         "min_copper_edge_clearance": 0.0,
-        "min_hole_clearance": 0.25,
+        "min_hole_clearance": 0.15,
         "min_hole_to_hole": 0.25,
         "min_microvia_diameter": 0.19999999999999998,
         "min_microvia_drill": 0.09999999999999999,
@@ -484,6 +484,10 @@
     [
       "8fcde287-628f-41a4-bd3a-47641b4dabbc",
       ""
+    ],
+    [
+      "13fd811d-e525-40d8-9276-ff98ff8345b7",
+      "USB Power connector"
     ]
   ],
   "text_variables": {}

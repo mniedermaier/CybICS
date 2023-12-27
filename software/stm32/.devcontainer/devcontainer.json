@@ -2,7 +2,7 @@
 	"name": "CybICS",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "dev",
-	"workspaceFolder": "/CybICS/software",
+	"workspaceFolder": "/CybICS/software/stm32",
 	"shutdownAction": "stopCompose",
 	"customizations": {
 		"vscode": {
