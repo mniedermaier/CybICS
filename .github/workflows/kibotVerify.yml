@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  schema: "hardware/*.kicad_sch"
-  board: "hardware/*.kicad_pcb"
+  schema: "hardware/CybICS.kicad_sch"
+  board: "hardware/CybICS.kicad_pcb"
   dir: "hardware/"
   config: "hardware/kibot.yaml"
 
