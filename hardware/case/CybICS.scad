@@ -1,51 +1,62 @@
 union() difference() { 
   union() { 
     // Base plate
-    cube(size = [160,70.8,1], center = false);
+    cube(size = [164,70.8,2], center = false);
     // Front plate
-    translate([-1,-1,0])    
-      cube(size = [162,1,10], center = false); 
+    union() difference() { 
+      translate([-1,-1,0])    
+        cube(size = [166,2,10], center = false);
+      // CybICS Text
+      translate ([10,0,3]) {
+        rotate([90,0,0])
+          linear_extrude(height = 1) {
+           text("CybICS", font = "Liberation Sans", size = 6);
+        }
+      } 
+  }
     // Back plate
-    translate([-1,70.8,0])    
-      cube(size = [162,1,80.8], center = false); 
+    translate([-2,70.8,0])    
+      cube(size = [167,2,78.8], center = false); 
     // Left plate
-    translate([-1,0,10]) {
-      rotate([90,180,90]) {
-        linear_extrude(1) {
-          polygon(points=[[0,0],[-70.8,0],[-70.8,-70.8]], paths=[[0,1,2]]);
+    union() difference() { 
+      union() {
+        translate([-2,0,13]) {
+          rotate([90,180,90]) {
+            linear_extrude(7) {
+              polygon(points=[[0,0],[-70.8,0],[-70.8,-70.8]], paths=[[0,1,2]]);
+            }
+          }
         }
+        translate([-2,-1,0])    
+          cube(size = [7,72.8,13], center = false); 
       }
+      translate([0,0,6])    
+        rotate([45,0,0])
+          cube(size = [5,120,3], center = false); 
+      translate([-2,15,21])    
+        rotate([45,0,0])
+          cube(size = [7,60,8], center = false); 
     }
-    translate([0,0,8]) {
-      rotate([90,180,90]) {
-        linear_extrude(2) {
-          polygon(points=[[0,0],[-70.8,0],[-70.8,-70.8]], paths=[[0,1,2]]);
-        }
-      }
-    }
-    translate([-1,-1,0])    
-      cube(size = [1,72.8,10], center = false); 
-    translate([-1,-1,0])    
-      cube(size = [3,72.8,8], center = false);; 
     // Right plate
-    translate([160,0,10]) {
-      rotate([90,180,90]) {
-        linear_extrude(1) {
-          polygon(points=[[0,0],[-70.8,0],[-70.8,-70.8]], paths=[[0,1,2]]);
+    union() difference() { 
+      union() {
+        translate([158,0,13]) {
+          rotate([90,180,90]) {
+            linear_extrude(7) {
+              polygon(points=[[0,0],[-70.8,0],[-70.8,-70.8]], paths=[[0,1,2]]);
+            }
+          }
         }
+        translate([158,-1,0])    
+          cube(size = [7,72.8,13], center = false); 
       }
+      translate([158,0,6])    
+        rotate([45,0,0])
+          cube(size = [5,120,3], center = false); 
+      translate([158,15,21])    
+        rotate([45,0,0])
+          cube(size = [7,60,8], center = false); 
     }
-    translate([158,0,8]) {
-      rotate([90,180,90]) {
-        linear_extrude(2) {
-          polygon(points=[[0,0],[-70.8,0],[-70.8,-70.8]], paths=[[0,1,2]]);
-        }
-      }
-    }
-    translate([160,-1,0])    
-      cube(size = [1,72.8,10], center = false); 
-    translate([158,-1,0])    
-      cube(size = [2,72.8,8], center = false);; 
   }
   
   // Baseplate honey
