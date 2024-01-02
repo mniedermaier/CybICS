@@ -1,4 +1,40 @@
 
+## Install FUXA
+### Increase SWAP file size
+Temporarily Stop Swap:
+```sh
+sudo dphys-swapfile swapoff
+```
+
+Modify the size of the swap
+```sh
+sudo nano /etc/dphys-swapfile
+```
+Change in config "CONF_SWAPSIZE=1024"
+
+Initialize Swap File
+```sh
+sudo dphys-swapfile setup
+```
+Start Swap
+```sh
+sudo dphys-swapfile swapon
+```
+
+### Install NPM and Fuxa
+Install npm
+```sh
+sudo apt install npm
+```
+
+```sh
+sudo npm install -g --unsafe-perm @frangoteam/fuxa
+```
+
+Start fuxa
+```sh
+fuxa
+```
 
 ## Add FUXA to system.d for autostart
 

@@ -7438,7 +7438,7 @@
   (gr_text "Normal" (at 82.2873 76.800001) (layer "F.SilkS") (tstamp 35504e6a-647f-4ac0-8d00-8c8265ab3736)
     (effects (font (size 2 2) (thickness 0.25)) (justify left bottom))
   )
-  (gr_text "External \nGas Supply" (at 51.8 68.800001) (layer "F.SilkS") (tstamp 36db3ee6-5053-4dae-867b-a6c253b95f2f)
+  (gr_text "External \nGas\nSupply" (at 57.5 71.6) (layer "F.SilkS") (tstamp 36db3ee6-5053-4dae-867b-a6c253b95f2f)
     (effects (font (size 2 2) (thickness 0.4) bold) (justify left bottom))
   )
   (gr_text "RPi Heartbeat" (at 51 129) (layer "F.SilkS") (tstamp 417019f9-71fa-400a-a262-192ab7133753)

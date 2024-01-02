@@ -22,42 +22,7 @@ Change/add in config "enable_uart=1"
 ln -s /lib/systemd/system/getty@.service /mnt/root/etc/systemd/system/getty.target.wants/getty@ttyGS0.service
 ```
 
-## Install FUXA
-### Increase SWAP file size
-Temporarily Stop Swap:
-```sh
-sudo dphys-swapfile swapoff
-```
 
-Modify the size of the swap
-```sh
-sudo nano /etc/dphys-swapfile
-```
-Change in config "CONF_SWAPSIZE=1024"
-
-Initialize Swap File
-```sh
-sudo dphys-swapfile setup
-```
-Start Swap
-```sh
-sudo dphys-swapfile swapon
-```
-
-### Install NPM and Fuxa
-Install npm
-```sh
-sudo apt install npm
-```
-
-```sh
-sudo npm install -g --unsafe-perm @frangoteam/fuxa
-```
-
-Start fuxa
-```sh
-fuxa
-```
 
 Wireshark Network capture
 ```sh

@@ -1,5 +1,5 @@
 #!/bin/bash
-IP=192.168.178.141
+IP=10.10.0.126
 USER=pi
 PASSWORD=raspberry
 

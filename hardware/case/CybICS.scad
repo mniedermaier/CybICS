@@ -1,7 +1,7 @@
 union() difference() { 
   union() { 
     // Base plate
-    cube(size = [164,70.8,2], center = false);
+    cube(size = [164,70.8,1], center = false);
     // Front plate
     union() difference() { 
       translate([-1,-1,0])    
@@ -16,7 +16,7 @@ union() difference() {
   }
     // Back plate
     translate([-2,70.8,0])    
-      cube(size = [167,2,78.8], center = false); 
+      cube(size = [167,1,74], center = false); 
     // Left plate
     union() difference() { 
       union() {
@@ -33,9 +33,9 @@ union() difference() {
       translate([0,0,6])    
         rotate([45,0,0])
           cube(size = [5,120,3], center = false); 
-      translate([-2,15,21])    
+      translate([-2,10,16])    
         rotate([45,0,0])
-          cube(size = [7,60,8], center = false); 
+          cube(size = [7,75,8], center = false); 
     }
     // Right plate
     union() difference() { 
@@ -53,9 +53,9 @@ union() difference() {
       translate([158,0,6])    
         rotate([45,0,0])
           cube(size = [5,120,3], center = false); 
-      translate([158,15,21])    
+      translate([158,10,16])    
         rotate([45,0,0])
-          cube(size = [7,60,8], center = false); 
+          cube(size = [7,75,8], center = false); 
     }
   }
   
@@ -77,13 +77,13 @@ union() difference() {
       rotate([180,90,90]) {
         cylinder(h = 12, r=10, center = true);
       }
-    translate([17.5+25*x, 70, 65])
+    translate([17.5+25*x, 70, 55])
       rotate([180,90,90]) {
         cylinder(h = 12, r=10, center = true);
       }
   }
   for (x = [0:4]){
-    translate([30+25*x, 70, 40])
+    translate([30+25*x, 70, 35])
       rotate([180,90,90]) {
         cylinder(h = 10, r=10, center = true);
       }
