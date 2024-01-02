@@ -8,6 +8,7 @@
 			"options": {
 				"cwd": "${workspaceRoot}"
 			},
+			"dependsOn": "source",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -25,7 +26,6 @@
 			},
 			"group": {
 				"kind": "build",
-				"isDefault": true
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -40,7 +40,6 @@
 			},
 			"group": {
 				"kind": "build",
-				"isDefault": true
 			},
 			"problemMatcher": [
 				"$gcc"

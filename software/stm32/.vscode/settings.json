@@ -5,5 +5,5 @@
         "cmsis_os.h": "c",
         "display.h": "c"
     },
-    "stm32-for-vscode.openOCDPath": "/usr/bin/openocd"
+    "stm32-for-vscode.openOCDPath": false
 }

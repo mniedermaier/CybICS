@@ -78,3 +78,5 @@ fp-info-cache
 
 # do not push database
 historian.sqlite
+
+.dev.env
