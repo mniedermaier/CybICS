@@ -1,4 +1,10 @@
+### Install dependencies
 
+```sh
+sudo apt install python3-netifaces python3-pymodbus
+```
+
+### Service for autostart
 
 
 ```sh
