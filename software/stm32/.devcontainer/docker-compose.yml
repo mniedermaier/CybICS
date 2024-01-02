@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     command: /bin/sh -c "while sleep 1000; do :; done"
     volumes:
-      - ../../:/CybICS:cached
+      - ../../../:/CybICS
       - ~/.ssh:/home/devuser/.ssh/
       - ~/.gitconfig:/home/devuser/.gitconfig
 
