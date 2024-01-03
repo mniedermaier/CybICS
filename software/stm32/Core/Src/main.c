@@ -616,7 +616,7 @@ void Fphysical(void const * argument)
   HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
   
-  GPIO_PinState buttonState;
+
   GPIO_PinState cState; // state of the compressor
   GPIO_PinState svState; // state of the system valve
 
@@ -788,7 +788,7 @@ void Fphysical(void const * argument)
      * - HPTpressure
      * Format: GST: %03d HPT: %03d
     */    
-    snprintf(TxData, sizeof(TxData), "GST: %03d HPT: %03d", GSTpressure, HPTpressure);
+    snprintf((char*)TxData, sizeof(TxData), "GST: %03d HPT: %03d", GSTpressure, HPTpressure);
 
     HPTdelay = HPTdelay+1;
     osDelay(10);
