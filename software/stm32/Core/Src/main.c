@@ -23,7 +23,11 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "display.h"
-
+#include "colors.h"
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/unistd.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,7 +42,12 @@ uint8_t HPTpressure=0;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define LOG_ERR 0x03
+#define LOG_WAR 0x02
+#define LOG_INF 0x01
+#define LOG_DEB 0x00
 
+#define showLogLevel LOG_DEB
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,12 +80,57 @@ void Fphysical(void const * argument);
 void Fi2chandler(void const * argument);
 
 /* USER CODE BEGIN PFP */
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+SemaphoreHandle_t huart1Mutex;
 
+int _write(int file, char * data, int len) {
+    if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
+        errno = EBADF;
+        return -1;
+    }
+
+    HAL_StatusTypeDef status = HAL_OK;
+    xSemaphoreTake(huart1Mutex, portMAX_DELAY);
+    status = HAL_UART_Transmit( & huart1, (uint8_t * ) data, len, HAL_MAX_DELAY);
+    xSemaphoreGive(huart1Mutex);
+
+    // return # of bytes written - as best we can tell
+    return (status == HAL_OK ? len : 0);
+}
+
+void logging(unsigned char logLevel, const char *fmt, ...){
+    if(showLogLevel <= logLevel){
+        if(logLevel == LOG_ERR)
+        {  
+            printf("%sERR: %s %s\r\n", CRED, fmt, CRST);
+        }
+        else if(logLevel == LOG_WAR)
+        {
+            printf("%sWAR: %s %s\r\n", CYEL, fmt, CRST);
+        }
+        else if(logLevel == LOG_INF)
+        {
+            printf("%sINF: %s %s\r\n", CBLU, fmt, CRST);
+        }
+        else if(logLevel == LOG_DEB)
+        {
+            printf("%sDEB: %s %s\r\n", CMAG, fmt, CRST);
+        }
+        else
+        {
+            printf("%s???: %s %s\r\n", CRED, fmt, CRST);
+        }
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -115,6 +169,8 @@ int main(void)
     /* Transfer error in reception process */
     Error_Handler();
   }
+
+  huart1Mutex = xSemaphoreCreateMutex();
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -286,7 +342,7 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.Mode = UART_MODE_TX;
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
@@ -457,10 +513,12 @@ void FdefaultTask(void const * argument)
 void FheartBeat(void const * argument)
 {
   /* USER CODE BEGIN FheartBeat */
+  logging(LOG_DEB, "Starting FheartBeat");
   /* Infinite loop */
   for(;;)
   {
     HAL_GPIO_TogglePin(ST_heartbeat_GPIO_Port, ST_heartbeat_Pin);
+    
     osDelay(1000);
   }
   /* USER CODE END FheartBeat */
@@ -477,15 +535,20 @@ void Fdisplay(void const * argument)
 {
   /* USER CODE BEGIN Fdisplay */
   uint8_t shifting=0;
+  uint32_t secondsAfterStart = 0;
+  char displayText[20];
+
+  osDelay(10);
+
   Lcd_PortType ports[] = {
 		  D_d4_GPIO_Port, D_d5_GPIO_Port, D_d6_GPIO_Port, D_d7_GPIO_Port
   };
 
   Lcd_PinType pins[] = {D_d4_Pin, D_d5_Pin, D_d6_Pin, D_d7_Pin};
-
   Lcd_HandleTypeDef lcd = Lcd_create(ports, pins, D_rs_GPIO_Port, D_rs_Pin, D_enable_GPIO_Port, D_enable_Pin, LCD_4_BIT_MODE);
-  uint32_t secondsAfterStart = 0;
-  char displayText[20];
+
+  logging(LOG_DEB, "Starting Fdisplay");
+
   Lcd_string(&lcd, "CybICS v0.1");
   /* Infinite loop */
   for(;;)
@@ -521,6 +584,9 @@ void Fphysical(void const * argument)
 {
   /* USER CODE BEGIN Fphysical */
   uint8_t HPTuse=0;
+  osDelay(20);
+
+  logging(LOG_DEB, "Starting Fphysical");
 
   // clear Gas Storage Tank LEDs
   HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
@@ -740,6 +806,8 @@ void Fphysical(void const * argument)
 void Fi2chandler(void const * argument)
 {
   /* USER CODE BEGIN Fi2chandler */
+  osDelay(30);
+  logging(LOG_DEB, "Starting Fi2chandler");
   /* Infinite loop */
   for(;;)
   {
@@ -786,6 +854,7 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  logging(LOG_ERR, "Error_Handler"); 
   while (1)
   {
   }
