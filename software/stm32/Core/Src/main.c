@@ -143,7 +143,7 @@ int main(void)
   heartBeatHandle = osThreadCreate(osThread(heartBeat), NULL);
 
   /* definition and creation of display */
-  osThreadDef(display, Fdisplay, osPriorityNormal, 0, 128);
+  osThreadDef(display, Fdisplay, osPriorityNormal, 0, 256);
   displayHandle = osThreadCreate(osThread(display), NULL);
 
   /* definition and creation of physical */
