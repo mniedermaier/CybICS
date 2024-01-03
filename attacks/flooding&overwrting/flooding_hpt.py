@@ -1,9 +1,10 @@
 import time 
 from pymodbus.client import ModbusTcpClient
+import os
 
 hpt = 10
 
-client = ModbusTcpClient(host="192.168.178.141",port=502)   # Create client object
+client = ModbusTcpClient(host=os.environ["DEVICE_IP"],port=502)   # Create client object
 client.connect()                 # connect to device, reconnect automatically
     
 while True:
