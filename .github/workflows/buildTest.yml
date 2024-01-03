@@ -18,4 +18,4 @@ jobs:
       with:
         release: '9-2019-q4' # The arm-none-eabi-gcc release to use.       
     - name: make      
-      run: make -C software/stm32/
+      run: CFLAGS=-Werror make -C software/stm32/
