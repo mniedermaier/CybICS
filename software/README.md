@@ -40,19 +40,19 @@ sudo apt install rpi-imager
 ```
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="../pictures/rpi-imager.png" width=90%></img>
+<img src="pictures/rpi-imager.png" width=90%></img>
 </td></tr></table>
 
 Click on "CHOOSE OS" &rarr; "Raspberry Pi OS (other)" and select "Raspberry Pi OS Lite (64-bit)".
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="../pictures/rpi-imager_OS.png" width=90%></img>
+<img src="pictures/rpi-imager_OS.png" width=90%></img>
 </td></tr></table>
 
 Click on "CHOOSE STORAGE" and select the SD card, where the image should be installed.
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="../pictures/rpi-imager_SD.png" width=90%></img>
+<img src=".pictures/rpi-imager_SD.png" width=90%></img>
 </td></tr></table>
 
 Click on the settings icon on the bottom right.
@@ -67,10 +67,10 @@ Click on the settings icon on the bottom right.
 - Configure local settings
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="../pictures/rpi-imager_settings.png" width=90%></img>
+<img src="pictures/rpi-imager_settings.png" width=90%></img>
 </td></tr></table>
 
 Write the changes to the SD card.
 <table align="center"><tr><td align="center" width="9999">
-<img src="../pictures/rpi-imager_write.png" width=90%></img>
+<img src="pictures/rpi-imager_write.png" width=90%></img>
 </td></tr></table>
