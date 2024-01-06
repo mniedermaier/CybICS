@@ -17,7 +17,7 @@
 				"mcu-debug.peripheral-viewer",
 				"bmd.stm32-for-vscode",
 				"ms-azuretools.vscode-docker",
-				"streetsidesoftware.code-spell-checker"
+				"timonwong.shellcheck"
 			]
 		}
 	}
