@@ -21,6 +21,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 RUN python3 -m pip install pymodbus flask
 
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --gid 1000 devuser \
     && adduser --disabled-password --gecos "" --uid 1000 --gid 1000 devuser \
     && echo 'devuser:devuser' | chpasswd \
