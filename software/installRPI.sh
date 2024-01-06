@@ -1,5 +1,10 @@
 #!/bin/bash
-export $(grep -v '^#' ../.dev.env | xargs)
+set -e
+
+GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
+
+echo "$GIT_ROOT"
+source "$GIT_ROOT"/.dev.env
 
 echo "                                    "
 echo " Staring the                        "
@@ -18,20 +23,102 @@ echo " Make sure, that the ENV variables  "
 echo " are set correctly! (../.dev.env)   "
 
 ###
-### Installing sshpass on the host
-###
-echo "# Installing sshpass on the host (root requried):"
-sudo apt update  # To get the latest package lists
-sudo apt install sshpass -y
-
-###
 ### Copying CybICS Git to the target
 ###
 echo "# Removing old CybICS GIT, if existing:" 
-sshpass -p $DEVIDE_PASSWORD ssh $DEVICE_USER@$DEVICE_IP <<'EOL'
-    "rm -rf /home/pi/gits/CybICS'
-    "mkdir -p /home/pi/gits"
-EOL
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    rm -rf /home/pi/gits/CybICS
+    mkdir -p /home/pi/gits
+EOF
 
 echo "# Copying CybICS GIT to Raspberry Pi"
-sshpass -p $DEVIDE_PASSWORD scp -rp ../../CybICS $DEVICE_USER@$DEVICE_IP:/home/pi/gits
+scp -rp "$GIT_ROOT" "$DEVICE_USER"@"$DEVICE_IP":/home/pi/gits
+if false; then
+###
+### FUXA installation
+###
+echo "# Increasing swap file ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    sudo dphys-swapfile swapoff
+    sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=1024/g /etc/dphys-swapfile
+    sudo dphys-swapfile setup
+    sudo dphys-swapfile swapon
+EOF
+
+echo "# Installing FUXA ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    sudo apt-get update
+    sudo apt-get install npm -y
+    sudo npm install -g --unsafe-perm @frangoteam/fuxa
+EOF
+
+
+
+
+echo "# Config FUXA ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    sudo systemctl stop fuxa.service | true    
+    sudo tee /lib/systemd/system/fuxa.service <<EOL
+[Unit]
+Description=FUXA Service
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=pi
+WorkingDirectory=/home/pi
+ExecStart=sudo /usr/local/bin/fuxa
+
+[Install]
+WantedBy=multi-user.target
+EOL
+    sudo systemctl daemon-reload
+    sudo systemctl start fuxa.service
+    sudo systemctl enable fuxa.service
+EOF
+
+echo "# Config FUXA project ..."
+while ! curl -X POST -H "Content-Type: application/json" -d @"$GIT_ROOT"/software/FUXA/fuxa-project.json http://"$DEVICE_IP":1881/api/project
+do
+    echo "Waiting till FUXA is online ..."
+    sleep 1
+done
+
+
+
+###
+### OpenPLC installation
+###
+echo "# Cloning OpenPLC ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
+    mkdir -p /home/pi/gits
+    cd /home/pi/gits
+    git clone https://github.com/thiagoralves/OpenPLC_v3.git
+    cp /home/pi/gits/software/OpenPLC/raspberrypi.cpp /home/pi/gits/OpenPLC_v3/webserver/core/hardware_layers/raspberrypi.cpp
+    cd /home/pi/gits/OpenPLC_v3
+    ./install.sh rpi
+EOF
+
+echo "# Configuring OpenPLC ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
+    cd /home/pi/gits/OpenPLC_v3/webserver
+    cp /home/pi/gits/CybICS/software/OpenPLC/cybICS.st st_files/ 
+    rm -rf st_files/blank_program.st
+    ./scripts/compile_program.sh cybICS.st
+EOF
+
+
+
+fi
+###
+### Enable I2C
+###
+echo "# Enable I2C on the RPi ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
+    sudo raspi-config nonint do_i2c 0
+EOF
