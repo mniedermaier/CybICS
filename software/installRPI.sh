@@ -33,7 +33,9 @@ EOF
 
 echo "# Copying CybICS GIT to Raspberry Pi"
 scp -rp "$GIT_ROOT" "$DEVICE_USER"@"$DEVICE_IP":/home/pi/gits
-if false; then
+
+
+
 ###
 ### FUXA installation
 ###
@@ -113,7 +115,6 @@ EOF
 
 
 
-fi
 ###
 ### Enable I2C
 ###
