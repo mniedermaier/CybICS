@@ -34,30 +34,38 @@ sshpass -p raspberry ssh pi@192.168.178.141 -p 22 sudo tcpdump -U -s0 'not port 
 ## Install Raspberry Pi OS using Raspberry Pi Imager
 With the help of the Raspberry Pi Imager, the basic linux installation on the SD card can be done.
 The software can b e download for Windows, macOS, and Linux from the Raspberry Pi homepage (https://www.raspberrypi.com/software/).
-Alternatively, under Ubuntu it can be installed via apt.
-```sh
-sudo apt install rpi-imager
-```
+After installation start the rpi-imager software.
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="pictures/rpi-imager.png" width=90%></img>
+<img src="pictures/01_rpi-imager.png" width=70%></img>
+</td></tr></table>
+
+Click on "CHOOSE DEVICE" and select "No filtering".
+
+
+<table align="center"><tr><td align="center" width="9999">
+<img src="pictures/02_rpi-imager_device.png" width=70%></img>
 </td></tr></table>
 
 Click on "CHOOSE OS" &rarr; "Raspberry Pi OS (other)" and select "Raspberry Pi OS Lite (64-bit)".
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="pictures/rpi-imager_OS.png" width=90%></img>
+<img src="pictures/03_rpi-imager_OS.png" width=70%></img>
 </td></tr></table>
 
 Click on "CHOOSE STORAGE" and select the SD card, where the image should be installed.
 
 <table align="center"><tr><td align="center" width="9999">
-<img src=".pictures/rpi-imager_SD.png" width=90%></img>
+<img src="pictures/04_rpi-imager.png" width=70%></img>
 </td></tr></table>
 
-Click on the settings icon on the bottom right.
+Click NEXT and select "EDIT SETTINGS":
+<table align="center"><tr><td align="center" width="9999">
+<img src="pictures/05_rpi-imager_custom.png" width=70%></img>
+</td></tr></table>
+
+Edit the options for image customization:
 - Set hostname to "CybICS".
-- Enable SSH
 - Set username and password
   - Username: pi
   - Password: raspberry
@@ -67,10 +75,10 @@ Click on the settings icon on the bottom right.
 - Configure local settings
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="pictures/rpi-imager_settings.png" width=90%></img>
+<img src="pictures/06_rpi-imager_options.png" width=45%></img>
+<img src="pictures/07_rpi-imager_services.png" width=45%></img>
 </td></tr></table>
 
+
 Write the changes to the SD card.
-<table align="center"><tr><td align="center" width="9999">
-<img src="pictures/rpi-imager_write.png" width=90%></img>
-</td></tr></table>
+
