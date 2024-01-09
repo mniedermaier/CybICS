@@ -26,7 +26,7 @@ echo " are set correctly! (../.dev.env)   "
 ###
 ### Remove IP from known_hosts
 ###
-ssh-keygen -f "/home/matt/.ssh/known_hosts" -R "$DEVICE_IP"
+ssh-keygen -f ~/.ssh/known_hosts -R "$DEVICE_IP"
 ssh-keyscan -H "$DEVICE_IP" >> ~/.ssh/known_hosts
 ssh-copy-id -i ~/.ssh/id_rsa.pub "$DEVICE_USER"@"$DEVICE_IP"
 
@@ -102,7 +102,7 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
     mkdir -p /home/pi/gits
     cd /home/pi/gits
-    rm -rf OpenPLC_v3
+    sudo rm -rf OpenPLC_v3
     git clone https://github.com/thiagoralves/OpenPLC_v3.git
     cp /home/pi/gits/CybICS/software/OpenPLC/raspberrypi.cpp /home/pi/gits/OpenPLC_v3/webserver/core/hardware_layers/raspberrypi.cpp
     cd /home/pi/gits/OpenPLC_v3
@@ -135,7 +135,7 @@ EOF
 echo "# Installing GCC ARM NONE EABI on the RPi ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
-    sudo apt-get install gcc-arm-none-eabi
+    sudo apt-get install gcc-arm-none-eabi -y
 EOF
 
 
@@ -145,5 +145,5 @@ EOF
 echo "# EInstalling openocd on the RPi ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
-    sudo apt-get install openocd
+    sudo apt-get install openocd -y
 EOF
