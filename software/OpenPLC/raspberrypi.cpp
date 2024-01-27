@@ -28,8 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <wiringPi.h>
-#include <wiringSerial.h>
+#include <pigpio.h>
 #include <pthread.h>
 
 #include "ladder.h"
@@ -52,11 +51,11 @@
 ****************************************************************/
 //inBufferPinMask: pin mask for each input, which
 //means what pin is mapped to that OpenPLC input
-int inBufferPinMask[MAX_INPUT] = { 29, 31, 26 };
+int inBufferPinMask[MAX_INPUT] = { 21, 1, 12 };
 
 //outBufferPinMask: pin mask for each output, which
 //means what pin is mapped to that OpenPLC output
-int outBufferPinMask[MAX_OUTPUT] =	{ 7, 10, 11 };
+int outBufferPinMask[MAX_OUTPUT] =	{ 4, 8, 7 };
 
 //analogOutBufferPinMask: pin mask for the analog PWM
 //output of the RaspberryPi
@@ -68,34 +67,30 @@ int analogOutBufferPinMask[MAX_ANALOG_OUT] = {  };
 //-----------------------------------------------------------------------------
 void initializeHardware()
 {
-	wiringPiSetup();
+	//wiringPiSetup();
+   	if (gpioInitialise() == PI_INIT_FAILED)
+   	{
+      	printf("ERROR: Failed to initialize the GPIO interface.\n");
+      	return 1;
+   	}
 	//piHiPri(99);
 
 	//set pins as input
 	for (int i = 0; i < MAX_INPUT; i++)
 	{
-	    if (pinNotPresent(ignored_bool_inputs, ARRAY_SIZE(ignored_bool_inputs), inBufferPinMask[i]))
-	    {
-		    pinMode(inBufferPinMask[i], INPUT);
-		    if (i != 0 && i != 1) //pull down can't be enabled on the first two pins
-		    {
-			    pullUpDnControl(inBufferPinMask[i], PUD_DOWN); //pull down enabled
-		    }
-	    }
+		gpioSetMode(inBufferPinMask[i], PI_INPUT);
 	}
 
 	//set pins as output
 	for (int i = 0; i < MAX_OUTPUT; i++)
 	{
-	    if (pinNotPresent(ignored_bool_outputs, ARRAY_SIZE(ignored_bool_outputs), outBufferPinMask[i]))
-	    	pinMode(outBufferPinMask[i], OUTPUT);
+		gpioSetMode(outBufferPinMask[i], PI_OUTPUT);
 	}
 
 	//set PWM pins as output
 	for (int i = 0; i < MAX_ANALOG_OUT; i++)
 	{
-	    if (pinNotPresent(ignored_int_outputs, ARRAY_SIZE(ignored_int_outputs), analogOutBufferPinMask[i]))
-    		pinMode(analogOutBufferPinMask[i], PWM_OUTPUT);
+		//TODO
 	}
 }
 
@@ -119,8 +114,10 @@ void updateBuffersIn()
 	//INPUT
 	for (int i = 0; i < MAX_INPUT; i++)
 	{
-	    if (pinNotPresent(ignored_bool_inputs, ARRAY_SIZE(ignored_bool_inputs), inBufferPinMask[i]))
-    		if (bool_input[i/8][i%8] != NULL) *bool_input[i/8][i%8] = digitalRead(inBufferPinMask[i]);
+		if (bool_input[i/8][i%8] != NULL)
+		{
+			*bool_input[i/8][i%8] = gpioRead(inBufferPinMask[i]) == PI_HIGH;
+		}
 	}
 
 	pthread_mutex_unlock(&bufferLock); //unlock mutex
@@ -138,15 +135,16 @@ void updateBuffersOut()
 	//OUTPUT
 	for (int i = 0; i < MAX_OUTPUT; i++)
 	{
-	    if (pinNotPresent(ignored_bool_outputs, ARRAY_SIZE(ignored_bool_outputs), outBufferPinMask[i]))
-    		if (bool_output[i/8][i%8] != NULL) digitalWrite(outBufferPinMask[i], *bool_output[i/8][i%8]);
+		if (bool_output[i/8][i%8] != NULL) 
+		{
+			gpioWrite(outBufferPinMask[i], *bool_output[i/8][i%8] ? PI_HIGH : PI_LOW);
+		}
 	}
 
 	//ANALOG OUT (PWM)
 	for (int i = 0; i < MAX_ANALOG_OUT; i++)
 	{
-	    if (pinNotPresent(ignored_int_outputs, ARRAY_SIZE(ignored_int_outputs), i))
-    		if (int_output[i] != NULL) pwmWrite(analogOutBufferPinMask[i], (*int_output[i] / 64));
+		//TODO
 	}
 
 	pthread_mutex_unlock(&bufferLock); //unlock mutex

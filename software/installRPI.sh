@@ -100,12 +100,15 @@ done
 echo "# Cloning OpenPLC ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
+    sudo apt-get install pigpio -y
     mkdir -p /home/pi/gits
     cd /home/pi/gits
     sudo rm -rf OpenPLC_v3
     git clone https://github.com/thiagoralves/OpenPLC_v3.git
-    cp /home/pi/gits/CybICS/software/OpenPLC/raspberrypi.cpp /home/pi/gits/OpenPLC_v3/webserver/core/hardware_layers/raspberrypi.cpp
     cd /home/pi/gits/OpenPLC_v3
+    git apply /home/pi/gits/CybICS/software/OpenPLC/compile_program.patch
+    cp /home/pi/gits/CybICS/software/OpenPLC/openplc.db /home/pi/gits/OpenPLC_v3/webserver/openplc.db
+    cp /home/pi/gits/CybICS/software/OpenPLC/raspberrypi.cpp /home/pi/gits/OpenPLC_v3/webserver/core/hardware_layers/raspberrypi.cpp
     ./install.sh rpi
 EOF
 
@@ -128,6 +131,31 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     sudo raspi-config nonint do_i2c 0
 EOF
 
+echo "# Config I2C script ..."
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    sudo apt-get install python3-netifaces python3-pymodbus python3-smbus -y
+
+    sudo systemctl stop readI2Cpi.service | true    
+    sudo tee /lib/systemd/system/readI2Cpi.service <<EOL
+[Unit]
+Description=readI2Cpi Service
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=pi
+WorkingDirectory=/home/pi
+ExecStart=/usr/bin/python3 /home/pi/gits/CybICS/software/scripts/readI2Cpi.py
+
+[Install]
+WantedBy=multi-user.target
+EOL
+    sudo systemctl daemon-reload
+    sudo systemctl start readI2Cpi.service
+    sudo systemctl enable readI2Cpi.service
+EOF
 
 ###
 ### Installing GCC ARM
@@ -142,7 +170,7 @@ EOF
 ###
 ### Installing openocd
 ###
-echo "# EInstalling openocd on the RPi ..."
+echo "# Installing openocd on the RPi ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
     sudo apt-get install openocd -y
