@@ -49,6 +49,7 @@ scp -rp "$GIT_ROOT" "$DEVICE_USER"@"$DEVICE_IP":/home/pi/gits
 ###
 echo "# Increasing swap file ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
     sudo dphys-swapfile swapoff
     sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=1024/g /etc/dphys-swapfile
     sudo dphys-swapfile setup
@@ -57,6 +58,7 @@ EOF
 
 echo "# Installing FUXA ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
     sudo apt-get update
     sudo apt-get install npm -y
     sudo npm install -g --unsafe-perm @frangoteam/fuxa
@@ -64,6 +66,7 @@ EOF
 
 echo "# Config FUXA ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
     sudo systemctl stop fuxa.service | true    
     sudo tee /lib/systemd/system/fuxa.service <<EOL
 [Unit]
@@ -97,28 +100,25 @@ done
 ###
 ### OpenPLC installation
 ###
-echo "# Cloning OpenPLC ..."
+echo "# Installing OpenPLC ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
-    sudo apt-get install pigpio -y
+    sudo apt-get install pigpio git -y
     mkdir -p /home/pi/gits
     cd /home/pi/gits
     sudo rm -rf OpenPLC_v3
     git clone https://github.com/thiagoralves/OpenPLC_v3.git
     cd /home/pi/gits/OpenPLC_v3
-    git apply /home/pi/gits/CybICS/software/OpenPLC/compile_program.patch
-    cp /home/pi/gits/CybICS/software/OpenPLC/openplc.db /home/pi/gits/OpenPLC_v3/webserver/openplc.db
-    cp /home/pi/gits/CybICS/software/OpenPLC/raspberrypi.cpp /home/pi/gits/OpenPLC_v3/webserver/core/hardware_layers/raspberrypi.cpp
-    ./install.sh rpi
-EOF
 
-echo "# Configuring OpenPLC ..."
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    set -e
+    git checkout 6621e30830e256dd271a5cf60e430164e080e7b0
+    git apply /home/pi/gits/CybICS/software/OpenPLC/openplc.patch
+    cp /home/pi/gits/CybICS/software/OpenPLC/openplc.db /home/pi/gits/OpenPLC_v3/webserver/openplc.db
+    cp /home/pi/gits/CybICS/software/OpenPLC/cybICS.st /home/pi/gits/OpenPLC_v3/webserver/st_files/724870.st
+    ./install.sh rpi
     cd /home/pi/gits/OpenPLC_v3/webserver
-    cp /home/pi/gits/CybICS/software/OpenPLC/cybICS.st st_files/ 
-    rm -rf st_files/blank_program.st
-    ./scripts/compile_program.sh cybICS.st
+    ./scripts/change_hardware_layer.sh rpi
+    ./scripts/compile_program.sh 724870.st
+    sudo systemctl restart openplc.service
 EOF
 
 
@@ -133,6 +133,7 @@ EOF
 
 echo "# Config I2C script ..."
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
     sudo apt-get install python3-netifaces python3-pymodbus python3-smbus -y
 
     sudo systemctl stop readI2Cpi.service | true    
