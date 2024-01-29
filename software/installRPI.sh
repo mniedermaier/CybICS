@@ -126,6 +126,7 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     git apply /home/pi/gits/CybICS/software/OpenPLC/openplc.patch
     cp /home/pi/gits/CybICS/software/OpenPLC/openplc.db /home/pi/gits/OpenPLC_v3/webserver/openplc.db
     cp /home/pi/gits/CybICS/software/OpenPLC/cybICS.st /home/pi/gits/OpenPLC_v3/webserver/st_files/724870.st
+    export GNUMAKEFLAGS=-j4
     ./install.sh rpi
     cd /home/pi/gits/OpenPLC_v3/webserver
     ./scripts/change_hardware_layer.sh rpi
