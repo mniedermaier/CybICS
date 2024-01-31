@@ -498,7 +498,7 @@
   (symbol (lib_id "power:PWR_FLAG") (at 31.75 67.31 90) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 6c568d6a-218b-4624-9f70-14716bc36e71)
-    (property "Reference" "#FLG02" (at 29.845 67.31 0)
+    (property "Reference" "#FLG04" (at 29.845 67.31 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "PWR_FLAG" (at 27.94 67.31 90)
@@ -513,9 +513,6 @@
     (pin "1" (uuid da152915-4e7d-4b08-8c36-36bb79a449fa))
     (instances
       (project "CybICS"
-        (path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-          (reference "#FLG02") (unit 1)
-        )
         (path "/8fcde287-628f-41a4-bd3a-47641b4dabbc/13fd811d-e525-40d8-9276-ff98ff8345b7"
           (reference "#FLG04") (unit 1)
         )
@@ -526,7 +523,7 @@
   (symbol (lib_id "power:+5V") (at 59.69 25.4 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid abe91bf4-cefe-47cc-b8c7-bdd107071565)
-    (property "Reference" "#PWR09" (at 59.69 29.21 0)
+    (property "Reference" "#PWR051" (at 59.69 29.21 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "+5V" (at 59.69 20.32 0)
@@ -541,9 +538,6 @@
     (pin "1" (uuid 8e1fcfac-b4e2-4908-8443-4ef08064c72e))
     (instances
       (project "CybICS"
-        (path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-          (reference "#PWR09") (unit 1)
-        )
         (path "/8fcde287-628f-41a4-bd3a-47641b4dabbc/13fd811d-e525-40d8-9276-ff98ff8345b7"
           (reference "#PWR051") (unit 1)
         )
@@ -554,7 +548,7 @@
   (symbol (lib_id "power:GND") (at 39.37 68.58 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid b1c44ad0-1ff2-4351-b705-29ba1239b459)
-    (property "Reference" "#PWR010" (at 39.37 74.93 0)
+    (property "Reference" "#PWR052" (at 39.37 74.93 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND" (at 39.37 73.66 0)
@@ -569,9 +563,6 @@
     (pin "1" (uuid 8d8f13e3-7f73-4026-8bc4-511523bbe5e4))
     (instances
       (project "CybICS"
-        (path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-          (reference "#PWR010") (unit 1)
-        )
         (path "/8fcde287-628f-41a4-bd3a-47641b4dabbc/13fd811d-e525-40d8-9276-ff98ff8345b7"
           (reference "#PWR052") (unit 1)
         )
