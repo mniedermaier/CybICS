@@ -6,8 +6,9 @@ PROGRAM cybICS
     heartbeat AT %QX0.0 : BOOL;
     compressor AT %QX0.1 : BOOL;
     systemValve AT %QX0.2 : BOOL;
-    gst AT %MW100 : UINT;
-    hpt AT %MW102 : UINT;
+    gst AT %MW100 : UINT := 0;
+    hpt AT %MW102 : UINT := 0;
+    stop AT %MW104 : UINT := 0;
     
     compressorState AT %MW200 : UINT;
   END_VAR
@@ -16,6 +17,7 @@ PROGRAM cybICS
     countHeartbeat : UINT := 0;  
   END_VAR
 
+  (* System heartbeat *)
   IF countHeartbeat < 20 THEN 
     heartbeat := FALSE;    
   ELSIF countHeartbeat < 40 THEN
@@ -24,24 +26,33 @@ PROGRAM cybICS
     countHeartbeat := 0;
   END_IF;
   
-  IF hpt < 60 AND compressorState = 0 THEN    
-    compressorState := 1;
-  ELSIF hpt < 90 AND compressorState = 1 THEN    
-    compressorState := 1;
+  (* System running state *)
+  IF stop < 1 THEN
+    IF hpt < 60 AND compressorState = 0 THEN    
+      compressorState := 1;
+    ELSIF hpt < 90 AND compressorState = 1 THEN    
+      compressorState := 1;
+    ELSE
+      compressorState := 0;
+    END_IF;
+  
+  
+    IF hpt > 50 AND hpt<100 THEN
+      systemValve := TRUE;
+    ELSE
+      systemValve := FALSE;
+    END_IF;
+  
+    IF compressorState = 1 THEN
+      compressor := TRUE;
+    ELSE
+      compressor := FALSE;
+    END_IF;
+  (* System stop state *)
   ELSE
     compressorState := 0;
-  END_IF;
-  
-  IF hpt > 50 AND hpt<100 THEN
-    systemValve := TRUE;
-  ELSE
-    systemValve := FALSE;
-  END_IF;
-  
-  IF compressorState = 1 THEN
-    compressor := TRUE;
-  ELSE
     compressor := FALSE;
+    systemValve := FALSE;
   END_IF;
   
   (* Increase the counters *)

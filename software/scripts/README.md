@@ -20,7 +20,8 @@ After=network.target
 [Service]
 Type=simple
 Restart=always
-RestartSec=1
+StartLimitInterval=0
+RestartSec=10
 User=pi
 WorkingDirectory=/home/pi
 ExecStart=/usr/bin/python3 /home/pi/gits/CybICS/software/scripts/readI2Cpi.py

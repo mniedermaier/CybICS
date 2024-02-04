@@ -50,7 +50,8 @@ After=network.target
 [Service]
 Type=simple
 Restart=always
-RestartSec=1
+StartLimitInterval=0
+RestartSec=10
 User=pi
 WorkingDirectory=/home/pi
 ExecStart=sudo /usr/local/bin/fuxa
