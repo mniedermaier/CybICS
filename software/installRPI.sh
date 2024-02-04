@@ -203,6 +203,34 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
 EOF
 
 ###
+### openocd remote target
+###
+echo -ne "${GREEN}# Enable openocd remote target on the RPi ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
+    sudo systemctl stop readI2Cpi.service | true    
+    sudo tee /lib/systemd/system/openocd.service <<EOL
+[Unit]
+Description=CybICS openocd Service
+After=network.target
+StartLimitIntervalSec=10
+ 
+[Service]
+Type=simple
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+ExecStart=openocd -f /home/pi/gits/CybICS/software/stm32/openocd_rpi.cfg
+
+[Install]
+WantedBy=multi-user.target
+EOL
+    sudo systemctl daemon-reload
+    sudo systemctl start openocd.service
+    sudo systemctl enable openocd.service
+EOF
+
+###
 ### all done
 ###
 echo -ne "${GREEN}# All done, ready to rubmle ... \n${ENDCOLOR}"
