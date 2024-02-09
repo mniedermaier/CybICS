@@ -535,6 +535,8 @@ void Fdisplay(void const * argument)
 {
   /* USER CODE BEGIN Fdisplay */
   uint8_t shifting=0;
+  uint8_t displayScreen=0;
+  uint8_t displayScreenTime=0;
   uint32_t secondsAfterStart = 0;
   char displayText[20];
 
@@ -549,25 +551,47 @@ void Fdisplay(void const * argument)
 
   logging(LOG_DEB, "Starting Fdisplay");
 
-  Lcd_string(&lcd, "CybICS v0.1");
+  
   /* Infinite loop */
   for(;;)
   {
-    snprintf(displayText, sizeof(displayText), "%li", ++secondsAfterStart);
-    Lcd_cursor(&lcd, 0, 12);
-    Lcd_string(&lcd, displayText);
-    snprintf(displayText, sizeof(displayText), "IP: %s ", &rpiIP[shifting]);
-    Lcd_cursor(&lcd, 1, 0);
-    Lcd_string(&lcd, displayText);
+    // Display showing Cybics string and IP
+    if(0==displayScreen){
+      snprintf(displayText, sizeof(displayText), "CybICS v0.2 %04li", secondsAfterStart);
+      Lcd_cursor(&lcd, 0, 0);
+      Lcd_string(&lcd, displayText);
+      snprintf(displayText, sizeof(displayText), "IP: %s ", &rpiIP[shifting]);
+      Lcd_cursor(&lcd, 1, 0);
+      Lcd_string(&lcd, displayText);
 
-    if(strlen(rpiIP)>12)
-    {
-      shifting++;
-    }    
-    if(shifting>3)
-    {
-      shifting=0;
+      if(strlen(rpiIP)>12)
+      {
+        shifting++;
+      }    
+      if(shifting>3)
+      {
+        shifting=0;
+      }
     }
+    // Display showing real pressure values
+    else if(1==displayScreen){
+      snprintf(displayText, sizeof(displayText), "Physical/real:  ");
+      Lcd_cursor(&lcd, 0, 0);
+      Lcd_string(&lcd, displayText);
+      snprintf(displayText, sizeof(displayText), "GST:%03d HPT:%03d ", GSTpressure, HPTpressure);
+      Lcd_cursor(&lcd, 1, 0);
+      Lcd_string(&lcd, displayText);
+    }
+    // Switch between displays every 5 cycles / seconds
+    if(displayScreenTime>5){
+      displayScreen++;
+      displayScreenTime=0;
+      if(displayScreen>1){
+        displayScreen=0;
+      }
+    }
+    displayScreenTime++;
+    secondsAfterStart++;
     osDelay(1000);
   }
   /* USER CODE END Fdisplay */
