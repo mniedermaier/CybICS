@@ -228,7 +228,7 @@ EOF
 echo -ne "${GREEN}# Enable openocd remote target on the RPi ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     set -e
-    sudo systemctl stop readI2Cpi.service | true    
+    sudo systemctl stop openocd.service | true
     sudo tee /lib/systemd/system/openocd.service <<EOL
 [Unit]
 Description=CybICS openocd Service
