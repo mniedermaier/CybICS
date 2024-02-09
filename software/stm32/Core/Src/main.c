@@ -652,10 +652,11 @@ void Fphysical(void const * argument)
     {
       HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_RESET);      
-      if(HPTdelay>100) // decrease pressure 1 per second
+      if(HPTdelay>100) // decrease pressure in rand%5 per second
       {
         HPTuse = rand() % 5;
-        if((HPTpressure-HPTuse)>=0)
+        // decrease presussure only if > 0 and system valve is open
+        if(((HPTpressure-HPTuse)>=0) & svState)
         {
           HPTpressure = HPTpressure - HPTuse;
         }        
@@ -742,8 +743,9 @@ void Fphysical(void const * argument)
 
     /**
      * System operating, when pressure is in normal range
+     * And System valve is open
     */  
-    if((HPTpressure>50) && (HPTpressure<100))
+    if((HPTpressure>50) && (HPTpressure<100) && svState)
     {
       HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_RESET); 

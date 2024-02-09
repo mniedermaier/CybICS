@@ -13,6 +13,9 @@ GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 echo "$GIT_ROOT"
 source "$GIT_ROOT"/.dev.env
 
+# start time for calculation of the execution time
+START=$(date +%s.%N)
+
 echo -ne "${MAGENTA}"
 echo "                                    "
 echo " Staring the                        "
@@ -25,14 +28,30 @@ echo "  CCC     Y    BBB   II   CCC  SSSS "
 echo "                                    "
 echo " Installer                          "
 echo "                                    "
-
+echo " ################################## "
 echo " Important:                         "
 echo " Make sure, that the ENV variables  "
 echo " are set correctly! (../.dev.env)   "
+echo " ################################## "
+sleep 1
 echo -ne "${ENDCOLOR}"
+echo -ne "${Green}"
+echo " Grab a coffee, the initial installation "
+echo " needs about 1 hour "
+echo "     ~       "
+echo "     ~       "
+echo "   .---.     "
+echo "   \`---'=.  "
+echo "   |Cyb| |   "
+echo "   |ICS|='   "
+echo "   \`---'    "
+echo -ne "${ENDCOLOR}"
+sleep 1
 
 # if false; then
 # fi
+
+
 
 ###
 ### Remove IP from known_hosts and copy ssh key
@@ -128,6 +147,7 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
     cp /home/pi/gits/CybICS/software/OpenPLC/openplc.db /home/pi/gits/OpenPLC_v3/webserver/openplc.db
     cp /home/pi/gits/CybICS/software/OpenPLC/cybICS.st /home/pi/gits/OpenPLC_v3/webserver/st_files/724870.st
     export GNUMAKEFLAGS=-j4
+    alias make='make -j 4'
     ./install.sh rpi
     cd /home/pi/gits/OpenPLC_v3/webserver
     ./scripts/change_hardware_layer.sh rpi
@@ -231,7 +251,19 @@ EOL
 EOF
 
 ###
+### Reboot Raspberry Pi
+###
+echo -ne "${GREEN}# The Raspberry Pi will reboot now ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
+    sudo reboot
+EOF
+
+###
 ### all done
 ###
+END=$(date +%s.%N)
+DIFF=$(echo "$END - $START" | bc)
+echo -ne "${GREEN}# Total execution time $DIFF \n${ENDCOLOR}"
 echo -ne "${GREEN}# All done, ready to rubmle ... \n${ENDCOLOR}"
 
