@@ -4,21 +4,6 @@
             "showDevDebugOutput": "parsed",
             "cwd": "${workspaceRoot}",
             "executable": "./build/CybICS.elf",
-            "name": "Debug STM32",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "openocd",
-            "preLaunchTask": "Build STM",
-            "device": "stm32g070",
-            "configFiles": [
-                "openocd.cfg"
-            ],
-            "svdFile": "STM32G070.svd"
-        },
-        {
-            "showDevDebugOutput": "parsed",
-            "cwd": "${workspaceRoot}",
-            "executable": "./build/CybICS.elf",
             "name": "Attach with External RPi",
             "request": "attach",
             "type": "cortex-debug",
@@ -50,6 +35,21 @@
             "preLaunchCommands": [
                 "monitor reset"
             ]
+        },
+        {
+            "showDevDebugOutput": "parsed",
+            "cwd": "${workspaceRoot}",
+            "executable": "./build/CybICS.elf",
+            "name": "Debug STM32",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "preLaunchTask": "Build STM",
+            "device": "stm32g070",
+            "configFiles": [
+                "openocd.cfg"
+            ],
+            "svdFile": "STM32G070.svd"
         },
         {
             "showDevDebugOutput": "parsed",
