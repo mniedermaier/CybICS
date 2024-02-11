@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # readI2C.py
 #
 # This script reads i2c sensor values from the STM32

@@ -4,7 +4,7 @@
 	"service": "dev",
 	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
-	"initializeCommand": "touch .dev.env",
+	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -13,6 +13,8 @@
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-themes",
 				"ms-python.python",
+				"redhat.vscode-yaml",
+				"foxundermoon.shell-format",
 				"timonwong.shellcheck"
 			]
 		}

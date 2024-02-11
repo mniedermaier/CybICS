@@ -8,7 +8,16 @@ services:
     command: /bin/sh -c "while sleep 1000; do :; done"
     env_file:
       - ../../.dev.env
+      - ../../.env
     volumes:
       - ../../:/CybICS
       - ~/.ssh:/home/devuser/.ssh/
       - ~/.gitconfig:/home/devuser/.gitconfig
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.docker/config.json:/home/devuser/.docker/config.json:ro
+      - $DOCKER_ENV_DIR/.bash_history:/home/devuser/.bash_history
+  registry:
+    container_name: cybics-registry
+    image: registry:2
+    ports:
+      - 5000:5000

@@ -1,0 +1,15 @@
+version: "3.4"
+services:
+  readi2c:
+    image: localhost:5000/cybics-readi2c:latest
+    restart: always
+    network_mode: host
+    privileged: true
+
+  openplc:
+    image: localhost:5000/cybics-openplc:latest
+    restart: always
+    privileged: true
+    ports:
+      - 8080:8080
+      - 502:502
