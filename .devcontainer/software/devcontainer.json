@@ -1,22 +1,18 @@
 {
-	"name": "CybICS",
+	"name": "CybICS-software",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "dev",
-	"workspaceFolder": "/CybICS/software/stm32",
+	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
-	"initializeCommand": "touch ../../.dev.env",
+	"initializeCommand": "touch .dev.env",
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				"eamodio.gitlens",
 				"ms-vscode.cpptools-extension-pack",
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-themes",
 				"ms-python.python",
-				"mcu-debug.debug-tracker-vscode",
-				"mcu-debug.rtos-views",
-				"mcu-debug.peripheral-viewer",
-				"bmd.stm32-for-vscode",
-				"ms-azuretools.vscode-docker",
 				"timonwong.shellcheck"
 			]
 		}

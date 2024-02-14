@@ -1,0 +1,14 @@
+version: "3.4"
+services:
+  dev:
+    container_name: cybics-stm32
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    env_file:
+      - ../../.dev.env
+    volumes:
+      - ../../:/CybICS
+      - ~/.ssh:/home/devuser/.ssh/
+      - ~/.gitconfig:/home/devuser/.gitconfig
