@@ -435,9 +435,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : C_sig_Pin SV_sig_Pin PA4 PA5
-                           PA6 */
+                           PA6 Display_in_Pin */
   GPIO_InitStruct.Pin = C_sig_Pin|SV_sig_Pin|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6;
+                          |GPIO_PIN_6|Display_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -580,6 +580,16 @@ void Fdisplay(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+    // Switch between displays every 5 cycles / seconds
+    if((displayScreenTime>5) || HAL_GPIO_ReadPin(Display_in_GPIO_Port, Display_in_Pin)){
+      displayScreen++;
+      displayScreenTime=0;
+      if(displayScreen>2){
+        displayScreen=0;
+      }
+    }
+    displayScreenTime++;
+    secondsAfterStart++;
     // Display showing Cybics string and IP
     if(0==displayScreen){
       snprintf(displayText, sizeof(displayText), "CybICS v0.2 %04li", secondsAfterStart);
@@ -607,16 +617,30 @@ void Fdisplay(void const * argument)
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);
     }
-    // Switch between displays every 5 cycles / seconds
-    if(displayScreenTime>5){
-      displayScreen++;
-      displayScreenTime=0;
-      if(displayScreen>1){
-        displayScreen=0;
+    // Display showing status
+    else if(2==displayScreen){
+      snprintf(displayText, sizeof(displayText), "Status:         ");
+      Lcd_cursor(&lcd, 0, 0);
+      Lcd_string(&lcd, displayText);
+      if(BO_sen>0){
+        snprintf(displayText, sizeof(displayText), "Danger! BlowOut ");
       }
+      else if((HPTpressure>50) && (HPTpressure<100) && SV_green){
+        snprintf(displayText, sizeof(displayText), "Operational     ");
+      }
+      else if((HPTpressure>50) && (HPTpressure<100)){
+        snprintf(displayText, sizeof(displayText), "SV closed       ");
+      }
+      else if(HPTpressure>100){
+        snprintf(displayText, sizeof(displayText), "Pressure too high");
+      }
+      else if(HPTpressure<=50){
+        snprintf(displayText, sizeof(displayText), "Pressure too low");
+      }
+      Lcd_cursor(&lcd, 1, 0);
+      Lcd_string(&lcd, displayText);
     }
-    displayScreenTime++;
-    secondsAfterStart++;
+
     osDelay(1000);
   }
   /* USER CODE END Fdisplay */
@@ -636,9 +660,6 @@ void Fphysical(void const * argument)
   osDelay(20);
 
   logging(LOG_DEB, "Starting Fphysical");
-
- 
-  
 
   GPIO_PinState cState; // state of the compressor
   GPIO_PinState svState; // state of the system valve
@@ -866,7 +887,7 @@ void FwriteOutput(void const * argument)
   {
     // clear Gas Storage Tank LEDs
     HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
 
     // clear Compressor LEDs
@@ -895,6 +916,9 @@ void FwriteOutput(void const * argument)
     osDelay(14);
     if (C_on){
       HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_RESET);
+    }
+    else{
+      HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
     }
     if (C_off){
       HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_RESET);
