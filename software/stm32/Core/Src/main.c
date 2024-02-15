@@ -38,6 +38,25 @@ char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure=0;
 uint8_t HPTpressure=0;
 
+uint8_t C_on = 0;
+uint8_t C_off = 0;
+uint8_t S_green = 0;
+uint8_t S_red = 0;
+uint8_t S_sen = 0;
+uint8_t SV_green = 0;
+uint8_t SV_red = 0;
+uint8_t BO_red = 0;
+uint8_t BO_green = 0;
+uint8_t BO_sen = 0;
+uint8_t GST_full = 0;
+uint8_t GST_normal = 0;
+uint8_t GST_low = 0;
+uint8_t HPT_critical = 0;
+uint8_t HPT_high = 0;
+uint8_t HPT_normal = 0;
+uint8_t HPT_low = 0;
+uint8_t HPT_empty = 0;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -65,6 +84,7 @@ osThreadId heartBeatHandle;
 osThreadId displayHandle;
 osThreadId physicalHandle;
 osThreadId i2chandlerHandle;
+osThreadId writeOutputHandle;
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -78,6 +98,7 @@ void FheartBeat(void const * argument);
 void Fdisplay(void const * argument);
 void Fphysical(void const * argument);
 void Fi2chandler(void const * argument);
+void FwriteOutput(void const * argument);
 
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
@@ -209,6 +230,10 @@ int main(void)
   /* definition and creation of i2chandler */
   osThreadDef(i2chandler, Fi2chandler, osPriorityNormal, 0, 128);
   i2chandlerHandle = osThreadCreate(osThread(i2chandler), NULL);
+
+  /* definition and creation of writeOutput */
+  osThreadDef(writeOutput, FwriteOutput, osPriorityRealtime, 0, 128);
+  writeOutputHandle = osThreadCreate(osThread(writeOutput), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -612,33 +637,7 @@ void Fphysical(void const * argument)
 
   logging(LOG_DEB, "Starting Fphysical");
 
-  // clear Gas Storage Tank LEDs
-  HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
-
-  // clear Compressor LEDs
-  HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_SET);
-
-  // clear High Pressure Tank LEDs
-  HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
-
-  // clear Blow Out LEDs
-  HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
-
-  // clear System Valve LEDs
-  HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET); 
-
-  // clear System LEDs
-  HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+ 
   
 
   GPIO_PinState cState; // state of the compressor
@@ -659,8 +658,8 @@ void Fphysical(void const * argument)
     */
     if(cState)
     {
-      HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_SET);
+      C_on = 1;
+      C_off = 0;
       if(HPTdelay>100) // increase pressure 1 per second
       {
         if(HPTpressure<255)
@@ -674,8 +673,8 @@ void Fphysical(void const * argument)
     }
     else
     {
-      HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_RESET);      
+      C_on = 0;
+      C_off = 1;     
       if(HPTdelay>100) // decrease pressure in rand%5 per second
       {
         HPTuse = rand() % 5;
@@ -690,54 +689,54 @@ void Fphysical(void const * argument)
 
     if(svState)
     {
-      HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_RESET); 
+      SV_green = 1;
+      SV_red = 0;
     }
     else
     {
-      HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET); 
+      SV_green = 0;
+      SV_red = 1;
     }
 
     if(HPTpressure<1)
     {
-      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_RESET);
+      HPT_critical = 0;
+      HPT_high = 0;
+      HPT_normal = 0;
+      HPT_low = 0;
+      HPT_empty = 1;
     }
     else if (HPTpressure<50)
     {
-      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+      HPT_critical = 0;
+      HPT_high = 0;
+      HPT_normal = 0;
+      HPT_low = 1;
+      HPT_empty = 0;
     }
     else if (HPTpressure<100)
     {
-      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+      HPT_critical = 0;
+      HPT_high = 0;
+      HPT_normal = 1;
+      HPT_low = 0;
+      HPT_empty = 0;
     }
     else if (HPTpressure<150)
     {
-      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+      HPT_critical = 0;
+      HPT_high = 1;
+      HPT_normal = 0;
+      HPT_low = 0;
+      HPT_empty = 0;
     }
     else
     {
-      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+      HPT_critical = 1;
+      HPT_high = 0;
+      HPT_normal = 0;
+      HPT_low = 0;
+      HPT_empty = 0;
     }
 
     /**
@@ -745,9 +744,9 @@ void Fphysical(void const * argument)
     */  
     if(HPTpressure>200)
     {
-      HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
-      HAL_GPIO_WritePin(BO_sen_GPIO_Port, BO_sen_Pin, GPIO_PIN_SET);
+      BO_red = 1;
+      BO_green = 0;
+      BO_sen = 1;
       if(HPTdelay>100) // decrease pressure 1 per second
       {
         HPTuse = rand() % 20;
@@ -760,9 +759,9 @@ void Fphysical(void const * argument)
     }
     else
     {
-      HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(BO_sen_GPIO_Port, BO_sen_Pin, GPIO_PIN_RESET);     
+      BO_red = 0;
+      BO_green = 1;
+      BO_sen = 0; 
     }
 
     /**
@@ -771,36 +770,36 @@ void Fphysical(void const * argument)
     */  
     if((HPTpressure>50) && (HPTpressure<100) && svState)
     {
-      HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_RESET); 
-      HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_SET);
+      S_red = 0;
+      S_green = 1;
+      S_sen  = 1;
     }
     else
     {
-      HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
-      HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_RESET);
+      S_red = 1;
+      S_green = 0;
+      S_sen  = 0;
     }
     /**
      * Gas Storage Tank
     */  
     if(GSTpressure<50)
     {
-      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_RESET);
+      GST_low = 1;
+      GST_normal = 0;
+      GST_full = 0;
     }
     else if(GSTpressure<150)
     {
-      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
+      GST_low = 0;
+      GST_normal = 1;
+      GST_full = 0;
     }
     else
     {
-      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
-      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
+      GST_low = 0;
+      GST_normal = 0;
+      GST_full = 1;
     }
 
     if(GSTpressure<255)
@@ -848,6 +847,131 @@ void Fi2chandler(void const * argument)
     osDelay(100);
   }
   /* USER CODE END Fi2chandler */
+}
+
+/* USER CODE BEGIN Header_FwriteOutput */
+/**
+* @brief Function implementing the writeOutput thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_FwriteOutput */
+void FwriteOutput(void const * argument)
+{
+  /* USER CODE BEGIN FwriteOutput */
+  osDelay(1);
+
+  /* Infinite loop */
+  for(;;)
+  {
+    // clear Gas Storage Tank LEDs
+    HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_SET);
+
+    // clear Compressor LEDs
+    //HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_SET);
+
+    // clear High Pressure Tank LEDs
+    HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_SET);
+
+    // clear Blow Out LEDs
+    HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET); 
+
+    // clear System Valve LEDs
+    HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET); 
+
+    // clear System LEDs
+    HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+
+    osDelay(14);
+    if (C_on){
+      HAL_GPIO_WritePin(C_on_GPIO_Port, C_on_Pin, GPIO_PIN_RESET);
+    }
+    if (C_off){
+      HAL_GPIO_WritePin(C_off_GPIO_Port, C_off_Pin, GPIO_PIN_RESET);
+    }
+    if (SV_red){
+      HAL_GPIO_WritePin(SV_red_GPIO_Port, SV_red_Pin, GPIO_PIN_RESET);
+    }
+    if (SV_green){
+      HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_RESET);
+    }
+    else{
+      HAL_GPIO_WritePin(SV_green_GPIO_Port, SV_green_Pin, GPIO_PIN_SET);
+    }
+    if (GST_full){
+      HAL_GPIO_WritePin(GST_full_GPIO_Port, GST_full_Pin, GPIO_PIN_RESET);
+    }
+    if (GST_normal){
+      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_RESET);
+    }
+    else{
+      HAL_GPIO_WritePin(GST_normal_GPIO_Port, GST_normal_Pin, GPIO_PIN_SET);
+    }
+    if (GST_low){
+      HAL_GPIO_WritePin(GST_low_GPIO_Port, GST_low_Pin, GPIO_PIN_RESET);
+    }
+    if (HPT_critical){
+      HAL_GPIO_WritePin(HPT_critical_GPIO_Port, HPT_critical_Pin, GPIO_PIN_RESET);
+    }
+    if (HPT_high){
+      HAL_GPIO_WritePin(HPT_high_GPIO_Port, HPT_high_Pin, GPIO_PIN_RESET);
+     }
+    if (HPT_normal){
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_RESET);
+    }
+    else{
+      HAL_GPIO_WritePin(HPT_normal_GPIO_Port, HPT_normal_Pin, GPIO_PIN_SET);
+    }
+    if (HPT_low){
+      HAL_GPIO_WritePin(HPT_low_GPIO_Port, HPT_low_Pin, GPIO_PIN_RESET);
+    }
+    if (HPT_empty){
+      HAL_GPIO_WritePin(HPT_empty_GPIO_Port, HPT_empty_Pin, GPIO_PIN_RESET);
+    }
+    if (S_red){
+      HAL_GPIO_WritePin(S_red_GPIO_Port, S_red_Pin, GPIO_PIN_RESET);
+    }
+    if (S_green){
+      HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_RESET); 
+    }
+    else{
+      HAL_GPIO_WritePin(S_green_GPIO_Port, S_green_Pin, GPIO_PIN_SET); 
+    }
+    if(S_sen){ // Sensor outputs should not be pulsed nor inverted
+      HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_SET);
+    }
+    else{
+      HAL_GPIO_WritePin(S_sen_GPIO_Port, S_sen_Pin, GPIO_PIN_RESET);
+    }
+    if (BO_red){
+      HAL_GPIO_WritePin(BO_red_GPIO_Port, BO_red_Pin, GPIO_PIN_RESET);
+    }
+    if (BO_green){
+      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_RESET);
+    }
+    else{
+      HAL_GPIO_WritePin(BO_green_GPIO_Port, BO_green_Pin, GPIO_PIN_SET);
+    }
+    if(BO_sen){ // Sensor outputs should not be pulsed nor inverted
+      HAL_GPIO_WritePin(BO_sen_GPIO_Port, BO_sen_Pin, GPIO_PIN_SET);    
+    }
+    else{
+      HAL_GPIO_WritePin(BO_sen_GPIO_Port, BO_sen_Pin, GPIO_PIN_RESET);  
+    }
+
+    osDelay(1);
+  }
+  /* USER CODE END FwriteOutput */
 }
 
 /**
