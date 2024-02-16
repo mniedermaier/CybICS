@@ -434,9 +434,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : C_sig_Pin SV_sig_Pin PA4 PA5
+  /*Configure GPIO pins : C_sig_Pin SV_sig_Pin PA4 GST_sig_Pin
                            PA6 Display_in_Pin */
-  GPIO_InitStruct.Pin = C_sig_Pin|SV_sig_Pin|GPIO_PIN_4|GPIO_PIN_5
+  GPIO_InitStruct.Pin = C_sig_Pin|SV_sig_Pin|GPIO_PIN_4|GST_sig_Pin
                           |GPIO_PIN_6|Display_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -663,14 +663,17 @@ void Fphysical(void const * argument)
 
   GPIO_PinState cState; // state of the compressor
   GPIO_PinState svState; // state of the system valve
+  GPIO_PinState gstState; // state of refilling GST
 
   uint16_t HPTdelay=0;
+  uint16_t GSTdelay=0;
   /* Infinite loop */
   for(;;)
   {
     //GPIO_PinState buttonState = HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin);
     cState = HAL_GPIO_ReadPin(C_sig_GPIO_Port, C_sig_Pin);
     svState = HAL_GPIO_ReadPin(SV_sig_GPIO_Port, SV_sig_Pin);
+    gstState = HAL_GPIO_ReadPin(GST_sig_GPIO_Port, GST_sig_Pin);
 
     /**
      * When compressor is running:
@@ -684,9 +687,11 @@ void Fphysical(void const * argument)
       if(HPTdelay>100) // increase pressure 1 per second
       {
         if(HPTpressure<255)
-        {
-          HPTpressure++;
-          GSTpressure = GSTpressure - (rand() % 20);
+        {          
+          if(GSTpressure>=50){ // HPT pressure can only be increased, if GST >= 50
+            GSTpressure = GSTpressure - 2;
+            HPTpressure++;
+          }
         }        
         HPTdelay=0;
       }
@@ -698,7 +703,7 @@ void Fphysical(void const * argument)
       C_off = 1;     
       if(HPTdelay>100) // decrease pressure in rand%5 per second
       {
-        HPTuse = rand() % 5;
+        HPTuse = rand() % 3;
         // decrease presussure only if > 0 and system valve is open
         if(((HPTpressure-HPTuse)>=0) & svState)
         {
@@ -706,6 +711,15 @@ void Fphysical(void const * argument)
         }        
         HPTdelay=0;
       }
+    }
+
+    if(GSTdelay>100)
+    {
+      if((GSTpressure<251) & (gstState))
+      {
+        GSTpressure = GSTpressure + (rand() % 4);
+      }
+      GSTdelay=0;
     }
 
     if(svState)
@@ -822,11 +836,6 @@ void Fphysical(void const * argument)
       GST_normal = 0;
       GST_full = 1;
     }
-
-    if(GSTpressure<255)
-    {
-      GSTpressure++;
-    }
     
     /**
      * Set the right values in the TX Data:
@@ -837,6 +846,7 @@ void Fphysical(void const * argument)
     snprintf((char*)TxData, sizeof(TxData), "GST: %03d HPT: %03d", GSTpressure, HPTpressure);
 
     HPTdelay = HPTdelay+1;
+    GSTdelay = GSTdelay+1;
     osDelay(10);
   }
   /* USER CODE END Fphysical */

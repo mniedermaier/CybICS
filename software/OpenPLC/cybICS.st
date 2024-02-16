@@ -6,11 +6,13 @@ PROGRAM cybICS
     heartbeat AT %QX0.0 : BOOL;
     compressor AT %QX0.1 : BOOL;
     systemValve AT %QX0.2 : BOOL;
+    gstSig AT %QX0.3 : BOOL;
     gst AT %MW100 : UINT := 0;
     hpt AT %MW102 : UINT := 0;
     stop AT %MW104 : UINT := 0;
     
     compressorState AT %MW200 : UINT;
+    gstState AT %MW202 : UINT;
   END_VAR
   VAR
     (* Counter LED heartbeat *)
@@ -28,9 +30,20 @@ PROGRAM cybICS
   
   (* System running state *)
   IF stop < 1 THEN
-    IF hpt < 60 AND compressorState = 0 THEN    
+    (* Refill GST, when below 60 and fill it up to 254 *)
+    IF gst < 60 AND gstState = 0 THEN
+      gstState := 1;
+    ELSIF gst < 255 AND gstState = 1 THEN
+      gstState := 1;
+    ELSE
+      gstState := 0;
+    END_IF;      
+
+    (* Run compressor when below 60 and fill it up to 89 *)
+    (* Only run compressor, when GST > 50 *)
+    IF hpt < 60 AND compressorState = 0 AND gst > 50 THEN    
       compressorState := 1;
-    ELSIF hpt < 90 AND compressorState = 1 THEN    
+    ELSIF hpt < 90 AND compressorState = 1 AND gst > 50 THEN    
       compressorState := 1;
     ELSE
       compressorState := 0;
@@ -48,11 +61,19 @@ PROGRAM cybICS
     ELSE
       compressor := FALSE;
     END_IF;
+
+    IF gstState = 1 THEN
+      gstSig := TRUE;
+    ELSE
+      gstSig := FALSE;
+    END_IF;
   (* System stop state *)
   ELSE
     compressorState := 0;
     compressor := FALSE;
     systemValve := FALSE;
+    gstState := 0;
+    gstSig := FALSE;
   END_IF;
   
   (* Increase the counters *)
