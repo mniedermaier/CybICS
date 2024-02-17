@@ -470,6 +470,11 @@
     (uuid ca20496e-950a-4c16-86ca-b757d063e302)
   )
 
+  (text "TODO: Needs to be reworked !" (at 60.96 40.64 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid 820154c1-ab49-4ac6-8325-2a86e2f97f34)
+  )
+
   (symbol (lib_id "power:Earth_Protective") (at 31.75 68.58 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 451e9808-7b96-4d34-92a9-73ab14868483)
