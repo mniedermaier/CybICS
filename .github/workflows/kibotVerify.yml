@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '**.sch'
+      - '**.kicad_sch'
       - '**.kicad_pcb'
   pull_request:
     branches: [ main ]
     paths:
-      - '**.sch'
+      - '**.kicad_sch'
       - '**.kicad_pcb'
 
 env:
