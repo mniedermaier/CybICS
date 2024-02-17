@@ -1,12 +1,13 @@
-<table align="center"><tr><td align="center" width="9999">
-<img src="CybICS.png" width=40%></img>
-</td></tr></table>
+<p align="center">
+  <img alt="CybICS Logo" src="CybICS.png" height="120" />
+  <p align="center">Understanding industrial Cybersecurity.</p>
+</p>
 
 ---
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/license-MIT%20License-brightgreen)](/LICENSE)    
+[![License](https://img.shields.io/badge/license-MIT%20License-32c955)](/LICENSE)
 [![KiBot](https://github.com/mniedermaier/CybICS/actions/workflows/kibotVerify.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/kibotVerify.yml)
 [![C/C++ CI](https://github.com/mniedermaier/CybICS/actions/workflows/buildTest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/buildTest.yml)
 [![flawFinder C](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml)
