@@ -13,10 +13,10 @@ on:
       - '**.kicad_pcb'
 
 env:
-  schema: "hardware/PCB/CybICS.kicad_sch"
-  board: "hardware/PCB/CybICS.kicad_pcb"
-  dir: "hardware/PCB/"
-  config: "hardware/PCB/kibot.yaml"
+  schema: "hardware/pcb/CybICS.kicad_sch"
+  board: "hardware/pcb/CybICS.kicad_pcb"
+  dir: "hardware/pcb/"
+  config: "hardware/pcb/kibot.yaml"
 
 jobs:
 # checks
