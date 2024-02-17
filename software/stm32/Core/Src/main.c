@@ -667,6 +667,7 @@ void Fphysical(void const * argument)
 
   uint16_t HPTdelay=0;
   uint16_t GSTdelay=0;
+  uint16_t BOdelay=0;
   /* Infinite loop */
   for(;;)
   {
@@ -782,14 +783,14 @@ void Fphysical(void const * argument)
       BO_red = 1;
       BO_green = 0;
       BO_sen = 1;
-      if(HPTdelay>100) // decrease pressure 1 per second
+      if(BOdelay>100) // decrease pressure 1 per second
       {
         HPTuse = rand() % 20;
         if((HPTpressure-HPTuse)>=0)
         {
           HPTpressure = HPTpressure - HPTuse;
         }        
-        HPTdelay=0;
+        BOdelay=0;
       }
     }
     else
@@ -847,6 +848,7 @@ void Fphysical(void const * argument)
 
     HPTdelay = HPTdelay+1;
     GSTdelay = GSTdelay+1;
+    BOdelay = BOdelay+1;
     osDelay(10);
   }
   /* USER CODE END Fphysical */
