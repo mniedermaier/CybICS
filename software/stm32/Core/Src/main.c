@@ -776,16 +776,17 @@ void Fphysical(void const * argument)
     }
 
     /**
-     * Blowout if the HPTpressure if over 200
+     * Blowout if the HPTpressure if over 220
+     * Until HTP pressure < 201
     */  
-    if(HPTpressure>200)
+    if((HPTpressure>220) || ((HPTpressure>200) & (BO_sen > 0)))
     {
       BO_red = 1;
       BO_green = 0;
       BO_sen = 1;
       if(BOdelay>100) // decrease pressure 1 per second
       {
-        HPTuse = rand() % 20;
+        HPTuse = rand() % 2;
         if((HPTpressure-HPTuse)>=0)
         {
           HPTpressure = HPTpressure - HPTuse;

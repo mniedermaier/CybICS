@@ -36,7 +36,7 @@ PROGRAM cybICS
       (* Refill GST, when below 60 and fill it up to 254 *)
       IF gst < 60 AND gstState = 0 THEN
         gstState := 1;
-      ELSIF gst < 255 AND gstState = 1 THEN
+      ELSIF gst < 240 AND gstState = 1 THEN
         gstState := 1;
       ELSE
         gstState := 0;
