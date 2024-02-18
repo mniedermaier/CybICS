@@ -35,7 +35,7 @@ echo " are set correctly! (../.dev.env)   "
 echo " ################################## "
 sleep 1
 echo -ne "${ENDCOLOR}"
-echo -ne "${Green}"
+echo -ne "${GREEN}"
 echo " Grab a coffee, the initial installation "
 echo " needs about 1 hour "
 echo "     ~       "
@@ -48,216 +48,63 @@ echo "   \`---'    "
 echo -ne "${ENDCOLOR}"
 sleep 1
 
-# if false; then
-# fi
-
-
-
 ###
 ### Remove IP from known_hosts and copy ssh key
 ###
-echo -ne "${YELLOW}# Type in Raspberry Pi password, when requested (this will copy your SSH key to it): \n${ENDCOLOR}" 
+echo -ne "${YELLOW}# Type in Raspberry Pi password, when requested (this will copy your SSH key to it): \n${ENDCOLOR}"
 ssh-keygen -f ~/.ssh/known_hosts -R "$DEVICE_IP"
-ssh-keyscan -H "$DEVICE_IP" >> ~/.ssh/known_hosts
+ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts
 ssh-copy-id -i ~/.ssh/id_rsa.pub "$DEVICE_USER"@"$DEVICE_IP"
 
-
 ###
-### Copying CybICS Git to the target
+### Install docker
 ###
-echo -ne "${GREEN}# Removing old CybICS GIT, if existing: \n${ENDCOLOR}" 
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    rm -rf /home/pi/gits/CybICS
-    mkdir -p /home/pi/gits
-EOF
-
-echo -ne "${GREEN}# Copying CybICS GIT to Raspberry Pi \n${ENDCOLOR}"
-scp -rp "$GIT_ROOT" "$DEVICE_USER"@"$DEVICE_IP":/home/pi/gits
-
-
-###
-### FUXA installation
-###
-echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+echo -ne "${GREEN}# Install docker ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
-    sudo dphys-swapfile swapoff
-    sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=1024/g /etc/dphys-swapfile
-    sudo dphys-swapfile setup
-    sudo dphys-swapfile swapon
+    if ! which docker; then
+        curl -fsSL https://get.Docker.com | bash
+    fi
 EOF
-
-echo -ne "${GREEN}# Installing FUXA ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    set -e
-    sudo apt-get update
-    sudo apt-get install npm -y
-    sudo npm install -g --unsafe-perm @frangoteam/fuxa
-EOF
-
-echo -ne "${GREEN}# Config FUXA ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    set -e
-    sudo systemctl stop fuxa.service | true    
-    sudo tee /lib/systemd/system/fuxa.service <<EOL
-[Unit]
-Description=FUXA Service
-After=network.target
-
-[Service]
-Type=simple
-Restart=always
-StartLimitInterval=0
-RestartSec=10
-User=pi
-WorkingDirectory=/home/pi
-ExecStart=sudo /usr/local/bin/fuxa
-
-[Install]
-WantedBy=multi-user.target
-EOL
-    sudo systemctl daemon-reload
-    sudo systemctl start fuxa.service
-    sudo systemctl enable fuxa.service
-EOF
-
-echo -ne "${GREEN}# Config FUXA project ... \n${ENDCOLOR}"
-while ! curl -X POST -H "Content-Type: application/json" -d @"$GIT_ROOT"/software/FUXA/fuxa-project.json http://"$DEVICE_IP":1881/api/project
-do
-    echo "Waiting till FUXA is online ..."
-    sleep 1
-done
-
-
-###
-### OpenPLC installation
-###
-echo -ne "${GREEN}# Installing OpenPLC ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    set -e
-    sudo apt-get install pigpio git -y
-    mkdir -p /home/pi/gits
-    cd /home/pi/gits
-    sudo rm -rf OpenPLC_v3
-    git clone https://github.com/thiagoralves/OpenPLC_v3.git
-    cd /home/pi/gits/OpenPLC_v3
-
-    git checkout 6621e30830e256dd271a5cf60e430164e080e7b0
-    git apply /home/pi/gits/CybICS/software/OpenPLC/openplc.patch
-    cp /home/pi/gits/CybICS/software/OpenPLC/openplc.db /home/pi/gits/OpenPLC_v3/webserver/openplc.db
-    cp /home/pi/gits/CybICS/software/OpenPLC/cybICS.st /home/pi/gits/OpenPLC_v3/webserver/st_files/724870.st
-    export GNUMAKEFLAGS=-j4
-    alias make='make -j 4'
-    ./install.sh rpi
-    cd /home/pi/gits/OpenPLC_v3/webserver
-    ./scripts/change_hardware_layer.sh rpi
-    ./scripts/compile_program.sh 724870.st
-    sudo systemctl restart openplc.service
-EOF
-
 
 ###
 ### Enable I2C
 ###
 echo -ne "${GREEN}# Enable I2C on the RPi ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     sudo raspi-config nonint do_i2c 0
 EOF
 
-echo -ne "${GREEN}# Config I2C script ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+###
+### Build container local and install on rasperry pi
+###
+echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
+"$GIT_ROOT"/software/build.sh
+
+echo -ne "${GREEN}# Install container ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
-    sudo apt-get install python3-netifaces python3-pymodbus python3-smbus -y
-
-    sudo systemctl stop readI2Cpi.service | true    
-    sudo tee /lib/systemd/system/readI2Cpi.service <<EOL
-[Unit]
-Description=readI2Cpi Service
-After=network.target
-
-[Service]
-Type=simple
-Restart=always
-StartLimitInterval=0
-RestartSec=10
-User=pi
-WorkingDirectory=/home/pi
-ExecStart=/usr/bin/python3 /home/pi/gits/CybICS/software/scripts/readI2Cpi.py
-
-[Install]
-WantedBy=multi-user.target
-EOL
-    sudo systemctl daemon-reload
-    sudo systemctl start readI2Cpi.service
-    sudo systemctl enable readI2Cpi.service
+    mkdir -p /home/pi/CybICS
 EOF
 
-###
-### Installing GCC ARM
-###
-echo -ne "${GREEN}# Installing GCC ARM NONE EABI on the RPi ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
+ssh -R 5000:cybics-registry:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
-    sudo apt-get install gcc-arm-none-eabi -y
+    cd /home/pi/CybICS
+    sudo docker compose pull
+    sudo docker compose up -d
 EOF
 
 ###
-### Installing openocd
+### Decrease memmory of GPU
 ###
-echo -ne "${GREEN}# Installing openocd on the RPi ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
-    sudo apt-get install openocd -y
+    grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
 EOF
 
-###
-### Building and flashing STM32 software
-###
-echo -ne "${GREEN}# Building and flashing STM32 software ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    cd /home/pi/gits/CybICS/software/stm32
-    make clean
-    make -j4
-    sudo openocd -f ./openocd_rpi.cfg -c "program build/CybICS.bin verify reset exit 0x08000000"
-EOF
-
-###
-### openocd remote target
-###
-echo -ne "${GREEN}# Enable openocd remote target on the RPi ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    set -e
-    sudo systemctl stop openocd.service | true
-    sudo tee /lib/systemd/system/openocd.service <<EOL
-[Unit]
-Description=CybICS openocd Service
-After=network.target
-StartLimitIntervalSec=10
- 
-[Service]
-Type=simple
-Restart=always
-StartLimitInterval=0
-RestartSec=10
-ExecStart=openocd -f /home/pi/gits/CybICS/software/stm32/openocd_rpi.cfg
-
-[Install]
-WantedBy=multi-user.target
-EOL
-    sudo systemctl daemon-reload
-    sudo systemctl start openocd.service
-    sudo systemctl enable openocd.service
-EOF
-
-###
-### Reboot Raspberry Pi
-###
-echo -ne "${GREEN}# The Raspberry Pi will reboot now ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
-    set -e
-    sudo reboot
-EOF
 
 ###
 ### all done
@@ -266,4 +113,3 @@ END=$(date +%s.%N)
 DIFF=$(echo "$END - $START" | bc)
 echo -ne "${GREEN}# Total execution time $DIFF \n${ENDCOLOR}"
 echo -ne "${GREEN}# All done, ready to rubmle ... \n${ENDCOLOR}"
-
