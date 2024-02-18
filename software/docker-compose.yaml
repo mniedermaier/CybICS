@@ -4,6 +4,7 @@ services:
     image: localhost:5000/cybics-readi2c:latest
     depends_on:
     - stm32
+    - openplc
     restart: always
     network_mode: host
     privileged: true
@@ -20,6 +21,8 @@ services:
     image: localhost:5000/cybics-fuxa:latest
     network_mode: host
     restart: always
+    depends_on:
+    - openplc
     ports:
       - 1881:1881
 

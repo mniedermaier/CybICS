@@ -33,4 +33,4 @@ RUN ./scripts/compile_program.sh 724870.st
 
 EXPOSE 8080
 EXPOSE 502
-CMD /CybICS/OpenPLC_v3/start_openplc.sh
+CMD rm -f /var/run/pigpio.pid && /CybICS/OpenPLC_v3/start_openplc.sh
