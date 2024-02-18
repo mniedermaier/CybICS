@@ -22,8 +22,9 @@ services:
     ports:
       - 1881:1881
 
-  openocd:
-    image: localhost:5000/cybics-openocd:latest
+  stm32:
+    image: localhost:5000/cybics-stm32:latest
+    privileged: true
     restart: always
     ports:
       - 3333:3333
