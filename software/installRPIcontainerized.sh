@@ -91,8 +91,8 @@ scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/p
 ssh -R 5000:cybics-registry:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     cd /home/pi/CybICS
-    sudo docker-compose pull
-    sudo docker-compose up -d
+    sudo docker compose pull
+    sudo docker compose up -d
 EOF
 
 ###

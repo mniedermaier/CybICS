@@ -42,7 +42,6 @@ After installation start the rpi-imager software.
 
 Click on "CHOOSE DEVICE" and select "No filtering".
 
-
 <table align="center"><tr><td align="center" width="9999">
 <img src="pictures/02_rpi-imager_device.png" width=70%></img>
 </td></tr></table>
