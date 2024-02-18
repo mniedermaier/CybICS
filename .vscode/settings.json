@@ -11,5 +11,6 @@
     "[dockercompose]": {
         "editor.defaultFormatter": "redhat.vscode-yaml"
     },
-    "shellformat.flag": "-bn"
+    "shellformat.flag": "-bn",
+    "cmake.configureOnOpen": false
 }

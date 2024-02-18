@@ -10,3 +10,4 @@ docker buildx inspect --bootstrap
 docker buildx build --platform linux/arm64 -t localhost:5000/cybics-readi2c:latest --push ./scripts
 docker buildx build --platform linux/arm64 -t localhost:5000/cybics-openplc:latest --push ./OpenPLC
 docker buildx build --platform linux/arm64 -t localhost:5000/cybics-fuxa:latest --push ./FUXA
+docker buildx build --platform linux/arm64 -t localhost:5000/cybics-openocd:latest --push ./openocd
