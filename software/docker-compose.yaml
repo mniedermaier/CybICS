@@ -18,7 +18,6 @@ services:
     image: localhost:5000/cybics-fuxa:latest
     network_mode: host
     restart: always
-    privileged: false
     ports:
       - 1881:1881
 

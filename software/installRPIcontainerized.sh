@@ -48,7 +48,6 @@ echo "   \`---'    "
 echo -ne "${ENDCOLOR}"
 sleep 1
 
-
 ###
 ### Remove IP from known_hosts and copy ssh key
 ###
@@ -56,7 +55,6 @@ echo -ne "${YELLOW}# Type in Raspberry Pi password, when requested (this will co
 ssh-keygen -f ~/.ssh/known_hosts -R "$DEVICE_IP"
 ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts
 ssh-copy-id -i ~/.ssh/id_rsa.pub "$DEVICE_USER"@"$DEVICE_IP"
-
 
 ###
 ### Install docker
@@ -78,10 +76,13 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     sudo raspi-config nonint do_i2c 0
 EOF
 
+###
+### Build container local and install on rasperry pi
+###
 echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 "$GIT_ROOT"/software/build.sh
 
-echo -ne "${GREEN}# Install ... \n${ENDCOLOR}"
+echo -ne "${GREEN}# Install container ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     mkdir -p /home/pi/CybICS
