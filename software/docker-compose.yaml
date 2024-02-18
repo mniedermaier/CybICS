@@ -23,8 +23,6 @@ services:
     restart: always
     depends_on:
     - openplc
-    ports:
-      - 1881:1881
 
   stm32:
     image: localhost:5000/cybics-stm32:latest
