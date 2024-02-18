@@ -8,4 +8,4 @@ WORKDIR /CybICS
 COPY openocd_rpi.cfg ./
 EXPOSE 3333
 EXPOSE 4444
-CMD openocd -f /home/pi/gits/CybICS/software/stm32/openocd_rpi.cfg
+CMD openocd -f /CybICS/openocd_rpi.cfg

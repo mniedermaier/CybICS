@@ -80,3 +80,4 @@ fp-info-cache
 historian.sqlite
 
 .dev.env
+.bash_history
