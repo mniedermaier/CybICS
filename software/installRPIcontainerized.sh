@@ -97,6 +97,16 @@ ssh -R 5000:cybics-registry:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Decrease memmory of GPU
+###
+echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
+EOF
+
+
+###
 ### all done
 ###
 END=$(date +%s.%N)
