@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stm32g0xx_ll_utils.h"
 #include "display.h"
 #include "colors.h"
 #include <stdio.h>
@@ -33,7 +34,9 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 uint8_t RxData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-uint8_t TxData[20] = {'E','M','P','T','Y',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+uint8_t TxData[20] = {'X','X','X',':',' ','0','0','0',' ','H','P','T',':',' ','0','0','0'};
+uint8_t TxDataUID[13] = {0};
 char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure=0;
 uint8_t HPTpressure=0;
@@ -493,7 +496,12 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 	}
 	else  // master requesting the data is not supported yet
 	{
-		HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxData, sizeof(TxData), I2C_LAST_FRAME);
+    if(RxData[0]==0){
+		  HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxData, sizeof(TxData), I2C_LAST_FRAME);
+    }
+    else if(RxData[0]==1){
+      HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxDataUID, sizeof(TxDataUID), I2C_LAST_FRAME);
+    }
 	}
 }
 
@@ -563,6 +571,7 @@ void Fdisplay(void const * argument)
   uint8_t displayScreen=0;
   uint8_t displayScreenTime=0;
   uint32_t secondsAfterStart = 0;
+  uint8_t wifiPressed = 0;
   char displayText[20];
 
   osDelay(10);
@@ -577,14 +586,33 @@ void Fdisplay(void const * argument)
   logging(LOG_DEB, "Starting Fdisplay");
 
   
+  snprintf((char*)TxDataUID, sizeof(TxDataUID), "%04lx%04lx%04lx", LL_GetUID_Word0(), LL_GetUID_Word1(), LL_GetUID_Word2());
+  TxDataUID[12]='1'; // default AP
+  
   /* Infinite loop */
   for(;;)
   {
+    // Switch between station and AP mode of Wifi
+    if(HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin)){
+      if(!wifiPressed){
+        if(TxDataUID[12]=='0'){
+          TxDataUID[12]='1';
+        }
+        else{
+          TxDataUID[12]='0';
+        }
+        wifiPressed=1;
+      }
+    }
+    else{
+      wifiPressed=0;
+    }
+     
     // Switch between displays every 5 cycles / seconds
     if((displayScreenTime>5) || HAL_GPIO_ReadPin(Display_in_GPIO_Port, Display_in_Pin)){
       displayScreen++;
       displayScreenTime=0;
-      if(displayScreen>2){
+      if(displayScreen>3){
         displayScreen=0;
       }
     }
@@ -592,10 +620,10 @@ void Fdisplay(void const * argument)
     secondsAfterStart++;
     // Display showing Cybics string and IP
     if(0==displayScreen){
-      snprintf(displayText, sizeof(displayText), "CybICS v0.2 %04li", secondsAfterStart);
+      snprintf(displayText, sizeof(displayText), "CybICS v0.3 %04li", secondsAfterStart);
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
-      snprintf(displayText, sizeof(displayText), "IP: %s ", &rpiIP[shifting]);
+      snprintf(displayText, sizeof(displayText), "IP: %s     ", &rpiIP[shifting]);
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);
 
@@ -637,6 +665,15 @@ void Fdisplay(void const * argument)
       else if(HPTpressure<=50){
         snprintf(displayText, sizeof(displayText), "Pressure too low");
       }
+      Lcd_cursor(&lcd, 1, 0);
+      Lcd_string(&lcd, displayText);
+    }
+    // Display showing real pressure values
+    else if(3==displayScreen){
+      snprintf(displayText, sizeof(displayText), "WiFi: cybics-");
+      Lcd_cursor(&lcd, 0, 0);
+      Lcd_string(&lcd, displayText);
+      snprintf(displayText, sizeof(displayText), "%s    ", TxDataUID);
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);
     }
