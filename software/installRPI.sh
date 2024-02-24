@@ -53,6 +53,21 @@ ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts
 ssh-copy-id -i ~/.ssh/id_rsa.pub "$DEVICE_USER"@"$DEVICE_IP"
 
 ###
+### Config locale
+###
+echo -ne "${GREEN}# Config locale ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    if grep LC_ALL /etc/environment; then
+        exit 0
+    fi
+    echo "LC_ALL=en_US.UTF-8" | sudo tee /etc/environment
+    echo "en_US.UTF-8 UTF-8" | sudo tee /etc/locale.gen
+    echo "LANG=en_US.UTF-8" | sudo tee -a /etc/locale.conf
+    sudo locale-gen en_US.UTF-8
+EOF
+
+###
 ### Install docker
 ###
 echo -ne "${GREEN}# Install docker ... \n${ENDCOLOR}"
@@ -87,7 +102,6 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
      ipv4.method shared
 EOF
 
-
 ###
 ### Enable I2C
 ###
@@ -95,6 +109,15 @@ echo -ne "${GREEN}# Enable I2C on the RPi ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     sudo raspi-config nonint do_i2c 0
+EOF
+
+###
+### Decrease memmory of GPU
+###
+echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
 EOF
 
 ###
@@ -116,16 +139,6 @@ ssh -R 5000:cybics-registry:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     sudo docker compose pull
     sudo docker compose up -d
 EOF
-
-###
-### Decrease memmory of GPU
-###
-echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
-EOF
-
 
 ###
 ### all done
