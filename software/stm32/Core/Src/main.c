@@ -600,6 +600,8 @@ void Fdisplay(void const * argument)
         else{
           TxDataUID[12]='0';
         }
+        snprintf(rpiIP, sizeof(rpiIP), "%-15s", "Unknown");
+        shifting=0;        
         wifiPressed=1;
       }
     }
