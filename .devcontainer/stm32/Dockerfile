@@ -1,5 +1,8 @@
 FROM ubuntu:22.04
 
+ARG HOST_UID
+ARG HOST_GID
+
 RUN apt-get update && apt-get install -y \
     gcc-arm-none-eabi \
     binutils-arm-none-eabi \
@@ -22,8 +25,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 RUN python3 -m pip install pymodbus flask
 
-RUN addgroup --gid 1000 devuser \
-    && adduser --disabled-password --gecos "" --uid 1000 --gid 1000 devuser \
+RUN addgroup --gid $HOST_GID devuser \
+    && adduser --disabled-password --gecos "" --uid $HOST_UID --gid $HOST_GID devuser \
     && echo 'devuser:devuser' | chpasswd \
     && usermod -a -G sudo devuser
 ENV HOME /home/devuser
