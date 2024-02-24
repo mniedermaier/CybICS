@@ -15,6 +15,7 @@ import smbus
 import time 
 import netifaces as ni
 from pymodbus.client import ModbusTcpClient
+import subprocess
 
 # I2C channel 1 is connected to the STM32
 channel = 1
@@ -34,6 +35,8 @@ client = ModbusTcpClient(host="127.0.0.1",port=502)  # Create client object
 client.connect() # connect to device, reconnect automatically
 
 # Entering while true loop
+nmconfig = False
+apmode = '1'
 while True:
   # Get IP address of wlan0
   ip = ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
@@ -59,12 +62,28 @@ while True:
     gst = int(str(data[5] + data[6] + data[7]))
     hpt = int(str(data[14] + data[15] + data[16]))
 
-    print("Setting GST to " + str(gst) + " and HPT to " + str(hpt))
+    print(f"Setting GST to {str(gst)} and HPT to {str(hpt)}")
     
     # write GST and HPT to the OpenPLC
     client.write_registers(1124,gst) #(register, value, unit)
     client.write_registers(1126,hpt) #(register, value, unit)
   
+  # Read STM32 ID Code
+  data = bus.read_i2c_block_data(address, 0x01, 13)
+  print(data)
+  for c in range(len(data)):
+    data[c] = chr(data[c])
+  #id=str(c-"a" for c in id)
+  data="".join(data)
+  id = data[:12]
+  ap = data[12]
+
+  if not nmconfig:
+    nmconfig = True
+    subprocess.run(["nmcli", "con", "mod", "cybics", "wifi.ssid", f"cybics-{id}"])
+  if ap != apmode:
+    apmode = ap
+    subprocess.run(["nmcli", "con", "up", "cybics" if ap=='1' else "preconfigured"])
   time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
 # Should never be reached

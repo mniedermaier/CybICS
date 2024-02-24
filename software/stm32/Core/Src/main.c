@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stm32g0xx_ll_utils.h"
 #include "display.h"
 #include "colors.h"
 #include <stdio.h>
@@ -33,7 +34,9 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 uint8_t RxData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-uint8_t TxData[20] = {'E','M','P','T','Y',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+uint8_t TxData[20] = {'X','X','X',':',' ','0','0','0',' ','H','P','T',':',' ','0','0','0'};
+uint8_t TxDataUID[13] = {0};
 char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure=0;
 uint8_t HPTpressure=0;
@@ -493,7 +496,12 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 	}
 	else  // master requesting the data is not supported yet
 	{
-		HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxData, sizeof(TxData), I2C_LAST_FRAME);
+    if(RxData[0]==0){
+		  HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxData, sizeof(TxData), I2C_LAST_FRAME);
+    }
+    else if(RxData[0]==1){
+      HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, TxDataUID, sizeof(TxDataUID), I2C_LAST_FRAME);
+    }
 	}
 }
 
@@ -561,8 +569,8 @@ void Fdisplay(void const * argument)
   /* USER CODE BEGIN Fdisplay */
   uint8_t shifting=0;
   uint8_t displayScreen=0;
-  uint8_t displayScreenTime=0;
   uint32_t secondsAfterStart = 0;
+  uint8_t wifiPressed = 0;
   char displayText[20];
 
   osDelay(10);
@@ -577,40 +585,82 @@ void Fdisplay(void const * argument)
   logging(LOG_DEB, "Starting Fdisplay");
 
   
+  snprintf((char*)TxDataUID, sizeof(TxDataUID), "%04lx%04lx%04lx", LL_GetUID_Word0(), LL_GetUID_Word1(), LL_GetUID_Word2());
+  TxDataUID[12]='1'; // default AP
+  
   /* Infinite loop */
   for(;;)
   {
-    // Switch between displays every 5 cycles / seconds
-    if((displayScreenTime>5) || HAL_GPIO_ReadPin(Display_in_GPIO_Port, Display_in_Pin)){
+    // Switch between station and AP mode of Wifi
+    if(HAL_GPIO_ReadPin(button_GPIO_Port, button_Pin)){
+      if(!wifiPressed){
+        if(TxDataUID[12]=='0'){
+          TxDataUID[12]='1';
+        }
+        else{
+          TxDataUID[12]='0';
+        }
+        wifiPressed=1;
+      }
+    }
+    else{
+      wifiPressed=0;
+    }
+     
+    // Switch between displays if Display button is pressed
+    if(HAL_GPIO_ReadPin(Display_in_GPIO_Port, Display_in_Pin)){
       displayScreen++;
-      displayScreenTime=0;
-      if(displayScreen>2){
+      if(displayScreen>3){
         displayScreen=0;
       }
     }
-    displayScreenTime++;
+
     secondsAfterStart++;
     // Display showing Cybics string and IP
     if(0==displayScreen){
-      snprintf(displayText, sizeof(displayText), "CybICS v0.2 %04li", secondsAfterStart);
+      snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v0.3");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
-      snprintf(displayText, sizeof(displayText), "IP: %s ", &rpiIP[shifting]);
+      snprintf(displayText, sizeof(displayText), "%16li", secondsAfterStart);
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);
+    }
+    // Display WiFi configuration
+    else if(1==displayScreen){
+      if(TxDataUID[12]=='0'){
+        snprintf(displayText, sizeof(displayText), "%-16s", "Wifi STA mode");
+        Lcd_cursor(&lcd, 0, 0);
+        Lcd_string(&lcd, displayText);
+        snprintf(displayText, sizeof(displayText), "IP: %-12s", &rpiIP[shifting]);
+        Lcd_cursor(&lcd, 1, 0);
+        Lcd_string(&lcd, displayText);
 
-      if(strlen(rpiIP)>12)
-      {
-        shifting++;
-      }    
-      if(shifting>3)
-      {
-        shifting=0;
+        if(strlen(rpiIP)>12)
+        {
+          shifting++;
+        }    
+        if(shifting>3)
+        {
+          shifting=0;
+        }
+      }
+      else if(TxDataUID[12]=='1'){
+        snprintf(displayText, sizeof(displayText), "%-16s", "AP mode: cybics-");
+        Lcd_cursor(&lcd, 0, 0);
+        Lcd_string(&lcd, displayText);
+        snprintf(displayText, sizeof(displayText), "%-16s", TxDataUID);
+        Lcd_cursor(&lcd, 1, 0);
+        Lcd_string(&lcd, displayText);
+      }
+      else{
+        snprintf(displayText, sizeof(displayText), "%-16s", "WiFi error");
+        Lcd_cursor(&lcd, 0, 0);
+        Lcd_string(&lcd, displayText);
       }
     }
     // Display showing real pressure values
-    else if(1==displayScreen){
-      snprintf(displayText, sizeof(displayText), "Physical/real:  ");
+    else if(2==displayScreen){
+      snprintf(displayText, sizeof(displayText), "%-16s", "Physical/real:  ");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
       snprintf(displayText, sizeof(displayText), "GST:%03d HPT:%03d ", GSTpressure, HPTpressure);
@@ -618,24 +668,24 @@ void Fdisplay(void const * argument)
       Lcd_string(&lcd, displayText);
     }
     // Display showing status
-    else if(2==displayScreen){
-      snprintf(displayText, sizeof(displayText), "Status:         ");
+    else if(3==displayScreen){
+      snprintf(displayText, sizeof(displayText), "%-16s", "Status:");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
       if(BO_sen>0){
-        snprintf(displayText, sizeof(displayText), "Danger! BlowOut ");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Danger! BlowOut");
       }
       else if((HPTpressure>50) && (HPTpressure<100) && SV_green){
-        snprintf(displayText, sizeof(displayText), "Operational     ");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Operational");
       }
       else if((HPTpressure>50) && (HPTpressure<100)){
-        snprintf(displayText, sizeof(displayText), "SV closed       ");
+        snprintf(displayText, sizeof(displayText), "%-16s", "SV closed");
       }
       else if(HPTpressure>100){
-        snprintf(displayText, sizeof(displayText), "Pressure too high");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too high");
       }
       else if(HPTpressure<=50){
-        snprintf(displayText, sizeof(displayText), "Pressure too low");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too low");
       }
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);

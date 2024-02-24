@@ -10,9 +10,6 @@ ENDCOLOR="\e[0m"
 
 GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
-echo "$GIT_ROOT"
-source "$GIT_ROOT"/.dev.env
-
 # start time for calculation of the execution time
 START=$(date +%s.%N)
 
@@ -33,7 +30,6 @@ echo " Important:                         "
 echo " Make sure, that the ENV variables  "
 echo " are set correctly! (../.dev.env)   "
 echo " ################################## "
-sleep 1
 echo -ne "${ENDCOLOR}"
 echo -ne "${GREEN}"
 echo " Grab a coffee, the initial installation "
@@ -66,6 +62,31 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
         curl -fsSL https://get.Docker.com | bash
     fi
 EOF
+
+###
+### Setup AP
+###
+echo -ne "${GREEN}# Setup AP ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+
+    set -e
+    if nmcli -g GENERAL.STATE c s cybics|grep -q -E '\bactiv';
+    then
+        exit
+    fi
+
+    sudo nmcli c del cybics || true
+    sudo nmcli c add connection.id cybics \
+     connection.interface-name \
+     wlan0 type wifi \
+     wifi.mode ap \
+     wifi.ssid cybics \
+     wifi-sec.key-mgmt wpa-psk \
+     wifi-sec.psk 1234567890 \
+     ipv4.addresses 10.0.0.1/24 \
+     ipv4.method shared
+EOF
+
 
 ###
 ### Enable I2C
