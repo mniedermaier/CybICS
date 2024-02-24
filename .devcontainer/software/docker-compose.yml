@@ -10,6 +10,7 @@ services:
       - HOST_GID=$HOST_GID
       - HOST_DOCKER_GID=$HOST_DOCKER_GID
     command: /bin/sh -c "while sleep 1000; do :; done"
+    network_mode: host
     env_file:
       - ../../.dev.env
       - ../../.env
