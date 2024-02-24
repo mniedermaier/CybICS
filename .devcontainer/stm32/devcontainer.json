@@ -4,7 +4,7 @@
 	"service": "dev",
 	"workspaceFolder": "/CybICS/software/stm32",
 	"shutdownAction": "stopCompose",
-	"initializeCommand": "touch .dev.env",
+	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"customizations": {
 		"vscode": {
 			"extensions": [
