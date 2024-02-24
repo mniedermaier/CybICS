@@ -112,6 +112,15 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Decrease memmory of GPU
+###
+echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
+EOF
+
+###
 ### Build container local and install on rasperry pi
 ###
 echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
@@ -129,15 +138,6 @@ ssh -R 5000:cybics-registry:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     cd /home/pi/CybICS
     sudo docker compose pull
     sudo docker compose up -d
-EOF
-
-###
-### Decrease memmory of GPU
-###
-echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
 EOF
 
 ###
