@@ -1,5 +1,9 @@
 FROM ubuntu:22.04
 
+ARG HOST_UID
+ARG HOST_GID
+ARG HOST_DOCKER_GID
+
 RUN apt-get update && apt-get install -y \
     sudo \
     git \
@@ -22,8 +26,8 @@ ENV LC_ALL en_US.UTF-8
 
 RUN python3 -m pip install pymodbus flask
 
+RUN addgroup --gid $HOST_DOCKER_GID docker
 # RUN curl -fsSL https://get.docker.com | bash
-
 RUN apt-get update && apt-get install -y \
     docker \
     docker-compose \
@@ -32,12 +36,11 @@ RUN apt-get update && apt-get install -y \
 
 RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/nopasswd
 
-RUN addgroup --gid 1000 devuser \
-    && adduser --disabled-password --gecos "" --uid 1000 --gid 1000 devuser \
+RUN addgroup --gid $HOST_GID devuser \
+    && adduser --disabled-password --gecos "" --uid $HOST_UID --gid $HOST_GID devuser \
     && echo 'devuser:devuser' | chpasswd \
     && usermod -a -G sudo,docker devuser
 ENV HOME /home/devuser
 RUN export PATH="/home/devuser/.local/bin:$PATH"
 
 USER devuser
-RUN mkdir /home/devuser/.docker

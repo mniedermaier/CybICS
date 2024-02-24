@@ -8,8 +8,9 @@ mkdir -p "$DOCKER_ENV_DIR"
 touch .dev.env
 
 cat <<EOT > .env
-UID=$(id -u)
-GID=$(id -g)
+HOST_UID=$(id -u)
+HOST_GID=$(id -g)
+HOST_DOCKER_GID=$(getent group docker | cut -d: -f3)
 DOCKER_ENV_DIR="$DOCKER_ENV_DIR"
 EOT
 

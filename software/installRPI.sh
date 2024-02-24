@@ -133,7 +133,7 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
-ssh -R 5000:cybics-registry:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+ssh -R 5000:localhost:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     cd /home/pi/CybICS
     sudo docker compose pull

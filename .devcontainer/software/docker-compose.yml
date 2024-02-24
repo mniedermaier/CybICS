@@ -5,7 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+      - HOST_UID=$HOST_UID
+      - HOST_GID=$HOST_GID
+      - HOST_DOCKER_GID=$HOST_DOCKER_GID
     command: /bin/sh -c "while sleep 1000; do :; done"
+    network_mode: host
     env_file:
       - ../../.dev.env
       - ../../.env
@@ -14,7 +19,6 @@ services:
       - ~/.ssh:/home/devuser/.ssh/
       - ~/.gitconfig:/home/devuser/.gitconfig
       - /var/run/docker.sock:/var/run/docker.sock
-      - ~/.docker/config.json:/home/devuser/.docker/config.json:ro
       - $DOCKER_ENV_DIR/.bash_history:/home/devuser/.bash_history
   registry:
     container_name: cybics-registry
