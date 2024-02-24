@@ -53,6 +53,21 @@ ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts
 ssh-copy-id -i ~/.ssh/id_rsa.pub "$DEVICE_USER"@"$DEVICE_IP"
 
 ###
+### Config locale
+###
+echo -ne "${GREEN}# Config locale ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    if grep LC_ALL /etc/environment; then
+        exit 0
+    fi
+    echo "LC_ALL=en_US.UTF-8" | sudo tee /etc/environment
+    echo "en_US.UTF-8 UTF-8" | sudo tee /etc/locale.gen
+    echo "LANG=en_US.UTF-8" | sudo tee -a /etc/locale.conf
+    sudo locale-gen en_US.UTF-8
+EOF
+
+###
 ### Install docker
 ###
 echo -ne "${GREEN}# Install docker ... \n${ENDCOLOR}"
@@ -86,7 +101,6 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
      ipv4.addresses 10.0.0.1/24 \
      ipv4.method shared
 EOF
-
 
 ###
 ### Enable I2C
@@ -125,7 +139,6 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
 EOF
-
 
 ###
 ### all done
