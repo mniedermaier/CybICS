@@ -569,7 +569,6 @@ void Fdisplay(void const * argument)
   /* USER CODE BEGIN Fdisplay */
   uint8_t shifting=0;
   uint8_t displayScreen=0;
-  uint8_t displayScreenTime=0;
   uint32_t secondsAfterStart = 0;
   uint8_t wifiPressed = 0;
   char displayText[20];
@@ -608,37 +607,60 @@ void Fdisplay(void const * argument)
       wifiPressed=0;
     }
      
-    // Switch between displays every 5 cycles / seconds
-    if((displayScreenTime>5) || HAL_GPIO_ReadPin(Display_in_GPIO_Port, Display_in_Pin)){
+    // Switch between displays if Display button is pressed
+    if(HAL_GPIO_ReadPin(Display_in_GPIO_Port, Display_in_Pin)){
       displayScreen++;
-      displayScreenTime=0;
       if(displayScreen>3){
         displayScreen=0;
       }
     }
-    displayScreenTime++;
+
     secondsAfterStart++;
     // Display showing Cybics string and IP
     if(0==displayScreen){
-      snprintf(displayText, sizeof(displayText), "CybICS v0.3 %04li", secondsAfterStart);
+      snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v0.3");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
-      snprintf(displayText, sizeof(displayText), "IP: %s     ", &rpiIP[shifting]);
+      snprintf(displayText, sizeof(displayText), "%16li", secondsAfterStart);
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);
+    }
+    // Display WiFi configuration
+    else if(1==displayScreen){
+      if(TxDataUID[12]=='0'){
+        snprintf(displayText, sizeof(displayText), "%-16s", "Wifi STA mode");
+        Lcd_cursor(&lcd, 0, 0);
+        Lcd_string(&lcd, displayText);
+        snprintf(displayText, sizeof(displayText), "IP: %-12s", &rpiIP[shifting]);
+        Lcd_cursor(&lcd, 1, 0);
+        Lcd_string(&lcd, displayText);
 
-      if(strlen(rpiIP)>12)
-      {
-        shifting++;
-      }    
-      if(shifting>3)
-      {
-        shifting=0;
+        if(strlen(rpiIP)>12)
+        {
+          shifting++;
+        }    
+        if(shifting>3)
+        {
+          shifting=0;
+        }
+      }
+      else if(TxDataUID[12]=='1'){
+        snprintf(displayText, sizeof(displayText), "%-16s", "AP mode: cybics-");
+        Lcd_cursor(&lcd, 0, 0);
+        Lcd_string(&lcd, displayText);
+        snprintf(displayText, sizeof(displayText), "%-16s", TxDataUID);
+        Lcd_cursor(&lcd, 1, 0);
+        Lcd_string(&lcd, displayText);
+      }
+      else{
+        snprintf(displayText, sizeof(displayText), "%-16s", "WiFi error");
+        Lcd_cursor(&lcd, 0, 0);
+        Lcd_string(&lcd, displayText);
       }
     }
     // Display showing real pressure values
-    else if(1==displayScreen){
-      snprintf(displayText, sizeof(displayText), "Physical/real:  ");
+    else if(2==displayScreen){
+      snprintf(displayText, sizeof(displayText), "%-16s", "Physical/real:  ");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
       snprintf(displayText, sizeof(displayText), "GST:%03d HPT:%03d ", GSTpressure, HPTpressure);
@@ -646,34 +668,25 @@ void Fdisplay(void const * argument)
       Lcd_string(&lcd, displayText);
     }
     // Display showing status
-    else if(2==displayScreen){
-      snprintf(displayText, sizeof(displayText), "Status:         ");
+    else if(3==displayScreen){
+      snprintf(displayText, sizeof(displayText), "%-16s", "Status:");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
       if(BO_sen>0){
-        snprintf(displayText, sizeof(displayText), "Danger! BlowOut ");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Danger! BlowOut");
       }
       else if((HPTpressure>50) && (HPTpressure<100) && SV_green){
-        snprintf(displayText, sizeof(displayText), "Operational     ");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Operational");
       }
       else if((HPTpressure>50) && (HPTpressure<100)){
-        snprintf(displayText, sizeof(displayText), "SV closed       ");
+        snprintf(displayText, sizeof(displayText), "%-16s", "SV closed");
       }
       else if(HPTpressure>100){
-        snprintf(displayText, sizeof(displayText), "Pressure too high");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too high");
       }
       else if(HPTpressure<=50){
-        snprintf(displayText, sizeof(displayText), "Pressure too low");
+        snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too low");
       }
-      Lcd_cursor(&lcd, 1, 0);
-      Lcd_string(&lcd, displayText);
-    }
-    // Display showing real pressure values
-    else if(3==displayScreen){
-      snprintf(displayText, sizeof(displayText), "WiFi: cybics-");
-      Lcd_cursor(&lcd, 0, 0);
-      Lcd_string(&lcd, displayText);
-      snprintf(displayText, sizeof(displayText), "%s    ", TxDataUID);
       Lcd_cursor(&lcd, 1, 0);
       Lcd_string(&lcd, displayText);
     }
