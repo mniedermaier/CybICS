@@ -1,35 +1,4 @@
 
-
-
-```sh
-sudo openocd -f ./openocd_rpi.cfg -c "program build/CybICS.bin verify reset exit 0x08000000"
-```
-
-## Build and flash STM32 software
-1. Open this folder in vscode
-1. Install `@recommended` extensions (ms-vscode-remote.remote-containers)
-1. `Ctrl+Shift+P` `Dev Containers: Rebuild and Reopen in Container`
-1. Select Debug target `Debug with External RPi`
-1. Hit F5
-
-## Enable UART on the Raspberry Pi
-```sh
-sudo nano /boot/config.txt
-```
-Change/add in config "enable_uart=1"
-
-```sh
-ln -s /lib/systemd/system/getty@.service /mnt/root/etc/systemd/system/getty.target.wants/getty@ttyGS0.service
-```
-
-
-
-Wireshark Network capture
-```sh
-sshpass -p raspberry ssh pi@192.168.178.141 -p 22 sudo tcpdump -U -s0 'not port 22' -i lo -w - | sudo wireshark -k -i -
-```
-
-
 # Setting-up the Raspberry Pi Zero
 ## Install Raspberry Pi OS using Raspberry Pi Imager
 With the help of the Raspberry Pi Imager, the basic linux installation on the SD card can be done.
@@ -80,4 +49,28 @@ Edit the options for image customization:
 
 
 Write the changes to the SD card.
+
+
+## Execute installation script
+Install docker compose.
+```sh
+sudo apt install docker-compose
+```
+
+Start the container and execute the installation script.
+```sh
+docker compose -f .devcontainer/software/docker-compose.yml up -d
+docker compose -f .devcontainer/software/docker-compose.yml exec dev /CybICS/software/installRPI.sh
+```
+
+Optional: Remove the installation container.
+```sh
+docker compose -f .devcontainer/software/docker-compose.yml down
+```
+
+# Other interessting stuff for development
+## Wireshark Network capture
+```sh
+sshpass -p raspberry ssh $DEVICE_USER@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i lo -w - | sudo wireshark -k -i -
+```
 
