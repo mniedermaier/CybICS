@@ -15,7 +15,7 @@ import smbus
 import time 
 import netifaces as ni
 from pymodbus.client import ModbusTcpClient
-import subprocess
+import nmcli
 
 # I2C channel 1 is connected to the STM32
 channel = 1
@@ -34,35 +34,43 @@ hpt = 0 # variable for the high pressure tank (HPT)
 client = ModbusTcpClient(host="127.0.0.1",port=502)  # Create client object
 client.connect() # connect to device, reconnect automatically
 
+current_connection = ""
+nmcli.disable_use_sudo()
+for conn in nmcli.connection():
+  if conn.device == 'wlan0':
+    current_connection = conn.name
+    break
+
+current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
+print (f"Current connection: {current_connection}, ap ssid: {current_ssid}")
+
 # Entering while true loop
-nmconfig = False
-apmode = '1'
 while True:
   # Get IP address of wlan0
   ip = ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
   listIp = list(ip)
-  print(listIp)
+  # print(listIp)
 
   # Format the IP and send it via i2c to the RPI
   listIp = ['I', 'P',':'] + listIp
   for row in range(len(listIp)):
     listIp[row] = ord(listIp[row])
-  print(listIp)
+  # print(listIp)
   bus.write_i2c_block_data(address, 0x00, listIp)
 
   # Read the values for GST and HPT
   data = bus.read_i2c_block_data(address, 0x00, 20)
-  print(data)
+  # print(data)
   for row in range(len(data)):
     data[row] = chr(data[row])
-  print(data)
+  # print(data)
 
   # Simple check, if correct data was received
   if(str(data[0]) == "G" and str(data[1]) == "S" and str(data[2]) == "T"):
     gst = int(str(data[5] + data[6] + data[7]))
     hpt = int(str(data[14] + data[15] + data[16]))
 
-    print(f"Setting GST to {str(gst)} and HPT to {str(hpt)}")
+    # print(f"Setting GST to {str(gst)} and HPT to {str(hpt)}")
     
     # write GST and HPT to the OpenPLC
     client.write_registers(1124,gst) #(register, value, unit)
@@ -70,20 +78,26 @@ while True:
   
   # Read STM32 ID Code
   data = bus.read_i2c_block_data(address, 0x01, 13)
-  print(data)
   for c in range(len(data)):
     data[c] = chr(data[c])
   #id=str(c-"a" for c in id)
   data="".join(data)
   id = data[:12]
-  ap = data[12]
+  
+  # Simple check, if correct data was received
+  if data[12] in ['0', '1']:
+    ssid = f"cybics-{id}"
+    if current_ssid != ssid:
+      print (f"Configure ssid {ssid}")
+      nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
+      current_ssid = ssid
 
-  if not nmconfig:
-    nmconfig = True
-    subprocess.run(["nmcli", "con", "mod", "cybics", "wifi.ssid", f"cybics-{id}"])
-  if ap != apmode:
-    apmode = ap
-    subprocess.run(["nmcli", "con", "up", "cybics" if ap=='1' else "preconfigured"])
+    connection = 'cybics' if data[12] == '1' else 'preconfigured'
+    if current_connection != connection:
+      print (f"Enable connection {connection}")
+      nmcli.connection.up(connection)
+      current_connection = connection
+
   time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
 # Should never be reached
