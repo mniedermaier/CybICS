@@ -1,0 +1,28 @@
+name: devContainer
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    name: Run devcontainer test
+    runs-on: ubuntu-latest
+   
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+          
+      - name: "Create environment files"
+        run: |
+          .devcontainer/prepare-env.sh
+          cp .devcontainer/software/docker-compose.yml .devcontainer/docker-compose.yml
+
+      - name: run tests
+        uses: devcontainers/ci@v0.3
+        with:
+          configFile: .devcontainer/software/devcontainer.json
+          env: .devcontainer/software/.env
+          runCmd: software/build.sh

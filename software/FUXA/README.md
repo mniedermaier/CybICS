@@ -1,5 +1,19 @@
+## Usage
 
-## Install FUXA
+
+FUXA is running on port 1881.
+
+## Users
+
+| Name        | Password    | Description                           |
+| ----------- | ----------- | ------------------------------------- |
+| viewer      | viewer      | This user can only view all views     |
+| operator    | operator    | This user can controll the system     |
+| admin       | admin       | The admin can make changes on the HMI |
+
+
+## Install FUXA (optional without docker)
+The following steps are not necessary, as the installation script installs FUXA already in a docker container.
 ### Increase SWAP file size
 Temporarily Stop Swap:
 ```sh
