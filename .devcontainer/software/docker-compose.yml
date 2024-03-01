@@ -5,21 +5,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-      - HOST_UID=$HOST_UID
-      - HOST_GID=$HOST_GID
-      - HOST_DOCKER_GID=$HOST_DOCKER_GID
-    command: /bin/sh -c "while sleep 1000; do :; done"
+    command: /bin/sh -c "sudo chown root:docker /var/run/docker.sock && while sleep 1000; do :; done"
     network_mode: host
     env_file:
       - ../../.dev.env
       - ../../.env
     volumes:
       - ../../:/CybICS
-      - ~/.ssh:/home/devuser/.ssh/
-      - ~/.gitconfig:/home/devuser/.gitconfig
+      - ~/.ssh:/home/docker/.ssh/
+      - ~/.gitconfig:/home/docker/.gitconfig
       - /var/run/docker.sock:/var/run/docker.sock
-      - $DOCKER_ENV_DIR/.bash_history:/home/devuser/.bash_history
+      - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
+    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
   registry:
     container_name: cybics-registry
     image: registry:2
