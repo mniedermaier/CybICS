@@ -7,13 +7,12 @@ mkdir -p "$DOCKER_ENV_DIR"
 
 touch .dev.env
 
-cat <<EOT > .env
+cat <<EOT >.env
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
-HOST_DOCKER_GID=$(getent group docker | cut -d: -f3)
 DOCKER_ENV_DIR="$DOCKER_ENV_DIR"
 EOT
 
-touch "$DOCKER_ENV_DIR"/.bash_history   # persist bash history
-cp .env .devcontainer/software          # to also have some env values available in the docker-compose file
-cp .env .devcontainer/stm32             # to also have some env values available in the docker-compose file
+touch "$DOCKER_ENV_DIR"/.bash_history # persist bash history
+cp .env .devcontainer/software        # to also have some env values available in the docker-compose file
+cp .env .devcontainer/stm32           # to also have some env values available in the docker-compose file

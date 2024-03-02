@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: /bin/sh -c "while sleep 1000; do :; done"
     env_file:
       - ../../.dev.env
       - ../../.env

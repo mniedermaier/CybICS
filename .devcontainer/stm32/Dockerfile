@@ -35,7 +35,17 @@ RUN USER=docker \
     && mkdir -p /etc/fixuid \
     && printf "user: $USER\ngroup: $GROUP\n" >/etc/fixuid/config.yml
 
-ENV HOME /home/docker
+# Create docker-init.sh
+RUN echo "#!/bin/sh\n\
+    fixuid \n\
+    \"\$@\"" >>/usr/local/share/docker-init.sh \
+    && chmod +x /usr/local/share/docker-init.sh
 
+ENV HOME /home/docker
 USER docker:docker
-ENTRYPOINT ["fixuid"]
+# VS Code overrides ENTRYPOINT and CMD when executing `docker run` by default.
+# Setting the ENTRYPOINT to docker-init.sh will configure non-root access to
+# the Docker socket if "overrideCommand": false is set in devcontainer.json.
+# The script will also execute CMD if you need to alter startup behaviors.
+ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
+CMD [ "sleep", "infinity" ]

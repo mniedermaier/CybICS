@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: /bin/sh -c "sudo chown root:docker /var/run/docker.sock && while sleep 1000; do :; done"
     network_mode: host
     env_file:
       - ../../.dev.env
@@ -14,7 +13,7 @@ services:
       - ../../:/CybICS
       - ~/.ssh:/home/docker/.ssh/
       - ~/.gitconfig:/home/docker/.gitconfig
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker-host.sock
       - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
     user: ${HOST_UID:-1000}:${HOST_UID:-1000}
   registry:
