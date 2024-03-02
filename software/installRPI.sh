@@ -68,13 +68,17 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
-### Install docker
+### Install tools
 ###
-echo -ne "${GREEN}# Install docker ... \n${ENDCOLOR}"
+echo -ne "${GREEN}# Install tools ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     if ! which docker; then
         curl -fsSL https://get.Docker.com | bash
+    fi
+
+    if ! which tcpdump; then
+        sudo apt-get update && sudo apt-get install tcpdump
     fi
 EOF
 

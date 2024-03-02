@@ -9,6 +9,7 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				"streetsidesoftware.code-spell-checker",
 				"eamodio.gitlens",
 				"ms-vscode.cpptools-extension-pack",
 				"ms-vscode.cpptools",
