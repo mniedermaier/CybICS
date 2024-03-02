@@ -12,5 +12,8 @@
         "editor.defaultFormatter": "redhat.vscode-yaml"
     },
     "shellformat.flag": "-bn",
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "cSpell.words": [
+        "Wireshark"
+    ]
 }
