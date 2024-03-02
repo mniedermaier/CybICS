@@ -67,10 +67,3 @@ Optional: Remove the installation container.
 ```sh
 docker compose -f .devcontainer/software/docker-compose.yml down
 ```
-
-# Other interessting stuff for development
-## Wireshark Network capture
-```sh
-sshpass -p raspberry ssh $DEVICE_USER@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i lo -w - | sudo wireshark -k -i -
-```
-
