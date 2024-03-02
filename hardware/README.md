@@ -11,6 +11,11 @@ The PCB can be ordered completly assembled at [JLCPCB](https://jlcpcb.com/).
 The total cost for a testbed is around 50 euros.
 However, the minimum purchase of PCBs is 5 pieces when ordered from [JLCPCB](https://jlcpcb.com/).
 
+### Components
+The hardware consists of three core components.
+Additionally, there is a 3d printable case,
+which makes desk usage easier ([link](case/README.md)).
+
 | Component        | Description                             |
 | ---------------- | --------------------------------------- |
 | Base Board       | Simulating the physical process         |

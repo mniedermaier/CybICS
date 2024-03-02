@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="CybICS Logo" src="CybICS.png" height="120" />
+  <img alt="CybICS Logo" src="doc/CybICS_logo.png" height="120" />
   <p align="center">Understanding industrial Cybersecurity.</p>
 </p>
 
@@ -24,12 +24,15 @@ The CybICS project is interesting for anyone who wants to delve into the world o
 
 First, read through this page to get a better understanding of the testbed setup.
 
+ - [CybICS](#cybics)
  - [Physical Process](#physical)
  - [Hardware](#hardware)
  - [Software](#software)
+ - [Training](#training)
  - [Abbreviations](#abbreviations)
 
-## CybICS
+## CybICS  <a id="cybics"></a>
+The complete CybICS testbed 
 
 <table align="center"><tr><td align="center" width="9999">
 <img src="doc/cybics.png" width=99%></img>
@@ -88,9 +91,14 @@ The blowout will release the toxic gas, until it is again in a range below 200 b
 
 
 ## Hardware  <a id="hardware"></a>
-
+The hardware is kept minimal and ready to order.
+([link](hardware/README.md))
 
 ## Software  <a id="software"></a>
+The software contains all necessary elements to setup the CybICS testbed.
+For development two VSCode devcontainers are available.
+One for the STM32 controller, which is simulating the physical process and another for all the software running on the Raspberry Pi.
+([link](software/README.md))
 
 | Component        | Description                   | Running on   |
 | ---------------- | ----------------------------- | ------------ |
@@ -98,6 +106,19 @@ The blowout will release the toxic gas, until it is again in a range below 200 b
 | FUXA             | Historian and HMI             | Raspberry Pi |
 | Physical Process |                               | STM32        |
 
+### Fuxa and OpenPLC
+For controlling the physical process, OpenPLC is used.
+This is an open source PLC, with an web interfce for programming and configuration.
+FUXA is used as an HMI and historian, with an web interface for the operator.
+
+<table align="center"><tr><td align="center" width="9999">
+<img src="doc/openplc.png" width=49%></img>
+<img src="doc/fuxa.png" width=49%></img>
+</td></tr></table>
+
+## Training  <a id="training"></a>
+This part of the repository offers an insight into possible learning and training units.
+On the one hand, these include basic knowledge about PLCs and physical processes, as well as cyber attacks [link](training/README.md).
 
 ## Abbreviations  <a id="abbreviations"></a>
 | Abbreviation | Long                            | Description |
