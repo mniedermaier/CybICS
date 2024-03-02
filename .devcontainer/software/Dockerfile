@@ -1,9 +1,5 @@
 FROM ubuntu:22.04
 
-ARG HOST_UID
-ARG HOST_GID
-ARG HOST_DOCKER_GID
-
 RUN apt-get update && apt-get install -y \
     sudo \
     git \
@@ -26,7 +22,16 @@ ENV LC_ALL en_US.UTF-8
 
 RUN python3 -m pip install pymodbus flask
 
-RUN addgroup --gid $HOST_DOCKER_GID docker
+
+RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/nopasswd
+
+RUN addgroup --gid 1000 docker \
+    && adduser --uid 1000 --ingroup docker --home /home/docker --disabled-password --gecos "" docker \
+    && echo 'docker:docker' | chpasswd \
+    && usermod -a -G sudo docker
+
+ENV HOME /home/docker
+
 # RUN curl -fsSL https://get.docker.com | bash
 RUN apt-get update && apt-get install -y \
     docker \
@@ -34,13 +39,13 @@ RUN apt-get update && apt-get install -y \
     docker-buildx \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/nopasswd
+RUN USER=docker \
+    && GROUP=docker \
+    && curl -SsL https://github.com/boxboat/fixuid/releases/download/v0.6.0/fixuid-0.6.0-linux-amd64.tar.gz | tar -C /usr/local/bin -xzf - \
+    && chown root:root /usr/local/bin/fixuid \
+    && chmod 4755 /usr/local/bin/fixuid \
+    && mkdir -p /etc/fixuid \
+    && printf "user: $USER\ngroup: $GROUP\n" >/etc/fixuid/config.yml
 
-RUN addgroup --gid $HOST_GID devuser \
-    && adduser --disabled-password --gecos "" --uid $HOST_UID --gid $HOST_GID devuser \
-    && echo 'devuser:devuser' | chpasswd \
-    && usermod -a -G sudo,docker devuser
-ENV HOME /home/devuser
-RUN export PATH="/home/devuser/.local/bin:$PATH"
-
-USER devuser
+USER docker:docker
+ENTRYPOINT ["fixuid"]

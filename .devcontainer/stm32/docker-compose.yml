@@ -5,14 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-      - HOST_UID=$HOST_UID
-      - HOST_GID=$HOST_GID
     command: /bin/sh -c "while sleep 1000; do :; done"
     env_file:
       - ../../.dev.env
       - ../../.env
     volumes:
       - ../../:/CybICS
-      - ~/.ssh:/home/devuser/.ssh/
-      - ~/.gitconfig:/home/devuser/.gitconfig
+      - ~/.ssh:/home/docker/.ssh/
+      - ~/.gitconfig:/home/docker/.gitconfig
+    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
