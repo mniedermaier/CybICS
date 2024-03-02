@@ -5,6 +5,7 @@
 	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
+	"overrideCommand": false,
 	"customizations": {
 		"vscode": {
 			"extensions": [
