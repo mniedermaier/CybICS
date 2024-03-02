@@ -586,7 +586,7 @@ void Fdisplay(void const * argument)
 
   
   snprintf((char*)TxDataUID, sizeof(TxDataUID), "%04lx%04lx%04lx", LL_GetUID_Word0(), LL_GetUID_Word1(), LL_GetUID_Word2());
-  TxDataUID[12]='1'; // default AP
+  TxDataUID[12]='0'; // default STA
   
   /* Infinite loop */
   for(;;)
