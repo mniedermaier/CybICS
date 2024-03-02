@@ -16,16 +16,16 @@ jobs:
         uses: actions/checkout@v3
 
       - name: "Create environment files"
-        run: |
-          .devcontainer/prepare-env.sh
-          cp .devcontainer/software/docker-compose.yml .devcontainer/docker-compose.yml
+        run: .devcontainer/prepare-env.sh
 
       - name: run tests software
         uses: devcontainers/ci@v0.3
         with:
           configFile: .devcontainer/software/devcontainer.json
           env: .devcontainer/software/.env
-          # runCmd: software/build.sh
+          runCmd: |
+            docker ps
+            software/build.sh
 
       - name: run tests stm32
         uses: devcontainers/ci@v0.3
