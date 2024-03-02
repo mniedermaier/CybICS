@@ -59,7 +59,7 @@ sudo apt install docker-compose
 
 Start the container and execute the installation script.
 ```sh
-docker compose -f .devcontainer/software/docker-compose.yml up -d
+docker compose -f .devcontainer/software/docker-compose.yml up -d --build
 docker compose -f .devcontainer/software/docker-compose.yml exec dev /CybICS/software/installRPI.sh
 ```
 
