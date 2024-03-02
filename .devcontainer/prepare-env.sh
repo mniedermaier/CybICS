@@ -5,7 +5,10 @@ set -e
 DOCKER_ENV_DIR="$(pwd)/.docker.env"
 mkdir -p "$DOCKER_ENV_DIR"
 
-touch .dev.env
+if [ ! -f .dev.env ]; then
+  echo "DEVICE_IP=10.0.0.1" > .dev.env
+  echo "DEVICE_USER=pi" >> .dev.env
+fi
 
 cat <<EOT >.env
 HOST_UID=$(id -u)
