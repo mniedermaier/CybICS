@@ -1,0 +1,13 @@
+{
+    "headers": {
+        "normalizedNames": {},
+        "lazyUpdate": null
+    },
+    "params": {
+        "password": "viewer",
+        "groups": 1,
+        "username": "viewer",
+        "fullname": "",
+        "info": "{\"start\":\"\"}"
+    }
+}
