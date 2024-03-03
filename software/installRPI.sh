@@ -78,7 +78,11 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     fi
 
     if ! which tcpdump; then
-        sudo apt-get update && sudo apt-get install tcpdump
+        sudo apt-get update && sudo apt-get install tcpdump -y
+    fi
+
+    if ! which btop; then
+        sudo apt-get update && sudo apt-get install btop -y
     fi
 EOF
 
