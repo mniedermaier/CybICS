@@ -11,11 +11,25 @@ services:
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
 
+  opcua:
+    image: localhost:5000/cybics-opcua:latest
+    depends_on:
+    - stm32
+    - openplc
+    - readi2c
+    restart: always
+    network_mode: host
+    privileged: true
+    ports:
+      - 4840:4840
+
   openplc:
     image: localhost:5000/cybics-openplc:latest
     restart: always
     privileged: true
     ports:
+      - 44818:44818
+      - 20000:20000
       - 8080:8080
       - 502:502
 
