@@ -18,6 +18,11 @@
 			]
 		},
 		{
+			"label": "Prepare debug",
+			"dependsOn": "Build STM",
+			"command": "${workspaceRoot}/.vscode/remote.sh"
+		},
+		{
 			"label": "Build Clean STM",
 			"type": "process",
 			"command": "${command:stm32-for-vscode.cleanBuild}",

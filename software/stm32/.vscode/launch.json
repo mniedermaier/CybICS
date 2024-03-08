@@ -9,13 +9,13 @@
             "type": "cortex-debug",
             "servertype": "external",
             "gdbTarget": "${env:DEVICE_IP}:3333",
-            "preLaunchTask": "Build STM",
+            "preLaunchTask": "Prepare debug",
             "device": "stm32g070",
             "svdFile": "STM32G070.svd"
         },
         {
             "name": "Debug with External RPi",
-            "preLaunchTask": "Build STM",
+            "preLaunchTask": "Prepare debug",
             "cwd": "${workspaceRoot}",
             "executable": "./build/CybICS.elf",
             "request": "launch",
