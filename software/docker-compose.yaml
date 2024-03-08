@@ -14,12 +14,9 @@ services:
   opcua:
     image: localhost:5000/cybics-opcua:latest
     depends_on:
-    - stm32
     - openplc
-    - readi2c
     restart: always
     network_mode: host
-    privileged: true
     ports:
       - 4840:4840
 
