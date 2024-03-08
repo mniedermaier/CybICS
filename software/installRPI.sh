@@ -68,6 +68,21 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Increasing swap size
+###
+echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+    set -e
+    if grep 1024 /etc/dphys-swapfile; then
+        exit 0
+    fi
+    sudo dphys-swapfile swapoff
+    sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=1024/g /etc/dphys-swapfile
+    sudo dphys-swapfile setup
+    sudo dphys-swapfile swapon
+EOF
+
+###
 ### Install tools
 ###
 echo -ne "${GREEN}# Install tools ... \n${ENDCOLOR}"
