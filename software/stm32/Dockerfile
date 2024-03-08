@@ -20,4 +20,4 @@ COPY ./openocd_rpi.cfg ./
 EXPOSE 3333
 EXPOSE 4444
 CMD openocd -f /CybICS/openocd_rpi.cfg -c "program CybICS.bin verify reset exit 0x08000000" \
-    && openocd -f /CybICS/openocd_rpi.cfg
+    && sleep infinity

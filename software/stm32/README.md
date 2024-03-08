@@ -1,5 +1,10 @@
 ## Using openOCD on the Raspberry Pi
-openOCD is already running in a container, if the installation script was executed.
+openOCD is already installed in a container, if the installation script was executed.
+For remote debugging start it with:
+```bash
+ssh "$DEVICE_USER@$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml exec stm32 openocd -f /CybICS/openocd_rpi.cfg
+```
+
 ```sh
 sudo openocd -f ./openocd_rpi.cfg -c "program build/CybICS.bin verify reset exit 0x08000000"
 ```
