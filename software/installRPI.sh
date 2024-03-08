@@ -164,6 +164,22 @@ ssh -R 5000:localhost:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Enable openocd for development
+###
+if [[ $1 == 'dev' ]]
+then
+echo -ne "${RED}# The installation is done in the development mode... \n${ENDCOLOR}"
+echo -ne "${RED}# This enabled openocd and cause issue when scanning the CybICS... \n${ENDCOLOR}"
+else
+echo -ne "${GREEN}# CybICS setup in production mode... \n${ENDCOLOR}"
+ssh -R 5000:localhost:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo docker stop cybics-stm32-1
+    sudo docker update --restart=no cybics-stm32-1
+EOF
+fi
+
+###
 ### all done
 ###
 END=$(date +%s.%N)
