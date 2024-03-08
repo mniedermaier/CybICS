@@ -4,7 +4,7 @@ All you need is the CybICS baseboard, a Raspberry Pi 2 Zero and a 1602 display.
 For the physical process visualization on the PCB a few LEDs are used.
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="pcb/PCB/CybICS_top.png" width=90%></img>
+<img src="pcb/pcb/CybICS_top.png" width=90%></img>
 </td></tr></table>
 
 The PCB can be ordered completly assembled at [JLCPCB](https://jlcpcb.com/).
