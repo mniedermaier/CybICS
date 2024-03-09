@@ -1,0 +1,3 @@
+[submodule "software/OpenPLC/OpenPLC_v3"]
+	path = software/OpenPLC/OpenPLC_v3
+	url = ../OpenPLC_v3
