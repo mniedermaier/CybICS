@@ -3,7 +3,6 @@ FROM debian:12
 RUN apt-get update && apt-get install -y \
     curl \
     gpg \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dearmor -o /etc/apt/keyrings/raspberrypi.gpg \
@@ -12,25 +11,20 @@ RUN curl https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dear
     pigpio \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /CybICS/ \
-    && cd /CybICS \
-    && git clone https://github.com/thiagoralves/OpenPLC_v3.git \
-    && git -C /CybICS/OpenPLC_v3/ checkout 6621e30830e256dd271a5cf60e430164e080e7b0
-
-COPY openplc.patch /tmp/openplc.patch
-RUN git -C /CybICS/OpenPLC_v3/ apply /tmp/openplc.patch
-
+COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
 WORKDIR /CybICS/OpenPLC_v3/
-COPY openplc.db webserver/openplc.db
-COPY cybICS.st webserver/st_files/724870.st
 RUN export GNUMAKEFLAGS=-j$(nproc --all) \
     && alias make='make -j$(nproc --all)' \
     && ./install.sh docker
 
+# copy files after compile the main part to reduce re-compile time on changes on cybICS.st
 WORKDIR /CybICS/OpenPLC_v3/webserver
-RUN ./scripts/change_hardware_layer.sh rpi
+COPY cybICS.st st_files/724870.st
+COPY openplc.db openplc.db
 RUN ./scripts/compile_program.sh 724870.st
 
 EXPOSE 8080
 EXPOSE 502
+EXPOSE 44818
+EXPOSE 20000
 CMD rm -f /var/run/pigpio.pid && /CybICS/OpenPLC_v3/start_openplc.sh
