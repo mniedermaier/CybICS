@@ -9,6 +9,8 @@ services:
     privileged: true
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+    networks:
+      - br-cybics
 
   opcua:
     image: localhost:5000/cybics-opcua:latest
@@ -17,6 +19,8 @@ services:
     restart: always
     ports:
       - 4840:4840
+    networks:
+      - br-cybics
 
   openplc:
     image: localhost:5000/cybics-openplc:latest
@@ -27,6 +31,8 @@ services:
       - 20000:20000
       - 8080:8080
       - 502:502
+    networks:
+      - br-cybics
 
   fuxa:
     image: localhost:5000/cybics-fuxa:latest
@@ -35,6 +41,8 @@ services:
     - openplc
     ports:
       - 1881:1881
+    networks:
+      - br-cybics
 
   stm32:
     image: localhost:5000/cybics-stm32:latest
@@ -42,3 +50,10 @@ services:
     restart: always
     ports:
       - 3333:3333
+
+networks:
+  br-cybics:
+    name: br-cybics
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-cybics
