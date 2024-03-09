@@ -10,7 +10,7 @@ async def main():
     _logger = logging.getLogger(__name__)
 
     # Connect to OpenPLC
-    client = ModbusTcpClient(host="127.0.0.1",port=502)  # Create client object
+    client = ModbusTcpClient(host="openplc",port=502)  # Create client object
     client.connect() # connect to device, reconnect automatically
 
     # setup the cybics opcua our server
