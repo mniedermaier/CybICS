@@ -13,7 +13,6 @@
 
 import smbus
 import time 
-import netifaces as ni
 from pymodbus.client import ModbusTcpClient
 import nmcli
 
@@ -31,7 +30,7 @@ gst = 0 # variable for the gas storage tank (GST)
 hpt = 0 # variable for the high pressure tank (HPT)
 
 # Connect to OpenPLC
-client = ModbusTcpClient(host="127.0.0.1",port=502)  # Create client object
+client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 client.connect() # connect to device, reconnect automatically
 
 current_connection = ""
@@ -47,7 +46,8 @@ print (f"Current connection: {current_connection}, ap ssid: {current_ssid}")
 # Entering while true loop
 while True:
   # Get IP address of wlan0
-  ip = ni.ifaddresses('wlan0')[ni.AF_INET][0]['addr']
+  ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
+  ip = ip.split('/')[0] # remove the network CIDR suffix
   listIp = list(ip)
   # print(listIp)
 

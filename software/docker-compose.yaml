@@ -6,7 +6,6 @@ services:
     - stm32
     - openplc
     restart: always
-    network_mode: host
     privileged: true
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
