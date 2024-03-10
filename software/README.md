@@ -50,6 +50,16 @@ Edit the options for image customization:
 
 Write the changes to the SD card.
 
+## Clone the repository
+As this repository uses git submodules, use the following to clone it.
+```bash
+git clone https://github.com/mniedermaier/CybICS.git --recursive
+```
+
+If you have already cloned it without the `--recursive` flag, you can do this to also get the submodules afterwards:
+```
+git submodule update --init --recursive
+```
 
 ## Execute installation script
 Install docker compose.
@@ -59,6 +69,7 @@ sudo apt install docker-compose
 
 Start the container and execute the installation script.
 ```sh
+cd CybICS
 docker compose -f .devcontainer/software/docker-compose.yml up -d --build
 docker compose -f .devcontainer/software/docker-compose.yml exec dev /CybICS/software/installRPI.sh
 ```
