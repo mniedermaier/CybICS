@@ -99,6 +99,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     if ! which btop; then
         sudo apt-get update && sudo apt-get install btop -y
     fi
+
+    if ! which socat; then
+        sudo apt-get update && sudo apt-get install socat -y
+    fi
 EOF
 
 ###
@@ -141,6 +145,31 @@ echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
+EOF
+
+###
+### enable pigpiod
+###
+echo -ne "${GREEN}# enable pigpiod ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo systemctl enable pigpiod
+    sudo systemctl start pigpiod
+
+    if [ ! -f /lib/systemd/system/pigpiod-sock.service ]; then
+        cat <<EOL | sudo tee /lib/systemd/system/pigpiod-sock.service
+[Unit]
+Description=Daemon required to control GPIO pins via pigpio via unix socket
+[Service]
+ExecStart=/usr/bin/socat UNIX-LISTEN:/var/run/pigpiod.sock,fork TCP6:localhost:8888
+[Install]
+WantedBy=multi-user.target
+EOL
+
+        sudo systemctl daemon-reload
+        sudo systemctl enable pigpiod-sock
+        sudo systemctl start pigpiod-sock
+    fi
 EOF
 
 ###

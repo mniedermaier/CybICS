@@ -9,6 +9,7 @@ RUN curl https://archive.raspberrypi.com/debian/raspberrypi.gpg.key | gpg --dear
     && echo "deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg] http://archive.raspberrypi.com/debian/ bookworm main" >/etc/apt/sources.list.d/raspi.list \
     && apt-get update && apt-get install -y \
     pigpio \
+    socat \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
@@ -27,4 +28,4 @@ EXPOSE 8080
 EXPOSE 502
 EXPOSE 44818
 EXPOSE 20000
-CMD rm -f /var/run/pigpio.pid && /CybICS/OpenPLC_v3/start_openplc.sh
+CMD socat TCP-LISTEN:8888,reuseaddr,fork UNIX-CLIENT:/var/run/pigpiod.sock & /CybICS/OpenPLC_v3/start_openplc.sh
