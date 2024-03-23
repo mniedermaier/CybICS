@@ -1,4 +1,3 @@
-version: "3.4"
 services:
   readi2c:
     image: localhost:5000/cybics-readi2c:latest
