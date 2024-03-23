@@ -71,7 +71,7 @@ EOF
 ### Increasing swap size
 ###
 echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     if grep 1024 /etc/dphys-swapfile; then
         exit 0
@@ -150,18 +150,10 @@ echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 "$GIT_ROOT"/software/build.sh
 
 echo -ne "${GREEN}# Install container ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    mkdir -p /home/pi/CybICS
-EOF
-
+ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/pi/CybICS
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
-ssh -R 5000:localhost:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    cd /home/pi/CybICS
-    sudo docker compose pull
-    sudo docker compose up -d
-EOF
+ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml pull
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml up -d
 
 ###
 ### all done
