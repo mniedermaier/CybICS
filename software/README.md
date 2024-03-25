@@ -1,3 +1,52 @@
+# Install the Development Environment
+
+## Install docker
+Follow the installation guide for docker:
+(https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
+
+Add the current user to the docker group:
+```sh
+sudo usermod -aG docker $USER
+```
+
+## Install VS Code
+Follow the installation guide for VS Code:
+(https://code.visualstudio.com/docs/setup/linux)
+
+## Clone the repository
+As this repository uses git submodules, use the following to clone it.
+```sh
+git clone https://github.com/mniedermaier/CybICS.git --recursive
+```
+
+If you have already cloned it without the `--recursive` flag, you can do this to also get the submodules afterwards:
+```sh
+git submodule update --init --recursive
+```
+
+## Open CybICS Repository in VS Code
+Change to the git root folder:
+```sh
+cd CybICS
+```
+
+Run VS Code in the root of the repository:
+```sh
+code .
+```
+
+Install the dev container plugin:
+<table align="center"><tr><td align="center" width="9999">
+<img src="pictures/30_vscode.png" width=90%></img>
+</td></tr></table>
+
+Reopen the repository in dev container (be sure you have added the current user to the docker group):
+<table align="center"><tr><td align="center" width="9999">
+<img src="pictures/31_vscode.png" width=70%></img>
+</td></tr></table>
+
+If an error occurred on the initial setup, try to reload.
+The initial build of the dev container will take several minutes depending on your Internet connection and compute performance.
 
 # Setting-up the Raspberry Pi Zero
 ## Install Raspberry Pi OS using Raspberry Pi Imager
@@ -50,22 +99,30 @@ Edit the options for image customization:
 
 Write the changes to the SD card.
 
-## Clone the repository
-As this repository uses git submodules, use the following to clone it.
-```bash
-git clone https://github.com/mniedermaier/CybICS.git --recursive
-```
+# Installation of the CybICS Software
+The .dev.env in the root folder of the repository needs to be configured properly with the IP and user name of the Raspberry Pi.
 
-If you have already cloned it without the `--recursive` flag, you can do this to also get the submodules afterwards:
-```
-git submodule update --init --recursive
-```
+## Option 1: Execute the Installation Script inside VS Code
+The dev container needs to be "software".
+To switch dev conainters press "Ctrl+Shift+P" and select "Dev Conainters: Switch Container".
+Open a new terminal in VS Code with "Ctrl+Shift+`"
 
-## Execute installation script
-Install docker compose.
+
+Change to the software folder
 ```sh
-sudo apt install docker-compose
+cd software/
 ```
+
+Execute the installation script:
+```sh
+./installRPI.sh
+```
+
+The initial build of all containers takes up to one hour.
+During the installation, it is necessary to type in the password of the Raspberry Pi.
+
+
+## Option 2: Execute Installation Script without VS Code
 
 Start the container and execute the installation script.
 ```sh
