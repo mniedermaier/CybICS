@@ -1,4 +1,3 @@
-version: "3.4"
 services:
   readi2c:
     image: localhost:5000/cybics-readi2c:latest
@@ -25,7 +24,8 @@ services:
   openplc:
     image: localhost:5000/cybics-openplc:latest
     restart: always
-    privileged: true
+    volumes:
+      - /var/run:/var/run
     ports:
       - 44818:44818
       - 20000:20000

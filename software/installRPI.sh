@@ -71,7 +71,7 @@ EOF
 ### Increasing swap size
 ###
 echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash << EOF
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     if grep 1024 /etc/dphys-swapfile; then
         exit 0
@@ -98,6 +98,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 
     if ! which btop; then
         sudo apt-get update && sudo apt-get install btop -y
+    fi
+
+    if ! which socat; then
+        sudo apt-get update && sudo apt-get install socat -y
     fi
 EOF
 
@@ -144,24 +148,41 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### enable pigpiod
+###
+echo -ne "${GREEN}# enable pigpiod ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo systemctl enable pigpiod
+    sudo systemctl start pigpiod
+
+    if [ ! -f /lib/systemd/system/pigpiod-sock.service ]; then
+        cat <<EOL | sudo tee /lib/systemd/system/pigpiod-sock.service
+[Unit]
+Description=Daemon required to control GPIO pins via pigpio via unix socket
+[Service]
+ExecStart=/usr/bin/socat UNIX-LISTEN:/var/run/pigpiod.sock,fork TCP6:localhost:8888
+[Install]
+WantedBy=multi-user.target
+EOL
+
+        sudo systemctl daemon-reload
+        sudo systemctl enable pigpiod-sock
+        sudo systemctl start pigpiod-sock
+    fi
+EOF
+
+###
 ### Build container local and install on rasperry pi
 ###
 echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 "$GIT_ROOT"/software/build.sh
 
 echo -ne "${GREEN}# Install container ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    mkdir -p /home/pi/CybICS
-EOF
-
+ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/pi/CybICS
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
-ssh -R 5000:localhost:5000 "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    cd /home/pi/CybICS
-    sudo docker compose pull
-    sudo docker compose up -d
-EOF
+ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml pull
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml up -d
 
 ###
 ### all done
