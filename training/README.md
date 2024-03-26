@@ -8,3 +8,4 @@ You can do all trainings in the order you wish, but the recommended order is:
 1. [Wireshark capture](wireshark_capture/README.md)
 1. [Flood & overwrite](flood_overwrite/README.md)
 1. [Password attack](password_attack/README.md)
+1. [OPC-UA](opcua/README.md)

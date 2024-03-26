@@ -22,7 +22,7 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-RUN python3 -m pip install pymodbus flask
+RUN python3 -m pip install pymodbus flask asyncua
 
 RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/nopasswd
 

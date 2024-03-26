@@ -18,3 +18,15 @@ ssh pi@10.10.0.126 -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | s
 ```
 
 ![wireshark capture](doc/wireshark.png)
+
+## Find the flag
+The flag has the format "CybICS(flag)".
+
+**Hint**: The flag is written to registers over modbus.
+<details>
+  <summary>Solution</summary>
+  
+  ##
+  
+  ![Flag modbus](doc/modbus.png)
+</details>
