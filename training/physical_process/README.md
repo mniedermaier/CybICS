@@ -18,7 +18,7 @@ To get the flag, the blowout needs to be triggered.
 **Hint**: The flag appears on the FUXA HMI, when the blowout was triggered.
 <details>
   <summary>Solution</summary>
-  After login on the FUXA dashboard witch to the "System" view.
+  After login on the FUXA dashboard switch to the "System" view.
   By closing the "System Valve" (SV) and enabling the Compressor (C),
   the pressure is rising.
   After a certain time, the pressure in the High Pressure Tank (HTB)
