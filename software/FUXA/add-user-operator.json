@@ -1,0 +1,13 @@
+{
+    "headers": {
+        "normalizedNames": {},
+        "lazyUpdate": null
+    },
+    "params": {
+        "password": "operator",
+        "groups": 3,
+        "username": "operator",
+        "fullname": "",
+        "info": "{\"start\":\"\"}"
+    }
+}
