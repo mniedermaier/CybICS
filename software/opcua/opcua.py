@@ -25,13 +25,14 @@ async def main():
 
     # populating the cybics address space
     # server.nodes, contains links to very common nodes like objects and root
-    myobj = await server.nodes.objects.add_object(idx, "MyObject")
+    myobj = await server.nodes.objects.add_object(idx, "CybICS Variables")
     gstvar = await myobj.add_variable(idx, "GST", ua.UInt16(0))
     hptvar = await myobj.add_variable(idx, "HPT", ua.UInt16(0))
     systemSenvar = await myobj.add_variable(idx, "systemSen", ua.UInt16(0))
     boSenvar = await myobj.add_variable(idx, "boSen", ua.UInt16(0))
     stopvar = await myobj.add_variable(idx, "stop", ua.UInt16(0))
     manualvar = await myobj.add_variable(idx, "manual", ua.UInt16(0))
+    flagvar = await myobj.add_variable(idx, "flag", "CybICS(0PC-UA)")
     await server.nodes.objects.add_method(
         ua.NodeId("ServerMethod", idx),
         ua.QualifiedName("ServerMethod", idx),

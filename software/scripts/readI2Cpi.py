@@ -75,6 +75,8 @@ while True:
     # write GST and HPT to the OpenPLC
     client.write_registers(1124,gst) #(register, value, unit)
     client.write_registers(1126,hpt) #(register, value, unit)
+    flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
+    client.write_registers(1200,flag) #(register, value, unit)
   
   # Read STM32 ID Code
   data = bus.read_i2c_block_data(address, 0x01, 13)

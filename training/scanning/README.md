@@ -4,7 +4,7 @@ To identify open ports and services within the CybICS testbed you can
 use nmap.
 Execute the following map command
 ```sh
-nmap -sV -p- <DEVICE_IP>
+nmap -sV -p- $DEVICE_IP
 ```
 
 The scan will take several minutes.

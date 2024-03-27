@@ -135,3 +135,24 @@ Optional: Remove the installation container.
 ```sh
 docker compose -f .devcontainer/software/docker-compose.yml down
 ```
+
+## Useful docker commands
+
+<details>
+  <summary>Unfold</summary>
+  
+  List container:
+  ```sh
+  sudo docker ps
+  ```
+
+  Start terminal within container:
+  ```sh
+  sudo docker exec -it <mycontainer_name> bash
+  ```
+
+  Copy file from docker container:
+  ```sh
+  sudo docker cp <container_name>:<path_to_copy> <output_dir>
+  ```
+</details>
