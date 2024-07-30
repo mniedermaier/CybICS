@@ -104,9 +104,9 @@ async def main():
     boSenvar = await myobj.add_variable(idx, "boSen", ua.UInt16(0))
     stopvar = await myobj.add_variable(idx, "STOP", ua.UInt16(0))
     manualvar = await myobj.add_variable(idx, "manual", ua.UInt16(0))
-    userflag = await myobj.add_variable(idx, "flag", "CybICS(0PC-UA)")
+    userflag = await myobj.add_variable(idx, "userFLAG", "CybICS(0PC-UA)")
     obtain_flag = await myobj.add_variable(idx, "Set > 0 to obtain flag!", ua.UInt16(0))
-    adminflag = await myobj.add_variable(idx, "The flag is:", "")
+    adminflag = await myobj.add_variable(idx, "adminFLAG", "")
     await server.nodes.objects.add_method(
         ua.NodeId("ServerMethod", idx),
         ua.QualifiedName("ServerMethod", idx),
