@@ -143,7 +143,7 @@ docker compose -f .devcontainer/software/docker-compose.yml down
   
   List container:
   ```sh
-  sudo docker ps
+  sudo docker ps -a
   ```
 
   Start terminal within container:
@@ -154,5 +154,10 @@ docker compose -f .devcontainer/software/docker-compose.yml down
   Copy file from docker container:
   ```sh
   sudo docker cp <container_name>:<path_to_copy> <output_dir>
+  ```
+
+  Get log from a container:
+  ```sh
+  sudo docker logs --follow <mycontainer_name>
   ```
 </details>
