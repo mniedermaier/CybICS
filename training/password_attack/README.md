@@ -1,4 +1,6 @@
 # Password attack
+A dictionary attack is a common method used to crack passwords by systematically attempting all the words in a pre-defined list, or "dictionary," until the correct one is found.
+This type of attack leverages the tendency of users to choose simple, common passwords, such as "password," "123456," or "qwerty." By using a comprehensive dictionary that includes common words, phrases, and variations, attackers can quickly break into accounts that are protected by weak or predictable passwords.
 
 ## Password attack on OpenPLC
 In this example we try to get the password of the openplc login using the password fuzzer [ffuf](https://github.com/ffuf/ffuf).  
