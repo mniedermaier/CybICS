@@ -9,10 +9,12 @@ It also aids in discovering misconfigurations and vulnerabilities that could be 
 To maximize security, network scans should be conducted periodically and after any significant changes to the network infrastructure, and results should be analyzed to inform ongoing security measures and improvements.
 
 ### nmap
-To identify open ports and services within the CybICS testbed you can
-use nmap.
+To identify open ports and services within the CybICS testbed you can use nmap.
 
+<details>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
 Execute the following map command
+
 ```sh
 nmap -sV -p- $DEVICE_IP
 ```
@@ -59,3 +61,4 @@ Here’s an interpretation of each result:
 44818/tcp - open EtherNetIP-2?:
 
 * Port 44818 is open, and the service appears to be related to EtherNet/IP, a protocol used for industrial networking. The exact version or specifics of the service are not clear from the scan.
+</details>

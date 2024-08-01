@@ -14,6 +14,24 @@ This is leading to a critical pressure value in the HPT.
 The script uses the `.dev.env` file in the root folder of the git.
 Check if these settings are correct, before executing the flooding script.
 
-```sh
-python3 flooding_hpt.py
-```
+
+<details>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
+
+  Execute the provided script to flood the sensor values of the high pressure tank (HPT).
+  This script is designed to continuously send a specific value to a Modbus TCP device to simulate flooding a high-pressure tank (HPT) in a system controlled by an OpenPLC. 
+  The script is intended to flood a high-pressure tank's register in an OpenPLC system by repeatedly writing a specific value (10) to a Modbus register (1126).
+  It connects to a Modbus TCP device using the IP address specified in an environment file and performs the flooding operation at a very high frequency.
+  This script would be used in scenarios where testing or stress-testing of the PLC's handling of high-frequency updates is required.
+  
+  ```sh
+  python3 flooding_hpt.py
+  ```
+
+What can be observed on the FUXA HMI and what happens to the physical process?
+
+* Historical Data and Trends: The interface provides access to historical data and trend analysis. This feature enables operators to review past performance, analyze trends over time, and make data-driven decisions to optimize process efficiency.
+* Response to Alerts: When an alert is triggered, it often prompts immediate action. For example, if a temperature sensor detects an anomaly, the HMI might notify the operator to take corrective measures, such as reducing the heat or shutting down a component to prevent damage.
+
+</details>
+

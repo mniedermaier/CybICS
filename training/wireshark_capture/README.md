@@ -97,9 +97,8 @@ The flag has the format "CybICS(flag)".
 
 **Hint**: The flag is written to registers over modbus.
 <details>
-  <summary>Solution</summary>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
   
-  ##
   :anger: Flag: CybICS(m0dbu$) 
   ![Flag modbus](doc/modbus.png)
 </details>

