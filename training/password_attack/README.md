@@ -51,7 +51,7 @@ The flag has the format "CybICS(flag)".
   <summary>Solution</summary>
   
   ##
-  Flag: CybICS(0penPLC)
+  :anger: Flag: CybICS(0penPLC)
   ![Flag OpenPLC Password](doc/flag.png)
 </details>
 
@@ -70,6 +70,6 @@ The flag has the format "CybICS(flag)".
 ```
 
 
-  Flag: CybICS(FU##A)
+  :anger: Flag: CybICS(FU##A)
   ![Flag FUXA Password](doc/flag2.png)
 </details>

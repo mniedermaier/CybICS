@@ -26,6 +26,6 @@ To get the flag, the blowout needs to be triggered.
 
 
   ##
-  Flag: CybICS(Bl0w0ut)
+  :anger: Flag: CybICS(Bl0w0ut)
   ![Flag OpenPLC Password](doc/flag.png)
 </details>
