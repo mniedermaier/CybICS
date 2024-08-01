@@ -17,7 +17,8 @@
 				"ms-python.python",
 				"redhat.vscode-yaml",
 				"foxundermoon.shell-format",
-				"timonwong.shellcheck"
+				"timonwong.shellcheck",
+				"bierner.markdown-emoji"
 			]
 		}
 	}

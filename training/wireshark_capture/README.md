@@ -27,6 +27,6 @@ The flag has the format "CybICS(flag)".
   <summary>Solution</summary>
   
   ##
-  
+  :anger: Flag: CybICS(m0dbu$) 
   ![Flag modbus](doc/modbus.png)
 </details>
