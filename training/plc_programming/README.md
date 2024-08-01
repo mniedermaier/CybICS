@@ -2,6 +2,13 @@
 This module introduces the concept on programming the PLC in the CybICS testbed.
 
 ## OpenPLC Editor
+OpenPLC Editor is a powerful, open-source tool designed for programming and configuring PLCs (Programmable Logic Controllers) using the IEC 61131-3 standard.
+It provides a user-friendly interface for creating and managing control logic in various programming languages, such as Ladder Diagram (LD), Structured Text (ST), and Function Block Diagram (FBD).
+
+With OpenPLC Editor, users can design and simulate control processes, making it easier to develop and test automation systems before deployment.
+The editor supports real-time monitoring and debugging, allowing engineers to troubleshoot and refine their control logic efficiently.
+Its compatibility with multiple PLC hardware platforms and its open-source nature make it a versatile and accessible option for both professionals and hobbyists in industrial automation.
+
 Clone the repository of the OpenPLC editor.
 ```sh
 git clone https://github.com/thiagoralves/OpenPLC_Editor

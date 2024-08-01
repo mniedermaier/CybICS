@@ -190,4 +190,4 @@ ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker
 END=$(date +%s.%N)
 DIFF=$(echo "$END - $START" | bc)
 echo -ne "${GREEN}# Total execution time $DIFF \n${ENDCOLOR}"
-echo -ne "${GREEN}# All done, ready to rubmle ... \n${ENDCOLOR}"
+echo -ne "${GREEN}# All done, ready to rumble ... \n${ENDCOLOR}"
