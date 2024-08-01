@@ -7,7 +7,8 @@ FUXA is running on port 1881.
 
 | Name        | Password    | Description                           |
 | ----------- | ----------- | ------------------------------------- |
-| viewer      | viewer      | This user can only view all views     ||
+| viewer      | viewer      | This user can only view all views     |
+| operator    | operator    | This user can operate the system      |
 | admin       | 123456      | The admin can make changes on the HMI |
 
 
