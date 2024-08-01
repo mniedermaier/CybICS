@@ -1,5 +1,9 @@
 ### Configuration
 
+Generate user hmac sha256:
+```sh
+echo -n "test" | openssl dgst -sha256 -hmac "678"
+```
 
 Create certificate for admin user:
 ```sh

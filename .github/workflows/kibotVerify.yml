@@ -23,7 +23,7 @@ jobs:
   ERC:
     runs-on: ubuntu-latest
     container:
-      image: setsoft/kicad_auto:ki7
+      image: setsoft/kicad_auto:ki8
     steps:
       - uses: actions/checkout@v3
       - name: run kibot
@@ -33,7 +33,7 @@ jobs:
   DRC:
     runs-on: ubuntu-latest
     container:
-      image: setsoft/kicad_auto:ki7
+      image: setsoft/kicad_auto:ki8
     steps:
       - uses: actions/checkout@v3
       - name: run kibot
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ERC]
     container:
-      image: setsoft/kicad_auto:ki7
+      image: setsoft/kicad_auto:ki8
     steps:
       - uses: actions/checkout@v3
       - name: run kibot
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [DRC]
     container:
-      image: setsoft/kicad_auto:ki7
+      image: setsoft/kicad_auto:ki8
     steps:
       - uses: actions/checkout@v3
       - name: run kibot
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [DRC]
     container:
-      image: setsoft/kicad_auto:ki7
+      image: setsoft/kicad_auto:ki8
     steps:
       - uses: actions/checkout@v3
       - name: run kibot
