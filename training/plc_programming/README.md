@@ -31,6 +31,12 @@ To start the OpenPLC editor run the following.
 
 Open the project called "software" in this folder.
 After this you can start to make changes.
+
+The CybICS program manages the operation of an industrial system by controlling components like a compressor, system valve, and various signals based on input conditions and internal states.
+It includes logic for automatic mode operation, with specific rules for refilling a tank, controlling a compressor, and adjusting outputs.
+The program also manages a heartbeat signal and handles system stop conditions by deactivating components.
+The countHeartbeat variable is used for timing purposes, and the program is configured to run periodically in the PLC environment.
+
 ![Picture of OpenPLC Editor](doc/openplc_editor.png)
 
 ### Upload the compiled program on the OpenPLC

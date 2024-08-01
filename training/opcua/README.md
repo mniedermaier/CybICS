@@ -47,7 +47,7 @@ The flag has the format "CybICS(flag)".
 
 **Hint**: The flag is readable on the OPC UA system of the user, which you need to brute force
 <details>
-  <summary>Solution</summary>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
 
   Check if connection to OPC UA works with:
   ```
@@ -93,7 +93,7 @@ The flag has the format "CybICS(flag)".
 Use the metasploit module `auxiliary/scanner/opcua/opcua_server_config` for this investigation
 
 <details>
-  <summary>Solution</summary>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
   
   ```
   msf6 > use auxiliary/scanner/opcua/opcua_server_config
@@ -158,7 +158,7 @@ Certificates in OPC UA (Open Platform Communications Unified Architecture) are c
 Certificates in OPC UA are essential for establishing secure, authenticated, and encrypted communication channels in industrial environments. They play a vital role in protecting data integrity, confidentiality, and authenticity. Effective management of certificates, including their issuance, storage, revocation, and renewal, is crucial for maintaining a secure OPC UA network and ensuring reliable operation of industrial control systems.
 
 <details>
-  <summary>Solution</summary>
+  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
   Use opcua-client and configure on `Connect option` the usage of the certificate.
   ```
   opcua-client
