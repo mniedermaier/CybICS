@@ -7,7 +7,6 @@ RUN apt-get update && apt-get install -y \
     bash-completion \
     python3 \
     python3-pip \
-    sqlite3 \
     vim \
     curl \
     locales \
@@ -24,19 +23,20 @@ ENV LC_ALL en_US.UTF-8
 
 RUN python3 -m pip install pymodbus flask asyncua
 
+RUN install -d -m 0755 /etc/apt/keyrings && \
+    wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- > /etc/apt/keyrings/packages.mozilla.org.asc && \
+    echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" > /etc/apt/sources.list.d/mozilla.list && \
+    echo 'Package: *' > /etc/apt/preferences.d/mozilla && \
+    echo 'Pin: origin packages.mozilla.org' >> /etc/apt/preferences.d/mozilla && \
+    echo 'Pin-Priority: 1000' >> /etc/apt/preferences.d/mozilla && \
+    apt-get update && apt-get install -y firefox
+
 RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/nopasswd
 
 RUN addgroup --gid 1000 docker \
     && adduser --uid 1000 --ingroup docker --home /home/docker --disabled-password --gecos "" docker \
     && echo 'docker:docker' | chpasswd \
     && usermod -a -G sudo docker
-
-# RUN curl -fsSL https://get.docker.com | bash
-RUN apt-get update && apt-get install -y \
-    docker \
-    docker-compose \
-    docker-buildx \
-    && rm -rf /var/lib/apt/lists/*
 
 RUN USER=docker \
     && GROUP=docker \
@@ -46,18 +46,9 @@ RUN USER=docker \
     && mkdir -p /etc/fixuid \
     && printf "user: $USER\ngroup: $GROUP\n" >/etc/fixuid/config.yml
 
-# Default to root only access to the Docker socket, set up non-root init script
-RUN touch /var/run/docker-host.sock \
-    && ln -s /var/run/docker-host.sock /var/run/docker.sock \
-    && apt-get update \
-    && apt-get -y install socat \
-    && rm -rf /var/lib/apt/lists/*
-
 # Create docker-init.sh
 RUN echo "#!/bin/sh\n\
     fixuid \n\
-    sudo rm -rf /var/run/docker.sock\n\
-    (sudo socat UNIX-LISTEN:/var/run/docker.sock,fork,mode=660,group=docker UNIX-CONNECT:/var/run/docker-host.sock 2>&1 >> /tmp/vscr-docker-from-docker.log) & > /dev/null\n\
     \"\$@\"" >>/usr/local/share/docker-init.sh \
     && chmod +x /usr/local/share/docker-init.sh
 
