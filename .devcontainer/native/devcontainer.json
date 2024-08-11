@@ -1,7 +1,7 @@
 {
-	"name": "CybICS-software",
+	"name": "CybICS-native",
 	"dockerComposeFile": "./docker-compose.yml",
-	"service": "dev",
+	"service": "attack",
 	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
@@ -9,14 +9,9 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"streetsidesoftware.code-spell-checker",
 				"eamodio.gitlens",
-				"ms-vscode.cpptools-extension-pack",
-				"ms-vscode.cpptools",
-				"ms-vscode.cpptools-themes",
 				"ms-python.python",
 				"redhat.vscode-yaml",
-				"foxundermoon.shell-format",
 				"timonwong.shellcheck",
 				"bierner.markdown-emoji"
 			]
