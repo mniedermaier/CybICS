@@ -1,0 +1,23 @@
+version: "3.4"
+services:
+  dev:
+    container_name: cybics-software
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    env_file:
+      - ../../.dev.env
+      - ../../.env
+    volumes:
+      - ../../:/CybICS
+      - ~/.ssh:/home/docker/.ssh/
+      - ~/.gitconfig:/home/docker/.gitconfig
+      - /var/run/docker.sock:/var/run/docker-host.sock
+      - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
+    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
+  registry:
+    container_name: cybics-registry
+    image: registry:2
+    ports:
+      - 5000:5000
