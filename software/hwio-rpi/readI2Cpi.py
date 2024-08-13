@@ -18,8 +18,12 @@ import nmcli
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(8, GPIO.OUT)
-GPIO.output(8, True)
+GPIO.setup(8, GPIO.OUT) # compressor
+GPIO.setup(4, GPIO.OUT) # heartbeat
+GPIO.setup(7, GPIO.OUT) # systemValve
+GPIO.setup(20, GPIO.OUT) # gstSig
+GPIO.setup(1, GPIO.IN) # System sensor
+GPIO.setup(12, GPIO.IN) # BO sensor
 
 # I2C channel 1 is connected to the STM32
 channel = 1
@@ -78,11 +82,28 @@ while True:
     # print(f"Setting GST to {str(gst)} and HPT to {str(hpt)}")
     
     # write GST and HPT to the OpenPLC
-    client.write_registers(1124,gst) #(register, value, unit)
-    client.write_registers(1126,hpt) #(register, value, unit)
+    client.write_registers(1124,gst) #
+    client.write_registers(1126,hpt) #
     flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
-    client.write_registers(1200,flag) #(register, value, unit)
+    client.write_registers(1200,flag) #
   
+  # read coils from OpenPLC
+  try:
+    plcCoils=client.read_coils(0,4)
+    GPIO.output(4, plcCoils.bits[0])   # heartbeat
+    GPIO.output(8, plcCoils.bits[1])   # compressor
+    GPIO.output(7, plcCoils.bits[2])   # systemValve
+    GPIO.output(20, plcCoils.bits[3])  # gstSig
+  except Exception as e:
+    print("Read from OpenPLC failed - " + str(e))
+
+  # write input register to OpenPLC
+  try:
+    client.write_registers(1132,GPIO.input(1))  # System sensor
+    client.write_registers(1134,GPIO.input(12)) # BO sensor
+  except Exception as e:
+    print("Write to OpenPLC failed - " + str(e))
+
   # Read STM32 ID Code
   data = bus.read_i2c_block_data(address, 0x01, 13)
   for c in range(len(data)):
