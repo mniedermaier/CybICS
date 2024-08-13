@@ -1,6 +1,6 @@
 services:
-  readi2c:
-    image: localhost:5000/cybics-readi2c:latest
+  hwio-rpi:
+    image: localhost:5000/cybics-hwio-rpi:latest
     depends_on:
     - stm32
     - openplc

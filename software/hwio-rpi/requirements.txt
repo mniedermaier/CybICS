@@ -1,3 +1,4 @@
 pymodbus
 smbus
 nmcli
+RPi.GPIO

@@ -182,7 +182,7 @@ echo -ne "${GREEN}# Install container ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/pi/CybICS
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
 ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml pull
-ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml up -d
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml up -d --remove-orphans
 
 ###
 ### all done

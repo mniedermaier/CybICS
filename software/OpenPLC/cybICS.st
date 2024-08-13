@@ -1,8 +1,8 @@
 PROGRAM cybICS
   VAR
     (* heartbeat LED on the PCB *)
-    systemSen AT %IX0.1 : BOOL;
-    boSen AT %IX0.2 : BOOL;
+    systemSen AT %MW108 : UINT := 0;
+    boSen AT %MW110 : UINT := 0;
     heartbeat AT %QX0.0 : BOOL;
     compressor AT %QX0.1 : BOOL;
     systemValve AT %QX0.2 : BOOL;
