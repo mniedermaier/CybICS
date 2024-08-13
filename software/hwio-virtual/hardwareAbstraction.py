@@ -94,6 +94,15 @@ if __name__ == "__main__":
     else:
       boSen=0
 
+    if gst>255:
+      gst=255
+    if hpt>255:
+      hpt=255
+    if gst<0:
+      gst=0
+    if hpt<0:
+      hpt=0
+
     # Write to OpenPLC
     try:
       # write SystemSensor and BlowOutSensor to the OpenPLC
@@ -106,10 +115,7 @@ if __name__ == "__main__":
     except Exception as e:
       logging.error("Main    : Write to OpenPLC failed - " + str(e))
 
-    if gst>255:
-      gst=255
-    if hpt>255:
-      hpt=255
+
 
     rows[0]['value'] = gst
     rows[1]['value'] = hpt

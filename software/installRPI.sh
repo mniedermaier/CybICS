@@ -148,31 +148,6 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
-### enable pigpiod
-###
-echo -ne "${GREEN}# enable pigpiod ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
-    set -e
-    sudo systemctl enable pigpiod
-    sudo systemctl start pigpiod
-
-    if [ ! -f /lib/systemd/system/pigpiod-sock.service ]; then
-        cat <<EOL | sudo tee /lib/systemd/system/pigpiod-sock.service
-[Unit]
-Description=Daemon required to control GPIO pins via pigpio via unix socket
-[Service]
-ExecStart=/usr/bin/socat UNIX-LISTEN:/var/run/pigpiod.sock,fork TCP6:localhost:8888
-[Install]
-WantedBy=multi-user.target
-EOL
-
-        sudo systemctl daemon-reload
-        sudo systemctl enable pigpiod-sock
-        sudo systemctl start pigpiod-sock
-    fi
-EOF
-
-###
 ### Build container local and install on rasperry pi
 ###
 echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
