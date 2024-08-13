@@ -15,6 +15,11 @@ import smbus
 import time 
 from pymodbus.client import ModbusTcpClient
 import nmcli
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(8, GPIO.OUT)
+GPIO.output(8, True)
 
 # I2C channel 1 is connected to the STM32
 channel = 1

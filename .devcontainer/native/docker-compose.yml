@@ -39,3 +39,11 @@ services:
       - 1881:1881
     depends_on:
     - openplc
+
+  hw-io:
+    build:
+      context: ../../software/hwio-virtual
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+    - openplc
