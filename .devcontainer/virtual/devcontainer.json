@@ -1,5 +1,5 @@
 {
-	"name": "CybICS-native",
+	"name": "CybICS-virtual",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "attack",
 	"workspaceFolder": "/CybICS",
