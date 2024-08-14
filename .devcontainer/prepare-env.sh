@@ -17,6 +17,6 @@ DOCKER_ENV_DIR="$DOCKER_ENV_DIR"
 EOT
 
 touch "$DOCKER_ENV_DIR"/.bash_history # persist bash history
-cp .env .devcontainer/software        # to also have some env values available in the docker-compose file
+cp .env .devcontainer/raspberry       # to also have some env values available in the docker-compose file
 cp .env .devcontainer/stm32           # to also have some env values available in the docker-compose file
-cp .env .devcontainer/native          # to also have some env values available in the docker-compose file
+cp .env .devcontainer/virtual         # to also have some env values available in the docker-compose file

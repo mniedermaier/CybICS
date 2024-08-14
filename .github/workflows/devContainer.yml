@@ -23,8 +23,8 @@ jobs:
       - name: run tests software
         uses: devcontainers/ci@v0.3
         with:
-          configFile: .devcontainer/software/devcontainer.json
-          env: .devcontainer/software/.env
+          configFile: .devcontainer/raspberry/devcontainer.json
+          env: .devcontainer/raspberry/.env
           runCmd: |
             docker ps
             software/build.sh

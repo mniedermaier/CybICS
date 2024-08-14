@@ -127,13 +127,13 @@ During the installation, it is necessary to type in the password of the Raspberr
 Start the container and execute the installation script.
 ```sh
 cd CybICS
-docker compose -f .devcontainer/software/docker-compose.yml up -d --build
-docker compose -f .devcontainer/software/docker-compose.yml exec dev /CybICS/software/installRPI.sh
+docker compose -f .devcontainer/raspberry/docker-compose.yml up -d --build
+docker compose -f .devcontainer/raspberry/docker-compose.yml exec dev /CybICS/software/installRPI.sh
 ```
 
 Optional: Remove the installation container.
 ```sh
-docker compose -f .devcontainer/software/docker-compose.yml down
+docker compose -f .devcontainer/raspberry/docker-compose.yml down
 ```
 
 ## Useful docker commands

@@ -1,5 +1,5 @@
 {
-	"name": "CybICS-software",
+	"name": "CybICS-raspberry",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "dev",
 	"workspaceFolder": "/CybICS",

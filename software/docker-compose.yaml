@@ -1,6 +1,6 @@
 services:
-  hwio-rpi:
-    image: localhost:5000/cybics-hwio-rpi:latest
+  hwio:
+    image: localhost:5000/cybics-hwio-raspberry:latest
     depends_on:
     - stm32
     - openplc
