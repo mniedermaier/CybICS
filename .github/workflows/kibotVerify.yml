@@ -116,6 +116,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{secrets.KIBOT}}
       - uses: actions/download-artifact@v4
         with:
           name: ${{github.event.repository.name}}_img
