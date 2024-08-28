@@ -41,7 +41,7 @@ if __name__ == "__main__":
   with ui.element('div').style('text-align: center; min-width: 1024; width: 1024;'):
 
     # NiceGUI setup
-    with ui.row().style('text-align: center;'):
+    with ui.row().style('width: 900px; text-align: center; align-items: center; justify-content: center;'):
       ui.spinner('dots', size='lg', color='red')
       ui.image('pics/CybICS_logo.png').classes('w-64')
       ui.spinner('dots', size='lg', color='red')
@@ -61,6 +61,11 @@ if __name__ == "__main__":
       {'variable': 'System', 'value': sysSen},    
     ]
   
+    # add horizontal line
+    with ui.element('div').style('display: flex; justify-content: center;'):
+        ui.element('div').style(
+            'height: 1px; background-color: white; width: 80%; margin: 20px 0;'
+        )
 
     # Add PCB as a PNG image
     with ui.element('div').style('position: relative; display: inline-block;'):
@@ -96,9 +101,14 @@ if __name__ == "__main__":
         'display: none;'
       )
 
+    # add horizontal line
+    with ui.element('div').style('display: flex; justify-content: center;'):
+        ui.element('div').style(
+            'height: 1px; background-color: white; width: 80%; margin: 20px 0;'
+        )
 
     # Build a visual representation of the process
-    with ui.row():
+    with ui.row().style('width: 900px; text-align: center; align-items: center; justify-content: center;'):
       with ui.column():
         variableTable = ui.table(columns=columns, rows=rows, row_key='name')
       with ui.column():
