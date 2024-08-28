@@ -12,7 +12,7 @@ client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 client.connect() # connect to device, reconnect automatically
 
 def thread_nicegui():
-  ui.run(port=8090,reload=False,show=False,dark=True,favicon="favicon.ico",title="CybICS VIRT")
+  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
 
 if __name__ == "__main__":
   gst=0
@@ -37,54 +37,94 @@ if __name__ == "__main__":
   logging.info("Main    : before running thread")
   x.start()
 
-  # NiceGUI setup
-  with ui.row():
-    ui.spinner('dots', size='lg', color='red')
-    ui.image('CybICS_logo.png').classes('w-64')
-    ui.spinner('dots', size='lg', color='red')
+  # Create container for the content
+  with ui.element('div').style('text-align: center; min-width: 1024; width: 1024;'):
 
-  columns = [
-    {'name': 'variable', 'label': 'Variable', 'field': 'variable', 'required': True, 'align': 'left'},
-    {'name': 'value', 'label': 'Value', 'field': 'value', 'sortable': True},
-  ]
-  rows = [
-    {'variable': 'GST', 'value': gst},
-    {'variable': 'HPT', 'value': hpt},
-    {'variable': 'boSen', 'value': boSen},
-    {'variable': 'heartbeat', 'value': heartbeat},
-    {'variable': 'compressor', 'value': compressor},
-    {'variable': 'systemValve', 'value': systemValve},
-    {'variable': 'gstSig', 'value': gstSig},
-    {'variable': 'System', 'value': sysSen},    
-  ]
+    # NiceGUI setup
+    with ui.row().style('text-align: center;'):
+      ui.spinner('dots', size='lg', color='red')
+      ui.image('pics/CybICS_logo.png').classes('w-64')
+      ui.spinner('dots', size='lg', color='red')
+
+    columns = [
+      {'name': 'variable', 'label': 'Variable', 'field': 'variable', 'required': True, 'align': 'left'},
+      {'name': 'value', 'label': 'Value', 'field': 'value', 'sortable': True},
+    ]
+    rows = [
+      {'variable': 'GST', 'value': gst},
+      {'variable': 'HPT', 'value': hpt},
+      {'variable': 'boSen', 'value': boSen},
+      {'variable': 'heartbeat', 'value': heartbeat},
+      {'variable': 'compressor', 'value': compressor},
+      {'variable': 'systemValve', 'value': systemValve},
+      {'variable': 'gstSig', 'value': gstSig},
+      {'variable': 'System', 'value': sysSen},    
+    ]
   
 
-  # Build a visual representation of the process
-  with ui.row():
-    with ui.column():
-      variableTable = ui.table(columns=columns, rows=rows, row_key='name')
-    with ui.column():
-      ui.label('Gas Storage Tank (GST)')
-      with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as gstCard:
-        gstLabel = ui.label(str(gst)).style('color: black;')
-      ui.label('System Valve ')
-      with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as systemValveCard:
-        systemValveLabel = ui.label(str(systemValve)).style('color: black;')
-    with ui.column():
-      ui.label('Compressor (C)')
-      with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as cCard:
-        cLabel = ui.label(str(compressor)).style('color: black;')
-      ui.label('System (Sys)')
-      with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as sysCard:
-        sysLabel = ui.label(str(sysSen)).style('color: black;')
-    with ui.column():
-      ui.label('High Pressure Tank (HPT)')
-      with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as hptCard:
-        hptLabel = ui.label(str(hpt)).style('color: black;')
-      ui.label('Blow Out (BO)')
-      with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as boCard:
-        boLabel = ui.label(str(boSen)).style('color: black;')
+    # Add PCB as a PNG image
+    with ui.element('div').style('position: relative; display: inline-block;'):
+      # Display the PNG image
+      ui.image('pics/pcb.png').style('width: 100%; height: auto; display: block; width: 800px; height: 500px; margin: auto;')
 
+      # Overlay GST
+      GSToverlayLow=ui.card().style(
+        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      GSToverlayNormal=ui.card().style(
+        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      GSToverlayHigh=ui.card().style(
+        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
+
+      # Overlay Compressor
+      CoverlayOn=ui.card().style(
+        'position: absolute; top: 95px; left: 360px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      CoverlayOff=ui.card().style(
+        'position: absolute; top: 125px; left: 360px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
+
+
+    # Build a visual representation of the process
+    with ui.row():
+      with ui.column():
+        variableTable = ui.table(columns=columns, rows=rows, row_key='name')
+      with ui.column():
+        ui.label('Gas Storage Tank (GST)')
+        with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as gstCard:
+          gstLabel = ui.label(str(gst)).style('color: black;')
+        ui.label('System Valve ')
+        with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as systemValveCard:
+          systemValveLabel = ui.label(str(systemValve)).style('color: black;')
+      with ui.column():
+        ui.label('Compressor (C)')
+        with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as cCard:
+          cLabel = ui.label(str(compressor)).style('color: black;')
+        ui.label('System (Sys)')
+        with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as sysCard:
+          sysLabel = ui.label(str(sysSen)).style('color: black;')
+      with ui.column():
+        ui.label('High Pressure Tank (HPT)')
+        with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as hptCard:
+          hptLabel = ui.label(str(hpt)).style('color: black;')
+        ui.label('Blow Out (BO)')
+        with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as boCard:
+          boLabel = ui.label(str(boSen)).style('color: black;')
+
+
+  
   while True:
 
     # read coils from OpenPLC
@@ -192,22 +232,89 @@ if __name__ == "__main__":
       hptCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       hptLabel.set_text("Critical: " + str(hpt))
 
+    # Display for compressor
     if compressor:
       cCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       cLabel.set_text("ON: " + str(compressor))
+      CoverlayOn.style(
+        'position: absolute; top: 95px; left: 360px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      CoverlayOff.style(
+        'position: absolute; top: 125px; left: 360px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
     else:
       cCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       cLabel.set_text("OFF: " + str(compressor))
+      CoverlayOn.style(
+        'position: absolute; top: 95px; left: 360px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      CoverlayOff.style(
+        'position: absolute; top: 125px; left: 360px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
 
+    # Display style for GST
     if gst < 50:
       gstCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       gstLabel.set_text("Low: " + str(gst))
+      GSToverlayLow.style(
+        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      GSToverlayNormal.style(
+        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      GSToverlayHigh.style(
+        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
     elif gst < 150:
       gstCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       gstLabel.set_text("Normal: " + str(gst))
+      GSToverlayLow.style(
+        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      GSToverlayNormal.style(
+        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      GSToverlayHigh.style(
+        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
     else:
       gstCard.style(f'background-color: blue; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       gstLabel.set_text("Full: " + str(gst))
+      GSToverlayLow.style(
+        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      GSToverlayNormal.style(
+        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      GSToverlayHigh.style(
+        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: block;'
+      )
      
     time.sleep(0.001) # OpenPLC has a Cycle time of 50ms
 
