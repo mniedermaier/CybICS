@@ -11,10 +11,32 @@ import random
 client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 client.connect() # connect to device, reconnect automatically
 
-def thread_nicegui():
-  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
+# Global variables
+gst=0
+hpt=0
+sysSen=0
+boSen=0
+heartbeat=0
+compressor=0
+systemValve=0
+gstSig=0
+delay=0
+timer=0
 
-if __name__ == "__main__":
+# definiton for button reset
+def button_reset():
+  # use global variables
+  global gst
+  global hpt
+  global sysSen
+  global boSen
+  global heartbeat
+  global compressor
+  global systemValve
+  global gstSig
+  global delay
+  global timer
+  logging.info("button_rest: clicked")
   gst=0
   hpt=0
   sysSen=0
@@ -24,6 +46,15 @@ if __name__ == "__main__":
   systemValve=0
   gstSig=0
   delay=0
+  timer=0
+  logging.info("button_rest: all reseted")
+
+# thread for nicegui
+def thread_nicegui():
+  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
+
+# main function
+if __name__ == "__main__":
   flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
 
   format = "%(asctime)s: %(message)s"
@@ -71,6 +102,25 @@ if __name__ == "__main__":
     with ui.element('div').style('position: relative; display: inline-block;'):
       # Display the PNG image
       ui.image('pics/pcb.png').style('width: 100%; height: auto; display: block; width: 800px; height: 500px; margin: auto;')
+
+      # Reset button
+      ui.button('reset', on_click=button_reset).style(
+        'position: absolute; top: 240px; left: 0px;'
+        'background-color: red; color: white; width: 40px; height: 5px;'
+        'display: block;'
+      )
+
+      # Overlay Display
+      DISPLAYoverlay1 = ui.label('CybICS v1.0.0').style(
+        'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
+        'background-color: transparent; font-size: 40px;'
+        'display: block;'
+      )
+      DISPLAYoverlay2 = ui.label('0').style(
+        'position: absolute; top: 415px; left: 430px; border-radius: 50%; color=black'
+        'background-color: transparent; font-size: 40px; width:330px; text-align: right;'
+        'display: block;'
+      )
 
       # Overlay GST
       GSToverlayLow=ui.card().style(
@@ -213,6 +263,8 @@ if __name__ == "__main__":
     # get roughly one second
     if delay > 50:
       delay = 0
+      timer = timer + 1
+      DISPLAYoverlay2.set_text(str(timer))
       if gstSig > 0:
         gst = gst+random.randint(0, 5)
       if compressor > 0:
