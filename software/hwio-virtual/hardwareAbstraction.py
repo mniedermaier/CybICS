@@ -272,6 +272,8 @@ if __name__ == "__main__":
         hpt = hpt+1
       if systemValve > 0:
         hpt = hpt-random.randint(0, 1)
+      if boSen > 0:
+        hpt=hpt-random.randint(0, 5)
     delay = delay+1
 
     # System Valve
@@ -341,8 +343,7 @@ if __name__ == "__main__":
     if hpt>220 or (boSen==1 and hpt>200):
       boSen=1
       boCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
-      boLabel.set_text("Open: " + str(boSen))
-      hpt=hpt-random.randint(0, 5)
+      boLabel.set_text("Open: " + str(boSen))      
       BOoverlayOpen.style(
         'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
