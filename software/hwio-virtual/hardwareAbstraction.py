@@ -74,31 +74,94 @@ if __name__ == "__main__":
 
       # Overlay GST
       GSToverlayLow=ui.card().style(
-        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 140px; left: 115px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
-        'display: none;'
+        'display: block;'
       )
       GSToverlayNormal=ui.card().style(
-        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 110px; left: 115px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
-        'display: none;'
+        'display: block;'
       )
       GSToverlayHigh=ui.card().style(
-        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 80px; left: 115px; border-radius: 50%;'
         'background-color: blue; width: 5px; height: 5px;'
-        'display: none;'
+        'display: block;'
       )
 
       # Overlay Compressor
       CoverlayOn=ui.card().style(
-        'position: absolute; top: 95px; left: 360px; border-radius: 50%;'
+        'position: absolute; top: 95px; left: 355px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
-        'display: none;'
+        'display: block;'
       )
       CoverlayOff=ui.card().style(
-        'position: absolute; top: 125px; left: 360px; border-radius: 50%;'
+        'position: absolute; top: 125px; left: 355px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
-        'display: none;'
+        'display: block;'
+      )
+            
+      # Overlay HPT
+      HPToverlayEmpty=ui.card().style(
+        'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayLow=ui.card().style(
+        'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayNormal=ui.card().style(
+        'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayHigh=ui.card().style(
+        'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayCritical=ui.card().style(
+        'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
+
+      # Overlay Blow Out
+      BOoverlayOpen=ui.card().style(
+        'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      BOoverlayClosed=ui.card().style(
+        'position: absolute; top: 80px; left: 680px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+
+      # Overlay System
+      SoverlayWorking=ui.card().style(
+        'position: absolute; top: 140px; left: 680px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      SoverlayError=ui.card().style(
+        'position: absolute; top: 165px; left: 680px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
+
+      # Overlay System Valve
+      SVoverlayOpen=ui.card().style(
+        'position: absolute; top: 245px; left: 620px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      SVoverlayClosed=ui.card().style(
+        'position: absolute; top: 270px; left: 620px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
       )
 
     # add horizontal line
@@ -148,7 +211,7 @@ if __name__ == "__main__":
       logging.error("Main    : Read from OpenPLC failed - " + str(e))
 
     # get roughly one second
-    if delay > 1000:
+    if delay > 50:
       delay = 0
       if gstSig > 0:
         gst = gst+random.randint(0, 5)
@@ -172,10 +235,54 @@ if __name__ == "__main__":
       sysSen=1
       sysCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       sysLabel.set_text("Operational: " + str(sysSen))
+      SoverlayWorking.style(
+        'position: absolute; top: 140px; left: 680px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      SoverlayError.style(
+        'position: absolute; top: 165px; left: 680px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
     else:
       sysSen=0
       sysCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       sysLabel.set_text("Non operational: " + str(sysSen))
+      SoverlayWorking.style(
+        'position: absolute; top: 140px; left: 680px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      SoverlayError.style(
+        'position: absolute; top: 165px; left: 680px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
+
+    # Control System Valve Overlay
+    if systemValve>0:
+      SVoverlayOpen.style(
+        'position: absolute; top: 245px; left: 620px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      SVoverlayClosed.style(
+        'position: absolute; top: 270px; left: 620px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
+    else:
+      SVoverlayOpen.style(
+        'position: absolute; top: 245px; left: 620px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      SVoverlayClosed.style(
+        'position: absolute; top: 270px; left: 620px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
     
 
     # Blowout if the HPTpressure if over 220 until HTP pressure < 201
@@ -184,10 +291,30 @@ if __name__ == "__main__":
       boCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       boLabel.set_text("Open: " + str(boSen))
       hpt=hpt-random.randint(0, 5)
+      BOoverlayOpen.style(
+        'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      BOoverlayClosed.style(
+        'position: absolute; top: 80px; left: 680px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
     else:
       boSen=0
       boCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       boLabel.set_text("Closed: " + str(boSen))
+      BOoverlayOpen.style(
+        'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      BOoverlayClosed.style(
+        'position: absolute; top: 80px; left: 680px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
 
     if gst>255:
       gst=255
@@ -226,33 +353,159 @@ if __name__ == "__main__":
     cLabel.set_text(str(compressor))
     hptLabel.set_text(str(hpt))
 
+    # HPT status
     if hpt == 0:
       hptCard.style(f'background-color: blue; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       hptLabel.set_text("Empty: " + str(hpt))
+      HPToverlayEmpty.style(
+        'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayLow.style(
+        'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayNormal.style(
+        'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayHigh.style(
+        'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayCritical.style(
+        'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
     elif hpt < 50:
       hptCard.style(f'background-color: white; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       hptLabel.set_text("Low: " + str(hpt))
+      HPToverlayEmpty.style(
+        'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayLow.style(
+        'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayNormal.style(
+        'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayHigh.style(
+        'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayCritical.style(
+        'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
     elif hpt < 100:
       hptCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       hptLabel.set_text("Normal: " + str(hpt))
+      HPToverlayEmpty.style(
+        'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayLow.style(
+        'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayNormal.style(
+        'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayHigh.style(
+        'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayCritical.style(
+        'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
     elif hpt < 150:
       hptCard.style(f'background-color: orange; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       hptLabel.set_text("High: " + str(hpt))
+      HPToverlayEmpty.style(
+        'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayLow.style(
+        'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayNormal.style(
+        'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayHigh.style(
+        'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: block;'
+      )
+      HPToverlayCritical.style(
+        'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: none;'
+      )
     else:
       hptCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       hptLabel.set_text("Critical: " + str(hpt))
+      HPToverlayEmpty.style(
+        'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+        'background-color: blue; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayLow.style(
+        'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayNormal.style(
+        'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+        'background-color: green; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayHigh.style(
+        'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+        'background-color: white; width: 5px; height: 5px;'
+        'display: none;'
+      )
+      HPToverlayCritical.style(
+        'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+        'background-color: red; width: 5px; height: 5px;'
+        'display: block;'
+      )
 
     # Display for compressor
     if compressor:
       cCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       cLabel.set_text("ON: " + str(compressor))
       CoverlayOn.style(
-        'position: absolute; top: 95px; left: 360px; border-radius: 50%;'
+        'position: absolute; top: 95px; left: 355px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
         'display: block;'
       )
       CoverlayOff.style(
-        'position: absolute; top: 125px; left: 360px; border-radius: 50%;'
+        'position: absolute; top: 125px; left: 355px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
         'display: none;'
       )
@@ -260,12 +513,12 @@ if __name__ == "__main__":
       cCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       cLabel.set_text("OFF: " + str(compressor))
       CoverlayOn.style(
-        'position: absolute; top: 95px; left: 360px; border-radius: 50%;'
+        'position: absolute; top: 95px; left: 355px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
         'display: none;'
       )
       CoverlayOff.style(
-        'position: absolute; top: 125px; left: 360px; border-radius: 50%;'
+        'position: absolute; top: 125px; left: 355px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
         'display: block;'
       )
@@ -275,17 +528,17 @@ if __name__ == "__main__":
       gstCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       gstLabel.set_text("Low: " + str(gst))
       GSToverlayLow.style(
-        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 140px; left: 115px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
         'display: block;'
       )
       GSToverlayNormal.style(
-        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 110px; left: 115px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
         'display: none;'
       )
       GSToverlayHigh.style(
-        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 80px; left: 115px; border-radius: 50%;'
         'background-color: blue; width: 5px; height: 5px;'
         'display: none;'
       )
@@ -293,17 +546,17 @@ if __name__ == "__main__":
       gstCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       gstLabel.set_text("Normal: " + str(gst))
       GSToverlayLow.style(
-        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 140px; left: 115px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
         'display: none;'
       )
       GSToverlayNormal.style(
-        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 110px; left: 115px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
         'display: block;'
       )
       GSToverlayHigh.style(
-        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 80px; left: 115px; border-radius: 50%;'
         'background-color: blue; width: 5px; height: 5px;'
         'display: none;'
       )
@@ -311,20 +564,20 @@ if __name__ == "__main__":
       gstCard.style(f'background-color: blue; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       gstLabel.set_text("Full: " + str(gst))
       GSToverlayLow.style(
-        'position: absolute; top: 140px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 140px; left: 115px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
         'display: none;'
       )
       GSToverlayNormal.style(
-        'position: absolute; top: 110px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 110px; left: 115px; border-radius: 50%;'
         'background-color: green; width: 5px; height: 5px;'
         'display: none;'
       )
       GSToverlayHigh.style(
-        'position: absolute; top: 80px; left: 120px; border-radius: 50%;'
+        'position: absolute; top: 80px; left: 115px; border-radius: 50%;'
         'background-color: blue; width: 5px; height: 5px;'
         'display: block;'
       )
      
-    time.sleep(0.001) # OpenPLC has a Cycle time of 50ms
+    time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
