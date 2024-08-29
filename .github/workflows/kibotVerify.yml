@@ -115,6 +115,9 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{secrets.KIBOT}}
       - uses: actions/download-artifact@v4
         with:
           name: ${{github.event.repository.name}}_img
@@ -129,5 +132,3 @@ jobs:
           path: ${{env.dir}}/docs
       # Commit all changed files back to the repository
       - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          ssh-key: ${{secrets.KIBOT}}
