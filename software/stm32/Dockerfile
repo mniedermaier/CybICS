@@ -1,4 +1,4 @@
-FROM debian:12 as build
+FROM debian:12-slim as build
 
 RUN apt-get update && apt-get install -y \
     make \
@@ -8,7 +8,7 @@ WORKDIR /CybICS
 COPY ./ ./
 RUN make -j$(nproc --all)
 
-FROM debian:12
+FROM debian:12-slim
 WORKDIR /CybICS
 RUN apt-get update && apt-get install -y \
     openocd \
