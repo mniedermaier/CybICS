@@ -85,3 +85,15 @@ sudo systemctl start fuxa.service
 ```sh
 sudo systemctl enable fuxa.service
 ```
+
+## Format fuxa-project.json to be pretty
+
+Install jq
+```sh
+sudo apt install jq
+```
+
+Make a pretty version of the FUXA project file:
+```sh
+jq . fuxa-project.json > fuxa-project-pretty.json
+```
