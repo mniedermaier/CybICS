@@ -18,15 +18,15 @@ services:
   #   depends_on:
   #   - openplc
 
-  # fuxa:
-  #   build:
-  #     context: software/FUXA
-  #     dockerfile: Dockerfile
-  #   restart: always
-  #   ports:
-  #     - 1881:1881
-  #   depends_on:
-  #   - openplc
+  fuxa:
+    build:
+      context: software/FUXA
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 1881:1881
+    depends_on:
+    - openplc
 
   hwio:
     build:
