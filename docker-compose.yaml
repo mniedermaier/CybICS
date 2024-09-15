@@ -1,9 +1,7 @@
 services:
 
   openplc:
-    build:
-      context: software/OpenPLC
-      dockerfile: Dockerfile
+    image: mniedermaier1337/cybicsopenplc:latest
     restart: always
     privileged: true
     ports:
@@ -19,9 +17,7 @@ services:
   #   - openplc
 
   fuxa:
-    build:
-      context: software/FUXA
-      dockerfile: Dockerfile
+    image: mniedermaier1337/cybicsfuxa:latest
     restart: always
     ports:
       - 1881:1881
@@ -29,9 +25,7 @@ services:
     - openplc
 
   hwio:
-    build:
-      context: software/hwio-virtual
-      dockerfile: Dockerfile
+    image: mniedermaier1337/cybicshwio:latest
     restart: always
     ports:
       - 80:8090

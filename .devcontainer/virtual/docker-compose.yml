@@ -1,5 +1,6 @@
 services:
   attack:
+    image: mniedermaier1337/cybicsattack:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,6 +14,7 @@ services:
     user: ${HOST_UID:-1000}:${HOST_UID:-1000}
 
   openplc:
+    image: mniedermaier1337/cybicsopenplc:latest
     build:
       context: ../../software/OpenPLC
       dockerfile: Dockerfile
@@ -23,6 +25,7 @@ services:
       - 502:502
 
   opcua:
+    image: mniedermaier1337/cybicsopcua:latest
     build:
       context: ../../software/opcua
       dockerfile: Dockerfile
@@ -31,6 +34,7 @@ services:
     - openplc
 
   fuxa:
+    image: mniedermaier1337/cybicsfuxa:latest
     build:
       context: ../../software/FUXA
       dockerfile: Dockerfile
@@ -41,6 +45,7 @@ services:
     - openplc
 
   hwio:
+    image: mniedermaier1337/cybicshwio:latest
     build:
       context: ../../software/hwio-virtual
       dockerfile: Dockerfile
