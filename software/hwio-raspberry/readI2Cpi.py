@@ -16,6 +16,7 @@ import time
 from pymodbus.client import ModbusTcpClient
 import nmcli
 import RPi.GPIO as GPIO
+import logging
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(8, GPIO.OUT) # compressor
@@ -37,7 +38,7 @@ bus = smbus.SMBus(channel)
 
 gst = 0 # variable for the gas storage tank (GST)
 hpt = 0 # variable for the high pressure tank (HPT)
-
+countCheckIP = 0 # Variable to check IP every 100 runs
 # Connect to OpenPLC
 client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 client.connect() # connect to device, reconnect automatically
@@ -50,22 +51,27 @@ for conn in nmcli.connection():
     break
 
 current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
-print (f"Current connection: {current_connection}, ap ssid: {current_ssid}")
+logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
 
 # Entering while true loop
 while True:
-  # Get IP address of wlan0
-  ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
-  ip = ip.split('/')[0] # remove the network CIDR suffix
-  listIp = list(ip)
-  # print(listIp)
+  if countCheckIP == 0:
+    # Get IP address of wlan0
+    ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
+    ip = ip.split('/')[0] # remove the network CIDR suffix
+    listIp = list(ip)
+    # print(listIp)
 
-  # Format the IP and send it via i2c to the RPI
-  listIp = ['I', 'P',':'] + listIp
-  for row in range(len(listIp)):
-    listIp[row] = ord(listIp[row])
-  # print(listIp)
-  bus.write_i2c_block_data(address, 0x00, listIp)
+    # Format the IP and send it via i2c to the RPI
+    listIp = ['I', 'P',':'] + listIp
+    for row in range(len(listIp)):
+      listIp[row] = ord(listIp[row])
+    # print(listIp)
+    bus.write_i2c_block_data(address, 0x00, listIp)
+  elif countCheckIP > 100:
+    countCheckIP=0
+
+  countCheckIP = countCheckIP + 1
 
   # Read the values for GST and HPT
   data = bus.read_i2c_block_data(address, 0x00, 20)
@@ -95,14 +101,14 @@ while True:
     GPIO.output(7, plcCoils.bits[2])   # systemValve
     GPIO.output(20, plcCoils.bits[3])  # gstSig
   except Exception as e:
-    print("Read from OpenPLC failed - " + str(e))
+    logging.error("Read from OpenPLC failed - " + str(e))
 
   # write input register to OpenPLC
   try:
     client.write_registers(1132,GPIO.input(1))  # System sensor
     client.write_registers(1134,GPIO.input(12)) # BO sensor
   except Exception as e:
-    print("Write to OpenPLC failed - " + str(e))
+    logging.error("Write to OpenPLC failed - " + str(e))
 
   # Read STM32 ID Code
   data = bus.read_i2c_block_data(address, 0x01, 13)
@@ -116,13 +122,13 @@ while True:
   if data[12] in ['0', '1']:
     ssid = f"cybics-{id}"
     if current_ssid != ssid:
-      print (f"Configure ssid {ssid}")
+      logging.info(f"Configure ssid {ssid}")
       nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
       current_ssid = ssid
 
     connection = 'cybics' if data[12] == '1' else 'preconfigured'
     if current_connection != connection:
-      print (f"Enable connection {connection}")
+      logging.info(f"Enable connection {connection}")
       nmcli.connection.up(connection)
       current_connection = connection
 
