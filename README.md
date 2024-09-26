@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="CybICS Logo" src="doc/CybICS_logo.png" height="120" />
+  <img alt="CybICS Logo" src="doc/pics/CybICS_logo.png" height="120" />
   <p align="center">Understanding industrial Cybersecurity.</p>
 </p>
 
@@ -28,6 +28,7 @@ First, read through this page to get a better understanding of the testbed setup
  - [Physical Process](#physical)
  - [Hardware](#hardware)
  - [Software](#software)
+ - [Getting Started](doc/README.md)
  - [Training](#training)
  - [Abbreviations](#abbreviations)
 
@@ -35,7 +36,7 @@ First, read through this page to get a better understanding of the testbed setup
 The complete CybICS testbed 
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="doc/cybics.png" width=99%></img>
+<img src="doc/pics/cybics.png" width=99%></img>
 </td></tr></table>
 
 ## Physical Process  <a id="physical"></a>
@@ -112,8 +113,8 @@ This is an open source PLC, with an web interfce for programming and configurati
 FUXA is used as an HMI and historian, with an web interface for the operator.
 
 <table align="center"><tr><td align="center" width="9999">
-<img src="doc/openplc.png" width=49%></img>
-<img src="doc/fuxa.png" width=49%></img>
+<img src="doc/pics/openplc.png" width=49%></img>
+<img src="doc/pics/fuxa.png" width=49%></img>
 </td></tr></table>
 
 ## Training  <a id="training"></a>

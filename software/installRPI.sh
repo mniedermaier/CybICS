@@ -11,7 +11,7 @@ ENDCOLOR="\e[0m"
 GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
 # start time for calculation of the execution time
-START=$(date +%s.%N)
+START=$(date +%s)
 
 echo -ne "${MAGENTA}"
 echo "                                    "
@@ -45,6 +45,16 @@ echo -ne "${ENDCOLOR}"
 sleep 1
 
 ###
+### Check if raspberry is up
+###
+if ping -c 1 -W 5 "$DEVICE_IP" > /dev/null 2>&1; then
+    echo -ne "${GREEN}# IP $DEVICE_IP is reachable.\n${ENDCOLOR}"
+else
+    echo -ne "${RED}#IP $DEVICE_IP is not reachable. Exiting.\n${ENDCOLOR}"
+    exit 1
+fi
+
+###
 ### Remove IP from known_hosts and copy ssh key
 ###
 echo -ne "${YELLOW}# Type in Raspberry Pi password, when requested (this will copy your SSH key to it): \n${ENDCOLOR}"
@@ -68,18 +78,33 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Stopping containers
+###
+echo -ne "${GREEN}# Stopping containers ... \n${ENDCOLOR}"
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml down || true
+
+###
 ### Increasing swap size
 ###
 echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
-    if grep 1024 /etc/dphys-swapfile; then
+    if grep "CONF_SWAPSIZE=2048" /etc/dphys-swapfile; then
         exit 0
     fi
     sudo dphys-swapfile swapoff
-    sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=1024/g /etc/dphys-swapfile
+    sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/g /etc/dphys-swapfile
     sudo dphys-swapfile setup
     sudo dphys-swapfile swapon
+EOF
+
+###
+### Update and upgrade
+###
+echo -ne "${GREEN}# Update and upgrade ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo apt-get update && sudo apt-get upgrade -y
 EOF
 
 ###
@@ -93,15 +118,19 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     fi
 
     if ! which tcpdump; then
-        sudo apt-get update && sudo apt-get install tcpdump -y
+        sudo apt-get install tcpdump -y
     fi
 
     if ! which btop; then
-        sudo apt-get update && sudo apt-get install btop -y
+        sudo apt-get install btop -y
     fi
 
     if ! which socat; then
-        sudo apt-get update && sudo apt-get install socat -y
+        sudo apt-get install socat -y
+    fi
+
+    if ! which lsof; then
+        sudo apt-get install lsof -y
     fi
 EOF
 
@@ -148,21 +177,43 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
-### Build container local and install on rasperry pi
+### Build container locally
 ###
 echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 "$GIT_ROOT"/software/build.sh
 
-echo -ne "${GREEN}# Install container ... \n${ENDCOLOR}"
+###
+### Install containers on the raspberry
+###
+echo -ne "${GREEN}# Install containers on the raspberry ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/pi/CybICS
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
 ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml pull
+
+###
+### Starting containers
+###
+echo -ne "${GREEN}# Starting containers ... \n${ENDCOLOR}"
 ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml up -d --remove-orphans
 
 ###
 ### all done
 ###
-END=$(date +%s.%N)
+END=$(date +%s)
 DIFF=$(echo "$END - $START" | bc)
-echo -ne "${GREEN}# Total execution time $DIFF \n${ENDCOLOR}"
+echo -ne "${GREEN}# Total execution time $((DIFF/60)):$((DIFF%60)) \n${ENDCOLOR}"
 echo -ne "${GREEN}# All done, ready to rumble ... \n${ENDCOLOR}"
+
+# Ask the user if they want to restart
+read -p "Do you want to restart the system? (yes/no): " user_input
+
+# Convert the user input to lowercase for easier matching
+user_input=$(echo "$user_input" | tr '[:upper:]' '[:lower:]')
+
+# Check the user input
+if [[ "$user_input" == "yes" || "$user_input" == "y" ]]; then
+    echo -ne "${RED}# Restarting the raspberry pi ... \n${ENDCOLOR}"
+    ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo reboot || true
+else
+    echo -ne "${GREEN}# done ... \n${ENDCOLOR}"
+fi
