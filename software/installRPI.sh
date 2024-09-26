@@ -11,7 +11,7 @@ ENDCOLOR="\e[0m"
 GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
 # start time for calculation of the execution time
-START=$(date +%s.%N)
+START=$(date +%s)
 
 echo -ne "${MAGENTA}"
 echo "                                    "
@@ -81,7 +81,7 @@ EOF
 ### Stopping containers
 ###
 echo -ne "${GREEN}# Stopping containers ... \n${ENDCOLOR}"
-ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml down
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml down || true
 
 ###
 ### Increasing swap size
@@ -199,7 +199,21 @@ ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker
 ###
 ### all done
 ###
-END=$(date +%s.%N)
+END=$(date +%s)
 DIFF=$(echo "$END - $START" | bc)
-echo -ne "${GREEN}# Total execution time $DIFF \n${ENDCOLOR}"
+echo -ne "${GREEN}# Total execution time $((DIFF/60)):$((DIFF%60)) \n${ENDCOLOR}"
 echo -ne "${GREEN}# All done, ready to rumble ... \n${ENDCOLOR}"
+
+# Ask the user if they want to restart
+read -p "Do you want to restart the system? (yes/no): " user_input
+
+# Convert the user input to lowercase for easier matching
+user_input=$(echo "$user_input" | tr '[:upper:]' '[:lower:]')
+
+# Check the user input
+if [[ "$user_input" == "yes" || "$user_input" == "y" ]]; then
+    echo -ne "${RED}# Restarting the raspberry pi ... \n${ENDCOLOR}"
+    ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo reboot || true
+else
+    echo -ne "${GREEN}# done ... \n${ENDCOLOR}"
+fi
