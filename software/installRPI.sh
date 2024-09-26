@@ -84,6 +84,19 @@ echo -ne "${GREEN}# Stopping containers ... \n${ENDCOLOR}"
 ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml down || true
 
 ###
+### add some configs to the kernel command line
+### this enables e.g. MEM USAGE values in `docker stats` output
+###
+echo -ne "${GREEN}# Configure kernel command line ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    if grep "cgroup_enable=memory swapaccount=1" /boot/firmware/cmdline.txt; then
+        exit 0
+    fi
+    sudo sed -i ' 1 s/.*/& cgroup_enable=memory swapaccount=1/' /boot/firmware/cmdline.txt
+EOF
+
+###
 ### Increasing swap size
 ###
 echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
