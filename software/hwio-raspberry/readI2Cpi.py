@@ -83,7 +83,7 @@ while True:
     # print(listIp)
     bus.write_i2c_block_data(address, 0x00, listIp)
   elif countCheckIP > 100:
-    countCheckIP=0
+    countCheckIP=-1
 
   countCheckIP = countCheckIP + 1
 
