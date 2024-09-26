@@ -41,7 +41,21 @@ hpt = 0 # variable for the high pressure tank (HPT)
 countCheckIP = 0 # Variable to check IP every 100 runs
 # Connect to OpenPLC
 client = ModbusTcpClient(host="openplc",port=502)  # Create client object
-client.connect() # connect to device, reconnect automatically
+
+attempts = 0
+
+# Try "10" times to connect to the OpenPLC
+logging.info("Trying to connect to OpenPLC")
+while attempts < 10:
+  try:
+    client.connect() # connect to device, reconnect automatically
+    logging.info("Connected to OpenPLC within " + str(attempts) + " attempts")
+    break
+  except:
+    attempts += 1
+    time.sleep(10)
+    logging.error("Connection to OpenPLC failed retrying... " + str(attempts) + "/" + "10")
+
 
 current_connection = ""
 nmcli.disable_use_sudo()
