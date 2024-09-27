@@ -23,11 +23,11 @@ union() {
           cube(size = [10,100,5], center = false); 
     }
   }
-  $fn=20;
-  translate([5,0.5,4.5]) 
+  $fn=30;
+  translate([5,1.5,3.5]) 
     rotate([45,0,0])
-      cylinder(h = 7, r=1.5, center = true);
-  translate([5,65.5,69.5]) 
+      cylinder(h = 5, r=1.0, center = true);
+  translate([5,66.5,68.5]) 
     rotate([45,0,0])
-      cylinder(h = 7, r=1.5, center = true);
+      cylinder(h = 7, r=1.4, center = true);
 }
