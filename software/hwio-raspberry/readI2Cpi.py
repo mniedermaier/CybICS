@@ -18,6 +18,8 @@ import nmcli
 import RPi.GPIO as GPIO
 import logging
 
+logging.getLogger().setLevel(logging.ERROR)
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(8, GPIO.OUT) # compressor
 GPIO.setup(4, GPIO.OUT) # heartbeat
@@ -56,32 +58,48 @@ while attempts < 10:
     time.sleep(10)
     logging.error("Connection to OpenPLC failed retrying... " + str(attempts) + "/" + "10")
 
+# Getting current connection
+try:
+  conn_counter=0
+  current_connection = ""
+  nmcli.disable_use_sudo()
+  for conn in nmcli.connection():
+    if conn.device == 'wlan0':
+      current_connection = conn.name
+      break
+    elif conn_counter > 60:
+      logging.error("No connection for wlan0 - " + str(e))
+      break
+    else:
+      time.sleep(1)
+      conn_counter = conn_counter + 1
+except Exception as e:
+  logging.error("Error getting current connection... " + str(e))
 
-current_connection = ""
-nmcli.disable_use_sudo()
-for conn in nmcli.connection():
-  if conn.device == 'wlan0':
-    current_connection = conn.name
-    break
-
-current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
-logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
+try:
+  current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
+  logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
+except Exception as e:
+  logging.error("No current connection " + str(e))
 
 # Entering while true loop
 while True:
   if countCheckIP == 0:
-    # Get IP address of wlan0
-    ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
-    ip = ip.split('/')[0] # remove the network CIDR suffix
-    listIp = list(ip)
-    # print(listIp)
+    try:
+      # Get IP address of wlan0
+      ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
+      ip = ip.split('/')[0] # remove the network CIDR suffix
+      listIp = list(ip)
+      # print(listIp)
 
-    # Format the IP and send it via i2c to the RPI
-    listIp = ['I', 'P',':'] + listIp
-    for row in range(len(listIp)):
-      listIp[row] = ord(listIp[row])
-    # print(listIp)
-    bus.write_i2c_block_data(address, 0x00, listIp)
+      # Format the IP and send it via i2c to the RPI
+      listIp = ['I', 'P',':'] + listIp
+      for row in range(len(listIp)):
+        listIp[row] = ord(listIp[row])
+      # print(listIp)
+      bus.write_i2c_block_data(address, 0x00, listIp)
+    except Exception as e:
+      logging.error("Error in getting IP of wlan0 - " + str(e))
   elif countCheckIP > 100:
     countCheckIP=-1
 
@@ -136,15 +154,24 @@ while True:
   if data[12] in ['0', '1']:
     ssid = f"cybics-{id}"
     if current_ssid != ssid:
-      logging.info(f"Configure ssid {ssid}")
-      nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
-      current_ssid = ssid
+      try:
+        logging.info(f"Configure ssid {ssid}")
+        nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
+        current_ssid = ssid
+      except Exception as e:
+        logging.error("Configure ssid failed - " + str(e))
+        time.sleep(1)
 
     connection = 'cybics' if data[12] == '1' else 'preconfigured'
     if current_connection != connection:
-      logging.info(f"Enable connection {connection}")
-      nmcli.connection.up(connection)
-      current_connection = connection
+      try:
+        logging.info(f"Enable connection {connection}")
+        nmcli.connection.up(connection, 0) # do not wait for connection 
+        logging.info(f"Enable connection - " + str(nmcli.connection.show(connection)))
+        current_connection = connection
+      except Exception as e:
+        logging.error("Enable connection failed - " + str(e))
+        time.sleep(1)
 
   time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
