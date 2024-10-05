@@ -68,11 +68,14 @@ def thread_openplc():
     global gst
     global hpt
     global flag
-    # write GST and HPT to the OpenPLC
-    client.write_registers(1124,gst) #
-    client.write_registers(1126,hpt) #
-    flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
-    client.write_registers(1200,flag) #
+    try:
+      # write GST and HPT to the OpenPLC
+      client.write_registers(1124,gst) #
+      client.write_registers(1126,hpt) #
+      flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
+      client.write_registers(1200,flag) #
+    except Exception as e:
+      logging.error("Write to OpenPLC (GST|HPT|FLAG) failed - " + str(e))
 
     # read coils from OpenPLC
     try:
