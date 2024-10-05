@@ -9,6 +9,6 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /CybICS
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY readI2Cpi.py ./
+COPY hardwareIO.py ./
 
-CMD [ "python", "./readI2Cpi.py" ]
+CMD [ "python", "./hardwareIO.py" ]
