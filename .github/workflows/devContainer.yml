@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+  - cron: "0 0 * * *"
 
 jobs:
   tests:
@@ -41,3 +43,9 @@ jobs:
           configFile: .devcontainer/stm32/devcontainer.json
           env: .devcontainer/stm32/.env
           runCmd: make
+
+      - name: run tests for virtual environment
+        uses: devcontainers/ci@v0.3
+        with:
+          configFile: .devcontainer/virtual/devcontainer.json
+          env: .devcontainer/virtual/.env
