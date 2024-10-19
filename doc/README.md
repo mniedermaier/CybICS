@@ -29,4 +29,49 @@ Alternatively, in station mode, the device attempts to join an existing network 
 ### Access the Testbed
 First **connect in AP mode** to access the different applications running on the system.
 
+## Virtual Environment
+As a requriement docker and docker compose needs to be setup on the system.
+
+### Option 1: Run within VS Code / Codium Devcontainer
+VS Code oder Codium is required for this method.
+After starting VS Code / Codium, you are asked to open the git project in a container.
+By selecting CybICS-Virtual, the virtual CybICS is started.
+
+<table align="center"><tr><td align="center" width="9999">
+<img src="pics/virtualCode.png" width=99%></img>
+</td></tr></table>
+
+### Option 2: Run within Terminal
+Switch to the location of the docker compose file.
+```sh
+cd CybICS/.devcontainer/virtual
+```
+
+Start the containers.
+```sh
+sudo docker compose up
+```
+
+The output should look like the following:
+<table align="center"><tr><td align="center" width="9999">
+<img src="pics/dockerCompose.png" width=99%></img>
+</td></tr></table>
+
+With CTRL+C, the containers can be stopped again.
+
+
+### Access to the Virtual CybICS
+The applications provide a webinterface for monitoring and configuration.
+
+| What              | link/url                                         |
+|-------------------|--------------------------------------------------|
+| Physical process  | [http://localhost/](http://localhost/)           |
+| OpenPLC           | [http://localhost:8080/](http://localhost:8080/) |
+| FUXA HMI          | [http://localhost:1881/](http://localhost:1881/) |
+
+
+Example of the virtual physical process (same represenation as the PCB).
+<table align="center"><tr><td align="center" width="9999">
+<img src="pics/virtual.png" width=80%></img>
+</td></tr></table>
 
