@@ -23,6 +23,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Run prepre env
+      run: |
+         chmod +x ./.devcontainer/prepare-env.sh
+         .devcontainer/prepare-env.sh
+      shell: bash
+      
     - name: Start containers
       run: docker-compose -f "docker-compose.yml" up -d --build
       working-directory: ./.devcontainer/virtual
