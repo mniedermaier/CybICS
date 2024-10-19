@@ -24,7 +24,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Start containers
-      run: docker-compose -f ".devcontainer/virtual/docker-compose.yml" up -d --build
+      run: docker-compose -f "docker-compose.yml" up -d --build
+      working-directory: ./devcontainer/virtual/
 
 
     - name: Pytest Modbus
@@ -32,4 +33,5 @@ jobs:
 
     - name: Stop containers
       if: always()
-      run: docker-compose -f ".devcontainer/virtual/docker-compose.yml" down
+      run: docker-compose -f "docker-compose.yml" down
+      working-directory: ./devcontainer/virtual/
