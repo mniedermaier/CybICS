@@ -18,11 +18,18 @@ jobs:
       with:
         python-version: '3.12' 
 
-    - name: Docker compose up
-      uses: hoverkraft-tech/compose-action@v2.0.1
-      with:
-        compose-file: ".devcontainer/virtual/docker-compose.yml"
+    - name: Setup docker compose
+      uses: KengoTODA/actions-setup-docker-compose@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Start containers
+      run: docker-compose -f ".devcontainer/virtual/docker-compose.yml" up -d --build
+
 
     - name: Pytest Modbus
       run: pytest tests/test_modbus.py
 
+    - name: Stop containers
+      if: always()
+      run: docker-compose -f ".devcontainer/virtual/docker-compose.yml" down
