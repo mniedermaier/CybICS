@@ -1,0 +1,28 @@
+name: pytest
+
+on:
+  push:
+  schedule:
+  - cron: "0 0 * * *"
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12' 
+
+    - name: Docker compose up
+      uses: hoverkraft-tech/compose-action@v2.0.1
+      with:
+        compose-file: ".devcontainer/virtual/docker-compose.yml"
+
+    - name: Pytest Modbus
+      run: pytest tests/test_modbus.py
+
