@@ -38,7 +38,7 @@ jobs:
 
     - name: Pytest Modbus
       run: |
-        pip install pytest pytest-cov pymodbus
+        pip install --no-cache-dir -r tests/requirements.txt
         pytest tests/test_modbus.py
 
     - name: Stop containers

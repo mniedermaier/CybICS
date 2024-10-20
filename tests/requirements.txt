@@ -1,0 +1,6 @@
+pytest
+pytest-cov
+pymodbus
+asyncio
+asyncua
+requests

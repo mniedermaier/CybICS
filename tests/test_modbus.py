@@ -1,17 +1,33 @@
 import pytest
+import requests
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 
-# Define the IP and Port of the Modbus server
-MODBUS_SERVER_IP = '127.0.0.1'  # Replace with your Modbus server IP
-MODBUS_SERVER_PORT = 502         # Replace with your Modbus server Port (default is 502)
+# Define the IP and Ports
+SERVER_IP = '127.0.0.1'   # Replace with your server IP
+MODBUS_SERVER_PORT = 502  # Replace with your Modbus server Port (default is 502)
+
+# List of URLs to check
+URLS = [
+    "http://"+SERVER_IP+"",
+    "http://"+SERVER_IP+":1881",
+    "http://"+SERVER_IP+":8080"
+]
+
+@pytest.mark.parametrize("url", URLS)
+def test_website_is_up(url):
+    try:
+        response = requests.get(url, timeout=5)  # Set a timeout of 5 seconds
+        assert response.status_code == 200, f"Website {url} is not up. Status code: {response.status_code}"
+    except requests.exceptions.RequestException as e:
+        pytest.fail(f"Failed to reach {url}: {e}")
 
 @pytest.fixture
 def modbus_client():
     """
     Fixture to create and clean up the Modbus TCP client.
     """
-    client = ModbusTcpClient(MODBUS_SERVER_IP, port=MODBUS_SERVER_PORT)
+    client = ModbusTcpClient(SERVER_IP, port=MODBUS_SERVER_PORT)
     yield client
     client.close()
 
