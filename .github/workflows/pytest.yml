@@ -38,7 +38,7 @@ jobs:
 
     - name: Pytest Modbus
       run: |
-        pip install pytest pytest-cov
+        pip install pytest pytest-cov pymodbus
         pytest tests/test_modbus.py
 
     - name: Stop containers
