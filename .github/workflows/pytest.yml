@@ -37,7 +37,9 @@ jobs:
 
 
     - name: Pytest Modbus
-      run: pytest tests/test_modbus.py
+      run: |
+        pip install pytest pytest-cov
+        pytest tests/test_modbus.py
 
     - name: Stop containers
       if: always()
