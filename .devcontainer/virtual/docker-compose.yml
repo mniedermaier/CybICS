@@ -30,6 +30,8 @@ services:
       context: ../../software/opcua
       dockerfile: Dockerfile
     restart: always
+    ports:
+      - 4840:4840
     depends_on:
     - openplc
 

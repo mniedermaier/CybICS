@@ -2,10 +2,16 @@ import pytest
 import requests
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
+from opcua import Client, ua
 
 # Define the IP and Ports
 SERVER_IP = '127.0.0.1'   # Replace with your server IP
 MODBUS_SERVER_PORT = 502  # Replace with your Modbus server Port (default is 502)
+
+# OPC UA server URL (with the correct address)
+OPCUA_SERVER_URL = "opc.tcp://"+SERVER_IP+":4840"
+USERNAME = "user1"
+PASSWORD = "test"
 
 # List of URLs to check
 URLS = [
@@ -68,3 +74,44 @@ def test_write_single_register(modbus_client):
     # Verify that the value was written correctly by reading it back
     read_result = modbus_client.read_holding_registers(register_address, 1)
     assert read_result.registers[0] == value_to_write, f"Expected {value_to_write}, got {read_result.registers[0]}"
+
+@pytest.fixture(scope="module")
+def opcua_client():
+    """
+    Fixture to set up and tear down the OPC UA client with username/password authentication.
+    """
+    client = Client(OPCUA_SERVER_URL)
+
+    # Set username and password
+    client.set_user(USERNAME)
+    client.set_password(PASSWORD)
+
+    try:
+        # Connect to the server
+        client.connect()
+        yield client  # Provide the client to the test
+    finally:
+        client.disconnect()
+
+
+def test_opcua_connection(opcua_client):
+    """
+    Test to check if the connection to the OPC UA server is successful.
+    """
+    try:
+        # Try to read the server status node to verify connection
+        server_status_node = opcua_client.get_node(ua.ObjectIds.Server_ServerStatus)
+        server_status = server_status_node.get_value()
+        assert server_status is not None, "Failed to get server status."
+    except Exception as e:
+        pytest.fail(f"Connection to OPC UA server failed: {e}")
+
+
+def test_opcua_read(opcua_client):
+    """
+    Test to read a value from an OPC UA node (modify with your node details).
+    """
+    # Specify the node ID you want to check (change this to an actual NodeId on your server)
+    node = opcua_client.get_node("ns=2;i=2")  # Example NodeId
+    value = node.get_value()  # Read the value of the node
+    assert value is not None, "Failed to read from the OPC UA node."
