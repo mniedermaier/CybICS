@@ -42,6 +42,11 @@ By selecting CybICS-Virtual, the virtual CybICS is started.
 </td></tr></table>
 
 ### Option 2: Run within Terminal
+Prepare the environment with:
+```sh
+.devcontainer/prepare-env.sh
+```
+
 Switch to the location of the docker compose file.
 ```sh
 cd CybICS/.devcontainer/virtual
