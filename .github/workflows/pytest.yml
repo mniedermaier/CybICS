@@ -1,0 +1,47 @@
+name: pytest
+
+on:
+  push:
+  schedule:
+  - cron: "0 0 * * *"
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+          submodules: recursive
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12' 
+
+    - name: Setup docker compose
+      uses: KengoTODA/actions-setup-docker-compose@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run prepre env
+      run: |
+         chmod +x ./.devcontainer/prepare-env.sh
+         .devcontainer/prepare-env.sh
+      shell: bash
+      
+    - name: Start containers
+      run: docker-compose -f "docker-compose.yml" up -d --build
+      working-directory: ./.devcontainer/virtual
+
+
+    - name: Pytest Modbus
+      run: |
+        pip install --no-cache-dir -r tests/requirements.txt
+        pytest tests/test_modbus.py
+
+    - name: Stop containers
+      if: always()
+      run: docker-compose -f "docker-compose.yml" down
+      working-directory: ./.devcontainer/virtual
