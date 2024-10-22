@@ -75,6 +75,7 @@ _autosave-*
 fp-info-cache
 *.lck
 *auto_saved_files*
+*.pyc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
