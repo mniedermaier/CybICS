@@ -4,6 +4,7 @@ import asyncio
 import logging
 import socket
 import user_manager
+import time
 
 from pathlib import Path
 from asyncua import Server, ua
@@ -19,6 +20,8 @@ USE_TRUST_STORE = False
 
 async def main():
     _logger = logging.getLogger(__name__)
+    _logger.info("Wait 5s that openplc can start")
+    time.sleep(5) # wait that openplc is up and running
 
     # Define Path for self-signed server certificate used by secure channel
     cert_base = Path(__file__).parent
@@ -115,16 +118,20 @@ async def main():
     )
     _logger.info("Starting server!")
     async with server:
+        _logger.info("Starting while True")
         while True:
             # read GST and HPT to the OpenPLC
             # Check if flag var is set and display flag
             _logger.info("Reading from modbus")
-            gst = client.read_holding_registers(1124)
-            hpt = client.read_holding_registers(1126)
-            systemSen = client.read_holding_registers(2)
-            boSen = client.read_holding_registers(3)
-            stop = client.read_holding_registers(1129)
-            manual = client.read_holding_registers(1131)
+            try:
+                gst = client.read_holding_registers(1124)
+                hpt = client.read_holding_registers(1126)
+                systemSen = client.read_holding_registers(2)
+                boSen = client.read_holding_registers(3)
+                stop = client.read_holding_registers(1129)
+                manual = client.read_holding_registers(1131)
+            except Exception as e:
+              logging.error("Read from OpenPLC failed - " + str(e))
             await gstvar.write_value(ua.UInt16(gst.registers[0]))
             await hptvar.write_value(ua.UInt16(hpt.registers[0]))
             await systemSenvar.write_value(ua.UInt16(systemSen.registers[0]))
