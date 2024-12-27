@@ -51,7 +51,7 @@ def test_read_holding_register(modbus_client):
     """
     # Address of the register (Modbus address is often 0-based)
     register_address = 1
-    result = modbus_client.read_holding_registers(register_address, 1)
+    result = modbus_client.read_holding_registers(register_address, count=1)
     
     # Check if we received a valid response
     assert result is not None, "No response from the Modbus server"
@@ -73,7 +73,7 @@ def test_write_single_register(modbus_client):
     assert not result.isError(), f"Modbus error: {result}"
 
     # Verify that the value was written correctly by reading it back
-    read_result = modbus_client.read_holding_registers(register_address, 1)
+    read_result = modbus_client.read_holding_registers(register_address, count=1)
     assert read_result.registers[0] == value_to_write, f"Expected {value_to_write}, got {read_result.registers[0]}"
 
 @pytest.mark.asyncio
