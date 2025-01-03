@@ -9,6 +9,7 @@ services:
       - ../../.env
     volumes:
       - ../../:/CybICS
+      - ~/.ssh:/home/docker/.ssh/
       - ~/.gitconfig:/home/docker/.gitconfig
       - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
     user: ${HOST_UID:-1000}:${HOST_UID:-1000}
