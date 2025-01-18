@@ -26,7 +26,7 @@ while True:
     print("Setting HPT to " + str(hpt))
 
 
-    client.write_registers(1126,hpt) #(register, value, unit)  
+    client.write_register(1126,hpt) #(register, value, unit)  
   
     time.sleep(0.001)
     
