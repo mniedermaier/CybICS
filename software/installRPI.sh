@@ -60,7 +60,7 @@ fi
 echo -ne "${YELLOW}# Type in Raspberry Pi password, when requested (this will copy your SSH key to it): \n${ENDCOLOR}"
 ssh-keygen -f ~/.ssh/known_hosts -R "$DEVICE_IP"
 ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts
-ssh-copy-id -i ~/.ssh/id_rsa.pub "$DEVICE_USER"@"$DEVICE_IP"
+ssh-copy-id -i ~/.ssh/id_*.pub "$DEVICE_USER"@"$DEVICE_IP"
 
 ###
 ### Config locale
