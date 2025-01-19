@@ -49,3 +49,5 @@ jobs:
         with:
           configFile: .devcontainer/virtual/devcontainer.json
           env: .devcontainer/virtual/.env
+          runCmd: |
+            docker ps
