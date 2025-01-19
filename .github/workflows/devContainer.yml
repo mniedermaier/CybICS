@@ -23,6 +23,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
         with:
+          lfs: false
           submodules: recursive
 
       - name: "Create environment files"
@@ -50,4 +51,4 @@ jobs:
           configFile: .devcontainer/virtual/devcontainer.json
           env: .devcontainer/virtual/.env
           runCmd: |
-            docker ps
+            pwd
