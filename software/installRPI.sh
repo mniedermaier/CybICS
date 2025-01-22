@@ -81,7 +81,7 @@ EOF
 ### Stopping containers
 ###
 echo -ne "${GREEN}# Stopping containers ... \n${ENDCOLOR}"
-ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml down || true
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml down || true
 
 ###
 ### add some configs to the kernel command line
@@ -199,15 +199,15 @@ echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 ### Install containers on the raspberry
 ###
 echo -ne "${GREEN}# Install containers on the raspberry ... \n${ENDCOLOR}"
-ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/pi/CybICS
-scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/pi/CybICS/docker-compose.yaml
-ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml pull
+ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/$DEVICE_USER/CybICS
+scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/$DEVICE_USER/CybICS/docker-compose.yaml
+ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml pull
 
 ###
 ### Starting containers
 ###
 echo -ne "${GREEN}# Starting containers ... \n${ENDCOLOR}"
-ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/pi/CybICS/docker-compose.yaml up -d --remove-orphans
+ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml up -d --remove-orphans
 
 ###
 ### all done
