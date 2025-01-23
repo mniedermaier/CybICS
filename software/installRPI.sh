@@ -226,7 +226,8 @@ user_input=$(echo "$user_input" | tr '[:upper:]' '[:lower:]')
 # Check the user input
 if [[ "$user_input" == "yes" || "$user_input" == "y" ]]; then
     echo -ne "${RED}# Restarting the raspberry pi ... \n${ENDCOLOR}"
-    timeout 20 ssh -t "$DEVICE_USER"@"$DEVICE_IP" sudo reboot -f || true
+    ssh -t "$DEVICE_USER"@"$DEVICE_IP" sync; sync
+    timeout 20 ssh "$DEVICE_USER"@"$DEVICE_IP" sudo reboot -f || true
 fi
 
 echo -ne "${GREEN}# done ... \n${ENDCOLOR}"
