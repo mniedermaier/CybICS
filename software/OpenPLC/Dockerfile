@@ -1,5 +1,9 @@
 FROM debian:12-slim
 
+RUN apt-get update && apt-get install -y \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
 WORKDIR /CybICS/OpenPLC_v3/
 RUN export GNUMAKEFLAGS=-j$(nproc --all) \
