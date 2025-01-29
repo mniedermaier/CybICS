@@ -1,4 +1,10 @@
-FROM debian:12-slim
+FROM ubuntu:24.04
+
+RUN apt-get update && \
+    apt-get install -y software-properties-common \ 
+    && add-apt-repository ppa:ubuntu-toolchain-r/test \ 
+    && apt update \
+    && apt-get install -y libstdc++6
 
 COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
 WORKDIR /CybICS/OpenPLC_v3/
