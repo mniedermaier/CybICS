@@ -1,4 +1,4 @@
-FROM debian:12-slim
+FROM ubuntu:22.04
 
 COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
 WORKDIR /CybICS/OpenPLC_v3/
