@@ -9,8 +9,8 @@ on:
   - cron: "0 0 * * *"
 
 jobs:
-  tests:
-    name: Run devcontainer test
+  raspberry:
+    name: Run devcontainer test raspberry
     runs-on: ubuntu-latest
    
     steps:
@@ -38,6 +38,26 @@ jobs:
             docker ps
             software/build.sh
 
+  stm32:
+    name: Run devcontainer test stm32
+    runs-on: ubuntu-latest
+   
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          lfs: false
+          submodules: recursive
+
+      - name: "Create environment files"
+        run: .devcontainer/prepare-env.sh
+
       - name: run tests stm32
         uses: devcontainers/ci@v0.3
         with:
@@ -45,6 +65,26 @@ jobs:
           env: .devcontainer/stm32/.env
           runCmd: make
 
+  virtual:
+    name: Run devcontainer test virtual
+    runs-on: ubuntu-latest
+   
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          lfs: false
+          submodules: recursive
+
+      - name: "Create environment files"
+        run: .devcontainer/prepare-env.sh
+        
       - name: run tests for virtual environment
         uses: devcontainers/ci@v0.3
         with:
