@@ -32,6 +32,7 @@ Results from the scan:
 ```sh
 PORT      STATE SERVICE       VERSION
 22/tcp    open  ssh           OpenSSH 9.2p1 Debian 2+deb12u1 (protocol 2.0)
+102/tcp   open  iso-tsap
 502/tcp   open  modbus        Modbus TCP
 1881/tcp  open  http          Node.js Express framework
 4840/tcp  open  opcua-tcp?
@@ -45,6 +46,8 @@ Here’s an interpretation of each result:
 
 * Port 22 is open and running an SSH (Secure Shell) service. The service version is OpenSSH 9.2p1 on Debian, which supports protocol version 2.0. SSH is commonly used for secure remote access to systems.
 502/tcp - open modbus (Modbus TCP):
+
+* Port 102 is used by S7 Communication (S7comm), a proprietary Siemens protocol for communication between SIMATIC PLCs and industrial automation systems.
 
 * Port 502 is open and running Modbus TCP, a protocol used for communication with industrial devices. This port is typically used for industrial control systems and monitoring.
 1881/tcp - open http (Node.js Express framework):

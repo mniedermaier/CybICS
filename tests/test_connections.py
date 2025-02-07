@@ -22,6 +22,7 @@ URLS = [
     "http://"+SERVER_IP+":8080"
 ]
 
+# ------------------- Webserver Connection TEST -------------------
 @pytest.mark.parametrize("url", URLS)
 def test_website_is_up(url):
     try:
@@ -30,6 +31,8 @@ def test_website_is_up(url):
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Failed to reach {url}: {e}")
 
+
+# ------------------- Modbus Connection TEST -------------------
 @pytest.fixture
 def modbus_client():
     """
@@ -77,6 +80,7 @@ def test_write_single_register(modbus_client):
     read_result = modbus_client.read_holding_registers(register_address, count=1)
     assert read_result.registers[0] == value_to_write, f"Expected {value_to_write}, got {read_result.registers[0]}"
 
+# ------------------- OPC-UA Connection TEST -------------------
 @pytest.mark.asyncio
 async def test_opcua_server_running():
     """
@@ -108,8 +112,8 @@ async def test_opcua_server_running():
     finally:
         await client.disconnect()  # Ensure proper cleanup
 
-# ------------------- NMAP S7-INFO SCAN TEST -------------------
 
+# ------------------- NMAP S7-INFO SCAN TEST -------------------
 def run_nmap_s7_info():
     """
     Runs an Nmap scan with the s7-info script on localhost.
