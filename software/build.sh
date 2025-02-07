@@ -11,5 +11,6 @@ docker buildx inspect --bootstrap
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-hwio-raspberry:latest --push ./hwio-raspberry
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-openplc:latest --push ./OpenPLC
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-opcua:latest --push ./opcua
+docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-s7com:latest --push ./s7com
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-fuxa:latest --push ./FUXA
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-stm32:latest --push ./stm32

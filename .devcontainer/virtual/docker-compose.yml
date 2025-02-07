@@ -36,6 +36,17 @@ services:
     depends_on:
     - openplc
 
+  s7com:
+    image: mniedermaier1337/cybicss7comlatest
+    build:
+      context: ../../software/s7com
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 102:102
+    depends_on:
+    - openplc
+
   fuxa:
     image: mniedermaier1337/cybicsfuxa:latest
     build:
