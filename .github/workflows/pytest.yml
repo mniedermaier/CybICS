@@ -42,7 +42,7 @@ jobs:
     - name: Pytest Connections
       run: |
         pip install --no-cache-dir -r tests/requirements.txt
-        pytest tests/test_connections.py
+        pytest tests/test_connections.py --verbose
 
     - name: Stop containers
       if: always()
