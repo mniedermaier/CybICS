@@ -214,7 +214,7 @@ def thread_i2c():
 
 # main function
 if __name__ == "__main__":
-  format = "%(asctime)s: %(message)s"
+  format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
   

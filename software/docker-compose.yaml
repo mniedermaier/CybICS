@@ -21,6 +21,16 @@ services:
     networks:
       - br-cybics
 
+  s7com:
+    image: localhost:5000/cybics-s7com:latest
+    depends_on:
+    - openplc
+    restart: always
+    ports:
+      - 102:102
+    networks:
+      - br-cybics
+
   openplc:
     image: localhost:5000/cybics-openplc:latest
     restart: always

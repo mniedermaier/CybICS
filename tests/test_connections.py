@@ -1,5 +1,6 @@
 import pytest
 import requests
+import subprocess
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
@@ -21,6 +22,7 @@ URLS = [
     "http://"+SERVER_IP+":8080"
 ]
 
+# ------------------- Webserver Connection TEST -------------------
 @pytest.mark.parametrize("url", URLS)
 def test_website_is_up(url):
     try:
@@ -29,6 +31,8 @@ def test_website_is_up(url):
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Failed to reach {url}: {e}")
 
+
+# ------------------- Modbus Connection TEST -------------------
 @pytest.fixture
 def modbus_client():
     """
@@ -76,6 +80,7 @@ def test_write_single_register(modbus_client):
     read_result = modbus_client.read_holding_registers(register_address, count=1)
     assert read_result.registers[0] == value_to_write, f"Expected {value_to_write}, got {read_result.registers[0]}"
 
+# ------------------- OPC-UA Connection TEST -------------------
 @pytest.mark.asyncio
 async def test_opcua_server_running():
     """
@@ -106,3 +111,30 @@ async def test_opcua_server_running():
         pytest.fail(f"Failed to connect to the OPC UA server: {e}")
     finally:
         await client.disconnect()  # Ensure proper cleanup
+
+
+# ------------------- NMAP S7-INFO SCAN TEST -------------------
+def run_nmap_s7_info():
+    """
+    Runs an Nmap scan with the s7-info script on localhost.
+    """
+    try:
+        result = subprocess.run(
+            ["nmap", "-p", "102", "--script", "s7-info", SERVER_IP],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        return result.stdout, result.stderr
+    except Exception as e:
+        return None, str(e)
+
+def test_nmap_s7_info():
+    """
+    Test to check if nmap s7-info script runs successfully on localhost.
+    """
+    stdout, stderr = run_nmap_s7_info()
+
+    assert stderr == "", f"Nmap reported an error: {stderr}"
+    assert "Nmap scan report for" in stdout, "Nmap did not return expected scan report"
+    assert "Service Info" in stdout or "Device Info" in stdout, "s7-info script did not return expected information"
