@@ -8,6 +8,11 @@ Effective network scanning helps ensure that only approved devices are connected
 It also aids in discovering misconfigurations and vulnerabilities that could be exploited in a cyber attack.
 To maximize security, network scans should be conducted periodically and after any significant changes to the network infrastructure, and results should be analyzed to inform ongoing security measures and improvements.
 
+### **🔒 Security Considerations**
+Only scan authorized devices! Unauthorized scanning may violate network security policies.
+Avoid scanning production systems during working hours to prevent disruptions.
+Use a VPN or secure network when scanning remote devices.
+
 ### nmap
 To identify open ports and services within the CybICS testbed you can use nmap.
 
