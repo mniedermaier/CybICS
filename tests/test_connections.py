@@ -1,5 +1,6 @@
 import pytest
 import requests
+import subprocess
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
@@ -106,3 +107,30 @@ async def test_opcua_server_running():
         pytest.fail(f"Failed to connect to the OPC UA server: {e}")
     finally:
         await client.disconnect()  # Ensure proper cleanup
+
+# ------------------- NMAP S7-INFO SCAN TEST -------------------
+
+def run_nmap_s7_info():
+    """
+    Runs an Nmap scan with the s7-info script on localhost.
+    """
+    try:
+        result = subprocess.run(
+            ["nmap", "-p", "102", "--script", "s7-info", SERVER_IP],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        return result.stdout, result.stderr
+    except Exception as e:
+        return None, str(e)
+
+def test_nmap_s7_info():
+    """
+    Test to check if nmap s7-info script runs successfully on localhost.
+    """
+    stdout, stderr = run_nmap_s7_info()
+
+    assert stderr == "", f"Nmap reported an error: {stderr}"
+    assert "Nmap scan report for" in stdout, "Nmap did not return expected scan report"
+    assert "Service Info" in stdout or "Device Info" in stdout, "s7-info script did not return expected information"

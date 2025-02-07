@@ -35,11 +35,14 @@ jobs:
       run: docker-compose -f "docker-compose.yml" up -d --build
       working-directory: ./.devcontainer/virtual
 
+    - name: Sleep for 30 seconds to give conatiners time to spawn
+      run: sleep 30s
+      shell: bash
 
-    - name: Pytest Modbus
+    - name: Pytest Connections
       run: |
         pip install --no-cache-dir -r tests/requirements.txt
-        pytest tests/test_modbus.py
+        pytest tests/test_connections.py
 
     - name: Stop containers
       if: always()
