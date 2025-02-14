@@ -9,6 +9,13 @@ Add the current user to the docker group:
 sudo usermod -aG docker $USER
 ```
 
+***Important:***
+On some systems it is required to install the latest qemu version to enable cross platform build for the Raspberry Pi.
+
+```sh
+docker run --privileged --rm tonistiigi/binfmt:latest --install all
+```sh
+
 ## Install VS Code
 Follow the installation guide for VS Code:
 (https://code.visualstudio.com/docs/setup/linux)

@@ -17,4 +17,4 @@ RUN set -e && fuxa & \
     curl -f -X POST -H "Content-Type: application/json" -d @/CybICS/settings.json http://localhost:1881/api/settings
 
 EXPOSE 1881
-CMD fuxa
+CMD ["fuxa"]
