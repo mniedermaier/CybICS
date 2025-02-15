@@ -14,7 +14,7 @@ On some systems it is required to install the latest qemu version to enable cros
 
 ```sh
 docker run --privileged --rm tonistiigi/binfmt:latest --install all
-```sh
+```
 
 ## Install VS Code
 Follow the installation guide for VS Code:
