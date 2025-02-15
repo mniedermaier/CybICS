@@ -1,4 +1,4 @@
-pymodbus==3.7.4
+pymodbus==3.8.6
 smbus
 nmcli
 RPi.GPIO

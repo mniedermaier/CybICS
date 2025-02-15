@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     bc \
     iputils-ping \
     wget \
+    nmap \
     && rm -rf /var/lib/apt/lists/*
 
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
@@ -21,7 +22,7 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-RUN python3 -m pip install pymodbus flask asyncua nicegui
+RUN python3 -m pip install pymodbus flask asyncua nicegui pytest pytest-asyncio
 
 RUN install -d -m 0755 /etc/apt/keyrings && \
     wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- > /etc/apt/keyrings/packages.mozilla.org.asc && \
