@@ -252,7 +252,7 @@ if __name__ == "__main__":
 
     # read coils from OpenPLC
     try:
-      plcCoils=client.read_coils(0,4)
+      plcCoils=client.read_coils(0,count=4, slave=1)
       heartbeat=plcCoils.bits[0]
       compressor=plcCoils.bits[1]
       systemValve=plcCoils.bits[2]
@@ -381,11 +381,11 @@ if __name__ == "__main__":
     # Write to OpenPLC
     try:
       # write SystemSensor and BlowOutSensor to the OpenPLC
-      client.write_registers(1132,sysSen)
-      client.write_registers(1134,boSen)
+      client.write_register(1132,sysSen)
+      client.write_register(1134,boSen)
       # write GST and HPT to the OpenPLC
-      client.write_registers(1124,gst)
-      client.write_registers(1126,hpt)    
+      client.write_register(1124,gst)
+      client.write_register(1126,hpt)    
       client.write_registers(1200,flag)
     except Exception as e:
       logging.error("Main    : Write to OpenPLC failed - " + str(e))
