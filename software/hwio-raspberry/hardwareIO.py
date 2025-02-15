@@ -70,8 +70,8 @@ def thread_openplc():
     global flag
     try:
       # write GST and HPT to the OpenPLC
-      client.write_registers(1124,gst) #
-      client.write_registers(1126,hpt) #
+      client.write_register(1124,gst) #
+      client.write_register(1126,hpt) #
       flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
       client.write_registers(1200,flag) #
     except Exception as e:
@@ -79,7 +79,7 @@ def thread_openplc():
 
     # read coils from OpenPLC
     try:
-      plcCoils=client.read_coils(0,4)
+      plcCoils=client.read_coils(0,count=4, slave=1)
       GPIO.output(4, plcCoils.bits[0])   # heartbeat
       GPIO.output(8, plcCoils.bits[1])   # compressor
       GPIO.output(7, plcCoils.bits[2])   # systemValve
@@ -89,8 +89,8 @@ def thread_openplc():
 
     # write input register to OpenPLC
     try:
-      client.write_registers(1132,GPIO.input(1))  # System sensor
-      client.write_registers(1134,GPIO.input(12)) # BO sensor
+      client.write_register(1132,GPIO.input(1))  # System sensor
+      client.write_register(1134,GPIO.input(12)) # BO sensor
     except Exception as e:
       logging.error("Write to OpenPLC failed - " + str(e))
 
@@ -214,7 +214,7 @@ def thread_i2c():
 
 # main function
 if __name__ == "__main__":
-  format = "%(asctime)s: %(message)s"
+  format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
   
