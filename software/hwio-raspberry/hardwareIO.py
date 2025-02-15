@@ -50,7 +50,6 @@ def thread_openplc():
 
   # Connect to OpenPLC
   client = ModbusTcpClient(host="openplc",port=502)  # Create client object
-  time.sleep(10) # give OpenPLC some time to startup
 
   # Try "10" times to connect to the OpenPLC
   logging.info("Trying to connect to OpenPLC")
