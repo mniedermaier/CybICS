@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM debian:12-slim
 
 COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
 WORKDIR /CybICS/OpenPLC_v3/
@@ -16,4 +16,4 @@ EXPOSE 8080
 EXPOSE 502
 EXPOSE 44818
 EXPOSE 20000
-CMD /CybICS/OpenPLC_v3/start_openplc.sh
+CMD ["/CybICS/OpenPLC_v3/start_openplc.sh"]
