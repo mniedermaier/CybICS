@@ -620,7 +620,7 @@ void Fdisplay(void const * argument)
     secondsAfterStart++;
     // Display showing Cybics string and IP
     if(0==displayScreen){
-      snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v1.0.1");
+      snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v1.0.2");
       Lcd_cursor(&lcd, 0, 0);
       Lcd_string(&lcd, displayText);
       snprintf(displayText, sizeof(displayText), "%16li", secondsAfterStart);

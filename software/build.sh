@@ -3,7 +3,7 @@
 set -e
 cd "$(dirname "$0")"
 
-name=cydefaubicsbuilder2
+name=cybicsbuilder2
 docker buildx ls | grep -q $name && docker buildx use $name
 docker buildx ls | grep -q $name || docker buildx create  --use --config config.toml --name $name
 docker buildx inspect --bootstrap
