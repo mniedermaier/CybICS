@@ -15,6 +15,7 @@ This recommended sequence is designed to build your knowledge progressively, lay
 1. [Flood & overwrite](flood_overwrite/README.md)
 1. [Password attack](password_attack/README.md)
 1. [OPC-UA](opcua/README.md)
+1. [Fuzzing Modbus](fuzzingMB/README.md)
 1. [Man-in-the-Middle (MitM)](mitm/README.md)
 1. [Detect Basic](detect_basic/README.md)
 1. [Detect Overwrite](detect_overwrite/README.md)
