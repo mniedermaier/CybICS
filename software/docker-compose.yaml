@@ -9,7 +9,8 @@ services:
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     networks:
-      - br-cybics
+      br-cybics:
+        ipv4_address: 172.18.0.2
 
   opcua:
     image: localhost:5000/cybics-opcua:latest
@@ -19,7 +20,8 @@ services:
     ports:
       - 4840:4840
     networks:
-      - br-cybics
+      br-cybics:
+        ipv4_address: 172.18.0.5
 
   s7com:
     image: localhost:5000/cybics-s7com:latest
@@ -29,7 +31,8 @@ services:
     ports:
       - 102:102
     networks:
-      - br-cybics
+      br-cybics:
+        ipv4_address: 172.18.0.6
 
   openplc:
     image: localhost:5000/cybics-openplc:latest
@@ -42,7 +45,8 @@ services:
       - 8080:8080
       - 502:502
     networks:
-      - br-cybics
+      br-cybics:
+        ipv4_address: 172.18.0.3
 
   fuxa:
     image: localhost:5000/cybics-fuxa:latest
@@ -52,7 +56,8 @@ services:
     ports:
       - 1881:1881
     networks:
-      - br-cybics
+      br-cybics:
+        ipv4_address: 172.18.0.4
 
   stm32:
     image: localhost:5000/cybics-stm32:latest
@@ -67,3 +72,8 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.name: br-cybics
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/24
+          gateway: 1172.18.0.1
