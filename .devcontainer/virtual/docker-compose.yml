@@ -87,6 +87,43 @@ services:
       virt-cybics:
         ipv4_address: 172.18.0.2
 
+  surricata:
+    build:
+      context: ../../software/suricata
+      dockerfile: Dockerfile
+    restart: always
+    depends_on: 
+    - openplc
+    - fuxa
+    cap_add:
+    - net_admin
+    - net_raw
+    - sys_nice
+    volumes:
+    - ../../software/suricata/config:/etc/suricata
+    - ../../software/suricata/lib:/var/lib/suricata
+    - ../../software/suricata/log:/var/log/suricata
+    environment:
+      SURICATA_OPTIONS: "-c /etc/suricata/suricata.yaml -i eth0"
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.7
+
+
+  netsetup:
+    image: alpine
+    command: >
+      /bin/sh -c "apk add --no-cache iptables && \
+      iptables -t mangle -A PREROUTING -i eth0 -j TEE --gateway 172.18.0.7 && \
+      iptables -t mangle -A POSTROUTING -o eth0 -j TEE --gateway 172.18.0.7 && \
+      tail -f /dev/null"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.10
+
 networks:
   virt-cybics:
     driver: bridge
