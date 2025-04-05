@@ -1,1 +1,0 @@
-FROM jasonish/suricata:7.0

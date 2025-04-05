@@ -88,9 +88,7 @@ services:
         ipv4_address: 172.18.0.2
 
   suricata:
-    build:
-      context: ../../software/suricata
-      dockerfile: Dockerfile
+    image: jasonish/suricata:7.0
     restart: always
     depends_on: 
     - openplc
