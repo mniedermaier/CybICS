@@ -19,3 +19,4 @@ This recommended sequence is designed to build your knowledge progressively, lay
 1. [Man-in-the-Middle (MitM)](mitm/README.md)
 1. [Detect Basic](detect_basic/README.md)
 1. [Detect Overwrite](detect_overwrite/README.md)
+1. [IDS on Modbus](intrusion_detection/README.md)
