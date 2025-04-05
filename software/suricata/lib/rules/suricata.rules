@@ -18,5 +18,6 @@
 #alert modbus any any -> any any (msg:"SURICATA Modbus Request flood detected"; flow:to_server; app-layer-event:modbus.flooded; classtype:protocol-command-decode; sid:2250009; rev:2;)
 #
 ###### Custom rules
-alert tcp any any -> any any (msg:"TCP Message"; sid:22; rev:1;)
-alert udp any any -> any any (msg:"UDP Message"; sid:23; rev:1;)
+alert icmp any any -> any any (msg:"PING detected"; sid:1; rev:1;)
+alert tcp any any -> any any (msg:"TCP Message"; sid:2; rev:1;)
+alert udp any any -> any any (msg:"UDP Message"; sid:3; rev:1;)
