@@ -90,9 +90,6 @@ services:
   suricata:
     image: jasonish/suricata:7.0
     restart: always
-    depends_on: 
-    - openplc
-    - fuxa
     cap_add:
     - net_admin
     - net_raw
