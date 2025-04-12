@@ -1,3 +1,36 @@
+###### Rule to alert for every package
+alert ip any any -> any any (msg:"Anomal Network package detected"; dsize:>0; sid:100; rev:1;)
+
+###### Rules to skip known packages, so only alert for anomalies will occur
+## Modbus Traffic between hwio and openplc
+pass tcp 172.18.0.2 any -> 172.18.0.3 502 (msg:"Modbus: hwio -> openplc request"; dsize:>0; sid:500; rev:1;)
+pass tcp 172.18.0.3 502 -> 172.18.0.2 any (msg:"Modbus: openplc -> hwio response"; dsize:>0; sid:501; rev:1;)
+
+## http Traffic between gateway (external client) and hwio
+pass tcp 172.18.0.1 any -> 172.18.0.2 8090 (msg:"HTTP: CybICS hwio Webinterface request"; dsize:>0; sid:502; rev:1;)
+pass tcp 172.18.0.2 8090 -> 172.18.0.1 any (msg:"HTTP: CybICS hwio Webinterface response"; dsize:>0; sid:503; rev:1;)
+
+## Modbus Traffic between fuxa and openplc
+pass tcp 172.18.0.4 any -> 172.18.0.3 502 (msg:"Modbus: fuxa -> openplc request"; dsize:>0; sid:504; rev:1;)
+pass tcp 172.18.0.3 502 -> 172.18.0.4 any (msg:"Modbus: openplc -> fuxa response"; dsize:>0; sid:505; rev:1;)
+
+## Modbus Traffic between opcua and openplc
+pass tcp 172.18.0.5 any -> 172.18.0.3 502 (msg:"Modbus: opcua -> openplc request"; dsize:>0; sid:506; rev:1;)
+pass tcp 172.18.0.3 502 -> 172.18.0.5 any (msg:"Modbus: openplc -> opcua response"; dsize:>0; sid:507; rev:1;)
+
+## http Traffic between gateway (external client) and fuxa
+pass tcp 172.18.0.1 any -> 172.18.0.4 1881 (msg:"HTTP: fuxa Webinterface request"; dsize:>0; sid:508; rev:1;)
+pass tcp 172.18.0.4 1881 -> 172.18.0.1 any (msg:"HTTP: fuxa Webinterface response"; dsize:>0; sid:509; rev:1;)
+
+## http Traffic between gateway (external client) and openplc
+pass tcp 172.18.0.1 any -> 172.18.0.3 8080 (msg:"HTTP: openplc Webinterface request"; dsize:>0; sid:510; rev:1;)
+pass tcp 172.18.0.3 8080 -> 172.18.0.1 any (msg:"HTTP: openplc Webinterface response"; dsize:>0; sid:511; rev:1;)
+
+
+
+
+
+
 ###### Default suricata Modbus rules
 #
 # Modbus Protocol version field is incorrect (Modbus version = 0)
@@ -17,9 +50,3 @@
 # Request Flood Detected
 #alert modbus any any -> any any (msg:"SURICATA Modbus Request flood detected"; flow:to_server; app-layer-event:modbus.flooded; classtype:protocol-command-decode; sid:2250009; rev:2;)
 #
-###### Custom rules
-alert icmp any any -> any any (msg:"PING detected"; dsize:>0; sid:1; rev:1;)
-alert tcp any any -> any any (msg:"TCP Message"; dsize:>0; sid:2; rev:1;)
-alert udp any any -> any any (msg:"UDP Message"; dsize:>0; sid:3; rev:1;)
-alert modbus any any -> any any (msg:"Modbus Message"; dsize:>0; sid:4; rev:1;)
-alert tcp any any -> any 502 (msg:"Message on Port 502"; dsize:>0; sid:5; rev:1;)
