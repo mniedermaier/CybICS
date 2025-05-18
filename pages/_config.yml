@@ -1,24 +1,19 @@
-remote_theme: longpdo/neumorphism
+# Site settings
 title: CybICS
-description: >-
-  CybICS - Cyber Infrastructure Control System
-  A comprehensive solution for managing and monitoring cyber infrastructure
+description: Cyber Infrastructure Control System - A comprehensive solution for managing and monitoring cyber infrastructure
 baseurl: ""
 url: ""
+
+# Theme settings
+remote_theme: longpdo/neumorphism
 
 # Build settings
 markdown: kramdown
 plugins:
+  - jekyll-remote-theme
   - jekyll-feed
   - jekyll-seo-tag
   - jekyll-sitemap
-  - jekyll-github-metadata
-  - jekyll-relative-links
-  - jekyll-optional-front-matter
-  - jekyll-readme-index
-  - jekyll-default-layout
-  - jekyll-titles-from-headings
-  - jekyll-remote-theme
 
 # Exclude from processing
 exclude:
@@ -35,9 +30,6 @@ exclude:
   - .idea
   - .DS_Store
   - Thumbs.db
-
-# Site settings
-show_excerpts: false
 
 # Navigation
 header_pages:

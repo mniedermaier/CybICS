@@ -1,0 +1,182 @@
+// Neumorphism theme variables
+$neu-bg: #e0e5ec;
+$neu-shadow-light: #ffffff;
+$neu-shadow-dark: #a3b1c6;
+$neu-text: #2d3436;
+$neu-accent: #ff6b00;
+$neu-radius: 10px;
+$neu-transition: all 0.3s ease;
+
+// Reset and base styles
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  height: 100%;
+}
+
+body {
+  background-color: $neu-bg;
+  color: $neu-text;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+// Neumorphic elements
+.neu {
+  background: $neu-bg;
+  border-radius: $neu-radius;
+  box-shadow: 8px 8px 16px $neu-shadow-dark,
+              -8px -8px 16px $neu-shadow-light;
+  transition: $neu-transition;
+  
+  &:hover {
+    box-shadow: 12px 12px 20px $neu-shadow-dark,
+                -12px -12px 20px $neu-shadow-light;
+  }
+  
+  &:active {
+    box-shadow: inset 8px 8px 16px $neu-shadow-dark,
+                inset -8px -8px 16px $neu-shadow-light;
+  }
+}
+
+// Layout
+.wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+// Header
+.site-header {
+  @extend .neu;
+  padding: 1.5rem;
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  .site-title {
+    color: $neu-text;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    
+    &:hover {
+      color: $neu-accent;
+    }
+  }
+  
+  .site-nav {
+    display: flex;
+    gap: 1rem;
+    
+    .page-link {
+      color: $neu-text;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: $neu-radius;
+      transition: $neu-transition;
+      
+      &:hover {
+        color: $neu-accent;
+        box-shadow: 4px 4px 8px $neu-shadow-dark,
+                    -4px -4px 8px $neu-shadow-light;
+      }
+    }
+  }
+}
+
+// Main content
+.page-content {
+  @extend .neu;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  
+  h1, h2, h3, h4, h5, h6 {
+    color: $neu-text;
+    margin: 1.5rem 0 1rem;
+  }
+  
+  p {
+    margin-bottom: 1rem;
+  }
+  
+  a {
+    color: $neu-accent;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  
+  code {
+    background: darken($neu-bg, 5%);
+    padding: 0.2rem 0.4rem;
+    border-radius: $neu-radius;
+    font-family: 'Monaco', 'Consolas', monospace;
+  }
+  
+  pre {
+    @extend .neu;
+    padding: 1rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+    
+    code {
+      background: none;
+      padding: 0;
+    }
+  }
+}
+
+// Footer
+.site-footer {
+  @extend .neu;
+  padding: 2rem;
+  text-align: center;
+  
+  .footer-col-wrapper {
+    color: lighten($neu-text, 20%);
+  }
+  
+  a {
+    color: $neu-accent;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  body {
+    padding: 1rem;
+  }
+  
+  .site-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    
+    .site-nav {
+      flex-direction: column;
+      width: 100%;
+      
+      .page-link {
+        display: block;
+        text-align: center;
+      }
+    }
+  }
+} 
