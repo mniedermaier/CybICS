@@ -6,6 +6,11 @@ description: >-
 baseurl: ""
 url: ""
 
+# Theme settings
+theme: neumorphism
+minima:
+  skin: dark
+
 # Build settings
 markdown: kramdown
 plugins:
