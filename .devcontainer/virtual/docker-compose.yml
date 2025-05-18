@@ -46,7 +46,7 @@ services:
         ipv4_address: 172.18.0.5
 
   s7com:
-    image: mniedermaier1337/cybicss7comlatest
+    image: mniedermaier1337/cybicss7com:latest
     build:
       context: ../../software/s7com
       dockerfile: Dockerfile
