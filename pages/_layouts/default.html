@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }} - {{ site.title }}</title>
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+    {% seo %}
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="container">
+                <a href="{{ '/' | relative_url }}" class="site-title">{{ site.title }}</a>
+                <div class="nav-links">
+                    <a href="{{ '/' | relative_url }}">Home</a>
+                    <a href="{{ '/docs' | relative_url }}">Documentation</a>
+                    <a href="{{ '/about' | relative_url }}">About</a>
+                    <a href="https://github.com/your-username/CybICS">GitHub</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            {{ content }}
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; {{ site.time | date: '%Y' }} {{ site.title }}. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 
