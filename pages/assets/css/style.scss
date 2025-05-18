@@ -1,20 +1,69 @@
 @import "minima";
 
+// Variables
+:root {
+    --dark-bg: #1a1a1a;
+    --darker-bg: #121212;
+    --accent: #ff6b00;
+    --accent-light: #ff8533;
+    --text: #e0e0e0;
+    --text-muted: #a0a0a0;
+}
+
 // Custom styles
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
+    background: var(--dark-bg);
+    color: var(--text);
+    position: relative;
+    overflow-x: hidden;
+}
+
+// Animated background
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, var(--accent) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, var(--accent) 0%, transparent 50%);
+    opacity: 0.05;
+    z-index: -1;
+    animation: pulse 10s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.05;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.08;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.05;
+    }
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+    position: relative;
 }
 
 header {
-    background: #2c3e50;
+    background: var(--darker-bg);
     padding: 1rem 0;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
     
     nav {
         .container {
@@ -24,23 +73,43 @@ header {
         }
         
         .site-title {
-            color: white;
+            color: var(--accent);
             font-size: 1.5rem;
             text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
             
             &:hover {
-                color: #ecf0f1;
+                color: var(--accent-light);
+                text-shadow: 0 0 10px rgba(255, 107, 0, 0.3);
             }
         }
         
         .nav-links {
             a {
-                color: white;
+                color: var(--text);
                 text-decoration: none;
                 margin-left: 1.5rem;
+                position: relative;
+                transition: color 0.3s ease;
+                
+                &::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -5px;
+                    left: 0;
+                    width: 0;
+                    height: 2px;
+                    background: var(--accent);
+                    transition: width 0.3s ease;
+                }
                 
                 &:hover {
-                    color: #ecf0f1;
+                    color: var(--accent);
+                    
+                    &::after {
+                        width: 100%;
+                    }
                 }
             }
         }
@@ -49,15 +118,72 @@ header {
 
 main {
     padding: 2rem 0;
+    min-height: calc(100vh - 200px);
     
     h1, h2, h3 {
-        color: #2c3e50;
+        color: var(--accent);
+        margin-bottom: 1rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+        
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            animation: width-pulse 3s ease-in-out infinite;
+        }
+    }
+
+    @keyframes width-pulse {
+        0% { width: 60px; }
+        50% { width: 100px; }
+        100% { width: 60px; }
+    }
+
+    a {
+        color: var(--accent);
+        text-decoration: none;
+        transition: color 0.3s ease;
+        
+        &:hover {
+            color: var(--accent-light);
+            text-decoration: underline;
+        }
+    }
+
+    ul {
+        list-style-type: none;
+        padding-left: 0;
+        
+        li {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+            
+            &::before {
+                content: '▹';
+                position: absolute;
+                left: 0;
+                color: var(--accent);
+            }
+        }
     }
 }
 
 footer {
-    background: #f8f9fa;
+    background: var(--darker-bg);
     padding: 1rem 0;
     text-align: center;
-    color: #6c757d;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.2);
 } 
