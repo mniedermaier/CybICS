@@ -67,7 +67,7 @@ title: Home
             <h3><i class="fas fa-code-branch"></i> 1. Clone Repository</h3>
             <p>Get started by cloning our GitHub repository to your local machine.</p>
             <div class="code-block">
-                <code>git clone https://github.com/mniedermaier/CybICS.git</code>
+                <code>git clone https://github.com/mniedermaier/CybICS.git --recursive</code>
                 <button class="copy-button" onclick="copyCode(this)">
                     <i class="fas fa-copy"></i>
                 </button>
@@ -77,8 +77,13 @@ title: Home
             <h3><i class="fas fa-cogs"></i> 2. Setup Environment</h3>
             <p>Use our Docker-based setup for quick deployment.</p>
             <div class="code-block">
-                <code>cd CybICS
-docker-compose up -d</code>
+                <code>cd CybICS</code>
+                <button class="copy-button" onclick="copyCode(this)">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <div class="code-block">
+                <code>docker-compose up -d</code>
                 <button class="copy-button" onclick="copyCode(this)">
                     <i class="fas fa-copy"></i>
                 </button>

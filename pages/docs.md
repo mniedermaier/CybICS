@@ -12,7 +12,7 @@ Welcome to the CybICS documentation. Here you'll find comprehensive guides and i
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/mniedermaier/CybICS.git
+   git clone https://github.com/mniedermaier/CybICS.git --recursive
    ```
 
 2. Navigate to the project directory:
