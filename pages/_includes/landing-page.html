@@ -1,23 +1,59 @@
-<div id="particles-js" class="particles"></div>
-<div class="landing-page">
-  <div class="landing-page-content">
-    <h1 class="landing-page-title">{{ site.title }}</h1>
-    <h2 class="landing-page-subtitle">{{ site.description }}</h2>
-    <div class="landing-page-social">
-      {% if site.email %}
-      <a href="mailto:{{ site.email }}" class="social-icon" target="_blank">
-        <i class="fas fa-envelope"></i>
-      </a>
+<div id="landing">
+  <div class="landing-title">
+    <h1>Hi, I'm
+      <span class="highlight-title">{{site.username}}</span>,
+    </h1>
+    <h1>
+      <span id="txt-rotate" data-period="2000"
+        data-rotate='["{{site.typing_text}}", "scroll down for more."]'
+      >
+      </span>
+    </h1>
+    <div class="landing-icons">
+      {% if site.email != null %}
+        <a class="social-link email" aria-label="My E-Mail" href="mailto:{{site.email}}">
+          <svg viewBox="0 0 200 200" class="circle">
+            <circle cx="100" cy="100" r="80" />
+          </svg>
+          <div class="social">
+            <svg class="social-svg" viewBox="0 0 48 48">
+              <use x="12" y="12" width="24" height="24" viewBox="0 0 48 48" xlink:href="{{ "/assets/img/solid.svg#envelope" | prepend: site.baseurl }}"></use>
+            </svg>
+          </div>
+          <span class="label">E-Mail</span>
+        </a>
       {% endif %}
-      {% if site.github_username %}
-      <a href="https://github.com/{{ site.github_username }}" class="social-icon" target="_blank">
-        <i class="fab fa-github"></i>
-      </a>
+
+      {% if site.github_username != null %}
+        <a class="social-link" aria-label="My GitHub" target="_blank" rel="noreferrer"
+          href="https://github.com/{{site.github_username}}"
+        >
+          <svg viewBox="0 0 200 200" class="circle">
+            <circle cx="100" cy="100" r="80" />
+          </svg>
+          <div class="social">
+            <svg class="social-svg" viewBox="0 0 48 48">
+              <use x="12" y="12" width="24" height="24" viewBox="0 0 48 48" xlink:href="{{ "/assets/img/brands.svg#github" | prepend: site.baseurl }}"></use>
+            </svg>
+          </div>
+          <span class="label">GitHub</span>
+        </a>
       {% endif %}
-      {% if site.linkedin_username %}
-      <a href="https://linkedin.com/in/{{ site.linkedin_username }}" class="social-icon" target="_blank">
-        <i class="fab fa-linkedin"></i>
-      </a>
+
+      {% if site.linkedin_username != null %}
+        <a class="social-link linkedin" aria-label="My LinkedIn" target="_blank"
+          rel="noreferrer" href="https://www.linkedin.com/in/{{site.linkedin_username}}"
+        >
+          <svg viewBox="0 0 200 200" class="circle">
+            <circle cx="100" cy="100" r="80" />
+          </svg>
+          <div class="social">
+            <svg class="social-svg" viewBox="0 0 48 48">
+              <use x="12" y="12" width="24" height="24" viewBox="0 0 48 48" xlink:href="{{ "/assets/img/brands.svg#linkedin-in" | prepend: site.baseurl }}"></use>
+            </svg>
+          </div>
+          <span class="label">LinkedIn</span>
+        </a>
       {% endif %}
     </div>
   </div>
