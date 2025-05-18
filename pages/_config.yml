@@ -13,14 +13,23 @@ plugins:
 # Theme settings
 minima:
   skin: dark
-  header_pages:
-    - index.md
-    - docs.md
-    - about.md
+  social_links:
+    github: mniedermaier/CybICS
 
-# Social links
-github_username: mniedermaier
-repository: mniedermaier/CybICS
+# Colors and theme
+colors:
+  background: "#0d1117"
+  darker_bg: "#010409"
+  accent: "#00ff00"
+  accent_dark: "#00cc00"
+  text: "#e6e6e6"
+  text_muted: "#8b949e"
+
+# Navigation
+header_pages:
+  - index.md
+  - docs.md
+  - about.md
 
 # Exclude from processing
 exclude:

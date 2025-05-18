@@ -1,5 +1,160 @@
 @import "minima";
 
+$background-color: #0d1117;
+$darker-bg-color: #010409;
+$accent-color: #00ff00;
+$accent-dark-color: #00cc00;
+$text-color: #e6e6e6;
+$text-muted-color: #8b949e;
+$border-color: #30363d;
+$card-bg-color: #161b22;
+
+body {
+  background-color: $background-color;
+  color: $text-color;
+}
+
+.site-header {
+  background-color: $darker-bg-color;
+  border-bottom: 1px solid $border-color;
+}
+
+.site-title, .site-title:visited {
+  color: $text-color;
+}
+
+.site-nav {
+  .page-link {
+    color: $text-color;
+    
+    &:hover {
+      color: $accent-color;
+    }
+  }
+}
+
+.site-footer {
+  background-color: $darker-bg-color;
+  border-top: 1px solid $border-color;
+  color: $text-muted-color;
+}
+
+a {
+  color: $accent-color;
+  
+  &:visited {
+    color: $accent-dark-color;
+  }
+  
+  &:hover {
+    color: lighten($accent-color, 10%);
+    text-decoration: none;
+  }
+}
+
+.post-content {
+  h1, h2, h3, h4, h5, h6 {
+    color: $text-color;
+  }
+}
+
+// Feature cards
+.feature-card {
+  background-color: $card-bg-color;
+  border: 1px solid $border-color;
+  
+  &:hover {
+    border-color: $accent-color;
+    box-shadow: 0 0 10px rgba($accent-color, 0.1);
+  }
+}
+
+// Hero section
+.hero-section {
+  background-color: $background-color;
+  
+  .hero-title {
+    color: $text-color;
+  }
+  
+  .hero-subtitle {
+    color: $text-muted-color;
+  }
+}
+
+// Why section
+.why-item {
+  background-color: $card-bg-color;
+  border: 1px solid $border-color;
+  
+  &:hover {
+    border-color: $accent-color;
+  }
+  
+  h3 {
+    color: $accent-color;
+  }
+}
+
+// Get started section
+.step {
+  background-color: $card-bg-color;
+  border: 1px solid $border-color;
+  
+  .step-number {
+    background-color: $accent-color;
+    color: $background-color;
+  }
+  
+  pre {
+    background-color: $background-color;
+    border: 1px solid $border-color;
+  }
+}
+
+// Community section
+.community-button {
+  background-color: $card-bg-color;
+  border: 1px solid $border-color;
+  color: $text-color;
+  
+  &:hover {
+    background-color: $accent-color;
+    color: $background-color;
+  }
+}
+
+// Code blocks
+pre, code {
+  background-color: $card-bg-color;
+  border: 1px solid $border-color;
+}
+
+// Tables
+table {
+  border: 1px solid $border-color;
+  
+  th {
+    background-color: $card-bg-color;
+    border: 1px solid $border-color;
+  }
+  
+  td {
+    border: 1px solid $border-color;
+  }
+}
+
+// Blockquotes
+blockquote {
+  border-left: 4px solid $border-color;
+  color: $text-muted-color;
+}
+
+// Horizontal rule
+hr {
+  border-bottom: 1px solid $border-color;
+}
+
 $dark-bg: #0a0a0a;
 $darker-bg: #050505;
 $accent: #ff6b00;
