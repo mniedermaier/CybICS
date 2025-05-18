@@ -1,10 +1,15 @@
 // Neumorphism theme variables
-$neu-bg: #e0e5ec;
-$neu-shadow-light: #ffffff;
-$neu-shadow-dark: #a3b1c6;
-$neu-text: #2d3436;
-$neu-accent: #ff6b00;
-$neu-radius: 10px;
+$bg-color: rgba(43, 45, 47, 1);
+$text-color: #fff;
+$primary-color: #ff073a;
+$card-bg-color: linear-gradient(
+  145deg,
+  rgba(115, 115, 115, 0.15) 15%,
+  rgba(43, 45, 47, 1) 80%
+);
+$neu-shadow-light: rgba(250, 250, 250, 0.13);
+$neu-shadow-dark: rgba(0, 0, 0, 0.4);
+$neu-radius: 2rem;
 $neu-transition: all 0.3s ease;
 
 // Reset and base styles
@@ -15,14 +20,16 @@ $neu-transition: all 0.3s ease;
 }
 
 html {
+  background: $bg-color;
+  color: $text-color;
+  font-family: 'Raleway', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 16px;
   height: 100%;
+  overflow: hidden;
 }
 
 body {
-  background-color: $neu-bg;
-  color: $neu-text;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  height: 100%;
   line-height: 1.6;
   min-height: 100vh;
   padding: 2rem;
@@ -30,20 +37,27 @@ body {
 
 // Neumorphic elements
 .neu {
-  background: $neu-bg;
+  background: $card-bg-color;
   border-radius: $neu-radius;
-  box-shadow: 8px 8px 16px $neu-shadow-dark,
-              -8px -8px 16px $neu-shadow-light;
+  box-shadow: -4px -3px 2px 0 $neu-shadow-light,
+              4px 4px 2px 0 $neu-shadow-dark;
   transition: $neu-transition;
   
   &:hover {
-    box-shadow: 12px 12px 20px $neu-shadow-dark,
-                -12px -12px 20px $neu-shadow-light;
+    box-shadow: -6px -4px 3px 0 $neu-shadow-light,
+                6px 6px 3px 0 $neu-shadow-dark;
   }
   
   &:active {
-    box-shadow: inset 8px 8px 16px $neu-shadow-dark,
-                inset -8px -8px 16px $neu-shadow-light;
+    background: linear-gradient(
+      150deg,
+      rgba(20, 20, 20, 0.4) 10%,
+      rgba(115, 115, 115, 0.15) 80%
+    );
+    box-shadow: 1px 1px 2px 0 rgba(210, 210, 210, 0.4),
+                -1px -1px 2px rgba(0, 0, 0, 0.4),
+                inset 3px 3px 2px 0 rgba(0, 0, 0, 0.4),
+                inset -1px -2px 2px rgba(210, 210, 210, 0.4);
   }
 }
 
@@ -64,13 +78,13 @@ body {
   align-items: center;
   
   .site-title {
-    color: $neu-text;
+    color: $text-color;
     font-size: 1.5rem;
     font-weight: 600;
     text-decoration: none;
     
     &:hover {
-      color: $neu-accent;
+      color: $primary-color;
     }
   }
   
@@ -79,14 +93,14 @@ body {
     gap: 1rem;
     
     .page-link {
-      color: $neu-text;
+      color: $text-color;
       text-decoration: none;
       padding: 0.5rem 1rem;
       border-radius: $neu-radius;
       transition: $neu-transition;
       
       &:hover {
-        color: $neu-accent;
+        color: $primary-color;
         box-shadow: 4px 4px 8px $neu-shadow-dark,
                     -4px -4px 8px $neu-shadow-light;
       }
@@ -104,12 +118,12 @@ body {
     font-size: 3.5rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    color: $neu-text;
+    color: $text-color;
   }
   
   .hero-subtitle {
     font-size: 1.5rem;
-    color: lighten($neu-text, 20%);
+    color: lighten($text-color, 20%);
     margin-bottom: 2rem;
   }
   
@@ -128,22 +142,24 @@ body {
   margin-bottom: 4rem;
   
   .feature-card {
+    @extend .neu;
     padding: 2rem;
     text-align: center;
     
     .feature-icon {
       font-size: 2.5rem;
-      color: $neu-accent;
+      color: $primary-color;
       margin-bottom: 1rem;
     }
     
     h2 {
       font-size: 1.5rem;
       margin-bottom: 1rem;
+      color: $text-color;
     }
     
     p {
-      color: lighten($neu-text, 20%);
+      color: lighten($text-color, 20%);
     }
   }
 }
@@ -154,6 +170,7 @@ body {
   margin-bottom: 4rem;
   
   .cta-content {
+    @extend .neu;
     padding: 3rem;
     max-width: 800px;
     margin: 0 auto;
@@ -161,11 +178,12 @@ body {
     h2 {
       font-size: 2rem;
       margin-bottom: 1rem;
+      color: $text-color;
     }
     
     p {
       margin-bottom: 2rem;
-      color: lighten($neu-text, 20%);
+      color: lighten($text-color, 20%);
     }
   }
 }
@@ -175,14 +193,14 @@ body {
   @extend .neu;
   display: inline-block;
   padding: 0.8rem 2rem;
-  color: $neu-text;
+  color: $text-color;
   text-decoration: none;
   font-weight: 600;
   border-radius: $neu-radius;
   transition: $neu-transition;
   
   &:hover {
-    color: $neu-accent;
+    color: $primary-color;
     transform: translateY(-2px);
   }
   
@@ -198,25 +216,26 @@ body {
   margin-bottom: 3rem;
   
   h1, h2, h3, h4, h5, h6 {
-    color: $neu-text;
+    color: $text-color;
     margin: 1.5rem 0 1rem;
   }
   
   p {
     margin-bottom: 1rem;
+    color: lighten($text-color, 20%);
   }
   
   a {
-    color: $neu-accent;
+    color: $primary-color;
     text-decoration: none;
     
     &:hover {
-      text-decoration: underline;
+      color: $text-color;
     }
   }
   
   code {
-    background: darken($neu-bg, 5%);
+    background: darken($bg-color, 5%);
     padding: 0.2rem 0.4rem;
     border-radius: $neu-radius;
     font-family: 'Monaco', 'Consolas', monospace;
@@ -242,15 +261,15 @@ body {
   text-align: center;
   
   .footer-col-wrapper {
-    color: lighten($neu-text, 20%);
+    color: lighten($text-color, 20%);
   }
   
   a {
-    color: $neu-accent;
+    color: $primary-color;
     text-decoration: none;
     
     &:hover {
-      text-decoration: underline;
+      color: $text-color;
     }
   }
 }
