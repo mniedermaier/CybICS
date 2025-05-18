@@ -74,4 +74,7 @@ header_pages:
 
 # Repository settings
 repository: mniedermaier/CybICS
+
+# Permalinks
+permalink: /:title/
 --- 
