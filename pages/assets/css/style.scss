@@ -209,13 +209,14 @@ a {
   }
   
   h3 {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
     font-size: 1.5rem;
-    margin: 1rem 0;
-    color: #e6e6e6;
     
     i {
-      color: #00ff00;
-      margin-right: 0.5rem;
+      margin-right: 0.75rem;
+      font-size: 1.25rem;
     }
   }
 }
@@ -262,12 +263,14 @@ a {
   }
   
   h3 {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
     font-size: 1.5rem;
-    margin: 1rem 0;
     
     i {
-      color: #00ff00;
-      margin-right: 0.5rem;
+      margin-right: 0.75rem;
+      font-size: 1.25rem;
     }
   }
 }
@@ -310,12 +313,14 @@ a {
   }
   
   h3 {
-    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
     font-size: 1.5rem;
     
     i {
-      color: #00ff00;
-      margin-right: 0.5rem;
+      margin-right: 0.75rem;
+      font-size: 1.25rem;
     }
   }
 }
@@ -447,4 +452,12 @@ a {
 .page-content {
   position: relative;
   z-index: 1;
+}
+
+// Add this after your existing heading styles
+h2, h3 {
+  i {
+    margin-right: 0.5rem;
+    color: #00ff00;
+  }
 } 
