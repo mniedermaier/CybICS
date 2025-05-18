@@ -1,7 +1,3 @@
-@import "minima/skins/dark";
-@import "minima/initialize";
-@import "minima/custom-styles";
-
 // Neumorphism theme variables
 $neu-bg: #e0e5ec;
 $neu-shadow-light: #ffffff;
@@ -11,14 +7,25 @@ $neu-accent: #ff6b00;
 $neu-radius: 10px;
 $neu-transition: all 0.3s ease;
 
-// Base styles
+// Reset and base styles
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  height: 100%;
+}
+
 body {
   background-color: $neu-bg;
   color: $neu-text;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
-  margin: 0;
   min-height: 100vh;
+  padding: 2rem;
 }
 
 // Neumorphic elements
@@ -37,6 +44,75 @@ body {
   &:active {
     box-shadow: inset 8px 8px 16px $neu-shadow-dark,
                 inset -8px -8px 16px $neu-shadow-light;
+  }
+}
+
+// Layout
+.wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+// Header
+.site-header {
+  @extend .neu;
+  padding: 1.5rem;
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  .site-title {
+    color: $neu-text;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    
+    &:hover {
+      color: $neu-accent;
+    }
+  }
+  
+  .site-nav {
+    display: flex;
+    gap: 1rem;
+    
+    .page-link {
+      color: $neu-text;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: $neu-radius;
+      transition: $neu-transition;
+      
+      &:hover {
+        color: $neu-accent;
+        box-shadow: 4px 4px 8px $neu-shadow-dark,
+                    -4px -4px 8px $neu-shadow-light;
+      }
+    }
+  }
+}
+
+// Hero section
+.hero-section {
+  text-align: center;
+  padding: 4rem 2rem;
+  margin-bottom: 4rem;
+  
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin: 2rem 0;
+    color: $neu-text;
+    text-shadow: 2px 2px 4px $neu-shadow-dark,
+                 -2px -2px 4px $neu-shadow-light;
+  }
+  
+  .hero-subtitle {
+    color: lighten($neu-text, 20%);
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
   }
 }
 
@@ -81,6 +157,7 @@ body {
   gap: 0.5rem;
   text-decoration: none;
   color: $neu-text;
+  cursor: pointer;
   
   &:hover {
     transform: translateY(-2px);
@@ -96,56 +173,6 @@ body {
   color: white;
 }
 
-// Header
-.site-header {
-  @extend .neu;
-  padding: 1rem 2rem;
-  margin-bottom: 2rem;
-  
-  .site-title {
-    color: $neu-text;
-    font-weight: 600;
-    
-    &:hover {
-      color: $neu-accent;
-    }
-  }
-  
-  .page-link {
-    color: $neu-text;
-    padding: 0.5rem 1rem;
-    border-radius: $neu-radius;
-    transition: $neu-transition;
-    
-    &:hover {
-      color: $neu-accent;
-      box-shadow: 4px 4px 8px $neu-shadow-dark,
-                  -4px -4px 8px $neu-shadow-light;
-    }
-  }
-}
-
-// Hero section
-.hero-section {
-  text-align: center;
-  padding: 4rem 2rem;
-  
-  .hero-title {
-    font-size: 3.5rem;
-    font-weight: 700;
-    margin: 2rem 0;
-    color: $neu-text;
-    text-shadow: 2px 2px 4px $neu-shadow-dark,
-                 -2px -2px 4px $neu-shadow-light;
-  }
-  
-  .hero-subtitle {
-    color: lighten($neu-text, 20%);
-    font-size: 1.25rem;
-    margin-bottom: 2rem;
-  }
-}
-
 // Code blocks
 .code-block {
   @extend .neu;
@@ -156,6 +183,8 @@ body {
   code {
     color: $neu-text;
     font-family: 'Monaco', 'Consolas', monospace;
+    display: block;
+    white-space: pre-wrap;
   }
   
   .copy-button {
@@ -199,12 +228,18 @@ input, textarea, select {
   @extend .neu;
   padding: 2rem;
   margin-top: 4rem;
+  text-align: center;
   
   .footer-col-wrapper {
     color: lighten($neu-text, 20%);
   }
   
   .social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    
     .social-link {
       @extend .neu;
       display: inline-flex;
@@ -213,8 +248,8 @@ input, textarea, select {
       width: 2.5rem;
       height: 2.5rem;
       border-radius: 50%;
-      margin: 0 0.5rem;
       color: $neu-text;
+      text-decoration: none;
       
       &:hover {
         color: $neu-accent;
@@ -223,13 +258,41 @@ input, textarea, select {
   }
 }
 
+// Grid layouts
+.features-grid, .why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
 // Responsive adjustments
 @media (max-width: 768px) {
+  body {
+    padding: 1rem;
+  }
+  
   .hero-section {
     padding: 2rem 1rem;
     
     .hero-title {
       font-size: 2.5rem;
+    }
+  }
+  
+  .site-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    
+    .site-nav {
+      flex-direction: column;
+      width: 100%;
+      
+      .page-link {
+        display: block;
+        text-align: center;
+      }
     }
   }
   
@@ -240,14 +303,6 @@ input, textarea, select {
       width: 3rem;
       height: 3rem;
       font-size: 1.25rem;
-    }
-  }
-  
-  .site-header {
-    padding: 1rem;
-    
-    .page-link {
-      padding: 0.5rem;
     }
   }
 }

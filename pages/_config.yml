@@ -1,43 +1,46 @@
+remote_theme: longpdo/neumorphism
 title: CybICS
-description: Cyber-Physical Industrial Control System
-baseurl: "/CybICS"
+description: >-
+  CybICS - Cyber Infrastructure Control System
+  A comprehensive solution for managing and monitoring cyber infrastructure
+baseurl: ""
 url: ""
 
 # Build settings
 markdown: kramdown
-theme: minima
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
-
-# Theme settings
-minima:
-  skin: dark
-  date_format: "%b %-d, %Y"
-  social_links:
-    github: mniedermaier/CybICS
-
-# Site settings
-show_excerpts: false
-
-# Colors and theme
-colors:
-  background: "#0d1117"
-  darker_bg: "#010409"
-  accent: "#00ff00"
-  accent_dark: "#00cc00"
-  text: "#e6e6e6"
-  text_muted: "#8b949e"
-
-# Navigation
-header_pages:
-  - index.md
-  - docs.md
-  - about.md
+  - jekyll-sitemap
+  - jekyll-github-metadata
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-default-layout
+  - jekyll-titles-from-headings
+  - jekyll-remote-theme
 
 # Exclude from processing
 exclude:
   - Gemfile
   - Gemfile.lock
   - node_modules
-  - vendor 
+  - vendor
+  - .gitignore
+  - .github
+  - README.md
+  - LICENSE
+  - .git
+  - .vscode
+  - .idea
+  - .DS_Store
+  - Thumbs.db
+
+# Site settings
+show_excerpts: false
+
+# Navigation
+header_pages:
+  - index.md
+  - docs.md
+  - about.md 
