@@ -45,7 +45,8 @@ $grey-color-dark: darken($grey-color, 25%) !default;
   }
 }
 
-body {
+html {
+  min-height: 100%;
   background: linear-gradient(
     45deg,
     #0d1117 0%,
@@ -57,13 +58,68 @@ body {
   );
   background-size: 300% 300%;
   animation: gradientAnimation 20s ease infinite;
-  background-attachment: fixed;  // This ensures the animation stays fixed while scrolling
+  background-attachment: fixed;
+}
+
+body {
+  min-height: 100vh;
+  background: transparent;
   color: $text-color;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
-  padding-top: $header-height;  // Add padding to prevent content from going under header
+  padding-top: $header-height;
   margin: 0;
-  min-height: 100vh;
+}
+
+// Hover effects
+.feature-card, .why-item, .step, .community-button {
+  transition: all $transition-speed ease !important;
+  
+  &:hover {
+    transform: translateY(-2px) !important;
+    border-color: $accent-color !important;
+    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.1) !important;
+  }
+}
+
+// Primary button with hover effect
+.primary-button {
+  background: linear-gradient(135deg, $accent-color 0%, $accent-dark-color 100%) !important;
+  color: #ffffff !important;
+  transition: all $transition-speed ease !important;
+  
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2) !important;
+    background: linear-gradient(135deg, lighten($accent-color, 5%) 0%, lighten($accent-dark-color, 5%) 100%) !important;
+  }
+}
+
+// Section overlays
+.hero-section, .features-grid, .why-section, .community {
+  position: relative !important;
+  z-index: 1 !important;
+  
+  &::before {
+    content: '';
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 107, 0, 0.05) 0%,
+      rgba(13, 17, 23, 0) 70%
+    ) !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+}
+
+// Ensure icons maintain color
+.feature-icon, .why-icon, h2 i, h3 i {
+  color: $accent-color !important;
 }
 
 // Sticky header styles
@@ -208,15 +264,6 @@ a {
   }
 }
 
-.primary-button {
-  background: linear-gradient(135deg, #ff6b00 0%, #cc5500 100%);
-  color: #ffffff;
-  
-  &:hover {
-    background: linear-gradient(135deg, #ff6b00 20%, #cc5500 100%);
-  }
-}
-
 .secondary-button {
   background: rgba(255, 255, 255, 0.1);
   color: #e6e6e6;
@@ -254,26 +301,6 @@ a {
   }
 }
 
-// Add subtle gradient overlay to sections for depth
-.hero-section, .features-grid, .why-section, .community {
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(
-      circle at center,
-      rgba(255, 107, 0, 0.03) 0%,
-      rgba(13, 17, 23, 0) 70%
-    );
-    pointer-events: none;
-  }
-}
-
 // Feature cards
 .features-grid {
   display: grid;
@@ -289,12 +316,6 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all $transition-speed ease;
   backdrop-filter: blur(10px);
-  
-  &:hover {
-    transform: $hover-transform;
-    border-color: #ff6b00;
-    box-shadow: $box-shadow;
-  }
   
   .feature-icon {
     font-size: 2rem;
@@ -344,12 +365,6 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all $transition-speed ease;
   
-  &:hover {
-    transform: $hover-transform;
-    border-color: #ff6b00;
-    box-shadow: $box-shadow;
-  }
-  
   .why-icon {
     font-size: 2rem;
     color: #ff6b00;
@@ -384,12 +399,6 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   transition: all $transition-speed ease;
-  
-  &:hover {
-    transform: $hover-transform;
-    border-color: #ff6b00;
-    box-shadow: $box-shadow;
-  }
   
   .step-number {
     position: absolute;
