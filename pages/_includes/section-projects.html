@@ -1,0 +1,35 @@
+<h2 class="section-title">{{ site.projects_title }}</h2>
+<div class="section-content">
+  <div class="projects">
+    <div class="project">
+      <h3>CybICS Core</h3>
+      <p>The main infrastructure control system</p>
+      <div class="project-links">
+        <a href="https://github.com/mniedermaier/CybICS" target="_blank">
+          <i class="fab fa-github"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if site.show_os_projects %}
+<h2 class="section-title">{{ site.os_projects_title }}</h2>
+<div class="section-content">
+  <div class="projects">
+    {% for repository in site.github.public_repositories %}
+      {% if repository.fork != true and repository.archived != true %}
+        <div class="project">
+          <h3>{{ repository.name }}</h3>
+          <p>{{ repository.description }}</p>
+          <div class="project-links">
+            <a href="{{ repository.html_url }}" target="_blank">
+              <i class="fab fa-github"></i>
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %} 

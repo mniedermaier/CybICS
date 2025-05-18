@@ -1,0 +1,24 @@
+<h2 class="section-title">{{ site.contact_title }}</h2>
+<div class="section-content">
+  {{ site.contact_description | markdownify }}
+  <div class="contact-links">
+    {% if site.email %}
+    <a href="mailto:{{ site.email }}" class="contact-link">
+      <i class="fas fa-envelope"></i>
+      <span>Email</span>
+    </a>
+    {% endif %}
+    {% if site.github_username %}
+    <a href="https://github.com/{{ site.github_username }}" class="contact-link" target="_blank">
+      <i class="fab fa-github"></i>
+      <span>GitHub</span>
+    </a>
+    {% endif %}
+    {% if site.linkedin_username %}
+    <a href="https://linkedin.com/in/{{ site.linkedin_username }}" class="contact-link" target="_blank">
+      <i class="fab fa-linkedin"></i>
+      <span>LinkedIn</span>
+    </a>
+    {% endif %}
+  </div>
+</div> 
