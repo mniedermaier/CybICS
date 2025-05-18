@@ -1,10 +1,44 @@
 ---
-layout: home
-title: CybICS
-subtitle: Cyber Infrastructure Control System
+layout: default
+title: Home
 ---
 
-{% include landing-page.html %}
+<div class="hero">
+  <h1 class="hero-title">Welcome to CybICS</h1>
+  <p class="hero-subtitle">Cyber Infrastructure Control System</p>
+  <div class="hero-buttons">
+    <a href="/docs" class="neu-button">Get Started</a>
+    <a href="/about" class="neu-button">Learn More</a>
+  </div>
+</div>
+
+<div class="features">
+  <div class="feature-card neu">
+    <i class="fas fa-shield-alt feature-icon"></i>
+    <h2>Secure Infrastructure</h2>
+    <p>Advanced security features to protect your cyber infrastructure</p>
+  </div>
+  
+  <div class="feature-card neu">
+    <i class="fas fa-chart-line feature-icon"></i>
+    <h2>Real-time Monitoring</h2>
+    <p>Comprehensive monitoring and analytics for your systems</p>
+  </div>
+  
+  <div class="feature-card neu">
+    <i class="fas fa-cogs feature-icon"></i>
+    <h2>Easy Integration</h2>
+    <p>Seamless integration with existing infrastructure</p>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="cta-content neu">
+    <h2>Ready to Get Started?</h2>
+    <p>Join the growing community of CybICS users</p>
+    <a href="/docs" class="neu-button">View Documentation</a>
+  </div>
+</div>
 
 <section id="aboutme" class="section">
   <div class="container">
