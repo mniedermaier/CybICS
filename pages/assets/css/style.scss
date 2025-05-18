@@ -1,4 +1,6 @@
-@import "minima";
+@import "minima/skins/dark";
+@import "minima/initialize";
+@import "minima/custom-styles";
 
 // Theme variables
 $background-color: #0d1117;
@@ -75,30 +77,38 @@ a {
 .feature-card {
   background-color: $card-bg-color;
   border: 1px solid $border-color;
+  padding: 2rem;
+  margin: 1rem;
+  border-radius: 8px;
   
   &:hover {
     border-color: $accent-color;
-    box-shadow: 0 0 10px rgba($accent-color, 0.1);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
   }
 }
 
 // Hero section
 .hero-section {
   background-color: $background-color;
-  
-  .hero-title {
-    color: $text-color;
-  }
-  
-  .hero-subtitle {
-    color: $text-muted-color;
-  }
+  padding: 4rem 0;
+  text-align: center;
+}
+
+.hero-title {
+  color: $text-color;
+}
+
+.hero-subtitle {
+  color: $text-muted-color;
 }
 
 // Why section
 .why-item {
   background-color: $card-bg-color;
   border: 1px solid $border-color;
+  padding: 2rem;
+  margin: 1rem;
+  border-radius: 8px;
   
   &:hover {
     border-color: $accent-color;
@@ -129,11 +139,15 @@ a {
 .community-button {
   background-color: $card-bg-color;
   border: 1px solid $border-color;
+  padding: 0.8rem 1.5rem;
+  border-radius: 5px;
   color: $text-color;
+  text-decoration: none;
   
   &:hover {
     background-color: $accent-color;
     color: $background-color;
+    text-decoration: none;
   }
 }
 
@@ -141,6 +155,7 @@ a {
 pre, code {
   background-color: $card-bg-color;
   border: 1px solid $border-color;
+  color: $text-color;
 }
 
 // Tables
@@ -263,29 +278,6 @@ body::before {
     }
 }
 
-// Hero Section
-.hero-section {
-    text-align: center;
-    padding: 4rem 0;
-    position: relative;
-    
-    .hero-title {
-        font-size: 3rem;
-        margin: 2rem 0 1rem;
-        background: linear-gradient(45deg, $accent, $accent-light);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: titleGlow 3s ease-in-out infinite;
-    }
-    
-    .hero-subtitle {
-        font-size: 1.2rem;
-        color: $text-muted;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-}
-
 // Logo styles
 .logo-container {
     text-align: center;
@@ -323,33 +315,6 @@ body::before {
     padding: 4rem 0;
 }
 
-.feature-card {
-    background: $card-bg;
-    padding: 2rem;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    
-    &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        border-color: $accent;
-    }
-    
-    .feature-icon {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-        display: block;
-    }
-    
-    h3 {
-        color: $accent;
-        margin-bottom: 1rem;
-    }
-}
-
-// Why Section
 .why-section {
     padding: 4rem 0;
     
@@ -366,23 +331,6 @@ body::before {
     gap: 2rem;
 }
 
-.why-item {
-    padding: 2rem;
-    background: $card-bg;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        transform: scale(1.02);
-    }
-    
-    h3 {
-        color: $accent;
-        margin-bottom: 1rem;
-    }
-}
-
-// Getting Started Section
 .get-started {
     padding: 4rem 0;
     
@@ -397,44 +345,6 @@ body::before {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 2rem;
-}
-
-.step {
-    position: relative;
-    padding: 2rem;
-    background: $card-bg;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        transform: translateY(-5px);
-    }
-    
-    .step-number {
-        position: absolute;
-        top: -20px;
-        left: -20px;
-        width: 40px;
-        height: 40px;
-        background: $accent;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        color: white;
-    }
-    
-    pre {
-        background: $darker-bg;
-        padding: 1rem;
-        border-radius: 5px;
-        overflow-x: auto;
-        margin: 1rem 0;
-        code {
-            color: $text;
-        }
-    }
 }
 
 .cta-button {
@@ -475,24 +385,6 @@ body::before {
     gap: 1rem;
     justify-content: center;
     flex-wrap: wrap;
-}
-
-.community-button {
-    padding: 0.8rem 1.5rem;
-    background: $card-bg;
-    color: $text;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    
-    &:hover {
-        background: $accent;
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
-        text-decoration: none;
-    }
 }
 
 // Animations

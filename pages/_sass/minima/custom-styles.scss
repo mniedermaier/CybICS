@@ -1,0 +1,73 @@
+@charset "utf-8";
+
+// Dark mode colors
+$dark-background-color: #0d1117 !default;
+$dark-text-color: #e6e6e6 !default;
+$dark-brand-color: #00ff00 !default;
+$dark-link-base-color: #00ff00 !default;
+$dark-code-background: #161b22 !default;
+
+// Override minima's default colors
+$background-color: $dark-background-color !default;
+$text-color: $dark-text-color !default;
+$brand-color: $dark-brand-color !default;
+$link-base-color: $dark-link-base-color !default;
+$code-background-color: $dark-code-background !default;
+
+// Dark theme specific styles
+body {
+  color: $text-color;
+  background-color: $background-color;
+}
+
+.site-header {
+  border-top: 5px solid $brand-color;
+  border-bottom: 1px solid lighten($background-color, 10%);
+  background-color: darken($background-color, 3%);
+}
+
+.site-title, .site-title:visited {
+  color: $brand-color;
+}
+
+.site-nav {
+  .page-link {
+    color: $text-color;
+  }
+}
+
+.post-content {
+  h1, h2, h3, h4, h5, h6 {
+    color: lighten($text-color, 10%);
+  }
+}
+
+a {
+  color: $link-base-color;
+  
+  &:visited {
+    color: darken($link-base-color, 10%);
+  }
+  
+  &:hover {
+    color: lighten($link-base-color, 10%);
+    text-decoration: none;
+  }
+}
+
+code {
+  background-color: $code-background-color;
+}
+
+pre {
+  background-color: $code-background-color;
+  border: 1px solid lighten($background-color, 10%);
+}
+
+.highlight {
+  background: $code-background-color;
+}
+
+hr {
+  background-color: lighten($background-color, 10%);
+} 
