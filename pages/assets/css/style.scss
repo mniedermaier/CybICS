@@ -7,6 +7,8 @@ $border-radius: 12px;
 $transition-speed: 0.3s;
 $box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 $hover-transform: translateY(-2px);
+$header-height: 70px;
+$header-height-scrolled: 50px;
 
 // Theme variables
 $background-color: #0d1117;
@@ -33,15 +35,47 @@ $grey-color-dark: darken($grey-color, 25%) !default;
 body {
   background-color: $background-color;
   color: $text-color;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  padding-top: $header-height;  // Add padding to prevent content from going under header
 }
 
+// Sticky header styles
 .site-header {
-  background-color: $darker-bg-color;
-  border-bottom: 1px solid $border-color;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(1, 4, 9, 0.8);
+  backdrop-filter: blur(10px);
+  transition: all $transition-speed ease;
+  height: $header-height;
+  display: flex;
+  align-items: center;
+
+  &.scrolled {
+    height: $header-height-scrolled;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .wrapper {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all $transition-speed ease;
+  }
 }
 
 .site-title, .site-title:visited {
   color: $text-color;
+  font-size: 1.5rem;
+  transition: all $transition-speed ease;
+  
+  .scrolled & {
+    font-size: 1.25rem;
+  }
 }
 
 .site-nav {
@@ -407,4 +441,10 @@ a {
       margin: 0.5rem 0;
     }
   }
+}
+
+// Add scroll behavior JavaScript
+.page-content {
+  position: relative;
+  z-index: 1;
 } 
