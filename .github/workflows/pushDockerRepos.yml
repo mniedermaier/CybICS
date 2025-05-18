@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: check repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: login to docker registry
         uses: docker/login-action@v3
