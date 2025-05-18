@@ -8,6 +8,10 @@ url: "https://mniedermaier.github.io"
 # Theme settings
 remote_theme: longpdo/neumorphism
 
+# Social media
+github_username: mniedermaier
+linkedin_username: mniedermaier
+
 # Build settings
 markdown: kramdown
 plugins:

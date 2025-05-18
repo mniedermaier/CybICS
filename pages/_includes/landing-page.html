@@ -1,1 +1,24 @@
- 
+<div id="particles-js" class="particles"></div>
+<div class="landing-page">
+  <div class="landing-page-content">
+    <h1 class="landing-page-title">{{ site.title }}</h1>
+    <h2 class="landing-page-subtitle">{{ site.description }}</h2>
+    <div class="landing-page-social">
+      {% if site.email %}
+      <a href="mailto:{{ site.email }}" class="social-icon" target="_blank">
+        <i class="fas fa-envelope"></i>
+      </a>
+      {% endif %}
+      {% if site.github_username %}
+      <a href="https://github.com/{{ site.github_username }}" class="social-icon" target="_blank">
+        <i class="fab fa-github"></i>
+      </a>
+      {% endif %}
+      {% if site.linkedin_username %}
+      <a href="https://linkedin.com/in/{{ site.linkedin_username }}" class="social-icon" target="_blank">
+        <i class="fab fa-linkedin"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div> 
