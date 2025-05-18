@@ -13,8 +13,8 @@ $header-height-scrolled: 50px;
 // Theme variables
 $background-color: #0d1117;
 $darker-bg-color: #010409;
-$accent-color: #00ff00;
-$accent-dark-color: #00cc00;
+$accent-color: #ff6b00;
+$accent-dark-color: #cc5500;
 $text-color: #e6e6e6;
 $text-muted-color: #8b949e;
 $border-color: #30363d;
@@ -23,21 +23,45 @@ $card-bg-color: #161b22;
 // Override minima theme variables
 $background-color: #0d1117 !default;
 $text-color: #e6e6e6 !default;
-$link-base-color: #00ff00 !default;
-$link-visited-color: #00cc00 !default;
-$link-hover-color: lighten(#00ff00, 10%) !default;
+$link-base-color: #ff6b00 !default;
+$link-visited-color: #cc5500 !default;
+$link-hover-color: lighten(#ff6b00, 10%) !default;
 $code-background-color: #161b22 !default;
 $table-text-align: left !default;
 $grey-color: #8b949e !default;
 $grey-color-light: lighten($grey-color, 40%) !default;
 $grey-color-dark: darken($grey-color, 25%) !default;
 
+// Add animated background
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 body {
-  background-color: $background-color;
+  background: linear-gradient(
+    45deg,
+    #0d1117 0%,
+    #1a1a1a 25%,
+    #261209 50%,
+    #1a1a1a 75%,
+    #0d1117 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientAnimation 15s ease infinite;
   color: $text-color;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
   padding-top: $header-height;  // Add padding to prevent content from going under header
+  margin: 0;
+  min-height: 100vh;
 }
 
 // Sticky header styles
@@ -46,21 +70,27 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
-  background: rgba(1, 4, 9, 0.8);
+  z-index: 9999;
+  background: rgba(1, 4, 9, 0.95);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition: all $transition-speed ease;
   height: $header-height;
   display: flex;
   align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
   &.scrolled {
     height: $header-height-scrolled;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    background: rgba(1, 4, 9, 0.98);
   }
 
   .wrapper {
     width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -79,11 +109,53 @@ body {
 }
 
 .site-nav {
+  display: flex;
+  align-items: center;
+
   .page-link {
     color: $text-color;
+    margin-left: 1.5rem;
+    transition: all $transition-speed ease;
+    text-decoration: none;
+    position: relative;
     
     &:hover {
-      color: $accent-color;
+      color: #00ff00;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 0;
+      background-color: #00ff00;
+      transition: width $transition-speed ease;
+    }
+
+    &:hover::after {
+      width: 100%;
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba(1, 4, 9, 0.98);
+    padding: 1rem;
+    border-radius: 0 0 $border-radius $border-radius;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+    .page-link {
+      display: block;
+      margin: 0.5rem 0;
+      padding: 0.5rem 1rem;
+      
+      &:first-child {
+        margin-top: 0;
+      }
     }
   }
 }
@@ -135,11 +207,11 @@ a {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-  color: #000000;
+  background: linear-gradient(135deg, #ff6b00 0%, #cc5500 100%);
+  color: #ffffff;
   
   &:hover {
-    background: linear-gradient(135deg, #00ff00 20%, #00cc00 100%);
+    background: linear-gradient(135deg, #ff6b00 20%, #cc5500 100%);
   }
 }
 
@@ -162,7 +234,7 @@ a {
     font-size: 3.5rem;
     font-weight: 700;
     margin: 2rem 0 1rem;
-    background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+    background: linear-gradient(135deg, #ff6b00 0%, #cc5500 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: glow 3s ease-in-out infinite;
@@ -198,13 +270,13 @@ a {
   
   &:hover {
     transform: $hover-transform;
-    border-color: #00ff00;
+    border-color: #ff6b00;
     box-shadow: $box-shadow;
   }
   
   .feature-icon {
     font-size: 2rem;
-    color: #00ff00;
+    color: #ff6b00;
     margin-bottom: 1rem;
   }
   
@@ -231,7 +303,7 @@ a {
     font-size: 2.5rem;
     
     i {
-      color: #00ff00;
+      color: #ff6b00;
       margin-right: 0.5rem;
     }
   }
@@ -252,13 +324,13 @@ a {
   
   &:hover {
     transform: $hover-transform;
-    border-color: #00ff00;
+    border-color: #ff6b00;
     box-shadow: $box-shadow;
   }
   
   .why-icon {
     font-size: 2rem;
-    color: #00ff00;
+    color: #ff6b00;
     margin-bottom: 1rem;
   }
   
@@ -293,7 +365,7 @@ a {
   
   &:hover {
     transform: $hover-transform;
-    border-color: #00ff00;
+    border-color: #ff6b00;
     box-shadow: $box-shadow;
   }
   
@@ -303,7 +375,7 @@ a {
     left: -1rem;
     width: 2rem;
     height: 2rem;
-    background: #00ff00;
+    background: #ff6b00;
     color: #000000;
     border-radius: 50%;
     display: flex;
@@ -359,7 +431,7 @@ a {
     }
     
     &.copied {
-      background: #00ff00;
+      background: #ff6b00;
       color: #000000;
     }
   }
@@ -375,7 +447,7 @@ a {
     margin-bottom: 1rem;
     
     i {
-      color: #00ff00;
+      color: #ff6b00;
       margin-right: 0.5rem;
     }
   }
@@ -411,7 +483,7 @@ a {
   
   &:hover {
     transform: $hover-transform;
-    background: #00ff00;
+    background: #ff6b00;
     color: #000000;
     box-shadow: $box-shadow;
   }
@@ -419,8 +491,8 @@ a {
 
 // Animations
 @keyframes glow {
-  0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 0, 0.1); }
-  50% { text-shadow: 0 0 30px rgba(0, 255, 0, 0.2); }
+  0%, 100% { text-shadow: 0 0 20px rgba(255, 107, 0, 0.1); }
+  50% { text-shadow: 0 0 30px rgba(255, 107, 0, 0.2); }
 }
 
 // Responsive design
@@ -448,16 +520,18 @@ a {
   }
 }
 
-// Add scroll behavior JavaScript
+// Ensure content stays below header
 .page-content {
   position: relative;
   z-index: 1;
+  margin-top: 1rem;
+  background: $background-color;
 }
 
 // Add this after your existing heading styles
 h2, h3 {
   i {
     margin-right: 0.5rem;
-    color: #00ff00;
+    color: #ff6b00;
   }
 } 
