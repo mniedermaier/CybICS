@@ -2,26 +2,28 @@
 @import "minima/initialize";
 @import "minima/custom-styles";
 
-// Modern design variables
-$border-radius: 12px;
-$transition-speed: 0.3s;
-$box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$hover-transform: translateY(-2px);
-$header-height: 70px;
-$header-height-scrolled: 50px;
-
-// Theme variables
-$background-color: #0d1117;
-$darker-bg-color: #010409;
+// Neumorphic design variables
+$background-color: #1a1b1e;
+$surface-color: #1a1b1e;
 $accent-color: #ff6b00;
 $accent-dark-color: #cc5500;
 $text-color: #e6e6e6;
 $text-muted-color: #8b949e;
 $border-color: #30363d;
-$card-bg-color: #161b22;
+
+// Neumorphic shadow variables
+$neu-light: rgba(255, 255, 255, 0.05);
+$neu-dark: rgba(0, 0, 0, 0.5);
+$neu-flat: 2px 2px 4px $neu-dark, -2px -2px 4px $neu-light;
+$neu-pressed: inset 2px 2px 4px $neu-dark, inset -2px -2px 4px $neu-light;
+$neu-distance: 6px;
+
+// Animation variables
+$transition-speed: 0.3s;
+$hover-scale: 1.02;
 
 // Override minima theme variables
-$background-color: #0d1117 !default;
+$background-color: #1a1b1e !default;
 $text-color: #e6e6e6 !default;
 $link-base-color: #ff6b00 !default;
 $link-visited-color: #cc5500 !default;
@@ -62,41 +64,296 @@ html {
 }
 
 body {
-  min-height: 100vh;
-  background: transparent;
+  background-color: $background-color;
   color: $text-color;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
-  padding-top: $header-height;
   margin: 0;
+  min-height: 100vh;
 }
 
-// Hover effects
-.feature-card, .why-item, .step, .community-button {
-  transition: all $transition-speed ease !important;
+// Neumorphic card style
+.feature-card, .why-item, .step {
+  background: $surface-color;
+  border-radius: 15px;
+  padding: 2rem;
+  margin: 1rem 0;
+  box-shadow: $neu-flat;
+  transition: all $transition-speed ease;
+  border: none;
   
   &:hover {
-    transform: translateY(-2px) !important;
-    border-color: $accent-color !important;
-    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.1) !important;
+    transform: scale($hover-scale);
+    box-shadow: $neu-distance $neu-distance ($neu-distance * 2) $neu-dark,
+                -$neu-distance -$neu-distance ($neu-distance * 2) $neu-light;
+  }
+  
+  .feature-icon, .why-icon {
+    color: $accent-color;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 50%;
+    background: $surface-color;
+    box-shadow: $neu-flat;
+    width: 4rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  h3 {
+    color: $text-color;
+    margin: 1rem 0;
+    font-size: 1.5rem;
+    
+    i {
+      color: $accent-color;
+      margin-right: 0.75rem;
+    }
   }
 }
 
-// Primary button with hover effect
-.primary-button {
-  background: linear-gradient(135deg, $accent-color 0%, $accent-dark-color 100%) !important;
-  color: #ffffff !important;
-  transition: all $transition-speed ease !important;
+// Neumorphic buttons
+.primary-button, .secondary-button {
+  background: $surface-color;
+  color: $text-color;
+  border: none;
+  border-radius: 10px;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  box-shadow: $neu-flat;
+  transition: all $transition-speed ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
   
   &:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2) !important;
-    background: linear-gradient(135deg, lighten($accent-color, 5%) 0%, lighten($accent-dark-color, 5%) 100%) !important;
+    transform: scale($hover-scale);
+    box-shadow: $neu-distance $neu-distance ($neu-distance * 2) $neu-dark,
+                -$neu-distance -$neu-distance ($neu-distance * 2) $neu-light;
+  }
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: $neu-pressed;
+  }
+}
+
+.primary-button {
+  background: linear-gradient(145deg, $accent-color, $accent-dark-color);
+  color: #ffffff;
+}
+
+// Neumorphic header
+.site-header {
+  background: $surface-color;
+  box-shadow: $neu-flat;
+  border-bottom: none;
+  padding: 1rem 0;
+  
+  .site-title {
+    color: $text-color;
+    font-weight: 600;
+    
+    &:hover {
+      color: $accent-color;
+    }
+  }
+  
+  .page-link {
+    color: $text-color;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all $transition-speed ease;
+    
+    &:hover {
+      color: $accent-color;
+      box-shadow: $neu-flat;
+    }
+  }
+}
+
+// Neumorphic sections
+.hero-section {
+  text-align: center;
+  padding: 4rem 2rem;
+  
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin: 2rem 0;
+    background: linear-gradient(145deg, $accent-color, $accent-dark-color);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .hero-subtitle {
+    color: $text-muted-color;
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+  }
+}
+
+// Neumorphic code blocks
+.code-block {
+  background: $surface-color;
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: $neu-flat;
+  position: relative;
+  
+  code {
+    color: $text-color;
+    font-family: 'Monaco', 'Consolas', monospace;
+  }
+  
+  .copy-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: $surface-color;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    color: $text-muted-color;
+    box-shadow: $neu-flat;
+    cursor: pointer;
+    transition: all $transition-speed ease;
+    
+    &:hover {
+      color: $accent-color;
+      transform: scale($hover-scale);
+    }
+    
+    &:active {
+      box-shadow: $neu-pressed;
+      transform: scale(0.98);
+    }
+    
+    &.copied {
+      background: $accent-color;
+      color: #ffffff;
+    }
+  }
+}
+
+// Neumorphic form elements
+input, textarea, select {
+  background: $surface-color;
+  border: none;
+  border-radius: 10px;
+  padding: 1rem;
+  color: $text-color;
+  box-shadow: $neu-pressed;
+  transition: all $transition-speed ease;
+  
+  &:focus {
+    outline: none;
+    box-shadow: $neu-flat;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .hero-section .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .feature-card, .why-item, .step {
+    padding: 1.5rem;
+    
+    .feature-icon, .why-icon {
+      width: 3rem;
+      height: 3rem;
+      font-size: 1.5rem;
+    }
+  }
+}
+
+// Footer with neumorphic style
+.site-footer {
+  background: $surface-color;
+  border-top: none;
+  box-shadow: 0 -2px 4px $neu-dark, 0 -1px 2px $neu-light;
+  padding: 2rem 0;
+  
+  .footer-col-wrapper {
+    color: $text-muted-color;
+  }
+  
+  .social-links {
+    .social-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: $surface-color;
+      box-shadow: $neu-flat;
+      margin: 0 0.5rem;
+      transition: all $transition-speed ease;
+      
+      &:hover {
+        transform: scale($hover-scale);
+        color: $accent-color;
+      }
+      
+      &:active {
+        box-shadow: $neu-pressed;
+        transform: scale(0.98);
+      }
+    }
+  }
+}
+
+a {
+  color: $accent-color;
+  
+  &:visited {
+    color: $accent-dark-color;
+  }
+  
+  &:hover {
+    color: lighten($accent-color, 10%);
+    text-decoration: none;
+  }
+}
+
+.post-content {
+  h1, h2, h3, h4, h5, h6 {
+    color: $text-color;
+  }
+}
+
+// Modern button styles
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: all $transition-speed ease;
+  text-decoration: none;
+  margin: 0.5rem;
+  
+  i {
+    margin-right: 0.5rem;
+  }
+  
+  &:hover {
+    transform: scale($hover-scale);
+    box-shadow: $neu-distance $neu-distance ($neu-distance * 2) $neu-dark,
+                -$neu-distance -$neu-distance ($neu-distance * 2) $neu-light;
   }
 }
 
 // Section overlays
-.hero-section, .features-grid, .why-section, .community {
+.features-grid, .why-section, .community {
   position: relative !important;
   z-index: 1 !important;
   
@@ -133,14 +390,14 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: all $transition-speed ease;
-  height: $header-height;
+  height: 70px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
   &.scrolled {
-    height: $header-height-scrolled;
+    height: 50px;
     background: rgba(1, 4, 9, 0.98);
   }
 
@@ -203,7 +460,7 @@ body {
     right: 0;
     background: rgba(1, 4, 9, 0.98);
     padding: 1rem;
-    border-radius: 0 0 $border-radius $border-radius;
+    border-radius: 0 0 12px 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     
     .page-link {
@@ -218,254 +475,12 @@ body {
   }
 }
 
-.site-footer {
-  background-color: $darker-bg-color;
-  border-top: 1px solid $border-color;
-  color: $text-muted-color;
-}
-
-a {
-  color: $accent-color;
-  
-  &:visited {
-    color: $accent-dark-color;
-  }
-  
-  &:hover {
-    color: lighten($accent-color, 10%);
-    text-decoration: none;
-  }
-}
-
-.post-content {
-  h1, h2, h3, h4, h5, h6 {
-    color: $text-color;
-  }
-}
-
-// Modern button styles
-.primary-button, .secondary-button, .cta-button {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: $border-radius;
-  font-weight: 500;
-  transition: all $transition-speed ease;
-  text-decoration: none;
-  margin: 0.5rem;
-  
-  i {
-    margin-right: 0.5rem;
-  }
-  
-  &:hover {
-    transform: $hover-transform;
-    box-shadow: $box-shadow;
-  }
-}
-
-.secondary-button {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e6e6e6;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.15);
-  }
-}
-
-// Hero section
-.hero-section {
-  text-align: center;
-  padding: 4rem 0;
-  
-  .hero-title {
-    font-size: 3.5rem;
-    font-weight: 700;
-    margin: 2rem 0 1rem;
-    background: linear-gradient(135deg, #ff6b00 0%, #cc5500 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: glow 3s ease-in-out infinite;
-  }
-  
-  .hero-subtitle {
-    font-size: 1.25rem;
-    color: #8b949e;
-    max-width: 600px;
-    margin: 0 auto 2rem;
-  }
-  
-  .hero-buttons {
-    margin-top: 2rem;
-  }
-}
-
-// Feature cards
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  padding: 4rem 0;
-}
-
-.feature-card {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2rem;
-  border-radius: $border-radius;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all $transition-speed ease;
-  backdrop-filter: blur(10px);
-  
-  .feature-icon {
-    font-size: 2rem;
-    color: #ff6b00;
-    margin-bottom: 1rem;
-  }
-  
-  h3 {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-    
-    i {
-      margin-right: 0.75rem;
-      font-size: 1.25rem;
-    }
-  }
-}
-
-// Why section
-.why-section {
-  padding: 4rem 0;
-  
-  h2 {
-    text-align: center;
-    margin-bottom: 3rem;
-    font-size: 2.5rem;
-    
-    i {
-      color: #ff6b00;
-      margin-right: 0.5rem;
-    }
-  }
-}
-
-.why-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-}
-
-.why-item {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2rem;
-  border-radius: $border-radius;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all $transition-speed ease;
-  
-  .why-icon {
-    font-size: 2rem;
-    color: #ff6b00;
-    margin-bottom: 1rem;
-  }
-  
-  h3 {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-    
-    i {
-      margin-right: 0.75rem;
-      font-size: 1.25rem;
-    }
-  }
-}
-
 // Getting Started section
 .steps-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
-}
-
-.step {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2rem;
-  border-radius: $border-radius;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  transition: all $transition-speed ease;
-  
-  .step-number {
-    position: absolute;
-    top: -1rem;
-    left: -1rem;
-    width: 2rem;
-    height: 2rem;
-    background: #ff6b00;
-    color: #000000;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-  }
-  
-  h3 {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-    
-    i {
-      margin-right: 0.75rem;
-      font-size: 1.25rem;
-    }
-  }
-}
-
-// Code blocks
-.code-block {
-  background: #161b22;
-  border-radius: $border-radius;
-  padding: 1rem;
-  margin: 1rem 0;
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  
-  code {
-    display: block;
-    color: #e6e6e6;
-    font-family: 'Monaco', 'Consolas', monospace;
-    white-space: pre-wrap;
-  }
-  
-  .copy-button {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 4px;
-    padding: 0.5rem;
-    color: #8b949e;
-    cursor: pointer;
-    transition: all $transition-speed ease;
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: #e6e6e6;
-    }
-    
-    &.copied {
-      background: #ff6b00;
-      color: #000000;
-    }
-  }
 }
 
 // Community section
@@ -503,7 +518,7 @@ a {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: $border-radius;
+  border-radius: 10px;
   color: #e6e6e6;
   text-decoration: none;
   transition: all $transition-speed ease;
@@ -513,10 +528,11 @@ a {
   }
   
   &:hover {
-    transform: $hover-transform;
+    transform: scale($hover-scale);
     background: #ff6b00;
     color: #000000;
-    box-shadow: $box-shadow;
+    box-shadow: $neu-distance $neu-distance ($neu-distance * 2) $neu-dark,
+                -$neu-distance -$neu-distance ($neu-distance * 2) $neu-light;
   }
 }
 
@@ -524,31 +540,6 @@ a {
 @keyframes glow {
   0%, 100% { text-shadow: 0 0 20px rgba(255, 107, 0, 0.1); }
   50% { text-shadow: 0 0 30px rgba(255, 107, 0, 0.2); }
-}
-
-// Responsive design
-@media (max-width: 768px) {
-  .hero-section .hero-title {
-    font-size: 2.5rem;
-  }
-  
-  .features-grid,
-  .why-grid,
-  .steps-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .hero-buttons {
-    flex-direction: column;
-    align-items: center;
-    
-    .primary-button,
-    .secondary-button {
-      width: 100%;
-      max-width: 300px;
-      margin: 0.5rem 0;
-    }
-  }
 }
 
 // Ensure content stays below header
