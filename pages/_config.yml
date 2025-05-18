@@ -2,8 +2,8 @@
 # Site settings
 title: CybICS
 description: Cyber Infrastructure Control System - A comprehensive solution for managing and monitoring cyber infrastructure
-baseurl: ""
-url: ""
+baseurl: "/CybICS"
+url: "https://mniedermaier.github.io"
 
 # Theme settings
 remote_theme: longpdo/neumorphism
