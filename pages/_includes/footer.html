@@ -1,23 +1,26 @@
-<footer class="footer">
-  <p>
-    &copy; 2020 Designed & Developed by
-    <a class="highlight-link" href="https://longpdo.github.io/" target="_blank" rel="noreferrer">
-      Long Do
-    </a>
-  </p>
-  <p>
-    Built with
-    <a class="highlight-link" href="https://jekyllrb.com/"target="_blank" rel="noreferrer">
-      Jekyll
-    </a>
-    and powered by
-    <a class="highlight-link" href="https://pages.github.com/" target="_blank" rel="noreferrer">
-      Github Pages
-    </a>
-  </p>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p>
+          &copy; {{ site.time | date: '%Y' }} {{ site.title }} - {{ site.description }}
+        </p>
+        <p>
+          Built with
+          <a href="https://jekyllrb.com/" target="_blank" rel="noreferrer">
+            Jekyll
+          </a>
+          and powered by
+          <a href="https://pages.github.com/" target="_blank" rel="noreferrer">
+            GitHub Pages
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
 </footer>
 
-<!-- Google Analytics -->
 {% if site.google-analytics %}
 <script>
   var dnt = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
