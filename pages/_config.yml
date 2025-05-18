@@ -1,7 +1,8 @@
 ---
 # Site settings
 title: CybICS
-description: Cyber Infrastructure Control System - A comprehensive solution for managing and monitoring cyber infrastructure
+subtitle: Cyber Infrastructure Control System
+description: Cyber Infrastructure Control System
 baseurl: "/CybICS"
 url: "https://mniedermaier.github.io"
 
@@ -11,9 +12,9 @@ remote_theme: longpdo/neumorphism
 # Landing page
 username: CybICS
 typing_text: Cyber Infrastructure Control System
-email: matt@niedermaier.dev
+email: matt.niedermaier@tum.de
 github_username: mniedermaier
-linkedin_username: mniedermaier
+linkedin_username: matthias-niedermaier
 
 # About me section
 show_aboutme_card: true
@@ -70,4 +71,7 @@ header_pages:
   - index.html
   - docs.md
   - about.md
+
+# Repository settings
+repository: mniedermaier/CybICS
 --- 
