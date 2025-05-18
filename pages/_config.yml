@@ -8,9 +8,37 @@ url: "https://mniedermaier.github.io"
 # Theme settings
 remote_theme: longpdo/neumorphism
 
-# Social media
+# Landing page
+username: CybICS
+typing_text: Cyber Infrastructure Control System
+email: matt@niedermaier.dev
 github_username: mniedermaier
 linkedin_username: mniedermaier
+
+# About me section
+show_aboutme_card: true
+about_me_title: About CybICS
+about_me_description: CybICS is a comprehensive solution for managing and monitoring cyber infrastructure. It provides a modern, user-friendly interface for controlling and securing your digital assets.
+
+# Skills section
+show_skills_card: true
+skills_title: Features
+
+# Timeline section
+show_timeline_card: true
+timeline_title: Development Timeline
+
+# Projects section
+show_projects_card: true
+show_projects: true
+projects_title: Projects
+show_os_projects: true
+os_projects_title: Open Source Projects
+
+# Contact section
+show_contact_card: true
+contact_title: Contact
+contact_description: Get in touch with us to learn more about CybICS and how it can help secure your infrastructure.
 
 # Build settings
 markdown: kramdown
@@ -39,7 +67,7 @@ exclude:
 
 # Navigation
 header_pages:
-  - index.md
+  - index.html
   - docs.md
   - about.md
 --- 
