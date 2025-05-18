@@ -2,181 +2,130 @@
 @import "minima/initialize";
 @import "minima/custom-styles";
 
-// Neumorphic design variables
-$background-color: #1a1b1e;
-$surface-color: #1a1b1e;
-$accent-color: #ff6b00;
-$accent-dark-color: #cc5500;
-$text-color: #e6e6e6;
-$text-muted-color: #8b949e;
-$border-color: #30363d;
+// Neumorphism theme variables
+$neu-bg: #e0e5ec;
+$neu-shadow-light: #ffffff;
+$neu-shadow-dark: #a3b1c6;
+$neu-text: #2d3436;
+$neu-accent: #ff6b00;
+$neu-radius: 10px;
+$neu-transition: all 0.3s ease;
 
-// Neumorphic shadow variables
-$neu-light: rgba(255, 255, 255, 0.05);
-$neu-dark: rgba(0, 0, 0, 0.5);
-$neu-flat: 2px 2px 4px $neu-dark, -2px -2px 4px $neu-light;
-$neu-pressed: inset 2px 2px 4px $neu-dark, inset -2px -2px 4px $neu-light;
-$neu-distance: 6px;
-
-// Animation variables
-$transition-speed: 0.3s;
-$hover-scale: 1.02;
-
-// Override minima theme variables
-$background-color: #1a1b1e !default;
-$text-color: #e6e6e6 !default;
-$link-base-color: #ff6b00 !default;
-$link-visited-color: #cc5500 !default;
-$link-hover-color: lighten(#ff6b00, 10%) !default;
-$code-background-color: #161b22 !default;
-$table-text-align: left !default;
-$grey-color: #8b949e !default;
-$grey-color-light: lighten($grey-color, 40%) !default;
-$grey-color-dark: darken($grey-color, 25%) !default;
-
-// Add animated background
-@keyframes gradientAnimation {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-html {
-  min-height: 100%;
-  background: linear-gradient(
-    45deg,
-    #0d1117 0%,
-    #1c1410 20%,
-    #261209 40%,
-    #1c1410 60%,
-    #0d1117 80%,
-    #1c1410 100%
-  );
-  background-size: 300% 300%;
-  animation: gradientAnimation 20s ease infinite;
-  background-attachment: fixed;
-}
-
+// Base styles
 body {
-  background-color: $background-color;
-  color: $text-color;
+  background-color: $neu-bg;
+  color: $neu-text;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
   margin: 0;
   min-height: 100vh;
 }
 
-// Neumorphic card style
-.feature-card, .why-item, .step {
-  background: $surface-color;
-  border-radius: 15px;
-  padding: 2rem;
-  margin: 1rem 0;
-  box-shadow: $neu-flat;
-  transition: all $transition-speed ease;
-  border: none;
+// Neumorphic elements
+.neu {
+  background: $neu-bg;
+  border-radius: $neu-radius;
+  box-shadow: 8px 8px 16px $neu-shadow-dark,
+              -8px -8px 16px $neu-shadow-light;
+  transition: $neu-transition;
   
   &:hover {
-    transform: scale($hover-scale);
-    box-shadow: $neu-distance $neu-distance ($neu-distance * 2) $neu-dark,
-                -$neu-distance -$neu-distance ($neu-distance * 2) $neu-light;
+    box-shadow: 12px 12px 20px $neu-shadow-dark,
+                -12px -12px 20px $neu-shadow-light;
   }
   
+  &:active {
+    box-shadow: inset 8px 8px 16px $neu-shadow-dark,
+                inset -8px -8px 16px $neu-shadow-light;
+  }
+}
+
+// Cards
+.feature-card, .why-item, .step {
+  @extend .neu;
+  padding: 2rem;
+  margin: 1.5rem 0;
+  
   .feature-icon, .why-icon {
-    color: $accent-color;
-    font-size: 2rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border-radius: 50%;
-    background: $surface-color;
-    box-shadow: $neu-flat;
+    @extend .neu;
     width: 4rem;
     height: 4rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 1rem;
+    color: $neu-accent;
+    font-size: 1.5rem;
   }
   
   h3 {
-    color: $text-color;
+    color: $neu-text;
     margin: 1rem 0;
     font-size: 1.5rem;
     
     i {
-      color: $accent-color;
+      color: $neu-accent;
       margin-right: 0.75rem;
     }
   }
 }
 
-// Neumorphic buttons
+// Buttons
 .primary-button, .secondary-button {
-  background: $surface-color;
-  color: $text-color;
-  border: none;
-  border-radius: 10px;
+  @extend .neu;
   padding: 1rem 2rem;
+  border: none;
   font-weight: 600;
-  box-shadow: $neu-flat;
-  transition: all $transition-speed ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
+  color: $neu-text;
   
   &:hover {
-    transform: scale($hover-scale);
-    box-shadow: $neu-distance $neu-distance ($neu-distance * 2) $neu-dark,
-                -$neu-distance -$neu-distance ($neu-distance * 2) $neu-light;
+    transform: translateY(-2px);
   }
   
   &:active {
-    transform: scale(0.98);
-    box-shadow: $neu-pressed;
+    transform: translateY(1px);
   }
 }
 
 .primary-button {
-  background: linear-gradient(145deg, $accent-color, $accent-dark-color);
-  color: #ffffff;
+  background: linear-gradient(145deg, $neu-accent, darken($neu-accent, 10%));
+  color: white;
 }
 
-// Neumorphic header
+// Header
 .site-header {
-  background: $surface-color;
-  box-shadow: $neu-flat;
-  border-bottom: none;
-  padding: 1rem 0;
+  @extend .neu;
+  padding: 1rem 2rem;
+  margin-bottom: 2rem;
   
   .site-title {
-    color: $text-color;
+    color: $neu-text;
     font-weight: 600;
     
     &:hover {
-      color: $accent-color;
+      color: $neu-accent;
     }
   }
   
   .page-link {
-    color: $text-color;
+    color: $neu-text;
     padding: 0.5rem 1rem;
-    border-radius: 8px;
-    transition: all $transition-speed ease;
+    border-radius: $neu-radius;
+    transition: $neu-transition;
     
     &:hover {
-      color: $accent-color;
-      box-shadow: $neu-flat;
+      color: $neu-accent;
+      box-shadow: 4px 4px 8px $neu-shadow-dark,
+                  -4px -4px 8px $neu-shadow-light;
     }
   }
 }
 
-// Neumorphic sections
+// Hero section
 .hero-section {
   text-align: center;
   padding: 4rem 2rem;
@@ -185,82 +134,103 @@ body {
     font-size: 3.5rem;
     font-weight: 700;
     margin: 2rem 0;
-    background: linear-gradient(145deg, $accent-color, $accent-dark-color);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: $neu-text;
+    text-shadow: 2px 2px 4px $neu-shadow-dark,
+                 -2px -2px 4px $neu-shadow-light;
   }
   
   .hero-subtitle {
-    color: $text-muted-color;
+    color: lighten($neu-text, 20%);
     font-size: 1.25rem;
     margin-bottom: 2rem;
   }
 }
 
-// Neumorphic code blocks
+// Code blocks
 .code-block {
-  background: $surface-color;
-  border-radius: 15px;
+  @extend .neu;
   padding: 1.5rem;
   margin: 1rem 0;
-  box-shadow: $neu-flat;
   position: relative;
   
   code {
-    color: $text-color;
+    color: $neu-text;
     font-family: 'Monaco', 'Consolas', monospace;
   }
   
   .copy-button {
+    @extend .neu;
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: $surface-color;
-    border: none;
-    border-radius: 8px;
     padding: 0.5rem 1rem;
-    color: $text-muted-color;
-    box-shadow: $neu-flat;
+    color: $neu-text;
     cursor: pointer;
-    transition: all $transition-speed ease;
     
     &:hover {
-      color: $accent-color;
-      transform: scale($hover-scale);
-    }
-    
-    &:active {
-      box-shadow: $neu-pressed;
-      transform: scale(0.98);
+      color: $neu-accent;
     }
     
     &.copied {
-      background: $accent-color;
-      color: #ffffff;
+      background: $neu-accent;
+      color: white;
     }
   }
 }
 
-// Neumorphic form elements
+// Form elements
 input, textarea, select {
-  background: $surface-color;
-  border: none;
-  border-radius: 10px;
+  @extend .neu;
   padding: 1rem;
-  color: $text-color;
-  box-shadow: $neu-pressed;
-  transition: all $transition-speed ease;
+  color: $neu-text;
+  border: none;
+  width: 100%;
+  margin: 0.5rem 0;
   
   &:focus {
     outline: none;
-    box-shadow: $neu-flat;
+    box-shadow: inset 4px 4px 8px $neu-shadow-dark,
+                inset -4px -4px 8px $neu-shadow-light;
+  }
+}
+
+// Footer
+.site-footer {
+  @extend .neu;
+  padding: 2rem;
+  margin-top: 4rem;
+  
+  .footer-col-wrapper {
+    color: lighten($neu-text, 20%);
+  }
+  
+  .social-links {
+    .social-link {
+      @extend .neu;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      margin: 0 0.5rem;
+      color: $neu-text;
+      
+      &:hover {
+        color: $neu-accent;
+      }
+    }
   }
 }
 
 // Responsive adjustments
 @media (max-width: 768px) {
-  .hero-section .hero-title {
-    font-size: 2.5rem;
+  .hero-section {
+    padding: 2rem 1rem;
+    
+    .hero-title {
+      font-size: 2.5rem;
+    }
   }
   
   .feature-card, .why-item, .step {
@@ -269,64 +239,16 @@ input, textarea, select {
     .feature-icon, .why-icon {
       width: 3rem;
       height: 3rem;
-      font-size: 1.5rem;
+      font-size: 1.25rem;
     }
   }
-}
-
-// Footer with neumorphic style
-.site-footer {
-  background: $surface-color;
-  border-top: none;
-  box-shadow: 0 -2px 4px $neu-dark, 0 -1px 2px $neu-light;
-  padding: 2rem 0;
   
-  .footer-col-wrapper {
-    color: $text-muted-color;
-  }
-  
-  .social-links {
-    .social-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 50%;
-      background: $surface-color;
-      box-shadow: $neu-flat;
-      margin: 0 0.5rem;
-      transition: all $transition-speed ease;
-      
-      &:hover {
-        transform: scale($hover-scale);
-        color: $accent-color;
-      }
-      
-      &:active {
-        box-shadow: $neu-pressed;
-        transform: scale(0.98);
-      }
+  .site-header {
+    padding: 1rem;
+    
+    .page-link {
+      padding: 0.5rem;
     }
-  }
-}
-
-a {
-  color: $accent-color;
-  
-  &:visited {
-    color: $accent-dark-color;
-  }
-  
-  &:hover {
-    color: lighten($accent-color, 10%);
-    text-decoration: none;
-  }
-}
-
-.post-content {
-  h1, h2, h3, h4, h5, h6 {
-    color: $text-color;
   }
 }
 
@@ -377,40 +299,6 @@ a {
 // Ensure icons maintain color
 .feature-icon, .why-icon, h2 i, h3 i {
   color: $accent-color !important;
-}
-
-// Sticky header styles
-.site-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 9999;
-  background: rgba(1, 4, 9, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: all $transition-speed ease;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-  &.scrolled {
-    height: 50px;
-    background: rgba(1, 4, 9, 0.98);
-  }
-
-  .wrapper {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: all $transition-speed ease;
-  }
 }
 
 .site-title, .site-title:visited {
