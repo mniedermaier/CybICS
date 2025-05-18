@@ -1,5 +1,6 @@
 @import "minima";
 
+// Theme variables
 $background-color: #0d1117;
 $darker-bg-color: #010409;
 $accent-color: #00ff00;
@@ -8,6 +9,18 @@ $text-color: #e6e6e6;
 $text-muted-color: #8b949e;
 $border-color: #30363d;
 $card-bg-color: #161b22;
+
+// Override minima theme variables
+$background-color: #0d1117 !default;
+$text-color: #e6e6e6 !default;
+$link-base-color: #00ff00 !default;
+$link-visited-color: #00cc00 !default;
+$link-hover-color: lighten(#00ff00, 10%) !default;
+$code-background-color: #161b22 !default;
+$table-text-align: left !default;
+$grey-color: #8b949e !default;
+$grey-color-light: lighten($grey-color, 40%) !default;
+$grey-color-dark: darken($grey-color, 25%) !default;
 
 body {
   background-color: $background-color;

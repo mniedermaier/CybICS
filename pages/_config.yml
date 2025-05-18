@@ -13,8 +13,12 @@ plugins:
 # Theme settings
 minima:
   skin: dark
+  date_format: "%b %-d, %Y"
   social_links:
     github: mniedermaier/CybICS
+
+# Site settings
+show_excerpts: false
 
 # Colors and theme
 colors:
