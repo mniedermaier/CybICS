@@ -10,6 +10,18 @@ plugins:
   - jekyll-feed
   - jekyll-seo-tag
 
+# Theme settings
+minima:
+  skin: dark
+  header_pages:
+    - index.md
+    - docs.md
+    - about.md
+
+# Social links
+github_username: mniedermaier
+repository: mniedermaier/CybICS
+
 # Exclude from processing
 exclude:
   - Gemfile
