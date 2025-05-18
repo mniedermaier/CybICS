@@ -3,6 +3,10 @@ layout: default
 title: Home
 ---
 
+<div class="logo-container">
+    <img src="{{ '/assets/images/CybICS_logo.png' | relative_url }}" alt="CybICS Logo" class="main-logo">
+</div>
+
 # Welcome to CybICS
 
 CybICS is a comprehensive industrial control system platform designed for cybersecurity research and training.
