@@ -25,13 +25,4 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: build and push docker image to registry
-        uses: docker/build-push-action@v6
-        with:
-          context: .devcontainer/virtual
-          push: true
-          tags: |
-            mniedermaier1337/cybicsattack:latest
-            mniedermaier1337/cybicsopenplc:latest
-            mniedermaier1337/cybicsopcua:latest
-            mniedermaier1337/cybicsfuxa:latest
-            mniedermaier1337/cybicshwio:latest
+        run: docker compose -f .devcontainer/virtual/docker-compose.yml build && docker compose -f .devcontainer/virtual/docker-compose.yml push
