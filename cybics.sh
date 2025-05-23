@@ -23,17 +23,26 @@ show_help() {
     exit 1
 }
 
-# Function to detect Docker Compose command
-detect_docker_compose() {
-    if command -v docker-compose >/dev/null 2>&1; then
-        echo "docker-compose"
-    elif docker compose version >/dev/null 2>&1; then
-        echo "docker compose"
-    else
-        print_message "Error: Neither 'docker-compose' nor 'docker compose' is available." "$RED"
-        exit 1
-    fi
-}
+# Check if docker-compose or docker compose is available
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    print_message "Error: Neither 'docker-compose' nor 'docker compose' was found." "$RED"
+    print_message "Please install Docker Compose:" "$RED"
+    print_message "1. For Linux:" "$RED"
+    print_message "   sudo apt-get update" "$RED"
+    print_message "   sudo apt-get install docker-compose-plugin" "$RED"
+    print_message "2. For macOS:" "$RED"
+    print_message "   Install Docker Desktop from https://www.docker.com/products/docker-desktop" "$RED"
+    print_message "3. For Windows:" "$RED"
+    print_message "   Install Docker Desktop from https://www.docker.com/products/docker-desktop" "$RED"
+    exit 1
+fi
+
+# Use docker compose if available, otherwise fall back to docker-compose
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+else
+    DOCKER_COMPOSE="docker-compose"
+fi
 
 # Function to check if Docker is running
 check_docker() {
@@ -104,7 +113,6 @@ remove_containers() {
 
 # Main script
 check_docker
-DOCKER_COMPOSE=$(detect_docker_compose)
 print_message "Using Docker Compose command: $DOCKER_COMPOSE" "$YELLOW"
 
 case "$1" in
