@@ -13,13 +13,14 @@ print_message() {
 
 # Function to show help message
 show_help() {
-    echo "Usage: $0 {start|stop|restart|status|logs|clean}"
+    echo "Usage: $0 {start|stop|restart|status|logs|clean|compose}"
     echo "  start   - Start the CybICS virtual environment"
     echo "  stop    - Stop the CybICS virtual environment"
     echo "  restart - Restart the CybICS virtual environment"
     echo "  status  - Show status of all services"
     echo "  logs    - Show logs from all services"
     echo "  clean   - Remove all CybICS containers, images, and volumes"
+    echo "  compose - Directly interact with docker compose (e.g., $0 compose ps)"
     exit 1
 }
 
@@ -28,11 +29,12 @@ if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/
     print_message "Error: Neither 'docker-compose' nor 'docker compose' was found." "$RED"
     print_message "Please install Docker Compose:" "$RED"
     print_message "1. For Linux:" "$RED"
-    print_message "   Install Docker from https://docs.docker.com/engine/install/" "$RED"
+    print_message "   sudo apt-get update" "$RED"
+    print_message "   sudo apt-get install docker-compose-plugin" "$RED"
     print_message "2. For macOS:" "$RED"
-    print_message "   Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/" "$RED"
+    print_message "   Install Docker Desktop from https://www.docker.com/products/docker-desktop" "$RED"
     print_message "3. For Windows:" "$RED"
-    print_message "   Install Docker Desktop from https://docs.docker.com/desktop/setup/install/windows-install/" "$RED"
+    print_message "   Install Docker Desktop from https://www.docker.com/products/docker-desktop" "$RED"
     exit 1
 fi
 
@@ -110,6 +112,18 @@ remove_containers() {
     fi
 }
 
+# Function to directly interact with docker compose
+direct_compose() {
+    if [ -z "$1" ]; then
+        print_message "Error: No docker compose command specified." "$RED"
+        print_message "Usage: $0 compose <docker-compose-command> [options]" "$RED"
+        print_message "Example: $0 compose ps" "$RED"
+        exit 1
+    fi
+    cd .devcontainer/virtual
+    $DOCKER_COMPOSE "$@"
+}
+
 # Main script
 check_docker
 print_message "Using Docker Compose command: $DOCKER_COMPOSE" "$YELLOW"
@@ -133,6 +147,10 @@ case "$1" in
         ;;
     "clean")
         remove_containers
+        ;;
+    "compose")
+        shift  # Remove the 'compose' argument
+        direct_compose "$@"
         ;;
     *)
         show_help
