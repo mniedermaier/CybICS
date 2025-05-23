@@ -1,25 +1,213 @@
 <h2 class="section-title">{{ site.skills_title }}</h2>
 <div class="section-content">
-  <div id="skills">
-    <div class="skill">
-      <i class="fas fa-shield-alt"></i>
-      <h3>Security</h3>
-      <p>Advanced threat detection and prevention</p>
-    </div>
-    <div class="skill">
-      <i class="fas fa-network-wired"></i>
-      <h3>Infrastructure</h3>
-      <p>Comprehensive network management</p>
-    </div>
-    <div class="skill">
-      <i class="fas fa-chart-line"></i>
-      <h3>Monitoring</h3>
-      <p>Real-time system analytics</p>
-    </div>
-    <div class="skill">
-      <i class="fas fa-cogs"></i>
-      <h3>Automation</h3>
-      <p>Intelligent workflow automation</p>
+  <div class="skills-container">
+    <div class="skills-grid">
+      <!-- Hardware Integration -->
+      <div class="skill-card" data-aos="fade-up">
+        <div class="skill-icon">
+          <i class="fas fa-microchip"></i>
+        </div>
+        <h3>Hardware (optional)</h3>
+        <div class="skill-content">
+          <ul>
+            <li>Hardware for the physical process</li>
+            <li>Standalone and connection by WiFi</li>
+            <li>Cheap ~50 EUR</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Virtual Environment -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="skill-icon">
+          <i class="fas fa-server"></i>
+        </div>
+        <h3>Full Virtual Environment</h3>
+        <div class="skill-content">
+          <ul>
+            <li>Docker Compose Integration</li>
+            <li>Multi-Container Setup</li>
+            <li>Automated Deployment</li>
+            <li>Absolut no costs</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ICS Components -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="skill-icon">
+          <i class="fas fa-industry"></i>
+        </div>
+        <h3>ICS Components</h3>
+        <div class="skill-content">
+          <ul>
+            <li>OpenPLC Integration</li>
+            <li>OPC UA Server</li>
+            <li>S7 Communication</li>
+            <li>etc.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Security Features -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="skill-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <h3>Security Features</h3>
+        <div class="skill-content">
+          <ul>
+            <li>Attack Scenarios</li>
+            <li>Vulnerability Testing</li>
+            <li>Security Monitoring</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Web Interface -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="400">
+        <div class="skill-icon">
+          <i class="fas fa-desktop"></i>
+        </div>
+        <h3>Web Interface</h3>
+        <div class="skill-content">
+          <ul>
+            <li>FUXA Integration</li>
+            <li>Real-time Monitoring</li>
+            <li>Interactive Controls</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Development Tools -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="500">
+        <div class="skill-icon">
+          <i class="fas fa-code"></i>
+        </div>
+        <h3>Development Tools</h3>
+        <div class="skill-content">
+          <ul>
+            <li>Git Version Control</li>
+            <li>CI/CD Pipeline</li>
+            <li>Documentation</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
-</div> 
+</div>
+
+<style>
+.skills-container {
+  width: 100%;
+  padding: 2rem 0;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.skill-card {
+  background: linear-gradient(145deg, rgba(115, 115, 115, 0.15) 15%, rgba(43, 45, 47, 1) 80%);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 107, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.skill-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent, rgba(255, 107, 0, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.skill-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 107, 0, 0.3);
+}
+
+.skill-card:hover::before {
+  transform: translateX(100%);
+}
+
+.skill-icon {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.skill-card h3 {
+  color: var(--primary-color);
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.skill-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.skill-content ul li {
+  color: #b0b0b0;
+  padding: 0.5rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+  transition: color 0.3s ease;
+}
+
+.skill-content ul li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--primary-color);
+  transition: transform 0.3s ease;
+}
+
+.skill-card:hover .skill-content ul li {
+  color: #e0e0e0;
+}
+
+.skill-card:hover .skill-content ul li::before {
+  transform: translateX(5px);
+}
+
+@media screen and (min-width: 768px) {
+  .skills-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 2rem;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .skills-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .skills-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    padding: 0 3rem;
+  }
+}
+</style> 
