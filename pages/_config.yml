@@ -1,25 +1,25 @@
 ---
 # Site settings
 title: CybICS
-subtitle: Cyber Infrastructure Control System
-description: Cyber Infrastructure Control System
+subtitle: Cybersecurity Testbed for Industrial Control Systems
+description: Cybersecurity Testbed for Industrial Control Systems
 baseurl: "/CybICS"
-url: "https://mniedermaier.github.io"
+url: "https://mniedermaier.github.io/CybICS"
 
 # Theme settings
 remote_theme: longpdo/neumorphism
 
 # Landing page
 username: CybICS
-typing_text: Cyber Infrastructure Control System
-email: matt.niedermaier@tum.de
+typing_text: Cybersecurity Testbed for Industrial Control Systems
+email:
 github_username: mniedermaier
 linkedin_username: matthias-niedermaier
 
-# About me section
-show_aboutme_card: true
-about_me_title: About CybICS
-about_me_description: CybICS is a comprehensive solution for managing and monitoring cyber infrastructure. It provides a modern, user-friendly interface for controlling and securing your digital assets.
+# About section
+show_about_card: true
+about_title: About CybICS
+about_description: CybICS is a fully open-source platform for simulating cyber-physical systems, designed to study cyberattacks and countermeasures in industrial control systems (ICS). It provides a full virtual environment using Docker Compose and also supports integration with real hardware setups, enabling realistic and flexible testing scenarios for research and education.
 
 # Skills section
 show_skills_card: true
@@ -31,10 +31,6 @@ timeline_title: Development Timeline
 
 # Projects section
 show_projects_card: true
-show_projects: true
-projects_title: Projects
-show_os_projects: true
-os_projects_title: Open Source Projects
 
 # Contact section
 show_contact_card: true
@@ -69,8 +65,6 @@ exclude:
 # Navigation
 header_pages:
   - index.html
-  - docs.md
-  - about.md
 
 # Repository settings
 repository: mniedermaier/CybICS
