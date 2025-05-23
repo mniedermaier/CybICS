@@ -1,0 +1,34 @@
+/* Override theme colors */
+:root {
+  --primary-color: #FF6B00;
+}
+
+/* Text color overrides */
+a, .highlight-title, .highlight-link, 
+.timeline-wrapper .flag span:after,
+.contact-icons .social-link .social-svg,
+#skills input[type=radio]:checked + .filter-button {
+  color: var(--primary-color) !important;
+  fill: var(--primary-color) !important;
+}
+
+/* Background color overrides - only for specific elements */
+#preloader .load :nth-child(2), 
+#preloader .load :last-child,
+.timeline-wrapper .hexagon, 
+.timeline-wrapper .hexagon:before, 
+.timeline-wrapper .hexagon:after {
+  background-color: var(--primary-color) !important;
+}
+
+.highlight-title {
+  text-shadow: 0.25rem 0.25rem 0.25rem var(--primary-color) !important;
+}
+
+.highlight-link {
+  box-shadow: inset 0 -0.125rem 0 var(--primary-color) !important;
+}
+
+.highlight-link:hover {
+  box-shadow: inset 0 -2rem 0 0 var(--primary-color) !important;
+} 
