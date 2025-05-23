@@ -4,7 +4,24 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+ORANGE='\033[38;5;208m'
 NC='\033[0m' # No Color
+
+# CybICS ASCII Art
+print_banner() {
+    print_message "
+  ██████╗ ██╗   ██╗██████╗ ██╗ ██████╗███████╗
+ ██╔════╝ ╚██╗ ██╔╝██╔══██╗██║██╔════╝██╔════╝
+██║  ███╗ ╚████╔╝ ██████╔╝██║██║     ███████╗
+██║   ██║  ╚██╔╝  ██╔══██╗██║██║     ╚════██║
+╚██████╔╝   ██║   ██████╔╝██║╚██████╗███████║
+ ╚═════╝    ╚═╝   ╚═════╝ ╚═╝ ╚═════╝╚══════╝
+" "$ORANGE"
+    print_message "Cybersecurity testbed for Industrial Control Systems" "$ORANGE"
+    print_message "========================================" "$ORANGE"
+    echo
+}
 
 # Function to print colored messages
 print_message() {
@@ -117,7 +134,7 @@ direct_compose() {
     if [ -z "$1" ]; then
         print_message "Error: No docker compose command specified." "$RED"
         print_message "Usage: $0 compose <docker-compose-command> [options]" "$RED"
-        print_message "Example: $0 compose help" "$RED"
+        print_message "Example: $0 compose ps" "$RED"
         exit 1
     fi
     cd .devcontainer/virtual
@@ -125,6 +142,7 @@ direct_compose() {
 }
 
 # Main script
+print_banner
 check_docker
 print_message "Using Docker Compose command: $DOCKER_COMPOSE" "$YELLOW"
 
