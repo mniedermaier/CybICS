@@ -103,3 +103,13 @@ historian.sqlite
 .env
 .dev.env
 .bash_history
+
+# Jekyll files
+*.lock
+feed.xml
+_site/
+.sass-cache/
+.jekyll-metadata
+.bundle/
+vendor/
+
