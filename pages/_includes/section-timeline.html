@@ -1,25 +1,160 @@
 <h2 class="section-title">{{ site.timeline_title }}</h2>
 <div class="section-content">
-  <div class="timeline">
-    <div class="timeline-item">
-      <div class="timeline-icon">
-        <i class="fas fa-rocket"></i>
+  <div class="timeline-container">
+    <div class="timeline">
+      <div class="timeline-item left" data-aos="fade-right">
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <h3>Project Launch</h3>
+            <span class="timeline-date">November 2023</span>
+          </div>
+          <div class="timeline-body">
+            Initial development of CybICS begins with a focus on creating a comprehensive cybersecurity testbed for industrial control systems.
+          </div>
+        </div>
       </div>
-      <div class="timeline-content">
-        <h3>Project Launch</h3>
-        <p>Initial development of CybICS begins</p>
-        <span class="timeline-date">2024</span>
-      </div>
-    </div>
-    <div class="timeline-item">
-      <div class="timeline-icon">
-        <i class="fas fa-code-branch"></i>
-      </div>
-      <div class="timeline-content">
-        <h3>Open Source Release</h3>
-        <p>CybICS becomes available on GitHub</p>
-        <span class="timeline-date">2024</span>
+      
+      <div class="timeline-item right" data-aos="fade-left">
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <h3>Release v1.0.0</h3>
+            <span class="timeline-date">October 2024</span>
+          </div>
+          <div class="timeline-body">
+            First stable release of CybICS on GitHub, featuring a complete virtual environment with Docker Compose support and hardware integration capabilities.
+          </div>
+        </div>
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<style>
+.timeline-container {
+  width: 100%;
+  padding: 2rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.timeline {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  overflow: hidden;
+}
+
+.timeline::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 107, 0, 0.1) 0%,
+    rgba(255, 107, 0, 0.8) 50%,
+    rgba(255, 107, 0, 0.1) 100%
+  );
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  margin-left: -2px;
+  border-radius: 2px;
+}
+
+.timeline-item {
+  padding: 2rem 0;
+  position: relative;
+  width: 100%;
+}
+
+.timeline-content {
+  padding: 1.5rem;
+  background: linear-gradient(145deg, rgba(115, 115, 115, 0.15) 15%, rgba(43, 45, 47, 1) 80%);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.timeline-content:hover {
+  transform: translateY(-2px);
+}
+
+.timeline-header {
+  margin-bottom: 1rem;
+}
+
+.timeline-header h3 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.25rem;
+}
+
+.timeline-date {
+  display: inline-block;
+  background: rgba(255, 107, 0, 0.1);
+  color: var(--primary-color);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.timeline-body {
+  line-height: 1.6;
+}
+
+@media screen and (min-width: 768px) {
+  .timeline-item {
+    width: 50%;
+    padding: 2rem 3rem;
+    position: relative;
+  }
+
+  .timeline-item.left {
+    float: left;
+    clear: both;
+  }
+
+  .timeline-item.right {
+    float: right;
+    clear: both;
+  }
+
+  .timeline-item.left .timeline-content {
+    margin-right: 2rem;
+  }
+
+  .timeline-item.right .timeline-content {
+    margin-left: 2rem;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .timeline-item {
+    padding: 2rem 4rem;
+  }
+
+  .timeline-item.left .timeline-content {
+    margin-right: 3rem;
+  }
+
+  .timeline-item.right .timeline-content {
+    margin-left: 3rem;
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .timeline-item {
+    padding: 2rem 5rem;
+  }
+
+  .timeline-item.left .timeline-content {
+    margin-right: 4rem;
+  }
+
+  .timeline-item.right .timeline-content {
+    margin-left: 4rem;
+  }
+}
+</style> 
