@@ -28,12 +28,11 @@ if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/
     print_message "Error: Neither 'docker-compose' nor 'docker compose' was found." "$RED"
     print_message "Please install Docker Compose:" "$RED"
     print_message "1. For Linux:" "$RED"
-    print_message "   sudo apt-get update" "$RED"
-    print_message "   sudo apt-get install docker-compose-plugin" "$RED"
+    print_message "   Install Docker from https://docs.docker.com/engine/install/" "$RED"
     print_message "2. For macOS:" "$RED"
-    print_message "   Install Docker Desktop from https://www.docker.com/products/docker-desktop" "$RED"
+    print_message "   Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/" "$RED"
     print_message "3. For Windows:" "$RED"
-    print_message "   Install Docker Desktop from https://www.docker.com/products/docker-desktop" "$RED"
+    print_message "   Install Docker Desktop from https://docs.docker.com/desktop/setup/install/windows-install/" "$RED"
     exit 1
 fi
 
