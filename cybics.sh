@@ -117,7 +117,7 @@ direct_compose() {
     if [ -z "$1" ]; then
         print_message "Error: No docker compose command specified." "$RED"
         print_message "Usage: $0 compose <docker-compose-command> [options]" "$RED"
-        print_message "Example: $0 compose ps" "$RED"
+        print_message "Example: $0 compose help" "$RED"
         exit 1
     fi
     cd .devcontainer/virtual
