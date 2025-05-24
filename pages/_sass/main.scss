@@ -14,11 +14,11 @@ $font-size-base: 1rem !default;
 $font-size-h1: 2rem !default;
 $font-weight-strong: 600;
 $text-color: #fff !default;
-$bg-color: rgba(43, 45, 47, 1);
+$bg-color: #1a1a1a;
 $card-bg-color: linear-gradient(
   145deg,
   rgba(115, 115, 115, 0.15) 15%,
-  rgba(43, 45, 47, 1) 80%
+  #1a1a1a 80%
 );
 $primary-color: #FF6B00;
 
@@ -36,6 +36,9 @@ html {
 
 body {
   height: 100%;
+  margin: 0;
+  padding: 0;
+  background: $bg-color;
 }
 
 /* Typography */
@@ -145,19 +148,20 @@ a {
   height: 100%;
   justify-content: center;
   left: 0;
-  margin: 0.5rem;
-  padding: 0.5rem;
-  position: absolute;
-  right: 0;
-  z-index: 999;
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 99999;
 
   .load {
-    height: 6rem;
+    height: 8rem;
     left: 50%;
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 6rem;
+    width: 8rem;
   }
 
   .load hr {
@@ -167,40 +171,48 @@ a {
     margin: 0;
     position: absolute;
     width: 40%;
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
   }
 
   .load :first-child {
     animation-delay: -1.5s;
     background: $text-color;
+    transform-origin: 100% 100%;
   }
 
   .load :nth-child(2) {
     animation-delay: -1s;
     background: $primary-color;
+    transform-origin: 0% 100%;
   }
 
   .load :nth-child(3) {
     animation-delay: -0.5s;
     background: $text-color;
+    transform-origin: 100% 0%;
   }
 
   .load :last-child {
     background: $primary-color;
+    transform-origin: 0% 0%;
   }
 
   @keyframes spin {
-    0%,
-    100% {
-      transform: translate(0);
+    0% {
+      transform: rotate(0deg) scale(1);
     }
     25% {
-      transform: translate(160%);
+      transform: rotate(90deg) scale(1.2);
     }
     50% {
-      transform: translate(160%, 160%);
+      transform: rotate(180deg) scale(1);
     }
     75% {
-      transform: translate(0, 160%);
+      transform: rotate(270deg) scale(0.8);
+    }
+    100% {
+      transform: rotate(360deg) scale(1);
     }
   }
 }
@@ -228,12 +240,12 @@ a {
 /* Landing Page */
 
 #landing {
-  background: $bg-color;
+  background: #000000 !important;
   color: $text-color;
   display: flex;
   height: 100%;
-  margin: 0.5rem;
-  padding: 0.5rem;
+  margin: 0;
+  padding: 0;
   text-align: center;
 }
 

@@ -21,6 +21,10 @@ show_about_card: true
 about_title: About CybICS
 about_description: CybICS is a fully open-source platform for simulating cyber-physical systems, designed to study cyberattacks and countermeasures in industrial control systems (ICS). It provides a full virtual environment using Docker Compose and also supports integration with real hardware setups, enabling realistic and flexible testing scenarios for research and education.
 
+# Choose section
+show_choose_card: true
+choose_title: Choose a Side
+
 # Skills section
 show_skills_card: true
 skills_title: Features
