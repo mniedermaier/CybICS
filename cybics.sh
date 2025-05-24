@@ -11,12 +11,12 @@ NC='\033[0m' # No Color
 # CybICS ASCII Art
 print_banner() {
     print_message "
-  ██████╗ ██╗   ██╗██████╗ ██╗ ██████╗███████╗
- ██╔════╝ ╚██╗ ██╔╝██╔══██╗██║██╔════╝██╔════╝
-██║  ███╗ ╚████╔╝ ██████╔╝██║██║     ███████╗
-██║   ██║  ╚██╔╝  ██╔══██╗██║██║     ╚════██║
-╚██████╔╝   ██║   ██████╔╝██║╚██████╗███████║
- ╚═════╝    ╚═╝   ╚═════╝ ╚═╝ ╚═════╝╚══════╝
+  ██████╗ ██╗   ██╗ ██████╗  ██╗  ██████╗ ███████╗
+ ██╔════╝ ╚██╗ ██╔╝ ██╔══██╗ ██║ ██╔════╝ ██╔════╝
+██║        ╚████╔ ╝ ██████╔╝ ██║ ██║      ███████╗
+██║         ╚██╔╝   ██╔══██╗ ██║ ██║      ╚════██║
+╚██████╔╝    ██║    ██████╔╝ ██║ ╚██████╗ ███████║
+ ╚═════╝     ╚═╝    ╚═════╝ ╚═╝  ╚═════╝ ╚══════╝
 " "$ORANGE"
     print_message "Cybersecurity testbed for Industrial Control Systems" "$ORANGE"
     print_message "========================================" "$ORANGE"
@@ -131,12 +131,6 @@ remove_containers() {
 
 # Function to directly interact with docker compose
 direct_compose() {
-    if [ -z "$1" ]; then
-        print_message "Error: No docker compose command specified." "$RED"
-        print_message "Usage: $0 compose <docker-compose-command> [options]" "$RED"
-        print_message "Example: $0 compose ps" "$RED"
-        exit 1
-    fi
     cd .devcontainer/virtual
     $DOCKER_COMPOSE "$@"
 }
