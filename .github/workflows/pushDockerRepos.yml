@@ -35,5 +35,6 @@ jobs:
           docker buildx create --name multiarch-builder --use || true
           
           # Build and push for all platforms
-          docker compose -f .devcontainer/virtual/docker-compose.yml build --push \
-            --platform linux/amd64,linux/arm64,darwin/arm64
+          DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f .devcontainer/virtual/docker-compose.yml build --push
+          DOCKER_DEFAULT_PLATFORM=linux/arm64 docker compose -f .devcontainer/virtual/docker-compose.yml build --push
+          DOCKER_DEFAULT_PLATFORM=darwin/arm64 docker compose -f .devcontainer/virtual/docker-compose.yml build --push
