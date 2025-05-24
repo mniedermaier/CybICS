@@ -35,7 +35,8 @@ jobs:
           docker buildx create --name multiarch-builder --use || true
           
           # Build and push for all platforms
-          DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f .devcontainer/virtual/docker-compose.yml build --push
+          DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f .devcontainer/virtual/docker-compose.yml build
+          docker compose -f .devcontainer/virtual/docker-compose.yml push
         
   linux_arm64_push_to_registry:
     name: (linux/arm64) push docker image to hub
@@ -67,5 +68,6 @@ jobs:
           docker buildx create --name multiarch-builder --use || true
           
           # Build and push for all platforms
-          DOCKER_DEFAULT_PLATFORM=linux/arm64 docker compose -f .devcontainer/virtual/docker-compose.yml build --push
+          DOCKER_DEFAULT_PLATFORM=linux/arm64 docker compose -f .devcontainer/virtual/docker-compose.yml build
+          docker compose -f .devcontainer/virtual/docker-compose.yml push
 
