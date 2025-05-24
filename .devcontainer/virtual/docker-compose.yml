@@ -15,7 +15,7 @@ services:
     user: ${HOST_UID:-1000}:${HOST_UID:-1000}
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.100
+        ipv4_address: 172.18.0.100
 
   openplc:
     image: mniedermaier1337/cybicsopenplc:latest
@@ -29,7 +29,7 @@ services:
       - 502:502
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.3
+        ipv4_address: 172.18.0.3
 
   opcua:
     image: mniedermaier1337/cybicsopcua:latest
@@ -43,10 +43,10 @@ services:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.5
+        ipv4_address: 172.18.0.5
 
   s7com:
-    image: mniedermaier1337/cybicss7comlatest
+    image: mniedermaier1337/cybicss7com:latest
     build:
       context: ../../software/s7com
       dockerfile: Dockerfile
@@ -57,7 +57,7 @@ services:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.6
+        ipv4_address: 172.18.0.6
 
   fuxa:
     image: mniedermaier1337/cybicsfuxa:latest
@@ -71,7 +71,7 @@ services:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.4
+        ipv4_address: 172.18.0.4
 
   hwio:
     image: mniedermaier1337/cybicshwio:latest
@@ -85,7 +85,7 @@ services:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.2
+        ipv4_address: 172.18.0.2
 
 networks:
   virt-cybics:
@@ -93,6 +93,6 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.18.1.0/24
-          gateway: 172.18.1.1
+        - subnet: 172.18.0.0/24
+          gateway: 172.18.0.1
 
