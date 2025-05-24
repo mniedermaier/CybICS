@@ -1,12 +1,19 @@
 /* Override theme colors */
 :root {
   --primary-color: #FF6B00;
+  --bg-color: #1a1a1a;
 }
 
 /* Enable smooth scrolling */
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 2rem;
+  background: var(--bg-color) !important;
+}
+
+body {
+  position: relative;
+  background: var(--bg-color) !important;
 }
 
 /* Text color overrides */
@@ -19,6 +26,10 @@ a, .highlight-title, .highlight-link,
 }
 
 /* Background color overrides - only for specific elements */
+#preloader {
+  background: var(--bg-color) !important;
+}
+
 #preloader .load :nth-child(2), 
 #preloader .load :last-child,
 .timeline-wrapper .hexagon, 
@@ -48,13 +59,10 @@ a, .highlight-title, .highlight-link,
   height: 100%;
   z-index: 0;
   pointer-events: none;
+  background: transparent !important;
 }
 
 /* Ensure content is above particles */
-body {
-  position: relative;
-}
-
 #landing {
   position: relative;
   z-index: 2;
@@ -72,11 +80,12 @@ body {
 .layout, .footer {
   position: relative;
   z-index: 2;
+  background: transparent !important;
 }
 
-/* Make cards semi-transparent */
+/* Make cards less transparent */
 .card {
-  background: rgba(43, 45, 47, 0.8) !important;
+  background: rgba(26, 26, 26, 0.85) !important;
 }
 
 /* Choose Side Section Styles */
@@ -89,7 +98,7 @@ body {
 .side-column {
   flex: 1;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(26, 26, 26, 0.85) !important;
   border-radius: 1rem;
   transition: transform 0.3s ease;
 }
