@@ -30,4 +30,10 @@ jobs:
         run: .devcontainer/prepare-env.sh
 
       - name: build and push docker image to registry
-        run: docker compose -f .devcontainer/virtual/docker-compose.yml build && docker compose -f .devcontainer/virtual/docker-compose.yml push
+        run: |
+          # Create a new builder instance
+          docker buildx create --name multiarch-builder --use || true
+          
+          # Build and push for all platforms
+          docker compose -f .devcontainer/virtual/docker-compose.yml build --push \
+            --platform linux/amd64,linux/arm64,darwin/arm64
