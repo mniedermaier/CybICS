@@ -31,4 +31,44 @@ a, .highlight-title, .highlight-link,
 
 .highlight-link:hover {
   box-shadow: inset 0 -2rem 0 0 var(--primary-color) !important;
+}
+
+/* Make particles background fixed */
+#particles-js {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Ensure content is above particles */
+body {
+  position: relative;
+}
+
+#landing {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+}
+
+#landing .landing-title {
+  background: transparent !important;
+}
+
+#landing .landing-title h1 {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.layout, .footer {
+  position: relative;
+  z-index: 2;
+}
+
+/* Make cards semi-transparent */
+.card {
+  background: rgba(43, 45, 47, 0.8) !important;
 } 
