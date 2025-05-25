@@ -42,11 +42,11 @@ id = "unknown" # ID of the STM32
 data = [] # Data received over i2c from the STM32
 dataID = [] # dataID received over i2c from the STM32
 
-
-
 # thread for openplc communication
 def thread_openplc():
   attempts = 0
+  consecutive_failures = 0
+  MAX_FAILURES = 10
 
   # Connect to OpenPLC
   client = ModbusTcpClient(host="openplc",port=502)  # Create client object
@@ -68,14 +68,29 @@ def thread_openplc():
     global gst
     global hpt
     global flag
+
+
     try:
       # write GST and HPT to the OpenPLC
       client.write_register(1124,gst) #
       client.write_register(1126,hpt) #
       flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
       client.write_registers(1200,flag) #
+      # Reset failure counter on successful write
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Write to OpenPLC (GST|HPT|FLAG) failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Write to OpenPLC (GST|HPT|FLAG) failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     # read coils from OpenPLC
     try:
@@ -84,15 +99,41 @@ def thread_openplc():
       GPIO.output(8, plcCoils.bits[1])   # compressor
       GPIO.output(7, plcCoils.bits[2])   # systemValve
       GPIO.output(20, plcCoils.bits[3])  # gstSig
+      # Reset failure counter on successful read
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Read from OpenPLC failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     # write input register to OpenPLC
     try:
       client.write_register(1132,GPIO.input(1))  # System sensor
       client.write_register(1134,GPIO.input(12)) # BO sensor
+      # Reset failure counter on successful write
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Write to OpenPLC failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Write to OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
@@ -218,21 +259,29 @@ if __name__ == "__main__":
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
   
-  logging.info("Main    : before creating threads")
-  openplcX = threading.Thread(target=thread_openplc, args=())
-  i2cX = threading.Thread(target=thread_i2c, args=())
-  networkX = threading.Thread(target=thread_network, args=())
-  logging.info("Main    : before running threads")
-  openplcX.start()
-  i2cX.start()
-  networkX.start()
-  logging.info("Main    : after starting threads")
+  try:
+    logging.info("Main    : before creating threads")
+    openplcX = threading.Thread(target=thread_openplc, args=())
+    i2cX = threading.Thread(target=thread_i2c, args=())
+    networkX = threading.Thread(target=thread_network, args=())
+    logging.info("Main    : before running threads")
+    openplcX.start()
+    i2cX.start()
+    networkX.start()
+    logging.info("Main    : after starting threads")
 
-  # Continuously check if threads are active
-  while openplcX.is_alive() or i2cX.is_alive() or networkX.is_alive():
-    logging.info(f"Main    : openplcX is {'alive' if openplcX.is_alive() else 'not alive'}")
-    logging.info(f"Main    : i2cX is {'alive' if i2cX.is_alive() else 'not alive'}")
-    logging.info(f"Main    : networkX is {'alive' if networkX.is_alive() else 'not alive'}")
-    time.sleep(30)  # Check every 30 second
+    # Continuously check if threads are active
+    while openplcX.is_alive() or i2cX.is_alive() or networkX.is_alive():
+      logging.info(f"Main    : openplcX is {'alive' if openplcX.is_alive() else 'not alive'}")
+      logging.info(f"Main    : i2cX is {'alive' if i2cX.is_alive() else 'not alive'}")
+      logging.info(f"Main    : networkX is {'alive' if networkX.is_alive() else 'not alive'}")
+      time.sleep(30)  # Check every 30 second
 
-  logging.error(f"Main    : Something went horrible wrong. Should not reach this.")
+  except KeyboardInterrupt:
+    logging.info("Main    : Received keyboard interrupt, shutting down...")
+  except Exception as e:
+    logging.error(f"Main    : Unexpected error: {str(e)}")
+  finally:
+    logging.info("Main    : Cleaning up GPIO...")
+    GPIO.cleanup()
+    logging.info("Main    : GPIO cleanup complete")

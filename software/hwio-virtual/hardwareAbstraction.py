@@ -23,6 +23,10 @@ gstSig=0
 delay=0
 timer=0
 
+# Initialize failure counter for Modbus TCP connection
+consecutive_failures = 0
+MAX_FAILURES = 10
+
 # definiton for button reset
 def button_reset():
   # use global variables
@@ -256,9 +260,22 @@ if __name__ == "__main__":
       heartbeat=plcCoils.bits[0]
       compressor=plcCoils.bits[1]
       systemValve=plcCoils.bits[2]
-      gstSig=plcCoils.bits[3]    
+      gstSig=plcCoils.bits[3]
+      # Reset failure counter on successful read
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Main    : Read from OpenPLC failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Main    : Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Main    : Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Main    : Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Main    : Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     # get roughly one second
     if delay > 50:
