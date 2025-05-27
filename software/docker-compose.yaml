@@ -65,6 +65,9 @@ services:
     restart: always
     ports:
       - 3333:3333
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.7
 
 networks:
   br-cybics:
