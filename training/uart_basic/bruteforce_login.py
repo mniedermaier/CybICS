@@ -62,16 +62,19 @@ class UARTBruteforcer:
             print(f"[-] Error creating results file: {e}")
             self.results_file = None
 
-    def log_result(self, test, response):
+    def log_result(self, test, response, raw_response=None):
         if self.results_file:
             try:
+                filtered_response = response
                 # Extract just the error message without any additional lines
                 if "Invalid password" in response:
-                    response = "ERR: Invalid password. Please try again."
+                    filtered_response = "ERR: Invalid password. Please try again."
                 elif "successful" in response.lower():
-                    response = "SUCCESS: Login successful"
-                
-                self.results_file.write(f"Attempt {self.attempts}: {test} - {response}\n")
+                    filtered_response = "SUCCESS: Login successful"
+                # Log both filtered and raw response
+                self.results_file.write(f"Attempt {self.attempts}: {test} - {filtered_response}\n")
+                if raw_response is not None:
+                    self.results_file.write(f"  [RAW] {raw_response}\n")
                 self.results_file.flush()
             except Exception as e:
                 print(f"[-] Error writing to results file: {e}")
@@ -164,14 +167,15 @@ class UARTBruteforcer:
             for combo in product(string.ascii_lowercase, repeat=length):
                 test = ''.join(combo)
                 response = self.send_input(test)
+                raw_response = response  # Save the raw response
                 
                 if response is None:
                     print("[-] No response received, retrying...")
                     time.sleep(1)
                     continue
                 
-                # Log the attempt
-                self.log_result(test, response)
+                # Log the attempt (both filtered and raw)
+                self.log_result(test, response, raw_response)
                 
                 # Calculate and display rates every second
                 current_time = time.time()

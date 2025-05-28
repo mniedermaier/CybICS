@@ -1,4 +1,4 @@
-# 🔌 UART Training Guide (Hardware Requried)
+# 🔌 UART Training Guide (Hardware Required)
 
 ## 📋 Overview
 This guide covers how to connect to the CybICS micro controller using UART (Universal Asynchronous Receiver-Transmitter) communication.
@@ -27,7 +27,7 @@ This guide covers how to connect to the CybICS micro controller using UART (Univ
 3. Common picocom commands:
    - `Ctrl+A Ctrl+X`: Exit picocom
 
-## 🎯 Find the flag
+## 🎯 Find the Flag
 The flag has the format `CybICS(flag)`.
 
 **💡 Hint**: The flag appears after successful login on the UART.
