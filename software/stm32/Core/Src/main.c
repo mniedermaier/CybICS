@@ -29,6 +29,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/unistd.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <sys/types.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,7 +45,7 @@ uint8_t GSTpressure=0;
 uint8_t HPTpressure=0;
 
 // Login credentials
-#define LOGIN_PASSWORD "cybics"
+#define LOGIN_PASSWORD "cyb"
 
 // Menu options
 #define MENU_STATUS '1'
@@ -130,6 +133,7 @@ void Fuart(void const * argument);
 /* USER CODE BEGIN 0 */
 SemaphoreHandle_t huart1Mutex;
 
+// System call implementations
 int _write(int file, char * data, int len) {
     if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
         errno = EBADF;
@@ -142,8 +146,73 @@ int _write(int file, char * data, int len) {
         xSemaphoreGive(huart1Mutex);
     }
 
-    // return # of bytes written - as best we can tell
     return (status == HAL_OK ? len : 0);
+}
+
+int _read(int file, char *ptr, int len) {
+    if (file != STDIN_FILENO) {
+        errno = EBADF;
+        return -1;
+    }
+    return 0;
+}
+
+int _close(int file) {
+    return -1;
+}
+
+int _fstat(int file, struct stat *st) {
+    st->st_mode = S_IFCHR;
+    return 0;
+}
+
+int _isatty(int file) {
+    return 1;
+}
+
+int _lseek(int file, int ptr, int dir) {
+    return 0;
+}
+
+int _open(char *path, int flags, ...) {
+    return -1;
+}
+
+int _wait(int *status) {
+    errno = ECHILD;
+    return -1;
+}
+
+int _unlink(char *name) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _times(struct tms *buf) {
+    return -1;
+}
+
+int _stat(char *file, struct stat *st) {
+    st->st_mode = S_IFCHR;
+    return 0;
+}
+
+int _link(char *old, char *new) {
+    errno = EMLINK;
+    return -1;
+}
+
+void _exit(int status) {
+    while(1);
+}
+
+int _kill(int pid, int sig) {
+    errno = EINVAL;
+    return -1;
+}
+
+int _getpid(void) {
+    return 1;
 }
 
 void logging(unsigned char logLevel, const char *fmt, ...){
@@ -1133,14 +1202,20 @@ void Fuart(void const * argument)
               showMenu = 1;
             } else {
               logging(LOG_ERR, "Invalid password. Please try again.");
-              passwordEntry = 0;  // Reset for next attempt
+              passwordEntry = 0;
             }
           } else {
             rxIndex++;
           }
         }
+      } else {
+        // Buffer full, reset state
+        logging(LOG_ERR, "Password too long. Please try again.");
+        rxIndex = 0;
+        memset(password, 0, sizeof(password));
+        passwordEntry = 0;
       }
-      osDelay(10);  // Small delay between password attempts
+      osDelay(10);
       continue;
     }
 

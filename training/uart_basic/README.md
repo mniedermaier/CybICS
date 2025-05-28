@@ -1,7 +1,7 @@
 # 🔌 UART Training Guide
 
 ## 📋 Overview
-This guide covers how to connect to the CybICS system using UART (Universal Asynchronous Receiver-Transmitter) communication.
+This guide covers how to connect to the CybICS micro controller using UART (Universal Asynchronous Receiver-Transmitter) communication.
 
 ## 🔗 Connecting to the System
 
@@ -30,14 +30,16 @@ This guide covers how to connect to the CybICS system using UART (Universal Asyn
 ## 🎯 Find the flag
 The flag has the format `CybICS(flag)`.
 
-**💡 Hint**: The flag appears after successful login on the HMI.
+**💡 Hint**: The flag appears after successful login on the UART.
+
+**🔑 Password Hint**: The password is 3 characters long and contains only lowercase letters.
 
 <details>
   <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
   
   Run the script:
   ```bash
-  python3 bruteforce_login.py /dev/serial0
+  python3 bruteforce_login.py /dev/serial0 3 3
   ```
 
   <div style="color:orange;font-weight: 900">
