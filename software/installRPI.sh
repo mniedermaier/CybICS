@@ -149,6 +149,11 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     if ! which picocom; then
         sudo apt-get install picocom -y
     fi
+
+    if ! dpkg -l | grep python3-serial; then
+        sudo apt-get install python3-serial -y
+    fi
+    
 EOF
 
 ###
