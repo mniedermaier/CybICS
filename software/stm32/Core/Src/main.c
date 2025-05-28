@@ -41,6 +41,9 @@ char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure=0;
 uint8_t HPTpressure=0;
 
+// Login credentials
+#define LOGIN_PASSWORD "cybics123"
+
 uint8_t C_on = 0;
 uint8_t C_off = 0;
 uint8_t S_green = 0;
@@ -88,6 +91,7 @@ osThreadId displayHandle;
 osThreadId physicalHandle;
 osThreadId i2chandlerHandle;
 osThreadId writeOutputHandle;
+osThreadId uartHandle;
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -102,6 +106,7 @@ void Fdisplay(void const * argument);
 void Fphysical(void const * argument);
 void Fi2chandler(void const * argument);
 void FwriteOutput(void const * argument);
+void Fuart(void const * argument);
 
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
@@ -163,6 +168,7 @@ void logging(unsigned char logLevel, const char *fmt, ...){
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -238,6 +244,10 @@ int main(void)
   osThreadDef(writeOutput, FwriteOutput, osPriorityRealtime, 0, 128);
   writeOutputHandle = osThreadCreate(osThread(writeOutput), NULL);
 
+  /* definition and creation of uart */
+  osThreadDef(uart, Fuart, osPriorityLow, 0, 256);
+  uartHandle = osThreadCreate(osThread(uart), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -246,6 +256,7 @@ int main(void)
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -370,7 +381,7 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX;
+  huart1.Init.Mode = UART_MODE_TX_RX;
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
@@ -406,8 +417,8 @@ static void MX_USART1_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -478,8 +489,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(button_GPIO_Port, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -1064,6 +1075,87 @@ void FwriteOutput(void const * argument)
   /* USER CODE END FwriteOutput */
 }
 
+/* USER CODE BEGIN Header_Fuart */
+/**
+* @brief Function implementing the uart thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Fuart */
+void Fuart(void const * argument)
+{
+  /* USER CODE BEGIN Fuart */
+  char statusMsg[50];
+  char password[20];
+  uint8_t loggedIn = 0;
+  uint8_t rxIndex = 0;
+  
+  logging(LOG_DEB, "Starting Fuart");
+  osDelay(3000);
+
+  /* Infinite loop */
+  for(;;)
+  {
+    if (!loggedIn) {
+      logging(LOG_INF, "Please enter password:");
+      rxIndex = 0;
+      memset(password, 0, sizeof(password));
+      
+      // Wait for password input
+      while (rxIndex < sizeof(password) - 1) {
+        if (HAL_UART_Receive(&huart1, (uint8_t*)&password[rxIndex], 1, 100) == HAL_OK) {
+          // Echo the character
+          HAL_UART_Transmit(&huart1, (uint8_t*)&password[rxIndex], 1, 100);
+          
+          // Check for enter key
+          if (password[rxIndex] == '\r' || password[rxIndex] == '\n') {
+            password[rxIndex] = '\0';
+            break;
+          }
+          rxIndex++;
+        }
+        osDelay(1);
+      }
+      
+      // Check password
+      if (strcmp(password, LOGIN_PASSWORD) == 0) {
+        loggedIn = 1;
+        logging(LOG_INF, "Login successful!");
+      } else {
+        logging(LOG_ERR, "Invalid password. Please try again.");
+        osDelay(1000);
+      }
+      continue;
+    }
+    
+    // Send system status every second
+    logging(LOG_INF, "System Status:");
+    
+    snprintf(statusMsg, sizeof(statusMsg), "GST Pressure: %d", GSTpressure);
+    logging(LOG_INF, statusMsg);
+    
+    snprintf(statusMsg, sizeof(statusMsg), "HPT Pressure: %d", HPTpressure);
+    logging(LOG_INF, statusMsg);
+    
+    snprintf(statusMsg, sizeof(statusMsg), "Compressor: %s", C_on ? "ON" : "OFF");
+    logging(LOG_INF, statusMsg);
+    
+    snprintf(statusMsg, sizeof(statusMsg), "System Valve: %s", SV_green ? "OPEN" : "CLOSED");
+    logging(LOG_INF, statusMsg);
+    
+    snprintf(statusMsg, sizeof(statusMsg), "System Status: %s", S_green ? "OPERATIONAL" : "NOT OPERATIONAL");
+    logging(LOG_INF, statusMsg);
+    
+    snprintf(statusMsg, sizeof(statusMsg), "Blow Out: %s", BO_sen ? "ACTIVE" : "INACTIVE");
+    logging(LOG_INF, statusMsg);
+    
+    logging(LOG_INF, "-------------------");
+    
+    osDelay(1000);
+  }
+  /* USER CODE END Fuart */
+}
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM1 interrupt took place, inside
@@ -1077,7 +1169,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
+  if (htim->Instance == TIM1)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

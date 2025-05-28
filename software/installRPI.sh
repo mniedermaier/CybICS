@@ -145,6 +145,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     if ! which lsof; then
         sudo apt-get install lsof -y
     fi
+
+    if ! which picocom; then
+        sudo apt-get install picocom -y
+    fi
 EOF
 
 ###
@@ -179,6 +183,17 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     sudo raspi-config nonint do_i2c 0
 EOF
+
+###
+### Enable UART
+###
+echo -ne "${GREEN}# Enable UART on the RPi ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo raspi-config nonint do_serial_hw 0
+    sudo raspi-config nonint do_serial_cons 1
+EOF
+
 
 ###
 ### Decrease memmory of GPU
