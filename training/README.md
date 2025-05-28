@@ -17,5 +17,6 @@ This recommended sequence is designed to build your knowledge progressively, lay
 1. [OPC-UA](opcua/README.md)
 1. [Fuzzing Modbus](fuzzingMB/README.md)
 1. [Man-in-the-Middle (MitM)](mitm/README.md)
+1. [UART Training Guide (Hardware Requried)](uart_basic/README.md)
 1. [Detect Basic](detect_basic/README.md)
 1. [Detect Overwrite](detect_overwrite/README.md)

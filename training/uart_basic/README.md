@@ -1,4 +1,4 @@
-# 🔌 UART Training Guide
+# 🔌 UART Training Guide (Hardware Requried)
 
 ## 📋 Overview
 This guide covers how to connect to the CybICS micro controller using UART (Universal Asynchronous Receiver-Transmitter) communication.
