@@ -12,8 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install nmap
+    - name: Install gcc for arm
       run: sudo apt-get install -y gcc-arm-none-eabi
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+          submodules: recursive
       
     - name: make      
       run: CFLAGS=-Werror make -C software/stm32/
