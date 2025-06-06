@@ -29,6 +29,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/unistd.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <sys/types.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +43,18 @@ uint8_t TxDataUID[13] = {0};
 char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure=0;
 uint8_t HPTpressure=0;
+
+// Login credentials
+#define LOGIN_PASSWORD "cyb"
+
+// Menu options
+#define MENU_STATUS '1'
+#define MENU_FLAG '2'
+#define MENU_CONTROLS '3'
+#define MENU_FREERTOS '4'
+#define MENU_MCU '5'
+#define MENU_HELP '6'
+#define MENU_LOGOUT '7'
 
 uint8_t C_on = 0;
 uint8_t C_off = 0;
@@ -88,6 +103,7 @@ osThreadId displayHandle;
 osThreadId physicalHandle;
 osThreadId i2chandlerHandle;
 osThreadId writeOutputHandle;
+osThreadId uartHandle;
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -102,6 +118,7 @@ void Fdisplay(void const * argument);
 void Fphysical(void const * argument);
 void Fi2chandler(void const * argument);
 void FwriteOutput(void const * argument);
+void Fuart(void const * argument);
 
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
@@ -116,6 +133,7 @@ void FwriteOutput(void const * argument);
 /* USER CODE BEGIN 0 */
 SemaphoreHandle_t huart1Mutex;
 
+// System call implementations
 int _write(int file, char * data, int len) {
     if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
         errno = EBADF;
@@ -123,35 +141,101 @@ int _write(int file, char * data, int len) {
     }
 
     HAL_StatusTypeDef status = HAL_OK;
-    xSemaphoreTake(huart1Mutex, portMAX_DELAY);
-    status = HAL_UART_Transmit( & huart1, (uint8_t * ) data, len, HAL_MAX_DELAY);
-    xSemaphoreGive(huart1Mutex);
+    if (xSemaphoreTake(huart1Mutex, 100) == pdTRUE) {
+        status = HAL_UART_Transmit(&huart1, (uint8_t *)data, len, 100);
+        xSemaphoreGive(huart1Mutex);
+    }
 
-    // return # of bytes written - as best we can tell
     return (status == HAL_OK ? len : 0);
+}
+
+int _read(int file, char *ptr, int len) {
+    if (file != STDIN_FILENO) {
+        errno = EBADF;
+        return -1;
+    }
+    return 0;
+}
+
+int _close(int file) {
+    return -1;
+}
+
+int _fstat(int file, struct stat *st) {
+    st->st_mode = S_IFCHR;
+    return 0;
+}
+
+int _isatty(int file) {
+    return 1;
+}
+
+int _lseek(int file, int ptr, int dir) {
+    return 0;
+}
+
+int _open(char *path, int flags, ...) {
+    return -1;
+}
+
+int _wait(int *status) {
+    errno = ECHILD;
+    return -1;
+}
+
+int _unlink(char *name) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _times(struct tms *buf) {
+    return -1;
+}
+
+int _stat(char *file, struct stat *st) {
+    st->st_mode = S_IFCHR;
+    return 0;
+}
+
+int _link(char *old, char *new) {
+    errno = EMLINK;
+    return -1;
+}
+
+void _exit(int status) {
+    while(1);
+}
+
+int _kill(int pid, int sig) {
+    errno = EINVAL;
+    return -1;
+}
+
+int _getpid(void) {
+    return 1;
 }
 
 void logging(unsigned char logLevel, const char *fmt, ...){
     if(showLogLevel <= logLevel){
         if(logLevel == LOG_ERR)
         {  
-            printf("%sERR: %s %s\r\n", CRED, fmt, CRST);
+            printf("%sERR: %s%s\r\n", CRED, fmt, CRST);
         }
         else if(logLevel == LOG_WAR)
         {
-            printf("%sWAR: %s %s\r\n", CYEL, fmt, CRST);
+            printf("%sWAR: %s%s\r\n", CYEL, fmt, CRST);
         }
         else if(logLevel == LOG_INF)
         {
-            printf("%sINF: %s %s\r\n", CBLU, fmt, CRST);
+            printf("%sINF: %s%s\r\n", CBLU, fmt, CRST);
         }
         else if(logLevel == LOG_DEB)
         {
-            printf("%sDEB: %s %s\r\n", CMAG, fmt, CRST);
+            printf("%sDEB: %s%s\r\n", CMAG, fmt, CRST);
         }
         else
         {
-            printf("%s???: %s %s\r\n", CRED, fmt, CRST);
+            printf("%s???: %s%s\r\n", CRED, fmt, CRST);
         }
     }
 }
@@ -163,6 +247,7 @@ void logging(unsigned char logLevel, const char *fmt, ...){
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -238,6 +323,10 @@ int main(void)
   osThreadDef(writeOutput, FwriteOutput, osPriorityRealtime, 0, 128);
   writeOutputHandle = osThreadCreate(osThread(writeOutput), NULL);
 
+  /* definition and creation of uart */
+  osThreadDef(uart, Fuart, osPriorityLow, 0, 256);
+  uartHandle = osThreadCreate(osThread(uart), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -246,6 +335,7 @@ int main(void)
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -370,7 +460,7 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX;
+  huart1.Init.Mode = UART_MODE_TX_RX;
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
@@ -406,8 +496,8 @@ static void MX_USART1_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -478,8 +568,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(button_GPIO_Port, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -1064,6 +1154,320 @@ void FwriteOutput(void const * argument)
   /* USER CODE END FwriteOutput */
 }
 
+/* USER CODE BEGIN Header_Fuart */
+/**
+* @brief Function implementing the uart thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Fuart */
+void Fuart(void const * argument)
+{
+  /* USER CODE BEGIN Fuart */
+  char statusMsg[50];
+  char password[20];
+  char input[2];
+  uint8_t loggedIn = 0;
+  uint8_t rxIndex = 0;
+  uint8_t showMenu = 1;  // Flag to control menu display
+  uint8_t passwordEntry = 0;  // Flag to track password entry state
+  
+  osDelay(1000);  // Initial delay to let system stabilize
+  logging(LOG_DEB, "Starting Fuart");
+  
+  /* Infinite loop */
+  for(;;)
+  {
+    if (!loggedIn) {
+      if (!passwordEntry) {
+        logging(LOG_INF, "Please enter password:");
+        rxIndex = 0;
+        memset(password, 0, sizeof(password));
+        passwordEntry = 1;
+      }
+      
+      // Non-blocking password input
+      if (rxIndex < sizeof(password) - 1) {
+        if (HAL_UART_Receive(&huart1, (uint8_t*)&password[rxIndex], 1, 100) == HAL_OK) {
+          // Echo the character
+          HAL_UART_Transmit(&huart1, (uint8_t*)&password[rxIndex], 1, 100);
+          
+          // Check for enter key
+          if (password[rxIndex] == '\r' || password[rxIndex] == '\n') {
+            password[rxIndex] = '\0';
+            // Check password
+            if (strcmp(password, LOGIN_PASSWORD) == 0) {
+              loggedIn = 1;
+              logging(LOG_INF, "Login successful!");
+              showMenu = 1;
+            } else {
+              logging(LOG_ERR, "Invalid password. Please try again.");
+              passwordEntry = 0;
+            }
+          } else {
+            rxIndex++;
+          }
+        }
+      } else {
+        // Buffer full, reset state
+        logging(LOG_ERR, "Password too long. Please try again.");
+        rxIndex = 0;
+        memset(password, 0, sizeof(password));
+        passwordEntry = 0;
+      }
+      osDelay(10);
+      continue;
+    }
+
+    // Show menu only when needed
+    if (showMenu) {
+      logging(LOG_INF, "\r\n=== CybICS Menu ===");
+      logging(LOG_INF, "1. System Status");
+      logging(LOG_INF, "2. Display Flag");
+      logging(LOG_INF, "3. System Controls");
+      logging(LOG_INF, "4. FreeRTOS Stats");
+      logging(LOG_INF, "5. MCU Information");
+      logging(LOG_INF, "6. Help");
+      logging(LOG_INF, "7. Logout");
+      logging(LOG_INF, "Enter choice (1-7): ");
+      showMenu = 0;
+    }
+
+    // Non-blocking menu choice input
+    if (HAL_UART_Receive(&huart1, (uint8_t*)input, 1, 100) == HAL_OK) {
+      switch(input[0]) {
+        case MENU_STATUS:
+          // Display system status
+          logging(LOG_INF, "\r\n=== System Status ===");
+          snprintf(statusMsg, sizeof(statusMsg), "GST Pressure: %d", GSTpressure);
+          logging(LOG_INF, statusMsg);
+          snprintf(statusMsg, sizeof(statusMsg), "HPT Pressure: %d", HPTpressure);
+          logging(LOG_INF, statusMsg);
+          snprintf(statusMsg, sizeof(statusMsg), "Compressor: %s", C_on ? "ON" : "OFF");
+          logging(LOG_INF, statusMsg);
+          snprintf(statusMsg, sizeof(statusMsg), "System Valve: %s", SV_green ? "OPEN" : "CLOSED");
+          logging(LOG_INF, statusMsg);
+          snprintf(statusMsg, sizeof(statusMsg), "System Status: %s", S_green ? "OPERATIONAL" : "NOT OPERATIONAL");
+          logging(LOG_INF, statusMsg);
+          snprintf(statusMsg, sizeof(statusMsg), "Blow Out: %s", BO_sen ? "ACTIVE" : "INACTIVE");
+          logging(LOG_INF, statusMsg);
+          showMenu = 1;
+          break;
+
+        case MENU_FLAG:
+          logging(LOG_INF, "\r\n=== CybICS Flag ===");
+          logging(LOG_INF, "CybICS(U#RT)");
+          showMenu = 1;
+          break;
+
+        case MENU_CONTROLS:
+          // Display system controls
+          logging(LOG_INF, "\r\n=== System Controls ===");
+          logging(LOG_INF, "Current Status:");
+          logging(LOG_INF, "----------------");
+          logging(LOG_INF, "Compressor: %s", C_on ? "Running" : "Stopped");
+          logging(LOG_INF, "System Valve: %s", SV_green ? "Open" : "Closed");
+          logging(LOG_INF, "Blow Out: %s", BO_sen ? "Active" : "Inactive");
+          logging(LOG_INF, "GST Pressure: %d", GSTpressure);
+          logging(LOG_INF, "HPT Pressure: %d", HPTpressure);
+          logging(LOG_INF, "System Status: %s", S_green ? "OPERATIONAL" : "NOT OPERATIONAL");
+          
+          logging(LOG_INF, "\r\nControl Options:");
+          logging(LOG_INF, "----------------");
+          logging(LOG_INF, "1. Toggle Compressor");
+          logging(LOG_INF, "2. Toggle System Valve");
+          logging(LOG_INF, "3. Return to Main Menu");
+          logging(LOG_INF, "Enter choice (1-3): ");
+          
+          // Non-blocking control choice input
+          if (HAL_UART_Receive(&huart1, (uint8_t*)input, 1, 100) == HAL_OK) {
+            switch(input[0]) {
+              case '1':
+                if (C_on) {
+                  C_on = 0;
+                  C_off = 1;
+                  logging(LOG_INF, "Compressor stopped");
+                } else {
+                  C_on = 1;
+                  C_off = 0;
+                  logging(LOG_INF, "Compressor started");
+                }
+                break;
+                
+              case '2':
+                if (SV_green) {
+                  SV_green = 0;
+                  SV_red = 1;
+                  logging(LOG_INF, "System valve closed");
+                } else {
+                  SV_green = 1;
+                  SV_red = 0;
+                  logging(LOG_INF, "System valve opened");
+                }
+                break;
+                
+              case '3':
+                logging(LOG_INF, "Returning to main menu...");
+                break;
+                
+              default:
+                logging(LOG_ERR, "Invalid control choice");
+                break;
+            }
+            showMenu = 1;
+          }
+          break;
+
+        case MENU_FREERTOS:
+          // Display FreeRTOS statistics
+          logging(LOG_INF, "\r\n=== FreeRTOS Statistics ===");
+          
+          // Task stats
+          logging(LOG_INF, "Task Statistics:");
+          logging(LOG_INF, "----------------");
+          
+          // Get task stats for each task
+          char taskStats[100];
+          TaskStatus_t taskStatus;
+          
+          // Default Task
+          vTaskGetTaskInfo(defaultTaskHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "Default Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // Heartbeat Task
+          vTaskGetTaskInfo(heartBeatHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "Heartbeat Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // Display Task
+          vTaskGetTaskInfo(displayHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "Display Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // Physical Task
+          vTaskGetTaskInfo(physicalHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "Physical Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // I2C Handler Task
+          vTaskGetTaskInfo(i2chandlerHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "I2C Handler Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // Write Output Task
+          vTaskGetTaskInfo(writeOutputHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "Write Output Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // UART Task
+          vTaskGetTaskInfo(uartHandle, &taskStatus, pdTRUE, eRunning);
+          snprintf(taskStats, sizeof(taskStats), "UART Task: State=%d, Priority=%lu, Stack=%u", 
+                  taskStatus.eCurrentState, taskStatus.uxCurrentPriority, taskStatus.usStackHighWaterMark);
+          logging(LOG_INF, taskStats);
+          
+          // System stats
+          logging(LOG_INF, "\r\nSystem Statistics:");
+          logging(LOG_INF, "-----------------");
+          snprintf(taskStats, sizeof(taskStats), "Free Heap: %d bytes", xPortGetFreeHeapSize());
+          logging(LOG_INF, taskStats);
+          snprintf(taskStats, sizeof(taskStats), "Minimum Free Heap: %d bytes", xPortGetMinimumEverFreeHeapSize());
+          logging(LOG_INF, taskStats);
+          snprintf(taskStats, sizeof(taskStats), "Total Runtime: %lu ticks", xTaskGetTickCount());
+          logging(LOG_INF, taskStats);
+          
+          showMenu = 1;
+          break;
+
+        case MENU_MCU:
+          // Display MCU information
+          logging(LOG_INF, "\r\n=== MCU Information ===");
+          logging(LOG_INF, "----------------");
+          
+          char mcuInfo[100];
+          
+          // Get MCU ID
+          uint32_t mcuId = HAL_GetDEVID();
+          snprintf(mcuInfo, sizeof(mcuInfo), "MCU ID: 0x%08lX", mcuId);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get MCU Revision
+          uint32_t mcuRev = HAL_GetREVID();
+          snprintf(mcuInfo, sizeof(mcuInfo), "MCU Revision: 0x%08lX", mcuRev);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get UID using LL functions
+          uint32_t uid[3];
+          uid[0] = LL_GetUID_Word0();
+          uid[1] = LL_GetUID_Word1();
+          uid[2] = LL_GetUID_Word2();
+          snprintf(mcuInfo, sizeof(mcuInfo), "Unique ID: 0x%08lX%08lX%08lX", uid[0], uid[1], uid[2]);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get Flash Size using LL function
+          uint32_t flashSize = LL_GetFlashSize();
+          snprintf(mcuInfo, sizeof(mcuInfo), "Flash Size: %lu KB", flashSize);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get System Clock
+          uint32_t sysClock = HAL_RCC_GetSysClockFreq();
+          snprintf(mcuInfo, sizeof(mcuInfo), "System Clock: %lu Hz", sysClock);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get HCLK (AHB) Clock
+          uint32_t hclk = HAL_RCC_GetHCLKFreq();
+          snprintf(mcuInfo, sizeof(mcuInfo), "HCLK (AHB) Clock: %lu Hz", hclk);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get PCLK1 (APB1) Clock
+          uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
+          snprintf(mcuInfo, sizeof(mcuInfo), "PCLK1 (APB1) Clock: %lu Hz", pclk1);
+          logging(LOG_INF, mcuInfo);
+          
+          // Get Core Voltage
+          uint32_t voltage = HAL_PWREx_GetVoltageRange();
+          snprintf(mcuInfo, sizeof(mcuInfo), "Core Voltage Range: %lu", voltage);
+          logging(LOG_INF, mcuInfo);
+          
+          showMenu = 1;
+          break;
+
+        case MENU_HELP:
+          logging(LOG_INF, "\r\n=== Help ===");
+          logging(LOG_INF, "1. System Status - Shows current system parameters");
+          logging(LOG_INF, "2. Display Flag - Shows the CybICS flag");
+          logging(LOG_INF, "3. System Controls - Shows control status");
+          logging(LOG_INF, "4. FreeRTOS Stats - Shows FreeRTOS task and system statistics");
+          logging(LOG_INF, "5. MCU Information - Shows detailed MCU specifications");
+          logging(LOG_INF, "6. Help - Shows this help message");
+          logging(LOG_INF, "7. Logout - Logs out of the system");
+          showMenu = 1;
+          break;
+
+        case MENU_LOGOUT:
+          loggedIn = 0;
+          passwordEntry = 0;  // Reset password entry state
+          logging(LOG_INF, "\r\nLogged out successfully.");
+          break;
+
+        default:
+          logging(LOG_ERR, "\r\nInvalid choice. Please try again.");
+          showMenu = 1;
+          break;
+      }
+    }
+    
+    osDelay(10);  // Small delay between iterations
+  }
+  /* USER CODE END Fuart */
+}
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM1 interrupt took place, inside
@@ -1077,7 +1481,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
+  if (htim->Instance == TIM1)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

@@ -1,48 +1,50 @@
-# Network Fuzzing
+# 🧪 Network Fuzzing Guide
 
-## Introduction
+## 📋 Introduction
 Network fuzzing is a security testing technique used to identify vulnerabilities in network protocols, services, and applications by sending malformed or unexpected data. The goal is to discover security flaws such as buffer overflows, denial-of-service (DoS) vulnerabilities, and other unintended behaviors.
 
-## How It Works
+## 🔄 How It Works
 Network fuzzing involves the following steps:
 
-1. **Selecting a Target** – Identify the network service, protocol, or application to be tested.
-2. **Generating Test Cases** – Create malformed, randomized, or unexpected inputs that interact with the target.
-3. **Sending Inputs** – Transmit the test cases to the target over the network.
-4. **Monitoring Responses** – Observe how the target handles the malformed data, checking for crashes, hangs, or unexpected behavior.
-5. **Analyzing Results** – Identify potential security vulnerabilities based on anomalies detected during testing.
+1. **🎯 Selecting a Target** – Identify the network service, protocol, or application to be tested
+2. **🧩 Generating Test Cases** – Create malformed, randomized, or unexpected inputs
+3. **📤 Sending Inputs** – Transmit the test cases to the target over the network
+4. **👀 Monitoring Responses** – Observe how the target handles the malformed data
+5. **📊 Analyzing Results** – Identify potential security vulnerabilities
 
-## Types of Network Fuzzing
+## 📚 Types of Network Fuzzing
 There are different approaches to network fuzzing:
 
-- **Mutation-based Fuzzing** – Modifies existing valid inputs to generate test cases.
-- **Generation-based Fuzzing** – Constructs test cases from scratch based on protocol specifications.
-- **Stateful vs. Stateless Fuzzing** – Stateful fuzzing maintains session states, while stateless fuzzing sends individual test cases without tracking interactions.
+- **🔄 Mutation-based Fuzzing** – Modifies existing valid inputs to generate test cases
+- **🏗️ Generation-based Fuzzing** – Constructs test cases from scratch based on protocol specifications
+- **🔗 Stateful vs. Stateless Fuzzing** – Maintains session states vs. individual test cases
 
-## Challenges and Considerations
-- **False Positives** – Some anomalies may not indicate real vulnerabilities.
-- **Target Stability** – Frequent crashes may disrupt testing.
-- **Protocol Complexity** – Some network protocols require deep understanding for effective fuzzing.
-- **Legal and Ethical Considerations** – Unauthorized fuzzing can violate laws and agreements.
+## ⚠️ Challenges and Considerations
+- **❌ False Positives** – Some anomalies may not indicate real vulnerabilities
+- **💻 Target Stability** – Frequent crashes may disrupt testing
+- **📖 Protocol Complexity** – Some protocols require deep understanding
+- **⚖️ Legal and Ethical Considerations** – Unauthorized fuzzing can violate laws
 
+## 🚀 Using the Modbus Fuzzer
 
-# Use it on the CybICS
-Clone the repository:
-```sh
-git clone https://github.com/s-e-knudsen/Modbus_network_fuzzer
-```
+### 🔧 Setup Steps
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/s-e-knudsen/Modbus_network_fuzzer
+   ```
 
-Switch to the folder:
-```sh
-cd Modbus_network_fuzzer 
-```
+2. Switch to the folder:
+   ```sh
+   cd Modbus_network_fuzzer 
+   ```
 
-Install the dependencies for the modbus network fuzzer:
-```sh
-python3 -m pip install -r requirements.txt
-```
+3. Install dependencies:
+   ```sh
+   python3 -m pip install -r requirements.txt
+   ```
 
-Select the proper fuzzing method. E.g. 1 for all:
+### 🎮 Running the Fuzzer
+Select the proper fuzzing method (e.g., 1 for all):
 ```sh
         --------------------------------------
         Created by Soren Egede Knudsen @Egede
@@ -74,4 +76,5 @@ Select the proper fuzzing method. E.g. 1 for all:
         0. Exit
 ```
 
-Grab a coffee ☕☕☕☕
+### ⏳ Time to Wait
+Grab a coffee ☕☕☕☕ while the fuzzer runs
