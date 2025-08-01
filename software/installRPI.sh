@@ -112,6 +112,15 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Config apt local config
+###
+echo -ne "${GREEN}# Config apt local config... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    echo 'Dpkg::Options {"--force-confdef";"--force-confold";};' | sudo tee /etc/apt/apt.conf.d/local-config
+EOF
+
+###
 ### Update and upgrade
 ###
 echo -ne "${GREEN}# Update and upgrade ... \n${ENDCOLOR}"
@@ -152,8 +161,7 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 
     if ! dpkg -l | grep python3-serial; then
         sudo apt-get install python3-serial -y
-    fi
-    
+    fi    
 EOF
 
 ###
