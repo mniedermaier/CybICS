@@ -1,3 +1,24 @@
+# ICSadventure
+
+Industrial Control Systems (ICS) Adventure - A platform for learning and experimenting with industrial control systems security.
+
+## Project Structure
+
+- `software/` - Software components and applications
+  - `landing/` - Landing page and web interface
+- `hardware/` - Hardware configurations and documentation
+- `training/` - Training materials and exercises
+- `doc/` - Project documentation
+- `tests/` - Test suites and validation scripts
+
+## Getting Started
+
+More information coming soon...
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
 <p align="center">
   <img alt="CybICS Logo" src="doc/pics/CybICS_logo.png" height="120" />
   <p align="center">Understanding industrial Cybersecurity.</p>
