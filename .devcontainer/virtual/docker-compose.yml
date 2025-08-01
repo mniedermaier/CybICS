@@ -27,6 +27,7 @@ services:
     ports:
       - 8080:8080
       - 502:502
+      - 102:102
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.3
@@ -52,7 +53,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - 102:102
+      - 1102:1102
     depends_on:
     - openplc
     networks:
