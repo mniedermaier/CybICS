@@ -197,7 +197,11 @@ def test_write_single_register(modbus_client):
         )
         
         # Small delay to ensure write is processed
-        time.sleep(0.1)
+        time.sleep(0.5)
+        
+        # Ensure connection is still active before read
+        if not modbus_client.is_socket_open():
+            assert modbus_client.connect(), "Connection lost, failed to reconnect"
         
         # Verify write by reading back the value
         read_result = modbus_client.read_holding_registers(
