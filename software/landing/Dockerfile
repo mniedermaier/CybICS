@@ -11,8 +11,8 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p pics
 COPY app.py ./
-COPY pics/CybICS_logo.png pics/CybICS_logo.png
-COPY pics/favicon.ico pics/favicon.ico
-COPY templates/index.html templates/index.html
+COPY ctf_config.json ./
+COPY pics/ pics/
+COPY templates/ templates/
 
 CMD [ "python", "./app.py" ]

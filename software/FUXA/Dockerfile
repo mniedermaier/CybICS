@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     unixodbc-dev \
     && rm -rf /var/lib/apt/lists/*
-RUN npm install -g --unsafe-perm @frangoteam/fuxa@1.2.0
+RUN npm install -g --unsafe-perm @frangoteam/fuxa@1.2.6
 
 WORKDIR /CybICS
 COPY ./ ./

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union
 
 from asyncua.crypto import uacrypto
-from asyncua.server.users import User, UserRole
+from asyncua.server.user_managers import User, UserRole
 
 admin_db =  {
                #'admin1': 'adminpw1'
