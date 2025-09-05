@@ -60,6 +60,18 @@ services:
       br-cybics:
         ipv4_address: 172.18.0.4
 
+  landing:
+    image: localhost:5000/cybics-landing:latest
+    restart: always
+    depends_on:
+    - openplc
+    - fuxa
+    ports:
+      - 80:8081
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.101
+
   stm32:
     image: localhost:5000/cybics-stm32:latest
     privileged: true

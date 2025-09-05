@@ -91,8 +91,8 @@ services:
   landing:
     image: mniedermaier1337/landing:latest
     build:
-      context: ../../software/landing
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: software/landing/Dockerfile
     restart: always
     ports:
       - 80:8081
