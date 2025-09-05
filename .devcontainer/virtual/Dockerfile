@@ -22,6 +22,10 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs
+RUN npm install -g @anthropic-ai/claude-code
+
 RUN python3 -m pip install pymodbus flask asyncua nicegui pytest pytest-asyncio
 
 RUN install -d -m 0755 /etc/apt/keyrings && \

@@ -103,6 +103,7 @@
             {% for service_id, service in services.items() %}
             <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')">{{ service.name }}</button>
             {% endfor %}
+            <a href="/ctf" class="nav-button">🏆 CTF Training</a>
         </nav>
     </header>
 

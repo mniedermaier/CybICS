@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - {{ challenge.title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .challenge-container {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .flag-input {
+            background-color: #404040;
+            border: 1px solid #606060;
+            border-radius: 0.375rem;
+            color: #ffffff;
+            padding: 0.75rem;
+            width: 100%;
+            font-family: monospace;
+        }
+
+        .flag-input:focus {
+            outline: none;
+            border-color: #ff6b00;
+        }
+
+        .submit-button {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .submit-button:hover {
+            background-color: #e55d00;
+        }
+
+        .submit-button:disabled {
+            background-color: #606060;
+            cursor: not-allowed;
+        }
+
+        .back-button {
+            background-color: #404040;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-points {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .badge-solved {
+            background-color: #22c55e;
+            color: #ffffff;
+        }
+
+        .hint-box {
+            background-color: #404040;
+            border-left: 4px solid #ff6b00;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 0.375rem 0.375rem 0;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin: 1rem 0;
+        }
+
+        .message.success {
+            background-color: #1a4d2e;
+            border: 1px solid #22c55e;
+            color: #22c55e;
+        }
+
+        .message.error {
+            background-color: #4d1a1a;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        /* Training content styling */
+        .training-content h1, .training-content h2, .training-content h3, 
+        .training-content h4, .training-content h5, .training-content h6 {
+            color: #ff6b00;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .training-content h1 { font-size: 1.875rem; }
+        .training-content h2 { font-size: 1.5rem; }
+        .training-content h3 { font-size: 1.25rem; }
+        .training-content h4 { font-size: 1.125rem; }
+
+        .training-content p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .training-content ul, .training-content ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .training-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .training-content code {
+            background-color: #1a1a1a;
+            color: #22c55e;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+
+        .training-content pre {
+            background-color: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .training-content pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #22c55e;
+        }
+
+        .training-content blockquote {
+            border-left: 4px solid #ff6b00;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+        }
+
+        .training-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .training-content th, .training-content td {
+            border: 1px solid #404040;
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .training-content th {
+            background-color: #404040;
+            font-weight: bold;
+        }
+
+        .training-content a {
+            color: #ff6b00;
+            text-decoration: underline;
+        }
+
+        .training-content a:hover {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-[#2d2d2d] text-[#ff6b00] p-4 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/ctf" class="back-button">← Back to CTF</a>
+            <h1 class="text-2xl font-bold">{{ challenge.title }}</h1>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <span class="badge badge-points">{{ challenge.points }} pts</span>
+            {% if solved %}
+            <span class="badge badge-solved">✓ Solved</span>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main container -->
+    <main class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Challenge Info -->
+        <div class="challenge-container">
+            <div class="mb-4">
+                <span class="text-[#ff6b00] font-semibold">Category:</span> {{ category.name }}
+            </div>
+            
+            <h2 class="text-xl font-bold mb-4">Challenge Description</h2>
+            <p class="text-gray-300 mb-6 leading-relaxed">{{ challenge.description }}</p>
+            
+            {% if challenge.hint %}
+            <div class="hint-box">
+                <h3 class="font-semibold text-[#ff6b00] mb-2">💡 Hint</h3>
+                <p class="text-gray-300">{{ challenge.hint }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Training Content -->
+        {% if training_content %}
+        <div class="challenge-container">
+            <h2 class="text-xl font-bold mb-4">📚 Training Material</h2>
+            <div class="training-content text-gray-300 leading-relaxed">
+                {{ training_content | safe }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Flag Submission -->
+        <div class="challenge-container">
+            <h2 class="text-xl font-bold mb-4">Submit Flag</h2>
+            
+            {% if solved %}
+            <div class="message success">
+                <strong>🎉 Challenge Completed!</strong><br>
+                You have already solved this challenge and earned {{ challenge.points }} points.
+            </div>
+            {% else %}
+            <div class="mb-4">
+                <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag (format: cybics{...})</label>
+                <input type="text" 
+                       id="flag-input" 
+                       class="flag-input" 
+                       placeholder="cybics{flag_here}"
+                       autocomplete="off">
+            </div>
+            
+            <button id="submit-button" class="submit-button">
+                Submit Flag
+            </button>
+            
+            <div id="message-container"></div>
+            {% endif %}
+        </div>
+
+        <!-- Additional Resources or Files (if needed) -->
+        <div class="challenge-container">
+            <h2 class="text-xl font-bold mb-4">Resources</h2>
+            <p class="text-gray-300">
+                Use the CybICS system tools and your knowledge to solve this challenge. 
+                You may need to analyze logs, network traffic, or system configurations depending on the challenge type.
+            </p>
+            <div class="mt-4">
+                <a href="/" class="back-button">Access System Tools →</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const challengeId = '{{ challenge.id }}';
+        const flagInput = document.getElementById('flag-input');
+        const submitButton = document.getElementById('submit-button');
+        const messageContainer = document.getElementById('message-container');
+
+        function showMessage(message, isSuccess) {
+            messageContainer.innerHTML = `
+                <div class="message ${isSuccess ? 'success' : 'error'}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function submitFlag() {
+            const flag = flagInput.value.trim();
+            
+            if (!flag) {
+                showMessage('Please enter a flag', false);
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+
+            fetch('/ctf/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    challenge_id: challengeId,
+                    flag: flag
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success);
+                
+                if (data.success) {
+                    flagInput.disabled = true;
+                    submitButton.textContent = 'Solved! ✓';
+                    setTimeout(() => {
+                        window.location.href = '/ctf';
+                    }, 2000);
+                } else {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Flag';
+                    flagInput.focus();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('An error occurred. Please try again.', false);
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Flag';
+            });
+        }
+
+        if (submitButton) {
+            submitButton.addEventListener('click', submitFlag);
+        }
+
+        if (flagInput) {
+            flagInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    submitFlag();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
