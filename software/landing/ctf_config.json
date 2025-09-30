@@ -11,7 +11,7 @@
           "title": "Password Attack",
           "description": "Analyze authentication mechanisms and identify weak credentials",
           "points": 150,
-          "flag": "cybics{weak_passwords_are_dangerous}",
+          "flag": "CybICS(Bl0w0ut)",
           "hint": "Look for common passwords in authentication attempts",
           "training_content": "training/password_attack/README.md"
         },

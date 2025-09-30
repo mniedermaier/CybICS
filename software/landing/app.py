@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, session
+from flask import Flask, render_template, jsonify, request, session, send_from_directory
 import logging
 import sys
 import json
@@ -82,14 +82,29 @@ def load_markdown_content(relative_path):
         return ""
     
     # Construct full path relative to the CybICS root directory
-    base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))  # Go up to /CybICS
+    # In container, app.py is at /CybICS/app.py, so we use the current directory as base
+    base_path = os.path.dirname(__file__)  # This is /CybICS
     full_path = os.path.join(base_path, relative_path)
     
     try:
         with open(full_path, 'r', encoding='utf-8') as f:
             markdown_content = f.read()
+            
+            # Preprocess to add markdown="1" attribute to HTML tags that should process markdown
+            import re
+            markdown_content = re.sub(r'<details>', '<details markdown="1">', markdown_content)
+            markdown_content = re.sub(r'<summary>', '<summary markdown="1">', markdown_content)
+            markdown_content = re.sub(r'<div([^>]*)>', r'<div\1 markdown="1">', markdown_content)
+            
             # Convert markdown to HTML with extensions for better formatting
-            html = markdown.markdown(markdown_content, extensions=['fenced_code', 'tables', 'nl2br'])
+            html = markdown.markdown(markdown_content, extensions=[
+                'fenced_code', 
+                'codehilite', 
+                'tables', 
+                'nl2br', 
+                'extra',
+                'md_in_html'
+            ])
             return html
     except FileNotFoundError:
         logger.warning(f"Training content file not found: {full_path}")
@@ -253,6 +268,43 @@ def reset_progress():
     except Exception as e:
         logger.error(f"Failed to reset progress: {e}")
         return jsonify({'success': False, 'message': 'Failed to reset progress'})
+
+@app.route('/training/<path:filename>')
+def serve_training_file(filename):
+    """Serve training files including images"""
+    training_dir = os.path.join(os.path.dirname(__file__), 'training')
+    return send_from_directory(training_dir, filename)
+
+@app.route('/ctf/challenge/<challenge_id>/<path:filename>')
+def serve_challenge_asset(challenge_id, filename):
+    """Serve challenge assets like images"""
+    training_dir = os.path.join(os.path.dirname(__file__), 'training', challenge_id)
+    return send_from_directory(training_dir, filename)
+
+@app.route('/ctf/challenge/doc/<path:filename>')
+def serve_challenge_doc_asset(filename):
+    """Serve challenge doc assets like images from doc/ folder"""
+    # Check the referer header to determine which challenge we're in
+    referer = request.headers.get('Referer', '')
+    if '/ctf/challenge/' in referer:
+        challenge_id = referer.split('/ctf/challenge/')[-1].split('/')[0].split('?')[0]
+        training_dir = os.path.join(os.path.dirname(__file__), 'training', challenge_id, 'doc')
+        try:
+            return send_from_directory(training_dir, filename)
+        except:
+            pass
+    
+    # Fallback: try to find the file in any training directory's doc folder
+    training_base = os.path.join(os.path.dirname(__file__), 'training')
+    for challenge_dir in os.listdir(training_base):
+        doc_path = os.path.join(training_base, challenge_dir, 'doc')
+        if os.path.isdir(doc_path):
+            try:
+                return send_from_directory(doc_path, filename)
+            except:
+                continue
+    
+    return "File not found", 404
 
 if __name__ == '__main__':
     logger.info('Starting Flask application')

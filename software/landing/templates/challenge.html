@@ -135,6 +135,57 @@
             color: #ef4444;
         }
 
+        /* Code block styling */
+        .training-content pre {
+            background-color: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .training-content code {
+            background-color: #404040;
+            color: #ff6b00;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .training-content pre code {
+            background-color: transparent;
+            color: #ffffff;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        /* Details/Summary styling */
+        .training-content details {
+            background-color: #404040;
+            border: 1px solid #606060;
+            border-radius: 0.375rem;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .training-content summary {
+            background-color: #505050;
+            padding: 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #606060;
+            font-weight: bold;
+        }
+
+        .training-content details[open] summary {
+            border-bottom: 1px solid #606060;
+        }
+
+        .training-content details > *:not(summary) {
+            padding: 1rem;
+        }
+
         /* Training content styling */
         .training-content h1, .training-content h2, .training-content h3, 
         .training-content h4, .training-content h5, .training-content h6 {
@@ -277,7 +328,7 @@
             </div>
             {% else %}
             <div class="mb-4">
-                <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag (format: cybics{...})</label>
+                <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag (format: CybICS(...))</label>
                 <input type="text" 
                        id="flag-input" 
                        class="flag-input" 

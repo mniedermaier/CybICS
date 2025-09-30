@@ -7,14 +7,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
     
 WORKDIR /CybICS
+
+# Create directories first
+RUN mkdir -p training pics data
+
+# Copy files (assuming root build context)
 COPY software/landing/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-RUN mkdir -p pics
-RUN mkdir -p data
+
 COPY software/landing/app.py ./
 COPY software/landing/ctf_config.json ./
 COPY software/landing/pics/ pics/
 COPY software/landing/templates/ templates/
+
+# Copy training content from root
 COPY training/ training/
 
 CMD [ "python", "./app.py" ]
