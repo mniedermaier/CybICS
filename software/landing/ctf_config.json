@@ -2,100 +2,142 @@
   "title": "CybICS CTF Training",
   "description": "Industrial Control Systems Security Training Platform",
   "categories": {
-    "basic_security": {
-      "name": "Basic Security",
-      "description": "Fundamental security concepts and practices",
-      "challenges": [
-        {
-          "id": "password_attack",
-          "title": "Password Attack",
-          "description": "Analyze authentication mechanisms and identify weak credentials",
-          "points": 150,
-          "flag": "CybICS(Bl0w0ut)",
-          "hint": "Look for common passwords in authentication attempts",
-          "training_content": "training/password_attack/README.md"
-        },
-        {
-          "id": "scanning",
-          "title": "Network Scanning",
-          "description": "Perform network reconnaissance to identify services and vulnerabilities",
-          "points": 100,
-          "flag": "cybics{network_reconnaissance_complete}",
-          "hint": "Use network scanning tools to discover open ports and services",
-          "training_content": "training/scanning/README.md"
-        },
-        {
-          "id": "wireshark_capture", 
-          "title": "Network Traffic Analysis",
-          "description": "Analyze network packets to find suspicious communications",
-          "points": 200,
-          "flag": "cybics{packet_analysis_successful}",
-          "hint": "Look for unusual protocols or data patterns in network traffic",
-          "training_content": "training/wireshark_capture/README.md"
-        }
-      ]
-    },
-    "industrial_systems": {
-      "name": "Industrial Control Systems",
-      "description": "Security challenges specific to ICS/SCADA environments",
+    "basic_understanding": {
+      "name": "🏭 Basic Understanding",
+      "description": "Fundamental understanding of industrial processes and control systems",
       "challenges": [
         {
           "id": "physical_process",
-          "title": "Physical Process Manipulation",
-          "description": "Understand and manipulate industrial processes through HMI interfaces",
-          "points": 250,
-          "flag": "cybics{process_manipulation_detected}",
+          "title": "Understanding the Physical Process",
+          "description": "Learn about industrial processes and control systems",
+          "points": 100,
+          "flag": "CybICS(Bl0w0ut)",
           "hint": "Examine the physical process simulation and look for anomalies",
           "training_content": "training/physical_process/README.md"
         },
         {
           "id": "plc_programming",
-          "title": "PLC Programming Analysis",
-          "description": "Analyze and modify PLC ladder logic programs",
-          "points": 300,
-          "flag": "cybics{ladder_logic_modified}",
+          "title": "PLC Programming",
+          "description": "Introduction to PLC programming and control logic",
+          "points": 150,
+          "flag": "CybICS(ladder_logic_modified)",
           "hint": "Look for backdoors or unauthorized modifications in the ladder logic",
           "training_content": "training/plc_programming/README.md"
-        },
-        {
-          "id": "opcua",
-          "title": "OPC-UA Security",
-          "description": "Exploit OPC-UA communication and authentication mechanisms",
-          "points": 200,
-          "flag": "cybics{opcua_credentials_compromised}",
-          "hint": "Check for default credentials or weak authentication",
-          "training_content": "training/opcua/README.md"
         }
       ]
     },
-    "advanced_attacks": {
-      "name": "Advanced Attack Techniques",
-      "description": "Sophisticated attack vectors and mitigation strategies",
+    "network_analysis": {
+      "name": "🔍 Network Analysis",
+      "description": "Network reconnaissance and traffic analysis techniques",
+      "challenges": [
+        {
+          "id": "scanning",
+          "title": "Service Scanning",
+          "description": "Discover network services and open ports",
+          "points": 100,
+          "flag": "CybICS(network_reconnaissance_complete)",
+          "hint": "Use network scanning tools to discover open ports and services",
+          "training_content": "training/scanning/README.md"
+        },
+        {
+          "id": "scanning2",
+          "title": "S7comm Scanning",
+          "description": "Analyze Siemens S7 communication",
+          "points": 150,
+          "flag": "CybICS(s7comm_analysis_complete)",
+          "hint": "Focus on Siemens S7 protocol communication patterns",
+          "training_content": "training/scanning2/README.md"
+        },
+        {
+          "id": "wireshark_capture", 
+          "title": "Wireshark Capture",
+          "description": "Learn network traffic analysis",
+          "points": 200,
+          "flag": "CybICS(packet_analysis_successful)",
+          "hint": "Look for unusual protocols or data patterns in network traffic",
+          "training_content": "training/wireshark_capture/README.md"
+        }
+      ]
+    },
+    "security_testing": {
+      "name": "🛡️ Security Testing",
+      "description": "Test system resilience and security mechanisms",
+      "challenges": [
+        {
+          "id": "flood_overwrite",
+          "title": "Flood & Overwrite",
+          "description": "Test system resilience against flooding attacks",
+          "points": 200,
+          "flag": "CybICS(flood_attack_successful)",
+          "hint": "Overwhelm the system with excessive requests or data",
+          "training_content": "training/flood_overwrite/README.md"
+        },
+        {
+          "id": "password_attack",
+          "title": "Password Attack",
+          "description": "Practice password security testing",
+          "points": 150,
+          "flag": "CybICS(weak_passwords_are_dangerous)",
+          "hint": "Look for common passwords in authentication attempts",
+          "training_content": "training/password_attack/README.md"
+        },
+        {
+          "id": "opcua",
+          "title": "OPC-UA",
+          "description": "Explore OPC-UA protocol security",
+          "points": 250,
+          "flag": "CybICS(opcua_credentials_compromised)",
+          "hint": "Check for default credentials or weak authentication",
+          "training_content": "training/opcua/README.md"
+        },
+        {
+          "id": "fuzzingMB",
+          "title": "Fuzzing Modbus",
+          "description": "Test Modbus protocol robustness",
+          "points": 300,
+          "flag": "CybICS(modbus_fuzzing_complete)",
+          "hint": "Send malformed or unexpected data to test protocol handling",
+          "training_content": "training/fuzzingMB/README.md"
+        }
+      ]
+    },
+    "advanced_security": {
+      "name": "🔐 Advanced Security",
+      "description": "Advanced security techniques and detection methods",
       "challenges": [
         {
           "id": "mitm",
-          "title": "Man-in-the-Middle Attack",
-          "description": "Perform network interception and protocol manipulation",
+          "title": "Man-in-the-Middle (MitM)",
+          "description": "Learn about network interception",
           "points": 350,
-          "flag": "cybics{mitm_attack_successful}",
+          "flag": "CybICS(mitm_attack_successful)",
           "hint": "Position yourself between communicating devices",
           "training_content": "training/mitm/README.md"
         },
         {
           "id": "uart_basic",
-          "title": "UART Communication Analysis",
-          "description": "Analyze and exploit UART serial communications",
-          "points": 250,
-          "flag": "cybics{uart_communication_intercepted}",
+          "title": "UART Training Guide (Hardware Required)",
+          "description": "Hardware-level communication",
+          "points": 300,
+          "flag": "CybICS(uart_communication_intercepted)",
           "hint": "Monitor serial communications for credentials or commands",
           "training_content": "training/uart_basic/README.md"
         },
         {
+          "id": "detect_basic",
+          "title": "Detect Basic",
+          "description": "Basic intrusion detection",
+          "points": 250,
+          "flag": "CybICS(basic_detection_complete)",
+          "hint": "Identify basic attack patterns and signatures",
+          "training_content": "training/detect_basic/README.md"
+        },
+        {
           "id": "detect_overwrite",
-          "title": "Detection Evasion",
-          "description": "Evade security monitoring and detection systems",
+          "title": "Detect Overwrite",
+          "description": "Advanced detection techniques",
           "points": 400,
-          "flag": "cybics{detection_evasion_complete}",
+          "flag": "CybICS(detection_evasion_complete)",
           "hint": "Understand how security systems detect attacks and find ways to bypass them",
           "training_content": "training/detect_overwrite/README.md"
         }
