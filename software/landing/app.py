@@ -23,6 +23,13 @@ layout_state = {
     'card_sizes': {}
 }
 
+# CTF progress file path
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+PROGRESS_FILE = os.path.join(DATA_DIR, 'ctf_progress.json')
+
+# Ensure data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
+
 # Service configurations
 services = {
     'openplc': {
@@ -95,11 +102,43 @@ def load_markdown_content(relative_path):
 ctf_config = load_ctf_config()
 ctf_challenges = ctf_config.get('categories', {})
 
-def initialize_session():
+def load_progress():
+    """Load CTF progress from file"""
+    try:
+        if os.path.exists(PROGRESS_FILE):
+            with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning(f"Could not load progress file: {e}")
+    
+    return {'solved_challenges': [], 'total_points': 0}
+
+def save_progress(progress):
+    """Save CTF progress to file"""
+    try:
+        with open(PROGRESS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(progress, f, indent=2)
+        logger.info(f"Progress saved: {len(progress['solved_challenges'])} challenges, {progress['total_points']} points")
+    except Exception as e:
+        logger.error(f"Failed to save progress: {e}")
+
+def get_current_progress():
+    """Get current progress from session or load from file"""
     if 'solved_challenges' not in session:
-        session['solved_challenges'] = []
-    if 'total_points' not in session:
-        session['total_points'] = 0
+        progress = load_progress()
+        session['solved_challenges'] = progress['solved_challenges']
+        session['total_points'] = progress['total_points']
+    
+    return {
+        'solved_challenges': session['solved_challenges'],
+        'total_points': session['total_points']
+    }
+
+def initialize_session():
+    """Initialize session with persistent data"""
+    progress = load_progress()
+    session['solved_challenges'] = progress['solved_challenges']
+    session['total_points'] = progress['total_points']
 
 @app.route('/ctf')
 def ctf_page():
@@ -166,6 +205,14 @@ def submit_flag():
         session['solved_challenges'].append(challenge_id)
         session['total_points'] += challenge['points']
         session.modified = True
+        
+        # Save progress to file
+        progress = {
+            'solved_challenges': session['solved_challenges'],
+            'total_points': session['total_points']
+        }
+        save_progress(progress)
+        
         return jsonify({'success': True, 'message': f'Correct! You earned {challenge["points"]} points!'})
     else:
         return jsonify({'success': False, 'message': 'Incorrect flag. Try again!'})
@@ -184,6 +231,28 @@ def ctf_progress():
         'max_points': max_points,
         'progress_percentage': (solved_count / total_challenges * 100) if total_challenges > 0 else 0
     })
+
+@app.route('/ctf/reset', methods=['POST'])
+def reset_progress():
+    """Reset CTF progress"""
+    try:
+        # Clear session
+        session['solved_challenges'] = []
+        session['total_points'] = 0
+        session.modified = True
+        
+        # Save empty progress to file
+        progress = {
+            'solved_challenges': [],
+            'total_points': 0
+        }
+        save_progress(progress)
+        
+        logger.info("CTF progress has been reset")
+        return jsonify({'success': True, 'message': 'Progress has been reset successfully!'})
+    except Exception as e:
+        logger.error(f"Failed to reset progress: {e}")
+        return jsonify({'success': False, 'message': 'Failed to reset progress'})
 
 if __name__ == '__main__':
     logger.info('Starting Flask application')

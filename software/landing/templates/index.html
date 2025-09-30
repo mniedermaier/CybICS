@@ -42,7 +42,8 @@
             border-radius: 0.5rem;
             overflow: hidden;
             height: calc(100vh - 96px);
-            min-width: 400px;
+            min-width: 300px;
+            max-width: calc(50vw - 24px);
             flex: 1;
         }
 
@@ -66,7 +67,7 @@
         .service-iframe {
             flex: 1;
             width: 100%;
-            height: calc(100vh - 160px);
+            height: 100%;
             border: none;
             background-color: #2d2d2d;
         }
@@ -110,7 +111,7 @@
     <!-- Main container -->
     <main class="h-screen pt-16">
         <!-- Service cards container -->
-        <div class="h-full p-4 gap-4 flex flex-wrap">
+        <div class="h-full p-2 gap-2 flex flex-wrap">
             {% for service_id, service in services.items() %}
             <div id="{{ service_id }}-card" class="service-card">
                 <div class="service-header">

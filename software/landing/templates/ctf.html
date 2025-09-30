@@ -116,9 +116,12 @@
             <h1 class="text-2xl font-bold">{{ config.title or 'CybICS CTF Training' }}</h1>
         </div>
         
-        <div class="text-right">
-            <div class="text-lg font-bold">{{ total_points }} Points</div>
-            <div class="text-sm opacity-75">{{ solved|length }}/{{ challenges.values()|map(attribute='challenges')|map('length')|sum }} Challenges</div>
+        <div class="text-right flex items-center gap-4">
+            <button id="reset-btn" class="back-button bg-red-600 border-red-600 hover:bg-red-700" onclick="resetProgress()">Reset Progress</button>
+            <div>
+                <div class="text-lg font-bold">{{ total_points }} Points</div>
+                <div class="text-sm opacity-75">{{ solved|length }}/{{ challenges.values()|map(attribute='challenges')|map('length')|sum }} Challenges</div>
+            </div>
         </div>
     </header>
 
@@ -172,5 +175,31 @@
         </div>
         {% endfor %}
     </main>
+
+    <script>
+        function resetProgress() {
+            if (confirm('Are you sure you want to reset all CTF progress? This action cannot be undone.')) {
+                fetch('/ctf/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resetting progress.');
+                });
+            }
+        }
+    </script>
 </body>
 </html>

@@ -10,6 +10,7 @@ WORKDIR /CybICS
 COPY software/landing/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p pics
+RUN mkdir -p data
 COPY software/landing/app.py ./
 COPY software/landing/ctf_config.json ./
 COPY software/landing/pics/ pics/
