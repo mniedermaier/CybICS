@@ -118,13 +118,13 @@
                 <div class="service-header">
                     <h2 class="text-lg font-bold">{{ service.name }}</h2>
                 </div>
-                <iframe 
-                    src="{{ service.url }}" 
+                <iframe
                     class="service-iframe"
                     title="{{ service.name }}"
                     allow="fullscreen"
                     allowfullscreen="true"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    data-port="{{ service.port }}"
                 ></iframe>
             </div>
             {% endfor %}
@@ -134,6 +134,15 @@
     <script>
         // Store service IDs in a JavaScript array
         const serviceIds = [{% for service_id in services.keys() %}'{{ service_id }}',{% endfor %}];
+
+        // Set iframe src dynamically using current hostname
+        document.addEventListener('DOMContentLoaded', function() {
+            const hostname = window.location.hostname;
+            document.querySelectorAll('.service-iframe').forEach(iframe => {
+                const port = iframe.getAttribute('data-port');
+                iframe.src = `http://${hostname}:${port}`;
+            });
+        });
 
         function updateView(view) {
             // Update button styles

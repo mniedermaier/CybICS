@@ -30,21 +30,18 @@ PROGRESS_FILE = os.path.join(DATA_DIR, 'ctf_progress.json')
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Service configurations
+# Service configurations (port only, URL built dynamically in template)
 services = {
     'openplc': {
         'name': 'OpenPLC',
-        'url': 'http://localhost:8080',
         'port': 8080
     },
     'fuxa': {
         'name': 'FUXA',
-        'url': 'http://localhost:1881',
         'port': 1881
     },
     'vhardware': {
         'name': 'Virtual Hardware IO',
-        'url': 'http://localhost:8090',
         'port': 8090
     }
 }
