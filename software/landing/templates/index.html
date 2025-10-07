@@ -73,6 +73,42 @@
             background-color: #2d2d2d;
         }
 
+        .service-error {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            background-color: #2d2d2d;
+        }
+
+        .service-error.visible {
+            display: flex;
+        }
+
+        .service-iframe.hidden {
+            display: none;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .error-message {
+            color: #ff6b00;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-details {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
         .nav-button {
             background-color: #404040;
             color: #ff6b00;
@@ -119,13 +155,23 @@
                     <h2 class="text-lg font-bold">{{ service.name }}</h2>
                 </div>
                 <iframe
+                    id="{{ service_id }}-iframe"
                     class="service-iframe"
                     title="{{ service.name }}"
                     allow="fullscreen"
                     allowfullscreen="true"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                     data-port="{{ service.port }}"
+                    data-service="{{ service_id }}"
                 ></iframe>
+                <div id="{{ service_id }}-error" class="service-error">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-message">Service Unavailable</div>
+                    <div class="error-details">{{ service.name }} is not responding</div>
+                    <div class="error-details" style="margin-top: 1rem;">
+                        <span id="{{ service_id }}-url"></span>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -140,7 +186,30 @@
             const hostname = window.location.hostname;
             document.querySelectorAll('.service-iframe').forEach(iframe => {
                 const port = iframe.getAttribute('data-port');
-                iframe.src = `http://${hostname}:${port}`;
+                const serviceId = iframe.getAttribute('data-service');
+                const url = `http://${hostname}:${port}`;
+
+                // Set the URL in the error message
+                document.getElementById(`${serviceId}-url`).textContent = url;
+
+                // Try to load the iframe
+                iframe.src = url;
+
+                // Set up error detection with timeout
+                let loaded = false;
+
+                iframe.addEventListener('load', function() {
+                    loaded = true;
+                });
+
+                // Check after 5 seconds if iframe loaded
+                setTimeout(function() {
+                    if (!loaded) {
+                        // Show error, hide iframe
+                        iframe.classList.add('hidden');
+                        document.getElementById(`${serviceId}-error`).classList.add('visible');
+                    }
+                }, 5000);
             });
         });
 

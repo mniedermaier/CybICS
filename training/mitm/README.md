@@ -50,5 +50,10 @@ The flag has the format `CybICS(flag)`.
 
 <details>
   <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
-  <!-- Add solution steps or screenshots here -->
+  
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(mitm_attack_successful)
+  </div>
+
 </details>

@@ -49,3 +49,15 @@ The countHeartbeat variable is used for timing purposes, and the program is conf
 ## ⬆️ Uploading the Program
 Upload the program to the OpenPLC via the web interface on port 8080.
 Do not forget to delete the previous CybICS ST code.
+
+
+<details>
+  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(ladder_logic_modified)
+  </div>
+
+</details>
+

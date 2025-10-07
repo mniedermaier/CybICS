@@ -59,4 +59,11 @@ python3 override.py <DEVICE_IP>
 
   #### 📊 IO Graphs
   Use Wireshark's IO Graphs to visualize the traffic over time. A spike in the number of write requests is a strong indicator of flooding.
+
+    <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(detection_evasion_complete)
+  </div>
 </details>
