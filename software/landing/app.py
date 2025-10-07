@@ -51,6 +51,10 @@ logger.info('Starting application with services: %s', list(services.keys()))
 app = Flask(__name__)
 app.secret_key = 'cybics_ctf_secret_key_change_in_production'
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'pics'), 'favicon.ico', mimetype='image/x-icon')
+
 @app.route('/')
 def main_page():
     logger.info('Rendering main page')
