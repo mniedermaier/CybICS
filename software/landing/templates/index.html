@@ -195,12 +195,9 @@
                 // Set the URL in the error message
                 document.getElementById(`${serviceId}-url`).textContent = url;
 
-                // Try to load the iframe
-                iframe.src = url;
-
                 // Set up error detection
-                let loaded = false;
                 let errorShown = false;
+                let checkStarted = false;
 
                 function showError() {
                     if (!errorShown) {
@@ -210,45 +207,80 @@
                     }
                 }
 
-                iframe.addEventListener('load', function() {
-                    loaded = true;
-                    // Check if iframe loaded an error page by trying to access content
-                    try {
-                        // Try to check if we got a valid page
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        // If we can't access it or it looks like an error, show error
-                        if (!iframeDoc || iframeDoc.title.includes('refused') || iframeDoc.body.textContent.includes('refused')) {
-                            showError();
-                        }
-                    } catch (e) {
-                        // Cross-origin error means we loaded something, so it's probably OK
-                        // But if we get other errors, we should show the error view
-                    }
-                });
+                // Use fetch to check if service is available before loading iframe
+                fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                    .then(() => {
+                        // Service appears to be available, load the iframe
+                        iframe.src = url;
+                        checkStarted = true;
+
+                        // Still check after a timeout in case the page doesn't load
+                        setTimeout(function() {
+                            try {
+                                // Try to access iframe document
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!iframeDoc || iframeDoc.readyState !== 'complete') {
+                                    showError();
+                                }
+                            } catch (e) {
+                                // Cross-origin means page loaded successfully
+                            }
+                        }, 5000);
+                    })
+                    .catch(() => {
+                        // Service is not available
+                        showError();
+                    });
 
                 iframe.addEventListener('error', function() {
                     showError();
                 });
-
-                // Check after 30 seconds if iframe loaded
-                setTimeout(function() {
-                    if (!loaded) {
-                        showError();
-                    }
-                }, 30000);
             });
         });
 
         function refreshService(serviceId) {
             const iframe = document.getElementById(`${serviceId}-iframe`);
             const errorDiv = document.getElementById(`${serviceId}-error`);
+            const port = iframe.getAttribute('data-port');
+            const hostname = window.location.hostname;
+            const url = `http://${hostname}:${port}`;
 
-            // Hide error, show iframe
+            // Hide error temporarily
             errorDiv.classList.remove('visible');
             iframe.classList.remove('hidden');
 
-            // Reload iframe
-            iframe.src = iframe.src;
+            let errorShown = false;
+
+            function showError() {
+                if (!errorShown) {
+                    errorShown = true;
+                    iframe.classList.add('hidden');
+                    errorDiv.classList.add('visible');
+                }
+            }
+
+            // Use fetch to check if service is available before loading iframe
+            fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                .then(() => {
+                    // Service appears to be available, reload the iframe
+                    iframe.src = url;
+
+                    // Still check after a timeout in case the page doesn't load
+                    setTimeout(function() {
+                        try {
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            if (!iframeDoc || iframeDoc.readyState !== 'complete') {
+                                showError();
+                            }
+                        } catch (e) {
+                            // Cross-origin means page loaded successfully
+                        }
+                    }, 5000);
+                })
+                .catch(() => {
+                    // Service is still not available
+                    showError();
+                });
         }
 
         function updateView(view) {
