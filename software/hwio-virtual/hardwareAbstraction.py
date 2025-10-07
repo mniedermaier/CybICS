@@ -115,7 +115,7 @@ if __name__ == "__main__":
       )
 
       # Overlay Display
-      DISPLAYoverlay1 = ui.label('CybICS v1.0.0').style(
+      DISPLAYoverlay1 = ui.label('CybICS v1.1.0').style(
         'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
         'background-color: transparent; font-size: 40px;'
         'display: block;'

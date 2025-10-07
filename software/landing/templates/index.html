@@ -171,6 +171,9 @@
                     <div class="error-details" style="margin-top: 1rem;">
                         <span id="{{ service_id }}-url"></span>
                     </div>
+                    <button onclick="refreshService('{{ service_id }}')" class="nav-button" style="margin-top: 1rem;">
+                        🔄 Refresh
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -195,23 +198,58 @@
                 // Try to load the iframe
                 iframe.src = url;
 
-                // Set up error detection with timeout
+                // Set up error detection
                 let loaded = false;
+                let errorShown = false;
 
-                iframe.addEventListener('load', function() {
-                    loaded = true;
-                });
-
-                // Check after 5 seconds if iframe loaded
-                setTimeout(function() {
-                    if (!loaded) {
-                        // Show error, hide iframe
+                function showError() {
+                    if (!errorShown) {
+                        errorShown = true;
                         iframe.classList.add('hidden');
                         document.getElementById(`${serviceId}-error`).classList.add('visible');
                     }
-                }, 5000);
+                }
+
+                iframe.addEventListener('load', function() {
+                    loaded = true;
+                    // Check if iframe loaded an error page by trying to access content
+                    try {
+                        // Try to check if we got a valid page
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        // If we can't access it or it looks like an error, show error
+                        if (!iframeDoc || iframeDoc.title.includes('refused') || iframeDoc.body.textContent.includes('refused')) {
+                            showError();
+                        }
+                    } catch (e) {
+                        // Cross-origin error means we loaded something, so it's probably OK
+                        // But if we get other errors, we should show the error view
+                    }
+                });
+
+                iframe.addEventListener('error', function() {
+                    showError();
+                });
+
+                // Check after 30 seconds if iframe loaded
+                setTimeout(function() {
+                    if (!loaded) {
+                        showError();
+                    }
+                }, 30000);
             });
         });
+
+        function refreshService(serviceId) {
+            const iframe = document.getElementById(`${serviceId}-iframe`);
+            const errorDiv = document.getElementById(`${serviceId}-error`);
+
+            // Hide error, show iframe
+            errorDiv.classList.remove('visible');
+            iframe.classList.remove('hidden');
+
+            // Reload iframe
+            iframe.src = iframe.src;
+        }
 
         function updateView(view) {
             // Update button styles
