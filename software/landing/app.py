@@ -4,6 +4,12 @@ import sys
 import json
 import os
 import markdown
+import psutil
+import docker
+from datetime import datetime
+from collections import deque
+import threading
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -50,6 +56,42 @@ logger.info('Starting application with services: %s', list(services.keys()))
 
 app = Flask(__name__)
 app.secret_key = 'cybics_ctf_secret_key_change_in_production'
+
+# Historical data storage (keep 1 hour of data at 5-second intervals = 720 data points)
+HISTORY_MAX_LENGTH = 720
+stats_history = {
+    'timestamps': deque(maxlen=HISTORY_MAX_LENGTH),
+    'cpu': deque(maxlen=HISTORY_MAX_LENGTH),
+    'memory': deque(maxlen=HISTORY_MAX_LENGTH),
+    'disk': deque(maxlen=HISTORY_MAX_LENGTH)
+}
+history_lock = threading.Lock()
+
+def collect_stats_history():
+    """Background thread to collect stats every 5 seconds"""
+    while True:
+        try:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory_percent = psutil.virtual_memory().percent
+            disk_percent = psutil.disk_usage('/').percent
+            timestamp = datetime.now().isoformat()
+
+            with history_lock:
+                stats_history['timestamps'].append(timestamp)
+                stats_history['cpu'].append(round(cpu_percent, 2))
+                stats_history['memory'].append(round(memory_percent, 2))
+                stats_history['disk'].append(round(disk_percent, 2))
+
+            logger.debug(f"Stats history collected: CPU={cpu_percent}%, MEM={memory_percent}%, DISK={disk_percent}%")
+        except Exception as e:
+            logger.error(f"Error collecting stats history: {e}")
+
+        time.sleep(5)
+
+# Start background stats collection thread
+stats_thread = threading.Thread(target=collect_stats_history, daemon=True)
+stats_thread.start()
+logger.info("Started background stats collection thread")
 
 @app.route('/favicon.ico')
 def favicon():
@@ -306,6 +348,148 @@ def serve_challenge_doc_asset(filename):
                 continue
     
     return "File not found", 404
+
+@app.route('/stats')
+def stats_page():
+    logger.info('Rendering stats page')
+    return render_template('stats.html')
+
+@app.route('/api/stats/history')
+def get_stats_history():
+    """Get historical stats data for the past hour"""
+    try:
+        with history_lock:
+            return jsonify({
+                'timestamps': list(stats_history['timestamps']),
+                'cpu': list(stats_history['cpu']),
+                'memory': list(stats_history['memory']),
+                'disk': list(stats_history['disk'])
+            })
+    except Exception as e:
+        logger.error(f"Error getting stats history: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats')
+def get_stats():
+    """Get current system and Docker container statistics"""
+    try:
+        # Get CPU usage
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        cpu_count = psutil.cpu_count()
+
+        # Get memory usage
+        memory = psutil.virtual_memory()
+        memory_total = memory.total / (1024 ** 3)  # GB
+        memory_used = memory.used / (1024 ** 3)  # GB
+        memory_percent = memory.percent
+
+        # Get disk usage
+        disk = psutil.disk_usage('/')
+        disk_total = disk.total / (1024 ** 3)  # GB
+        disk_used = disk.used / (1024 ** 3)  # GB
+        disk_percent = disk.percent
+
+        # Get system uptime
+        boot_time = psutil.boot_time()
+        uptime_seconds = datetime.now().timestamp() - boot_time
+        uptime_days = int(uptime_seconds // 86400)
+        uptime_hours = int((uptime_seconds % 86400) // 3600)
+        uptime_minutes = int((uptime_seconds % 3600) // 60)
+
+        # Get Docker container stats
+        containers_info = []
+        try:
+            # Connect to Docker via Unix socket
+            docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
+            containers = docker_client.containers.list()
+
+            logger.info(f"Found {len(containers)} running containers")
+
+            for container in containers:
+                logger.debug(f"Checking container: {container.name}")
+                # Filter for CybICS-related containers (virtual-*, raspberry-*, or cybics*)
+                # Skip buildkit and registry containers
+                container_name_lower = container.name.lower()
+                if not (container_name_lower.startswith('virtual-') or
+                        container_name_lower.startswith('raspberry-') or
+                        'cybics' in container_name_lower):
+                    logger.debug(f"Skipping container {container.name} (not a CybICS service)")
+                    continue
+
+                # Skip buildkit and registry containers
+                if 'buildkit' in container_name_lower or container_name_lower.endswith('-registry-1'):
+                    logger.debug(f"Skipping utility container {container.name}")
+                    continue
+
+                logger.info(f"Processing CybICS container: {container.name}")
+                try:
+                    stats = container.stats(stream=False)
+
+                    # Calculate CPU usage
+                    cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - \
+                                stats['precpu_stats']['cpu_usage']['total_usage']
+                    system_delta = stats['cpu_stats']['system_cpu_usage'] - \
+                                   stats['precpu_stats']['system_cpu_usage']
+                    cpu_percent_container = 0.0
+                    if system_delta > 0:
+                        cpu_percent_container = (cpu_delta / system_delta) * len(stats['cpu_stats']['cpu_usage'].get('percpu_usage', [1])) * 100.0
+
+                    # Calculate memory usage
+                    mem_usage = stats['memory_stats'].get('usage', 0) / (1024 ** 2)  # MB
+                    mem_limit = stats['memory_stats'].get('limit', 1) / (1024 ** 2)  # MB
+                    mem_percent_container = (mem_usage / mem_limit * 100) if mem_limit > 0 else 0
+
+                    # Get network stats
+                    networks = stats.get('networks', {})
+                    rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
+                    tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
+
+                    containers_info.append({
+                        'name': container.name,
+                        'id': container.short_id,
+                        'status': container.status,
+                        'cpu_percent': round(cpu_percent_container, 2),
+                        'memory_usage_mb': round(mem_usage, 2),
+                        'memory_limit_mb': round(mem_limit, 2),
+                        'memory_percent': round(mem_percent_container, 2),
+                        'network_rx_mb': round(rx_bytes, 2),
+                        'network_tx_mb': round(tx_bytes, 2),
+                        'image': container.image.tags[0] if container.image.tags else container.image.short_id
+                    })
+                except Exception as e:
+                    logger.warning(f"Error getting stats for container {container.name}: {e}")
+                    continue
+
+        except Exception as e:
+            logger.warning(f"Error connecting to Docker: {e}")
+
+        return jsonify({
+            'timestamp': datetime.now().isoformat(),
+            'uptime': {
+                'days': uptime_days,
+                'hours': uptime_hours,
+                'minutes': uptime_minutes,
+                'total_seconds': int(uptime_seconds)
+            },
+            'cpu': {
+                'percent': round(cpu_percent, 2),
+                'count': cpu_count
+            },
+            'memory': {
+                'total_gb': round(memory_total, 2),
+                'used_gb': round(memory_used, 2),
+                'percent': round(memory_percent, 2)
+            },
+            'disk': {
+                'total_gb': round(disk_total, 2),
+                'used_gb': round(disk_used, 2),
+                'percent': round(disk_percent, 2)
+            },
+            'containers': containers_info
+        })
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     logger.info('Starting Flask application')
