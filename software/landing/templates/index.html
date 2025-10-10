@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - Industrial Control Systems</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .service-card {
+            display: flex;
+            flex-direction: column;
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            height: calc(100vh - 96px);
+            min-width: 300px;
+            max-width: calc(50vw - 24px);
+            flex: 1;
+        }
+
+        .service-card.hidden {
+            display: none;
+        }
+
+        .service-card.full-width {
+            width: 100%;
+            max-width: none;
+        }
+
+        .service-header {
+            background-color: #404040;
+            color: #ff6b00;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .service-iframe {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #2d2d2d;
+        }
+
+        .service-error {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            background-color: #2d2d2d;
+        }
+
+        .service-error.visible {
+            display: flex;
+        }
+
+        .service-iframe.hidden {
+            display: none;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .error-message {
+            color: #ff6b00;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-details {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .nav-button {
+            background-color: #404040;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .nav-button.active {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-[#2d2d2d] text-[#ff6b00] p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
+        <h1 class="text-2xl font-bold">CybICS</h1>
+        
+        <!-- Navigation menu -->
+        <nav class="flex gap-4">
+            <button id="all-btn" class="nav-button active" onclick="updateView('all')">All</button>
+            {% for service_id, service in services.items() %}
+            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')">{{ service.name }}</button>
+            {% endfor %}
+            <a href="/ctf" class="nav-button">🏆 CTF Training</a>
+        </nav>
+    </header>
+
+    <!-- Main container -->
+    <main class="h-screen pt-16">
+        <!-- Service cards container -->
+        <div class="h-full p-2 gap-2 flex flex-wrap">
+            {% for service_id, service in services.items() %}
+            <div id="{{ service_id }}-card" class="service-card">
+                <div class="service-header">
+                    <h2 class="text-lg font-bold">{{ service.name }}</h2>
+                </div>
+                <iframe
+                    id="{{ service_id }}-iframe"
+                    class="service-iframe"
+                    title="{{ service.name }}"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    data-port="{{ service.port }}"
+                    data-service="{{ service_id }}"
+                ></iframe>
+                <div id="{{ service_id }}-error" class="service-error">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-message">Service Unavailable</div>
+                    <div class="error-details">{{ service.name }} is not responding</div>
+                    <div class="error-details" style="margin-top: 1rem;">
+                        <span id="{{ service_id }}-url"></span>
+                    </div>
+                    <button onclick="refreshService('{{ service_id }}')" class="nav-button" style="margin-top: 1rem;">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <script>
+        // Store service IDs in a JavaScript array
+        const serviceIds = [{% for service_id in services.keys() %}'{{ service_id }}',{% endfor %}];
+
+        // Set iframe src dynamically using current hostname
+        document.addEventListener('DOMContentLoaded', function() {
+            const hostname = window.location.hostname;
+            document.querySelectorAll('.service-iframe').forEach(iframe => {
+                const port = iframe.getAttribute('data-port');
+                const serviceId = iframe.getAttribute('data-service');
+                const url = `http://${hostname}:${port}`;
+
+                // Set the URL in the error message
+                document.getElementById(`${serviceId}-url`).textContent = url;
+
+                // Set up error detection
+                let errorShown = false;
+                let checkStarted = false;
+
+                function showError() {
+                    if (!errorShown) {
+                        errorShown = true;
+                        iframe.classList.add('hidden');
+                        document.getElementById(`${serviceId}-error`).classList.add('visible');
+                    }
+                }
+
+                // Use fetch to check if service is available before loading iframe
+                fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                    .then(() => {
+                        // Service appears to be available, load the iframe
+                        iframe.src = url;
+                        checkStarted = true;
+
+                        // Still check after a timeout in case the page doesn't load
+                        setTimeout(function() {
+                            try {
+                                // Try to access iframe document
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!iframeDoc || iframeDoc.readyState !== 'complete') {
+                                    showError();
+                                }
+                            } catch (e) {
+                                // Cross-origin means page loaded successfully
+                            }
+                        }, 5000);
+                    })
+                    .catch(() => {
+                        // Service is not available
+                        showError();
+                    });
+
+                iframe.addEventListener('error', function() {
+                    showError();
+                });
+            });
+        });
+
+        function refreshService(serviceId) {
+            const iframe = document.getElementById(`${serviceId}-iframe`);
+            const errorDiv = document.getElementById(`${serviceId}-error`);
+            const port = iframe.getAttribute('data-port');
+            const hostname = window.location.hostname;
+            const url = `http://${hostname}:${port}`;
+
+            // Hide error temporarily
+            errorDiv.classList.remove('visible');
+            iframe.classList.remove('hidden');
+
+            let errorShown = false;
+
+            function showError() {
+                if (!errorShown) {
+                    errorShown = true;
+                    iframe.classList.add('hidden');
+                    errorDiv.classList.add('visible');
+                }
+            }
+
+            // Use fetch to check if service is available before loading iframe
+            fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                .then(() => {
+                    // Service appears to be available, reload the iframe
+                    iframe.src = url;
+
+                    // Still check after a timeout in case the page doesn't load
+                    setTimeout(function() {
+                        try {
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            if (!iframeDoc || iframeDoc.readyState !== 'complete') {
+                                showError();
+                            }
+                        } catch (e) {
+                            // Cross-origin means page loaded successfully
+                        }
+                    }, 5000);
+                })
+                .catch(() => {
+                    // Service is still not available
+                    showError();
+                });
+        }
+
+        function updateView(view) {
+            // Update button styles
+            document.getElementById('all-btn').classList.remove('active');
+            serviceIds.forEach(serviceId => {
+                document.getElementById(`${serviceId}-btn`).classList.remove('active');
+            });
+
+            if (view === 'all') {
+                document.getElementById('all-btn').classList.add('active');
+            } else {
+                document.getElementById(`${view}-btn`).classList.add('active');
+            }
+
+            // Update card visibility
+            serviceIds.forEach(serviceId => {
+                const card = document.getElementById(`${serviceId}-card`);
+                if (view === 'all' || view === serviceId) {
+                    card.classList.remove('hidden');
+                    if (view === 'all') {
+                        card.classList.remove('full-width');
+                    } else {
+                        card.classList.add('full-width');
+                    }
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -56,4 +56,10 @@ To identify open ports and services within the CybICS testbed you can use nmap.
   - **8080/tcp**: HTTP Proxy (Werkzeug/Python) - Web server
   - **20000/tcp**: DNP3 - Industrial control protocol
   - **44818/tcp**: EtherNet/IP - Industrial networking protocol
+
+  
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(scanning_d0ne)
+  </div>
 </details>

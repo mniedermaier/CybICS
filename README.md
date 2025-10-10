@@ -33,11 +33,28 @@ First, read through this page to get a better understanding of the testbed setup
  - [Abbreviations](#abbreviations)
 
 ## CybICS  <a id="cybics"></a>
-The complete CybICS testbed 
+Chose your side 🔵 🔴 
 
-<table align="center"><tr><td align="center" width="9999">
-<img src="doc/pics/cybics.png" width=99%></img>
-</td></tr></table>
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 💻 Virtual
+Docker-based deployment for easy setup
+
+<img src="doc/pics/landing.png" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+### 🔧 Physical (Optional)
+Hardware-based deployment with Raspberry Pi
+
+<img src="doc/pics/cybics.png" width="100%">
+
+</td>
+</tr>
+</table>
 
 ## Physical Process  <a id="physical"></a>
 For educational purpose, a very simple process has been chosen.

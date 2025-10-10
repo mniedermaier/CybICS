@@ -71,4 +71,9 @@ nmap -p 102 --script s7-info $DEVICE_IP
   Using Nmap's s7-info script, you can gather valuable details about Siemens PLCs on a network. This helps security analysts, pentesters, and industrial engineers identify and secure S7 devices.
 
   Happy Scanning! 🔍🚀
+
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(s7comm_analysis_complete)
+  </div>
 </details>

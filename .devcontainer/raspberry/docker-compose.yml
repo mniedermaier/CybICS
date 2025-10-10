@@ -18,5 +18,6 @@ services:
 
   registry:
     image: registry:2
+    network_mode: host
     ports:
       - 5000:5000

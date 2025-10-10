@@ -78,3 +78,13 @@ Select the proper fuzzing method (e.g., 1 for all):
 
 ### ⏳ Time to Wait
 Grab a coffee ☕☕☕☕ while the fuzzer runs
+
+<details>
+  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(modbus_fuzzing_complete)
+  </div>
+
+</details>

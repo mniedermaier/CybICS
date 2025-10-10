@@ -84,5 +84,10 @@ A basic understanding of Modbus/TCP is required for this example.
   - Example: Temperature sensor anomaly detection
   - Operator notifications for corrective measures
   - Potential actions: reducing heat or shutting down components
+
+  After completion, use the following flag:
+  <div style="color:orange;font-weight: 900">
+    🚩 Flag: CybICS(flood_attack_successful)
+  </div>
 </details>
 
