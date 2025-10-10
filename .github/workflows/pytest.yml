@@ -38,8 +38,8 @@ jobs:
       run: docker-compose -f "docker-compose.yml" up -d --build
       working-directory: ./.devcontainer/virtual
 
-    - name: Sleep for 30 seconds to give conatiners time to spawn
-      run: sleep 30s
+    - name: Sleep for 120 seconds to give containers time to spawn
+      run: sleep 120s
       shell: bash
 
     - name: Pytest Connections
