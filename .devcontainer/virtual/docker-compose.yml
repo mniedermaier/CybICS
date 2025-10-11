@@ -94,15 +94,11 @@ services:
       context: ../..
       dockerfile: software/landing/Dockerfile
     restart: always
-    ports:
-      - 80:8081
+    network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
     - openplc
-    networks:
-      virt-cybics:
-        ipv4_address: 172.18.0.101
 
 networks:
   virt-cybics:

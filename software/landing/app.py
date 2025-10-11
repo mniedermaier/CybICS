@@ -63,6 +63,7 @@ stats_history = {
     'timestamps': deque(maxlen=HISTORY_MAX_LENGTH),
     'cpu': deque(maxlen=HISTORY_MAX_LENGTH),
     'memory': deque(maxlen=HISTORY_MAX_LENGTH),
+    'swap': deque(maxlen=HISTORY_MAX_LENGTH),
     'disk': deque(maxlen=HISTORY_MAX_LENGTH),
     'network_rx': deque(maxlen=HISTORY_MAX_LENGTH),
     'network_tx': deque(maxlen=HISTORY_MAX_LENGTH),
@@ -72,6 +73,36 @@ history_lock = threading.Lock()
 
 # Track previous network counters for rate calculation
 prev_network_counters = {'bytes_sent': 0, 'bytes_recv': 0, 'timestamp': time.time()}
+
+def get_host_network_stats():
+    """
+    Get network stats from host, excluding Docker-related interfaces.
+    Since we're running in host network mode, we can access all interfaces directly.
+    """
+    try:
+        net_io_per_nic = psutil.net_io_counters(pernic=True)
+
+        bytes_recv = 0
+        bytes_sent = 0
+
+        for interface, stats in net_io_per_nic.items():
+            # Skip loopback and docker interfaces
+            if interface.startswith(('lo', 'docker', 'br-', 'veth')):
+                continue
+
+            bytes_recv += stats.bytes_recv
+            bytes_sent += stats.bytes_sent
+
+        return {
+            'bytes_recv': bytes_recv,
+            'bytes_sent': bytes_sent,
+            'source': 'host'
+        }
+    except Exception as e:
+        logger.error(f"Error getting host network stats: {e}")
+        # Fallback to all interfaces
+        net_io = psutil.net_io_counters()
+        return {'bytes_recv': net_io.bytes_recv, 'bytes_sent': net_io.bytes_sent, 'source': 'fallback'}
 
 # Cached Docker container stats
 docker_container_cache = []
@@ -169,30 +200,40 @@ def collect_stats_history():
     """Background thread to collect stats every 5 seconds"""
     global prev_network_counters
 
+    # Initialize with current values to avoid initial spike
+    net_stats = get_host_network_stats()
+    prev_network_counters = {
+        'bytes_sent': net_stats['bytes_sent'],
+        'bytes_recv': net_stats['bytes_recv'],
+        'timestamp': time.time()
+    }
+    logger.info("Initialized network counters for rate calculation")
+
     while True:
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
             memory_percent = psutil.virtual_memory().percent
+            swap_percent = psutil.swap_memory().percent
             disk_percent = psutil.disk_usage('/').percent
             timestamp = datetime.now().isoformat()
 
-            # Get network stats
-            net_io = psutil.net_io_counters()
+            # Get network stats from host
+            net_stats = get_host_network_stats()
             current_time = time.time()
             time_delta = current_time - prev_network_counters['timestamp']
 
             # Calculate rates in MB/s
             if time_delta > 0:
-                rx_rate = (net_io.bytes_recv - prev_network_counters['bytes_recv']) / time_delta / (1024 ** 2)
-                tx_rate = (net_io.bytes_sent - prev_network_counters['bytes_sent']) / time_delta / (1024 ** 2)
+                rx_rate = (net_stats['bytes_recv'] - prev_network_counters['bytes_recv']) / time_delta / (1024 ** 2)
+                tx_rate = (net_stats['bytes_sent'] - prev_network_counters['bytes_sent']) / time_delta / (1024 ** 2)
                 total_rate = rx_rate + tx_rate
             else:
                 rx_rate = tx_rate = total_rate = 0
 
             # Update previous counters
             prev_network_counters = {
-                'bytes_sent': net_io.bytes_sent,
-                'bytes_recv': net_io.bytes_recv,
+                'bytes_sent': net_stats['bytes_sent'],
+                'bytes_recv': net_stats['bytes_recv'],
                 'timestamp': current_time
             }
 
@@ -200,12 +241,13 @@ def collect_stats_history():
                 stats_history['timestamps'].append(timestamp)
                 stats_history['cpu'].append(round(cpu_percent, 2))
                 stats_history['memory'].append(round(memory_percent, 2))
+                stats_history['swap'].append(round(swap_percent, 2))
                 stats_history['disk'].append(round(disk_percent, 2))
                 stats_history['network_rx'].append(round(rx_rate, 2))
                 stats_history['network_tx'].append(round(tx_rate, 2))
                 stats_history['network_total'].append(round(total_rate, 2))
 
-            logger.debug(f"Stats history collected: CPU={cpu_percent}%, MEM={memory_percent}%, DISK={disk_percent}%, NET_RX={rx_rate:.2f}MB/s, NET_TX={tx_rate:.2f}MB/s")
+            logger.debug(f"Stats history collected: CPU={cpu_percent}%, MEM={memory_percent}%, SWAP={swap_percent}%, DISK={disk_percent}%, NET_RX={rx_rate:.2f}MB/s, NET_TX={tx_rate:.2f}MB/s")
         except Exception as e:
             logger.error(f"Error collecting stats history: {e}")
 
@@ -490,6 +532,7 @@ def get_stats_history():
                 'timestamps': list(stats_history['timestamps']),
                 'cpu': list(stats_history['cpu']),
                 'memory': list(stats_history['memory']),
+                'swap': list(stats_history['swap']),
                 'disk': list(stats_history['disk']),
                 'network_rx': list(stats_history['network_rx']),
                 'network_tx': list(stats_history['network_tx']),
@@ -513,6 +556,12 @@ def get_stats():
         memory_used = memory.used / (1024 ** 3)  # GB
         memory_percent = memory.percent
 
+        # Get swap usage
+        swap = psutil.swap_memory()
+        swap_total = swap.total / (1024 ** 3)  # GB
+        swap_used = swap.used / (1024 ** 3)  # GB
+        swap_percent = swap.percent
+
         # Get disk usage
         disk = psutil.disk_usage('/')
         disk_total = disk.total / (1024 ** 3)  # GB
@@ -526,7 +575,10 @@ def get_stats():
         uptime_hours = int((uptime_seconds % 86400) // 3600)
         uptime_minutes = int((uptime_seconds % 3600) // 60)
 
-        # Get network usage
+        # Get network usage from host-stats service
+        net_stats = get_host_network_stats()
+
+        # Get packet counts from psutil (not available via host-stats)
         net_io = psutil.net_io_counters()
 
         # Get Docker container stats from cache (updated by background thread)
@@ -550,18 +602,24 @@ def get_stats():
                 'used_gb': round(memory_used, 2),
                 'percent': round(memory_percent, 2)
             },
+            'swap': {
+                'total_gb': round(swap_total, 2),
+                'used_gb': round(swap_used, 2),
+                'percent': round(swap_percent, 2)
+            },
             'disk': {
                 'total_gb': round(disk_total, 2),
                 'used_gb': round(disk_used, 2),
                 'percent': round(disk_percent, 2)
             },
             'network': {
-                'bytes_sent': net_io.bytes_sent,
-                'bytes_recv': net_io.bytes_recv,
-                'bytes_sent_gb': round(net_io.bytes_sent / (1024 ** 3), 2),
-                'bytes_recv_gb': round(net_io.bytes_recv / (1024 ** 3), 2),
+                'bytes_sent': net_stats['bytes_sent'],
+                'bytes_recv': net_stats['bytes_recv'],
+                'bytes_sent_gb': round(net_stats['bytes_sent'] / (1024 ** 3), 2),
+                'bytes_recv_gb': round(net_stats['bytes_recv'] / (1024 ** 3), 2),
                 'packets_sent': net_io.packets_sent,
-                'packets_recv': net_io.packets_recv
+                'packets_recv': net_io.packets_recv,
+                'source': net_stats.get('source', 'unknown')
             },
             'containers': containers_info
         })
@@ -573,6 +631,6 @@ if __name__ == '__main__':
     logger.info('Starting Flask application')
     app.run(
         host='0.0.0.0',
-        port=8081,
+        port=80,
         debug=True
     ) 

@@ -183,7 +183,7 @@
     <!-- Main container -->
     <main class="p-6 overflow-y-auto" style="height: calc(100vh - 80px);">
         <!-- System Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             <!-- Uptime Card -->
             <div class="stat-card">
                 <div class="stat-label">System Uptime</div>
@@ -218,6 +218,20 @@
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
                     Total: <span id="memory-total">0 GB</span>
+                </div>
+            </div>
+
+            <!-- Swap Card -->
+            <div class="stat-card">
+                <div class="stat-label">Swap Usage</div>
+                <div class="stat-value" id="swap-value">0 GB</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="swap-progress" style="width: 0%">
+                        <span id="swap-progress-text">0%</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    Total: <span id="swap-total">0 GB</span>
                 </div>
             </div>
 
@@ -261,9 +275,9 @@
                     <canvas id="cpu-chart"></canvas>
                 </div>
 
-                <!-- Memory History Chart -->
+                <!-- Memory & Swap History Chart -->
                 <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <h3 class="text-sm font-bold text-gray-400 mb-2">Memory Usage History</h3>
+                    <h3 class="text-sm font-bold text-gray-400 mb-2">Memory & Swap Usage History</h3>
                     <canvas id="memory-chart"></canvas>
                 </div>
 
@@ -449,15 +463,40 @@
             const memoryCtx = document.getElementById('memory-chart').getContext('2d');
             memoryChart = new Chart(memoryCtx, {
                 ...chartConfig,
+                options: {
+                    ...chartConfig.options,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#999',
+                                usePointStyle: true,
+                                padding: 10,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                },
                 data: {
                     labels: [],
-                    datasets: [{
-                        label: 'Memory %',
-                        data: [],
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        fill: true
-                    }]
+                    datasets: [
+                        {
+                            label: 'Memory %',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Swap %',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true
+                        }
+                    ]
                 }
             });
 
@@ -553,9 +592,10 @@
                         cpuChart.data.datasets[0].data = data.cpu;
                         cpuChart.update('none');
 
-                        // Update Memory chart
+                        // Update Memory chart (with swap)
                         memoryChart.data.labels = data.timestamps;
                         memoryChart.data.datasets[0].data = data.memory;
+                        memoryChart.data.datasets[1].data = data.swap;
                         memoryChart.update('none');
 
                         // Update Disk chart
@@ -595,6 +635,12 @@
                     document.getElementById('memory-total').textContent = data.memory.total_gb.toFixed(2) + ' GB';
                     document.getElementById('memory-progress').style.width = data.memory.percent + '%';
                     document.getElementById('memory-progress-text').textContent = data.memory.percent.toFixed(1) + '%';
+
+                    // Update Swap stats
+                    document.getElementById('swap-value').textContent = data.swap.used_gb.toFixed(2) + ' GB';
+                    document.getElementById('swap-total').textContent = data.swap.total_gb.toFixed(2) + ' GB';
+                    document.getElementById('swap-progress').style.width = data.swap.percent + '%';
+                    document.getElementById('swap-progress-text').textContent = data.swap.percent.toFixed(1) + '%';
 
                     // Update Disk stats
                     document.getElementById('disk-value').textContent = data.disk.used_gb.toFixed(2) + ' GB';
