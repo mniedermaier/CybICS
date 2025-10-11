@@ -1,5 +1,6 @@
 services:
   dev:
+    image: raspberry-dev
     build:
       context: .
       dockerfile: Dockerfile
