@@ -183,7 +183,7 @@
     <!-- Main container -->
     <main class="p-6 overflow-y-auto" style="height: calc(100vh - 80px);">
         <!-- System Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <!-- Uptime Card -->
             <div class="stat-card">
                 <div class="stat-label">System Uptime</div>
@@ -232,6 +232,51 @@
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
                     Total: <span id="disk-total">0 GB</span>
+                </div>
+            </div>
+
+            <!-- Network Card -->
+            <div class="stat-card">
+                <div class="stat-label">Network I/O</div>
+                <div class="stat-value">
+                    <span class="text-green-400">↓</span> <span id="network-rx">0 GB</span>
+                    <span class="ml-4 text-blue-400">↑</span> <span id="network-tx">0 GB</span>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    <div>Packets RX: <span id="network-packets-rx">0</span></div>
+                    <div>Packets TX: <span id="network-packets-tx">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Charts Section -->
+        <div class="stat-card mb-6">
+            <h2 class="text-xl font-bold mb-4 text-[#ff6b00]">
+                Historical Data (Past Hour)
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <!-- CPU History Chart -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3 class="text-sm font-bold text-gray-400 mb-2">CPU Usage History</h3>
+                    <canvas id="cpu-chart"></canvas>
+                </div>
+
+                <!-- Memory History Chart -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3 class="text-sm font-bold text-gray-400 mb-2">Memory Usage History</h3>
+                    <canvas id="memory-chart"></canvas>
+                </div>
+
+                <!-- Disk History Chart -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3 class="text-sm font-bold text-gray-400 mb-2">Disk Usage History</h3>
+                    <canvas id="disk-chart"></canvas>
+                </div>
+
+                <!-- Network History Chart (Combined RX, TX, Total) -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3 class="text-sm font-bold text-gray-400 mb-2">Network Traffic (MB/s)</h3>
+                    <canvas id="network-chart"></canvas>
                 </div>
             </div>
         </div>
@@ -310,32 +355,6 @@
             </div>
         </div>
 
-        <!-- Historical Charts Section -->
-        <div class="stat-card mb-6">
-            <h2 class="text-xl font-bold mb-4 text-[#ff6b00]">
-                Historical Data (Past Hour)
-            </h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <!-- CPU History Chart -->
-                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <h3 class="text-sm font-bold text-gray-400 mb-2">CPU Usage History</h3>
-                    <canvas id="cpu-chart"></canvas>
-                </div>
-
-                <!-- Memory History Chart -->
-                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <h3 class="text-sm font-bold text-gray-400 mb-2">Memory Usage History</h3>
-                    <canvas id="memory-chart"></canvas>
-                </div>
-
-                <!-- Disk History Chart -->
-                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <h3 class="text-sm font-bold text-gray-400 mb-2">Disk Usage History</h3>
-                    <canvas id="disk-chart"></canvas>
-                </div>
-            </div>
-        </div>
-
         <!-- Docker Containers Section -->
         <div class="stat-card">
             <h2 class="text-xl font-bold mb-4 text-[#ff6b00]">
@@ -351,7 +370,7 @@
 
     <script>
         let updateInterval;
-        let cpuChart, memoryChart, diskChart;
+        let cpuChart, memoryChart, diskChart, networkChart;
 
         // Chart configuration
         const chartConfig = {
@@ -456,6 +475,71 @@
                     }]
                 }
             });
+
+            // Network chart with different y-axis configuration (MB/s instead of %)
+            const networkChartConfig = {
+                ...chartConfig,
+                options: {
+                    ...chartConfig.options,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#999',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartConfig.options.scales,
+                        y: {
+                            display: true,
+                            min: 0,
+                            ticks: {
+                                color: '#999',
+                                callback: function(value) {
+                                    return value.toFixed(2) + ' MB/s';
+                                }
+                            },
+                            grid: {
+                                color: '#404040'
+                            }
+                        }
+                    }
+                }
+            };
+
+            const networkCtx = document.getElementById('network-chart').getContext('2d');
+            networkChart = new Chart(networkCtx, {
+                ...networkChartConfig,
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'RX (Download)',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: false
+                        },
+                        {
+                            label: 'TX (Upload)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: false
+                        },
+                        {
+                            label: 'Total',
+                            data: [],
+                            borderColor: '#ff6b00',
+                            backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                            fill: false
+                        }
+                    ]
+                }
+            });
         }
 
         // Update chart data
@@ -478,6 +562,13 @@
                         diskChart.data.labels = data.timestamps;
                         diskChart.data.datasets[0].data = data.disk;
                         diskChart.update('none');
+
+                        // Update Network chart (all three datasets)
+                        networkChart.data.labels = data.timestamps;
+                        networkChart.data.datasets[0].data = data.network_rx;  // RX
+                        networkChart.data.datasets[1].data = data.network_tx;  // TX
+                        networkChart.data.datasets[2].data = data.network_total;  // Total
+                        networkChart.update('none');
                     }
                 })
                 .catch(error => {
@@ -510,6 +601,12 @@
                     document.getElementById('disk-total').textContent = data.disk.total_gb.toFixed(2) + ' GB';
                     document.getElementById('disk-progress').style.width = data.disk.percent + '%';
                     document.getElementById('disk-progress-text').textContent = data.disk.percent.toFixed(1) + '%';
+
+                    // Update Network stats
+                    document.getElementById('network-rx').textContent = data.network.bytes_recv_gb.toFixed(2) + ' GB';
+                    document.getElementById('network-tx').textContent = data.network.bytes_sent_gb.toFixed(2) + ' GB';
+                    document.getElementById('network-packets-rx').textContent = data.network.packets_recv.toLocaleString();
+                    document.getElementById('network-packets-tx').textContent = data.network.packets_sent.toLocaleString();
 
                     // Update containers list
                     const containersList = document.getElementById('containers-list');

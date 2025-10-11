@@ -63,12 +63,112 @@ stats_history = {
     'timestamps': deque(maxlen=HISTORY_MAX_LENGTH),
     'cpu': deque(maxlen=HISTORY_MAX_LENGTH),
     'memory': deque(maxlen=HISTORY_MAX_LENGTH),
-    'disk': deque(maxlen=HISTORY_MAX_LENGTH)
+    'disk': deque(maxlen=HISTORY_MAX_LENGTH),
+    'network_rx': deque(maxlen=HISTORY_MAX_LENGTH),
+    'network_tx': deque(maxlen=HISTORY_MAX_LENGTH),
+    'network_total': deque(maxlen=HISTORY_MAX_LENGTH)
 }
 history_lock = threading.Lock()
 
+# Track previous network counters for rate calculation
+prev_network_counters = {'bytes_sent': 0, 'bytes_recv': 0, 'timestamp': time.time()}
+
+# Cached Docker container stats
+docker_container_cache = []
+docker_cache_lock = threading.Lock()
+
+def collect_docker_stats():
+    """Background thread to collect Docker container stats every 10 seconds"""
+    while True:
+        try:
+            import requests_unixsocket
+            session = requests_unixsocket.Session()
+
+            # Get containers list via Docker API
+            response = session.get('http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json')
+            containers_list = response.json()
+
+            logger.debug(f"Found {len(containers_list)} running containers")
+
+            containers_info = []
+            for container in containers_list:
+                # Get container name from Names field (it's a list with leading /)
+                container_names = container.get('Names', [])
+                if not container_names:
+                    continue
+                container_name = container_names[0].lstrip('/')
+
+                # Filter for CybICS-related containers (virtual-*, raspberry-*, or cybics*)
+                container_name_lower = container_name.lower()
+                if not (container_name_lower.startswith('virtual-') or
+                        container_name_lower.startswith('raspberry-') or
+                        'cybics' in container_name_lower):
+                    continue
+
+                # Skip buildkit and registry containers
+                if 'buildkit' in container_name_lower or container_name_lower.endswith('-registry-1'):
+                    continue
+
+                logger.debug(f"Processing CybICS container: {container_name}")
+                try:
+                    container_id = container['Id']
+                    # Get stats via direct API call
+                    stats_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/{container_id}/stats?stream=false')
+                    stats = stats_response.json()
+
+                    # Calculate CPU usage
+                    cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - \
+                                stats['precpu_stats']['cpu_usage']['total_usage']
+                    system_delta = stats['cpu_stats']['system_cpu_usage'] - \
+                                   stats['precpu_stats']['system_cpu_usage']
+                    cpu_percent_container = 0.0
+                    if system_delta > 0:
+                        cpu_percent_container = (cpu_delta / system_delta) * len(stats['cpu_stats']['cpu_usage'].get('percpu_usage', [1])) * 100.0
+
+                    # Calculate memory usage
+                    mem_usage = stats['memory_stats'].get('usage', 0) / (1024 ** 2)  # MB
+                    mem_limit = stats['memory_stats'].get('limit', 1) / (1024 ** 2)  # MB
+                    mem_percent_container = (mem_usage / mem_limit * 100) if mem_limit > 0 else 0
+
+                    # Get network stats
+                    networks = stats.get('networks', {})
+                    rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
+                    tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
+
+                    # Get image name
+                    image_name = container.get('Image', 'unknown')
+
+                    containers_info.append({
+                        'name': container_name,
+                        'id': container_id[:12],  # Short ID
+                        'status': container.get('State', 'unknown'),
+                        'cpu_percent': round(cpu_percent_container, 2),
+                        'memory_usage_mb': round(mem_usage, 2),
+                        'memory_limit_mb': round(mem_limit, 2),
+                        'memory_percent': round(mem_percent_container, 2),
+                        'network_rx_mb': round(rx_bytes, 2),
+                        'network_tx_mb': round(tx_bytes, 2),
+                        'image': image_name
+                    })
+                except Exception as e:
+                    logger.warning(f"Error getting stats for container {container_name}: {e}")
+                    continue
+
+            # Update the cache
+            with docker_cache_lock:
+                global docker_container_cache
+                docker_container_cache = containers_info
+
+            logger.debug(f"Updated Docker cache with {len(containers_info)} containers")
+        except Exception as e:
+            logger.warning(f"Error collecting Docker stats: {e}")
+
+        time.sleep(10)  # Update every 10 seconds
+
 def collect_stats_history():
     """Background thread to collect stats every 5 seconds"""
+    global prev_network_counters
+
     while True:
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
@@ -76,22 +176,49 @@ def collect_stats_history():
             disk_percent = psutil.disk_usage('/').percent
             timestamp = datetime.now().isoformat()
 
+            # Get network stats
+            net_io = psutil.net_io_counters()
+            current_time = time.time()
+            time_delta = current_time - prev_network_counters['timestamp']
+
+            # Calculate rates in MB/s
+            if time_delta > 0:
+                rx_rate = (net_io.bytes_recv - prev_network_counters['bytes_recv']) / time_delta / (1024 ** 2)
+                tx_rate = (net_io.bytes_sent - prev_network_counters['bytes_sent']) / time_delta / (1024 ** 2)
+                total_rate = rx_rate + tx_rate
+            else:
+                rx_rate = tx_rate = total_rate = 0
+
+            # Update previous counters
+            prev_network_counters = {
+                'bytes_sent': net_io.bytes_sent,
+                'bytes_recv': net_io.bytes_recv,
+                'timestamp': current_time
+            }
+
             with history_lock:
                 stats_history['timestamps'].append(timestamp)
                 stats_history['cpu'].append(round(cpu_percent, 2))
                 stats_history['memory'].append(round(memory_percent, 2))
                 stats_history['disk'].append(round(disk_percent, 2))
+                stats_history['network_rx'].append(round(rx_rate, 2))
+                stats_history['network_tx'].append(round(tx_rate, 2))
+                stats_history['network_total'].append(round(total_rate, 2))
 
-            logger.debug(f"Stats history collected: CPU={cpu_percent}%, MEM={memory_percent}%, DISK={disk_percent}%")
+            logger.debug(f"Stats history collected: CPU={cpu_percent}%, MEM={memory_percent}%, DISK={disk_percent}%, NET_RX={rx_rate:.2f}MB/s, NET_TX={tx_rate:.2f}MB/s")
         except Exception as e:
             logger.error(f"Error collecting stats history: {e}")
 
         time.sleep(5)
 
-# Start background stats collection thread
+# Start background stats collection threads
 stats_thread = threading.Thread(target=collect_stats_history, daemon=True)
 stats_thread.start()
 logger.info("Started background stats collection thread")
+
+docker_thread = threading.Thread(target=collect_docker_stats, daemon=True)
+docker_thread.start()
+logger.info("Started background Docker stats collection thread")
 
 @app.route('/favicon.ico')
 def favicon():
@@ -363,7 +490,10 @@ def get_stats_history():
                 'timestamps': list(stats_history['timestamps']),
                 'cpu': list(stats_history['cpu']),
                 'memory': list(stats_history['memory']),
-                'disk': list(stats_history['disk'])
+                'disk': list(stats_history['disk']),
+                'network_rx': list(stats_history['network_rx']),
+                'network_tx': list(stats_history['network_tx']),
+                'network_total': list(stats_history['network_total'])
             })
     except Exception as e:
         logger.error(f"Error getting stats history: {e}")
@@ -396,72 +526,12 @@ def get_stats():
         uptime_hours = int((uptime_seconds % 86400) // 3600)
         uptime_minutes = int((uptime_seconds % 3600) // 60)
 
-        # Get Docker container stats
-        containers_info = []
-        try:
-            # Connect to Docker via Unix socket
-            docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
-            containers = docker_client.containers.list()
+        # Get network usage
+        net_io = psutil.net_io_counters()
 
-            logger.info(f"Found {len(containers)} running containers")
-
-            for container in containers:
-                logger.debug(f"Checking container: {container.name}")
-                # Filter for CybICS-related containers (virtual-*, raspberry-*, or cybics*)
-                # Skip buildkit and registry containers
-                container_name_lower = container.name.lower()
-                if not (container_name_lower.startswith('virtual-') or
-                        container_name_lower.startswith('raspberry-') or
-                        'cybics' in container_name_lower):
-                    logger.debug(f"Skipping container {container.name} (not a CybICS service)")
-                    continue
-
-                # Skip buildkit and registry containers
-                if 'buildkit' in container_name_lower or container_name_lower.endswith('-registry-1'):
-                    logger.debug(f"Skipping utility container {container.name}")
-                    continue
-
-                logger.info(f"Processing CybICS container: {container.name}")
-                try:
-                    stats = container.stats(stream=False)
-
-                    # Calculate CPU usage
-                    cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - \
-                                stats['precpu_stats']['cpu_usage']['total_usage']
-                    system_delta = stats['cpu_stats']['system_cpu_usage'] - \
-                                   stats['precpu_stats']['system_cpu_usage']
-                    cpu_percent_container = 0.0
-                    if system_delta > 0:
-                        cpu_percent_container = (cpu_delta / system_delta) * len(stats['cpu_stats']['cpu_usage'].get('percpu_usage', [1])) * 100.0
-
-                    # Calculate memory usage
-                    mem_usage = stats['memory_stats'].get('usage', 0) / (1024 ** 2)  # MB
-                    mem_limit = stats['memory_stats'].get('limit', 1) / (1024 ** 2)  # MB
-                    mem_percent_container = (mem_usage / mem_limit * 100) if mem_limit > 0 else 0
-
-                    # Get network stats
-                    networks = stats.get('networks', {})
-                    rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
-                    tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
-
-                    containers_info.append({
-                        'name': container.name,
-                        'id': container.short_id,
-                        'status': container.status,
-                        'cpu_percent': round(cpu_percent_container, 2),
-                        'memory_usage_mb': round(mem_usage, 2),
-                        'memory_limit_mb': round(mem_limit, 2),
-                        'memory_percent': round(mem_percent_container, 2),
-                        'network_rx_mb': round(rx_bytes, 2),
-                        'network_tx_mb': round(tx_bytes, 2),
-                        'image': container.image.tags[0] if container.image.tags else container.image.short_id
-                    })
-                except Exception as e:
-                    logger.warning(f"Error getting stats for container {container.name}: {e}")
-                    continue
-
-        except Exception as e:
-            logger.warning(f"Error connecting to Docker: {e}")
+        # Get Docker container stats from cache (updated by background thread)
+        with docker_cache_lock:
+            containers_info = docker_container_cache.copy()
 
         return jsonify({
             'timestamp': datetime.now().isoformat(),
@@ -484,6 +554,14 @@ def get_stats():
                 'total_gb': round(disk_total, 2),
                 'used_gb': round(disk_used, 2),
                 'percent': round(disk_percent, 2)
+            },
+            'network': {
+                'bytes_sent': net_io.bytes_sent,
+                'bytes_recv': net_io.bytes_recv,
+                'bytes_sent_gb': round(net_io.bytes_sent / (1024 ** 3), 2),
+                'bytes_recv_gb': round(net_io.bytes_recv / (1024 ** 3), 2),
+                'packets_sent': net_io.packets_sent,
+                'packets_recv': net_io.packets_recv
             },
             'containers': containers_info
         })
