@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
-import time 
+import time
 from pymodbus.client import ModbusTcpClient
 from nicegui import ui
 import threading
@@ -53,24 +53,10 @@ def button_reset():
   timer=0
   logging.info("button_rest: all reseted")
 
-# thread for nicegui
-def thread_nicegui():
-  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
-
-# main function
-if __name__ == "__main__":
-  flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
-
-  format = "%(asctime)s: %(message)s"
-  logging.basicConfig(format=format, level=logging.INFO,
-                        datefmt="%H:%M:%S")
-
-  
-
-  logging.info("Main    : before creating thread")
-  x = threading.Thread(target=thread_nicegui, args=())
-  logging.info("Main    : before running thread")
-  x.start()
+# Create the main UI page
+@ui.page('/')
+def index_page():
+  global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
   # Create container for the content
   with ui.element('div').style('text-align: center; min-width: 1024; width: 1024;'):
@@ -93,9 +79,9 @@ if __name__ == "__main__":
       {'variable': 'compressor', 'value': compressor},
       {'variable': 'systemValve', 'value': systemValve},
       {'variable': 'gstSig', 'value': gstSig},
-      {'variable': 'System', 'value': sysSen},    
+      {'variable': 'System', 'value': sysSen},
     ]
-  
+
     # add horizontal line
     with ui.element('div').style('display: flex; justify-content: center;'):
         ui.element('div').style(
@@ -154,7 +140,7 @@ if __name__ == "__main__":
         'background-color: red; width: 5px; height: 5px;'
         'display: block;'
       )
-            
+
       # Overlay HPT
       HPToverlayEmpty=ui.card().style(
         'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
@@ -250,9 +236,9 @@ if __name__ == "__main__":
         with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as boCard:
           boLabel = ui.label(str(boSen)).style('color: black;')
 
-
-  
-  while True:
+  # Update function called periodically
+  async def update():
+    global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
     # read coils from OpenPLC
     try:
@@ -266,7 +252,7 @@ if __name__ == "__main__":
     except Exception as e:
       consecutive_failures += 1
       logging.error(f"Main    : Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
-      
+
       if consecutive_failures >= MAX_FAILURES:
         logging.warning("Main    : Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
         try:
@@ -354,13 +340,13 @@ if __name__ == "__main__":
         'background-color: red; width: 5px; height: 5px;'
         'display: block;'
       )
-    
+
 
     # Blowout if the HPTpressure if over 220 until HTP pressure < 201
     if hpt>220 or (boSen==1 and hpt>200):
       boSen=1
       boCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
-      boLabel.set_text("Open: " + str(boSen))      
+      boLabel.set_text("Open: " + str(boSen))
       BOoverlayOpen.style(
         'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
         'background-color: red; width: 5px; height: 5px;'
@@ -402,8 +388,8 @@ if __name__ == "__main__":
       client.write_register(1134,boSen)
       # write GST and HPT to the OpenPLC
       client.write_register(1124,gst)
-      client.write_register(1126,hpt)    
-      client.write_registers(1200,flag)
+      client.write_register(1126,hpt)
+      client.write_registers(1200,[17273, 25161, 17235, 10349, 12388, 25205, 9257])
     except Exception as e:
       logging.error("Main    : Write to OpenPLC failed - " + str(e))
 
@@ -419,7 +405,7 @@ if __name__ == "__main__":
     rows[7]['value'] = sysSen
     variableTable.update()
 
-    
+
     cLabel.set_text(str(compressor))
     hptLabel.set_text(str(hpt))
 
@@ -648,6 +634,15 @@ if __name__ == "__main__":
         'background-color: blue; width: 5px; height: 5px;'
         'display: block;'
       )
-     
-    time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
+  # Create a timer to update every 20ms (50Hz to match OpenPLC cycle time)
+  ui.timer(0.02, update)
+
+# main function
+if __name__ == "__main__":
+  format = "%(asctime)s: %(message)s"
+  logging.basicConfig(format=format, level=logging.INFO,
+                        datefmt="%H:%M:%S")
+
+  logging.info("Main    : starting NiceGUI")
+  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
