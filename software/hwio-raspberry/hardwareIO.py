@@ -7,7 +7,10 @@
 # Additionally, the IP address of wlan0 will be transferred
 # to the STM32, to show it in the display
 
-import smbus2 as smbus
+try:
+    import smbus
+except ImportError:
+    import smbus2 as smbus
 import time 
 from pymodbus.client import ModbusTcpClient
 import nmcli

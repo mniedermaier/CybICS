@@ -395,14 +395,15 @@ def index_page():
 
 
 
-    rows[0]['value'] = gst
-    rows[1]['value'] = hpt
-    rows[2]['value'] = boSen
-    rows[3]['value'] = heartbeat
-    rows[4]['value'] = compressor
-    rows[5]['value'] = systemValve
-    rows[6]['value'] = gstSig
-    rows[7]['value'] = sysSen
+    # Update table rows
+    variableTable.rows[0]['value'] = gst
+    variableTable.rows[1]['value'] = hpt
+    variableTable.rows[2]['value'] = boSen
+    variableTable.rows[3]['value'] = heartbeat
+    variableTable.rows[4]['value'] = compressor
+    variableTable.rows[5]['value'] = systemValve
+    variableTable.rows[6]['value'] = gstSig
+    variableTable.rows[7]['value'] = sysSen
     variableTable.update()
 
 
