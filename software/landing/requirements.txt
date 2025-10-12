@@ -3,6 +3,6 @@ werkzeug==3.0.6
 jinja2==3.1.6
 markdown==3.5.1
 psutil==5.9.8
-urllib3==1.26.20
+urllib3==2.5.0
 requests-unixsocket
 docker[tls]==5.0.3
