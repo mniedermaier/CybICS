@@ -20,8 +20,9 @@ from pymodbus.exceptions import ConnectionException, ModbusException
 from dotenv import load_dotenv
 
 # Test Configuration
-# Tests always run against localhost for consistency and isolation
-SERVER_IP = '127.0.0.1'
+# Allow SERVER_IP to be overridden via environment variable for remote testing
+# Default to localhost for consistency and isolation
+SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')
 MODBUS_PORT = 502
 CONNECTION_TIMEOUT = 10
 HPT_REGISTER = 1126  # High Pressure Tank register address

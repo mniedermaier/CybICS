@@ -16,13 +16,15 @@ import pytest
 import requests
 import subprocess
 import time
+import os
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
 from asyncua import Client, ua
 
 # Test Configuration Constants
-SERVER_IP = '127.0.0.1'           # Target server IP address for testing
+# Allow SERVER_IP to be overridden via environment variable for remote testing
+SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')  # Target server IP address for testing
 MODBUS_SERVER_PORT = 502           # Standard Modbus TCP port
 OPCUA_SERVER_PORT = 4840           # Standard OPC-UA port
 S7_SERVER_PORT = 102               # Standard Siemens S7 port

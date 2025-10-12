@@ -575,10 +575,10 @@ def get_stats():
         uptime_hours = int((uptime_seconds % 86400) // 3600)
         uptime_minutes = int((uptime_seconds % 3600) // 60)
 
-        # Get network usage from host-stats service
+        # Get network usage from host (via psutil)
         net_stats = get_host_network_stats()
 
-        # Get packet counts from psutil (not available via host-stats)
+        # Get packet counts from psutil
         net_io = psutil.net_io_counters()
 
         # Get Docker container stats from cache (updated by background thread)
