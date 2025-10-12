@@ -1,6 +1,4 @@
 flask==3.1.2
 markdown==3.9
 psutil==7.1.0
-urllib3==2.5.0
 requests-unixsocket==0.4.1
-docker[tls]==7.1.0

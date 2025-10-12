@@ -92,7 +92,7 @@ class TestFloodOverwrite:
             result = modbus_client.read_holding_registers(
                 address=HPT_REGISTER,
                 count=1,
-                slave=1
+                device_id=1
             )
 
             assert result is not None, "No response from Modbus server"
@@ -127,7 +127,7 @@ class TestFloodOverwrite:
             read_result = modbus_client.read_holding_registers(
                 address=HPT_REGISTER,
                 count=1,
-                slave=1
+                device_id=1
             )
             assert not read_result.isError(), f"Error reading HPT register: {read_result}"
 
@@ -135,7 +135,7 @@ class TestFloodOverwrite:
             write_result = modbus_client.write_register(
                 address=HPT_REGISTER,
                 value=test_value,
-                slave=1
+                device_id=1
             )
 
             assert write_result is not None, "No response from write operation"
@@ -180,7 +180,7 @@ class TestFloodOverwrite:
             read_result = modbus_client.read_holding_registers(
                 address=HPT_REGISTER,
                 count=1,
-                slave=1
+                device_id=1
             )
             assert not read_result.isError(), "Cannot read original HPT value"
             original_value = read_result.registers[0]
@@ -195,7 +195,7 @@ class TestFloodOverwrite:
                     result = modbus_client.write_register(
                         address=HPT_REGISTER,
                         value=flood_value,
-                        slave=1
+                        device_id=1
                     )
 
                     if result and not result.isError():
@@ -219,7 +219,7 @@ class TestFloodOverwrite:
                 modbus_client.write_register(
                     address=HPT_REGISTER,
                     value=original_value,
-                    slave=1
+                    device_id=1
                 )
 
             # Validate flood attack was possible
@@ -269,7 +269,7 @@ class TestFloodOverwrite:
                 write_result = modbus_client.write_register(
                     address=HPT_REGISTER,
                     value=test_value,
-                    slave=1
+                    device_id=1
                 )
 
                 if write_result.isError():

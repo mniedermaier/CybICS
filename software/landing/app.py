@@ -5,7 +5,6 @@ import json
 import os
 import markdown
 import psutil
-import docker
 from datetime import datetime
 from collections import deque
 import threading
