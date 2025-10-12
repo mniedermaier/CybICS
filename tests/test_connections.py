@@ -39,7 +39,8 @@ PASSWORD = "test"                  # Default test password
 URLS = [
     f"http://{SERVER_IP}",           # Main web interface
     f"http://{SERVER_IP}:1881",      # Node-RED interface
-    f"http://{SERVER_IP}:8080"       # Alternative web service
+    f"http://{SERVER_IP}:8080",      # Alternative web service
+    f"http://{SERVER_IP}:8090"       # Hardware I/O virtual interface
 ]
 
 # ===============================================================================

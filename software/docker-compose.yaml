@@ -66,11 +66,9 @@ services:
     depends_on:
     - openplc
     - fuxa
-    ports:
-      - 80:8081
-    networks:
-      br-cybics:
-        ipv4_address: 172.18.0.101
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   stm32:
     image: localhost:5000/cybics-stm32:latest
