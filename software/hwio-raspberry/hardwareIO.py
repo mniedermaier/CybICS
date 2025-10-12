@@ -7,7 +7,7 @@
 # Additionally, the IP address of wlan0 will be transferred
 # to the STM32, to show it in the display
 
-import smbus
+import smbus2 as smbus
 import time 
 from pymodbus.client import ModbusTcpClient
 import nmcli
@@ -94,7 +94,7 @@ def thread_openplc():
 
     # read coils from OpenPLC
     try:
-      plcCoils=client.read_coils(0,count=4, slave=1)
+      plcCoils=client.read_coils(0,count=4, device_id=1)
       GPIO.output(4, plcCoils.bits[0])   # heartbeat
       GPIO.output(8, plcCoils.bits[1])   # compressor
       GPIO.output(7, plcCoils.bits[2])   # systemValve

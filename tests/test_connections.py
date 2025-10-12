@@ -141,9 +141,9 @@ def test_read_holding_register(modbus_client):
     
     try:
         result = modbus_client.read_holding_registers(
-            address=register_address, 
+            address=register_address,
             count=register_count,
-            slave=1  # Default slave ID
+            device_id=1  # Default device ID
         )
         
         # Validate response structure
@@ -188,7 +188,7 @@ def test_write_single_register(modbus_client):
         write_result = modbus_client.write_register(
             address=register_address,
             value=test_value,
-            slave=slave_id
+            device_id=slave_id
         )
 
         # Validate write response
@@ -215,7 +215,7 @@ def test_write_single_register(modbus_client):
         read_result = modbus_client.read_holding_registers(
             address=register_address,
             count=1,
-            slave=slave_id
+            device_id=slave_id
         )
 
         assert not read_result.isError(), (
@@ -446,7 +446,7 @@ class TestModbusExtended:
             result = connected_modbus_client.read_holding_registers(
                 address=register_start,
                 count=register_count,
-                slave=1
+                device_id=1
             )
             
             assert not result.isError(), f"Failed to read multiple registers: {result}"
@@ -480,7 +480,7 @@ class TestModbusExtended:
             result = connected_modbus_client.read_coils(
                 address=coil_address,
                 count=coil_count,
-                slave=1
+                device_id=1
             )
             
             if result.isError():
@@ -516,7 +516,7 @@ class TestModbusExtended:
             result = connected_modbus_client.read_input_registers(
                 address=input_address,
                 count=input_count,
-                slave=1
+                device_id=1
             )
             
             if result.isError():

@@ -242,7 +242,7 @@ def index_page():
 
     # read coils from OpenPLC
     try:
-      plcCoils=client.read_coils(0,count=4, slave=1)
+      plcCoils=client.read_coils(0,count=4, device_id=1)
       heartbeat=plcCoils.bits[0]
       compressor=plcCoils.bits[1]
       systemValve=plcCoils.bits[2]
