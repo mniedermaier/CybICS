@@ -16,13 +16,15 @@ import pytest
 import requests
 import subprocess
 import time
+import os
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
 from asyncua import Client, ua
 
 # Test Configuration Constants
-SERVER_IP = '127.0.0.1'           # Target server IP address for testing
+# Allow SERVER_IP to be overridden via environment variable for remote testing
+SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')  # Target server IP address for testing
 MODBUS_SERVER_PORT = 502           # Standard Modbus TCP port
 OPCUA_SERVER_PORT = 4840           # Standard OPC-UA port
 S7_SERVER_PORT = 102               # Standard Siemens S7 port
@@ -141,9 +143,9 @@ def test_read_holding_register(modbus_client):
     
     try:
         result = modbus_client.read_holding_registers(
-            address=register_address, 
+            address=register_address,
             count=register_count,
-            slave=1  # Default slave ID
+            device_id=1  # Default device ID
         )
         
         # Validate response structure
@@ -188,7 +190,7 @@ def test_write_single_register(modbus_client):
         write_result = modbus_client.write_register(
             address=register_address,
             value=test_value,
-            slave=slave_id
+            device_id=slave_id
         )
 
         # Validate write response
@@ -215,7 +217,7 @@ def test_write_single_register(modbus_client):
         read_result = modbus_client.read_holding_registers(
             address=register_address,
             count=1,
-            slave=slave_id
+            device_id=slave_id
         )
 
         assert not read_result.isError(), (
@@ -446,7 +448,7 @@ class TestModbusExtended:
             result = connected_modbus_client.read_holding_registers(
                 address=register_start,
                 count=register_count,
-                slave=1
+                device_id=1
             )
             
             assert not result.isError(), f"Failed to read multiple registers: {result}"
@@ -480,7 +482,7 @@ class TestModbusExtended:
             result = connected_modbus_client.read_coils(
                 address=coil_address,
                 count=coil_count,
-                slave=1
+                device_id=1
             )
             
             if result.isError():
@@ -516,7 +518,7 @@ class TestModbusExtended:
             result = connected_modbus_client.read_input_registers(
                 address=input_address,
                 count=input_count,
-                slave=1
+                device_id=1
             )
             
             if result.isError():

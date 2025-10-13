@@ -5,7 +5,6 @@ import json
 import os
 import markdown
 import psutil
-import docker
 from datetime import datetime
 from collections import deque
 import threading
@@ -169,10 +168,41 @@ def collect_docker_stats():
                     # Get image name
                     image_name = container.get('Image', 'unknown')
 
+                    # Calculate container uptime from inspect API
+                    uptime_str = 'N/A'
+                    try:
+                        # Get detailed container info to access StartedAt
+                        inspect_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/{container_id}/json')
+                        inspect_data = inspect_response.json()
+                        started_at_str = inspect_data.get('State', {}).get('StartedAt', '')
+
+                        if started_at_str:
+                            # Parse the timestamp (format: 2024-01-15T10:30:00.123456789Z)
+                            from dateutil import parser
+                            started_at = parser.parse(started_at_str)
+                            now = datetime.now(started_at.tzinfo)
+                            uptime_seconds = (now - started_at).total_seconds()
+
+                            # Format uptime as human-readable string
+                            days = int(uptime_seconds // 86400)
+                            hours = int((uptime_seconds % 86400) // 3600)
+                            minutes = int((uptime_seconds % 3600) // 60)
+
+                            if days > 0:
+                                uptime_str = f"{days}d {hours}h {minutes}m"
+                            elif hours > 0:
+                                uptime_str = f"{hours}h {minutes}m"
+                            else:
+                                uptime_str = f"{minutes}m"
+                    except Exception as e:
+                        logger.debug(f"Error calculating uptime for {container_name}: {e}")
+                        uptime_str = 'N/A'
+
                     containers_info.append({
                         'name': container_name,
                         'id': container_id[:12],  # Short ID
                         'status': container.get('State', 'unknown'),
+                        'uptime': uptime_str,
                         'cpu_percent': round(cpu_percent_container, 2),
                         'memory_usage_mb': round(mem_usage, 2),
                         'memory_limit_mb': round(mem_limit, 2),
@@ -575,10 +605,10 @@ def get_stats():
         uptime_hours = int((uptime_seconds % 86400) // 3600)
         uptime_minutes = int((uptime_seconds % 3600) // 60)
 
-        # Get network usage from host-stats service
+        # Get network usage from host (via psutil)
         net_stats = get_host_network_stats()
 
-        # Get packet counts from psutil (not available via host-stats)
+        # Get packet counts from psutil
         net_io = psutil.net_io_counters()
 
         # Get Docker container stats from cache (updated by background thread)

@@ -1,2 +1,2 @@
-pymodbus==3.8.6
-nicegui
+pymodbus==3.11.3
+nicegui==3.0.4

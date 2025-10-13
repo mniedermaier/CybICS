@@ -47,6 +47,10 @@ jobs:
         pip install --no-cache-dir -r tests/requirements.txt
         pytest tests/test_connections.py --verbose
 
+    - name: Pytest Training
+      run: |
+        pytest tests/test_training.py --verbose
+
     - name: Stop containers
       if: always()
       run: docker-compose -f "docker-compose.yml" down
