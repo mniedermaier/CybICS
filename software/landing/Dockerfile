@@ -19,6 +19,7 @@ COPY software/landing/app.py ./
 COPY software/landing/ctf_config.json ./
 COPY software/landing/pics/ pics/
 COPY software/landing/templates/ templates/
+COPY software/landing/static/ static/
 
 # Copy training content from root
 COPY training/ training/
