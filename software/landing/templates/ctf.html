@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.title or 'CybICS - CTF Training' }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background-color: #1a1a1a;
@@ -106,11 +105,187 @@
             background-color: #ff6b00;
             color: #1a1a1a;
         }
+
+        .bg-red-600 {
+            background-color: #dc2626;
+        }
+
+        .border-red-600 {
+            border-color: #dc2626;
+        }
+
+        .hover\:bg-red-700:hover {
+            background-color: #b91c1c;
+        }
+
+        header {
+            background-color: #2d2d2d;
+            color: #ff6b00;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #ff6b00;
+            margin-bottom: 1rem;
+        }
+
+        h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .py-8 {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .items-start {
+            align-items: flex-start;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .font-semibold {
+            font-weight: 600;
+        }
+
+        .opacity-75 {
+            opacity: 0.75;
+        }
+
+        .text-gray-300 {
+            color: #d1d5db;
+        }
+
+        .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        @media (min-width: 768px) {
+            .md\:grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="text"] {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #ff6b00;
+        }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <header class="bg-[#2d2d2d] text-[#ff6b00] p-4 flex justify-between items-center">
+    <header>
         <div class="flex items-center gap-4">
             <button id="reset-btn" class="back-button bg-red-600 border-red-600 hover:bg-red-700" onclick="resetProgress()">Reset Progress</button>
             <h1 class="text-2xl font-bold">{{ config.title or 'CybICS CTF Training' }}</h1>
