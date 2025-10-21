@@ -260,8 +260,18 @@ class NetworkCapture:
 
         # Start sniffing
         iface = None if interface == 'all' else interface
-        logger.info(f"Starting Scapy sniff on interface: {iface}")
-        sniff(prn=packet_handler, store=False, iface=iface, stop_filter=lambda x: not self.active)
+
+        # Build BPF filter (Berkeley Packet Filter for performance)
+        # Always filter to Docker subnet 172.18.0.0/24 to avoid capturing host traffic
+        subnet_filter = "net 172.18.0.0/24"
+
+        if filter_str:
+            bpf_filter = f"({subnet_filter}) and ({filter_str})"
+        else:
+            bpf_filter = subnet_filter
+
+        logger.info(f"Starting Scapy sniff on interface: {iface}, BPF filter: {bpf_filter}")
+        sniff(prn=packet_handler, store=False, iface=iface, filter=bpf_filter, stop_filter=lambda x: not self.active)
 
     def _capture_simulated(self):
         """Simulated packet capture for demonstration"""
