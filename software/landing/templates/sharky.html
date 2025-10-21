@@ -122,7 +122,7 @@
         .main-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 120px);
+            height: calc(100vh - 180px);
         }
 
         .view-tabs {
@@ -134,23 +134,27 @@
         }
 
         .tab-button {
-            background-color: #404040;
-            color: #ffffff;
-            border: 1px solid #606060;
-            border-radius: 0.25rem;
-            padding: 0.5rem 1rem;
+            background-color: transparent;
+            color: #cccccc;
+            border: none;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            padding: 0.75rem 1.25rem;
             cursor: pointer;
             transition: all 0.2s;
+            font-size: 0.95rem;
+            font-weight: 500;
         }
 
         .tab-button:hover {
-            background-color: #606060;
+            background-color: #353535;
+            color: #ffffff;
         }
 
         .tab-button.active {
-            background-color: #ff6b00;
-            color: #1a1a1a;
-            border-color: #ff6b00;
+            background-color: #1a1a1a;
+            color: #ff6b00;
+            border-bottom-color: #ff6b00;
         }
 
         .view-content {
@@ -399,9 +403,20 @@
         }
 
         .packet-details {
-            height: 300px;
+            height: 350px;
             background-color: #1a1a1a;
-            border-top: 2px solid #404040;
+            border-top: 2px solid #ff6b00;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .packet-details .details-tabs {
+            flex-shrink: 0;
+        }
+
+        .packet-details .details-content {
+            flex: 1;
             overflow-y: auto;
             padding: 1rem;
             font-size: 0.85rem;
@@ -492,6 +507,208 @@
             color: #666;
             font-style: italic;
         }
+
+        /* Hex dump viewer */
+        .hex-dump {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            background-color: #1a1a1a;
+            padding: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .hex-line {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .hex-offset {
+            color: #ff6b00;
+            min-width: 60px;
+        }
+
+        .hex-bytes {
+            color: #66ccff;
+            min-width: 400px;
+        }
+
+        .hex-ascii {
+            color: #99ff99;
+        }
+
+        /* Modal dialogs */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #2d2d2d;
+            border: 2px solid #ff6b00;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #404040;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #ff6b00;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        /* Search box */
+        .search-box {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .search-box input {
+            flex: 1;
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+        }
+
+        .search-box button {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+
+        .search-box button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        /* Color rules */
+        .packet-row-error { background-color: rgba(220, 38, 38, 0.2) !important; }
+        .packet-row-warning { background-color: rgba(245, 158, 11, 0.2) !important; }
+        .packet-row-industrial { background-color: rgba(255, 107, 107, 0.1) !important; }
+
+        /* Time display options */
+        .time-format-selector {
+            font-size: 0.85rem;
+        }
+
+        /* Expert info badge */
+        .expert-badge {
+            display: inline-block;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+
+        .expert-error { background-color: #dc2626; color: #ffffff; }
+        .expert-warning { background-color: #f59e0b; color: #1a1a1a; }
+        .expert-note { background-color: #3b82f6; color: #ffffff; }
+
+        /* Packet details tabs */
+        .details-tabs {
+            display: flex;
+            gap: 0;
+            background-color: #2d2d2d;
+            border-bottom: 2px solid #404040;
+            padding: 0 0.5rem;
+        }
+
+        .details-tab {
+            background: none;
+            border: none;
+            color: #cccccc;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .details-tab:hover {
+            color: #ffffff;
+            background-color: #353535;
+        }
+
+        .details-tab.active {
+            color: #ff6b00;
+            border-bottom-color: #ff6b00;
+            background-color: #1a1a1a;
+        }
+
+        .details-content {
+            display: none;
+        }
+
+        .details-content.active {
+            display: block;
+        }
+
+        /* Column customization */
+        .column-settings {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .column-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .column-item label {
+            flex: 1;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -500,31 +717,87 @@
         <a href="/" class="nav-button">← Back to Dashboard</a>
     </header>
 
-    <div class="toolbar">
-        <button id="startBtn" onclick="startCapture()">▶ Start</button>
-        <button id="stopBtn" onclick="stopCapture()" disabled>⏹ Stop</button>
-        <button onclick="clearCapture()">🗑 Clear</button>
+    <!-- Main Toolbar -->
+    <div class="toolbar" style="padding: 0.5rem 1rem;">
+        <!-- Capture Controls -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <strong style="color: #ff6b00; margin-right: 0.5rem;">Capture:</strong>
+            <button id="startBtn" onclick="startCapture()">▶ Start</button>
+            <button id="stopBtn" onclick="stopCapture()" disabled>⏹ Stop</button>
+            <button onclick="clearCapture()">🗑 Clear</button>
+        </div>
 
-        <div style="border-left: 1px solid #606060; height: 30px; margin: 0 0.5rem;"></div>
+        <div style="border-left: 1px solid #606060; height: 30px; margin: 0 1rem;"></div>
 
-        <label for="interfaceSelect">Interface:</label>
-        <select id="interfaceSelect">
-            <option value="all">All</option>
-        </select>
-
-        <label for="filterInput">Filter:</label>
-        <input type="text" id="filterInput" placeholder="e.g., tcp, udp, port 80" style="width: 200px;">
-        <button onclick="applyFilter()">Apply</button>
+        <!-- Interface Selection -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label for="interfaceSelect" style="color: #ff6b00;">Interface:</label>
+            <select id="interfaceSelect" style="min-width: 150px;">
+                <option value="all">All</option>
+            </select>
+        </div>
 
         <div style="flex: 1;"></div>
 
-        <button onclick="exportCapture()">💾 Export PCAP</button>
+        <!-- Export -->
+        <button onclick="exportCapture()" style="background-color: #ff6b00; color: #1a1a1a; border-color: #ff6b00;">💾 Export PCAP</button>
     </div>
 
-    <div class="view-tabs">
-        <button class="tab-button active" onclick="switchView('packets', event)">📊 Packet List</button>
-        <button class="tab-button" onclick="switchView('graph', event)">🔗 Network Graph</button>
-        <button class="tab-button" onclick="switchView('statistics', event)">📈 Statistics</button>
+    <!-- Filter and Tools Toolbar -->
+    <div class="toolbar" style="padding: 0.5rem 1rem; border-top: 1px solid #404040;">
+        <!-- Display Filter -->
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; max-width: 600px;">
+            <label for="filterInput" style="color: #ff6b00; white-space: nowrap;">Display Filter:</label>
+            <input type="text" id="filterInput" placeholder="e.g., ip.src == 192.168.1.1, tcp.port == 502" style="flex: 1;">
+            <button onclick="applyFilter()">Apply</button>
+        </div>
+
+        <div style="border-left: 1px solid #606060; height: 30px; margin: 0 1rem;"></div>
+
+        <!-- View Tools -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label for="timeFormat" style="color: #cccccc;">Time:</label>
+            <select id="timeFormat" onchange="updateTimeFormat()" class="time-format-selector">
+                <option value="relative">Relative</option>
+                <option value="absolute">Absolute</option>
+                <option value="delta">Delta</option>
+            </select>
+            <button onclick="showSearch()" title="Find packets">🔍 Find</button>
+            <button onclick="showColumnSettings()" title="Customize columns">⚙️ Columns</button>
+        </div>
+    </div>
+
+    <!-- Search Box -->
+    <div id="searchBox" class="search-box" style="display: none;">
+        <label>Find:</label>
+        <input type="text" id="searchInput" placeholder="Search in packets..." onkeypress="if(event.key==='Enter') findPackets()">
+        <select id="searchType">
+            <option value="display">Display Filter</option>
+            <option value="hex">Hex Value</option>
+            <option value="string">String</option>
+        </select>
+        <button onclick="findPackets()">Find</button>
+        <button onclick="findNext()">Next</button>
+        <button onclick="findPrevious()">Previous</button>
+        <button onclick="hideSearch()">✕</button>
+    </div>
+
+    <!-- View Tabs -->
+    <div class="view-tabs" style="display: flex; gap: 0; background-color: #2d2d2d; padding: 0.5rem 1rem; border-bottom: 2px solid #404040;">
+        <!-- Main Analysis -->
+        <div style="display: flex; gap: 0.25rem; margin-right: 1rem;">
+            <button class="tab-button active" onclick="switchView('packets', event)">📊 Packets</button>
+            <button class="tab-button" onclick="switchView('graph', event)">🔗 Network Graph</button>
+        </div>
+
+        <div style="border-left: 1px solid #606060; margin: 0 0.5rem;"></div>
+
+        <!-- Statistics & Analysis -->
+        <div style="display: flex; gap: 0.25rem;">
+            <button class="tab-button" onclick="switchView('conversations', event)">💬 Conversations</button>
+            <button class="tab-button" onclick="switchView('hierarchy', event)">🌳 Hierarchy</button>
+            <button class="tab-button" onclick="switchView('statistics', event)">📈 Statistics</button>
+        </div>
     </div>
 
     <div class="main-container">
@@ -552,7 +825,20 @@
         </div>
 
             <div class="packet-details" id="packetDetails">
-                <div class="no-data">Select a packet to view details</div>
+                <div class="details-tabs">
+                    <button class="details-tab active" onclick="switchDetailsTab('details')">Details</button>
+                    <button class="details-tab" onclick="switchDetailsTab('hex')">Hex Dump</button>
+                    <button class="details-tab" onclick="switchDetailsTab('stream')">Follow Stream</button>
+                </div>
+                <div id="detailsContent" class="details-content active">
+                    <div class="no-data">Select a packet to view details</div>
+                </div>
+                <div id="hexContent" class="details-content">
+                    <div class="no-data">Select a packet to view hex dump</div>
+                </div>
+                <div id="streamContent" class="details-content">
+                    <div class="no-data">Select a TCP/UDP packet to follow stream</div>
+                </div>
             </div>
         </div>
 
@@ -699,6 +985,120 @@
                 </div>
             </div>
         </div>
+
+        <!-- Conversations View -->
+        <div id="conversationsView" class="view-content">
+            <div class="statistics-container">
+                <div class="stat-card">
+                    <h3>💬 TCP Conversations</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Address A</th>
+                                <th>Port A</th>
+                                <th>Address B</th>
+                                <th>Port B</th>
+                                <th>Packets</th>
+                                <th>Bytes</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tcp-conversations-body">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card" style="margin-top: 1rem;">
+                    <h3>📡 UDP Conversations</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Address A</th>
+                                <th>Port A</th>
+                                <th>Address B</th>
+                                <th>Port B</th>
+                                <th>Packets</th>
+                                <th>Bytes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="udp-conversations-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Protocol Hierarchy View -->
+        <div id="hierarchyView" class="view-content">
+            <div class="statistics-container">
+                <div class="stat-card">
+                    <h3>🌳 Protocol Hierarchy Statistics</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Protocol</th>
+                                <th>Packets</th>
+                                <th>% Packets</th>
+                                <th>Bytes</th>
+                                <th>% Bytes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hierarchy-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Settings Modal -->
+    <div id="columnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: #ff6b00;">Customize Columns</h3>
+                <button class="modal-close" onclick="hideColumnSettings()">×</button>
+            </div>
+            <div class="column-settings">
+                <div class="column-item">
+                    <input type="checkbox" id="col-no" checked onchange="toggleColumn('no')">
+                    <label for="col-no">No.</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-time" checked onchange="toggleColumn('time')">
+                    <label for="col-time">Time</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-source" checked onchange="toggleColumn('source')">
+                    <label for="col-source">Source</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-source-port" onchange="toggleColumn('source-port')">
+                    <label for="col-source-port">Source Port</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-destination" checked onchange="toggleColumn('destination')">
+                    <label for="col-destination">Destination</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-dest-port" onchange="toggleColumn('dest-port')">
+                    <label for="col-dest-port">Dest Port</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-protocol" checked onchange="toggleColumn('protocol')">
+                    <label for="col-protocol">Protocol</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-length" checked onchange="toggleColumn('length')">
+                    <label for="col-length">Length</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-info" checked onchange="toggleColumn('info')">
+                    <label for="col-info">Info</label>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="status-bar">
@@ -727,9 +1127,22 @@
         let captureTimer = null;
         let updateInterval = null;
 
+        // New features state
+        let timeFormat = 'relative';
+        let visibleColumns = {
+            'no': true, 'time': true, 'source': true, 'source-port': false,
+            'destination': true, 'dest-port': false, 'protocol': true,
+            'length': true, 'info': true
+        };
+        let searchResults = [];
+        let currentSearchIndex = -1;
+        let colorRules = [];
+        let expertInfo = new Map();
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadInterfaces();
+            initializeColorRules();
         });
 
         async function loadInterfaces() {
@@ -898,25 +1311,48 @@
             const tbody = document.getElementById('packetTableBody');
 
             if (displayedPackets.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No packets to display</td></tr>';
+                const colCount = Object.values(visibleColumns).filter(v => v).length;
+                tbody.innerHTML = `<tr><td colspan="${colCount}" class="no-data">No packets to display</td></tr>`;
                 return;
             }
 
+            // Build table header based on visible columns
+            const thead = document.querySelector('#packetTableBody').closest('table').querySelector('thead tr');
+            let headerHtml = '';
+            if (visibleColumns.no) headerHtml += '<th>No.</th>';
+            if (visibleColumns.time) headerHtml += '<th>Time</th>';
+            if (visibleColumns.source) headerHtml += '<th>Source</th>';
+            if (visibleColumns['source-port']) headerHtml += '<th>Src Port</th>';
+            if (visibleColumns.destination) headerHtml += '<th>Destination</th>';
+            if (visibleColumns['dest-port']) headerHtml += '<th>Dst Port</th>';
+            if (visibleColumns.protocol) headerHtml += '<th>Protocol</th>';
+            if (visibleColumns.length) headerHtml += '<th>Length</th>';
+            if (visibleColumns.info) headerHtml += '<th>Info</th>';
+            thead.innerHTML = headerHtml;
+
             const html = displayedPackets.map((packet, index) => {
+                // Analyze expert info
+                packet.expert_info = analyzeExpertInfo(packet);
+
                 const selected = selectedPacketId === packet.id ? 'selected' : '';
                 const protocolClass = `protocol-${packet.protocol.toLowerCase()}`;
+                const colorClass = getPacketRowClass(packet);
+                const time = formatPacketTime(packet, index);
+                const expertBadge = getExpertBadge(packet.expert_info);
 
-                return `
-                    <tr class="${selected}" onclick="selectPacket(${packet.id})">
-                        <td>${packet.id}</td>
-                        <td>${packet.time}</td>
-                        <td>${packet.source}</td>
-                        <td>${packet.destination}</td>
-                        <td class="${protocolClass}">${packet.protocol}</td>
-                        <td>${packet.length}</td>
-                        <td>${packet.info}</td>
-                    </tr>
-                `;
+                let rowHtml = `<tr class="${selected} ${colorClass}" data-packet-id="${packet.id}" onclick="selectPacket(${packet.id})">`;
+                if (visibleColumns.no) rowHtml += `<td>${packet.id}</td>`;
+                if (visibleColumns.time) rowHtml += `<td>${time}</td>`;
+                if (visibleColumns.source) rowHtml += `<td>${packet.source}</td>`;
+                if (visibleColumns['source-port']) rowHtml += `<td>${packet.source_port || ''}</td>`;
+                if (visibleColumns.destination) rowHtml += `<td>${packet.destination}</td>`;
+                if (visibleColumns['dest-port']) rowHtml += `<td>${packet.dest_port || ''}</td>`;
+                if (visibleColumns.protocol) rowHtml += `<td class="${protocolClass}">${packet.protocol}</td>`;
+                if (visibleColumns.length) rowHtml += `<td>${packet.length}</td>`;
+                if (visibleColumns.info) rowHtml += `<td>${packet.info}${expertBadge}</td>`;
+                rowHtml += `</tr>`;
+
+                return rowHtml;
             }).join('');
 
             tbody.innerHTML = html;
@@ -938,7 +1374,7 @@
         }
 
         function displayPacketDetails(packet) {
-            const details = document.getElementById('packetDetails');
+            const details = document.getElementById('detailsContent');
 
             let html = '<h3>Packet Details</h3>';
 
@@ -1083,19 +1519,14 @@
         }
 
         function applyFilter() {
-            const filterText = document.getElementById('filterInput').value.toLowerCase();
+            const filterText = document.getElementById('filterInput').value;
 
             if (!filterText) {
                 displayedPackets = packets;
             } else {
-                displayedPackets = packets.filter(packet => {
-                    return packet.protocol.toLowerCase().includes(filterText) ||
-                           packet.source.includes(filterText) ||
-                           packet.destination.includes(filterText) ||
-                           packet.info.toLowerCase().includes(filterText) ||
-                           (packet.source_port && packet.source_port.toString().includes(filterText)) ||
-                           (packet.dest_port && packet.dest_port.toString().includes(filterText));
-                });
+                // Use advanced Wireshark-like filter parser
+                const filterFunc = parseDisplayFilter(filterText);
+                displayedPackets = packets.filter(filterFunc);
             }
 
             updatePacketTable();
@@ -1173,6 +1604,12 @@
             } else if (view === 'statistics') {
                 document.getElementById('statisticsView').classList.add('active');
                 updateStatistics();
+            } else if (view === 'conversations') {
+                document.getElementById('conversationsView').classList.add('active');
+                updateConversations();
+            } else if (view === 'hierarchy') {
+                document.getElementById('hierarchyView').classList.add('active');
+                updateProtocolHierarchy();
             }
         }
 
@@ -1871,6 +2308,441 @@
                 updateGraph();
             }
         };
+
+        // ===== NEW WIRESHARK-LIKE FEATURES =====
+
+        // 1. Column Customization
+        function showColumnSettings() {
+            document.getElementById('columnModal').classList.add('active');
+        }
+
+        function hideColumnSettings() {
+            document.getElementById('columnModal').classList.remove('active');
+        }
+
+        function toggleColumn(column) {
+            visibleColumns[column] = document.getElementById(`col-${column}`).checked;
+            updatePacketTable();
+        }
+
+        // 2. Advanced Filtering (Wireshark-like syntax)
+        function parseDisplayFilter(filterStr) {
+            if (!filterStr) return () => true;
+
+            filterStr = filterStr.toLowerCase().trim();
+
+            return (packet) => {
+                // ip.src == X or ip.dst == X
+                const ipSrcMatch = filterStr.match(/ip\.src\s*==\s*([0-9.]+)/);
+                if (ipSrcMatch && packet.source !== ipSrcMatch[1]) return false;
+
+                const ipDstMatch = filterStr.match(/ip\.dst\s*==\s*([0-9.]+)/);
+                if (ipDstMatch && packet.destination !== ipDstMatch[1]) return false;
+
+                // tcp.port == X or udp.port == X
+                const tcpPortMatch = filterStr.match(/tcp\.port\s*==\s*(\d+)/);
+                if (tcpPortMatch) {
+                    const port = parseInt(tcpPortMatch[1]);
+                    if (packet.protocol !== 'TCP' || (packet.source_port !== port && packet.dest_port !== port)) return false;
+                }
+
+                const udpPortMatch = filterStr.match(/udp\.port\s*==\s*(\d+)/);
+                if (udpPortMatch) {
+                    const port = parseInt(udpPortMatch[1]);
+                    if (packet.protocol !== 'UDP' || (packet.source_port !== port && packet.dest_port !== port)) return false;
+                }
+
+                // tcp, udp, modbus, etc (protocol filter)
+                if (filterStr === 'tcp' && packet.protocol !== 'TCP') return false;
+                if (filterStr === 'udp' && packet.protocol !== 'UDP') return false;
+                if (filterStr === 'modbus' && packet.protocol !== 'MODBUS') return false;
+                if (filterStr === 's7comm' && packet.protocol !== 'S7COMM') return false;
+                if (filterStr === 'opcua' && packet.protocol !== 'OPCUA') return false;
+
+                // Simple keyword search in info
+                if (filterStr.includes('contains')) {
+                    const containsMatch = filterStr.match(/contains\s+"([^"]+)"/);
+                    if (containsMatch && !packet.info.toLowerCase().includes(containsMatch[1])) return false;
+                }
+
+                return true;
+            };
+        }
+
+        // 3. Hex Dump Viewer
+        function displayHexDump(packet) {
+            if (!packet.raw_data) {
+                document.getElementById('hexContent').innerHTML = '<div class="no-data">No raw data available for this packet</div>';
+                return;
+            }
+
+            const bytes = packet.raw_data;
+            let html = '<div class="hex-dump">';
+
+            for (let i = 0; i < bytes.length; i += 16) {
+                const offset = i.toString(16).padStart(4, '0');
+                const hexBytes = [];
+                const asciiChars = [];
+
+                for (let j = 0; j < 16; j++) {
+                    if (i + j < bytes.length) {
+                        const byte = bytes[i + j];
+                        hexBytes.push(byte.toString(16).padStart(2, '0'));
+                        asciiChars.push(byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.');
+                    } else {
+                        hexBytes.push('  ');
+                        asciiChars.push(' ');
+                    }
+                }
+
+                html += `<div class="hex-line">`;
+                html += `<span class="hex-offset">${offset}:</span>`;
+                html += `<span class="hex-bytes">${hexBytes.join(' ')}</span>`;
+                html += `<span class="hex-ascii">${asciiChars.join('')}</span>`;
+                html += `</div>`;
+            }
+
+            html += '</div>';
+            document.getElementById('hexContent').innerHTML = html;
+        }
+
+        // 4. Follow Stream
+        async function followStream(srcIp, srcPort, dstIp, dstPort, protocol) {
+            const streamPackets = packets.filter(p =>
+                (p.source === srcIp && p.source_port === srcPort && p.destination === dstIp && p.dest_port === dstPort) ||
+                (p.source === dstIp && p.source_port === dstPort && p.destination === srcIp && p.dest_port === srcPort)
+            );
+
+            let html = `<div style="padding: 1rem;">`;
+            html += `<h4 style="color: #ff6b00;">Stream: ${srcIp}:${srcPort} ↔ ${dstIp}:${dstPort} (${protocol})</h4>`;
+            html += `<p style="color: #cccccc; margin: 0.5rem 0;">Packets in stream: ${streamPackets.length}</p>`;
+            html += `<div style="max-height: 400px; overflow-y: auto; background-color: #1a1a1a; padding: 0.5rem; margin-top: 1rem;">`;
+
+            streamPackets.forEach((p, idx) => {
+                const direction = (p.source === srcIp) ? '→' : '←';
+                const color = (p.source === srcIp) ? '#66ccff' : '#99ff99';
+                html += `<div style="margin-bottom: 0.5rem; border-left: 3px solid ${color}; padding-left: 0.5rem;">`;
+                html += `<span style="color: ${color};">[${idx + 1}] ${direction}</span> `;
+                html += `<span style="color: #cccccc;">${p.time} - ${p.length} bytes</span>`;
+                if (p.data) {
+                    html += `<div style="color: #ffffff; margin-top: 0.25rem; font-family: monospace; font-size: 0.85rem;">${p.data}</div>`;
+                }
+                html += `</div>`;
+            });
+
+            html += `</div></div>`;
+            document.getElementById('streamContent').innerHTML = html;
+        }
+
+        // 5. Time Display Options
+        function updateTimeFormat() {
+            timeFormat = document.getElementById('timeFormat').value;
+            updatePacketTable();
+        }
+
+        function formatPacketTime(packet, index) {
+            if (!packet.timestamp) return packet.time;
+
+            const packetTime = new Date(packet.timestamp);
+
+            switch (timeFormat) {
+                case 'absolute':
+                    return packetTime.toLocaleTimeString() + '.' + packetTime.getMilliseconds().toString().padStart(3, '0');
+                case 'delta':
+                    if (index === 0) return '0.000000';
+                    const prevPacket = displayedPackets[index - 1];
+                    if (!prevPacket.timestamp) return '0.000000';
+                    const delta = (new Date(packet.timestamp) - new Date(prevPacket.timestamp)) / 1000;
+                    return delta.toFixed(6);
+                case 'relative':
+                default:
+                    if (!captureStartTime) return packet.time;
+                    const relative = (packetTime - captureStartTime) / 1000;
+                    return relative.toFixed(6);
+            }
+        }
+
+        // 6. Color Rules
+        function initializeColorRules() {
+            colorRules = [
+                { name: 'Industrial Protocols', filter: (p) => ['MODBUS', 'S7COMM', 'OPCUA', 'ENIP'].includes(p.protocol), class: 'packet-row-industrial' },
+                { name: 'TCP Errors', filter: (p) => p.expert_info && p.expert_info.severity === 'error', class: 'packet-row-error' },
+                { name: 'Warnings', filter: (p) => p.expert_info && p.expert_info.severity === 'warning', class: 'packet-row-warning' }
+            ];
+        }
+
+        function getPacketRowClass(packet) {
+            for (const rule of colorRules) {
+                if (rule.filter(packet)) return rule.class;
+            }
+            return '';
+        }
+
+        // 7. Protocol Hierarchy Statistics
+        function updateProtocolHierarchy() {
+            if (packets.length === 0) {
+                document.getElementById('hierarchy-body').innerHTML = '<tr><td colspan="5" class="no-data">No packets captured yet</td></tr>';
+                return;
+            }
+
+            const totalPackets = packets.length;
+            const totalBytes = packets.reduce((sum, p) => sum + (p.length || 0), 0);
+
+            const hierarchy = new Map();
+
+            packets.forEach(p => {
+                // Root protocol (Ethernet)
+                if (!hierarchy.has('Ethernet')) {
+                    hierarchy.set('Ethernet', { packets: 0, bytes: 0, children: new Map() });
+                }
+                const eth = hierarchy.get('Ethernet');
+                eth.packets++;
+                eth.bytes += p.length || 0;
+
+                // IP layer
+                if (p.source && p.source !== 'N/A') {
+                    if (!eth.children.has('IP')) {
+                        eth.children.set('IP', { packets: 0, bytes: 0, children: new Map() });
+                    }
+                    const ip = eth.children.get('IP');
+                    ip.packets++;
+                    ip.bytes += p.length || 0;
+
+                    // Transport/Application layer
+                    const proto = p.protocol;
+                    if (!ip.children.has(proto)) {
+                        ip.children.set(proto, { packets: 0, bytes: 0 });
+                    }
+                    const transport = ip.children.get(proto);
+                    transport.packets++;
+                    transport.bytes += p.length || 0;
+                }
+            });
+
+            let html = '';
+            const renderHierarchy = (map, indent = 0) => {
+                map.forEach((data, proto) => {
+                    const pctPackets = ((data.packets / totalPackets) * 100).toFixed(2);
+                    const pctBytes = ((data.bytes / totalBytes) * 100).toFixed(2);
+                    const indentStr = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(indent);
+
+                    html += `<tr>`;
+                    html += `<td>${indentStr}${proto}</td>`;
+                    html += `<td>${data.packets.toLocaleString()}</td>`;
+                    html += `<td>${pctPackets}%</td>`;
+                    html += `<td>${formatBytes(data.bytes)}</td>`;
+                    html += `<td>${pctBytes}%</td>`;
+                    html += `</tr>`;
+
+                    if (data.children) {
+                        renderHierarchy(data.children, indent + 1);
+                    }
+                });
+            };
+
+            renderHierarchy(hierarchy);
+            document.getElementById('hierarchy-body').innerHTML = html;
+        }
+
+        // 8. Conversation Analysis
+        function updateConversations() {
+            if (packets.length === 0) {
+                document.getElementById('tcp-conversations-body').innerHTML = '<tr><td colspan="8" class="no-data">No packets captured yet</td></tr>';
+                document.getElementById('udp-conversations-body').innerHTML = '<tr><td colspan="7" class="no-data">No packets captured yet</td></tr>';
+                return;
+            }
+
+            const tcpConvs = new Map();
+            const udpConvs = new Map();
+
+            packets.forEach(p => {
+                if (p.protocol === 'TCP' && p.source_port && p.dest_port) {
+                    const key = [p.source, p.source_port, p.destination, p.dest_port].sort().join('-');
+                    if (!tcpConvs.has(key)) {
+                        tcpConvs.set(key, {
+                            addrA: p.source, portA: p.source_port,
+                            addrB: p.destination, portB: p.dest_port,
+                            packets: 0, bytes: 0, firstTime: p.timestamp, lastTime: p.timestamp
+                        });
+                    }
+                    const conv = tcpConvs.get(key);
+                    conv.packets++;
+                    conv.bytes += p.length || 0;
+                    conv.lastTime = p.timestamp;
+                } else if (p.protocol === 'UDP' && p.source_port && p.dest_port) {
+                    const key = [p.source, p.source_port, p.destination, p.dest_port].sort().join('-');
+                    if (!udpConvs.has(key)) {
+                        udpConvs.set(key, {
+                            addrA: p.source, portA: p.source_port,
+                            addrB: p.destination, portB: p.dest_port,
+                            packets: 0, bytes: 0
+                        });
+                    }
+                    const conv = udpConvs.get(key);
+                    conv.packets++;
+                    conv.bytes += p.length || 0;
+                }
+            });
+
+            // TCP conversations
+            let tcpHtml = '';
+            tcpConvs.forEach((conv, key) => {
+                const duration = conv.lastTime && conv.firstTime ?
+                    ((new Date(conv.lastTime) - new Date(conv.firstTime)) / 1000).toFixed(3) + 's' : 'N/A';
+                tcpHtml += `<tr>`;
+                tcpHtml += `<td>${conv.addrA}</td>`;
+                tcpHtml += `<td>${conv.portA}</td>`;
+                tcpHtml += `<td>${conv.addrB}</td>`;
+                tcpHtml += `<td>${conv.portB}</td>`;
+                tcpHtml += `<td>${conv.packets.toLocaleString()}</td>`;
+                tcpHtml += `<td>${formatBytes(conv.bytes)}</td>`;
+                tcpHtml += `<td>${duration}</td>`;
+                tcpHtml += `<td><button onclick="followStream('${conv.addrA}', ${conv.portA}, '${conv.addrB}', ${conv.portB}, 'TCP')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Follow</button></td>`;
+                tcpHtml += `</tr>`;
+            });
+            document.getElementById('tcp-conversations-body').innerHTML = tcpHtml || '<tr><td colspan="8">No TCP conversations</td></tr>';
+
+            // UDP conversations
+            let udpHtml = '';
+            udpConvs.forEach((conv, key) => {
+                udpHtml += `<tr>`;
+                udpHtml += `<td>${conv.addrA}</td>`;
+                udpHtml += `<td>${conv.portA}</td>`;
+                udpHtml += `<td>${conv.addrB}</td>`;
+                udpHtml += `<td>${conv.portB}</td>`;
+                udpHtml += `<td>${conv.packets.toLocaleString()}</td>`;
+                udpHtml += `<td>${formatBytes(conv.bytes)}</td>`;
+                udpHtml += `<td><button onclick="followStream('${conv.addrA}', ${conv.portA}, '${conv.addrB}', ${conv.portB}, 'UDP')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Follow</button></td>`;
+                udpHtml += `</tr>`;
+            });
+            document.getElementById('udp-conversations-body').innerHTML = udpHtml || '<tr><td colspan="7">No UDP conversations</td></tr>';
+        }
+
+        // 9. Expert Info System
+        function analyzeExpertInfo(packet) {
+            const info = [];
+
+            // TCP-specific checks
+            if (packet.protocol === 'TCP' && packet.layers && packet.layers.tcp) {
+                const tcp = packet.layers.tcp;
+
+                // Retransmission detection (simplified)
+                if (tcp.flags && tcp.flags.includes('R')) {
+                    info.push({ severity: 'warning', message: 'TCP Reset' });
+                }
+
+                // SYN without ACK (connection attempt)
+                if (tcp.flags && tcp.flags.includes('S') && !tcp.flags.includes('A')) {
+                    info.push({ severity: 'note', message: 'TCP Connection SYN' });
+                }
+            }
+
+            // Industrial protocol checks
+            if (['MODBUS', 'S7COMM', 'OPCUA', 'ENIP'].includes(packet.protocol)) {
+                info.push({ severity: 'note', message: `Industrial Protocol: ${packet.protocol}` });
+            }
+
+            return info.length > 0 ? info[0] : null;
+        }
+
+        function getExpertBadge(expertInfo) {
+            if (!expertInfo) return '';
+            const classes = {
+                'error': 'expert-error',
+                'warning': 'expert-warning',
+                'note': 'expert-note'
+            };
+            return `<span class="expert-badge ${classes[expertInfo.severity]}">${expertInfo.message}</span>`;
+        }
+
+        // 10. Search/Find Functionality
+        function showSearch() {
+            document.getElementById('searchBox').style.display = 'flex';
+            document.getElementById('searchInput').focus();
+        }
+
+        function hideSearch() {
+            document.getElementById('searchBox').style.display = 'none';
+            searchResults = [];
+            currentSearchIndex = -1;
+        }
+
+        function findPackets() {
+            const query = document.getElementById('searchInput').value;
+            const searchType = document.getElementById('searchType').value;
+
+            if (!query) return;
+
+            searchResults = [];
+
+            if (searchType === 'display') {
+                const filter = parseDisplayFilter(query);
+                searchResults = packets.filter(filter).map(p => p.id);
+            } else if (searchType === 'string') {
+                searchResults = packets.filter(p =>
+                    p.info.toLowerCase().includes(query.toLowerCase()) ||
+                    (p.data && p.data.toLowerCase().includes(query.toLowerCase()))
+                ).map(p => p.id);
+            } else if (searchType === 'hex') {
+                // Simplified hex search
+                searchResults = packets.filter(p =>
+                    p.raw_data && p.raw_data.toString('hex').includes(query.replace(/\s/g, ''))
+                ).map(p => p.id);
+            }
+
+            currentSearchIndex = 0;
+            if (searchResults.length > 0) {
+                jumpToPacket(searchResults[0]);
+            } else {
+                alert('No packets found matching the search criteria');
+            }
+        }
+
+        function findNext() {
+            if (searchResults.length === 0) return;
+            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+            jumpToPacket(searchResults[currentSearchIndex]);
+        }
+
+        function findPrevious() {
+            if (searchResults.length === 0) return;
+            currentSearchIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+            jumpToPacket(searchResults[currentSearchIndex]);
+        }
+
+        function jumpToPacket(packetId) {
+            selectedPacketId = packetId;
+            const packet = packets.find(p => p.id === packetId);
+            if (packet) {
+                displayPacketDetails(packet);
+                updatePacketTable();
+
+                // Scroll to packet
+                const row = document.querySelector(`#packetTableBody tr[data-packet-id="${packetId}"]`);
+                if (row) {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        // Details tab switching
+        function switchDetailsTab(tab) {
+            document.querySelectorAll('.details-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.details-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+
+            if (tab === 'details') {
+                document.getElementById('detailsContent').classList.add('active');
+            } else if (tab === 'hex') {
+                document.getElementById('hexContent').classList.add('active');
+                const packet = packets.find(p => p.id === selectedPacketId);
+                if (packet) displayHexDump(packet);
+            } else if (tab === 'stream') {
+                document.getElementById('streamContent').classList.add('active');
+            }
+        }
+
     </script>
 </body>
 </html>
