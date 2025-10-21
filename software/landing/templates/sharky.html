@@ -1154,10 +1154,27 @@
                 select.innerHTML = '<option value="all">All Interfaces</option>';
 
                 // Group interfaces by type
+                const ics_bridges = interfaces.filter(i => i.type === 'ics_bridge');
                 const physical = interfaces.filter(i => i.type === 'physical');
                 const docker = interfaces.filter(i => i.type === 'docker');
                 const bridge = interfaces.filter(i => i.type === 'bridge');
                 const veth = interfaces.filter(i => i.type === 'veth');
+
+                // Add ICS bridges FIRST (prioritized for ICS traffic capture)
+                if (ics_bridges.length > 0) {
+                    const icsGroup = document.createElement('optgroup');
+                    icsGroup.label = '🏭 ICS Networks (Docker Bridges)';
+                    ics_bridges.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} - ${iface.ip}`;
+                        icsGroup.appendChild(option);
+                    });
+                    select.appendChild(icsGroup);
+
+                    // Auto-select first ICS bridge as default
+                    select.value = ics_bridges[0].name;
+                }
 
                 // Add physical interfaces first
                 if (physical.length > 0) {
