@@ -145,6 +145,13 @@ Thumbs.db
 
 # Project specific
 *.log
+*.log.*
 .env
 .dev.env
 .docker.env/
+
+# Landing application specific
+software/landing/data/*.json
+!software/landing/data/.gitkeep
+software/landing/app.py.backup
+software/landing/app.py.old

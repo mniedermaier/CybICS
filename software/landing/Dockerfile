@@ -22,6 +22,8 @@ COPY software/landing/ctf_config.json ./
 COPY software/landing/pics/ pics/
 COPY software/landing/templates/ templates/
 COPY software/landing/static/ static/
+COPY software/landing/utils/ utils/
+COPY software/landing/modules/ modules/
 
 # Copy training content from root
 COPY training/ training/
