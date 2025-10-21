@@ -9,6 +9,9 @@ from datetime import datetime
 from collections import deque
 import threading
 import time
+import socket
+import struct
+import netifaces
 
 # Configure logging
 logging.basicConfig(
@@ -72,6 +75,12 @@ history_lock = threading.Lock()
 
 # Track previous network counters for rate calculation
 prev_network_counters = {'bytes_sent': 0, 'bytes_recv': 0, 'timestamp': time.time()}
+
+# Network capture state
+network_capture_active = False
+network_capture_packets = []
+network_capture_lock = threading.Lock()
+network_capture_thread = None
 
 def get_host_network_stats():
     """
@@ -553,6 +562,11 @@ def stats_page():
     logger.info('Rendering stats page')
     return render_template('stats.html')
 
+@app.route('/network')
+def network_page():
+    logger.info('Rendering network analyzer page')
+    return render_template('sharky.html')
+
 @app.route('/api/stats/history')
 def get_stats_history():
     """Get historical stats data for the past hour"""
@@ -571,6 +585,621 @@ def get_stats_history():
     except Exception as e:
         logger.error(f"Error getting stats history: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/network/interfaces')
+def get_network_interfaces():
+    """Get available network interfaces"""
+    try:
+        interfaces_list = []
+        for interface in netifaces.interfaces():
+            # Skip loopback only
+            if interface.startswith('lo'):
+                continue
+
+            addrs = netifaces.ifaddresses(interface)
+            ip = None
+            if netifaces.AF_INET in addrs:
+                ip = addrs[netifaces.AF_INET][0].get('addr')
+
+            # Determine interface type
+            if interface.startswith('docker'):
+                iface_type = 'docker'
+            elif interface.startswith('br-'):
+                iface_type = 'bridge'
+            elif interface.startswith('veth'):
+                iface_type = 'veth'
+            else:
+                iface_type = 'physical'
+
+            interfaces_list.append({
+                'name': interface,
+                'ip': ip,
+                'type': iface_type
+            })
+
+        return jsonify(interfaces_list)
+    except Exception as e:
+        logger.error(f"Error getting network interfaces: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def parse_modbus_tcp(payload):
+    """Parse Modbus TCP protocol"""
+    try:
+        if len(payload) < 8:
+            return None
+
+        transaction_id = int.from_bytes(payload[0:2], 'big')
+        protocol_id = int.from_bytes(payload[2:4], 'big')
+        length = int.from_bytes(payload[4:6], 'big')
+        unit_id = payload[6]
+        function_code = payload[7]
+
+        function_names = {
+            1: "Read Coils",
+            2: "Read Discrete Inputs",
+            3: "Read Holding Registers",
+            4: "Read Input Registers",
+            5: "Write Single Coil",
+            6: "Write Single Register",
+            15: "Write Multiple Coils",
+            16: "Write Multiple Registers",
+            23: "Read/Write Multiple Registers"
+        }
+
+        return {
+            'transaction_id': transaction_id,
+            'protocol_id': protocol_id,
+            'length': length,
+            'unit_id': unit_id,
+            'function_code': function_code,
+            'function_name': function_names.get(function_code, f"Unknown (0x{function_code:02x})")
+        }
+    except Exception as e:
+        logger.debug(f"Error parsing Modbus: {e}")
+        return None
+
+def parse_s7comm(payload):
+    """Parse S7comm protocol"""
+    try:
+        if len(payload) < 10:
+            return None
+
+        # TPKT header
+        tpkt_version = payload[0]
+        tpkt_reserved = payload[1]
+        tpkt_length = int.from_bytes(payload[2:4], 'big')
+
+        # COTP header
+        cotp_length = payload[4]
+        cotp_pdu_type = payload[5]
+
+        if len(payload) < 12:
+            return {'protocol': 'S7comm', 'type': 'COTP'}
+
+        # S7comm header
+        protocol_id = payload[7]
+        message_type = payload[8]
+
+        message_types = {
+            1: "Job Request",
+            2: "Ack",
+            3: "Ack-Data",
+            7: "Userdata"
+        }
+
+        return {
+            'tpkt_length': tpkt_length,
+            'protocol_id': protocol_id,
+            'message_type': message_type,
+            'message_type_name': message_types.get(message_type, f"Unknown (0x{message_type:02x})")
+        }
+    except Exception as e:
+        logger.debug(f"Error parsing S7comm: {e}")
+        return None
+
+def parse_opcua(payload):
+    """Parse OPC-UA protocol"""
+    try:
+        if len(payload) < 8:
+            return None
+
+        # OPC-UA header
+        message_type = payload[0:3].decode('ascii', errors='ignore')
+        chunk_type = chr(payload[3]) if payload[3] < 128 else '?'
+        message_size = int.from_bytes(payload[4:8], 'little')
+
+        message_types_map = {
+            'HEL': 'Hello',
+            'ACK': 'Acknowledge',
+            'ERR': 'Error',
+            'RHE': 'Reverse Hello',
+            'OPN': 'Open Secure Channel',
+            'CLO': 'Close Secure Channel',
+            'MSG': 'Message'
+        }
+
+        chunk_types = {
+            'F': 'Final',
+            'C': 'Continue',
+            'A': 'Abort'
+        }
+
+        return {
+            'message_type': message_type,
+            'message_type_name': message_types_map.get(message_type, message_type),
+            'chunk_type': chunk_type,
+            'chunk_type_name': chunk_types.get(chunk_type, 'Unknown'),
+            'message_size': message_size
+        }
+    except Exception as e:
+        logger.debug(f"Error parsing OPC-UA: {e}")
+        return None
+
+def parse_enip(payload):
+    """Parse EtherNet/IP protocol"""
+    try:
+        if len(payload) < 24:
+            return None
+
+        command = int.from_bytes(payload[0:2], 'little')
+        length = int.from_bytes(payload[2:4], 'little')
+        session_handle = int.from_bytes(payload[4:8], 'little')
+        status = int.from_bytes(payload[8:12], 'little')
+
+        commands = {
+            0x0001: "NOP",
+            0x0004: "ListServices",
+            0x0063: "ListIdentity",
+            0x0064: "ListInterfaces",
+            0x0065: "RegisterSession",
+            0x0066: "UnregisterSession",
+            0x006F: "SendRRData",
+            0x0070: "SendUnitData"
+        }
+
+        return {
+            'command': command,
+            'command_name': commands.get(command, f"Unknown (0x{command:04x})"),
+            'length': length,
+            'session_handle': session_handle,
+            'status': status
+        }
+    except Exception as e:
+        logger.debug(f"Error parsing EtherNet/IP: {e}")
+        return None
+
+def capture_packets(interface='all', filter_str=''):
+    """Background thread to capture network packets"""
+    global network_capture_active, network_capture_packets
+
+    try:
+        # Try to import scapy
+        try:
+            from scapy.all import sniff, IP, TCP, UDP, ICMP, ARP, DNS, Raw
+            has_scapy = True
+        except ImportError:
+            logger.warning("Scapy not available, using simulated packet capture")
+            has_scapy = False
+
+        packet_id = 1
+
+        if has_scapy:
+            def packet_handler(packet):
+                global network_capture_active
+                nonlocal packet_id
+
+                if not network_capture_active:
+                    return True  # Stop sniffing
+
+                try:
+                    packet_data = {
+                        'id': packet_id,
+                        'time': datetime.now().strftime('%H:%M:%S.%f')[:-3],
+                        'timestamp': datetime.now().isoformat(),
+                        'length': len(packet),
+                        'layers': {},
+                        'raw_packet': bytes(packet)  # Store raw packet for PCAP export
+                    }
+
+                    # Extract Ethernet layer
+                    if packet.haslayer('Ether'):
+                        packet_data['layers']['ethernet'] = {
+                            'src': packet['Ether'].src,
+                            'dst': packet['Ether'].dst,
+                            'type': hex(packet['Ether'].type)
+                        }
+
+                    # Extract IP layer
+                    if packet.haslayer(IP):
+                        ip_layer = packet[IP]
+                        packet_data['source'] = ip_layer.src
+                        packet_data['destination'] = ip_layer.dst
+                        packet_data['layers']['ip'] = {
+                            'version': ip_layer.version,
+                            'ttl': ip_layer.ttl,
+                            'proto': ip_layer.proto
+                        }
+
+                        # Determine protocol
+                        if packet.haslayer(TCP):
+                            tcp_layer = packet[TCP]
+                            packet_data['protocol'] = 'TCP'
+                            packet_data['source_port'] = tcp_layer.sport
+                            packet_data['dest_port'] = tcp_layer.dport
+                            packet_data['layers']['tcp'] = {
+                                'sport': tcp_layer.sport,
+                                'dport': tcp_layer.dport,
+                                'flags': str(tcp_layer.flags),
+                                'seq': tcp_layer.seq
+                            }
+                            packet_data['info'] = f"{tcp_layer.sport} → {tcp_layer.dport} [{tcp_layer.flags}]"
+
+                            # Check for industrial protocols on TCP
+                            if packet.haslayer(Raw):
+                                payload = bytes(packet[Raw].load)
+
+                                # Modbus TCP (port 502)
+                                if tcp_layer.sport == 502 or tcp_layer.dport == 502:
+                                    modbus_data = parse_modbus_tcp(payload)
+                                    if modbus_data:
+                                        packet_data['protocol'] = 'MODBUS'
+                                        packet_data['layers']['modbus'] = modbus_data
+                                        packet_data['info'] = f"Modbus: {modbus_data['function_name']} (Unit {modbus_data['unit_id']})"
+
+                                # S7comm (port 102)
+                                elif tcp_layer.sport == 102 or tcp_layer.dport == 102:
+                                    s7_data = parse_s7comm(payload)
+                                    if s7_data:
+                                        packet_data['protocol'] = 'S7COMM'
+                                        packet_data['layers']['s7comm'] = s7_data
+                                        packet_data['info'] = f"S7comm: {s7_data.get('message_type_name', 'Unknown')}"
+
+                                # OPC-UA (port 4840)
+                                elif tcp_layer.sport == 4840 or tcp_layer.dport == 4840:
+                                    opcua_data = parse_opcua(payload)
+                                    if opcua_data:
+                                        packet_data['protocol'] = 'OPCUA'
+                                        packet_data['layers']['opcua'] = opcua_data
+                                        packet_data['info'] = f"OPC-UA: {opcua_data['message_type_name']} ({opcua_data['chunk_type_name']})"
+
+                                # EtherNet/IP (port 44818)
+                                elif tcp_layer.sport == 44818 or tcp_layer.dport == 44818:
+                                    enip_data = parse_enip(payload)
+                                    if enip_data:
+                                        packet_data['protocol'] = 'ENIP'
+                                        packet_data['layers']['enip'] = enip_data
+                                        packet_data['info'] = f"EtherNet/IP: {enip_data['command_name']}"
+
+                        elif packet.haslayer(UDP):
+                            udp_layer = packet[UDP]
+                            packet_data['protocol'] = 'UDP'
+                            packet_data['source_port'] = udp_layer.sport
+                            packet_data['dest_port'] = udp_layer.dport
+                            packet_data['layers']['udp'] = {
+                                'sport': udp_layer.sport,
+                                'dport': udp_layer.dport,
+                                'len': udp_layer.len
+                            }
+                            packet_data['info'] = f"{udp_layer.sport} → {udp_layer.dport}"
+
+                            # Check for DNS
+                            if packet.haslayer(DNS):
+                                packet_data['protocol'] = 'DNS'
+                                packet_data['info'] = "DNS Query/Response"
+
+                        elif packet.haslayer(ICMP):
+                            packet_data['protocol'] = 'ICMP'
+                            packet_data['info'] = f"Type {packet[ICMP].type}"
+                        else:
+                            packet_data['protocol'] = 'IP'
+                            packet_data['info'] = f"Protocol {ip_layer.proto}"
+
+                    elif packet.haslayer(ARP):
+                        arp_layer = packet[ARP]
+                        packet_data['protocol'] = 'ARP'
+                        packet_data['source'] = arp_layer.psrc
+                        packet_data['destination'] = arp_layer.pdst
+                        packet_data['info'] = f"Who has {arp_layer.pdst}? Tell {arp_layer.psrc}"
+                    else:
+                        packet_data['protocol'] = 'OTHER'
+                        packet_data['source'] = 'N/A'
+                        packet_data['destination'] = 'N/A'
+                        packet_data['info'] = 'Unknown protocol'
+
+                    with network_capture_lock:
+                        network_capture_packets.append(packet_data)
+
+                    packet_id += 1
+
+                except Exception as e:
+                    logger.error(f"Error processing packet: {e}")
+
+            # Start sniffing
+            iface = None if interface == 'all' else interface
+            sniff(prn=packet_handler, store=False, iface=iface, stop_filter=lambda x: not network_capture_active)
+        else:
+            # Simulated packet capture for demonstration
+            import random
+            protocols = ['TCP', 'UDP', 'ICMP', 'DNS', 'HTTP', 'ARP']
+
+            while network_capture_active:
+                # Generate simulated packet
+                protocol = random.choice(protocols)
+                packet_data = {
+                    'id': packet_id,
+                    'time': datetime.now().strftime('%H:%M:%S.%f')[:-3],
+                    'timestamp': datetime.now().isoformat(),
+                    'source': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
+                    'destination': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
+                    'protocol': protocol,
+                    'length': random.randint(64, 1500),
+                    'info': f"Simulated {protocol} packet",
+                    'layers': {
+                        'ethernet': {'src': 'aa:bb:cc:dd:ee:ff', 'dst': 'ff:ee:dd:cc:bb:aa', 'type': '0x0800'},
+                        'ip': {'version': 4, 'ttl': 64, 'proto': protocol.lower()}
+                    }
+                }
+
+                if protocol in ['TCP', 'UDP', 'HTTP', 'DNS']:
+                    sport = random.randint(1024, 65535)
+                    dport = 80 if protocol == 'HTTP' else (53 if protocol == 'DNS' else random.randint(1024, 65535))
+                    packet_data['source_port'] = sport
+                    packet_data['dest_port'] = dport
+                    packet_data['info'] = f"{sport} → {dport}"
+
+                    if protocol in ['TCP', 'HTTP']:
+                        packet_data['layers']['tcp'] = {
+                            'sport': sport,
+                            'dport': dport,
+                            'flags': random.choice(['S', 'A', 'SA', 'FA', 'PA']),
+                            'seq': random.randint(1000000, 9999999)
+                        }
+                    else:
+                        packet_data['layers']['udp'] = {
+                            'sport': sport,
+                            'dport': dport,
+                            'len': packet_data['length']
+                        }
+
+                with network_capture_lock:
+                    network_capture_packets.append(packet_data)
+
+                packet_id += 1
+                time.sleep(random.uniform(0.1, 1.0))  # Random interval between packets
+
+    except Exception as e:
+        logger.error(f"Error in packet capture: {e}")
+
+@app.route('/api/network/start', methods=['POST'])
+def start_network_capture():
+    """Start network packet capture"""
+    global network_capture_active, network_capture_thread
+
+    try:
+        data = request.get_json() or {}
+        interface = data.get('interface', 'all')
+        filter_str = data.get('filter', '')
+
+        if network_capture_active:
+            return jsonify({'error': 'Capture already active'}), 400
+
+        # Clear previous packets
+        with network_capture_lock:
+            network_capture_packets.clear()
+
+        network_capture_active = True
+
+        # Start capture thread
+        network_capture_thread = threading.Thread(
+            target=capture_packets,
+            args=(interface, filter_str),
+            daemon=True
+        )
+        network_capture_thread.start()
+
+        logger.info(f"Started network capture on interface: {interface}")
+        return jsonify({'success': True, 'message': 'Capture started'})
+
+    except Exception as e:
+        logger.error(f"Error starting network capture: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/network/stop', methods=['POST'])
+def stop_network_capture():
+    """Stop network packet capture"""
+    global network_capture_active
+
+    try:
+        network_capture_active = False
+        logger.info("Stopped network capture")
+        return jsonify({'success': True, 'message': 'Capture stopped'})
+    except Exception as e:
+        logger.error(f"Error stopping network capture: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/network/packets')
+def get_network_packets():
+    """Get captured network packets"""
+    try:
+        with network_capture_lock:
+            packets = list(network_capture_packets)
+
+        # Remove raw_packet data for JSON serialization (it's binary)
+        packets_json = []
+        for packet in packets:
+            packet_copy = packet.copy()
+            if 'raw_packet' in packet_copy:
+                del packet_copy['raw_packet']  # Remove binary data for JSON
+            packets_json.append(packet_copy)
+
+        return jsonify({'packets': packets_json})
+    except Exception as e:
+        logger.error(f"Error getting network packets: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/network/clear', methods=['POST'])
+def clear_network_capture():
+    """Clear captured packets"""
+    try:
+        with network_capture_lock:
+            network_capture_packets.clear()
+        logger.info("Cleared network capture packets")
+        return jsonify({'success': True, 'message': 'Packets cleared'})
+    except Exception as e:
+        logger.error(f"Error clearing network packets: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/network/export')
+def export_network_capture():
+    """Export captured packets as PCAP file"""
+    try:
+        from flask import send_file
+        import io
+        import struct
+
+        with network_capture_lock:
+            packets = list(network_capture_packets)
+
+        # Create PCAP file in memory
+        pcap_buffer = io.BytesIO()
+
+        # PCAP Global Header
+        # Magic number (0xa1b2c3d4 for standard pcap)
+        pcap_buffer.write(struct.pack('I', 0xa1b2c3d4))
+        # Version major, minor
+        pcap_buffer.write(struct.pack('HH', 2, 4))
+        # Timezone offset (0)
+        pcap_buffer.write(struct.pack('I', 0))
+        # Timestamp accuracy (0)
+        pcap_buffer.write(struct.pack('I', 0))
+        # Snapshot length (65535)
+        pcap_buffer.write(struct.pack('I', 65535))
+        # Data link type (1 = Ethernet)
+        pcap_buffer.write(struct.pack('I', 1))
+
+        # Write packet data
+        for packet in packets:
+            # Parse timestamp
+            try:
+                from dateutil import parser as date_parser
+                ts = date_parser.parse(packet.get('timestamp', datetime.now().isoformat()))
+                ts_sec = int(ts.timestamp())
+                ts_usec = ts.microsecond
+            except:
+                ts_sec = int(datetime.now().timestamp())
+                ts_usec = 0
+
+            # Use raw packet data if available, otherwise reconstruct
+            if 'raw_packet' in packet:
+                packet_data = packet['raw_packet']
+            else:
+                packet_data = _reconstruct_packet_data(packet)
+
+            packet_length = len(packet_data)
+
+            # PCAP Packet Header
+            pcap_buffer.write(struct.pack('I', ts_sec))  # Timestamp seconds
+            pcap_buffer.write(struct.pack('I', ts_usec))  # Timestamp microseconds
+            pcap_buffer.write(struct.pack('I', packet_length))  # Captured length
+            pcap_buffer.write(struct.pack('I', packet_length))  # Original length
+
+            # Packet data
+            pcap_buffer.write(packet_data)
+
+        pcap_buffer.seek(0)
+
+        filename = f"capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pcap"
+
+        return send_file(
+            pcap_buffer,
+            mimetype='application/vnd.tcpdump.pcap',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        logger.error(f"Error exporting network capture: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def _reconstruct_packet_data(packet):
+    """Reconstruct packet data from parsed information"""
+    import struct
+
+    # Build a minimal Ethernet frame
+    packet_bytes = bytearray()
+
+    # Ethernet header (14 bytes)
+    if 'layers' in packet and 'ethernet' in packet['layers']:
+        eth = packet['layers']['ethernet']
+        # Destination MAC (use dummy if not available)
+        dst_mac = bytes.fromhex(eth.get('dst', 'ff:ff:ff:ff:ff:ff').replace(':', ''))
+        src_mac = bytes.fromhex(eth.get('src', '00:00:00:00:00:00').replace(':', ''))
+        packet_bytes.extend(dst_mac)
+        packet_bytes.extend(src_mac)
+        packet_bytes.extend(struct.pack('!H', 0x0800))  # IPv4
+    else:
+        # Dummy Ethernet header
+        packet_bytes.extend(b'\xff\xff\xff\xff\xff\xff')  # Dst MAC
+        packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00')  # Src MAC
+        packet_bytes.extend(struct.pack('!H', 0x0800))  # IPv4
+
+    # IPv4 header (20 bytes minimum)
+    if 'layers' in packet and 'ip' in packet['layers']:
+        ip = packet['layers']['ip']
+        src_ip = packet.get('source', '0.0.0.0')
+        dst_ip = packet.get('destination', '0.0.0.0')
+
+        # IP header
+        packet_bytes.append(0x45)  # Version 4, IHL 5
+        packet_bytes.append(0x00)  # DSCP/ECN
+        total_length = max(packet.get('length', 60), 60)
+        packet_bytes.extend(struct.pack('!H', total_length))  # Total length
+        packet_bytes.extend(struct.pack('!H', packet.get('id', 0)))  # Identification
+        packet_bytes.extend(struct.pack('!H', 0x4000))  # Flags + Fragment offset
+        packet_bytes.append(ip.get('ttl', 64))  # TTL
+
+        # Protocol
+        proto = 6  # TCP default
+        if packet.get('protocol') == 'UDP':
+            proto = 17
+        elif packet.get('protocol') == 'ICMP':
+            proto = 1
+        packet_bytes.append(proto)
+
+        packet_bytes.extend(struct.pack('!H', 0x0000))  # Checksum (dummy)
+
+        # Source and Destination IP
+        for octet in src_ip.split('.'):
+            packet_bytes.append(int(octet))
+        for octet in dst_ip.split('.'):
+            packet_bytes.append(int(octet))
+    else:
+        # Dummy IP header
+        packet_bytes.extend(b'\x45\x00\x00\x3c\x00\x00\x40\x00\x40\x06\x00\x00')
+        packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00\x00\x00')
+
+    # TCP/UDP header (simplified)
+    if 'layers' in packet and 'tcp' in packet['layers']:
+        tcp = packet['layers']['tcp']
+        packet_bytes.extend(struct.pack('!H', tcp.get('sport', 0)))
+        packet_bytes.extend(struct.pack('!H', tcp.get('dport', 0)))
+        packet_bytes.extend(struct.pack('!I', tcp.get('seq', 0)))
+        packet_bytes.extend(struct.pack('!I', 0))  # ACK
+        packet_bytes.extend(struct.pack('!H', 0x5000))  # Data offset + flags
+        packet_bytes.extend(struct.pack('!H', 8192))  # Window
+        packet_bytes.extend(struct.pack('!H', 0))  # Checksum
+        packet_bytes.extend(struct.pack('!H', 0))  # Urgent pointer
+    elif 'layers' in packet and 'udp' in packet['layers']:
+        udp = packet['layers']['udp']
+        packet_bytes.extend(struct.pack('!H', udp.get('sport', 0)))
+        packet_bytes.extend(struct.pack('!H', udp.get('dport', 0)))
+        packet_bytes.extend(struct.pack('!H', udp.get('len', 8)))
+        packet_bytes.extend(struct.pack('!H', 0))  # Checksum
+
+    # Pad to minimum size
+    while len(packet_bytes) < 60:
+        packet_bytes.append(0)
+
+    return bytes(packet_bytes)
 
 @app.route('/api/stats')
 def get_stats():

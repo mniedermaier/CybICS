@@ -4,6 +4,8 @@ RUN apt-get update && apt-get install -y \
     network-manager \
     gcc \
     make \
+    libpcap-dev \
+    tcpdump \
     && rm -rf /var/lib/apt/lists/*
     
 WORKDIR /CybICS
