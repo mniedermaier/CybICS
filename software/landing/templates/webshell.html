@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - WebShell</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        header {
+            background-color: #2d2d2d;
+            color: #ff6b00;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ff6b00;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .back-button {
+            background-color: #404040;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .terminal-output {
+            flex: 1;
+            background-color: #0a0a0a;
+            border: 2px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+        }
+
+        .terminal-prompt {
+            color: #00ff00;
+        }
+
+        .terminal-command {
+            color: #ffffff;
+        }
+
+        .terminal-output-text {
+            color: #cccccc;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .terminal-error {
+            color: #ff4444;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.5rem;
+            background-color: #2d2d2d;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid #404040;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            border: 1px solid #404040;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .terminal-input:focus {
+            outline: none;
+            border-color: #ff6b00;
+        }
+
+        .execute-button {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 0.25rem;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .execute-button:hover {
+            background-color: #ff8c42;
+        }
+
+        .execute-button:disabled {
+            background-color: #404040;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        .clear-button {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .clear-button:hover {
+            background-color: #606060;
+        }
+
+        .quick-commands {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-command-btn {
+            background-color: #2d2d2d;
+            color: #ff6b00;
+            border: 1px solid #404040;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .quick-command-btn:hover {
+            background-color: #404040;
+            border-color: #ff6b00;
+        }
+
+        .info-banner {
+            background-color: #2d2d2d;
+            border: 1px solid #ff6b00;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            color: #cccccc;
+            font-size: 12px;
+        }
+
+        .info-banner strong {
+            color: #ff6b00;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #404040;
+            border-top-color: #ff6b00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WebShell - Attack Tools</h1>
+        <a href="/" class="back-button">Back to Dashboard</a>
+    </header>
+
+    <div class="terminal-container">
+        <div class="info-banner">
+            <strong>WebShell Terminal</strong> - Execute attack tools like nmap, netcat, curl, flooding_hpt.py, etc.
+        </div>
+
+        <div class="quick-commands">
+            <button class="quick-command-btn" onclick="insertCommand('flooding_hpt.py localhost --duration 10')">flooding_hpt.py 10s</button>
+            <button class="quick-command-btn" onclick="insertCommand('flooding_hpt.py localhost --duration 60')">flooding_hpt.py 60s</button>
+            <button class="quick-command-btn" onclick="insertCommand('nmap -sV localhost')">nmap -sV</button>
+            <button class="quick-command-btn" onclick="insertCommand('nmap -p- localhost')">nmap -p-</button>
+            <button class="quick-command-btn" onclick="insertCommand('ip a')">ip a</button>
+            <button class="quick-command-btn" onclick="insertCommand('netstat -tulpn')">netstat</button>
+            <button class="quick-command-btn" onclick="insertCommand('ps aux')">ps aux</button>
+            <button class="quick-command-btn" onclick="insertCommand('whoami')">whoami</button>
+            <button class="quick-command-btn" onclick="insertCommand('pwd')">pwd</button>
+            <button class="quick-command-btn" onclick="insertCommand('ls -la')">ls -la</button>
+        </div>
+
+        <div class="terminal-output" id="terminal-output">
+            <div class="terminal-line">
+                <span class="terminal-output-text">WebShell v1.0 - CybICS Training Platform</span>
+            </div>
+            <div class="terminal-line">
+                <span class="terminal-output-text">Type commands below or use quick command buttons.</span>
+            </div>
+            <div class="terminal-line">
+                <span class="terminal-output-text">---</span>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input
+                type="text"
+                class="terminal-input"
+                id="command-input"
+                placeholder="Enter command (e.g., nmap -sV 10.0.0.10)"
+                autocomplete="off"
+            >
+            <button class="execute-button" id="execute-btn" onclick="executeCommand()">Execute</button>
+            <button class="clear-button" onclick="clearTerminal()">Clear</button>
+        </div>
+    </div>
+
+    <script>
+        const terminalOutput = document.getElementById('terminal-output');
+        const commandInput = document.getElementById('command-input');
+        const executeBtn = document.getElementById('execute-btn');
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        // Focus input on load
+        commandInput.focus();
+
+        // Handle Enter key
+        commandInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !executeBtn.disabled) {
+                executeCommand();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (commandHistory.length > 0) {
+                    historyIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
+                    commandInput.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    commandInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = -1;
+                    commandInput.value = '';
+                }
+            }
+        });
+
+        function insertCommand(cmd) {
+            commandInput.value = cmd;
+            commandInput.focus();
+        }
+
+        function addTerminalLine(content, className = '') {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            if (className) {
+                line.classList.add(className);
+            }
+            line.innerHTML = content;
+            terminalOutput.appendChild(line);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function clearTerminal() {
+            terminalOutput.innerHTML = `
+                <div class="terminal-line">
+                    <span class="terminal-output-text">Terminal cleared.</span>
+                </div>
+            `;
+        }
+
+        async function executeCommand() {
+            const command = commandInput.value.trim();
+            if (!command) {
+                return;
+            }
+
+            // Add to history
+            commandHistory.unshift(command);
+            historyIndex = -1;
+
+            // Display command
+            addTerminalLine(`<span class="terminal-prompt">root@cybics:~$</span> <span class="terminal-command">${escapeHtml(command)}</span>`);
+
+            // Clear input and disable button
+            commandInput.value = '';
+            executeBtn.disabled = true;
+            executeBtn.innerHTML = 'Executing<span class="loading"></span>';
+
+            try {
+                const response = await fetch('/api/webshell/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const output = data.output || '(no output)';
+                    addTerminalLine(`<span class="terminal-output-text">${escapeHtml(output)}</span>`);
+                    if (data.exit_code !== 0) {
+                        addTerminalLine(`<span class="terminal-error">Exit code: ${data.exit_code}</span>`);
+                    }
+                } else {
+                    addTerminalLine(`<span class="terminal-error">Error: ${escapeHtml(data.output)}</span>`);
+                }
+            } catch (error) {
+                addTerminalLine(`<span class="terminal-error">Request failed: ${escapeHtml(error.message)}</span>`);
+            }
+
+            // Re-enable button
+            executeBtn.disabled = false;
+            executeBtn.textContent = 'Execute';
+            commandInput.focus();
+
+            // Add separator
+            addTerminalLine('<span class="terminal-output-text">---</span>');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-scroll terminal output
+        const observer = new MutationObserver(() => {
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        });
+        observer.observe(terminalOutput, { childList: true, subtree: true });
+    </script>
+</body>
+</html>

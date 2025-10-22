@@ -118,6 +118,52 @@ def network_page():
 # Register network-specific routes
 register_network_routes(app, network_capture)
 
+# ========== WEBSHELL ROUTES ==========
+
+@app.route('/webshell')
+def webshell_page():
+    """Webshell page for running attack tools"""
+    logger.info('Rendering webshell page')
+    return render_template('webshell.html')
+
+@app.route('/api/webshell/execute', methods=['POST'])
+def execute_command():
+    """Execute a shell command and return the output"""
+    import subprocess
+    data = request.get_json()
+    command = data.get('command', '').strip()
+
+    if not command:
+        return jsonify({'success': False, 'output': 'No command provided'}), 400
+
+    logger.info(f'Executing webshell command: {command}')
+
+    try:
+        # Execute the command without timeout
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=os.path.expanduser('~')
+        )
+
+        output = result.stdout
+        if result.stderr:
+            output += '\n' + result.stderr
+
+        return jsonify({
+            'success': True,
+            'output': output,
+            'exit_code': result.returncode
+        })
+    except Exception as e:
+        logger.error(f'Error executing command: {e}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'output': f'Error: {str(e)}'
+        }), 500
+
 # ========== CTF ROUTES ==========
 
 @app.route('/ctf')
