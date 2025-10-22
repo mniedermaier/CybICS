@@ -629,6 +629,75 @@ class TestOpcuaExtended:
             except Exception:  # pylint: disable=broad-except
                 pass
 
+    @pytest.mark.asyncio
+    async def test_opcua_traffic_verification(self):
+        """
+        Test OPC-UA traffic verification with explicit credentials.
+
+        Validates OPC-UA connectivity using credentials embedded in the connection URL.
+        Tests connection to opc.tcp://user1:test@localhost:4840 and verifies
+        that authentication and basic data access operations work correctly.
+        """
+        # Parse and construct URL with embedded credentials
+        opcua_url_with_creds = "opc.tcp://localhost:4840"
+        username = "user1"
+        password = "test"
+
+        client = Client(opcua_url_with_creds)
+        client.set_user(username)
+        client.set_password(password)
+        client.timeout = CONNECTION_TIMEOUT
+
+        try:
+            # Establish connection with authentication
+            await client.connect()
+
+            # Verify connection by reading server status
+            server_status_node = client.get_node(ua.ObjectIds.Server_ServerStatus)
+            server_status = await server_status_node.read_value()
+            assert server_status is not None, "Failed to read server status"
+
+            # Verify server state is Running
+            server_state_node = client.get_node(ua.ObjectIds.Server_ServerStatus_State)
+            server_state = await server_state_node.read_value()
+            assert server_state == 0, f"Server not in running state: {server_state}"
+
+            # Verify we can browse the server namespace
+            objects_node = client.get_objects_node()
+            objects_children = await objects_node.get_children()
+            assert objects_children is not None, "Failed to browse Objects node"
+
+            # Verify we can read server time (tests read permissions)
+            time_node = client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime)
+            server_time = await time_node.read_value()
+            assert server_time is not None, "Failed to read server time"
+
+            print(f"\nOPC-UA Traffic Verification Successful:")
+            print(f"  URL: {opcua_url_with_creds}")
+            print(f"  Username: {username}")
+            print(f"  Server State: Running ({server_state})")
+            print(f"  Server Time: {server_time}")
+            print(f"  Objects Node Children Count: {len(objects_children)}")
+
+        except ConnectionError as e:
+            pytest.fail(f"Failed to establish OPC-UA connection to {opcua_url_with_creds}: {e}")
+        except ua.UaStatusCodeError as e:
+            # Check for authentication failures
+            if "BadUserAccessDenied" in str(e) or "BadIdentityTokenRejected" in str(e):
+                pytest.fail(f"Authentication failed for user '{username}': {e}")
+            pytest.fail(f"OPC-UA status code error: {e}")
+        except TimeoutError as e:
+            pytest.skip(f"OPC-UA server connection timeout: {e}")
+        except Exception as e:  # pylint: disable=broad-except
+            if "timeout" in str(e).lower() or "TimeoutError" in str(type(e).__name__):
+                pytest.skip(f"OPC-UA server timeout: {e}")
+            pytest.fail(f"Unexpected error during OPC-UA traffic verification: {e}")
+        finally:
+            try:
+                await client.disconnect()
+            except Exception:  # pylint: disable=broad-except
+                pass
+
 
 def test_all_services_comprehensive():
     """

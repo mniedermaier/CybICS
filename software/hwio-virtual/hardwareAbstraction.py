@@ -27,6 +27,110 @@ timer=0
 consecutive_failures = 0
 MAX_FAILURES = 10
 
+# Background process simulation thread
+def physical_process_thread():
+  """Runs the physical process simulation independently of UI"""
+  global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
+
+  logging.info("Physical process thread started")
+
+  # Initial connection to OpenPLC
+  while not client.connected:
+    try:
+      client.connect()
+      if client.connected:
+        logging.info("Physical process: Successfully connected to OpenPLC")
+        break
+    except Exception as e:
+      logging.warning(f"Physical process: Waiting for OpenPLC... {str(e)}")
+      time.sleep(1)
+
+  while True:
+    # Ensure connection to OpenPLC
+    if not client.connected:
+      try:
+        client.connect()
+        if client.connected:
+          logging.info("Physical process: Reconnected to OpenPLC")
+          consecutive_failures = 0
+      except Exception as e:
+        consecutive_failures += 1
+        if consecutive_failures % 50 == 0:
+          logging.warning(f"Physical process: Cannot connect to OpenPLC - {str(e)} (Attempt {consecutive_failures})")
+        time.sleep(0.1)
+        continue
+
+    # read coils from OpenPLC
+    try:
+      plcCoils=client.read_coils(0,count=4, device_id=1)
+      heartbeat=plcCoils.bits[0]
+      compressor=plcCoils.bits[1]
+      systemValve=plcCoils.bits[2]
+      gstSig=plcCoils.bits[3]
+      consecutive_failures = 0
+    except Exception as e:
+      consecutive_failures += 1
+      logging.error(f"Physical process: Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Physical process: Maximum consecutive failures reached. Attempting to reconnect...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Physical process: Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Physical process: Failed to reconnect - {str(reconnect_error)}")
+
+    # Physical simulation logic
+    if delay > 50:
+      delay = 0
+      timer = timer + 1
+      if gstSig > 0:
+        gst = gst+random.randint(0, 5)
+      if compressor > 0:
+        gst = gst-2
+        hpt = hpt+1
+      if systemValve > 0:
+        hpt = hpt-random.randint(0, 1)
+      if boSen > 0:
+        hpt=hpt-random.randint(0, 5)
+    delay = delay+1
+
+    # System operational if HPT > 50 and HPT < 100 and systemValve true
+    if hpt>50 and hpt<100 and systemValve>0:
+      sysSen=1
+    else:
+      sysSen=0
+
+    # Blowout if the HPT pressure if over 220 until HTP pressure < 201
+    if hpt>220 or (boSen==1 and hpt>200):
+      boSen=1
+    else:
+      boSen=0
+
+    # Limit values
+    if gst>255:
+      gst=255
+    if hpt>255:
+      hpt=255
+    if gst<0:
+      gst=0
+    if hpt<0:
+      hpt=0
+
+    # Write to OpenPLC
+    try:
+      client.write_register(1132,sysSen)
+      client.write_register(1134,boSen)
+      client.write_register(1124,gst)
+      client.write_register(1126,hpt)
+      client.write_registers(1200,[17273, 25161, 17235, 10349, 12388, 25205, 9257])
+    except Exception as e:
+      logging.error("Physical process: Write to OpenPLC failed - " + str(e))
+
+    time.sleep(0.02)  # 50Hz to match OpenPLC cycle time
+
 # definiton for button reset
 def button_reset():
   # use global variables
@@ -101,7 +205,7 @@ def index_page():
       )
 
       # Overlay Display
-      DISPLAYoverlay1 = ui.label('CybICS v1.1.0').style(
+      DISPLAYoverlay1 = ui.label('CybICS v1.1.1').style(
         'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
         'background-color: transparent; font-size: 40px;'
         'display: block;'
@@ -236,48 +340,12 @@ def index_page():
         with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as boCard:
           boLabel = ui.label(str(boSen)).style('color: black;')
 
-  # Update function called periodically
+  # Update function called periodically (UI updates only)
   async def update():
     global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
-    # read coils from OpenPLC
-    try:
-      plcCoils=client.read_coils(0,count=4, device_id=1)
-      heartbeat=plcCoils.bits[0]
-      compressor=plcCoils.bits[1]
-      systemValve=plcCoils.bits[2]
-      gstSig=plcCoils.bits[3]
-      # Reset failure counter on successful read
-      consecutive_failures = 0
-    except Exception as e:
-      consecutive_failures += 1
-      logging.error(f"Main    : Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
-
-      if consecutive_failures >= MAX_FAILURES:
-        logging.warning("Main    : Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
-        try:
-          client.close()
-          client.connect()
-          consecutive_failures = 0
-          logging.info("Main    : Successfully reconnected to OpenPLC")
-        except Exception as reconnect_error:
-          logging.error(f"Main    : Failed to reconnect to OpenPLC - {str(reconnect_error)}")
-
-    # get roughly one second
-    if delay > 50:
-      delay = 0
-      timer = timer + 1
-      DISPLAYoverlay2.set_text(str(timer))
-      if gstSig > 0:
-        gst = gst+random.randint(0, 5)
-      if compressor > 0:
-        gst = gst-2
-        hpt = hpt+1
-      if systemValve > 0:
-        hpt = hpt-random.randint(0, 1)
-      if boSen > 0:
-        hpt=hpt-random.randint(0, 5)
-    delay = delay+1
+    # Update display timer
+    DISPLAYoverlay2.set_text(str(timer))
 
     # System Valve
     if systemValve > 0:
@@ -287,9 +355,8 @@ def index_page():
       systemValveCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       systemValveLabel.set_text("Closed: " + str(systemValve))
 
-    # System operational if HPT > 50 and HPT < 100 and systemValve true
-    if hpt>50 and hpt<100 and systemValve>0:
-      sysSen=1
+    # System operational display (sysSen computed in background thread)
+    if sysSen > 0:
       sysCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       sysLabel.set_text("Operational: " + str(sysSen))
       SoverlayWorking.style(
@@ -303,7 +370,6 @@ def index_page():
         'display: none;'
       )
     else:
-      sysSen=0
       sysCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       sysLabel.set_text("Non operational: " + str(sysSen))
       SoverlayWorking.style(
@@ -342,9 +408,8 @@ def index_page():
       )
 
 
-    # Blowout if the HPTpressure if over 220 until HTP pressure < 201
-    if hpt>220 or (boSen==1 and hpt>200):
-      boSen=1
+    # Blowout display (boSen computed in background thread)
+    if boSen > 0:
       boCard.style(f'background-color: red; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       boLabel.set_text("Open: " + str(boSen))
       BOoverlayOpen.style(
@@ -358,7 +423,6 @@ def index_page():
         'display: none;'
       )
     else:
-      boSen=0
       boCard.style(f'background-color: green; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;')
       boLabel.set_text("Closed: " + str(boSen))
       BOoverlayOpen.style(
@@ -371,27 +435,6 @@ def index_page():
         'background-color: green; width: 5px; height: 5px;'
         'display: block;'
       )
-
-    if gst>255:
-      gst=255
-    if hpt>255:
-      hpt=255
-    if gst<0:
-      gst=0
-    if hpt<0:
-      hpt=0
-
-    # Write to OpenPLC
-    try:
-      # write SystemSensor and BlowOutSensor to the OpenPLC
-      client.write_register(1132,sysSen)
-      client.write_register(1134,boSen)
-      # write GST and HPT to the OpenPLC
-      client.write_register(1124,gst)
-      client.write_register(1126,hpt)
-      client.write_registers(1200,[17273, 25161, 17235, 10349, 12388, 25205, 9257])
-    except Exception as e:
-      logging.error("Main    : Write to OpenPLC failed - " + str(e))
 
 
 
@@ -644,6 +687,11 @@ if __name__ == "__main__":
   format = "%(asctime)s: %(message)s"
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
+
+  # Start physical process in background thread
+  process_thread = threading.Thread(target=physical_process_thread, daemon=True)
+  process_thread.start()
+  logging.info("Main    : Physical process thread started")
 
   logging.info("Main    : starting NiceGUI")
   ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")

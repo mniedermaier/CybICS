@@ -72,6 +72,19 @@ def thread_openplc():
     global hpt
     global flag
 
+    # Ensure connection to OpenPLC
+    if not client.connected:
+      try:
+        client.connect()
+        if client.connected:
+          logging.info("Successfully reconnected to OpenPLC")
+          consecutive_failures = 0
+      except Exception as e:
+        consecutive_failures += 1
+        if consecutive_failures % 50 == 0:  # Log every 50 failures to avoid spam
+          logging.warning(f"Cannot connect to OpenPLC - {str(e)} (Attempt {consecutive_failures})")
+        time.sleep(0.1)
+        continue  # Skip this cycle
 
     try:
       # write GST and HPT to the OpenPLC
