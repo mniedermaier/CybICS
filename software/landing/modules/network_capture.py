@@ -4,6 +4,7 @@ Network packet capture module with memory management for Raspberry Pi Zero 2
 import threading
 import time
 import sys
+import psutil
 from datetime import datetime
 from collections import deque
 
@@ -23,7 +24,31 @@ class NetworkCapture:
         # Fixed average packet size estimate in KB (includes raw packet bytes + metadata)
         self.avg_packet_size_kb = 2.0  # ~2KB per packet on average (raw bytes + fields)
 
+        # Memory monitoring
+        self.last_memory_log = time.time()
+        self.process = psutil.Process()
+
         logger.info(f"NetworkCapture initialized with max {MAX_PACKETS_IN_MEMORY} packets (~{MAX_PACKETS_IN_MEMORY * self.avg_packet_size_kb / 1024:.1f}MB max)")
+        self._log_memory_stats("Initialization")
+
+    def _log_memory_stats(self, context=""):
+        """Log detailed memory statistics"""
+        try:
+            mem_info = self.process.memory_info()
+            mem_percent = self.process.memory_percent()
+            system_mem = psutil.virtual_memory()
+
+            logger.info(
+                f"Memory Stats [{context}] - "
+                f"Process RSS: {mem_info.rss / 1024 / 1024:.1f}MB, "
+                f"Process VMS: {mem_info.vms / 1024 / 1024:.1f}MB, "
+                f"Process %: {mem_percent:.1f}%, "
+                f"System Available: {system_mem.available / 1024 / 1024:.1f}MB, "
+                f"System %: {system_mem.percent:.1f}%, "
+                f"Packets in buffer: {len(self.packets)}"
+            )
+        except Exception as e:
+            logger.error(f"Error logging memory stats: {e}")
 
     def add_packet(self, packet_data):
         """Add a packet with automatic overflow handling via deque maxlen"""
@@ -38,22 +63,40 @@ class NetworkCapture:
 
                 if self.dropped_packets % 1000 == 0:
                     logger.warning(f"Packet buffer full. Dropped {self.dropped_packets} packets (keeping newest {MAX_PACKETS_IN_MEMORY})")
-            elif len(self.packets) % 1000 == 0:
-                # Only log when growing, not when at max capacity
+                    self._log_memory_stats("Buffer Full")
+            elif len(self.packets) % 500 == 0:
+                # Log memory every 500 packets when growing
                 estimated_mb = len(self.packets) * self.avg_packet_size_kb / 1024
                 logger.debug(f"Captured {len(self.packets)} packets (~{estimated_mb:.1f}MB)")
+
+                # Detailed memory log every 1000 packets or every 30 seconds
+                current_time = time.time()
+                if len(self.packets) % 1000 == 0 or (current_time - self.last_memory_log) > 30:
+                    self._log_memory_stats(f"Packet #{len(self.packets)}")
+                    self.last_memory_log = current_time
 
     def get_packets(self):
         """Get all captured packets"""
         with self.lock:
-            return list(self.packets)
+            packet_list = list(self.packets)
+
+        # Log memory stats periodically when packets are retrieved
+        current_time = time.time()
+        if (current_time - self.last_memory_log) > 60:  # Every 60 seconds during active retrieval
+            self._log_memory_stats(f"Retrieving {len(packet_list)} packets")
+            self.last_memory_log = current_time
+
+        return packet_list
 
     def clear(self):
         """Clear all captured packets"""
         with self.lock:
+            packet_count = len(self.packets)
             self.packets.clear()
             self.dropped_packets = 0
-            logger.info("Cleared all captured packets")
+
+        logger.info(f"Cleared {packet_count} captured packets")
+        self._log_memory_stats("After Clear")
 
     def start(self, interface='all', filter_str=''):
         """Start packet capture"""
@@ -73,12 +116,14 @@ class NetworkCapture:
         self.capture_thread.start()
 
         logger.info(f"Started network capture on interface: {interface}, filter: '{filter_str}'")
+        self._log_memory_stats("Capture Start")
         return True
 
     def stop(self):
         """Stop packet capture"""
         self.active = False
         logger.info(f"Stopped network capture. Captured {len(self.packets)} packets, Dropped {self.dropped_packets} packets")
+        self._log_memory_stats("Capture Stop")
         return True
 
     def _capture_packets(self, interface='all', filter_str=''):

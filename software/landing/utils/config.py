@@ -41,4 +41,4 @@ STATS_COLLECTION_INTERVAL = 5  # seconds
 DOCKER_STATS_INTERVAL = 10  # seconds
 
 # Network Capture Configuration (optimized for Raspberry Pi)
-MAX_PACKETS_IN_MEMORY = 5000  # Maximum number of packets to keep in memory (~7-8MB with optimized structure)
+MAX_PACKETS_IN_MEMORY = 1000  # Maximum number of packets to keep in memory (~2MB with full raw bytes)
