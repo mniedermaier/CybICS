@@ -214,27 +214,30 @@
 
         .graph-legend {
             position: absolute;
-            bottom: 10px;
+            bottom: 100px;
             left: 10px;
             background-color: #2d2d2dd0;
             border: 1px solid #404040;
             border-radius: 0.5rem;
-            padding: 1rem;
-            max-width: 300px;
+            padding: 0.75rem;
+            max-width: 280px;
+            max-height: 50vh;
+            overflow-y: auto;
         }
 
         .legend-title {
             color: #ff6b00;
             font-weight: bold;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-            font-size: 0.85rem;
+            gap: 0.4rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.8rem;
         }
 
         .legend-color {
@@ -1128,7 +1131,7 @@
         let updateInterval = null;
 
         // New features state
-        let timeFormat = 'relative';
+        let timeFormat = 'delta';
         let visibleColumns = {
             'no': true, 'time': true, 'source': true, 'source-port': false,
             'destination': true, 'dest-port': false, 'protocol': true,
@@ -1160,6 +1163,9 @@
                 const bridge = interfaces.filter(i => i.type === 'bridge');
                 const veth = interfaces.filter(i => i.type === 'veth');
 
+                // Track default interface to select
+                let defaultInterface = null;
+
                 // Add ICS bridges FIRST (prioritized for ICS traffic capture)
                 if (ics_bridges.length > 0) {
                     const icsGroup = document.createElement('optgroup');
@@ -1172,8 +1178,8 @@
                     });
                     select.appendChild(icsGroup);
 
-                    // Auto-select first ICS bridge as default
-                    select.value = ics_bridges[0].name;
+                    // Prefer ICS bridge as default
+                    if (!defaultInterface) defaultInterface = ics_bridges[0].name;
                 }
 
                 // Add physical interfaces first
@@ -1213,6 +1219,9 @@
                         bridgeGroup.appendChild(option);
                     });
                     select.appendChild(bridgeGroup);
+
+                    // Prefer bridge as default (overrides ICS bridges if no ICS)
+                    if (!defaultInterface) defaultInterface = bridge[0].name;
                 }
 
                 // Add veth interfaces (usually many, so keep collapsed)
@@ -1226,6 +1235,11 @@
                         vethGroup.appendChild(option);
                     });
                     select.appendChild(vethGroup);
+                }
+
+                // Set the default interface (priority: ICS bridge > regular bridge > all)
+                if (defaultInterface) {
+                    select.value = defaultInterface;
                 }
             } catch (error) {
                 console.error('Error loading interfaces:', error);
@@ -1599,6 +1613,7 @@
         let graphDragStartX = 0;
         let graphDragStartY = 0;
         let graphSelectedNode = null;
+        let graphDraggingNode = null;
 
         function switchView(view, event) {
             // Update tab buttons
@@ -1909,7 +1924,7 @@
                     });
                 }
 
-                // Track connections
+                // Track connections - store port info per node
                 const edgeKey = `${src}-${dst}`;
                 const reverseEdgeKey = `${dst}-${src}`;
 
@@ -1918,8 +1933,7 @@
                         source: src,
                         target: dst,
                         protocol: packet.protocol,
-                        sourcePort: packet.source_port,
-                        destPort: packet.dest_port,
+                        ports: new Map([[src, packet.source_port], [dst, packet.dest_port]]),
                         count: 1
                     });
                 } else {
@@ -1930,9 +1944,13 @@
                     if (packet.protocol !== 'TCP' && packet.protocol !== 'UDP') {
                         conn.protocol = packet.protocol;
                     }
-                    // Update ports if we have better info
-                    if (packet.source_port) conn.sourcePort = packet.source_port;
-                    if (packet.dest_port) conn.destPort = packet.dest_port;
+                    // Store port for each node (accumulate different ports seen)
+                    if (packet.source_port && !conn.ports.has(src)) {
+                        conn.ports.set(src, packet.source_port);
+                    }
+                    if (packet.dest_port && !conn.ports.has(dst)) {
+                        conn.ports.set(dst, packet.dest_port);
+                    }
                 }
             });
 
@@ -1942,11 +1960,10 @@
                     source: conn.source,
                     target: conn.target,
                     protocol: conn.protocol,
-                    sourcePort: conn.sourcePort,
-                    destPort: conn.destPort,
+                    sourcePort: conn.ports.get(conn.source),
+                    destPort: conn.ports.get(conn.target),
                     weight: Math.min(conn.count / 10, 5), // Line thickness
-                    color: getEdgeColor(conn.protocol),
-                    label: conn.sourcePort && conn.destPort ? `${conn.sourcePort}→${conn.destPort}` : ''
+                    color: getEdgeColor(conn.protocol)
                 });
             });
 
@@ -2139,26 +2156,75 @@
                 ctx.lineTo(target.x, target.y);
                 ctx.stroke();
 
-                // Draw port label on edge
-                if (edge.label) {
-                    const midX = (source.x + target.x) / 2;
-                    const midY = (source.y + target.y) / 2;
+                ctx.globalAlpha = 1;
 
-                    // Background for label
-                    ctx.globalAlpha = 0.9;
-                    ctx.fillStyle = '#2d2d2d';
-                    const labelMetrics = ctx.measureText(edge.label);
-                    const labelWidth = labelMetrics.width + 8;
-                    const labelHeight = 16;
-                    ctx.fillRect(midX - labelWidth / 2, midY - labelHeight / 2, labelWidth, labelHeight);
-
-                    // Label text
-                    ctx.globalAlpha = 1;
-                    ctx.fillStyle = edge.color;
+                // Draw port labels near each endpoint with smart positioning
+                if (edge.sourcePort || edge.destPort) {
                     ctx.font = 'bold 11px monospace';
-                    ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(edge.label, midX, midY);
+
+                    // Calculate direction vector
+                    const dx = target.x - source.x;
+                    const dy = target.y - source.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const nx = dx / len; // normalized
+                    const ny = dy / len;
+
+                    // Calculate angle to determine label position
+                    const angle = Math.atan2(dy, dx);
+
+                    // Adaptive perpendicular offset (larger for nearly horizontal/vertical lines)
+                    const absAngle = Math.abs(angle);
+                    const isNearCardinal = (absAngle < 0.3 || absAngle > Math.PI - 0.3 ||
+                                           Math.abs(absAngle - Math.PI/2) < 0.3 ||
+                                           Math.abs(absAngle + Math.PI/2) < 0.3);
+                    const perpDist = isNearCardinal ? 22 : 18;
+                    const perpX = -ny * perpDist;
+                    const perpY = nx * perpDist;
+
+                    // Source port label (near source node, outside the circle)
+                    if (edge.sourcePort) {
+                        const srcLabelX = source.x + nx * 35 + perpX;
+                        const srcLabelY = source.y + ny * 35 + perpY;
+                        const portText = String(edge.sourcePort);
+
+                        // Background with rounded corners effect
+                        ctx.fillStyle = 'rgba(45, 45, 45, 0.95)';
+                        const srcMetrics = ctx.measureText(portText);
+                        const padding = 4;
+                        ctx.fillRect(srcLabelX - srcMetrics.width / 2 - padding,
+                                    srcLabelY - 7,
+                                    srcMetrics.width + padding * 2, 14);
+
+                        // Text with slight shadow for readability
+                        ctx.fillStyle = '#000';
+                        ctx.fillText(portText, srcLabelX + 0.5, srcLabelY + 0.5);
+                        ctx.fillStyle = edge.color;
+                        ctx.textAlign = 'center';
+                        ctx.fillText(portText, srcLabelX, srcLabelY);
+                    }
+
+                    // Destination port label (near target node, outside the circle)
+                    if (edge.destPort) {
+                        const dstLabelX = target.x - nx * 35 + perpX;
+                        const dstLabelY = target.y - ny * 35 + perpY;
+                        const portText = String(edge.destPort);
+
+                        // Background with rounded corners effect
+                        ctx.fillStyle = 'rgba(45, 45, 45, 0.95)';
+                        const dstMetrics = ctx.measureText(portText);
+                        const padding = 4;
+                        ctx.fillRect(dstLabelX - dstMetrics.width / 2 - padding,
+                                    dstLabelY - 7,
+                                    dstMetrics.width + padding * 2, 14);
+
+                        // Text with slight shadow for readability
+                        ctx.fillStyle = '#000';
+                        ctx.fillText(portText, dstLabelX + 0.5, dstLabelY + 0.5);
+                        ctx.fillStyle = edge.color;
+                        ctx.textAlign = 'center';
+                        ctx.fillText(portText, dstLabelX, dstLabelY);
+                    }
                 }
             });
 
@@ -2199,29 +2265,51 @@
 
             if (clickedNode) {
                 graphSelectedNode = clickedNode.id;
+                graphDraggingNode = clickedNode;
+                // Store offset from node center for smooth dragging
+                graphDragStartX = x;
+                graphDragStartY = y;
+                graphCanvas.style.cursor = 'grabbing';
                 drawGraph();
             } else {
                 graphDragging = true;
                 graphDragStartX = x - graphOffsetX;
                 graphDragStartY = y - graphOffsetY;
+                graphCanvas.style.cursor = 'grabbing';
             }
         }
 
         function graphMouseMove(e) {
-            if (!graphDragging) return;
-
             const rect = graphCanvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            graphOffsetX = x - graphDragStartX;
-            graphOffsetY = y - graphDragStartY;
+            if (graphDraggingNode) {
+                // Drag the node - convert screen coordinates to graph coordinates
+                const graphX = (x - graphOffsetX) / graphScale;
+                const graphY = (y - graphOffsetY) / graphScale;
 
-            drawGraph();
+                graphDraggingNode.x = graphX;
+                graphDraggingNode.y = graphY;
+
+                drawGraph();
+            } else if (graphDragging) {
+                // Drag the entire canvas
+                graphOffsetX = x - graphDragStartX;
+                graphOffsetY = y - graphDragStartY;
+
+                drawGraph();
+            } else {
+                // Update cursor on hover
+                const hoveredNode = getNodeAtPosition(x, y);
+                graphCanvas.style.cursor = hoveredNode ? 'grab' : 'default';
+            }
         }
 
         function graphMouseUp(e) {
             graphDragging = false;
+            graphDraggingNode = null;
+            graphCanvas.style.cursor = 'default';
         }
 
         function graphWheel(e) {

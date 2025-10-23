@@ -40,7 +40,5 @@ HISTORY_MAX_LENGTH = 720  # 1 hour of data at 5-second intervals
 STATS_COLLECTION_INTERVAL = 5  # seconds
 DOCKER_STATS_INTERVAL = 10  # seconds
 
-# Network Capture Configuration
-MAX_PACKETS_IN_MEMORY = 10000  # Maximum number of packets to keep in memory
-MAX_PACKET_MEMORY_MB = 20  # Maximum memory for packet storage (for Raspberry Pi Zero 2)
-PACKET_CLEANUP_THRESHOLD = 0.8  # Clean up when 80% of max is reached
+# Network Capture Configuration (optimized for Raspberry Pi)
+MAX_PACKETS_IN_MEMORY = 5000  # Maximum number of packets to keep in memory (~7-8MB with optimized structure)

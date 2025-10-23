@@ -8,7 +8,7 @@ from datetime import datetime
 from collections import deque
 
 from utils.logger import logger
-from utils.config import MAX_PACKETS_IN_MEMORY, MAX_PACKET_MEMORY_MB, PACKET_CLEANUP_THRESHOLD
+from utils.config import MAX_PACKETS_IN_MEMORY
 
 class NetworkCapture:
     """Network packet capture with memory limits for low-resource devices"""
@@ -19,51 +19,29 @@ class NetworkCapture:
         self.lock = threading.Lock()
         self.capture_thread = None
         self.packet_id = 0
-        self.total_memory_mb = 0
         self.dropped_packets = 0
+        # Fixed average packet size estimate in KB (includes raw packet bytes + metadata)
+        self.avg_packet_size_kb = 2.0  # ~2KB per packet on average (raw bytes + fields)
 
-        logger.info(f"NetworkCapture initialized with max {MAX_PACKETS_IN_MEMORY} packets, {MAX_PACKET_MEMORY_MB}MB limit")
-
-    def _estimate_packet_size(self, packet_data):
-        """Estimate packet size in memory (MB)"""
-        size = sys.getsizeof(packet_data)
-        for key, value in packet_data.items():
-            if isinstance(value, dict):
-                size += sys.getsizeof(value)
-                for k, v in value.items():
-                    size += sys.getsizeof(k) + sys.getsizeof(v)
-            else:
-                size += sys.getsizeof(value)
-        return size / (1024 * 1024)  # Convert to MB
-
-    def _cleanup_old_packets(self):
-        """Remove oldest packets if memory limit is reached"""
-        with self.lock:
-            while self.total_memory_mb > MAX_PACKET_MEMORY_MB * PACKET_CLEANUP_THRESHOLD:
-                if len(self.packets) == 0:
-                    break
-                removed_packet = self.packets.popleft()
-                removed_size = self._estimate_packet_size(removed_packet)
-                self.total_memory_mb -= removed_size
-                self.dropped_packets += 1
-
-                if self.dropped_packets % 100 == 0:
-                    logger.warning(f"Memory limit reached. Dropped {self.dropped_packets} packets. Memory: {self.total_memory_mb:.2f}MB")
+        logger.info(f"NetworkCapture initialized with max {MAX_PACKETS_IN_MEMORY} packets (~{MAX_PACKETS_IN_MEMORY * self.avg_packet_size_kb / 1024:.1f}MB max)")
 
     def add_packet(self, packet_data):
-        """Add a packet with memory management"""
-        packet_size = self._estimate_packet_size(packet_data)
-
-        # Check if adding this packet would exceed memory limit
-        if self.total_memory_mb + packet_size > MAX_PACKET_MEMORY_MB:
-            self._cleanup_old_packets()
-
+        """Add a packet with automatic overflow handling via deque maxlen"""
         with self.lock:
+            # deque with maxlen automatically drops oldest when full
+            old_len = len(self.packets)
             self.packets.append(packet_data)
-            self.total_memory_mb += packet_size
 
-        if len(self.packets) % 1000 == 0:
-            logger.debug(f"Captured {len(self.packets)} packets, Memory: {self.total_memory_mb:.2f}MB")
+            # Track if packet was dropped due to maxlen
+            if old_len == MAX_PACKETS_IN_MEMORY:
+                self.dropped_packets += 1
+
+                if self.dropped_packets % 1000 == 0:
+                    logger.warning(f"Packet buffer full. Dropped {self.dropped_packets} packets (keeping newest {MAX_PACKETS_IN_MEMORY})")
+            elif len(self.packets) % 1000 == 0:
+                # Only log when growing, not when at max capacity
+                estimated_mb = len(self.packets) * self.avg_packet_size_kb / 1024
+                logger.debug(f"Captured {len(self.packets)} packets (~{estimated_mb:.1f}MB)")
 
     def get_packets(self):
         """Get all captured packets"""
@@ -74,7 +52,6 @@ class NetworkCapture:
         """Clear all captured packets"""
         with self.lock:
             self.packets.clear()
-            self.total_memory_mb = 0
             self.dropped_packets = 0
             logger.info("Cleared all captured packets")
 
@@ -135,32 +112,22 @@ class NetworkCapture:
                 return True  # Stop sniffing
 
             try:
+                ts = datetime.now()
                 packet_data = {
                     'id': self.packet_id,
-                    'time': datetime.now().strftime('%H:%M:%S.%f')[:-3],
-                    'timestamp': datetime.now().isoformat(),
+                    'time': ts.strftime('%H:%M:%S.%f')[:-3],
+                    'timestamp': ts.isoformat(),
                     'length': len(packet),
-                    'layers': {}
+                    'raw': bytes(packet)  # Store raw packet bytes for PCAP export
                 }
 
-                # Extract Ethernet layer
-                if packet.haslayer('Ether'):
-                    packet_data['layers']['ethernet'] = {
-                        'src': packet['Ether'].src,
-                        'dst': packet['Ether'].dst,
-                        'type': hex(packet['Ether'].type)
-                    }
+                # Store only essential parsed fields for display
 
                 # Extract IP layer
                 if packet.haslayer(IP):
                     ip_layer = packet[IP]
                     packet_data['source'] = ip_layer.src
                     packet_data['destination'] = ip_layer.dst
-                    packet_data['layers']['ip'] = {
-                        'version': ip_layer.version,
-                        'ttl': ip_layer.ttl,
-                        'proto': ip_layer.proto
-                    }
 
                     # Handle TCP packets
                     if packet.haslayer(TCP):
@@ -168,12 +135,6 @@ class NetworkCapture:
                         packet_data['protocol'] = 'TCP'
                         packet_data['source_port'] = tcp_layer.sport
                         packet_data['dest_port'] = tcp_layer.dport
-                        packet_data['layers']['tcp'] = {
-                            'sport': tcp_layer.sport,
-                            'dport': tcp_layer.dport,
-                            'flags': str(tcp_layer.flags),
-                            'seq': tcp_layer.seq
-                        }
                         packet_data['info'] = f"{tcp_layer.sport} → {tcp_layer.dport} [{tcp_layer.flags}]"
 
                         # Check for industrial protocols on TCP
@@ -185,7 +146,6 @@ class NetworkCapture:
                                 modbus_data = parse_modbus_tcp(payload)
                                 if modbus_data:
                                     packet_data['protocol'] = 'MODBUS'
-                                    packet_data['layers']['modbus'] = modbus_data
                                     packet_data['info'] = f"Modbus: {modbus_data['function_name']} (Unit {modbus_data['unit_id']})"
 
                             # S7comm (port 102)
@@ -193,7 +153,6 @@ class NetworkCapture:
                                 s7_data = parse_s7comm(payload)
                                 if s7_data:
                                     packet_data['protocol'] = 'S7COMM'
-                                    packet_data['layers']['s7comm'] = s7_data
                                     packet_data['info'] = f"S7comm: {s7_data.get('message_type_name', 'Unknown')}"
 
                             # OPC-UA (port 4840)
@@ -201,7 +160,6 @@ class NetworkCapture:
                                 opcua_data = parse_opcua(payload)
                                 if opcua_data:
                                     packet_data['protocol'] = 'OPCUA'
-                                    packet_data['layers']['opcua'] = opcua_data
                                     packet_data['info'] = f"OPC-UA: {opcua_data['message_type_name']} ({opcua_data['chunk_type_name']})"
 
                             # EtherNet/IP (port 44818)
@@ -209,7 +167,6 @@ class NetworkCapture:
                                 enip_data = parse_enip(payload)
                                 if enip_data:
                                     packet_data['protocol'] = 'ENIP'
-                                    packet_data['layers']['enip'] = enip_data
                                     packet_data['info'] = f"EtherNet/IP: {enip_data['command_name']}"
 
                     # Handle UDP packets
@@ -218,11 +175,6 @@ class NetworkCapture:
                         packet_data['protocol'] = 'UDP'
                         packet_data['source_port'] = udp_layer.sport
                         packet_data['dest_port'] = udp_layer.dport
-                        packet_data['layers']['udp'] = {
-                            'sport': udp_layer.sport,
-                            'dport': udp_layer.dport,
-                            'len': udp_layer.len
-                        }
                         packet_data['info'] = f"{udp_layer.sport} → {udp_layer.dport}"
 
                         # Check for DNS
@@ -282,19 +234,16 @@ class NetworkCapture:
         while self.active:
             # Generate simulated packet
             protocol = random.choice(protocols)
+            ts = datetime.now()
             packet_data = {
                 'id': self.packet_id,
-                'time': datetime.now().strftime('%H:%M:%S.%f')[:-3],
-                'timestamp': datetime.now().isoformat(),
+                'time': ts.strftime('%H:%M:%S.%f')[:-3],
+                'timestamp': ts.isoformat(),
                 'source': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
                 'destination': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
                 'protocol': protocol,
                 'length': random.randint(64, 1500),
-                'info': f"Simulated {protocol} packet",
-                'layers': {
-                    'ethernet': {'src': 'aa:bb:cc:dd:ee:ff', 'dst': 'ff:ee:dd:cc:bb:aa', 'type': '0x0800'},
-                    'ip': {'version': 4, 'ttl': 64, 'proto': protocol.lower()}
-                }
+                'info': f"Simulated {protocol} packet"
             }
 
             if protocol in ['TCP', 'UDP', 'HTTP', 'DNS']:
@@ -304,20 +253,6 @@ class NetworkCapture:
                 packet_data['dest_port'] = dport
                 packet_data['info'] = f"{sport} → {dport}"
 
-                if protocol in ['TCP', 'HTTP']:
-                    packet_data['layers']['tcp'] = {
-                        'sport': sport,
-                        'dport': dport,
-                        'flags': random.choice(['S', 'A', 'SA', 'FA', 'PA']),
-                        'seq': random.randint(1000000, 9999999)
-                    }
-                else:
-                    packet_data['layers']['udp'] = {
-                        'sport': sport,
-                        'dport': dport,
-                        'len': packet_data['length']
-                    }
-
             self.add_packet(packet_data)
             self.packet_id += 1
             time.sleep(random.uniform(0.1, 1.0))  # Random interval between packets
@@ -325,10 +260,10 @@ class NetworkCapture:
     def get_stats(self):
         """Get capture statistics"""
         with self.lock:
+            estimated_mb = len(self.packets) * self.avg_packet_size_kb / 1024
             return {
                 'total_packets': len(self.packets),
                 'dropped_packets': self.dropped_packets,
-                'memory_mb': round(self.total_memory_mb, 2),
-                'max_memory_mb': MAX_PACKET_MEMORY_MB,
+                'memory_mb': round(estimated_mb, 2),
                 'max_packets': MAX_PACKETS_IN_MEMORY
             }

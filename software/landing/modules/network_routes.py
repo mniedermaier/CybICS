@@ -58,8 +58,8 @@ def register_network_routes(app, network_capture):
             filter_str = data.get('filter', '')
 
             if network_capture.active:
-                logger.warning("Capture start requested but already active")
-                return jsonify({'error': 'Capture already active'}), 400
+                logger.info("Capture start requested while active - stopping current capture")
+                network_capture.stop()
 
             success = network_capture.start(interface, filter_str)
 
@@ -90,7 +90,14 @@ def register_network_routes(app, network_capture):
         try:
             packets = network_capture.get_packets()
             logger.debug(f"Retrieving {len(packets)} packets")
-            return jsonify({'packets': packets})
+
+            # Remove raw bytes from packets for JSON serialization (keep for PCAP export only)
+            packets_for_json = []
+            for packet in packets:
+                packet_copy = {k: v for k, v in packet.items() if k != 'raw'}
+                packets_for_json.append(packet_copy)
+
+            return jsonify({'packets': packets_for_json})
         except Exception as e:
             logger.error(f"Error getting network packets: {e}", exc_info=True)
             return jsonify({'error': str(e)}), 500
@@ -145,8 +152,12 @@ def register_network_routes(app, network_capture):
                     ts_sec = int(datetime.now().timestamp())
                     ts_usec = 0
 
-                # Use raw packet data if available, otherwise create minimal packet
-                packet_data = _reconstruct_packet_data(packet)
+                # Use raw packet data if available, otherwise reconstruct
+                if 'raw' in packet and packet['raw']:
+                    packet_data = packet['raw']
+                else:
+                    packet_data = _reconstruct_packet_data(packet)
+
                 packet_length = len(packet_data)
 
                 # PCAP Packet Header
@@ -174,69 +185,59 @@ def _reconstruct_packet_data(packet):
     """Reconstruct minimal packet data from parsed information"""
     packet_bytes = bytearray()
 
-    # Ethernet header (14 bytes)
-    if 'layers' in packet and 'ethernet' in packet['layers']:
-        eth = packet['layers']['ethernet']
-        dst_mac = bytes.fromhex(eth.get('dst', 'ff:ff:ff:ff:ff:ff').replace(':', ''))
-        src_mac = bytes.fromhex(eth.get('src', '00:00:00:00:00:00').replace(':', ''))
-        packet_bytes.extend(dst_mac)
-        packet_bytes.extend(src_mac)
-        packet_bytes.extend(struct.pack('!H', 0x0800))  # IPv4
-    else:
-        packet_bytes.extend(b'\xff\xff\xff\xff\xff\xff')
-        packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00')
-        packet_bytes.extend(struct.pack('!H', 0x0800))
+    # Ethernet header (14 bytes) - use default values since we don't store layers anymore
+    packet_bytes.extend(b'\xff\xff\xff\xff\xff\xff')  # Dst MAC
+    packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00')  # Src MAC
+    packet_bytes.extend(struct.pack('!H', 0x0800))    # IPv4
 
     # IPv4 header (20 bytes minimum)
-    if 'layers' in packet and 'ip' in packet['layers']:
-        ip = packet['layers']['ip']
-        src_ip = packet.get('source', '0.0.0.0')
-        dst_ip = packet.get('destination', '0.0.0.0')
+    src_ip = packet.get('source', '0.0.0.0')
+    dst_ip = packet.get('destination', '0.0.0.0')
 
-        packet_bytes.append(0x45)
-        packet_bytes.append(0x00)
-        total_length = max(packet.get('length', 60), 60)
-        packet_bytes.extend(struct.pack('!H', total_length))
-        packet_bytes.extend(struct.pack('!H', packet.get('id', 0)))
-        packet_bytes.extend(struct.pack('!H', 0x4000))
-        packet_bytes.append(ip.get('ttl', 64))
+    packet_bytes.append(0x45)  # Version 4, header length 5
+    packet_bytes.append(0x00)  # DSCP/ECN
+    total_length = max(packet.get('length', 60), 60)
+    packet_bytes.extend(struct.pack('!H', total_length))
+    packet_bytes.extend(struct.pack('!H', packet.get('id', 0)))
+    packet_bytes.extend(struct.pack('!H', 0x4000))  # Flags
+    packet_bytes.append(64)  # TTL
 
-        # Protocol
-        proto = 6  # TCP default
-        if packet.get('protocol') == 'UDP':
-            proto = 17
-        elif packet.get('protocol') == 'ICMP':
-            proto = 1
-        packet_bytes.append(proto)
+    # Protocol
+    proto = 6  # TCP default
+    if packet.get('protocol') == 'UDP' or packet.get('protocol') == 'DNS':
+        proto = 17
+    elif packet.get('protocol') == 'ICMP':
+        proto = 1
+    packet_bytes.append(proto)
 
-        packet_bytes.extend(struct.pack('!H', 0x0000))  # Checksum
+    packet_bytes.extend(struct.pack('!H', 0x0000))  # Checksum
 
-        # Source and Destination IP
+    # Source and Destination IP
+    try:
         for octet in src_ip.split('.'):
             packet_bytes.append(int(octet))
         for octet in dst_ip.split('.'):
             packet_bytes.append(int(octet))
-    else:
-        packet_bytes.extend(b'\x45\x00\x00\x3c\x00\x00\x40\x00\x40\x06\x00\x00')
+    except:
         packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00\x00\x00')
 
-    # TCP/UDP header
-    if 'layers' in packet and 'tcp' in packet['layers']:
-        tcp = packet['layers']['tcp']
-        packet_bytes.extend(struct.pack('!H', tcp.get('sport', 0)))
-        packet_bytes.extend(struct.pack('!H', tcp.get('dport', 0)))
-        packet_bytes.extend(struct.pack('!I', tcp.get('seq', 0)))
-        packet_bytes.extend(struct.pack('!I', 0))
-        packet_bytes.extend(struct.pack('!H', 0x5000))
-        packet_bytes.extend(struct.pack('!H', 8192))
-        packet_bytes.extend(struct.pack('!H', 0))
-        packet_bytes.extend(struct.pack('!H', 0))
-    elif 'layers' in packet and 'udp' in packet['layers']:
-        udp = packet['layers']['udp']
-        packet_bytes.extend(struct.pack('!H', udp.get('sport', 0)))
-        packet_bytes.extend(struct.pack('!H', udp.get('dport', 0)))
-        packet_bytes.extend(struct.pack('!H', udp.get('len', 8)))
-        packet_bytes.extend(struct.pack('!H', 0))
+    # TCP/UDP header using direct port fields
+    if packet.get('protocol') in ['TCP', 'HTTP', 'MODBUS', 'S7COMM', 'OPCUA', 'ENIP']:
+        # TCP header (20 bytes)
+        packet_bytes.extend(struct.pack('!H', packet.get('source_port', 0)))
+        packet_bytes.extend(struct.pack('!H', packet.get('dest_port', 0)))
+        packet_bytes.extend(struct.pack('!I', 0))  # Seq
+        packet_bytes.extend(struct.pack('!I', 0))  # Ack
+        packet_bytes.extend(struct.pack('!H', 0x5000))  # Data offset, flags
+        packet_bytes.extend(struct.pack('!H', 8192))  # Window
+        packet_bytes.extend(struct.pack('!H', 0))  # Checksum
+        packet_bytes.extend(struct.pack('!H', 0))  # Urgent pointer
+    elif packet.get('protocol') in ['UDP', 'DNS']:
+        # UDP header (8 bytes)
+        packet_bytes.extend(struct.pack('!H', packet.get('source_port', 0)))
+        packet_bytes.extend(struct.pack('!H', packet.get('dest_port', 0)))
+        packet_bytes.extend(struct.pack('!H', 8))  # Length
+        packet_bytes.extend(struct.pack('!H', 0))  # Checksum
 
     # Pad to minimum size
     while len(packet_bytes) < 60:
