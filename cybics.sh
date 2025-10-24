@@ -75,10 +75,11 @@ ensure_env_files() {
     # Check if .env exists, if not create it with default values
     if [ ! -f .env ]; then
         print_message "Creating .env file with default values..." "$YELLOW"
-        cat > .env << 'EOF'
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        cat > .env << EOF
 HOST_UID=1000
 HOST_GID=1000
-DOCKER_ENV_DIR="/home/matt/gits/CybICS/.docker.env"
+DOCKER_ENV_DIR="$SCRIPT_DIR/.docker.env"
 EOF
         print_message ".env file created successfully!" "$GREEN"
     fi
