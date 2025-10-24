@@ -70,6 +70,39 @@ check_docker() {
     fi
 }
 
+# Function to ensure required environment files exist
+ensure_env_files() {
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Create .docker.env directory if it doesn't exist
+    if [ ! -d "$SCRIPT_DIR/.docker.env" ]; then
+        print_message "Creating .docker.env directory..." "$YELLOW"
+        mkdir -p "$SCRIPT_DIR/.docker.env"
+        print_message ".docker.env directory created successfully!" "$GREEN"
+    fi
+
+    # Check if .env exists, if not create it with default values
+    if [ ! -f .env ]; then
+        print_message "Creating .env file with default values..." "$YELLOW"
+        cat > .env << EOF
+HOST_UID=1000
+HOST_GID=1000
+DOCKER_ENV_DIR="$SCRIPT_DIR/.docker.env"
+EOF
+        print_message ".env file created successfully!" "$GREEN"
+    fi
+
+    # Check if .dev.env exists, if not create it with default values
+    if [ ! -f .dev.env ]; then
+        print_message "Creating .dev.env file with default values..." "$YELLOW"
+        cat > .dev.env << 'EOF'
+DEVICE_IP=cybics
+DEVICE_USER=pi
+EOF
+        print_message ".dev.env file created successfully!" "$GREEN"
+    fi
+}
+
 # Function to start the environment
 start_environment() {
     print_message "Starting CybICS virtual environment..." "$YELLOW"
@@ -139,6 +172,7 @@ direct_compose() {
 # Main script
 print_banner
 check_docker
+ensure_env_files
 print_message "Using Docker Compose command: $DOCKER_COMPOSE" "$YELLOW"
 
 case "$1" in
