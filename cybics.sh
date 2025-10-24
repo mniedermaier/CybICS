@@ -72,10 +72,18 @@ check_docker() {
 
 # Function to ensure required environment files exist
 ensure_env_files() {
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Create .docker.env directory if it doesn't exist
+    if [ ! -d "$SCRIPT_DIR/.docker.env" ]; then
+        print_message "Creating .docker.env directory..." "$YELLOW"
+        mkdir -p "$SCRIPT_DIR/.docker.env"
+        print_message ".docker.env directory created successfully!" "$GREEN"
+    fi
+
     # Check if .env exists, if not create it with default values
     if [ ! -f .env ]; then
         print_message "Creating .env file with default values..." "$YELLOW"
-        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         cat > .env << EOF
 HOST_UID=1000
 HOST_GID=1000
