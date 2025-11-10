@@ -23,6 +23,15 @@ from modules.network_routes import register_network_routes
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+# Monkey patch Werkzeug to override Server header with CTF flag
+from werkzeug.serving import WSGIRequestHandler
+original_version_string = WSGIRequestHandler.version_string
+
+def custom_version_string(self):
+    return 'CybICS(scanning_d0ne)'
+
+WSGIRequestHandler.version_string = custom_version_string
+
 logger.info('='*60)
 logger.info('CybICS Application Starting')
 logger.info(f'Services configured: {list(SERVICES.keys())}')
