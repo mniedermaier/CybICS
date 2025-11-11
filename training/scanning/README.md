@@ -34,13 +34,12 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
   This scan probes open ports and attempts to determine what service is running and its version by analyzing service banners and responses.
 
   ### 📊 Scan Results
-  When you scan the landing page, you'll see something like:
+  When you scan the system, you'll see something like:
   ```sh
   PORT      STATE SERVICE       VERSION
   80/tcp    open  http          CybICS(scanning_d0ne)
   102/tcp   open  iso-tsap
   502/tcp   open  modbus        Modbus TCP
-  1102/tcp  open  http          CybICS(s7comm_analysis_complete)
   1881/tcp  open  http          Node.js Express framework
   4840/tcp  open  opcua-tcp?
   8080/tcp  open  http-proxy    Werkzeug/2.3.7 Python/3.11.2
@@ -48,18 +47,14 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
   44818/tcp open  EtherNetIP-2?
   ```
 
-  ### 🔎 Key Discoveries
-  Notice two ports with unusual service version strings containing flags:
+  ### 🔎 Key Discovery
+  Notice **80/tcp** shows an unusual service version string: `CybICS(scanning_d0ne)`
 
-  1. **80/tcp** shows: `CybICS(scanning_d0ne)` - HTTP service flag
-  2. **1102/tcp** shows: `CybICS(s7comm_analysis_complete)` - S7 communication service flag
-
-  The `-sV` flag triggers nmap to perform service version detection by connecting to services and reading their banners. Both HTTP services have been configured to return CTF flags in their Server headers.
+  This is the flag! The `-sV` flag triggers nmap to perform service version detection by connecting to the HTTP service and reading the Server header, which has been configured to contain the CTF flag.
 
   ### 🔎 Port Analysis
   - **80/tcp**: HTTP service - Landing page with flag in Server header 🚩
   - **102/tcp**: S7 Communication (S7comm) - Siemens PLC communication protocol
-  - **1102/tcp**: HTTP service - S7comm service with flag in Server header 🚩
   - **502/tcp**: Modbus TCP - Industrial device communication
   - **1881/tcp**: HTTP (Node.js Express) - Web application interface
   - **4840/tcp**: OPC UA TCP - Industrial automation protocol
@@ -68,9 +63,8 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
   - **44818/tcp**: EtherNet/IP - Industrial networking protocol
 
 
-  Submit the flags found in the service banners:
+  Submit the flag found in the service banner:
   <div style="color:orange;font-weight: 900">
-    🚩 Flag 1: CybICS(scanning_d0ne)<br>
-    🚩 Flag 2: CybICS(s7comm_analysis_complete)
+    🚩 Flag: CybICS(scanning_d0ne)
   </div>
 </details>

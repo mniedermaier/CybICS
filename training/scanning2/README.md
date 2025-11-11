@@ -31,26 +31,22 @@ Before scanning, ensure you have:
 - 🔐 Use a VPN or secure network when scanning remote devices
 
 ## 🚀 Running the Scan
-There are multiple ways to discover information about the S7 communication service:
 
-### Method 1: S7-Info Script (Port 102)
-The s7-info NSE script retrieves information from the actual S7 protocol service:
+### Step 1: Identify the S7 PLC
+First, use the s7-info NSE script to identify the S7 PLC:
 ```bash
 nmap -p 102 --script s7-info $DEVICE_IP
 ```
 This will show PLC details like module type, version, and serial number.
 
-### Method 2: Service Version Detection (Port 1102)
-To discover the CTF flag, use service version detection on the HTTP service:
-```bash
-nmap -sV -p 1102 $DEVICE_IP
-```
-**Note:** The s7-info script does NOT work on port 1102 because it's an HTTP service, not an S7 protocol service. You must use `-sV` for service version detection.
+### Step 2: Read the Flag from Data Block
+The CTF flag is stored in **Data Block 1 (DB1)** on the S7 PLC. To read it, you need to use an S7 client tool.
 
 <details>
   <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
 
-  ### 📊 S7-Info Script Output (Port 102)
+  ### Step 1: S7-Info Scan Results
+  Running `nmap -p 102 --script s7-info` shows:
   ```
   Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-02-07 22:25 CET
   Nmap scan report for localhost (127.0.0.1)
@@ -75,37 +71,50 @@ nmap -sV -p 1102 $DEVICE_IP
   - **Module**: The type of Siemens PLC (e.g., CPU 315-2 PN/DP)
   - **Version**: Firmware version installed on the PLC
   - **Serial**: Unique hardware identifier
-  - **Plant Identification**: Custom plant or site name configured in the PLC
+  - **System Name**: System identifier (shows SNAP7-SERVER)
   - **Copyright**: Manufacturer details (Siemens AG)
 
-  ### 📊 Service Version Detection Output (Port 1102)
-  When you run service version detection on port 1102, you'll discover the CTF flag:
+  ### Step 2: Read Data Block to Get Flag
+  The flag is stored in **DB1** (Data Block 1). You can read it using a Python script with the snap7 library:
+
+  ```python
+  #!/usr/bin/env python3
+  import snap7
+
+  # Connect to S7 PLC
+  client = snap7.client.Client()
+  client.connect('$DEVICE_IP', 0, 1)
+
+  # Read 33 bytes from DB1, starting at offset 0
+  data = client.db_read(1, 0, 33)
+
+  # Convert bytes to string
+  flag = data.decode('ascii').rstrip('\x00')
+  print(f"Flag: {flag}")
+
+  client.disconnect()
   ```
-  Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-11 08:00 UTC
-  Nmap scan report for localhost (127.0.0.1)
-  Host is up (0.00010s latency).
 
-  PORT     STATE SERVICE    VERSION
-  1102/tcp open  http       CybICS(s7comm_analysis_complete)
-
-  Nmap done: 1 IP address (1 host up) scanned in 0.15 seconds
+  **Alternative using command line:**
+  ```bash
+  python3 -c "import snap7; c = snap7.client.Client(); c.connect('$DEVICE_IP', 0, 1); print(c.db_read(1, 0, 33).decode('ascii').rstrip('\x00')); c.disconnect()"
   ```
 
-  ### 🔎 Flag Discovery
-  Notice that **port 1102** shows an unusual service version string: `CybICS(s7comm_analysis_complete)`
-
-  This is the CTF flag! The S7comm service runs an additional HTTP server on port 1102 that includes the flag in its Server header. When nmap performs service version detection with the `-sV` flag, it reads this banner and displays the flag.
+  ### 📊 Expected Output
+  ```
+  Flag: CybICS(s7comm_analysis_complete)
+  ```
 
   ### ✅ Conclusion
-  Using Nmap's s7-info script and service version detection, you can:
-  - Gather technical details about Siemens S7 PLCs (port 102)
-  - Discover hidden flags in service banners (port 1102)
+  By combining Nmap's s7-info script with S7 protocol client tools, you can:
+  - Identify Siemens S7 PLCs on the network
+  - Read data blocks to discover sensitive information (including CTF flags!)
 
-  This helps security analysts, pentesters, and industrial engineers identify and secure S7 devices while also testing for security weaknesses in service configurations.
+  This demonstrates how attackers can gather intelligence from industrial control systems and emphasizes the importance of securing S7 communication protocols.
 
   Happy Scanning! 🔍🚀
 
-  After completing the scan, submit the following flag:
+  After reading DB1 and discovering the flag, submit it:
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(s7comm_analysis_complete)
   </div>
