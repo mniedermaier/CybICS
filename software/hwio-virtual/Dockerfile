@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     
 WORKDIR /CybICS
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --verbose -r requirements.txt
 RUN mkdir -p pics
 COPY hardwareAbstraction.py ./
 COPY pics/CybICS_logo.png pics/CybICS_logo.png
