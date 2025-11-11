@@ -31,19 +31,21 @@ Before scanning, ensure you have:
 - 🔐 Use a VPN or secure network when scanning remote devices
 
 ## 🚀 Running the Scan
-There are multiple ways to discover information about the S7 communication service. You can scan port 102 for S7 protocol information, or perform service version detection to find the flag.
+There are multiple ways to discover information about the S7 communication service:
 
-### Method 1: S7-Info Script
-To scan for Siemens S7 PLCs using the s7-info script:
+### Method 1: S7-Info Script (Port 102)
+The s7-info NSE script retrieves information from the actual S7 protocol service:
 ```bash
 nmap -p 102 --script s7-info $DEVICE_IP
 ```
+This will show PLC details like module type, version, and serial number.
 
-### Method 2: Service Version Detection
-To discover the CTF flag, scan with service version detection:
+### Method 2: Service Version Detection (Port 1102)
+To discover the CTF flag, use service version detection on the HTTP service:
 ```bash
 nmap -sV -p 1102 $DEVICE_IP
 ```
+**Note:** The s7-info script does NOT work on port 1102 because it's an HTTP service, not an S7 protocol service. You must use `-sV` for service version detection.
 
 <details>
   <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
