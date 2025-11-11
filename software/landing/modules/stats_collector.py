@@ -154,10 +154,20 @@ class StatsCollector:
                 response = session.get('http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json')
                 containers_list = response.json()
 
+                # Ensure containers_list is actually a list
+                if not isinstance(containers_list, list):
+                    logger.warning(f"Docker API returned non-list containers: {type(containers_list)}")
+                    containers_list = []
+
                 logger.debug(f"Found {len(containers_list)} running containers")
 
                 containers_info = []
                 for container in containers_list:
+                    # Ensure container is a dictionary
+                    if not isinstance(container, dict):
+                        logger.debug(f"Skipping non-dict container: {type(container)}")
+                        continue
+
                     container_names = container.get('Names', [])
                     if not container_names:
                         continue
@@ -266,7 +276,9 @@ class StatsCollector:
                 logger.debug(f"Updated Docker cache with {len(containers_info)} containers")
 
             except Exception as e:
+                import traceback
                 logger.warning(f"Error collecting Docker stats: {e}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
 
             time.sleep(DOCKER_STATS_INTERVAL)
 
