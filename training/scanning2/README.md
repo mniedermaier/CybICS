@@ -1,7 +1,7 @@
 # 🔍 S7 Communication Scanning Guide
 
 ## 📋 Introduction
-Siemens **S7 Communication (S7comm)** operates on **port 102** and is used for **communication between Siemens PLCs and industrial automation systems**. Nmap provides an **NSE script (`s7-info`)** to scan for and retrieve information from **S7 PLCs**.
+Siemens **S7 Communication (S7comm)** typically operates on **port 102**, but can also run on custom ports. In this environment, the S7 service runs on **port 1102**. Nmap provides an **NSE script (`s7-info`)** to scan for and retrieve information from **S7 PLCs**.
 
 ## ⚙️ Prerequisites
 Before scanning, ensure you have:
@@ -19,8 +19,8 @@ Before scanning, ensure you have:
    - On Windows, download it from [Nmap's official site](https://nmap.org/download.html)
 
 2. **Target Requirements**
-   - Siemens PLC or S7-compatible device running on port 102
-   - Ensure the target device has port 102 open
+   - Siemens PLC or S7-compatible device running on port 1102
+   - Ensure the target device has port 1102 open
 
 3. **Access Requirements**
    - Root or administrator access may be required
@@ -32,45 +32,122 @@ Before scanning, ensure you have:
 
 ## 🚀 Running the Scan
 
-Use the s7-info NSE script to identify the S7 PLC and discover the CTF flag:
-```bash
-nmap -p 102 --script s7-info $DEVICE_IP
+The S7 service runs on port 1102 (not the standard port 102, which is used by OpenPLC). Due to nmap's s7-info script being hardcoded for port 102, you'll need to use an alternative approach to query the S7 service and discover the CTF flag.
+
+### Method 1: Manual S7 Client (Recommended)
+Use a Python script to connect to the S7 server and query system information:
+
+```python
+#!/usr/bin/env python3
+import socket
+import struct
+
+def query_s7_info(host, port=1102):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((host, port))
+
+    # COTP Connection Request
+    cotp_req = bytes.fromhex('0300001611e00000001400c1020100c2020102c0010a')
+    sock.send(cotp_req)
+    sock.recv(1024)
+
+    # S7 Communication Setup
+    s7_setup = bytes.fromhex('0300001902f08032010000000000080000f0000001000101e0')
+    sock.send(s7_setup)
+    sock.recv(1024)
+
+    # SZL Read Request (0x001c - Extended identification)
+    szl_req = bytes.fromhex('0300002102f080320700000000000800080001120411440100ff090004001c0001')
+    sock.send(szl_req)
+    response = sock.recv(1024)
+
+    # Parse Module Type field (position 78+ with offset 4)
+    if len(response) > 78:
+        # Extract null-terminated string
+        module_type = response[78:].split(b'\x00')[0].decode('ascii')
+        print(f"Module Type: {module_type}")
+
+    sock.close()
+
+query_s7_info('$DEVICE_IP')
 ```
-This will show PLC details including module type, version, serial number, and system name. **The CTF flag is embedded in one of these fields!**
+
+### Method 2: Port Scanning Discovery
+First, discover which ports are running S7 services:
+```bash
+nmap -p 102,1102 $DEVICE_IP
+```
+Then investigate port 1102 using the manual client method above.
 
 <details>
   <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
 
-  ### S7-Info Scan Results
-  Execute the nmap command with the s7-info script:
+  ### Step 1: Port Discovery
+  First, scan for S7 services:
   ```bash
-  nmap -p 102 --script s7-info $DEVICE_IP
+  nmap -p 102,1102 $DEVICE_IP
   ```
 
-  The output shows PLC identification details:
+  Output:
   ```
-  Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-11-11 09:26 CET
-  Nmap scan report for localhost (127.0.0.1)
-  Host is up (0.00012s latency).
+  PORT     STATE SERVICE
+  102/tcp  open  iso-tsap
+  1102/tcp open  adobeserver-1
+  ```
 
-  PORT    STATE SERVICE
-  102/tcp open  iso-tsap
-  | s7-info:
-  |   Module: 6ES7 315-2AG10-0AB0
-  |   Basic Hardware: SIMATIC 300
-  |   Version: 2.6.9
-  |   System Name: SIMATIC 300(1)
-  |   Module Type: CybICS(s7comm_analysis_complete)
-  |_  Plant Identification:
-  Service Info: Device: specialized
+  Port 102 is the standard S7 port (OpenPLC), but port 1102 is also open - this is our target!
 
-  Nmap done: 1 IP address (1 host up) scanned in 0.04 seconds
+  ### Step 2: Query S7 System Information
+  Create a Python script to query the S7 server on port 1102:
+
+  ```python
+  #!/usr/bin/env python3
+  import socket
+
+  def query_s7_info(host, port=1102):
+      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      sock.connect((host, port))
+
+      # COTP Connection Request
+      cotp_req = bytes.fromhex('0300001611e00000001400c1020100c2020102c0010a')
+      sock.send(cotp_req)
+      sock.recv(1024)
+
+      # S7 Communication Setup
+      s7_setup = bytes.fromhex('0300001902f08032010000000000080000f0000001000101e0')
+      sock.send(s7_setup)
+      sock.recv(1024)
+
+      # SZL Read Request (0x001c - Extended identification)
+      szl_req = bytes.fromhex('0300002102f080320700000000000800080001120411440100ff090004001c0001')
+      sock.send(szl_req)
+      response = sock.recv(1024)
+
+      # Parse Module Type field (position 78+ with offset 4)
+      if len(response) > 78:
+          module_type = response[78:].split(b'\x00')[0].decode('ascii')
+          print(f"Module Type: {module_type}")
+
+      sock.close()
+
+  query_s7_info('$DEVICE_IP')
+  ```
+
+  ### Step 3: Execute and Discover Flag
+  Run the script:
+  ```bash
+  python3 s7_query.py
+  ```
+
+  Output:
+  ```
+  Module Type: CybICS(s7comm_analysis_complete)
   ```
 
   ### 🔎 Key Discovery
-  Notice the **Module Type** field shows: `CybICS(s7comm_analysis_complete)` - **This is the flag!**
+  The **Module Type** field contains: `CybICS(s7comm_analysis_complete)` - **This is the flag!**
 
-  The s7-info NSE script queries the S7 PLC using the **SZL (System Status List)** protocol to retrieve module identification information. The custom S7 server has been configured to embed the CTF flag in the Module Type field.
+  The script uses the **SZL (System Status List)** protocol to query system identification information from the S7 PLC. The custom S7 server has been configured to embed the CTF flag in the Module Type field of the SZL 0x001c (Extended Identification) response.
 
   ### 📊 Output Analysis
   - **Module**: Hardware module identifier (6ES7 315-2AG10-0AB0)
@@ -89,7 +166,7 @@ This will show PLC details including module type, version, serial number, and sy
   - Search for known vulnerabilities affecting those versions
   - Plan targeted attacks against industrial control systems
 
-  **Security Best Practice**: Always restrict access to port 102 and monitor S7 communication for unauthorized scanning attempts.
+  **Security Best Practice**: Always restrict access to S7 communication ports (102, 1102, or custom ports) and monitor S7 communication for unauthorized scanning attempts.
 
   Submit the flag found in the Module Type field:
   <div style="color:orange;font-weight: 900">

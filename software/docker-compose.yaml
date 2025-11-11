@@ -29,7 +29,7 @@ services:
     - openplc
     restart: always
     ports:
-      - 1102:102
+      - 1102:1102
     networks:
       br-cybics:
         ipv4_address: 172.18.0.6
