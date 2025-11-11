@@ -31,15 +31,24 @@ Before scanning, ensure you have:
 - 🔐 Use a VPN or secure network when scanning remote devices
 
 ## 🚀 Running the Scan
-To scan for Siemens S7 PLCs, use the following Nmap command:
+There are multiple ways to discover information about the S7 communication service. You can scan port 102 for S7 protocol information, or perform service version detection to find the flag.
+
+### Method 1: S7-Info Script
+To scan for Siemens S7 PLCs using the s7-info script:
 ```bash
 nmap -p 102 --script s7-info $DEVICE_IP
+```
+
+### Method 2: Service Version Detection
+To discover the CTF flag, scan with service version detection:
+```bash
+nmap -sV -p 1102 $DEVICE_IP
 ```
 
 <details>
   <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
 
-  ### 📊 Sample Output
+  ### 📊 S7-Info Script Output (Port 102)
   ```
   Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-02-07 22:25 CET
   Nmap scan report for localhost (127.0.0.1)
@@ -67,12 +76,34 @@ nmap -p 102 --script s7-info $DEVICE_IP
   - **Plant Identification**: Custom plant or site name configured in the PLC
   - **Copyright**: Manufacturer details (Siemens AG)
 
+  ### 📊 Service Version Detection Output (Port 1102)
+  When you run service version detection on port 1102, you'll discover the CTF flag:
+  ```
+  Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-11 08:00 UTC
+  Nmap scan report for localhost (127.0.0.1)
+  Host is up (0.00010s latency).
+
+  PORT     STATE SERVICE    VERSION
+  1102/tcp open  http       CybICS(s7comm_analysis_complete)
+
+  Nmap done: 1 IP address (1 host up) scanned in 0.15 seconds
+  ```
+
+  ### 🔎 Flag Discovery
+  Notice that **port 1102** shows an unusual service version string: `CybICS(s7comm_analysis_complete)`
+
+  This is the CTF flag! The S7comm service runs an additional HTTP server on port 1102 that includes the flag in its Server header. When nmap performs service version detection with the `-sV` flag, it reads this banner and displays the flag.
+
   ### ✅ Conclusion
-  Using Nmap's s7-info script, you can gather valuable details about Siemens PLCs on a network. This helps security analysts, pentesters, and industrial engineers identify and secure S7 devices.
+  Using Nmap's s7-info script and service version detection, you can:
+  - Gather technical details about Siemens S7 PLCs (port 102)
+  - Discover hidden flags in service banners (port 1102)
+
+  This helps security analysts, pentesters, and industrial engineers identify and secure S7 devices while also testing for security weaknesses in service configurations.
 
   Happy Scanning! 🔍🚀
 
-  After completion, use the following flag:
+  After completing the scan, submit the following flag:
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(s7comm_analysis_complete)
   </div>
