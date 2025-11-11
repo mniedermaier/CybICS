@@ -197,8 +197,8 @@ class StatsCollector:
 
                         # Get network stats
                         networks = stats.get('networks', {})
-                        rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
-                        tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
+                        rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values() if isinstance(net, dict)) / (1024 ** 2)  # MB
+                        tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values() if isinstance(net, dict)) / (1024 ** 2)  # MB
 
                         # Get image name
                         image_name = container.get('Image', 'unknown')
