@@ -81,6 +81,10 @@ jobs:
       continue-on-error: true
       run: |
         echo "::group::🔑 Testing OPC UA Username/Password & Certificate Authentication"
+        echo "Checking OPC UA server logs first..."
+        docker logs virtual-opcua-1 2>&1 | tail -n 50 || true
+        echo ""
+        echo "Running OPC UA authentication tests..."
         pytest tests/test_opcua_auth.py \
           --verbose \
           --tb=short \
