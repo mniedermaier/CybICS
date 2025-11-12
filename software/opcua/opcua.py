@@ -33,7 +33,12 @@ async def main():
 
     # Define user manager and register certificate with user role admin
     cert_user_manager = user_manager.Pw_Cert_UserManager()
-    await cert_user_manager.add_admin("certificates/trusted/cert_admin.der", name='test_admin')
+    try:
+        await cert_user_manager.add_admin("certificates/trusted/cert_admin.der", name='test_admin')
+        _logger.info("Successfully loaded admin certificate: test_admin from certificates/trusted/cert_admin.der")
+    except Exception as e:
+        _logger.error(f"Failed to load admin certificate: {e}")
+        raise
 
     # Connect to OpenPLC
     client = ModbusTcpClient(host="openplc",port=502)  # Create client object
