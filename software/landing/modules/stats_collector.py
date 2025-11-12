@@ -150,14 +150,21 @@ class StatsCollector:
                 import requests_unixsocket
                 session = requests_unixsocket.Session()
 
-                # Get containers list via Docker API
-                response = session.get('http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json')
-                containers_list = response.json()
+                # Get containers list via Docker API (using version-agnostic endpoint)
+                response = session.get('http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/json')
 
-                # Ensure containers_list is actually a list
-                if not isinstance(containers_list, list):
-                    logger.warning(f"Docker API returned non-list containers: {type(containers_list)}")
+                # Check response status first
+                if response.status_code != 200:
+                    logger.warning(f"Docker API returned status {response.status_code}: {response.text}")
                     containers_list = []
+                else:
+                    containers_list = response.json()
+
+                    # Ensure containers_list is actually a list
+                    if not isinstance(containers_list, list):
+                        logger.warning(f"Docker API returned non-list containers: {type(containers_list)}")
+                        logger.debug(f"Response content: {containers_list}")
+                        containers_list = []
 
                 logger.debug(f"Found {len(containers_list)} running containers")
 
@@ -188,7 +195,7 @@ class StatsCollector:
 
                     try:
                         container_id = container['Id']
-                        stats_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/{container_id}/stats?stream=false')
+                        stats_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/{container_id}/stats?stream=false')
                         stats = stats_response.json()
 
                         # Calculate CPU usage
@@ -228,7 +235,7 @@ class StatsCollector:
                         # Calculate uptime
                         uptime_str = 'N/A'
                         try:
-                            inspect_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/{container_id}/json')
+                            inspect_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/{container_id}/json')
                             inspect_data = inspect_response.json()
                             state = inspect_data.get('State', {})
                             started_at_str = state.get('StartedAt', '') if isinstance(state, dict) else ''
