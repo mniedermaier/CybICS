@@ -2,6 +2,55 @@
 
 import logging
 import time
+import sys
+import os
+
+# Configure logging FIRST before importing pymodbus
+# Use the same format as the landing page
+log_format = '%(asctime)s - HWIO - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+date_format = '%Y-%m-%d %H:%M:%S'
+
+# Create a handler that forces output to stdout with immediate flush
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+handler.setLevel(logging.INFO)
+
+# Configure root logger
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+# Clear any existing handlers to avoid duplicates
+if root_logger.handlers:
+    root_logger.handlers.clear()
+root_logger.addHandler(handler)
+
+# Force unbuffered output
+sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
+
+# Suppress ALL verbose third-party logging
+logging.getLogger('pymodbus').setLevel(logging.CRITICAL)
+logging.getLogger('pymodbus.client').setLevel(logging.CRITICAL)
+logging.getLogger('pymodbus.client.base').setLevel(logging.CRITICAL)
+logging.getLogger('pymodbus.logging').setLevel(logging.CRITICAL)
+logging.getLogger('nicegui').setLevel(logging.WARNING)
+
+# Test that logging works
+logging.info("HWIO logging initialized")
+
+# Redirect stderr to suppress any print statements from pymodbus
+class SuppressedStderr:
+    """Context manager to suppress stderr output from pymodbus"""
+    def __init__(self):
+        self.null = open(os.devnull, 'w')
+        self.original_stderr = sys.stderr
+
+    def __enter__(self):
+        sys.stderr = self.null
+        return self
+
+    def __exit__(self, *args):
+        sys.stderr = self.original_stderr
+        self.null.close()
+
 from pymodbus.client import ModbusTcpClient
 from nicegui import ui
 import threading
@@ -9,7 +58,7 @@ import random
 
 # Connect to OpenPLC
 client = ModbusTcpClient(host="openplc",port=502)  # Create client object
-client.connect() # connect to device, reconnect automatically
+# Don't connect yet - will connect in background thread to avoid blocking
 
 # Global variables
 gst=0
@@ -35,21 +84,28 @@ def physical_process_thread():
   logging.info("Physical process thread started")
 
   # Initial connection to OpenPLC
+  connection_attempts = 0
   while not client.connected:
     try:
-      client.connect()
+      with SuppressedStderr():
+        client.connect()
       if client.connected:
         logging.info("Physical process: Successfully connected to OpenPLC")
         break
     except Exception as e:
-      logging.warning(f"Physical process: Waiting for OpenPLC... {str(e)}")
+      connection_attempts += 1
+      if connection_attempts == 1:
+        logging.warning("Physical process: Waiting for OpenPLC to start...")
+      elif connection_attempts % 30 == 0:
+        logging.warning(f"Physical process: Still waiting for OpenPLC (attempt {connection_attempts})...")
       time.sleep(1)
 
   while True:
     # Ensure connection to OpenPLC
     if not client.connected:
       try:
-        client.connect()
+        with SuppressedStderr():
+          client.connect()
         if client.connected:
           logging.info("Physical process: Reconnected to OpenPLC")
           consecutive_failures = 0
@@ -70,17 +126,23 @@ def physical_process_thread():
       consecutive_failures = 0
     except Exception as e:
       consecutive_failures += 1
-      logging.error(f"Physical process: Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      # Only log every 50th failure to reduce log spam
+      if consecutive_failures == 1 or consecutive_failures % 50 == 0:
+        logging.error(f"Physical process: Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
 
       if consecutive_failures >= MAX_FAILURES:
-        logging.warning("Physical process: Maximum consecutive failures reached. Attempting to reconnect...")
+        if consecutive_failures == MAX_FAILURES:
+          logging.warning("Physical process: Maximum consecutive failures reached. Attempting to reconnect...")
         try:
-          client.close()
-          client.connect()
+          with SuppressedStderr():
+            client.close()
+            client.connect()
           consecutive_failures = 0
           logging.info("Physical process: Successfully reconnected to OpenPLC")
         except Exception as reconnect_error:
-          logging.error(f"Physical process: Failed to reconnect - {str(reconnect_error)}")
+          # Only log reconnection failures every 100 attempts
+          if consecutive_failures % 100 == 0:
+            logging.error(f"Physical process: Failed to reconnect - {str(reconnect_error)}")
 
     # Physical simulation logic
     if delay > 50:
@@ -127,7 +189,9 @@ def physical_process_thread():
       client.write_register(1126,hpt)
       client.write_registers(1200,[17273, 25161, 17235, 10349, 12388, 25205, 9257])
     except Exception as e:
-      logging.error("Physical process: Write to OpenPLC failed - " + str(e))
+      # Only log write errors occasionally to reduce log spam
+      if consecutive_failures == 1 or consecutive_failures % 50 == 0:
+        logging.error("Physical process: Write to OpenPLC failed - " + str(e))
 
     time.sleep(0.02)  # 50Hz to match OpenPLC cycle time
 
@@ -684,9 +748,7 @@ def index_page():
 
 # main function
 if __name__ == "__main__":
-  format = "%(asctime)s: %(message)s"
-  logging.basicConfig(format=format, level=logging.INFO,
-                        datefmt="%H:%M:%S")
+  # Logging already configured at module level
 
   # Start physical process in background thread
   process_thread = threading.Thread(target=physical_process_thread, daemon=True)

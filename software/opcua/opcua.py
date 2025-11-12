@@ -4,7 +4,6 @@ import asyncio
 import logging
 import socket
 import user_manager
-import time
 
 from pathlib import Path
 from asyncua import Server, ua
@@ -21,7 +20,7 @@ USE_TRUST_STORE = False
 async def main():
     _logger = logging.getLogger(__name__)
     _logger.info("Wait 5s that openplc can start")
-    time.sleep(5) # wait that openplc is up and running
+    await asyncio.sleep(5) # wait that openplc is up and running
 
     # Define Path for self-signed server certificate used by secure channel
     cert_base = Path(__file__).parent
@@ -146,5 +145,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    asyncio.run(main(), debug=True)
+    logging.basicConfig(level=logging.INFO)
+    # Suppress verbose INFO messages from asyncua about missing optional parent nodes
+    logging.getLogger('asyncua.server.address_space').setLevel(logging.WARNING)
+    asyncio.run(main())
