@@ -383,19 +383,12 @@ async def test_opcua_certificate_auth():
     client.timeout = CONNECTION_TIMEOUT
 
     try:
-        # Load client certificate and private key
+        # Load client certificate for user authentication (not secure channel)
+        # The certificate is used for user identification, not for encrypting the channel
         await client.load_client_certificate(str(CLIENT_CERT_PATH))
         await client.load_private_key(str(CLIENT_KEY_PATH))
 
-        # Set security policy - use SignAndEncrypt for maximum security
-        await client.set_security(
-            SecurityPolicyBasic256Sha256,
-            certificate=str(CLIENT_CERT_PATH),
-            private_key=str(CLIENT_KEY_PATH),
-            mode=ua.MessageSecurityMode.SignAndEncrypt
-        )
-
-        # Connect with certificate authentication
+        # Connect without encrypted channel - certificate is used for user auth only
         await client.connect()
 
         # Verify connection by reading server status
@@ -472,35 +465,25 @@ async def test_opcua_certificate_auth():
         print(f"\n✓ OPC-UA Certificate Authentication Successful")
         print(f"  Server: {OPCUA_SERVER_URL}")
         print(f"  Certificate: {CLIENT_CERT_PATH.name}")
-        print(f"  Security Policy: Basic256Sha256")
-        print(f"  Security Mode: SignAndEncrypt")
+        print(f"  Authentication Method: Certificate (user-level)")
         print(f"  Server State: Running")
         print(f"  Admin Access: {'Verified' if admin_access_verified else 'Not Tested'}")
 
     except ua.UaStatusCodeError as e:
         error_str = str(e)
         # Check for authentication/authorization failures
-        if "BadCertificateInvalid" in error_str:
-            # Check if certificate files were actually loaded
-            cert_exists = CLIENT_CERT_PATH.exists()
-            key_exists = CLIENT_KEY_PATH.exists()
-
-            error_msg = (
-                f"Certificate validation failed: {e}\n"
-                f"Debug info:\n"
-                f"  - Certificate path: {CLIENT_CERT_PATH} (exists: {cert_exists})\n"
-                f"  - Key path: {CLIENT_KEY_PATH} (exists: {key_exists})\n"
-                f"  - Server URL: {OPCUA_SERVER_URL}\n"
-                f"  - Security mode: SignAndEncrypt\n"
-                f"Note: The server should trust this certificate (configured in opcua.py:36)"
+        if "BadUserAccessDenied" in error_str:
+            pytest.fail(
+                f"Certificate not authorized - server doesn't trust the certificate.\n"
+                f"The certificate should be added to the server's user_manager (see opcua.py:36).\n"
+                f"Error: {e}"
             )
-            pytest.fail(error_msg)
-        elif "BadSecurityChecksFailed" in error_str:
-            pytest.fail(f"Certificate security checks failed: {e}")
-        elif "BadUserAccessDenied" in error_str:
-            pytest.fail(f"Certificate not authorized (server doesn't trust it): {e}")
         elif "BadIdentityTokenRejected" in error_str:
             pytest.fail(f"Certificate identity token rejected: {e}")
+        elif "BadCertificateInvalid" in error_str:
+            pytest.fail(f"Certificate validation failed: {e}")
+        elif "BadSecurityChecksFailed" in error_str:
+            pytest.fail(f"Certificate security checks failed: {e}")
         else:
             pytest.fail(f"OPC-UA status code error: {e}")
     except ConnectionError as e:
@@ -566,16 +549,11 @@ async def test_opcua_auth_comparison():
         client_cert.timeout = CONNECTION_TIMEOUT
 
         try:
+            # Load certificate for user authentication (not secure channel)
             await client_cert.load_client_certificate(str(CLIENT_CERT_PATH))
             await client_cert.load_private_key(str(CLIENT_KEY_PATH))
 
-            await client_cert.set_security(
-                SecurityPolicyBasic256Sha256,
-                certificate=str(CLIENT_CERT_PATH),
-                private_key=str(CLIENT_KEY_PATH),
-                mode=ua.MessageSecurityMode.SignAndEncrypt
-            )
-
+            # Connect - certificate used for user auth
             await client_cert.connect()
             results['certificate']['connected'] = True
 
