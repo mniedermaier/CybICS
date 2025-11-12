@@ -81,8 +81,12 @@ jobs:
       continue-on-error: true
       run: |
         echo "::group::🔑 Testing OPC UA Username/Password & Certificate Authentication"
-        echo "Checking OPC UA server logs first..."
-        docker logs virtual-opcua-1 2>&1 | tail -n 50 || true
+        echo "Checking OPC UA server startup logs..."
+        docker logs virtual-opcua-1 2>&1 | head -n 100 || true
+        echo ""
+        echo "Checking certificate file inside container..."
+        docker exec virtual-opcua-1 ls -la /CybICS/certificates/trusted/ || true
+        docker exec virtual-opcua-1 openssl x509 -inform DER -in /CybICS/certificates/trusted/cert_admin.der -noout -subject -dates 2>&1 || true
         echo ""
         echo "Running OPC UA authentication tests..."
         pytest tests/test_opcua_auth.py \
