@@ -150,14 +150,31 @@ class StatsCollector:
                 import requests_unixsocket
                 session = requests_unixsocket.Session()
 
-                # Get containers list via Docker API
-                response = session.get('http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/json')
-                containers_list = response.json()
+                # Get containers list via Docker API (using version-agnostic endpoint)
+                response = session.get('http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/json')
+
+                # Check response status first
+                if response.status_code != 200:
+                    logger.warning(f"Docker API returned status {response.status_code}: {response.text}")
+                    containers_list = []
+                else:
+                    containers_list = response.json()
+
+                    # Ensure containers_list is actually a list
+                    if not isinstance(containers_list, list):
+                        logger.warning(f"Docker API returned non-list containers: {type(containers_list)}")
+                        logger.debug(f"Response content: {containers_list}")
+                        containers_list = []
 
                 logger.debug(f"Found {len(containers_list)} running containers")
 
                 containers_info = []
                 for container in containers_list:
+                    # Ensure container is a dictionary
+                    if not isinstance(container, dict):
+                        logger.debug(f"Skipping non-dict container: {type(container)}")
+                        continue
+
                     container_names = container.get('Names', [])
                     if not container_names:
                         continue
@@ -178,27 +195,39 @@ class StatsCollector:
 
                     try:
                         container_id = container['Id']
-                        stats_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/{container_id}/stats?stream=false')
+                        stats_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/{container_id}/stats?stream=false')
                         stats = stats_response.json()
 
                         # Calculate CPU usage
-                        cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - \
-                                    stats['precpu_stats']['cpu_usage']['total_usage']
-                        system_delta = stats['cpu_stats']['system_cpu_usage'] - \
-                                       stats['precpu_stats']['system_cpu_usage']
                         cpu_percent_container = 0.0
-                        if system_delta > 0:
-                            cpu_percent_container = (cpu_delta / system_delta) * len(stats['cpu_stats']['cpu_usage'].get('percpu_usage', [1])) * 100.0
+                        try:
+                            cpu_stats = stats.get('cpu_stats', {})
+                            precpu_stats = stats.get('precpu_stats', {})
+
+                            if isinstance(cpu_stats, dict) and isinstance(precpu_stats, dict):
+                                cpu_usage = cpu_stats.get('cpu_usage', {})
+                                precpu_usage = precpu_stats.get('cpu_usage', {})
+
+                                if isinstance(cpu_usage, dict) and isinstance(precpu_usage, dict):
+                                    cpu_delta = cpu_usage.get('total_usage', 0) - precpu_usage.get('total_usage', 0)
+                                    system_delta = cpu_stats.get('system_cpu_usage', 0) - precpu_stats.get('system_cpu_usage', 0)
+
+                                    if system_delta > 0:
+                                        percpu_usage = cpu_usage.get('percpu_usage', [1]) if isinstance(cpu_usage.get('percpu_usage', [1]), list) else [1]
+                                        cpu_percent_container = (cpu_delta / system_delta) * len(percpu_usage) * 100.0
+                        except Exception as e:
+                            logger.debug(f"Error calculating CPU stats for {container_name}: {e}")
 
                         # Calculate memory usage
-                        mem_usage = stats['memory_stats'].get('usage', 0) / (1024 ** 2)  # MB
-                        mem_limit = stats['memory_stats'].get('limit', 1) / (1024 ** 2)  # MB
+                        memory_stats = stats.get('memory_stats', {})
+                        mem_usage = memory_stats.get('usage', 0) / (1024 ** 2) if isinstance(memory_stats, dict) else 0
+                        mem_limit = memory_stats.get('limit', 1) / (1024 ** 2) if isinstance(memory_stats, dict) else 1
                         mem_percent_container = (mem_usage / mem_limit * 100) if mem_limit > 0 else 0
 
                         # Get network stats
                         networks = stats.get('networks', {})
-                        rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
-                        tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values()) / (1024 ** 2)  # MB
+                        rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values() if isinstance(net, dict)) / (1024 ** 2)  # MB
+                        tx_bytes = sum(net.get('tx_bytes', 0) for net in networks.values() if isinstance(net, dict)) / (1024 ** 2)  # MB
 
                         # Get image name
                         image_name = container.get('Image', 'unknown')
@@ -206,9 +235,10 @@ class StatsCollector:
                         # Calculate uptime
                         uptime_str = 'N/A'
                         try:
-                            inspect_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/v1.41/containers/{container_id}/json')
+                            inspect_response = session.get(f'http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/{container_id}/json')
                             inspect_data = inspect_response.json()
-                            started_at_str = inspect_data.get('State', {}).get('StartedAt', '')
+                            state = inspect_data.get('State', {})
+                            started_at_str = state.get('StartedAt', '') if isinstance(state, dict) else ''
 
                             if started_at_str:
                                 from dateutil import parser
@@ -253,7 +283,9 @@ class StatsCollector:
                 logger.debug(f"Updated Docker cache with {len(containers_info)} containers")
 
             except Exception as e:
+                import traceback
                 logger.warning(f"Error collecting Docker stats: {e}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
 
             time.sleep(DOCKER_STATS_INTERVAL)
 
