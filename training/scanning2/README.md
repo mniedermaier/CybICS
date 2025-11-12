@@ -32,24 +32,23 @@ Before scanning, ensure you have:
 
 ## 🚀 Running the Scan
 
-There are two S7 services runnning on port 102 and 1102 (the standard port 102 is used by OpenPLC). Due to nmap's s7-info script being hardcoded for port 102, you'll need to do changes to the s7-info script or use an alternative approach to query the S7 service and discover the CTF flag.
+There are two S7 services running on port 102 and 1102 (the standard port 102 is used by OpenPLC). Due to nmap's s7-info script being hardcoded for port 102, you'll need to do changes to the s7-info script or use an alternative approach to query the S7 service and discover the CTF flag.
 
+```bash
+locate s7-info.nse
+```
+Usually at: /usr/share/nmap/scripts/s7-info.nse
 
-    ```bash
-    locate s7-info.nse
-    ```
-    Usually at: /usr/share/nmap/scripts/s7-info.nse
+Edit the script (you'll need sudo):
 
-    Edit the script (you'll need sudo):
+```bash
+sudo nano /usr/share/nmap/scripts/s7-info.nse
+```
 
-    ```bash
-    sudo nano /usr/share/nmap/scripts/s7-info.nse
-    ```
-
-    Find the portrule section (near the top) and modify it:
-    ```bash
-    portrule = shortport.port_or_service({102, 1102}, "iso-tsap", "tcp")
-    ```
+Find the portrule section (near the top) and modify it:
+```bash
+portrule = shortport.port_or_service({102, 1102}, "iso-tsap", "tcp")
+```
 
 ### 📊 Output Analysis
   - **Module**: Hardware module identifier (6ES7 315-2AG10-0AB0)
@@ -58,9 +57,10 @@ There are two S7 services runnning on port 102 and 1102 (the standard port 102 i
   - **System Name**: System identifier (SIMATIC 300(1))
   - **Module Type**: Extended module type - **Contains the CTF flag!** 🚩
 
-  ### ✅ Conclusion
-  Using Nmap's s7-info script, you can:
-  - Identify Siemens S7 PLCs on the network  - Retrieve detailed system information including module type, version, and serial number
+### ✅ Conclusion
+Using Nmap's s7-info script, you can:
+  - Identify Siemens S7 PLCs on the network
+  - Retrieve detailed system information including module type, version, and serial number
   - Discover sensitive information embedded in PLC identification fields
 
   This demonstrates how industrial protocols expose system information that can be valuable for reconnaissance. In real-world scenarios, attackers use this information to:
