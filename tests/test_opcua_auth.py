@@ -357,11 +357,25 @@ async def test_opcua_certificate_auth():
     8. Test read/write operations with admin privileges
     9. Clean disconnect
     """
-    # Verify certificate files exist
+    # Verify certificate files exist and are readable
     if not CLIENT_CERT_PATH.exists():
         pytest.skip(f"Client certificate not found at {CLIENT_CERT_PATH}")
     if not CLIENT_KEY_PATH.exists():
         pytest.skip(f"Client private key not found at {CLIENT_KEY_PATH}")
+
+    # Additional debug: check file sizes to ensure they're not empty
+    cert_size = CLIENT_CERT_PATH.stat().st_size
+    key_size = CLIENT_KEY_PATH.stat().st_size
+
+    if cert_size == 0:
+        pytest.skip(f"Client certificate file is empty: {CLIENT_CERT_PATH}")
+    if key_size == 0:
+        pytest.skip(f"Client private key file is empty: {CLIENT_KEY_PATH}")
+
+    print(f"\nCertificate auth test starting:")
+    print(f"  Certificate: {CLIENT_CERT_PATH} ({cert_size} bytes)")
+    print(f"  Private key: {CLIENT_KEY_PATH} ({key_size} bytes)")
+    print(f"  Server: {OPCUA_SERVER_URL}")
 
     # Create client with security endpoint
     # Use Basic256Sha256 security policy with Sign & Encrypt
@@ -464,17 +478,28 @@ async def test_opcua_certificate_auth():
         print(f"  Admin Access: {'Verified' if admin_access_verified else 'Not Tested'}")
 
     except ua.UaStatusCodeError as e:
+        error_str = str(e)
         # Check for authentication/authorization failures
-        if "BadCertificateInvalid" in str(e):
-            pytest.skip(
-                f"Certificate validation failed - this may be expected in CI environments "
-                f"where the server certificate chain cannot be fully validated: {e}"
+        if "BadCertificateInvalid" in error_str:
+            # Check if certificate files were actually loaded
+            cert_exists = CLIENT_CERT_PATH.exists()
+            key_exists = CLIENT_KEY_PATH.exists()
+
+            error_msg = (
+                f"Certificate validation failed: {e}\n"
+                f"Debug info:\n"
+                f"  - Certificate path: {CLIENT_CERT_PATH} (exists: {cert_exists})\n"
+                f"  - Key path: {CLIENT_KEY_PATH} (exists: {key_exists})\n"
+                f"  - Server URL: {OPCUA_SERVER_URL}\n"
+                f"  - Security mode: SignAndEncrypt\n"
+                f"Note: The server should trust this certificate (configured in opcua.py:36)"
             )
-        elif "BadSecurityChecksFailed" in str(e):
-            pytest.skip(f"Certificate security checks failed (may be environment-specific): {e}")
-        elif "BadUserAccessDenied" in str(e):
-            pytest.fail(f"Certificate not authorized: {e}")
-        elif "BadIdentityTokenRejected" in str(e):
+            pytest.fail(error_msg)
+        elif "BadSecurityChecksFailed" in error_str:
+            pytest.fail(f"Certificate security checks failed: {e}")
+        elif "BadUserAccessDenied" in error_str:
+            pytest.fail(f"Certificate not authorized (server doesn't trust it): {e}")
+        elif "BadIdentityTokenRejected" in error_str:
             pytest.fail(f"Certificate identity token rejected: {e}")
         else:
             pytest.fail(f"OPC-UA status code error: {e}")

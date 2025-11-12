@@ -14,8 +14,9 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 from asyncua.crypto.truststore import TrustStore
 from pymodbus.client import ModbusTcpClient
 
-#Trust Store is feature for GDS-Certificate support
-USE_TRUST_STORE = False
+# Trust Store is needed for certificate-based authentication to work properly
+# When enabled, the server trusts certificates in the certificates/trusted/ directory
+USE_TRUST_STORE = True
 
 async def main():
     _logger = logging.getLogger(__name__)
