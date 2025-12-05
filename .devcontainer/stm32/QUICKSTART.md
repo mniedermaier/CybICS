@@ -5,12 +5,8 @@
 ### Build Commands
 
 ```bash
-# FreeRTOS (original)
+# Build
 cd /CybICS/software/stm32
-make
-
-# Zephyr (new port)
-cd /CybICS/software/stm32-zephyr
 west build -b nucleo_g070rb
 
 # Clean build
@@ -20,12 +16,8 @@ west build -b nucleo_g070rb --pristine
 ### Flash Commands
 
 ```bash
-# FreeRTOS
+# Flash to board
 cd /CybICS/software/stm32
-make flash
-
-# Zephyr
-cd /CybICS/software/stm32-zephyr
 west flash
 ```
 
@@ -44,8 +36,7 @@ minicom -D /dev/ttyACM0 -b 115200
 ## 📁 Project Locations
 
 ```
-/CybICS/software/stm32/         # FreeRTOS project
-/CybICS/software/stm32-zephyr/  # Zephyr project
+/CybICS/software/stm32/         # Zephyr project
 ~/zephyrproject/                # Zephyr workspace
 ```
 
@@ -77,15 +68,9 @@ west update
 
 ## 🐛 Debugging
 
-### GDB Debugging (FreeRTOS)
+### GDB Debugging
 ```bash
 cd /CybICS/software/stm32
-arm-none-eabi-gdb build/cybics.elf
-```
-
-### GDB Debugging (Zephyr)
-```bash
-cd /CybICS/software/stm32-zephyr
 west debug
 ```
 
@@ -93,9 +78,6 @@ west debug
 
 ### Check Toolchains
 ```bash
-# ARM GCC for FreeRTOS
-arm-none-eabi-gcc --version
-
 # ARM GCC for Zephyr
 arm-zephyr-eabi-gcc --version
 
@@ -117,17 +99,6 @@ west list
 
 Default password for UART menu: `cyb`
 
-## 📝 Project Structure Comparison
-
-| Feature | FreeRTOS | Zephyr |
-|---------|----------|--------|
-| RTOS API | CMSIS-RTOS v1 | Zephyr Kernel |
-| HAL | STM32 HAL | Zephyr Drivers |
-| Build | Make | West/CMake |
-| Config | FreeRTOSConfig.h | prj.conf |
-| Pins | main.h | DeviceTree |
-| Threads | 7 tasks | 7 threads |
-
 ## 🎯 Quick Test
 
 After container starts:
@@ -137,7 +108,7 @@ After container starts:
 ls ~/zephyrproject/zephyr
 
 # 2. Build Zephyr project
-cd /CybICS/software/stm32-zephyr
+cd /CybICS/software/stm32
 west build -b nucleo_g070rb
 
 # 3. Check output
@@ -180,5 +151,5 @@ sudo usermod -a -G dialout $USER
 ## 📚 Learn More
 
 - Full documentation: `.devcontainer/stm32/README.md`
-- Zephyr port details: `software/stm32-zephyr/README.md`
+- Project details: `software/stm32/README.md`
 - [Zephyr Docs](https://docs.zephyrproject.org/)

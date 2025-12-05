@@ -55,6 +55,6 @@ export PATH=$HOME/.local/bin:$PATH
 
 echo ""
 echo "Zephyr environment is ready!"
-echo "Build the CybICS Zephyr port with:"
-echo "  cd /CybICS/software/stm32-zephyr"
+echo "Build the CybICS firmware with:"
+echo "  cd /CybICS/software/stm32"
 echo "  west build -b nucleo_g070rb"

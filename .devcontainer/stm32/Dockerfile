@@ -4,16 +4,6 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# Install ARM GCC toolchain for FreeRTOS builds
-RUN apt-get update && apt-get install -y \
-    gcc-arm-none-eabi \
-    binutils-arm-none-eabi \
-    libnewlib-arm-none-eabi \
-    gdb-multiarch \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-RUN ln -s /usr/bin/gdb-multiarch /usr/bin/arm-none-eabi-gdb
-
 # Install base dependencies
 RUN apt-get update && apt-get install -y \
     sudo \
@@ -23,7 +13,6 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
-    sqlite3 \
     vim \
     curl \
     wget \
@@ -36,9 +25,6 @@ RUN apt-get update && apt-get install -y \
     dfu-util \
     device-tree-compiler \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Python packages for FreeRTOS projects
-RUN python3 -m pip install pymodbus flask
 
 # Install Zephyr dependencies
 RUN apt-get update && apt-get install -y \

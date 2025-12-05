@@ -2,7 +2,7 @@
 	"name": "CybICS-stm32",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "dev",
-	"workspaceFolder": "/CybICS/software/stm32",
+	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"postCreateCommand": "bash /CybICS/.devcontainer/stm32/init-zephyr.sh",
@@ -15,17 +15,13 @@
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-themes",
 				"ms-python.python",
-				"mcu-debug.debug-tracker-vscode",
-				"mcu-debug.rtos-views",
-				"mcu-debug.peripheral-viewer",
-				"bmd.stm32-for-vscode",
 				"timonwong.shellcheck",
 				"trond-snekvik.kconfig-lang",
 				"trond-snekvik.devicetree"
 			],
 			"settings": {
 				"C_Cpp.default.compilerPath": "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc",
-				"C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
+				"C_Cpp.default.compileCommands": "${workspaceFolder}/software/stm32/build/compile_commands.json"
 			}
 		}
 	}

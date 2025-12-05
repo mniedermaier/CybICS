@@ -1,14 +1,8 @@
 # CybICS STM32 Development Container
 
-This devcontainer provides a complete development environment for both FreeRTOS and Zephyr RTOS development on STM32 microcontrollers.
+This devcontainer provides a complete Zephyr RTOS development environment for STM32 microcontrollers.
 
 ## Features
-
-### FreeRTOS Development
-- ARM GCC toolchain (`gcc-arm-none-eabi`)
-- GDB multiarch for debugging
-- STM32-specific VS Code extensions
-- Build tools (make, cmake)
 
 ### Zephyr RTOS Development
 - Zephyr SDK 0.16.5 (ARM Cortex-M support)
@@ -30,15 +24,8 @@ The Zephyr workspace will be automatically initialized on first launch.
 
 ### 2. Building Projects
 
-#### FreeRTOS Build (Original)
 ```bash
 cd /CybICS/software/stm32
-make
-```
-
-#### Zephyr Build (New Port)
-```bash
-cd /CybICS/software/stm32-zephyr
 west build -b nucleo_g070rb
 ```
 
@@ -49,14 +36,6 @@ west build -b nucleo_g070rb --pristine
 
 ### 3. Flashing
 
-#### FreeRTOS
-```bash
-make flash
-# or
-openocd -f openocd.cfg -c "program build/cybics.elf verify reset exit"
-```
-
-#### Zephyr
 ```bash
 west flash
 # or
@@ -76,8 +55,7 @@ The following environment variables are automatically set:
 ```
 /CybICS/
 ├── software/
-│   ├── stm32/              # Original FreeRTOS firmware
-│   └── stm32-zephyr/       # Zephyr RTOS port
+│   └── stm32/              # Zephyr RTOS firmware
 └── .devcontainer/
     └── stm32/
         ├── Dockerfile      # Container definition
@@ -103,17 +81,14 @@ The following environment variables are automatically set:
 - `west` - Zephyr meta-tool
 
 ### Compilers
-- `arm-none-eabi-gcc` - ARM GCC for bare metal
 - `arm-zephyr-eabi-gcc` - ARM GCC from Zephyr SDK
 
 ### Debugging
-- `gdb-multiarch` - Multi-architecture GDB
+- `gdb-multiarch` - Multi-architecture GDB (via Zephyr SDK)
 - `openocd` - On-chip debugger (if available)
 
 ### Python Packages
 - `west` - Zephyr meta-tool
-- `pymodbus` - Modbus library
-- `flask` - Web framework
 - Various Zephyr dependencies
 
 ## VS Code Extensions
@@ -128,12 +103,6 @@ The following extensions are automatically installed:
 - C/C++ Extension Pack
 - C/C++ Tools
 - C/C++ Themes
-
-### STM32/FreeRTOS
-- STM32 for VSCode
-- MCU Debug Tracker
-- RTOS Views
-- Peripheral Viewer
 
 ### Zephyr
 - Kconfig Language Support
@@ -219,7 +188,6 @@ Or edit `prj.conf` directly.
 
 ## Notes
 
-- The container includes both ARM GCC toolchains (bare metal and Zephyr)
 - Zephyr workspace initialization happens automatically on first container start
-- Both FreeRTOS and Zephyr projects can be developed in the same container
 - The workspace is persistent across container restarts (stored in the host filesystem)
+- All development uses the Zephyr SDK toolchain
