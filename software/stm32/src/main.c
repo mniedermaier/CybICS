@@ -218,7 +218,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v1.1.2");
 			Lcd_cursor(&lcd, 0, 0);
 			Lcd_string(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "%16li", secondsAfterStart);
+			snprintf(displayText, sizeof(displayText), "%16u", secondsAfterStart);
 			Lcd_cursor(&lcd, 1, 0);
 			Lcd_string(&lcd, displayText);
 		}
@@ -637,8 +637,6 @@ K_THREAD_DEFINE(uart_tid, STACKSIZE_UART, thread_uart, NULL, NULL, NULL, PRIORIT
 /* Main function */
 int main(void)
 {
-	int ret;
-
 	printk("CybICS Zephyr Port Starting...\n");
 
 	/* Get device bindings */
