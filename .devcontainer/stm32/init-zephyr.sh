@@ -3,6 +3,9 @@
 
 set -e
 
+# Add Python user bin to PATH early to avoid pip warnings
+export PATH=$HOME/.local/bin:$PATH
+
 ZEPHYR_DIR="$HOME/zephyrproject"
 
 if [ ! -d "$ZEPHYR_DIR" ]; then
@@ -49,9 +52,6 @@ export ZEPHYR_BASE=$HOME/zephyrproject/zephyr
 EOF
     echo "Added Zephyr aliases and PATH to .bashrc"
 fi
-
-# Add to current session PATH as well
-export PATH=$HOME/.local/bin:$PATH
 
 echo ""
 echo "Zephyr environment is ready!"
