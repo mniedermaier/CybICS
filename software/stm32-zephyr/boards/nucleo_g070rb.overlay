@@ -1,0 +1,183 @@
+/*
+ * Copyright (c) 2024 CybICS
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		led-heartbeat = &heartbeat_led;
+	};
+
+	cybics_gpios {
+		compatible = "gpio-keys";
+
+		/* Heartbeat LED */
+		heartbeat_led: heartbeat_led {
+			gpios = <&gpioc 3 GPIO_ACTIVE_HIGH>;
+			label = "Heartbeat LED";
+		};
+
+		/* Compressor signals */
+		c_sig: c_sig {
+			gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+			label = "Compressor Signal Input";
+		};
+
+		c_on: c_on {
+			gpios = <&gpiob 4 GPIO_ACTIVE_HIGH>;
+			label = "Compressor On LED";
+		};
+
+		c_off: c_off {
+			gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
+			label = "Compressor Off LED";
+		};
+
+		/* System Valve */
+		sv_sig: sv_sig {
+			gpios = <&gpioa 1 GPIO_ACTIVE_HIGH>;
+			label = "System Valve Signal Input";
+		};
+
+		sv_red: sv_red {
+			gpios = <&gpioa 12 GPIO_ACTIVE_HIGH>;
+			label = "System Valve Red LED";
+		};
+
+		sv_green: sv_green {
+			gpios = <&gpioa 15 GPIO_ACTIVE_HIGH>;
+			label = "System Valve Green LED";
+		};
+
+		/* System */
+		s_sen: s_sen {
+			gpios = <&gpioa 2 GPIO_ACTIVE_HIGH>;
+			label = "System Sensor Output";
+		};
+
+		s_red: s_red {
+			gpios = <&gpioc 8 GPIO_ACTIVE_HIGH>;
+			label = "System Red LED";
+		};
+
+		s_green: s_green {
+			gpios = <&gpioc 9 GPIO_ACTIVE_HIGH>;
+			label = "System Green LED";
+		};
+
+		/* Blow Out */
+		bo_sen: bo_sen {
+			gpios = <&gpioa 3 GPIO_ACTIVE_HIGH>;
+			label = "Blow Out Sensor Output";
+		};
+
+		bo_red: bo_red {
+			gpios = <&gpiod 1 GPIO_ACTIVE_HIGH>;
+			label = "Blow Out Red LED";
+		};
+
+		bo_green: bo_green {
+			gpios = <&gpiod 0 GPIO_ACTIVE_HIGH>;
+			label = "Blow Out Green LED";
+		};
+
+		/* Gas Storage Tank */
+		gst_sig: gst_sig {
+			gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+			label = "GST Signal Input";
+		};
+
+		gst_low: gst_low {
+			gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>;
+			label = "GST Low LED";
+		};
+
+		gst_normal: gst_normal {
+			gpios = <&gpiob 6 GPIO_ACTIVE_HIGH>;
+			label = "GST Normal LED";
+		};
+
+		gst_full: gst_full {
+			gpios = <&gpiob 9 GPIO_ACTIVE_HIGH>;
+			label = "GST Full LED";
+		};
+
+		/* High Pressure Tank */
+		hpt_empty: hpt_empty {
+			gpios = <&gpiod 2 GPIO_ACTIVE_HIGH>;
+			label = "HPT Empty LED";
+		};
+
+		hpt_low: hpt_low {
+			gpios = <&gpiod 3 GPIO_ACTIVE_HIGH>;
+			label = "HPT Low LED";
+		};
+
+		hpt_normal: hpt_normal {
+			gpios = <&gpiod 4 GPIO_ACTIVE_HIGH>;
+			label = "HPT Normal LED";
+		};
+
+		hpt_high: hpt_high {
+			gpios = <&gpiod 5 GPIO_ACTIVE_HIGH>;
+			label = "HPT High LED";
+		};
+
+		hpt_critical: hpt_critical {
+			gpios = <&gpiod 6 GPIO_ACTIVE_HIGH>;
+			label = "HPT Critical LED";
+		};
+
+		/* Display */
+		d_enable: d_enable {
+			gpios = <&gpiob 10 GPIO_ACTIVE_HIGH>;
+			label = "Display Enable";
+		};
+
+		d_rs: d_rs {
+			gpios = <&gpiob 11 GPIO_ACTIVE_HIGH>;
+			label = "Display RS";
+		};
+
+		d_d4: d_d4 {
+			gpios = <&gpiob 12 GPIO_ACTIVE_HIGH>;
+			label = "Display D4";
+		};
+
+		d_d5: d_d5 {
+			gpios = <&gpiob 13 GPIO_ACTIVE_HIGH>;
+			label = "Display D5";
+		};
+
+		d_d6: d_d6 {
+			gpios = <&gpiob 14 GPIO_ACTIVE_HIGH>;
+			label = "Display D6";
+		};
+
+		d_d7: d_d7 {
+			gpios = <&gpiob 15 GPIO_ACTIVE_HIGH>;
+			label = "Display D7";
+		};
+
+		display_in: display_in {
+			gpios = <&gpioa 8 GPIO_ACTIVE_HIGH>;
+			label = "Display Input Button";
+		};
+
+		/* Button */
+		button: button {
+			gpios = <&gpioc 10 GPIO_ACTIVE_HIGH>;
+			label = "WiFi Mode Button";
+		};
+	};
+};
+
+&usart1 {
+	status = "okay";
+	current-speed = <115200>;
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+};
