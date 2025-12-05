@@ -1,5 +1,10 @@
 FROM ubuntu:22.04
 
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install ARM GCC toolchain for FreeRTOS builds
 RUN apt-get update && apt-get install -y \
     gcc-arm-none-eabi \
     binutils-arm-none-eabi \
@@ -9,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 RUN ln -s /usr/bin/gdb-multiarch /usr/bin/arm-none-eabi-gdb
 
+# Install base dependencies
 RUN apt-get update && apt-get install -y \
     sudo \
     git \
@@ -16,11 +22,66 @@ RUN apt-get update && apt-get install -y \
     bash-completion \
     python3 \
     python3-pip \
+    python3-venv \
     sqlite3 \
     vim \
     curl \
+    wget \
+    xz-utils \
+    file \
+    make \
+    cmake \
+    ninja-build \
+    ccache \
+    dfu-util \
+    device-tree-compiler \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for FreeRTOS projects
 RUN python3 -m pip install pymodbus flask
+
+# Install Zephyr dependencies
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    git \
+    cmake \
+    ninja-build \
+    gperf \
+    ccache \
+    dfu-util \
+    device-tree-compiler \
+    wget \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    python3-tk \
+    python3-wheel \
+    xz-utils \
+    file \
+    make \
+    gcc \
+    gcc-multilib \
+    g++-multilib \
+    libsdl2-dev \
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install west (Zephyr meta-tool)
+RUN pip3 install --no-cache-dir west
+
+# Install Zephyr SDK
+ARG ZEPHYR_SDK_VERSION=0.16.5
+ARG ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk
+RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64.tar.xz && \
+    mkdir -p ${ZEPHYR_SDK_INSTALL_DIR} && \
+    tar -xf zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64.tar.xz -C ${ZEPHYR_SDK_INSTALL_DIR} --strip-components=1 && \
+    rm zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64.tar.xz && \
+    ${ZEPHYR_SDK_INSTALL_DIR}/setup.sh -t arm-zephyr-eabi -h -c
+
+# Set Zephyr SDK environment variable
+ENV ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk
+ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+ENV ZEPHYR_BASE=/home/docker/zephyrproject/zephyr
 
 RUN addgroup --gid 1000 docker \
     && adduser --uid 1000 --ingroup docker --home /home/docker --disabled-password --gecos "" docker \
