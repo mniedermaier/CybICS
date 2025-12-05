@@ -46,7 +46,63 @@ The original firmware used FreeRTOS with CMSIS-RTOS v1 API. This port converts a
 
 ## Building
 
-### Prerequisites
+### Method 1: Using VS Code Dev Container (Recommended)
+
+The easiest way to build the firmware is using the provided development container:
+
+1. Open the repository in VS Code
+2. Press `F1` and select "Dev Containers: Reopen in Container"
+3. Choose "CybICS-stm32"
+4. The container will automatically initialize the Zephyr workspace
+
+Once inside the container:
+```bash
+# Build the firmware (you're already in the correct directory)
+west build -b nucleo_g070rb
+
+# Flash to board (if connected via USB)
+west flash
+```
+
+### Method 2: Docker-based Flashing (Raspberry Pi)
+
+This method builds a Docker container that automatically flashes the STM32 via OpenOCD on a Raspberry Pi.
+
+**Prerequisites:**
+- Raspberry Pi with GPIO pins connected to STM32 SWD interface
+- Docker installed on the Raspberry Pi
+
+**Build and flash:**
+```bash
+# Build the Docker image
+cd software/stm32
+./build-docker.sh
+
+# Push to local registry (if using docker-compose)
+docker push localhost:5000/cybics-stm32:latest
+
+# Run the container to flash the board
+docker run --privileged -p 3333:3333 localhost:5000/cybics-stm32:latest
+
+# Or use docker-compose (from software/ directory)
+cd ..
+docker-compose up stm32
+```
+
+The container will:
+1. Build the Zephyr firmware
+2. Flash it to the STM32 via OpenOCD
+3. Keep OpenOCD running as a GDB server on port 3333
+
+**SWD Pin Connections (Raspberry Pi → STM32):**
+- Pin 23 (GPIO 25) → SWCLK
+- Pin 22 (GPIO 24) → SWDIO
+- Pin 18 (GPIO 18) → NRST
+- Pin 6 (GND) → GND
+
+### Method 3: Manual Build
+
+If you have Zephyr SDK installed locally:
 
 1. Install Zephyr SDK and dependencies:
    ```bash
@@ -60,31 +116,34 @@ The original firmware used FreeRTOS with CMSIS-RTOS v1 API. This port converts a
    source zephyr-env.sh
    ```
 
-### Build Commands
+3. Build and flash:
+   ```bash
+   # Navigate to the project directory
+   cd software/stm32
 
-```bash
-# Navigate to the project directory
-cd software/stm32-zephyr
+   # Build for STM32 Nucleo G070RB
+   west build -b nucleo_g070rb
 
-# Build for STM32 Nucleo G070RB
-west build -b nucleo_g070rb
+   # Flash to the board
+   west flash
 
-# Flash to the board
-west flash
-
-# View serial output
-west attach
-# or
-screen /dev/ttyACM0 115200
-```
+   # View serial output
+   west attach
+   # or
+   screen /dev/ttyACM0 115200
+   ```
 
 ## Project Structure
 
 ```
-stm32-zephyr/
+stm32/
 ├── CMakeLists.txt          # CMake build configuration
 ├── prj.conf                # Zephyr project configuration
 ├── README.md               # This file
+├── Dockerfile              # Docker build for flashing via OpenOCD
+├── build-docker.sh         # Script to build Docker image
+├── openocd.cfg             # OpenOCD configuration (standard interface)
+├── openocd_rpi.cfg         # OpenOCD configuration (Raspberry Pi GPIO)
 ├── boards/
 │   └── nucleo_g070rb.overlay  # Device tree overlay for GPIO pins
 └── src/
