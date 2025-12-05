@@ -337,10 +337,6 @@ async def test_opcua_anonymous_access_denied():
 # ===============================================================================
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(
-    os.getenv('CI') == 'true',
-    reason="Certificate auth test skipped in CI - works locally but has environment-specific issues in GitHub Actions"
-)
 async def test_opcua_certificate_auth():
     """
     Test OPC UA authentication using X.509 certificates.
@@ -381,19 +377,30 @@ async def test_opcua_certificate_auth():
     print(f"  Private key: {CLIENT_KEY_PATH} ({key_size} bytes)")
     print(f"  Server: {OPCUA_SERVER_URL}")
 
-    # Create client with security endpoint
-    # Use Basic256Sha256 security policy with Sign & Encrypt
+    # Create client - certificate will be used for USER authentication, not secure channel
     client = Client(OPCUA_SERVER_URL)
     client.timeout = CONNECTION_TIMEOUT
+
+    # Add more debugging for CI environment
+    is_ci = os.getenv('CI') == 'true'
+    if is_ci:
+        print(f"  Running in CI environment")
+        print(f"  CWD: {os.getcwd()}")
+        print(f"  Cert path (absolute): {CLIENT_CERT_PATH.absolute()}")
 
     try:
         # Load client certificate for user authentication (not secure channel)
         # The certificate is used for user identification, not for encrypting the channel
+        print(f"  Loading certificate from: {CLIENT_CERT_PATH}")
         await client.load_client_certificate(str(CLIENT_CERT_PATH))
         await client.load_private_key(str(CLIENT_KEY_PATH))
+        print(f"  Certificate and key loaded successfully")
 
-        # Connect without encrypted channel - certificate is used for user auth only
+        # Connect with certificate authentication (no secure channel encryption)
+        # The client will use the certificate as a user identity token
+        print(f"  Attempting connection to: {OPCUA_SERVER_URL}")
         await client.connect()
+        print(f"  Connection established successfully")
 
         # Verify connection by reading server status
         server_status_node = client.get_node(ua.ObjectIds.Server_ServerStatus)

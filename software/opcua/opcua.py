@@ -99,7 +99,9 @@ async def main():
         validator = CertificateValidator(options=CertificateValidatorOptions.TRUSTED_VALIDATION | CertificateValidatorOptions.PEER_CLIENT,
                                          trust_store = trust_store)
     else:
-        validator = CertificateValidator(options=CertificateValidatorOptions.EXT_VALIDATION | CertificateValidatorOptions.PEER_CLIENT)
+        # Use PEER_CLIENT only (removed EXT_VALIDATION to support certificates without Extended Key Usage)
+        # This allows certificate-based user authentication to work in various environments
+        validator = CertificateValidator(options=CertificateValidatorOptions.PEER_CLIENT)
     server.set_certificate_validator(validator)
 
     # populating the cybics address space
