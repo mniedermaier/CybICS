@@ -10,6 +10,16 @@ ENDCOLOR="\e[0m"
 
 GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
+# Source environment variables
+if [ -f "$GIT_ROOT/.dev.env" ]; then
+    set -a
+    source "$GIT_ROOT/.dev.env"
+    set +a
+else
+    echo -e "${RED}Error: .dev.env file not found at $GIT_ROOT/.dev.env${ENDCOLOR}"
+    exit 1
+fi
+
 # start time for calculation of the execution time
 START=$(date +%s)
 
