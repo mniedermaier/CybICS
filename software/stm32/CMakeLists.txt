@@ -7,5 +7,5 @@ project(cybics)
 
 target_sources(app PRIVATE
     src/main.c
-    src/display.c
+    src/lcd_hd44780.c
 )

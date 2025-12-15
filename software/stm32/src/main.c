@@ -9,10 +9,11 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/sys/printk.h>
+#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "display.h"
+#include "lcd_hd44780.h"
 #include "colors.h"
 
 /* Logging */
@@ -32,14 +33,14 @@
 #define MENU_HELP '6'
 #define MENU_LOGOUT '7'
 
-/* Thread stack sizes */
-#define STACKSIZE_DEFAULT 512
-#define STACKSIZE_HEARTBEAT 512
-#define STACKSIZE_DISPLAY 1024
-#define STACKSIZE_PHYSICAL 1024
-#define STACKSIZE_I2C 512
-#define STACKSIZE_OUTPUT 512
-#define STACKSIZE_UART 1024
+/* Thread stack sizes - increased for Newlib printf which is stack-heavy */
+#define STACKSIZE_DEFAULT 1024
+#define STACKSIZE_HEARTBEAT 1024
+#define STACKSIZE_DISPLAY 2048
+#define STACKSIZE_PHYSICAL 2048
+#define STACKSIZE_I2C 1024
+#define STACKSIZE_OUTPUT 1024
+#define STACKSIZE_UART 2048
 
 /* Thread priorities (Zephyr uses lower number = higher priority, opposite of FreeRTOS) */
 #define PRIORITY_DEFAULT 7      // Normal
@@ -52,7 +53,7 @@
 
 /* Global variables */
 uint8_t RxData[20] = {0};
-uint8_t TxData[20] = {'X','X','X',':',' ','0','0','0',' ','H','P','T',':',' ','0','0','0'};
+uint8_t TxData[20] = {'G','S','T',':',' ','0','0','0',' ','H','P','T',':',' ','0','0','0',0,0,0};
 uint8_t TxDataUID[13] = {0};
 char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure = 0;
@@ -83,6 +84,106 @@ static const struct device *i2c_dev;
 
 /* Mutex for UART */
 K_MUTEX_DEFINE(uart_mutex);
+
+/* I2C slave configuration */
+#define I2C_SLAVE_ADDRESS 0x20
+
+/* I2C slave state */
+static uint8_t i2c_rx_index = 0;
+static uint8_t i2c_tx_index = 0;
+
+/* I2C slave callbacks */
+static int i2c_write_requested(struct i2c_target_config *config)
+{
+	i2c_rx_index = 0;
+	return 0;
+}
+
+static int i2c_write_received(struct i2c_target_config *config, uint8_t val)
+{
+	/*
+	 * Store all received bytes in RxData (matching FreeRTOS behavior).
+	 * For read_i2c_block_data(addr, reg, len): first byte is register
+	 * For write_i2c_block_data(addr, reg, data): first byte is register, rest is data
+	 *
+	 * RxData layout after write_i2c_block_data(0x20, 0x00, ['I','P',':'] + IP):
+	 *   RxData[0] = 0x00 (register)
+	 *   RxData[1] = 'I'
+	 *   RxData[2] = 'P'
+	 *   RxData[3] = ':'
+	 *   RxData[4...] = IP address
+	 */
+	if (i2c_rx_index < sizeof(RxData)) {
+		RxData[i2c_rx_index] = val;
+	}
+	i2c_rx_index++;
+	return 0;
+}
+
+static int i2c_read_requested(struct i2c_target_config *config, uint8_t *val)
+{
+	/*
+	 * For read_i2c_block_data(addr, reg, len), the master first writes
+	 * the register byte, then issues a repeated start to read.
+	 * RxData[0] contains the register address from the write phase.
+	 */
+	i2c_tx_index = 0;
+
+	if (RxData[0] == 0x00) {
+		/* Register 0x00: TxData (GST/HPT pressure values) */
+		*val = TxData[i2c_tx_index++];
+	} else if (RxData[0] == 0x01) {
+		/* Register 0x01: TxDataUID (STM32 UID) */
+		*val = TxDataUID[i2c_tx_index++];
+	} else {
+		*val = 0;
+	}
+	return 0;
+}
+
+static int i2c_read_processed(struct i2c_target_config *config, uint8_t *val)
+{
+	if (RxData[0] == 0x00) {
+		if (i2c_tx_index < sizeof(TxData)) {
+			*val = TxData[i2c_tx_index++];
+		} else {
+			*val = 0;
+		}
+	} else if (RxData[0] == 0x01) {
+		if (i2c_tx_index < sizeof(TxDataUID)) {
+			*val = TxDataUID[i2c_tx_index++];
+		} else {
+			*val = 0;
+		}
+	} else {
+		*val = 0;
+	}
+	return 0;
+}
+
+static int i2c_stop(struct i2c_target_config *config)
+{
+	/* Reset indices for next transaction */
+	i2c_rx_index = 0;
+	i2c_tx_index = 0;
+	return 0;
+}
+
+static const struct i2c_target_callbacks i2c_callbacks = {
+	.write_requested = i2c_write_requested,
+	.write_received = i2c_write_received,
+	.read_requested = i2c_read_requested,
+	.read_processed = i2c_read_processed,
+	.stop = i2c_stop,
+};
+
+static struct i2c_target_config i2c_target_cfg = {
+	.address = I2C_SLAVE_ADDRESS,
+	.callbacks = &i2c_callbacks,
+};
+
+/* Semaphore to signal initialization is complete */
+K_SEM_DEFINE(init_sem, 0, 1);
 
 /* GPIO device tree specifications */
 static const struct gpio_dt_spec heartbeat_led = GPIO_DT_SPEC_GET(DT_NODELABEL(heartbeat_led), gpios);
@@ -134,6 +235,9 @@ void logging(unsigned char logLevel, const char *fmt, ...)
 	}
 }
 
+/* Helper function to send string directly to UART - forward declaration */
+static void uart_puts(const struct device *dev, const char *str);
+
 /* Thread: Default Task */
 void thread_default(void *arg1, void *arg2, void *arg3)
 {
@@ -153,7 +257,11 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	logging(LOG_DEB, "Starting thread_heartbeat");
+	/* Wait for initialization to complete */
+	k_sem_take(&init_sem, K_FOREVER);
+	k_sem_give(&init_sem);
+
+	printk("Starting thread_heartbeat\n");
 
 	while (1) {
 		gpio_pin_toggle_dt(&heartbeat_led);
@@ -173,24 +281,47 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	uint32_t secondsAfterStart = 0;
 	uint8_t wifiPressed = 0;
 	char displayText[20];
+	int ret;
 
-	k_msleep(10);
+	/* Wait for initialization to complete */
+	k_sem_take(&init_sem, K_FOREVER);
+	k_sem_give(&init_sem);
 
-	const struct gpio_dt_spec data_pins[] = {d_d4, d_d5, d_d6, d_d7};
-	Lcd_HandleTypeDef lcd = Lcd_create(data_pins, &d_rs, &d_enable, LCD_4_BIT_MODE);
+	uart_puts(uart_dev, "Display thread: initializing LCD...\r\n");
 
-	logging(LOG_DEB, "Starting thread_display");
+	/* Setup LCD with new Zephyr driver */
+	struct lcd_hd44780 lcd = {
+		.rs = &d_rs,
+		.en = &d_enable,
+		.d4 = &d_d4,
+		.d5 = &d_d5,
+		.d6 = &d_d6,
+		.d7 = &d_d7,
+	};
 
-	// Get unique ID - for Zephyr on STM32, we'd need to use device-specific registers
-	// For now, use a placeholder
-	snprintf((char*)TxDataUID, sizeof(TxDataUID), "%012lx", (unsigned long)0x123456789ABC);
-	TxDataUID[12] = '0'; // default STA
+	ret = lcd_init(&lcd);
+	if (ret < 0) {
+		uart_puts(uart_dev, "Display thread: LCD init FAILED!\r\n");
+		return;
+	}
+
+	uart_puts(uart_dev, "Display thread: LCD initialized OK\r\n");
+
+	/* Get unique ID from STM32 UID registers */
+	volatile uint32_t *uid = (volatile uint32_t *)0x1FFF7590;
+	snprintf((char*)TxDataUID, sizeof(TxDataUID), "%04lx%04lx%04lx",
+		(unsigned long)(uid[0] & 0xFFFF),
+		(unsigned long)(uid[1] & 0xFFFF),
+		(unsigned long)(uid[2] & 0xFFFF));
+	TxDataUID[12] = '0'; /* default STA mode */
+
+	uart_puts(uart_dev, "Display thread: starting main loop\r\n");
 
 	while (1) {
-		// Switch between station and AP mode of Wifi
-		if(gpio_pin_get_dt(&button)) {
-			if(!wifiPressed) {
-				if(TxDataUID[12] == '0') {
+		/* Switch between station and AP mode of Wifi */
+		if (gpio_pin_get_dt(&button)) {
+			if (!wifiPressed) {
+				if (TxDataUID[12] == '0') {
 					TxDataUID[12] = '1';
 				} else {
 					TxDataUID[12] = '0';
@@ -203,82 +334,82 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			wifiPressed = 0;
 		}
 
-		// Switch between displays if Display button is pressed
-		if(gpio_pin_get_dt(&display_in)) {
+		/* Switch between displays if Display button is pressed */
+		if (gpio_pin_get_dt(&display_in)) {
 			displayScreen++;
-			if(displayScreen > 3) {
+			if (displayScreen > 3) {
 				displayScreen = 0;
 			}
 		}
 
 		secondsAfterStart++;
 
-		// Display showing CybICS string and IP
-		if(0 == displayScreen) {
+		/* Display showing CybICS string and uptime */
+		if (displayScreen == 0) {
 			snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v1.1.2");
-			Lcd_cursor(&lcd, 0, 0);
-			Lcd_string(&lcd, displayText);
+			lcd_set_cursor(&lcd, 0, 0);
+			lcd_print(&lcd, displayText);
 			snprintf(displayText, sizeof(displayText), "%16u", secondsAfterStart);
-			Lcd_cursor(&lcd, 1, 0);
-			Lcd_string(&lcd, displayText);
+			lcd_set_cursor(&lcd, 1, 0);
+			lcd_print(&lcd, displayText);
 		}
-		// Display WiFi configuration
-		else if(1 == displayScreen) {
-			if(TxDataUID[12] == '0') {
+		/* Display WiFi configuration */
+		else if (displayScreen == 1) {
+			if (TxDataUID[12] == '0') {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Wifi STA mode");
-				Lcd_cursor(&lcd, 0, 0);
-				Lcd_string(&lcd, displayText);
+				lcd_set_cursor(&lcd, 0, 0);
+				lcd_print(&lcd, displayText);
 				snprintf(displayText, sizeof(displayText), "IP: %-12s", &rpiIP[shifting]);
-				Lcd_cursor(&lcd, 1, 0);
-				Lcd_string(&lcd, displayText);
+				lcd_set_cursor(&lcd, 1, 0);
+				lcd_print(&lcd, displayText);
 
-				if(strlen(rpiIP) > 12) {
+				if (strlen(rpiIP) > 12) {
 					shifting++;
 				}
-				if(shifting > 3) {
+				if (shifting > 3) {
 					shifting = 0;
 				}
-			} else if(TxDataUID[12] == '1') {
+			} else if (TxDataUID[12] == '1') {
 				snprintf(displayText, sizeof(displayText), "%-16s", "AP mode: cybics-");
-				Lcd_cursor(&lcd, 0, 0);
-				Lcd_string(&lcd, displayText);
+				lcd_set_cursor(&lcd, 0, 0);
+				lcd_print(&lcd, displayText);
 				snprintf(displayText, sizeof(displayText), "%-16s", TxDataUID);
-				displayText[12] = ' '; // removing the 1, which is not part of the UID
-				Lcd_cursor(&lcd, 1, 0);
-				Lcd_string(&lcd, displayText);
+				displayText[12] = ' '; /* removing the 1, which is not part of the UID */
+				lcd_set_cursor(&lcd, 1, 0);
+				lcd_print(&lcd, displayText);
 			} else {
 				snprintf(displayText, sizeof(displayText), "%-16s", "WiFi error");
-				Lcd_cursor(&lcd, 0, 0);
-				Lcd_string(&lcd, displayText);
+				lcd_set_cursor(&lcd, 0, 0);
+				lcd_print(&lcd, displayText);
 			}
 		}
-		// Display showing real pressure values
-		else if(2 == displayScreen) {
+		/* Display showing real pressure values */
+		else if (displayScreen == 2) {
 			snprintf(displayText, sizeof(displayText), "%-16s", "Physical/real:  ");
-			Lcd_cursor(&lcd, 0, 0);
-			Lcd_string(&lcd, displayText);
+			lcd_set_cursor(&lcd, 0, 0);
+			lcd_print(&lcd, displayText);
 			snprintf(displayText, sizeof(displayText), "GST:%03d HPT:%03d ", GSTpressure, HPTpressure);
-			Lcd_cursor(&lcd, 1, 0);
-			Lcd_string(&lcd, displayText);
+			lcd_set_cursor(&lcd, 1, 0);
+			lcd_print(&lcd, displayText);
 		}
-		// Display showing status
-		else if(3 == displayScreen) {
+		/* Display showing status */
+		else if (displayScreen == 3) {
 			snprintf(displayText, sizeof(displayText), "%-16s", "Status:");
-			Lcd_cursor(&lcd, 0, 0);
-			Lcd_string(&lcd, displayText);
-			if(BO_sen > 0) {
+			lcd_set_cursor(&lcd, 0, 0);
+			lcd_print(&lcd, displayText);
+			if (BO_sen > 0) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Danger! BlowOut");
-			} else if((HPTpressure > 50) && (HPTpressure < 100) && SV_green) {
+			} else if ((HPTpressure > 50) && (HPTpressure < 100) && SV_green) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Operational");
-			} else if((HPTpressure > 50) && (HPTpressure < 100)) {
+			} else if ((HPTpressure > 50) && (HPTpressure < 100)) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "SV closed");
-			} else if(HPTpressure > 100) {
+			} else if (HPTpressure > 100) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too high");
-			} else if(HPTpressure <= 50) {
+			} else if (HPTpressure <= 50) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too low");
 			}
-			Lcd_cursor(&lcd, 1, 0);
-			Lcd_string(&lcd, displayText);
+			lcd_set_cursor(&lcd, 1, 0);
+			lcd_print(&lcd, displayText);
 		}
 
 		k_msleep(1000);
@@ -293,9 +424,12 @@ void thread_physical(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg3);
 
 	uint8_t HPTuse = 0;
-	k_msleep(20);
 
-	logging(LOG_DEB, "Starting thread_physical");
+	/* Wait for initialization to complete */
+	k_sem_take(&init_sem, K_FOREVER);
+	k_sem_give(&init_sem);
+
+	printk("Starting thread_physical\n");
 
 	int cState, svState, gstState;
 	uint16_t HPTdelay = 0;
@@ -415,8 +549,11 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	k_msleep(30);
-	logging(LOG_DEB, "Starting thread_i2c");
+	/* Wait for initialization to complete */
+	k_sem_take(&init_sem, K_FOREVER);
+	k_sem_give(&init_sem);
+
+	printk("Starting thread_i2c\n");
 
 	while (1) {
 		if(RxData[1] == 'I' && RxData[2] == 'P') {
@@ -435,7 +572,11 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	k_msleep(1);
+	/* Wait for initialization to complete */
+	k_sem_take(&init_sem, K_FOREVER);
+	k_sem_give(&init_sem);
+
+	printk("Starting thread_write_output\n");
 
 	while (1) {
 		// Clear (turn off) most LEDs
@@ -491,8 +632,11 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 	uint8_t showMenu = 1;
 	uint8_t passwordEntry = 0;
 
-	k_msleep(1000);
-	logging(LOG_DEB, "Starting thread_uart");
+	/* Wait for initialization to complete */
+	k_sem_take(&init_sem, K_FOREVER);
+	k_sem_give(&init_sem);
+
+	printk("Starting thread_uart\n");
 
 	while (1) {
 		if (!loggedIn) {
@@ -634,59 +778,138 @@ K_THREAD_DEFINE(i2c_tid, STACKSIZE_I2C, thread_i2c, NULL, NULL, NULL, PRIORITY_I
 K_THREAD_DEFINE(output_tid, STACKSIZE_OUTPUT, thread_write_output, NULL, NULL, NULL, PRIORITY_OUTPUT, 0, 0);
 K_THREAD_DEFINE(uart_tid, STACKSIZE_UART, thread_uart, NULL, NULL, NULL, PRIORITY_UART, 0, 0);
 
+/* Helper to configure GPIO with error checking */
+static int configure_gpio_output(const struct gpio_dt_spec *spec, const char *name)
+{
+	if (!device_is_ready(spec->port)) {
+		printk("GPIO port not ready for %s\n", name);
+		return -ENODEV;
+	}
+	int ret = gpio_pin_configure_dt(spec, GPIO_OUTPUT_INACTIVE);
+	if (ret < 0) {
+		printk("Failed to configure %s: %d\n", name, ret);
+		return ret;
+	}
+	return 0;
+}
+
+static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *name)
+{
+	if (!device_is_ready(spec->port)) {
+		printk("GPIO port not ready for %s\n", name);
+		return -ENODEV;
+	}
+	int ret = gpio_pin_configure_dt(spec, GPIO_INPUT);
+	if (ret < 0) {
+		printk("Failed to configure %s: %d\n", name, ret);
+		return ret;
+	}
+	return 0;
+}
+
+/* Helper function to send string directly to UART */
+static void uart_puts(const struct device *dev, const char *str)
+{
+	if (!dev) return;
+	while (*str) {
+		uart_poll_out(dev, *str++);
+	}
+}
+
 /* Main function */
 int main(void)
 {
-	printk("CybICS Zephyr Port Starting...\n");
+	int errors = 0;
 
-	/* Get device bindings */
+	/*
+	 * CRITICAL: Disable UCPD dead battery pulldowns on PD0/PD2
+	 * On STM32G0, PD0 and PD2 have internal pulldowns enabled after reset
+	 * for USB Type-C Power Delivery. We must disable these to use the pins
+	 * as regular GPIOs.
+	 * SYSCFG_CFGR1: UCPD1_STROBE (bit 9), UCPD2_STROBE (bit 10)
+	 */
+	volatile uint32_t *syscfg_cfgr1 = (volatile uint32_t *)0x40010000;
+	*syscfg_cfgr1 |= (1 << 9) | (1 << 10);  /* Set UCPD1_STROBE and UCPD2_STROBE */
+
+	/* Get UART device FIRST so we can use it for debug output */
 	uart_dev = DEVICE_DT_GET(DT_NODELABEL(usart1));
 	if (!device_is_ready(uart_dev)) {
-		printk("UART device not ready\n");
-		return -1;
+		/* Can't output to UART, it's not ready */
+		errors++;
+	} else {
+		/* Now we can use UART for debug output */
+		uart_puts(uart_dev, "\r\n\r\n========================================\r\n");
+		uart_puts(uart_dev, "CybICS Zephyr Port Starting...\r\n");
+		uart_puts(uart_dev, "========================================\r\n");
+		uart_puts(uart_dev, "UART1 ready\r\n");
 	}
 
+	uart_puts(uart_dev, "Initializing I2C...\r\n");
 	i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 	if (!device_is_ready(i2c_dev)) {
-		printk("I2C device not ready\n");
-		return -1;
+		uart_puts(uart_dev, "ERROR: I2C1 device not ready\r\n");
+		errors++;
+	} else {
+		uart_puts(uart_dev, "I2C1 ready, registering as slave at 0x20...\r\n");
+		int ret = i2c_target_register(i2c_dev, &i2c_target_cfg);
+		if (ret < 0) {
+			uart_puts(uart_dev, "ERROR: I2C target register failed\r\n");
+			errors++;
+		} else {
+			uart_puts(uart_dev, "I2C slave registered OK\r\n");
+		}
 	}
 
-	/* Configure GPIO pins as outputs */
-	gpio_pin_configure_dt(&heartbeat_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&c_on_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&c_off_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&sv_red_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&sv_green_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&s_sen_pin, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&s_red_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&s_green_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&bo_sen_pin, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&bo_red_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&bo_green_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&gst_low_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&gst_normal_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&gst_full_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&hpt_empty_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&hpt_low_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&hpt_normal_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&hpt_high_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&hpt_critical_led, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&d_enable, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&d_rs, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&d_d4, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&d_d5, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&d_d6, GPIO_OUTPUT_INACTIVE);
-	gpio_pin_configure_dt(&d_d7, GPIO_OUTPUT_INACTIVE);
+	/* Configure GPIO pins as outputs with error checking */
+	uart_puts(uart_dev, "Configuring GPIO outputs...\r\n");
+
+	if (configure_gpio_output(&heartbeat_led, "heartbeat_led") < 0) errors++;
+	if (configure_gpio_output(&c_on_led, "c_on_led") < 0) errors++;
+	if (configure_gpio_output(&c_off_led, "c_off_led") < 0) errors++;
+	if (configure_gpio_output(&sv_red_led, "sv_red_led") < 0) errors++;
+	if (configure_gpio_output(&sv_green_led, "sv_green_led") < 0) errors++;
+	if (configure_gpio_output(&s_sen_pin, "s_sen_pin") < 0) errors++;
+	if (configure_gpio_output(&s_red_led, "s_red_led") < 0) errors++;
+	if (configure_gpio_output(&s_green_led, "s_green_led") < 0) errors++;
+	if (configure_gpio_output(&bo_sen_pin, "bo_sen_pin") < 0) errors++;
+	if (configure_gpio_output(&bo_red_led, "bo_red_led") < 0) errors++;
+	if (configure_gpio_output(&bo_green_led, "bo_green_led") < 0) errors++;
+	if (configure_gpio_output(&gst_low_led, "gst_low_led") < 0) errors++;
+	if (configure_gpio_output(&gst_normal_led, "gst_normal_led") < 0) errors++;
+	if (configure_gpio_output(&gst_full_led, "gst_full_led") < 0) errors++;
+	if (configure_gpio_output(&hpt_empty_led, "hpt_empty_led") < 0) errors++;
+	if (configure_gpio_output(&hpt_low_led, "hpt_low_led") < 0) errors++;
+	if (configure_gpio_output(&hpt_normal_led, "hpt_normal_led") < 0) errors++;
+	if (configure_gpio_output(&hpt_high_led, "hpt_high_led") < 0) errors++;
+	if (configure_gpio_output(&hpt_critical_led, "hpt_critical_led") < 0) errors++;
+	if (configure_gpio_output(&d_enable, "d_enable") < 0) errors++;
+	if (configure_gpio_output(&d_rs, "d_rs") < 0) errors++;
+	if (configure_gpio_output(&d_d4, "d_d4") < 0) errors++;
+	if (configure_gpio_output(&d_d5, "d_d5") < 0) errors++;
+	if (configure_gpio_output(&d_d6, "d_d6") < 0) errors++;
+	if (configure_gpio_output(&d_d7, "d_d7") < 0) errors++;
 
 	/* Configure GPIO pins as inputs */
-	gpio_pin_configure_dt(&c_sig, GPIO_INPUT);
-	gpio_pin_configure_dt(&sv_sig, GPIO_INPUT);
-	gpio_pin_configure_dt(&gst_sig, GPIO_INPUT);
-	gpio_pin_configure_dt(&display_in, GPIO_INPUT);
-	gpio_pin_configure_dt(&button, GPIO_INPUT);
+	uart_puts(uart_dev, "Configuring GPIO inputs...\r\n");
+	if (configure_gpio_input(&c_sig, "c_sig") < 0) errors++;
+	if (configure_gpio_input(&sv_sig, "sv_sig") < 0) errors++;
+	if (configure_gpio_input(&gst_sig, "gst_sig") < 0) errors++;
+	if (configure_gpio_input(&display_in, "display_in") < 0) errors++;
+	if (configure_gpio_input(&button, "button") < 0) errors++;
 
-	printk("CybICS initialization complete\n");
+	uart_puts(uart_dev, "========================================\r\n");
+	if (errors > 0) {
+		uart_puts(uart_dev, "WARNING: initialization errors!\r\n");
+	} else {
+		uart_puts(uart_dev, "CybICS initialization complete - no errors\r\n");
+	}
+	uart_puts(uart_dev, "========================================\r\n");
+
+	/* Signal all threads that initialization is complete */
+	/* Do this even if there are errors so threads don't deadlock */
+	k_sem_give(&init_sem);
+
+	uart_puts(uart_dev, "Threads starting...\r\n");
 
 	/* Threads are auto-started by K_THREAD_DEFINE */
 	return 0;

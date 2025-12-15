@@ -175,9 +175,23 @@
 &usart1 {
 	status = "okay";
 	current-speed = <115200>;
+	/* Use PA9/PA10 like the original FreeRTOS version, not PC4/PC5 */
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
 };
 
 &i2c1 {
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_STANDARD>;
+	/* Use PB8/PB7 for I2C1 (SCL/SDA) - matching FreeRTOS pinout */
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
+	pinctrl-names = "default";
+};
+
+/* Redirect console to USART1 so debug output is visible */
+/ {
+	chosen {
+		zephyr,console = &usart1;
+		zephyr,shell-uart = &usart1;
+	};
 };
