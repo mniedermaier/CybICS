@@ -1,57 +1,202 @@
-name: pytest
+name: 🧪 CybICS Test Suite
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   schedule:
-  - cron: "0 0 * * *"
+    - cron: "0 0 * * *"  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  docker:
+  test:
+    name: Test Industrial Protocols
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-    - name: Install nmap
-      run: sudo apt-get install -y nmap
+    - name: 🔧 Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nmap
+        echo "✓ Installed nmap for S7 protocol testing"
 
-    - name: Checkout
+    - name: 📥 Checkout Repository
       uses: actions/checkout@v4
       with:
           submodules: recursive
 
-    - name: Setup Python
+    - name: 🐍 Setup Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12' 
+        python-version: '3.12'
 
-    - name: Setup docker compose
+    - name: 🐳 Setup Docker Compose
       uses: KengoTODA/actions-setup-docker-compose@main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Run prepre env
+    - name: ⚙️ Prepare Environment
       run: |
          chmod +x ./.devcontainer/prepare-env.sh
          .devcontainer/prepare-env.sh
+         echo "✓ Environment prepared"
       shell: bash
-      
-    - name: Start containers
-      run: docker-compose -f "docker-compose.yml" up -d --build
+
+    - name: 🚀 Start CybICS Containers
+      run: |
+        echo "Starting industrial control system containers..."
+        docker-compose -f "docker-compose.yml" up -d --build
+        echo "✓ Containers started"
       working-directory: ./.devcontainer/virtual
 
-    - name: Sleep for 120 seconds to give containers time to spawn
-      run: sleep 120s
+    - name: ⏳ Wait for Services to Initialize
+      run: |
+        echo "Waiting 120 seconds for all services to be ready..."
+        sleep 120s
+        echo "✓ Services should be ready"
       shell: bash
 
-    - name: Pytest Connections
+    - name: 📦 Install Python Test Dependencies
       run: |
         pip install --no-cache-dir -r tests/requirements.txt
-        pytest tests/test_connections.py --verbose
+        echo "✓ Installed pytest, asyncua, pymodbus, and other dependencies"
 
-    - name: Pytest Training
+    - name: 🧪 Test - Basic Connectivity (HTTP, Modbus, S7)
+      id: test-connectivity
+      continue-on-error: true
       run: |
-        pytest tests/test_training.py --verbose
+        echo "::group::🌐 Testing Web Services, Modbus TCP, and S7 Protocol"
+        pytest tests/test_connections.py \
+          --verbose \
+          --tb=short \
+          --color=yes \
+          -ra \
+          --junit-xml=test-results-connectivity.xml
+        echo "::endgroup::"
 
-    - name: Stop containers
+    - name: 🔐 Test - OPC UA Authentication
+      id: test-opcua
+      continue-on-error: true
+      run: |
+        echo "::group::🔑 Testing OPC UA Username/Password & Certificate Authentication"
+        echo "Checking OPC UA server startup logs..."
+        docker logs virtual-opcua-1 2>&1 | head -n 100 || true
+        echo ""
+        echo "Checking certificate file inside container..."
+        docker exec virtual-opcua-1 ls -la /CybICS/certificates/trusted/ || true
+        docker exec virtual-opcua-1 openssl x509 -inform DER -in /CybICS/certificates/trusted/cert_admin.der -noout -subject -dates 2>&1 || true
+        echo ""
+        echo "Running OPC UA authentication tests..."
+        pytest tests/test_opcua_auth.py \
+          --verbose \
+          --tb=short \
+          --color=yes \
+          -ra \
+          -k "test_opcua" \
+          --junit-xml=test-results-opcua.xml
+        echo "::endgroup::"
+
+    - name: 📚 Test - Training Modules
+      id: test-training
+      continue-on-error: true
+      run: |
+        echo "::group::📖 Testing CTF Training Module Validation"
+        pytest tests/test_training.py \
+          --verbose \
+          --tb=short \
+          --color=yes \
+          -ra \
+          --junit-xml=test-results-training.xml
+        echo "::endgroup::"
+
+    - name: 📊 Generate Test Summary
       if: always()
-      run: docker-compose -f "docker-compose.yml" down
+      run: |
+        echo "## 🧪 CybICS Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Suite Status" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Suite | Status | Details |" >> $GITHUB_STEP_SUMMARY
+        echo "|------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+        # Basic Connectivity
+        if [ "${{ steps.test-connectivity.outcome }}" == "success" ]; then
+          echo "| 🌐 Basic Connectivity | ✅ Passed | All connection tests successful |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| 🌐 Basic Connectivity | ❌ Failed | Check logs for details |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # OPC UA Authentication
+        if [ "${{ steps.test-opcua.outcome }}" == "success" ]; then
+          echo "| 🔐 OPC UA Authentication | ✅ Passed | Username/password & certificate auth verified |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| 🔐 OPC UA Authentication | ❌ Failed | Check logs for details |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Training Modules
+        if [ "${{ steps.test-training.outcome }}" == "success" ]; then
+          echo "| 📚 Training Modules | ✅ Passed | All training tests successful |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| 📚 Training Modules | ❌ Failed | Check logs for details |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Coverage" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Web Services (HTTP, FUXA, OpenPLC)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Modbus TCP Protocol" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ OPC UA Protocol (with authentication)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ S7 Protocol Detection" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Training Module Validation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📊 View detailed test output in the workflow logs above." >> $GITHUB_STEP_SUMMARY
+
+    - name: 📤 Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-results
+        path: |
+          test-results-*.xml
+          pytest-*.log
+        retention-days: 30
+        if-no-files-found: ignore
+
+    - name: ✅ Check Test Results
+      if: always()
+      run: |
+        echo "========================================="
+        echo "   Final Test Results Check"
+        echo "========================================="
+        if [ "${{ steps.test-connectivity.outcome }}" != "success" ] || \
+           [ "${{ steps.test-opcua.outcome }}" != "success" ] || \
+           [ "${{ steps.test-training.outcome }}" != "success" ]; then
+          echo ""
+          echo "❌ Some tests failed. Check the summary above for details."
+          echo ""
+          echo "Test Outcomes:"
+          echo "  Basic Connectivity: ${{ steps.test-connectivity.outcome }}"
+          echo "  OPC UA Auth: ${{ steps.test-opcua.outcome }}"
+          echo "  Training Modules: ${{ steps.test-training.outcome }}"
+          echo ""
+          exit 1
+        else
+          echo ""
+          echo "✅ All tests passed successfully!"
+          echo ""
+          echo "Test Outcomes:"
+          echo "  ✓ Basic Connectivity: ${{ steps.test-connectivity.outcome }}"
+          echo "  ✓ OPC UA Auth: ${{ steps.test-opcua.outcome }}"
+          echo "  ✓ Training Modules: ${{ steps.test-training.outcome }}"
+          echo ""
+        fi
+
+    - name: 🛑 Stop Containers
+      if: always()
+      run: |
+        echo "Stopping all CybICS containers..."
+        docker-compose -f "docker-compose.yml" down
+        echo "✓ Containers stopped and cleaned up"
       working-directory: ./.devcontainer/virtual
