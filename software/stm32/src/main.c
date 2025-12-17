@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "lcd_hd44780.h"
 
 /* Register logging module */
@@ -83,6 +84,7 @@ static const struct device *i2c_dev;
 /* I2C slave state */
 static uint8_t i2c_rx_index = 0;
 static uint8_t i2c_tx_index = 0;
+static volatile bool i2c_first_message_received = false;
 
 /* I2C slave callbacks */
 static int i2c_write_requested(struct i2c_target_config *config)
@@ -159,6 +161,10 @@ static int i2c_read_processed(struct i2c_target_config *config, uint8_t *val)
 
 static int i2c_stop(struct i2c_target_config *config)
 {
+	/* Mark that we've received our first I2C message */
+	if (i2c_rx_index > 0) {
+		i2c_first_message_received = true;
+	}
 	/* Reset indices for next transaction */
 	i2c_rx_index = 0;
 	i2c_tx_index = 0;
@@ -260,7 +266,6 @@ static const uint8_t char_gear[8] = {0x00, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x0E, 0
  */
 static void play_startup_animation(struct lcd_hd44780 *lcd)
 {
-	char displayText[20];
 	int i;
 
 	/* Create custom characters */
@@ -367,29 +372,52 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 	}
 	k_msleep(800);
 
-	/* Phase 3: Loading bar animation */
+	/* Phase 3: Loading bar animation - loops until I2C message received */
 	lcd_clear(lcd);
-	lcd_set_cursor(lcd, 0, 2);
-	lcd_print(lcd, "Initializing");
+	lcd_set_cursor(lcd, 0, 1);
+	lcd_print(lcd, "Waiting for Pi");
 
 	/* Draw loading bar frame */
 	lcd_set_cursor(lcd, 1, 0);
 	lcd_print(lcd, "[              ]");
 
-	/* Animate loading bar - use '=' character for consistent look */
-	for (i = 0; i < 14; i++) {
-		lcd_set_cursor(lcd, 1, 1 + i);
-		lcd_putc(lcd, '=');
+	/* Animate loading bar until I2C message is received */
+	i = 0;
+	while (!i2c_first_message_received) {
+		/* Calculate position in the bar (ping-pong effect) */
+		int pos = i % 28;  /* 0-27 for back and forth */
+		if (pos >= 14) {
+			pos = 27 - pos;  /* Reverse direction */
+		}
+
+		/* Clear the bar */
+		lcd_set_cursor(lcd, 1, 1);
+		lcd_print(lcd, "              ");
+
+		/* Draw moving segment (3 chars wide) */
+		for (int j = 0; j < 3; j++) {
+			int p = pos + j;
+			if (p >= 0 && p < 14) {
+				lcd_set_cursor(lcd, 1, 1 + p);
+				lcd_putc(lcd, '=');
+			}
+		}
 
 		/* Animate dots on top line */
-		lcd_set_cursor(lcd, 0, 14);
-		int dots = (i % 4);
-		snprintf(displayText, sizeof(displayText), "%-3s", dots == 1 ? "." : dots == 2 ? ".." : dots == 3 ? "..." : "");
-		lcd_print(lcd, displayText);
+		lcd_set_cursor(lcd, 0, 15);
+		lcd_putc(lcd, "\\|/-"[i % 4]);  /* Spinning indicator */
 
-		k_msleep(250);
+		i++;
+		k_msleep(100);
 	}
-	k_msleep(300);
+
+	/* Show connected message briefly */
+	lcd_clear(lcd);
+	lcd_set_cursor(lcd, 0, 2);
+	lcd_print(lcd, "Pi Connected!");
+	lcd_set_cursor(lcd, 1, 0);
+	lcd_print(lcd, "[==============]");
+	k_msleep(800);
 
 	/* Phase 4: System ready with flash effect */
 	for (int flash = 0; flash < 3; flash++) {
