@@ -2,6 +2,7 @@ version: "3.4"
 services:
   dev:
     container_name: cybics-stm32
+    image: cybics-stm32-dev
     build:
       context: .
       dockerfile: Dockerfile

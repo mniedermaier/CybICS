@@ -1,13 +1,15 @@
 # Multi-stage build with cached Zephyr workspace
 # Stage 1: Build the firmware
-FROM ghcr.io/zephyrproject-rtos/zephyr-build:v0.26.6 AS build
+FROM ghcr.io/zephyrproject-rtos/zephyr-build:v0.28.7 AS build
 
 # Initialize Zephyr workspace (this layer will be cached)
 WORKDIR /workspace
-RUN west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.5.0 && \
+USER root
+RUN west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.3.0 && \
     west update && \
     west zephyr-export && \
-    pip3 install -r /workspace/zephyr/scripts/requirements.txt
+    pip3 install -r /workspace/zephyr/scripts/requirements.txt && \
+    chown -R user:user /workspace
 
 # Set Zephyr environment
 ENV ZEPHYR_BASE=/workspace/zephyr

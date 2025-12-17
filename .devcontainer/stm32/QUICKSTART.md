@@ -117,18 +117,13 @@ ls build/zephyr/zephyr.elf
 
 ## 💡 Tips
 
-1. **First build takes longer** - Zephyr downloads and builds all dependencies
+1. **Zephyr is pre-installed** - No download needed, instant container start
 2. **Use ccache** - Subsequent builds are much faster
 3. **Clean builds** - Use `--pristine` if you change major config options
 4. **Parallel builds** - West uses all CPU cores by default
 5. **VS Code tasks** - Use `Ctrl+Shift+B` for build tasks
 
 ## 🆘 Troubleshooting
-
-### Zephyr not initialized
-```bash
-bash /CybICS/.devcontainer/stm32/init-zephyr.sh
-```
 
 ### Build fails with missing SDK
 ```bash

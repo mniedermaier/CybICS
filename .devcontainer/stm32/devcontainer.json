@@ -5,7 +5,6 @@
 	"workspaceFolder": "/CybICS/software/stm32",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
-	"postCreateCommand": "bash /CybICS/.devcontainer/stm32/init-zephyr.sh",
 	"overrideCommand": false,
 	"customizations": {
 		"vscode": {
@@ -17,7 +16,8 @@
 				"ms-python.python",
 				"timonwong.shellcheck",
 				"trond-snekvik.kconfig-lang",
-				"trond-snekvik.devicetree"
+				"trond-snekvik.devicetree",
+				"marus25.cortex-debug"
 			],
 			"settings": {
 				"C_Cpp.default.compilerPath": "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc",

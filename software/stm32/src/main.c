@@ -8,20 +8,15 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/i2c.h>
-#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "lcd_hd44780.h"
-#include "colors.h"
 
-/* Logging */
-#define LOG_ERR 0x03
-#define LOG_WAR 0x02
-#define LOG_INF 0x01
-#define LOG_DEB 0x00
-#define showLogLevel LOG_DEB
+/* Register logging module */
+LOG_MODULE_REGISTER(cybics, LOG_LEVEL_INF);
 
 /* Menu options */
 #define LOGIN_PASSWORD "cyb"
@@ -54,7 +49,7 @@
 /* Global variables */
 uint8_t RxData[20] = {0};
 uint8_t TxData[20] = {'G','S','T',':',' ','0','0','0',' ','H','P','T',':',' ','0','0','0',0,0,0};
-uint8_t TxDataUID[13] = {0};
+uint8_t TxDataUID[14] = {0};  /* 12 hex chars + mode flag + null */
 char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure = 0;
 uint8_t HPTpressure = 0;
@@ -81,9 +76,6 @@ uint8_t HPT_empty = 0;
 /* Device handles */
 static const struct device *uart_dev;
 static const struct device *i2c_dev;
-
-/* Mutex for UART */
-K_MUTEX_DEFINE(uart_mutex);
 
 /* I2C slave configuration */
 #define I2C_SLAVE_ADDRESS 0x20
@@ -120,6 +112,8 @@ static int i2c_write_received(struct i2c_target_config *config, uint8_t val)
 	return 0;
 }
 
+static volatile uint8_t i2c_debug_reg = 0xFF;
+
 static int i2c_read_requested(struct i2c_target_config *config, uint8_t *val)
 {
 	/*
@@ -128,12 +122,13 @@ static int i2c_read_requested(struct i2c_target_config *config, uint8_t *val)
 	 * RxData[0] contains the register address from the write phase.
 	 */
 	i2c_tx_index = 0;
+	i2c_debug_reg = RxData[0];
 
 	if (RxData[0] == 0x00) {
 		/* Register 0x00: TxData (GST/HPT pressure values) */
 		*val = TxData[i2c_tx_index++];
 	} else if (RxData[0] == 0x01) {
-		/* Register 0x01: TxDataUID (STM32 UID) */
+		/* Register 0x01: TxDataUID (STM32 UID + mode flag, 13 bytes) */
 		*val = TxDataUID[i2c_tx_index++];
 	} else {
 		*val = 0;
@@ -150,7 +145,8 @@ static int i2c_read_processed(struct i2c_target_config *config, uint8_t *val)
 			*val = 0;
 		}
 	} else if (RxData[0] == 0x01) {
-		if (i2c_tx_index < sizeof(TxDataUID)) {
+		/* Send 13 bytes: 12 hex chars + mode flag (not the null terminator) */
+		if (i2c_tx_index < 13) {
 			*val = TxDataUID[i2c_tx_index++];
 		} else {
 			*val = 0;
@@ -217,26 +213,6 @@ static const struct gpio_dt_spec d_d7 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d7), gpi
 static const struct gpio_dt_spec display_in = GPIO_DT_SPEC_GET(DT_NODELABEL(display_in), gpios);
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_NODELABEL(button), gpios);
 
-/* Logging function */
-void logging(unsigned char logLevel, const char *fmt, ...)
-{
-	if(showLogLevel <= logLevel) {
-		if(logLevel == LOG_ERR) {
-			printk("%sERR: %s%s\r\n", CRED, fmt, CRST);
-		} else if(logLevel == LOG_WAR) {
-			printk("%sWAR: %s%s\r\n", CYEL, fmt, CRST);
-		} else if(logLevel == LOG_INF) {
-			printk("%sINF: %s%s\r\n", CBLU, fmt, CRST);
-		} else if(logLevel == LOG_DEB) {
-			printk("%sDEB: %s%s\r\n", CMAG, fmt, CRST);
-		} else {
-			printk("%s???: %s%s\r\n", CRED, fmt, CRST);
-		}
-	}
-}
-
-/* Helper function to send string directly to UART - forward declaration */
-static void uart_puts(const struct device *dev, const char *str);
 
 /* Thread: Default Task */
 void thread_default(void *arg1, void *arg2, void *arg3)
@@ -261,7 +237,7 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	printk("Starting thread_heartbeat\n");
+	LOG_INF("Starting thread_heartbeat");
 
 	while (1) {
 		gpio_pin_toggle_dt(&heartbeat_led);
@@ -287,7 +263,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	uart_puts(uart_dev, "Display thread: initializing LCD...\r\n");
+	LOG_INF("Display thread: initializing LCD...");
 
 	/* Setup LCD with new Zephyr driver */
 	struct lcd_hd44780 lcd = {
@@ -301,21 +277,30 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 
 	ret = lcd_init(&lcd);
 	if (ret < 0) {
-		uart_puts(uart_dev, "Display thread: LCD init FAILED!\r\n");
+		LOG_ERR("Display thread: LCD init FAILED!");
 		return;
 	}
 
-	uart_puts(uart_dev, "Display thread: LCD initialized OK\r\n");
+	LOG_INF("Display thread: LCD initialized OK");
 
-	/* Get unique ID from STM32 UID registers */
+	/* Get unique ID from STM32 UID registers (same as LL_GetUID_Word0/1/2) */
 	volatile uint32_t *uid = (volatile uint32_t *)0x1FFF7590;
+	/*
+	 * IMPORTANT: Use lower 16 bits only to ensure exactly 12 hex chars.
+	 * %04lx means "minimum 4 digits" not "maximum 4 digits", so unmasked
+	 * 32-bit values would overflow the buffer and corrupt the mode flag.
+	 */
 	snprintf((char*)TxDataUID, sizeof(TxDataUID), "%04lx%04lx%04lx",
 		(unsigned long)(uid[0] & 0xFFFF),
 		(unsigned long)(uid[1] & 0xFFFF),
 		(unsigned long)(uid[2] & 0xFFFF));
 	TxDataUID[12] = '0'; /* default STA mode */
 
-	uart_puts(uart_dev, "Display thread: starting main loop\r\n");
+	/* Debug: print UID (full values and truncated for SSID) */
+	LOG_INF("STM32 UID: %08lx %08lx %08lx -> SSID: %s",
+		(unsigned long)uid[0], (unsigned long)uid[1], (unsigned long)uid[2], TxDataUID);
+
+	LOG_INF("Display thread: starting main loop");
 
 	while (1) {
 		/* Switch between station and AP mode of Wifi */
@@ -323,8 +308,10 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			if (!wifiPressed) {
 				if (TxDataUID[12] == '0') {
 					TxDataUID[12] = '1';
+					LOG_INF("WiFi: STA -> AP");
 				} else {
 					TxDataUID[12] = '0';
+					LOG_INF("WiFi: AP -> STA");
 				}
 				snprintf(rpiIP, sizeof(rpiIP), "%-14s", "Unknown");
 				shifting = 0;
@@ -429,7 +416,7 @@ void thread_physical(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	printk("Starting thread_physical\n");
+	LOG_INF("Starting thread_physical");
 
 	int cState, svState, gstState;
 	uint16_t HPTdelay = 0;
@@ -553,7 +540,7 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	printk("Starting thread_i2c\n");
+	LOG_INF("Starting thread_i2c");
 
 	while (1) {
 		if(RxData[1] == 'I' && RxData[2] == 'P') {
@@ -576,7 +563,7 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	printk("Starting thread_write_output\n");
+	LOG_INF("Starting thread_write_output");
 
 	while (1) {
 		// Clear (turn off) most LEDs
@@ -624,7 +611,6 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	char statusMsg[50];
 	char password[20];
 	char input[2];
 	uint8_t loggedIn = 0;
@@ -636,12 +622,12 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	printk("Starting thread_uart\n");
+	LOG_INF("Starting thread_uart");
 
 	while (1) {
 		if (!loggedIn) {
 			if (!passwordEntry) {
-				logging(LOG_INF, "Please enter password:");
+				LOG_INF("Please enter password:");
 				rxIndex = 0;
 				memset(password, 0, sizeof(password));
 				passwordEntry = 1;
@@ -656,10 +642,10 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 						password[rxIndex] = '\0';
 						if (strcmp(password, LOGIN_PASSWORD) == 0) {
 							loggedIn = 1;
-							logging(LOG_INF, "Login successful!");
+							LOG_INF("Login successful!");
 							showMenu = 1;
 						} else {
-							logging(LOG_ERR, "Invalid password. Please try again.");
+							LOG_ERR("Invalid password. Please try again.");
 							passwordEntry = 0;
 						}
 					} else {
@@ -667,7 +653,7 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 					}
 				}
 			} else {
-				logging(LOG_ERR, "Password too long. Please try again.");
+				LOG_ERR("Password too long. Please try again.");
 				rxIndex = 0;
 				memset(password, 0, sizeof(password));
 				passwordEntry = 0;
@@ -677,89 +663,80 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 		}
 
 		if (showMenu) {
-			logging(LOG_INF, "\r\n=== CybICS Menu ===");
-			logging(LOG_INF, "1. System Status");
-			logging(LOG_INF, "2. Display Flag");
-			logging(LOG_INF, "3. System Controls");
-			logging(LOG_INF, "4. Zephyr Stats");
-			logging(LOG_INF, "5. MCU Information");
-			logging(LOG_INF, "6. Help");
-			logging(LOG_INF, "7. Logout");
-			logging(LOG_INF, "Enter choice (1-7): ");
+			LOG_INF("=== CybICS Menu ===");
+			LOG_INF("1. System Status");
+			LOG_INF("2. Display Flag");
+			LOG_INF("3. System Controls");
+			LOG_INF("4. Zephyr Stats");
+			LOG_INF("5. MCU Information");
+			LOG_INF("6. Help");
+			LOG_INF("7. Logout");
+			LOG_INF("Enter choice (1-7):");
 			showMenu = 0;
 		}
 
 		if (uart_poll_in(uart_dev, (unsigned char*)input) == 0) {
 			switch(input[0]) {
 				case MENU_STATUS:
-					logging(LOG_INF, "\r\n=== System Status ===");
-					snprintf(statusMsg, sizeof(statusMsg), "GST Pressure: %d", GSTpressure);
-					logging(LOG_INF, statusMsg);
-					snprintf(statusMsg, sizeof(statusMsg), "HPT Pressure: %d", HPTpressure);
-					logging(LOG_INF, statusMsg);
-					snprintf(statusMsg, sizeof(statusMsg), "Compressor: %s", C_on ? "ON" : "OFF");
-					logging(LOG_INF, statusMsg);
-					snprintf(statusMsg, sizeof(statusMsg), "System Valve: %s", SV_green ? "OPEN" : "CLOSED");
-					logging(LOG_INF, statusMsg);
-					snprintf(statusMsg, sizeof(statusMsg), "System Status: %s", S_green ? "OPERATIONAL" : "NOT OPERATIONAL");
-					logging(LOG_INF, statusMsg);
-					snprintf(statusMsg, sizeof(statusMsg), "Blow Out: %s", BO_sen ? "ACTIVE" : "INACTIVE");
-					logging(LOG_INF, statusMsg);
+					LOG_INF("=== System Status ===");
+					LOG_INF("GST Pressure: %d", GSTpressure);
+					LOG_INF("HPT Pressure: %d", HPTpressure);
+					LOG_INF("Compressor: %s", C_on ? "ON" : "OFF");
+					LOG_INF("System Valve: %s", SV_green ? "OPEN" : "CLOSED");
+					LOG_INF("System Status: %s", S_green ? "OPERATIONAL" : "NOT OPERATIONAL");
+					LOG_INF("Blow Out: %s", BO_sen ? "ACTIVE" : "INACTIVE");
 					showMenu = 1;
 					break;
 
 				case MENU_FLAG:
-					logging(LOG_INF, "\r\n=== CybICS Flag ===");
-					logging(LOG_INF, "CybICS(U#RT)");
+					LOG_INF("=== CybICS Flag ===");
+					LOG_INF("CybICS(U#RT)");
 					showMenu = 1;
 					break;
 
 				case MENU_CONTROLS:
-					logging(LOG_INF, "\r\n=== System Controls ===");
-					logging(LOG_INF, "Current Status:");
-					logging(LOG_INF, "----------------");
-					snprintf(statusMsg, sizeof(statusMsg), "Compressor: %s", C_on ? "Running" : "Stopped");
-					logging(LOG_INF, statusMsg);
-					snprintf(statusMsg, sizeof(statusMsg), "System Valve: %s", SV_green ? "Open" : "Closed");
-					logging(LOG_INF, statusMsg);
+					LOG_INF("=== System Controls ===");
+					LOG_INF("Current Status:");
+					LOG_INF("----------------");
+					LOG_INF("Compressor: %s", C_on ? "Running" : "Stopped");
+					LOG_INF("System Valve: %s", SV_green ? "Open" : "Closed");
 					showMenu = 1;
 					break;
 
 				case MENU_FREERTOS:
-					logging(LOG_INF, "\r\n=== Zephyr Statistics ===");
-					logging(LOG_INF, "Thread Statistics:");
-					logging(LOG_INF, "----------------");
-					// Zephyr thread stats would go here
-					logging(LOG_INF, "System running on Zephyr RTOS");
+					LOG_INF("=== Zephyr Statistics ===");
+					LOG_INF("Thread Statistics:");
+					LOG_INF("----------------");
+					LOG_INF("System running on Zephyr RTOS");
 					showMenu = 1;
 					break;
 
 				case MENU_MCU:
-					logging(LOG_INF, "\r\n=== MCU Information ===");
-					logging(LOG_INF, "STM32G070RB on Zephyr RTOS");
+					LOG_INF("=== MCU Information ===");
+					LOG_INF("STM32G070RB on Zephyr RTOS");
 					showMenu = 1;
 					break;
 
 				case MENU_HELP:
-					logging(LOG_INF, "\r\n=== Help ===");
-					logging(LOG_INF, "1. System Status - Shows current system parameters");
-					logging(LOG_INF, "2. Display Flag - Shows the CybICS flag");
-					logging(LOG_INF, "3. System Controls - Shows control status");
-					logging(LOG_INF, "4. Zephyr Stats - Shows Zephyr thread statistics");
-					logging(LOG_INF, "5. MCU Information - Shows MCU info");
-					logging(LOG_INF, "6. Help - Shows this help message");
-					logging(LOG_INF, "7. Logout - Logs out of the system");
+					LOG_INF("=== Help ===");
+					LOG_INF("1. System Status - Shows current system parameters");
+					LOG_INF("2. Display Flag - Shows the CybICS flag");
+					LOG_INF("3. System Controls - Shows control status");
+					LOG_INF("4. Zephyr Stats - Shows Zephyr thread statistics");
+					LOG_INF("5. MCU Information - Shows MCU info");
+					LOG_INF("6. Help - Shows this help message");
+					LOG_INF("7. Logout - Logs out of the system");
 					showMenu = 1;
 					break;
 
 				case MENU_LOGOUT:
 					loggedIn = 0;
 					passwordEntry = 0;
-					logging(LOG_INF, "\r\nLogged out successfully.");
+					LOG_INF("Logged out successfully.");
 					break;
 
 				default:
-					logging(LOG_ERR, "\r\nInvalid choice. Please try again.");
+					LOG_ERR("Invalid choice. Please try again.");
 					showMenu = 1;
 					break;
 			}
@@ -782,12 +759,12 @@ K_THREAD_DEFINE(uart_tid, STACKSIZE_UART, thread_uart, NULL, NULL, NULL, PRIORIT
 static int configure_gpio_output(const struct gpio_dt_spec *spec, const char *name)
 {
 	if (!device_is_ready(spec->port)) {
-		printk("GPIO port not ready for %s\n", name);
+		LOG_ERR("GPIO port not ready for %s", name);
 		return -ENODEV;
 	}
 	int ret = gpio_pin_configure_dt(spec, GPIO_OUTPUT_INACTIVE);
 	if (ret < 0) {
-		printk("Failed to configure %s: %d\n", name, ret);
+		LOG_ERR("Failed to configure %s: %d", name, ret);
 		return ret;
 	}
 	return 0;
@@ -796,24 +773,15 @@ static int configure_gpio_output(const struct gpio_dt_spec *spec, const char *na
 static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *name)
 {
 	if (!device_is_ready(spec->port)) {
-		printk("GPIO port not ready for %s\n", name);
+		LOG_ERR("GPIO port not ready for %s", name);
 		return -ENODEV;
 	}
 	int ret = gpio_pin_configure_dt(spec, GPIO_INPUT);
 	if (ret < 0) {
-		printk("Failed to configure %s: %d\n", name, ret);
+		LOG_ERR("Failed to configure %s: %d", name, ret);
 		return ret;
 	}
 	return 0;
-}
-
-/* Helper function to send string directly to UART */
-static void uart_puts(const struct device *dev, const char *str)
-{
-	if (!dev) return;
-	while (*str) {
-		uart_poll_out(dev, *str++);
-	}
 }
 
 /* Main function */
@@ -831,37 +799,37 @@ int main(void)
 	volatile uint32_t *syscfg_cfgr1 = (volatile uint32_t *)0x40010000;
 	*syscfg_cfgr1 |= (1 << 9) | (1 << 10);  /* Set UCPD1_STROBE and UCPD2_STROBE */
 
-	/* Get UART device FIRST so we can use it for debug output */
+	LOG_INF("========================================");
+	LOG_INF("CybICS Zephyr Port Starting...");
+	LOG_INF("========================================");
+
+	/* Get UART device */
 	uart_dev = DEVICE_DT_GET(DT_NODELABEL(usart1));
 	if (!device_is_ready(uart_dev)) {
-		/* Can't output to UART, it's not ready */
+		LOG_ERR("UART1 device not ready");
 		errors++;
 	} else {
-		/* Now we can use UART for debug output */
-		uart_puts(uart_dev, "\r\n\r\n========================================\r\n");
-		uart_puts(uart_dev, "CybICS Zephyr Port Starting...\r\n");
-		uart_puts(uart_dev, "========================================\r\n");
-		uart_puts(uart_dev, "UART1 ready\r\n");
+		LOG_INF("UART1 ready");
 	}
 
-	uart_puts(uart_dev, "Initializing I2C...\r\n");
+	LOG_INF("Initializing I2C...");
 	i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 	if (!device_is_ready(i2c_dev)) {
-		uart_puts(uart_dev, "ERROR: I2C1 device not ready\r\n");
+		LOG_ERR("I2C1 device not ready");
 		errors++;
 	} else {
-		uart_puts(uart_dev, "I2C1 ready, registering as slave at 0x20...\r\n");
+		LOG_INF("I2C1 ready, registering as slave at 0x20...");
 		int ret = i2c_target_register(i2c_dev, &i2c_target_cfg);
 		if (ret < 0) {
-			uart_puts(uart_dev, "ERROR: I2C target register failed\r\n");
+			LOG_ERR("I2C target register failed: %d", ret);
 			errors++;
 		} else {
-			uart_puts(uart_dev, "I2C slave registered OK\r\n");
+			LOG_INF("I2C slave registered OK");
 		}
 	}
 
 	/* Configure GPIO pins as outputs with error checking */
-	uart_puts(uart_dev, "Configuring GPIO outputs...\r\n");
+	LOG_INF("Configuring GPIO outputs...");
 
 	if (configure_gpio_output(&heartbeat_led, "heartbeat_led") < 0) errors++;
 	if (configure_gpio_output(&c_on_led, "c_on_led") < 0) errors++;
@@ -890,26 +858,26 @@ int main(void)
 	if (configure_gpio_output(&d_d7, "d_d7") < 0) errors++;
 
 	/* Configure GPIO pins as inputs */
-	uart_puts(uart_dev, "Configuring GPIO inputs...\r\n");
+	LOG_INF("Configuring GPIO inputs...");
 	if (configure_gpio_input(&c_sig, "c_sig") < 0) errors++;
 	if (configure_gpio_input(&sv_sig, "sv_sig") < 0) errors++;
 	if (configure_gpio_input(&gst_sig, "gst_sig") < 0) errors++;
 	if (configure_gpio_input(&display_in, "display_in") < 0) errors++;
 	if (configure_gpio_input(&button, "button") < 0) errors++;
 
-	uart_puts(uart_dev, "========================================\r\n");
+	LOG_INF("========================================");
 	if (errors > 0) {
-		uart_puts(uart_dev, "WARNING: initialization errors!\r\n");
+		LOG_WRN("Initialization completed with %d errors", errors);
 	} else {
-		uart_puts(uart_dev, "CybICS initialization complete - no errors\r\n");
+		LOG_INF("CybICS initialization complete - no errors");
 	}
-	uart_puts(uart_dev, "========================================\r\n");
+	LOG_INF("========================================");
 
 	/* Signal all threads that initialization is complete */
 	/* Do this even if there are errors so threads don't deadlock */
 	k_sem_give(&init_sem);
 
-	uart_puts(uart_dev, "Threads starting...\r\n");
+	LOG_INF("Threads starting...");
 
 	/* Threads are auto-started by K_THREAD_DEFINE */
 	return 0;

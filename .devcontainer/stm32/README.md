@@ -5,11 +5,11 @@ This devcontainer provides a complete Zephyr RTOS development environment for ST
 ## Features
 
 ### Zephyr RTOS Development
-- Zephyr SDK 0.16.5 (ARM Cortex-M support)
+- Zephyr v4.3.0 pre-installed (no download on startup)
+- Zephyr SDK 0.17.0 (ARM Cortex-M support)
 - West meta-tool
 - KConfig and DeviceTree language support
 - CMake and Ninja build system
-- Automatic workspace initialization
 
 ## Getting Started
 
@@ -18,9 +18,9 @@ This devcontainer provides a complete Zephyr RTOS development environment for ST
 1. Open VS Code in the CybICS repository
 2. Press `F1` and select "Dev Containers: Reopen in Container"
 3. Choose "CybICS-stm32"
-4. Wait for the container to build and initialize (first time takes ~10 minutes)
+4. First build takes ~15-20 minutes (Zephyr is pre-baked into the image)
 
-The Zephyr workspace will be automatically initialized on first launch.
+Subsequent container starts are instant - no downloads required.
 
 ### 2. Building Projects
 
@@ -58,15 +58,14 @@ The following environment variables are automatically set:
 │   └── stm32/              # Zephyr RTOS firmware
 └── .devcontainer/
     └── stm32/
-        ├── Dockerfile      # Container definition
+        ├── Dockerfile      # Container definition (includes pre-baked Zephyr)
         ├── devcontainer.json
         ├── docker-compose.yml
-        ├── init-zephyr.sh  # Zephyr initialization script
         └── README.md       # This file
 
 /home/docker/
-└── zephyrproject/          # Zephyr workspace (auto-created)
-    ├── zephyr/             # Zephyr source
+└── zephyrproject/          # Zephyr workspace (pre-installed in image)
+    ├── zephyr/             # Zephyr v4.3.0 source
     ├── bootloader/
     ├── modules/
     └── tools/
@@ -108,17 +107,18 @@ The following extensions are automatically installed:
 - Kconfig Language Support
 - DeviceTree Language Support
 
-## Manual Zephyr Re-initialization
+## Updating Zephyr Version
 
-If you need to reinitialize the Zephyr workspace:
+Zephyr is pre-baked into the Docker image. To update:
 
-```bash
-# Remove existing workspace
-rm -rf ~/zephyrproject
+1. Edit `.devcontainer/stm32/Dockerfile` and change `ZEPHYR_VERSION`:
+   ```dockerfile
+   ARG ZEPHYR_VERSION=v4.3.0
+   ```
 
-# Run initialization script
-bash /CybICS/.devcontainer/stm32/init-zephyr.sh
-```
+2. Rebuild the container:
+   - VS Code: `F1` → "Dev Containers: Rebuild Container"
+   - Or: `docker compose build --no-cache`
 
 ## Troubleshooting
 
@@ -150,13 +150,6 @@ ls -la /CybICS
 ```
 
 ## Advanced Configuration
-
-### Changing Zephyr Version
-
-Edit `init-zephyr.sh` and modify the `--mr` parameter:
-```bash
-west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.6.0
-```
 
 ### Using Different Board
 
