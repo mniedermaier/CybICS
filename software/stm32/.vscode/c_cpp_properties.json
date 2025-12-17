@@ -1,0 +1,36 @@
+{
+    "configurations": [
+        {
+            "name": "Zephyr",
+            "includePath": [
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/build/zephyr/include/generated",
+                "${workspaceFolder}/build/zephyr/include/generated/zephyr",
+                "/home/docker/zephyrproject/zephyr/include",
+                "/home/docker/zephyrproject/zephyr/soc/st/stm32",
+                "/home/docker/zephyrproject/zephyr/soc/st/stm32/common",
+                "/home/docker/zephyrproject/zephyr/soc/st/stm32/stm32g0x",
+                "/home/docker/zephyrproject/zephyr/lib/libc/newlib/include",
+                "/home/docker/zephyrproject/zephyr/lib/libc/common/include",
+                "/home/docker/zephyrproject/zephyr/drivers",
+                "/home/docker/zephyrproject/modules/hal/cmsis_6/CMSIS/Core/Include",
+                "/home/docker/zephyrproject/zephyr/modules/cmsis_6",
+                "/home/docker/zephyrproject/modules/hal/stm32/stm32cube/stm32g0xx/soc",
+                "/home/docker/zephyrproject/modules/hal/stm32/stm32cube/stm32g0xx/drivers/include",
+                "/home/docker/zephyrproject/modules/hal/stm32/stm32cube/common_ll/include"
+            ],
+            "defines": [
+                "__ZEPHYR__=1",
+                "KERNEL",
+                "STM32G070xx",
+                "USE_HAL_DRIVER",
+                "USE_FULL_LL_DRIVER"
+            ],
+            "compilerPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc",
+            "cStandard": "c99",
+            "intelliSenseMode": "gcc-arm",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+        }
+    ],
+    "version": 4
+}
