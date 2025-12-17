@@ -95,7 +95,24 @@ jobs:
         with:
           configFile: .devcontainer/stm32/devcontainer.json
           env: .devcontainer/stm32/.env
-          runCmd: cd /home/docker/zephyrproject/app && west build -b nucleo_g070rb
+          runCmd: |
+            echo "=== Debugging workspace structure ==="
+            echo "Current dir: $(pwd)"
+            echo "ZEPHYR_BASE: $ZEPHYR_BASE"
+            ls -la /home/docker/zephyrproject/
+            echo "=== .west directory ==="
+            ls -la /home/docker/zephyrproject/.west/ 2>/dev/null || echo ".west not found"
+            cat /home/docker/zephyrproject/.west/config 2>/dev/null || echo "No .west/config"
+            echo "=== Zephyr directory ==="
+            ls -la /home/docker/zephyrproject/zephyr/ 2>/dev/null | head -5 || echo "Zephyr not found"
+            echo "=== App directory ==="
+            ls -la /home/docker/zephyrproject/app/
+            echo "=== West topdir ==="
+            west topdir 2>/dev/null || echo "Not in west workspace"
+            echo "=== West list ==="
+            cd /home/docker/zephyrproject && west list 2>/dev/null || echo "west list failed"
+            echo "=== Building ==="
+            cd /home/docker/zephyrproject/app && west build -b nucleo_g070rb
 
   virtual:
     name: Run devcontainer test virtual
