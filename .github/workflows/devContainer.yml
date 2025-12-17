@@ -87,34 +87,36 @@ jobs:
           lfs: false
           submodules: recursive
 
-      - name: "Create environment files"
-        run: .devcontainer/prepare-env.sh
+      - name: Build STM32 devcontainer image
+        run: |
+          docker build \
+            -t cybics-stm32-dev \
+            -f .devcontainer/stm32/Dockerfile \
+            .
 
-      - name: run tests stm32
-        uses: devcontainers/ci@v0.3
-        with:
-          configFile: .devcontainer/stm32/devcontainer.json
-          env: .devcontainer/stm32/.env
-          runCmd: |
-            echo "=== Debugging workspace structure ==="
-            echo "Current dir: $(pwd)"
-            echo "ZEPHYR_BASE: $ZEPHYR_BASE"
-            export ZEPHYR_BASE=/home/docker/zephyrproject/zephyr
-            echo "ZEPHYR_BASE after export: $ZEPHYR_BASE"
-            ls -la /home/docker/zephyrproject/
-            echo "=== .west directory ==="
-            ls -la /home/docker/zephyrproject/.west/ 2>/dev/null || echo ".west not found"
-            cat /home/docker/zephyrproject/.west/config 2>/dev/null || echo "No .west/config"
-            echo "=== Zephyr directory ==="
-            ls -la /home/docker/zephyrproject/zephyr/ 2>/dev/null | head -5 || echo "Zephyr not found"
-            echo "=== App directory ==="
-            ls -la /home/docker/zephyrproject/app/
-            echo "=== West topdir ==="
-            west topdir 2>/dev/null || echo "Not in west workspace"
-            echo "=== West list ==="
-            cd /home/docker/zephyrproject && west list 2>/dev/null || echo "west list failed"
-            echo "=== Building ==="
-            cd /home/docker/zephyrproject/app && west build -b nucleo_g070rb
+      - name: Run west build in container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/software/stm32:/home/docker/zephyrproject/app \
+            -e ZEPHYR_BASE=/home/docker/zephyrproject/zephyr \
+            cybics-stm32-dev \
+            bash -c "
+              echo '=== Debugging workspace structure ==='
+              echo 'User: '$(whoami)
+              echo 'ZEPHYR_BASE: '\$ZEPHYR_BASE
+              ls -la /home/docker/zephyrproject/
+              echo '=== .west directory ==='
+              ls -la /home/docker/zephyrproject/.west/ || echo '.west not found'
+              cat /home/docker/zephyrproject/.west/config || echo 'No .west/config'
+              echo '=== Zephyr directory ==='
+              ls -la /home/docker/zephyrproject/zephyr/ | head -5 || echo 'Zephyr not found'
+              echo '=== App directory ==='
+              ls -la /home/docker/zephyrproject/app/
+              echo '=== West topdir ==='
+              cd /home/docker/zephyrproject && west topdir || echo 'Not in west workspace'
+              echo '=== Building ==='
+              cd /home/docker/zephyrproject/app && rm -rf build && west build -b nucleo_g070rb
+            "
 
   virtual:
     name: Run devcontainer test virtual
