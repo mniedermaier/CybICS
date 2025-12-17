@@ -99,6 +99,8 @@ jobs:
             echo "=== Debugging workspace structure ==="
             echo "Current dir: $(pwd)"
             echo "ZEPHYR_BASE: $ZEPHYR_BASE"
+            export ZEPHYR_BASE=/home/docker/zephyrproject/zephyr
+            echo "ZEPHYR_BASE after export: $ZEPHYR_BASE"
             ls -la /home/docker/zephyrproject/
             echo "=== .west directory ==="
             ls -la /home/docker/zephyrproject/.west/ 2>/dev/null || echo ".west not found"
