@@ -2,7 +2,7 @@
 	"name": "CybICS-stm32",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "dev",
-	"workspaceFolder": "/CybICS/software/stm32",
+	"workspaceFolder": "/home/docker/zephyrproject/app",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"overrideCommand": false,
@@ -20,7 +20,7 @@
 				"marus25.cortex-debug"
 			],
 			"settings": {
-				"C_Cpp.default.compilerPath": "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc",
+				"C_Cpp.default.compilerPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc",
 				"C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
 			}
 		}

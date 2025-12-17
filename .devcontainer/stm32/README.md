@@ -24,8 +24,11 @@ Subsequent container starts are instant - no downloads required.
 
 ### 2. Building Projects
 
+The devcontainer opens in the pre-baked Zephyr workspace at `/home/docker/zephyrproject/app`.
+Your source code is automatically mounted here.
+
 ```bash
-cd /CybICS/software/stm32
+# Build (already in the correct directory)
 west build -b nucleo_g070rb
 ```
 
@@ -46,16 +49,16 @@ west flash --runner openocd
 
 The following environment variables are automatically set:
 
-- Zephyr SDK auto-detected (installed via `west sdk install` in `~/.local/`)
+- `ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-0.17.4` - Zephyr SDK location
 - `ZEPHYR_TOOLCHAIN_VARIANT=zephyr` - Use Zephyr SDK toolchain
 - `ZEPHYR_BASE=$HOME/zephyrproject/zephyr` - Zephyr source location
 
 ## Directory Structure
 
 ```
-/CybICS/
+/CybICS/                    # Full repository (mounted read-write)
 ├── software/
-│   └── stm32/              # Zephyr RTOS firmware
+│   └── stm32/              # Zephyr RTOS firmware source
 └── .devcontainer/
     └── stm32/
         ├── Dockerfile      # Container definition (includes pre-baked Zephyr)
@@ -63,12 +66,17 @@ The following environment variables are automatically set:
         ├── docker-compose.yml
         └── README.md       # This file
 
-/home/docker/
-└── zephyrproject/          # Zephyr workspace (pre-installed in image)
-    ├── zephyr/             # Zephyr v4.3.0 source
-    ├── bootloader/
-    ├── modules/
-    └── tools/
+/home/docker/zephyrproject/ # Zephyr workspace (pre-installed in image)
+├── app/                    # <- Your source mounted here (software/stm32)
+├── zephyr/                 # Zephyr v4.3.0 source
+├── modules/
+│   ├── hal/
+│   │   ├── cmsis/          # ARM CMSIS (Cortex-A/R)
+│   │   ├── cmsis_6/        # ARM CMSIS-6 (Cortex-M)
+│   │   └── stm32/          # STM32 HAL drivers
+│   └── lib/
+│       └── picolibc/       # C library
+└── .west/                  # West workspace config
 ```
 
 ## Installed Tools
@@ -138,7 +146,7 @@ export ZEPHYR_BASE=$HOME/zephyrproject/zephyr
 ### Zephyr SDK not found
 Check that the SDK is installed:
 ```bash
-ls -la /opt/zephyr-sdk
+ls -la ~/zephyr-sdk-0.17.4
 ```
 
 If missing, rebuild the container.
@@ -182,6 +190,7 @@ Or edit `prj.conf` directly.
 
 ## Notes
 
-- Zephyr workspace initialization happens automatically on first container start
-- The workspace is persistent across container restarts (stored in the host filesystem)
-- All development uses the Zephyr SDK toolchain
+- Zephyr workspace is pre-baked into the Docker image - no initialization needed on start
+- Your source code (software/stm32) is mounted into the pre-baked workspace
+- Container starts are instant - no downloads required
+- All development uses the Zephyr SDK toolchain (ARM only)

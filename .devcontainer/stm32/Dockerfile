@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM public.ecr.aws/ubuntu/ubuntu:22.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -60,16 +60,17 @@ RUN pip3 install --user --upgrade pip setuptools wheel
 RUN west init -l app && \
     west update --narrow -o=--depth=1
 
+# Install Python requirements (needed for west sdk install)
+RUN pip3 install --user -r zephyr/scripts/requirements.txt
+
 # Install Zephyr SDK using west (only ARM toolchain)
 RUN west sdk install -t arm-zephyr-eabi
-
-# Install Python requirements
-RUN pip3 install --user --no-build-isolation -r zephyr/scripts/requirements.txt
 
 # Set environment variables
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV ZEPHYR_BASE=/home/docker/zephyrproject/zephyr
-ENV PATH=/home/docker/.local/bin:$PATH
+ENV ZEPHYR_SDK_INSTALL_DIR=/home/docker/zephyr-sdk-0.17.4
+ENV PATH=/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin:/home/docker/.local/bin:$PATH
 
 # Switch back to root for fixuid setup
 USER root
