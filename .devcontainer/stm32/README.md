@@ -6,7 +6,7 @@ This devcontainer provides a complete Zephyr RTOS development environment for ST
 
 ### Zephyr RTOS Development
 - Zephyr v4.3.0 pre-installed (no download on startup)
-- Zephyr SDK 0.17.0 (ARM Cortex-M support)
+- Zephyr SDK 0.17.4 (ARM Cortex-M support)
 - West meta-tool
 - KConfig and DeviceTree language support
 - CMake and Ninja build system

@@ -8,17 +8,32 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zephyrproject-rtos/zephyr-build:v0.28.7
+
+    env:
+      ZEPHYR_VERSION: v4.3.0
 
     steps:
-    - name: Install gcc for arm
-      run: sudo apt-get install -y gcc-arm-none-eabi
-
     - name: Checkout
       uses: actions/checkout@v4
       with:
-          submodules: recursive
-      
-    - name: make      
-      run: CFLAGS=-Werror make -C software/stm32/
+        path: cybics
+
+    - name: Initialize Zephyr workspace
+      run: |
+        west init -m https://github.com/zephyrproject-rtos/zephyr --mr $ZEPHYR_VERSION zephyrproject
+        cd zephyrproject
+        west update --narrow -o=--depth=1
+
+    - name: Build STM32 firmware
+      run: |
+        cd zephyrproject
+        west build -b nucleo_g070rb $GITHUB_WORKSPACE/cybics/software/stm32 -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
+
+    - name: Check build artifacts
+      run: |
+        ls -la zephyrproject/build/zephyr/zephyr.elf
+        ls -la zephyrproject/build/zephyr/zephyr.bin
+        size zephyrproject/build/zephyr/zephyr.elf

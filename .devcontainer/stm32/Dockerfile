@@ -6,7 +6,7 @@ ENV TZ=UTC
 
 # Zephyr and SDK versions
 ARG ZEPHYR_VERSION=v4.3.0
-ARG ZEPHYR_SDK_VERSION=0.17.0
+ARG ZEPHYR_SDK_VERSION=0.17.4
 
 # Install base dependencies and Zephyr requirements in one layer
 RUN apt-get update && apt-get install -y \
