@@ -105,4 +105,12 @@ void lcd_display_on(struct lcd_hd44780 *lcd);
  */
 void lcd_display_off(struct lcd_hd44780 *lcd);
 
+/**
+ * @brief Create a custom character
+ * @param lcd Pointer to LCD device structure
+ * @param location Character slot (0-7)
+ * @param charmap Array of 8 bytes defining the character pattern
+ */
+void lcd_create_char(struct lcd_hd44780 *lcd, uint8_t location, const uint8_t charmap[8]);
+
 #endif /* LCD_HD44780_H */

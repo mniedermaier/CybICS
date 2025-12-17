@@ -245,6 +245,168 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 	}
 }
 
+/* Custom characters for startup animation */
+static const uint8_t char_logo_tl[8] = {0x00, 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x0F};  /* Top-left corner */
+static const uint8_t char_logo_tr[8] = {0x00, 0x00, 0x00, 0x10, 0x18, 0x1C, 0x1E, 0x1E};  /* Top-right corner */
+static const uint8_t char_logo_bl[8] = {0x0F, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00};  /* Bottom-left corner */
+static const uint8_t char_logo_br[8] = {0x1E, 0x1E, 0x1C, 0x18, 0x10, 0x00, 0x00, 0x00};  /* Bottom-right corner */
+static const uint8_t char_block_full[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};  /* Full block */
+static const uint8_t char_block_left[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};  /* Left edge */
+static const uint8_t char_block_right[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}; /* Right edge */
+static const uint8_t char_gear[8] = {0x00, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x0E, 0x00};  /* Gear/cog */
+
+/**
+ * @brief Play startup animation on LCD for ~10 seconds
+ */
+static void play_startup_animation(struct lcd_hd44780 *lcd)
+{
+	char displayText[20];
+	int i;
+
+	/* Create custom characters */
+	lcd_create_char(lcd, 0, char_logo_tl);
+	lcd_create_char(lcd, 1, char_logo_tr);
+	lcd_create_char(lcd, 2, char_logo_bl);
+	lcd_create_char(lcd, 3, char_logo_br);
+	lcd_create_char(lcd, 4, char_block_full);
+	lcd_create_char(lcd, 5, char_block_left);
+	lcd_create_char(lcd, 6, char_block_right);
+	lcd_create_char(lcd, 7, char_gear);
+
+	/* Phase 1: Animated logo sequence (~5 seconds) */
+	lcd_clear(lcd);
+	k_msleep(300);
+
+	/* Sweep effect: lines coming from both sides */
+	for (i = 0; i < 8; i++) {
+		lcd_set_cursor(lcd, 0, i);
+		lcd_putc(lcd, '=');
+		lcd_set_cursor(lcd, 0, 15 - i);
+		lcd_putc(lcd, '=');
+		lcd_set_cursor(lcd, 1, i);
+		lcd_putc(lcd, '=');
+		lcd_set_cursor(lcd, 1, 15 - i);
+		lcd_putc(lcd, '=');
+		k_msleep(80);
+	}
+	k_msleep(200);
+
+	/* Clear with fade effect */
+	for (i = 0; i < 8; i++) {
+		lcd_set_cursor(lcd, 0, i);
+		lcd_putc(lcd, ' ');
+		lcd_set_cursor(lcd, 0, 15 - i);
+		lcd_putc(lcd, ' ');
+		lcd_set_cursor(lcd, 1, i);
+		lcd_putc(lcd, ' ');
+		lcd_set_cursor(lcd, 1, 15 - i);
+		lcd_putc(lcd, ' ');
+		k_msleep(50);
+	}
+	k_msleep(200);
+
+	/* Draw expanding box */
+	lcd_set_cursor(lcd, 0, 7);
+	lcd_putc(lcd, 0);  /* Top-left */
+	lcd_putc(lcd, 1);  /* Top-right */
+	lcd_set_cursor(lcd, 1, 7);
+	lcd_putc(lcd, 2);  /* Bottom-left */
+	lcd_putc(lcd, 3);  /* Bottom-right */
+	k_msleep(400);
+
+	/* Add horizontal lines expanding from center */
+	for (i = 1; i <= 5; i++) {
+		lcd_set_cursor(lcd, 0, 7 - i);
+		lcd_putc(lcd, '-');
+		lcd_set_cursor(lcd, 0, 8 + i);
+		lcd_putc(lcd, '-');
+		lcd_set_cursor(lcd, 1, 7 - i);
+		lcd_putc(lcd, '-');
+		lcd_set_cursor(lcd, 1, 8 + i);
+		lcd_putc(lcd, '-');
+		k_msleep(100);
+	}
+	k_msleep(300);
+
+	/* Add gear icons with animation */
+	lcd_set_cursor(lcd, 0, 1);
+	lcd_putc(lcd, 7);
+	k_msleep(150);
+	lcd_set_cursor(lcd, 0, 14);
+	lcd_putc(lcd, 7);
+	k_msleep(150);
+	lcd_set_cursor(lcd, 1, 1);
+	lcd_putc(lcd, 7);
+	k_msleep(150);
+	lcd_set_cursor(lcd, 1, 14);
+	lcd_putc(lcd, 7);
+	k_msleep(400);
+
+	/* Spinning effect on gears */
+	for (i = 0; i < 4; i++) {
+		lcd_set_cursor(lcd, 0, 1);
+		lcd_putc(lcd, (i % 2) ? 7 : '*');
+		lcd_set_cursor(lcd, 0, 14);
+		lcd_putc(lcd, (i % 2) ? '*' : 7);
+		lcd_set_cursor(lcd, 1, 1);
+		lcd_putc(lcd, (i % 2) ? '*' : 7);
+		lcd_set_cursor(lcd, 1, 14);
+		lcd_putc(lcd, (i % 2) ? 7 : '*');
+		k_msleep(200);
+	}
+	k_msleep(300);
+
+	/* Phase 2: Typewriter effect for "CybICS" */
+	lcd_clear(lcd);
+	k_msleep(200);
+	lcd_set_cursor(lcd, 0, 5);
+	const char *logo = "CybICS";
+	for (i = 0; logo[i] != '\0'; i++) {
+		lcd_putc(lcd, logo[i]);
+		k_msleep(200);
+	}
+	k_msleep(800);
+
+	/* Phase 3: Loading bar animation */
+	lcd_clear(lcd);
+	lcd_set_cursor(lcd, 0, 2);
+	lcd_print(lcd, "Initializing");
+
+	/* Draw loading bar frame */
+	lcd_set_cursor(lcd, 1, 0);
+	lcd_print(lcd, "[              ]");
+
+	/* Animate loading bar - use '=' character for consistent look */
+	for (i = 0; i < 14; i++) {
+		lcd_set_cursor(lcd, 1, 1 + i);
+		lcd_putc(lcd, '=');
+
+		/* Animate dots on top line */
+		lcd_set_cursor(lcd, 0, 14);
+		int dots = (i % 4);
+		snprintf(displayText, sizeof(displayText), "%-3s", dots == 1 ? "." : dots == 2 ? ".." : dots == 3 ? "..." : "");
+		lcd_print(lcd, displayText);
+
+		k_msleep(250);
+	}
+	k_msleep(300);
+
+	/* Phase 4: System ready with flash effect */
+	for (int flash = 0; flash < 3; flash++) {
+		lcd_clear(lcd);
+		k_msleep(100);
+		lcd_set_cursor(lcd, 0, 2);
+		lcd_print(lcd, "** READY **");
+		lcd_set_cursor(lcd, 1, 5);
+		lcd_print(lcd, "CybICS");
+		k_msleep(300);
+	}
+
+	/* Hold ready message */
+	k_msleep(500);
+	lcd_clear(lcd);
+}
+
 /* Thread: Display */
 void thread_display(void *arg1, void *arg2, void *arg3)
 {
@@ -282,6 +444,11 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	}
 
 	LOG_INF("Display thread: LCD initialized OK");
+
+	/* Play startup animation (~10 seconds) */
+	LOG_INF("Display thread: playing startup animation");
+	play_startup_animation(&lcd);
+	LOG_INF("Display thread: startup animation complete");
 
 	/* Get unique ID from STM32 UID registers (same as LL_GetUID_Word0/1/2) */
 	volatile uint32_t *uid = (volatile uint32_t *)0x1FFF7590;

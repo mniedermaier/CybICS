@@ -186,3 +186,14 @@ void lcd_display_off(struct lcd_hd44780 *lcd)
     lcd->display_control &= ~LCD_DISPLAY_ON;
     lcd_command(lcd, LCD_CMD_DISPLAY_CTRL | lcd->display_control);
 }
+
+void lcd_create_char(struct lcd_hd44780 *lcd, uint8_t location, const uint8_t charmap[8])
+{
+    location &= 0x7;  /* Only 8 locations (0-7) */
+    lcd_command(lcd, LCD_CMD_SET_CGRAM | (location << 3));
+    for (int i = 0; i < 8; i++) {
+        lcd_data(lcd, charmap[i]);
+    }
+    /* Return to DDRAM mode */
+    lcd_command(lcd, LCD_CMD_SET_DDRAM);
+}
