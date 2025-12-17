@@ -100,13 +100,17 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}/software/stm32:/home/docker/zephyrproject/app \
             -e ZEPHYR_BASE=/home/docker/zephyrproject/zephyr \
+            -e ZEPHYR_TOOLCHAIN_VARIANT=zephyr \
+            -e ZEPHYR_SDK_INSTALL_DIR=/home/docker/zephyr-sdk-0.17.4 \
+            -e PATH=/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin:/home/docker/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
             --user root \
+            --entrypoint /bin/bash \
             cybics-stm32-dev \
-            bash -c "
+            -c "
               echo '=== Container context ==='
               echo 'User: '\$(whoami)
-              echo 'ID: '\$(id)
               echo 'ZEPHYR_BASE: '\$ZEPHYR_BASE
+              echo 'PATH: '\$PATH
               echo '=== Workspace structure ==='
               ls -la /home/docker/zephyrproject/
               echo '=== .west directory ==='
@@ -118,10 +122,9 @@ jobs:
               ls -la /home/docker/zephyrproject/app/
               echo '=== West topdir ==='
               cd /home/docker/zephyrproject && west topdir || echo 'Not in west workspace'
-              echo '=== Building (as docker user) ==='
+              echo '=== Building ==='
               cd /home/docker/zephyrproject/app && rm -rf build
-              chown -R docker:docker /home/docker/zephyrproject/app
-              su docker -c 'cd /home/docker/zephyrproject/app && west build -b nucleo_g070rb'
+              west build -b nucleo_g070rb
             "
 
   virtual:
