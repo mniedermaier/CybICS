@@ -11,7 +11,7 @@ COPY --chown=user:user . /workspace/app
 USER user
 RUN west init -l app && \
     west update --narrow -o=--depth=1 && \
-    pip3 install --user -r zephyr/scripts/requirements.txt
+    pip3 install -r zephyr/scripts/requirements.txt
 
 # Set Zephyr environment
 ENV ZEPHYR_BASE=/workspace/zephyr

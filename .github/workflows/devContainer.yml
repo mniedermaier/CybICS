@@ -95,7 +95,9 @@ jobs:
         with:
           configFile: .devcontainer/stm32/devcontainer.json
           env: .devcontainer/stm32/.env
-          runCmd: west build -b nucleo_g070rb
+          runCmd: |
+            cd /home/docker/zephyrproject/app
+            west build -b nucleo_g070rb
 
   virtual:
     name: Run devcontainer test virtual
