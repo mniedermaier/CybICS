@@ -96,14 +96,18 @@ jobs:
 
       - name: Run west build in container
         run: |
+          echo "Host user: $(id)"
           docker run --rm \
             -v ${{ github.workspace }}/software/stm32:/home/docker/zephyrproject/app \
             -e ZEPHYR_BASE=/home/docker/zephyrproject/zephyr \
+            --user root \
             cybics-stm32-dev \
             bash -c "
-              echo '=== Debugging workspace structure ==='
-              echo 'User: '$(whoami)
+              echo '=== Container context ==='
+              echo 'User: '\$(whoami)
+              echo 'ID: '\$(id)
               echo 'ZEPHYR_BASE: '\$ZEPHYR_BASE
+              echo '=== Workspace structure ==='
               ls -la /home/docker/zephyrproject/
               echo '=== .west directory ==='
               ls -la /home/docker/zephyrproject/.west/ || echo '.west not found'
@@ -114,8 +118,10 @@ jobs:
               ls -la /home/docker/zephyrproject/app/
               echo '=== West topdir ==='
               cd /home/docker/zephyrproject && west topdir || echo 'Not in west workspace'
-              echo '=== Building ==='
-              cd /home/docker/zephyrproject/app && rm -rf build && west build -b nucleo_g070rb
+              echo '=== Building (as docker user) ==='
+              cd /home/docker/zephyrproject/app && rm -rf build
+              chown -R docker:docker /home/docker/zephyrproject/app
+              su docker -c 'cd /home/docker/zephyrproject/app && west build -b nucleo_g070rb'
             "
 
   virtual:
