@@ -34,13 +34,13 @@ WORKDIR /CybICS
 COPY --from=build /workspace/app/build/zephyr/zephyr.bin ./CybICS.bin
 COPY --from=build /workspace/app/build/zephyr/zephyr.elf ./CybICS.elf
 
-# Copy OpenOCD configuration
+# Copy OpenOCD configuration and flash script
 COPY openocd_rpi.cfg ./
+COPY flash_if_needed.sh ./
+RUN chmod +x /CybICS/flash_if_needed.sh
 
 # Expose OpenOCD ports
 EXPOSE 3333 4444
 
-# Flash the firmware and keep OpenOCD running as a GDB server
-CMD openocd -f /CybICS/openocd_rpi.cfg -c "program CybICS.bin verify reset exit 0x08000000" && \
-    sleep 5 && \
-    openocd -f /CybICS/openocd_rpi.cfg
+# Check firmware version and flash only if needed, then start GDB server
+CMD ["/CybICS/flash_if_needed.sh"]
