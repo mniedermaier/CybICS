@@ -61,11 +61,15 @@ RUN addgroup --gid 1000 docker \
 # Pre-bake Zephyr workspace (as docker user for correct permissions)
 USER docker
 WORKDIR /home/docker
+
+# Upgrade pip and pin setuptools to avoid version backtracking during requirements install
+RUN pip3 install --user --upgrade pip setuptools wheel
+
 RUN west init -m https://github.com/zephyrproject-rtos/zephyr --mr ${ZEPHYR_VERSION} zephyrproject && \
     cd zephyrproject && \
     west update && \
     west zephyr-export && \
-    pip3 install --user -r zephyr/scripts/requirements.txt
+    pip3 install --user --no-build-isolation -r zephyr/scripts/requirements.txt
 
 # Set environment variables
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk
