@@ -6,7 +6,7 @@ This devcontainer provides a complete Zephyr RTOS development environment for ST
 
 ### Zephyr RTOS Development
 - Zephyr v4.3.0 pre-installed (no download on startup)
-- Zephyr SDK 0.17.4 (ARM Cortex-M support)
+- Zephyr SDK (ARM toolchain only, auto-installed via `west sdk install`)
 - West meta-tool
 - KConfig and DeviceTree language support
 - CMake and Ninja build system
@@ -46,7 +46,7 @@ west flash --runner openocd
 
 The following environment variables are automatically set:
 
-- `ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk` - Zephyr SDK location
+- Zephyr SDK auto-detected (installed via `west sdk install` in `~/.local/`)
 - `ZEPHYR_TOOLCHAIN_VARIANT=zephyr` - Use Zephyr SDK toolchain
 - `ZEPHYR_BASE=$HOME/zephyrproject/zephyr` - Zephyr source location
 
@@ -109,11 +109,12 @@ The following extensions are automatically installed:
 
 ## Updating Zephyr Version
 
-Zephyr is pre-baked into the Docker image. To update:
+Zephyr version is defined in `software/stm32/west.yml` manifest. To update:
 
-1. Edit `.devcontainer/stm32/Dockerfile` and change `ZEPHYR_VERSION`:
-   ```dockerfile
-   ARG ZEPHYR_VERSION=v4.3.0
+1. Edit `software/stm32/west.yml` and change the revision:
+   ```yaml
+   - name: zephyr
+     revision: v4.3.0  # Change this
    ```
 
 2. Rebuild the container:

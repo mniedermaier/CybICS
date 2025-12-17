@@ -4,8 +4,8 @@ services:
     container_name: cybics-stm32
     image: cybics-stm32-dev
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: .devcontainer/stm32/Dockerfile
     env_file:
       - ../../.dev.env
       - ../../.env

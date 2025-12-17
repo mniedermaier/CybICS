@@ -2,26 +2,23 @@
 # Stage 1: Build the firmware
 FROM ghcr.io/zephyrproject-rtos/zephyr-build:v0.28.7 AS build
 
-# Initialize Zephyr workspace (this layer will be cached)
 WORKDIR /workspace
-USER root
-RUN west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.3.0 && \
-    west update && \
-    west zephyr-export && \
-    pip3 install -r /workspace/zephyr/scripts/requirements.txt && \
-    chown -R user:user /workspace
+
+# Copy project files first (includes west.yml manifest)
+COPY --chown=user:user . /workspace/app
+
+# Initialize Zephyr workspace using project manifest (downloads only required modules)
+USER user
+RUN west init -l app && \
+    west update --narrow -o=--depth=1 && \
+    pip3 install --user -r zephyr/scripts/requirements.txt
 
 # Set Zephyr environment
 ENV ZEPHYR_BASE=/workspace/zephyr
 
-# Copy project files (separate layer so changes don't rebuild workspace)
-# Use --chown to ensure correct permissions
-COPY --chown=user:user . /workspace/app
-
-# Build the firmware (--pristine forces clean build to apply overlay changes)
+# Build the firmware
 WORKDIR /workspace/app
-USER user
-RUN west build -b nucleo_g070rb --pristine
+RUN west build -b nucleo_g070rb
 
 # Stage 2: Runtime container with OpenOCD
 FROM debian:12-slim

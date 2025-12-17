@@ -1,0 +1,19 @@
+manifest:
+  version: "1.0"
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.3.0
+      import:
+        name-allowlist:
+          - cmsis             # ARM CMSIS headers (required)
+          - hal_stm32         # STM32 HAL drivers (required)
+          - picolibc          # C library (required for most builds)
+
+  self:
+    path: app

@@ -7,7 +7,6 @@ on:
     branches: [ main ]
 
 env:
-  ZEPHYR_VERSION: v4.3.0
   ZEPHYR_SDK_VERSION: 0.17.4
 
 jobs:
@@ -40,20 +39,20 @@ jobs:
         ./setup.sh -t arm-zephyr-eabi -h -c
         echo "ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-${ZEPHYR_SDK_VERSION}" >> $GITHUB_ENV
 
-    - name: Initialize Zephyr workspace
+    - name: Initialize Zephyr workspace (using project manifest)
       run: |
-        west init -m https://github.com/zephyrproject-rtos/zephyr --mr $ZEPHYR_VERSION ~/zephyrproject
-        cd ~/zephyrproject
+        west init -l software/stm32
+        cd software
         west update --narrow -o=--depth=1
         pip3 install -r zephyr/scripts/requirements.txt
 
     - name: Build STM32 firmware
+      working-directory: software
       run: |
-        cd ~/zephyrproject
-        west build -b nucleo_g070rb $GITHUB_WORKSPACE/software/stm32 -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
+        west build -b nucleo_g070rb stm32 -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
 
     - name: Show build info
       run: |
-        ls -la ~/zephyrproject/build/zephyr/zephyr.elf
-        ls -la ~/zephyrproject/build/zephyr/zephyr.bin
-        size ~/zephyrproject/build/zephyr/zephyr.elf
+        ls -la software/stm32/build/zephyr/zephyr.elf
+        ls -la software/stm32/build/zephyr/zephyr.bin
+        size software/stm32/build/zephyr/zephyr.elf
