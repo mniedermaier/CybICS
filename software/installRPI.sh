@@ -120,17 +120,18 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 
     # Configure zram - use 1024 MB, lz4 compression
     sudo tee /etc/default/zramswap > /dev/null <<'ZRAMCONF'
-# Compression algorithm (lz4 is fast, zstd has better ratio)
-ALGO=lz4
+# Compression algorithm
+ALGORITHM=lz4
 # Fixed size in MB for zram swap
-SIZE=1024
+ALLOCATION=1024
 # Priority (higher = preferred over disk swap)
 PRIORITY=100
 ZRAMCONF
 
-    # Enable and start zram service
-    sudo systemctl enable zramswap
-    sudo systemctl restart zramswap || true
+    # Restart zram service to apply new config
+    sudo systemctl stop zramswap || true
+    sudo swapoff /dev/zram0 2>/dev/null || true
+    sudo systemctl start zramswap
 EOF
 
 ###
