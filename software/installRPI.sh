@@ -118,12 +118,12 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
         sudo apt-get install -y zram-tools
     fi
 
-    # Configure zram - use 50% of RAM, lz4 compression
+    # Configure zram - use 1024 MB, lz4 compression
     sudo tee /etc/default/zramswap > /dev/null <<'ZRAMCONF'
 # Compression algorithm (lz4 is fast, zstd has better ratio)
 ALGO=lz4
-# Percentage of RAM to use for zram swap
-PERCENT=50
+# Fixed size in MB for zram swap
+SIZE=1024
 # Priority (higher = preferred over disk swap)
 PRIORITY=100
 ZRAMCONF
