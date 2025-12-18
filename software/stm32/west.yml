@@ -15,6 +15,7 @@ manifest:
           - cmsis_6           # ARM CMSIS headers for Cortex-M (required)
           - hal_stm32         # STM32 HAL drivers (required)
           - picolibc          # C library (required for most builds)
+          - nanopb            # Protocol Buffers implementation
 
   self:
     path: app
