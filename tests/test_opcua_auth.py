@@ -337,6 +337,7 @@ async def test_opcua_anonymous_access_denied():
 # ===============================================================================
 
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Certificate auth requires server-side trust configuration not yet available in CI")
 async def test_opcua_certificate_auth():
     """
     Test OPC UA authentication using X.509 certificates.
