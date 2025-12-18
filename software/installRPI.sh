@@ -107,6 +107,33 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Configure zram swap
+###
+echo -ne "${GREEN}# Configure zram swap ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    # Install zram-tools if not present
+    if ! dpkg -l | grep -q zram-tools; then
+        sudo apt-get update
+        sudo apt-get install -y zram-tools
+    fi
+
+    # Configure zram - use 50% of RAM, lz4 compression
+    sudo tee /etc/default/zramswap > /dev/null <<'ZRAMCONF'
+# Compression algorithm (lz4 is fast, zstd has better ratio)
+ALGO=lz4
+# Percentage of RAM to use for zram swap
+PERCENT=50
+# Priority (higher = preferred over disk swap)
+PRIORITY=100
+ZRAMCONF
+
+    # Enable and start zram service
+    sudo systemctl enable zramswap
+    sudo systemctl restart zramswap || true
+EOF
+
+###
 ### Config apt local config
 ###
 echo -ne "${GREEN}# Config apt local config... \n${ENDCOLOR}"
@@ -152,6 +179,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 
     if ! which picocom; then
         sudo apt-get install picocom -y
+    fi
+
+    if ! which smemstat; then
+        sudo apt-get install smemstat -y
     fi
 
     if ! dpkg -l | grep python3-serial; then
