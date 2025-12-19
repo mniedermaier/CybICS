@@ -55,6 +55,6 @@ jobs:
 
     - name: Show build info
       run: |
-        ls -la software/stm32/build/zephyr/zephyr.elf
-        ls -la software/stm32/build/zephyr/zephyr.bin
-        size software/stm32/build/zephyr/zephyr.elf
+        ls -la software/build/zephyr/zephyr.elf
+        ls -la software/build/zephyr/zephyr.bin
+        size software/build/zephyr/zephyr.elf
