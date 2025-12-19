@@ -54,7 +54,8 @@ USER docker
 WORKDIR /home/docker/zephyrproject
 
 # Upgrade pip and pin setuptools/setuptools_scm to avoid version backtracking
-RUN pip3 install --user --upgrade pip setuptools wheel setuptools_scm
+# Include poetry-core for packages that use it as build backend (e.g., reuse)
+RUN pip3 install --user --upgrade pip setuptools wheel setuptools_scm poetry-core
 
 # Initialize workspace using manifest (downloads only required modules)
 RUN west init -l app && \

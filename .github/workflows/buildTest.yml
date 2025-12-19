@@ -44,6 +44,8 @@ jobs:
         west init -l software/stm32
         cd software
         west update --narrow -o=--depth=1
+        # Pre-pin packages to avoid pip backtracking on complex dependency resolution
+        pip3 install --upgrade pip setuptools wheel setuptools_scm poetry-core
         pip3 install -r zephyr/scripts/requirements.txt
 
     - name: Build STM32 firmware
