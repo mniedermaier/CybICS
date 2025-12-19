@@ -53,15 +53,15 @@ COPY --chown=docker:docker software/stm32/west.yml /home/docker/zephyrproject/ap
 USER docker
 WORKDIR /home/docker/zephyrproject
 
-# Upgrade pip and pin setuptools to avoid version backtracking during requirements install
-RUN pip3 install --user --upgrade pip setuptools wheel
+# Upgrade pip and pin setuptools/setuptools_scm to avoid version backtracking
+RUN pip3 install --user --upgrade pip setuptools wheel setuptools_scm
 
 # Initialize workspace using manifest (downloads only required modules)
 RUN west init -l app && \
     west update --narrow -o=--depth=1
 
 # Install Python requirements (needed for west sdk install)
-RUN pip3 install --user -r zephyr/scripts/requirements.txt
+RUN pip3 install --user --no-build-isolation -r zephyr/scripts/requirements.txt
 
 # Install Zephyr SDK using west (only ARM toolchain)
 RUN west sdk install -t arm-zephyr-eabi
