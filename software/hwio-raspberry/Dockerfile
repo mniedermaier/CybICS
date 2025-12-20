@@ -1,10 +1,10 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
-RUN apt-get update && apt-get install -y \
-    network-manager \
-    gcc \
-    make \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    networkmanager \
+    build-base \
+    linux-headers \
+    libffi-dev
 
 WORKDIR /CybICS
 COPY requirements.txt ./

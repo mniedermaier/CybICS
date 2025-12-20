@@ -1,20 +1,17 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
-RUN apt-get update && apt-get install -y \
-    network-manager \
-    gcc \
-    make \
+RUN apk add --no-cache \
+    build-base \
     libpcap-dev \
     tcpdump \
     nmap \
     iproute2 \
-    iputils-ping \
+    iputils \
     net-tools \
     curl \
     wget \
-    dnsutils \
-    netcat-traditional \
-    && rm -rf /var/lib/apt/lists/*
+    bind-tools \
+    netcat-openbsd
     
 WORKDIR /CybICS
 
