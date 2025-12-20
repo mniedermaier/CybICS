@@ -4,7 +4,7 @@
     "secureEnabled": true,
     "tokenExpiresIn": "1d",
     "secureOnlyEditor": false,
-    "broadcastAll": true,
+    "broadcastAll": false,
     "smtp": {
         "host": "",
         "port": 587,
@@ -14,11 +14,11 @@
     },
     "daqstore": {
         "type": "SQlite",
-        "retention": "year1",
+        "retention": "week1",
         "credentials": {}
     },
     "alarms": {
-        "retention": "year1"
+        "retention": "week1"
     },
     "logFull": false
 }
