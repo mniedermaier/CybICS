@@ -67,10 +67,23 @@ fi
 ###
 ### Remove IP from known_hosts and copy ssh key
 ###
-echo -ne "${YELLOW}# Type in Raspberry Pi password, when requested (this will copy your SSH key to it): \n${ENDCOLOR}"
-ssh-keygen -f ~/.ssh/known_hosts -R "$DEVICE_IP"
-ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts
-ssh-copy-id -i ~/.ssh/id_*.pub "$DEVICE_USER"@"$DEVICE_IP"
+echo -ne "${GREEN}# Updating known_hosts ... \n${ENDCOLOR}"
+ssh-keygen -f ~/.ssh/known_hosts -R "$DEVICE_IP" 2>/dev/null || true
+ssh-keyscan -H "$DEVICE_IP" >>~/.ssh/known_hosts 2>/dev/null
+
+# Check if we can already connect without password
+if ssh -o BatchMode=yes -o ConnectTimeout=5 "$DEVICE_USER"@"$DEVICE_IP" exit 2>/dev/null; then
+    echo -ne "${GREEN}# SSH key already installed, skipping ssh-copy-id\n${ENDCOLOR}"
+else
+    echo -ne "${YELLOW}# Type in Raspberry Pi password to copy SSH key: \n${ENDCOLOR}"
+    # Find the first available SSH public key
+    SSH_KEY=$(ls ~/.ssh/id_*.pub 2>/dev/null | head -1)
+    if [ -z "$SSH_KEY" ]; then
+        echo -ne "${RED}# No SSH public key found in ~/.ssh/\n${ENDCOLOR}"
+        exit 1
+    fi
+    ssh-copy-id -i "$SSH_KEY" "$DEVICE_USER"@"$DEVICE_IP"
+fi
 
 ###
 ### Config locale
