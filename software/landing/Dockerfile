@@ -2,6 +2,8 @@ FROM python:3.12-alpine
 
 RUN apk add --no-cache \
     build-base \
+    linux-headers \
+    libffi-dev \
     libpcap-dev \
     tcpdump \
     nmap \
