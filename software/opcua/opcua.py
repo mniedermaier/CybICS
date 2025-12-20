@@ -18,9 +18,8 @@ from pymodbus.client import ModbusTcpClient
 USE_TRUST_STORE = False
 
 async def main():
-    _logger = logging.getLogger(__name__)
-    _logger.info("Wait 5s that openplc can start")
-    await asyncio.sleep(5) # wait that openplc is up and running
+    # Wait for OpenPLC to start
+    await asyncio.sleep(5)
 
     # Define Path for self-signed server certificate used by secure channel
     cert_base = Path(__file__).parent
@@ -33,12 +32,7 @@ async def main():
 
     # Define user manager and register certificate with user role admin
     cert_user_manager = user_manager.Pw_Cert_UserManager()
-    try:
-        await cert_user_manager.add_admin("certificates/trusted/cert_admin.der", name='test_admin')
-        _logger.info("Successfully loaded admin certificate: test_admin from certificates/trusted/cert_admin.der")
-    except Exception as e:
-        _logger.error(f"Failed to load admin certificate: {e}")
-        raise
+    await cert_user_manager.add_admin("certificates/trusted/cert_admin.der", name='test_admin')
 
     # Connect to OpenPLC
     client = ModbusTcpClient(host="openplc",port=502)  # Create client object
@@ -56,20 +50,12 @@ async def main():
     server.set_server_name("CybICS")
 
     # Set authentication modes and security modes/policies
+    # Reduced security policies to save memory on constrained devices
     server.set_security_IDs(["Anonymous", "Basic256Sha256", "Username"])
     server.set_security_policy(
         [
             ua.SecurityPolicyType.NoSecurity,
-            ua.SecurityPolicyType.Basic128Rsa15_Sign,
-            ua.SecurityPolicyType.Basic128Rsa15_SignAndEncrypt,
-            ua.SecurityPolicyType.Basic256_Sign,
-            ua.SecurityPolicyType.Basic256_SignAndEncrypt,
-            ua.SecurityPolicyType.Basic256Sha256_Sign,
             ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt,
-            ua.SecurityPolicyType.Aes128Sha256RsaOaep_Sign,
-            ua.SecurityPolicyType.Aes128Sha256RsaOaep_SignAndEncrypt,
-            ua.SecurityPolicyType.Aes256Sha256RsaPss_Sign,
-            ua.SecurityPolicyType.Aes256Sha256RsaPss_SignAndEncrypt,
         ],
         permission_ruleset=SimpleRoleRuleset()
     )
@@ -122,13 +108,9 @@ async def main():
         [ua.VariantType.Int64],
         [ua.VariantType.Int64],
     )
-    _logger.info("Starting server!")
     async with server:
-        _logger.info("Starting while True")
         while True:
-            # read GST and HPT to the OpenPLC
-            # Check if flag var is set and display flag
-            _logger.info("Reading from modbus")
+            # read GST and HPT from OpenPLC via Modbus
             try:
                 gst = client.read_holding_registers(1124)
                 hpt = client.read_holding_registers(1126)
@@ -152,7 +134,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    # Suppress verbose INFO messages from asyncua about missing optional parent nodes
-    logging.getLogger('asyncua.server.address_space').setLevel(logging.WARNING)
+    # Use WARNING level to reduce memory usage from log accumulation
+    logging.basicConfig(level=logging.WARNING)
     asyncio.run(main())
