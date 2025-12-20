@@ -1,4 +1,4 @@
-FROM python:3.10.15-slim
+FROM python:3.12-slim
 
 # Ensure Python output is unbuffered
 ENV PYTHONUNBUFFERED=1
