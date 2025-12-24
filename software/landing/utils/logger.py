@@ -6,7 +6,7 @@ import sys
 import os
 from logging.handlers import RotatingFileHandler
 
-def setup_logger(name='CybICS', level=logging.DEBUG, log_file='app.log', max_bytes=10*1024*1024, backup_count=3):
+def setup_logger(name='CybICS', level=logging.INFO, log_file='app.log', max_bytes=10*1024*1024, backup_count=3):
     """
     Set up a logger with both console and file handlers.
 
