@@ -23,7 +23,7 @@
           "timestamp": 1723560237658
         }
       },
-      "polling": 1000
+      "polling": 2000
     },
     "d_ce5e29f3-e7a14f6e": {
       "id": "d_ce5e29f3-e7a14f6e",
@@ -180,7 +180,7 @@
       },
       "name": "OpenPLC",
       "type": "ModbusTCP",
-      "polling": 500
+      "polling": 2000
     }
   },
   "hmi": {

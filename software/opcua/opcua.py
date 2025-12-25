@@ -130,10 +130,13 @@ async def main():
                 await adminflag.write_value("CybICS(0PC-UA-$ADMIN)")
             else: 
                 await adminflag.write_value("set the correct variable > 0")
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)  # Reduced polling frequency to lower I/O
 
 
 if __name__ == "__main__":
-    # Use WARNING level to reduce memory usage from log accumulation
+    # Suppress verbose logging from asyncua and dependencies to reduce I/O
     logging.basicConfig(level=logging.WARNING)
+    logging.getLogger("asyncua").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("pymodbus").setLevel(logging.WARNING)
     asyncio.run(main())
