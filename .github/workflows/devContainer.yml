@@ -122,7 +122,10 @@ jobs:
         with:
           configFile: .devcontainer/stm32/devcontainer.json
           env: .devcontainer/stm32/.env
-          runCmd: cd ~/zephyrproject/app && west build -b nucleo_g070rb -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
+          runCmd: |
+            cd ~/zephyrproject/app
+            west zephyr-export
+            west build -b nucleo_g070rb -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
 
   virtual:
     name: Run devcontainer test virtual
