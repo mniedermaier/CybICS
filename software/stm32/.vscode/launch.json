@@ -3,7 +3,7 @@
         {
             "showDevDebugOutput": "parsed",
             "cwd": "${workspaceRoot}",
-            "executable": "./build/CybICS.elf",
+            "executable": "./build/zephyr/zephyr.elf",
             "name": "Attach with External RPi",
             "request": "attach",
             "type": "cortex-debug",
@@ -11,13 +11,21 @@
             "gdbTarget": "${env:DEVICE_IP}:3333",
             "preLaunchTask": "Prepare debug",
             "device": "stm32g070",
-            "svdFile": "STM32G070.svd"
+            "svdFile": "STM32G070.svd",
+            "armToolchainPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin",
+            "gdbPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+            "objdumpPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+            "toolchainPrefix": "arm-zephyr-eabi",
+            "sourceFileMap": {
+                "/home/docker/zephyrproject/app": "${workspaceRoot}",
+                "/CybICS/software/stm32": "${workspaceRoot}"
+            }
         },
         {
             "name": "Debug with External RPi",
             "preLaunchTask": "Prepare debug",
             "cwd": "${workspaceRoot}",
-            "executable": "./build/CybICS.elf",
+            "executable": "./build/zephyr/zephyr.elf",
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
@@ -25,6 +33,14 @@
             "gdbTarget": "${env:DEVICE_IP}:3333",
             "device": "stm32g070",
             "svdFile": "STM32G070.svd",
+            "armToolchainPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin",
+            "gdbPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+            "objdumpPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+            "toolchainPrefix": "arm-zephyr-eabi",
+            "sourceFileMap": {
+                "/home/docker/zephyrproject/app": "${workspaceRoot}",
+                "/CybICS/software/stm32": "${workspaceRoot}"
+            },
             "overrideRestartCommands": [
                 "monitor halt",
                 "monitor reset"
@@ -39,7 +55,7 @@
         {
             "showDevDebugOutput": "parsed",
             "cwd": "${workspaceRoot}",
-            "executable": "./build/CybICS.elf",
+            "executable": "./build/zephyr/zephyr.elf",
             "name": "Debug STM32",
             "request": "launch",
             "type": "cortex-debug",
@@ -49,12 +65,20 @@
             "configFiles": [
                 "openocd.cfg"
             ],
-            "svdFile": "STM32G070.svd"
+            "svdFile": "STM32G070.svd",
+            "armToolchainPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin",
+            "gdbPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+            "objdumpPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+            "toolchainPrefix": "arm-zephyr-eabi",
+            "sourceFileMap": {
+                "/home/docker/zephyrproject/app": "${workspaceRoot}",
+                "/CybICS/software/stm32": "${workspaceRoot}"
+            }
         },
         {
             "showDevDebugOutput": "parsed",
             "cwd": "${workspaceRoot}",
-            "executable": "./build/CybICS.elf",
+            "executable": "./build/zephyr/zephyr.elf",
             "name": "Attach STM32",
             "request": "attach",
             "type": "cortex-debug",
@@ -63,7 +87,15 @@
             "device": "stm32g070",
             "configFiles": [
                 "openocd.cfg"
-            ]
+            ],
+            "armToolchainPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin",
+            "gdbPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+            "objdumpPath": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump",
+            "toolchainPrefix": "arm-zephyr-eabi",
+            "sourceFileMap": {
+                "/home/docker/zephyrproject/app": "${workspaceRoot}",
+                "/CybICS/software/stm32": "${workspaceRoot}"
+            }
         }
     ]
 }

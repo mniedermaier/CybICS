@@ -7,7 +7,7 @@ import os
 SECRET_KEY = 'cybics_ctf_secret_key_change_in_production'
 HOST = '0.0.0.0'
 PORT = 80
-DEBUG = True
+DEBUG = False
 
 # Data Directories
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -37,8 +37,8 @@ SERVICES = {
 
 # Statistics Configuration
 HISTORY_MAX_LENGTH = 720  # 1 hour of data at 5-second intervals
-STATS_COLLECTION_INTERVAL = 5  # seconds
-DOCKER_STATS_INTERVAL = 10  # seconds
+STATS_COLLECTION_INTERVAL = 15  # seconds
+DOCKER_STATS_INTERVAL = 30  # seconds
 
 # Network Capture Configuration (optimized for Raspberry Pi)
 MAX_PACKETS_IN_MEMORY = 1000  # Maximum number of packets to keep in memory (~2MB with full raw bytes)

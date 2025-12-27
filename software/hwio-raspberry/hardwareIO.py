@@ -19,6 +19,7 @@ import logging
 import threading
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 GPIO.setup(8, GPIO.OUT) # compressor
 GPIO.setup(4, GPIO.OUT) # heartbeat
 GPIO.setup(7, GPIO.OUT) # systemValve
@@ -173,7 +174,23 @@ def thread_network():
         break
   except Exception as e:
     logging.error("Error getting current connection... " + str(e))
-    
+
+  # Detect the Station mode connection (any WiFi connection that isn't 'cybics')
+  # This handles different naming conventions (e.g., 'preconfigured', 'netplan-*', etc.)
+  station_connection = None
+  try:
+    for conn in nmcli.connection():
+      # Find a WiFi connection that isn't the 'cybics' AP
+      if conn.conn_type == 'wifi' and conn.name != 'cybics':
+        station_connection = conn.name
+        logging.info(f"Detected Station mode connection: {station_connection}")
+        break
+    if station_connection is None:
+      logging.warning("No Station mode WiFi connection found (only 'cybics' AP exists)")
+  except Exception as e:
+    logging.error(f"Error detecting Station mode connection: {str(e)}")
+
+  current_ssid = None
   try:
     current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
     logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
@@ -186,7 +203,7 @@ def thread_network():
       # Get IP address of wlan0
       ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
       ip = ip.split('/')[0] # remove the network CIDR suffix
-      listIp = list(ip)
+      listIp = list(ip) + ['\0']  # Add null terminator for STM32 strlen()
 
       
 
@@ -196,7 +213,7 @@ def thread_network():
     # Simple check, if correct dataID was received
     if dataID[12] in ['0', '1']:
       ssid = f"cybics-{id}"
-      if current_ssid != ssid:
+      if current_ssid is None or current_ssid != ssid:
         try:
           logging.info(f"Configure ssid {ssid}")
           nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
@@ -205,16 +222,18 @@ def thread_network():
           logging.error("Configure ssid failed - " + str(e))
           time.sleep(1)
 
-    connection = 'cybics' if dataID[12] == '1' else 'preconfigured'
-    if current_connection != connection:
+    connection = 'cybics' if dataID[12] == '1' else station_connection
+    if connection and current_connection != connection:
       try:
         logging.info(f"Enable connection {connection}")
-        nmcli.connection.up(connection, 0) # do not wait for connection 
+        nmcli.connection.up(connection, 0) # do not wait for connection
         logging.info(f"Enable connection - " + str(nmcli.connection.show(connection)))
         current_connection = connection
       except Exception as e:
         logging.error("Enable connection failed - " + str(e))
         time.sleep(1)
+    elif not connection and dataID[12] != '1':
+      logging.warning("Cannot switch to Station mode: no Station connection detected")
     
     logging.debug("End of while true thread_network")
     time.sleep(1)

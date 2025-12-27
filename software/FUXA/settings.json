@@ -12,6 +12,7 @@
         "username": "",
         "password": ""
     },
+    "daqEnabled": false,
     "daqstore": {
         "type": "SQlite",
         "retention": "year1",
@@ -20,5 +21,6 @@
     "alarms": {
         "retention": "year1"
     },
-    "logFull": false
+    "logFull": false,
+    "logApiLevel": "tiny"
 }

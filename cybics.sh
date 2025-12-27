@@ -103,12 +103,103 @@ EOF
     fi
 }
 
+# Function to find conflicting networks
+find_conflicting_networks() {
+    local target_subnet="$1"
+    # Extract the network prefix (e.g., 172.19.0 from 172.19.0.0/24)
+    local prefix=$(echo "$target_subnet" | sed 's/\.[0-9]*\/.*$//')
+
+    # Find networks that might overlap
+    docker network ls --format '{{.Name}}' | while read network; do
+        local subnet=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null)
+        if [[ "$subnet" == *"$prefix"* ]]; then
+            echo "$network"
+        fi
+    done
+}
+
+# Function to handle network overlap error
+handle_network_overlap() {
+    local error_output="$1"
+
+    # Check if this is a network overlap error
+    if echo "$error_output" | grep -q "Pool overlaps with other one on this address space"; then
+        print_message "\nNetwork conflict detected!" "$YELLOW"
+        print_message "Another Docker network is using the same IP range." "$YELLOW"
+
+        # Try to find conflicting networks (check common CybICS subnets)
+        print_message "\nSearching for conflicting networks..." "$YELLOW"
+        local conflicting=""
+
+        # Check for networks with similar subnets
+        for network in $(docker network ls --format '{{.Name}}' | grep -v "bridge\|host\|none"); do
+            local subnet=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null)
+            if [[ -n "$subnet" ]]; then
+                # Check if it's in the 172.18.x.x or 172.19.x.x range (common for CybICS)
+                if [[ "$subnet" == 172.1[89].* ]] || [[ "$subnet" == 10.0.* ]]; then
+                    if [[ -z "$conflicting" ]]; then
+                        conflicting="$network ($subnet)"
+                    else
+                        conflicting="$conflicting, $network ($subnet)"
+                    fi
+                fi
+            fi
+        done
+
+        if [[ -n "$conflicting" ]]; then
+            print_message "Potentially conflicting networks: $conflicting" "$YELLOW"
+        fi
+
+        # List all custom networks for user reference
+        print_message "\nAll custom Docker networks:" "$BLUE"
+        docker network ls --format 'table {{.Name}}\t{{.Driver}}' | grep -v "bridge\|host\|none" | head -20
+
+        echo
+        print_message "Would you like to remove conflicting networks and retry? (y/n)" "$YELLOW"
+        read -r response
+
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            print_message "\nWhich network would you like to remove?" "$YELLOW"
+            print_message "Enter network name (or 'all' to remove all custom networks, 'cancel' to abort):" "$YELLOW"
+            read -r network_name
+
+            if [[ "$network_name" == "cancel" ]]; then
+                print_message "Operation cancelled." "$YELLOW"
+                return 1
+            elif [[ "$network_name" == "all" ]]; then
+                print_message "Removing all custom networks..." "$YELLOW"
+                for network in $(docker network ls --format '{{.Name}}' | grep -v "bridge\|host\|none"); do
+                    docker network rm "$network" 2>/dev/null && \
+                        print_message "Removed network: $network" "$GREEN"
+                done
+                return 0
+            elif [[ -n "$network_name" ]]; then
+                if docker network rm "$network_name" 2>/dev/null; then
+                    print_message "Removed network: $network_name" "$GREEN"
+                    return 0
+                else
+                    print_message "Failed to remove network: $network_name" "$RED"
+                    print_message "The network might be in use. Try stopping containers first with: ./cybics.sh stop" "$YELLOW"
+                    return 1
+                fi
+            fi
+        fi
+        return 1
+    fi
+    return 1
+}
+
 # Function to start the environment
 start_environment() {
     print_message "Starting CybICS virtual environment..." "$YELLOW"
     cd .devcontainer/virtual
-    $DOCKER_COMPOSE up -d
-    if [ $? -eq 0 ]; then
+
+    # Capture both stdout and stderr
+    local output
+    output=$($DOCKER_COMPOSE up -d 2>&1)
+    local exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
         print_message "CybICS virtual environment started successfully!" "$GREEN"
         print_message "\nAvailable services:" "$YELLOW"
         print_message "Landing page: http://localhost:80" "$GREEN"
@@ -118,6 +209,25 @@ start_environment() {
         print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
         print_message "S7 Communication: localhost:102" "$GREEN"
     else
+        echo "$output"
+
+        # Check for network overlap error and handle it
+        if handle_network_overlap "$output"; then
+            print_message "\nRetrying startup..." "$YELLOW"
+            $DOCKER_COMPOSE up -d
+            if [ $? -eq 0 ]; then
+                print_message "CybICS virtual environment started successfully!" "$GREEN"
+                print_message "\nAvailable services:" "$YELLOW"
+                print_message "Landing page: http://localhost:80" "$GREEN"
+                print_message "OpenPLC: http://localhost:8080" "$GREEN"
+                print_message "FUXA: http://localhost:1881" "$GREEN"
+                print_message "HWIO: http://localhost:8090" "$GREEN"
+                print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
+                print_message "S7 Communication: localhost:102" "$GREEN"
+                return
+            fi
+        fi
+
         print_message "Error: Failed to start CybICS virtual environment." "$RED"
         exit 1
     fi

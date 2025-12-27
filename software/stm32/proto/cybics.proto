@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package cybics;
+
+/* Register 0x00: Pressure data from GST and HPT tanks */
+message PressureData {
+    uint32 gst_pressure = 1;  // Gas Storage Tank pressure (0-255)
+    uint32 hpt_pressure = 2;  // High Pressure Tank pressure (0-255)
+}
+
+/* Register 0x01: Device UID and WiFi configuration */
+message DeviceInfo {
+    bytes uid = 1;             // 6 bytes: STM32 unique ID (3 x 16-bit words)
+    uint32 wifi_mode = 2;      // 0 = STA, 1 = AP (station or access point)
+}
+
+/* Optional: IP address from master (written to register 0x00) */
+message IPAddress {
+    string ip_addr = 1;        // e.g., "192.168.1.100"
+}

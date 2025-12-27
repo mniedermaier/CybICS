@@ -3,12 +3,11 @@
 	"tasks": [
 		{
 			"label": "Build STM",
-			"type": "process",
-			"command": "${command:stm32-for-vscode.build}",
+			"type": "shell",
+			"command": "west build -b nucleo_g070rb",
 			"options": {
 				"cwd": "${workspaceRoot}"
 			},
-			"dependsOn": "source",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -20,17 +19,21 @@
 		{
 			"label": "Prepare debug",
 			"dependsOn": "Build STM",
-			"command": "${workspaceRoot}/.vscode/remote.sh"
+			"type": "shell",
+			"command": "${workspaceRoot}/.vscode/remote.sh",
+			"options": {
+				"cwd": "${workspaceRoot}"
+			}
 		},
 		{
 			"label": "Build Clean STM",
-			"type": "process",
-			"command": "${command:stm32-for-vscode.cleanBuild}",
+			"type": "shell",
+			"command": "west build -b nucleo_g070rb --pristine",
 			"options": {
 				"cwd": "${workspaceRoot}"
 			},
 			"group": {
-				"kind": "build",
+				"kind": "build"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -38,13 +41,13 @@
 		},
 		{
 			"label": "Flash STM",
-			"type": "process",
-			"command": "${command:stm32-for-vscode.flash}",
+			"type": "shell",
+			"command": "west flash",
 			"options": {
 				"cwd": "${workspaceRoot}"
 			},
 			"group": {
-				"kind": "build",
+				"kind": "build"
 			},
 			"problemMatcher": [
 				"$gcc"
