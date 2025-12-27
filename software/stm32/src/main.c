@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "lcd_hd44780.h"
+#include <pb_encode.h>
+#include <pb_decode.h>
+#include "proto/cybics.pb.h"
 
 /* Register logging module */
 LOG_MODULE_REGISTER(cybics, LOG_LEVEL_INF);

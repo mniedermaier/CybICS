@@ -14,6 +14,7 @@
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-themes",
 				"ms-python.python",
+				"drblury.protobuf-vsc",
 				"timonwong.shellcheck",
 				"trond-snekvik.kconfig-lang",
 				"trond-snekvik.devicetree",
