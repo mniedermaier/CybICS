@@ -2,6 +2,7 @@ FROM python:3.12-alpine
 
 RUN apk add --no-cache \
     networkmanager \
+    networkmanager-cli \
     build-base \
     linux-headers \
     libffi-dev

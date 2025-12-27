@@ -1,20 +1,12 @@
-FROM debian:12-slim
+FROM node:18-alpine
 
-RUN apt-get update && apt-get install -y \
-    npm \
-    curl \
-    unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
-RUN npm install -g --unsafe-perm @frangoteam/fuxa@1.2.6
+RUN apk add --no-cache curl bash
 
-WORKDIR /CybICS
-COPY ./ ./
+RUN npm install -g @frangoteam/fuxa-min@1.2.6
 
-RUN set -e && fuxa & \
-    while ! curl -f -X POST -H "Content-Type: application/json" -d @/CybICS/fuxa-project.json http://localhost:1881/api/project; do sleep 1; done && \
-    curl -f -X POST -H "Content-Type: application/json" -d @/CybICS/add-user-viewer.json http://localhost:1881/api/users && \
-    curl -f -X POST -H "Content-Type: application/json" -d @/CybICS/add-user-operator.json http://localhost:1881/api/users && \
-    curl -f -X POST -H "Content-Type: application/json" -d @/CybICS/settings.json http://localhost:1881/api/settings
+COPY fuxa-project.json add-user-*.json settings.json /config/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 1881
-CMD ["fuxa"]
+ENTRYPOINT ["/entrypoint.sh"]

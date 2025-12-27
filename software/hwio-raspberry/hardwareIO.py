@@ -19,6 +19,7 @@ import logging
 import threading
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 GPIO.setup(8, GPIO.OUT) # compressor
 GPIO.setup(4, GPIO.OUT) # heartbeat
 GPIO.setup(7, GPIO.OUT) # systemValve
@@ -189,6 +190,7 @@ def thread_network():
   except Exception as e:
     logging.error(f"Error detecting Station mode connection: {str(e)}")
 
+  current_ssid = None
   try:
     current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
     logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
@@ -211,7 +213,7 @@ def thread_network():
     # Simple check, if correct dataID was received
     if dataID[12] in ['0', '1']:
       ssid = f"cybics-{id}"
-      if current_ssid != ssid:
+      if current_ssid is None or current_ssid != ssid:
         try:
           logging.info(f"Configure ssid {ssid}")
           nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
