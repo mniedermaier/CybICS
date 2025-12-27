@@ -18,7 +18,7 @@ services:
     depends_on:
     - openplc
     restart: always
-    mem_limit: 48m
+    mem_limit: 64m
     ports:
       - 4840:4840
     networks:

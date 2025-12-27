@@ -180,7 +180,7 @@
       },
       "name": "OpenPLC",
       "type": "ModbusTCP",
-      "polling": 500
+      "polling": 1000
     }
   },
   "hmi": {
