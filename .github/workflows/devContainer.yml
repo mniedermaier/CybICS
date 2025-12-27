@@ -122,8 +122,7 @@ jobs:
         with:
           configFile: .devcontainer/stm32/devcontainer.json
           env: .devcontainer/stm32/.env
-          runCmd: west build -b nucleo_g070rb stm32 -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
-
+          runCmd: west build -b nucleo_g070rb -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
   virtual:
     name: Run devcontainer test virtual
     runs-on: ubuntu-latest

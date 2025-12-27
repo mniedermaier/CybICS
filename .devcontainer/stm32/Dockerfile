@@ -35,10 +35,11 @@ RUN apt-get update && apt-get install -y \
     libsdl2-dev \
     libmagic1 \
     openssh-client \
+    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
 # Install west (Zephyr meta-tool)
-RUN pip3 install --no-cache-dir west
+RUN pip3 install --no-cache-dir west protobuf grpcio-tools 
 
 # Create user
 RUN addgroup --gid 1000 docker \
