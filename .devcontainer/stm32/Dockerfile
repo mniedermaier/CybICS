@@ -63,7 +63,8 @@ RUN pip3 install --user --upgrade pip setuptools wheel setuptools_scm poetry-cor
 
 # Initialize workspace using manifest (downloads only required modules)
 RUN west init -l app && \
-    west update --narrow -o=--depth=1
+    west update --narrow -o=--depth=1 && \
+    west zephyr-export
 
 # Install Python requirements (needed for west sdk install)
 RUN pip3 install --user -r zephyr/scripts/requirements.txt
