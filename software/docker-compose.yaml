@@ -61,6 +61,8 @@ services:
     - openplc
     ports:
       - 1881:1881
+    volumes:
+      - fuxa_data:/_appdata
     networks:
       br-cybics:
         ipv4_address: 172.18.0.4
@@ -101,3 +103,6 @@ networks:
       config:
         - subnet: 172.18.0.0/24
           gateway: 172.18.0.1
+
+volumes:
+  fuxa_data:
