@@ -54,6 +54,9 @@ COPY --chown=docker:docker software/stm32/west.yml /home/docker/zephyrproject/ap
 USER docker
 WORKDIR /home/docker/zephyrproject
 
+# Set PATH early so pip --user installed packages are available
+ENV PATH=/home/docker/.local/bin:$PATH
+
 # Pre-pin packages to avoid pip backtracking on complex dependency resolution
 # This MUST happen before west update to prevent hangs
 RUN pip3 install --user --upgrade pip setuptools wheel setuptools_scm poetry-core protobuf grpcio-tools
