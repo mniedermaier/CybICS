@@ -6,6 +6,13 @@
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"overrideCommand": false,
+	"remoteEnv": {
+		"PATH": "/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin:/home/docker/zephyrproject/.venv/bin:${containerEnv:PATH}",
+		"VIRTUAL_ENV": "/home/docker/zephyrproject/.venv",
+		"ZEPHYR_BASE": "/home/docker/zephyrproject/zephyr",
+		"ZEPHYR_TOOLCHAIN_VARIANT": "zephyr",
+		"ZEPHYR_SDK_INSTALL_DIR": "/home/docker/zephyr-sdk-0.17.4"
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
