@@ -10,6 +10,11 @@ if [ ! -f .dev.env ]; then
   echo "DEVICE_USER=pi" >> .dev.env
 fi
 
+if [ ! -f ~/.gitconfig ]; then
+  # prevent errors when mounting non-existing gitconfig (gets a directory and this will confuse git and west)
+  touch ~/.gitconfig
+fi
+
 cat <<EOT >.env
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)

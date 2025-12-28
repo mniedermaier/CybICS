@@ -10,6 +10,16 @@ ENDCOLOR="\e[0m"
 
 GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
+# Source environment variables
+if [ -f "$GIT_ROOT/.dev.env" ]; then
+    set -a
+    source "$GIT_ROOT/.dev.env"
+    set +a
+else
+    echo -e "${RED}Error: .dev.env file not found at $GIT_ROOT/.dev.env${ENDCOLOR}"
+    exit 1
+fi
+
 # start time for calculation of the execution time
 START=$(date +%s)
 
@@ -97,6 +107,34 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Configure zram swap
+###
+echo -ne "${GREEN}# Configure zram swap ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    # Install zram-tools if not present
+    if ! dpkg -l | grep -q zram-tools; then
+        sudo apt-get update
+        sudo apt-get install -y zram-tools
+    fi
+
+    # Configure zram - use 1024 MB, lz4 compression
+    sudo tee /etc/default/zramswap > /dev/null <<'ZRAMCONF'
+# Compression algorithm
+ALGO=lz4
+# Fixed size in MB for zram swap
+SIZE=1024
+# Priority (higher = preferred over disk swap)
+PRIORITY=100
+ZRAMCONF
+
+    # Restart zram service to apply new config
+    sudo systemctl stop zramswap || true
+    sudo swapoff /dev/zram0 2>/dev/null || true
+    sudo systemctl start zramswap
+EOF
+
+###
 ### Config apt local config
 ###
 echo -ne "${GREEN}# Config apt local config... \n${ENDCOLOR}"
@@ -142,6 +180,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 
     if ! which picocom; then
         sudo apt-get install picocom -y
+    fi
+
+    if ! which smemstat; then
+        sudo apt-get install smemstat -y
     fi
 
     if ! dpkg -l | grep python3-serial; then

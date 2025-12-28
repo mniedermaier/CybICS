@@ -1,0 +1,2 @@
+cybics.DeviceInfo.uid max_size:6
+cybics.IPAddress.ip_addr max_size:15
