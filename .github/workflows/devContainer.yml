@@ -118,11 +118,7 @@ jobs:
         run: .devcontainer/prepare-env.sh
 
       - name: run tests stm32
-        uses: devcontainers/ci@v0.3
-        with:
-          configFile: .devcontainer/stm32/devcontainer.json
-          env: .devcontainer/stm32/.env
-          runCmd: west build -b nucleo_g070rb -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
+        run: docker compose -f .devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
 
   virtual:
     name: Run devcontainer test virtual

@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-venv \
     python3-dev \
-    python3-setuptools \
     python3-tk \
     python3-wheel \
     vim \
@@ -35,7 +34,6 @@ RUN apt-get update && apt-get install -y \
     libsdl2-dev \
     libmagic1 \
     openssh-client \
-    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
 # Create user
@@ -59,8 +57,7 @@ ENV PATH=/home/docker/zephyrproject/.venv/bin:$PATH
 ENV VIRTUAL_ENV=/home/docker/zephyrproject/.venv
 
 # Install west and pre-pin packages in virtual environment
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install west
+RUN pip install west
 
 # Initialize workspace using manifest (downloads only required modules)
 RUN west init -l app && \
@@ -73,12 +70,6 @@ RUN west packages pip --install
 # Install Zephyr SDK using west (only ARM toolchain)
 RUN west sdk install -t arm-zephyr-eabi
 
-# Set environment variables
-ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-ENV ZEPHYR_BASE=/home/docker/zephyrproject/zephyr
-ENV ZEPHYR_SDK_INSTALL_DIR=/home/docker/zephyr-sdk-0.17.4
-ENV PATH=/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin:/home/docker/zephyrproject/.venv/bin:$PATH
-
 # Switch back to root for fixuid setup
 USER root
 
@@ -89,11 +80,12 @@ RUN curl -SsL https://github.com/boxboat/fixuid/releases/download/v0.6.0/fixuid-
     && printf "user: docker\ngroup: docker\n" >/etc/fixuid/config.yml
 
 # Create docker-init.sh
-RUN echo '#!/bin/sh\nfixuid\nexec "$@"' > /usr/local/share/docker-init.sh \
+RUN echo '#!/bin/sh\nfixuid -q\nexec "$@"' > /usr/local/share/docker-init.sh \
     && chmod +x /usr/local/share/docker-init.sh
 
 ENV HOME=/home/docker
 USER docker:docker
+WORKDIR /home/docker/zephyrproject/app
 
 ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
 CMD [ "sleep", "infinity" ]
