@@ -38,9 +38,6 @@ RUN apt-get update && apt-get install -y \
     protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
-# Install west (Zephyr meta-tool)
-RUN pip3 install --no-cache-dir west protobuf grpcio-tools 
-
 # Create user
 RUN addgroup --gid 1000 docker \
     && adduser --uid 1000 --ingroup docker --home /home/docker --disabled-password --gecos "" docker \
@@ -54,20 +51,24 @@ COPY --chown=docker:docker software/stm32/west.yml /home/docker/zephyrproject/ap
 USER docker
 WORKDIR /home/docker/zephyrproject
 
-# Set PATH early so pip --user installed packages are available
-ENV PATH=/home/docker/.local/bin:$PATH
+# Create Python virtual environment (as recommended by Zephyr documentation)
+RUN python3 -m venv .venv
 
-# Pre-pin packages to avoid pip backtracking on complex dependency resolution
-# This MUST happen before west update to prevent hangs
-RUN pip3 install --user --upgrade pip setuptools wheel setuptools_scm poetry-core protobuf grpcio-tools
+# Set PATH to use virtual environment
+ENV PATH=/home/docker/zephyrproject/.venv/bin:$PATH
+ENV VIRTUAL_ENV=/home/docker/zephyrproject/.venv
+
+# Install west and pre-pin packages in virtual environment
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install west
 
 # Initialize workspace using manifest (downloads only required modules)
 RUN west init -l app && \
     west update --narrow -o=--depth=1 && \
     west zephyr-export
 
-# Install Python requirements (needed for west sdk install)
-RUN pip3 install --user -r zephyr/scripts/requirements.txt
+# Install Python requirements using west (recommended method)
+RUN west packages pip --install
 
 # Install Zephyr SDK using west (only ARM toolchain)
 RUN west sdk install -t arm-zephyr-eabi
@@ -76,7 +77,7 @@ RUN west sdk install -t arm-zephyr-eabi
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV ZEPHYR_BASE=/home/docker/zephyrproject/zephyr
 ENV ZEPHYR_SDK_INSTALL_DIR=/home/docker/zephyr-sdk-0.17.4
-ENV PATH=/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin:/home/docker/.local/bin:$PATH
+ENV PATH=/home/docker/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin:/home/docker/zephyrproject/.venv/bin:$PATH
 
 # Switch back to root for fixuid setup
 USER root
