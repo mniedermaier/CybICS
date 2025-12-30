@@ -23,8 +23,8 @@ echo "=== CybICS Firmware Build Check ==="
 MAGIC_OFFSET=$(xxd -p "$BINARY" | tr -d '\n' | grep -bo "$VERSION_MAGIC" | head -1 | cut -d: -f1)
 
 if [ -z "$MAGIC_OFFSET" ]; then
-    echo "WARNING: Version magic not found in binary, falling back to full verify"
-    NEEDS_FLASH="unknown"
+    echo "WARNING: Version magic not found in binary, will flash"
+    NEEDS_FLASH="yes"
 else
     # xxd output is hex, so offset is in hex characters (2 per byte)
     BYTE_OFFSET=$((MAGIC_OFFSET / 2))
@@ -73,25 +73,8 @@ fi
 # Perform flash if needed
 if [ "$NEEDS_FLASH" = "no" ]; then
     echo "Skipping flash, firmware is up to date"
-elif [ "$NEEDS_FLASH" = "unknown" ]; then
-    # Fall back to full verify_image if we couldn't do version check
-    echo "Performing full firmware verification..."
-    VERIFY_OUTPUT=$(openocd -f "$OPENOCD_CFG" -c "init; verify_image $BINARY $FLASH_ADDR; shutdown" 2>&1)
-
-    if echo "$VERIFY_OUTPUT" | grep -q "verified"; then
-        echo "Firmware verified - already up to date"
-    else
-        echo "Firmware differs, flashing..."
-        if ! openocd -f "$OPENOCD_CFG" -c "program $BINARY verify reset exit $FLASH_ADDR"; then
-            echo "ERROR: Flashing failed!"
-            exit 1
-        fi
-        echo "Firmware flashed successfully"
-        sleep 2
-    fi
 else
-    # Build mismatch - flash new firmware
-    echo "Flashing new firmware..."
+    echo "Flashing firmware..."
     if ! openocd -f "$OPENOCD_CFG" -c "program $BINARY verify reset exit $FLASH_ADDR"; then
         echo "ERROR: Flashing failed!"
         exit 1
