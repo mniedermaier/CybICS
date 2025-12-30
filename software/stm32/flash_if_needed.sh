@@ -45,8 +45,9 @@ else
         echo "WARNING: Failed to read from STM32, will attempt flash"
         NEEDS_FLASH="yes"
     else
-        # Extract hex bytes from mdb output and convert to string
-        FLASH_HEX=$(echo "$FLASH_DATA" | grep -oE '[0-9a-fA-F]{2}' | tr -d '\n')
+        # Extract hex bytes from mdb output (format: "0xADDR: XX XX XX ...")
+        # Remove address prefix and extract only the data bytes after the colon
+        FLASH_HEX=$(echo "$FLASH_DATA" | grep "^0x" | sed 's/^0x[0-9a-fA-F]*: //' | tr -d ' \n')
 
         # First 8 hex chars (4 bytes) are magic
         FLASH_MAGIC="${FLASH_HEX:0:8}"
