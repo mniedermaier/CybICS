@@ -37,17 +37,17 @@ else
     EXPECTED_BUILD_STR=$(xxd -r -p <<< "$EXPECTED_BUILD_ID" | tr -d '\0')
     echo "Expected build: $EXPECTED_BUILD_STR"
 
-    # Read build ID from STM32 flash (magic + build_id = 28 bytes = 7 words)
+    # Read build ID from STM32 flash (magic + build_id = 28 bytes)
     echo "Reading build ID from STM32 flash..."
-    FLASH_DATA=$(openocd -f "$OPENOCD_CFG" -c "init; mdb $FLASH_VERSION_ADDR 28; shutdown" 2>&1)
+    FLASH_DUMP="/tmp/flash_version.bin"
+    DUMP_OUTPUT=$(openocd -f "$OPENOCD_CFG" -c "init; halt; dump_image $FLASH_DUMP $FLASH_VERSION_ADDR 28; resume; shutdown" 2>&1)
 
-    if echo "$FLASH_DATA" | grep -q "Error\|error\|failed"; then
+    if [ ! -f "$FLASH_DUMP" ] || echo "$DUMP_OUTPUT" | grep -q "Error\|error\|failed"; then
         echo "WARNING: Failed to read from STM32, will attempt flash"
         NEEDS_FLASH="yes"
     else
-        # Extract hex bytes from mdb output (format: "0xADDR: XX XX XX ...")
-        # Remove address prefix and extract only the data bytes after the colon
-        FLASH_HEX=$(echo "$FLASH_DATA" | grep "^0x" | sed 's/^0x[0-9a-fA-F]*: //' | tr -d ' \n')
+        # Read the dumped flash data
+        FLASH_HEX=$(xxd -p "$FLASH_DUMP" | tr -d '\n')
 
         # First 8 hex chars (4 bytes) are magic
         FLASH_MAGIC="${FLASH_HEX:0:8}"
@@ -57,6 +57,8 @@ else
 
         echo "Flash magic: 0x$FLASH_MAGIC (expected: 0x49425943)"
         echo "Flash build: $FLASH_BUILD_STR"
+
+        rm -f "$FLASH_DUMP"
 
         if [ "$FLASH_MAGIC" = "49425943" ] && [ "$FLASH_BUILD_HEX" = "$EXPECTED_BUILD_ID" ]; then
             echo "Build ID matches - no flash needed"
