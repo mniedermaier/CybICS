@@ -10,6 +10,6 @@ services:
       - ../../.env
     volumes:
       # Mount stm32 source into pre-baked Zephyr workspace
-      - ../../software/stm32:/home/docker/zephyrproject/app
+      - $CYBICS_ROOT/software/stm32:/home/docker/zephyrproject/app
       - ~/.ssh:/home/docker/.ssh/
     user: ${HOST_UID:-1000}:${HOST_UID:-1000}

@@ -34,7 +34,7 @@ RUN addgroup --gid 1000 docker \
 # RUN curl -fsSL https://get.docker.com | bash
 RUN apt-get update && apt-get install -y \
     docker \
-    docker-compose \
+    docker-compose-v2 \
     docker-buildx \
     && rm -rf /var/lib/apt/lists/*
 
