@@ -23,9 +23,10 @@ RUN west build -b nucleo_g070rb
 # Stage 2: Runtime container with OpenOCD
 FROM debian:12-slim
 
-# Install OpenOCD
+# Install OpenOCD and xxd (for version extraction from binary)
 RUN apt-get update && apt-get install -y \
     openocd \
+    xxd \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /CybICS
