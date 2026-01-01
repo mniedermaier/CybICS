@@ -54,6 +54,8 @@ echo "   \`---'    "
 echo -ne "${ENDCOLOR}"
 sleep 1
 
+if [ "$NO_SETUP" == "" ]; then
+
 ###
 ### Check if raspberry is up
 ###
@@ -244,6 +246,8 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
 EOF
 
+fi
+
 ###
 ### Build container locally
 ###
@@ -272,6 +276,8 @@ DIFF=$(echo "$END - $START" | bc)
 echo -ne "${GREEN}# Total execution time $((DIFF/60)):$((DIFF%60)) \n${ENDCOLOR}"
 echo -ne "${GREEN}# All done, ready to rumble ... \n${ENDCOLOR}"
 
+if [ "$NO_SETUP" == "" ]; then
+
 # Ask the user if they want to restart
 read -p "Do you want to restart the system? (yes/no): " user_input
 
@@ -285,4 +291,5 @@ if [[ "$user_input" == "yes" || "$user_input" == "y" ]]; then
     timeout 20 ssh "$DEVICE_USER"@"$DEVICE_IP" sudo reboot -f || true
 fi
 
+fi
 echo -ne "${GREEN}# done ... \n${ENDCOLOR}"

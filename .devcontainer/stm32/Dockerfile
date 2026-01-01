@@ -56,7 +56,7 @@ RUN python3 -m venv .venv
 ENV PATH=/home/docker/zephyrproject/.venv/bin:$PATH
 ENV VIRTUAL_ENV=/home/docker/zephyrproject/.venv
 
-# Install west in virtual environment
+# Install west and pre-pin packages in virtual environment
 RUN pip install --upgrade pip setuptools wheel && \
     pip install west
 
