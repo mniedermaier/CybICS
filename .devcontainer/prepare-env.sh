@@ -19,6 +19,7 @@ cat <<EOT >.env
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 DOCKER_ENV_DIR="$DOCKER_ENV_DIR"
+CYBICS_ROOT="$(pwd)"
 EOT
 
 touch "$DOCKER_ENV_DIR"/.bash_history # persist bash history
