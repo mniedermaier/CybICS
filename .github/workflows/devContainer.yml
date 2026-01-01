@@ -118,7 +118,7 @@ jobs:
         run: .devcontainer/prepare-env.sh
 
       - name: run tests stm32
-        run: docker compose -f .devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+        run: docker compose -f .devcontainer/stm32/docker-compose.yml run --rm dev app/scripts/build.sh
 
   virtual:
     name: Run devcontainer test virtual
