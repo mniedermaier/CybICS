@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "lcd_hd44780.h"
+#include "version.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include "proto/cybics.pb.h"
@@ -522,7 +523,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		/* Switch between displays if Display button is pressed */
 		if (gpio_pin_get_dt(&display_in)) {
 			displayScreen++;
-			if (displayScreen > 3) {
+			if (displayScreen > 4) {
 				displayScreen = 0;
 			}
 		}
@@ -531,7 +532,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 
 		/* Display showing CybICS string and uptime */
 		if (displayScreen == 0) {
-			snprintf(displayText, sizeof(displayText), "%-16s", "CybICS v1.1.2");
+			snprintf(displayText, sizeof(displayText), "CybICS %-9s", FIRMWARE_VERSION_STRING);
 			lcd_set_cursor(&lcd, 0, 0);
 			lcd_print(&lcd, displayText);
 			snprintf(displayText, sizeof(displayText), "%16u", secondsAfterStart);
@@ -593,6 +594,16 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			} else if (HPTpressure <= 50) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too low");
 			}
+			lcd_set_cursor(&lcd, 1, 0);
+			lcd_print(&lcd, displayText);
+		}
+		/* Display showing build information */
+		else if (displayScreen == 4) {
+			/* BUILD_DATE and BUILD_TIME are defined by CMake */
+			snprintf(displayText, sizeof(displayText), "Build %s", BUILD_DATE);
+			lcd_set_cursor(&lcd, 0, 0);
+			lcd_print(&lcd, displayText);
+			snprintf(displayText, sizeof(displayText), "%-16s", BUILD_TIME);
 			lcd_set_cursor(&lcd, 1, 0);
 			lcd_print(&lcd, displayText);
 		}
@@ -986,6 +997,9 @@ static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *nam
 int main(void)
 {
 	int errors = 0;
+
+	/* Log firmware version */
+	LOG_INF("Build: %s %s", BUILD_DATE, BUILD_TIME);
 
 	/*
 	 * CRITICAL: Disable UCPD dead battery pulldowns on PD0/PD2
