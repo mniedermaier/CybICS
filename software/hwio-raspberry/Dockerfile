@@ -11,5 +11,6 @@ WORKDIR /CybICS
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY hardwareIO.py ./
+COPY cybics_pb2.py ./
 
 CMD [ "python", "./hardwareIO.py" ]
