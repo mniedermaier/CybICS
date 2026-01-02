@@ -1,73 +1,82 @@
 #!/bin/bash
 #
-# Flash STM32 firmware only if build differs from what's on the device.
-# Reads build timestamp from STM32 flash and compares with binary.
-# This avoids halting the CPU unnecessarily on every container restart.
-# Every new build gets a new timestamp, so development builds always flash.
+# Flash STM32 firmware only if it differs from what's on the device.
+# Compares only ELF LOAD segments (not padding) to avoid false mismatches.
+# This avoids unnecessary flashing on every container restart.
 #
 
-BINARY="/CybICS/CybICS.bin"
+ELF_FILE="/CybICS/CybICS.elf"
+BIN_FILE="/CybICS/CybICS.bin"
 OPENOCD_CFG="/CybICS/openocd_rpi.cfg"
-FLASH_ADDR="0x08000000"
+FLASH_BASE="0x08000000"
 
-# Version magic marker: "CYBI" = 0x43594249 (little-endian: 49 42 59 43)
-# Followed by "20" for year 20xx (32 30 in hex)
-VERSION_MAGIC="494259433230"
+echo "=== CybICS Firmware Flash Check ==="
 
-# Build ID size (after magic): 24 bytes for timestamp string
-BUILD_ID_SIZE=24
+# Parse ELF LOAD segments to get actual programmed regions
+# Filter only flash segments (0x08xxxxxx)
+# Format: PhysAddr FileSiz
+SEGMENTS=$(readelf -l "$ELF_FILE" 2>/dev/null | grep "LOAD" | grep "0x080" | awk '{ print $4, $5 }')
 
-echo "=== CybICS Firmware Build Check ==="
-
-# Find the version block offset in the binary by searching for magic + year prefix
-MAGIC_OFFSET=$(xxd -p "$BINARY" | tr -d '\n' | grep -bo "$VERSION_MAGIC" | head -1 | cut -d: -f1)
-
-if [ -z "$MAGIC_OFFSET" ]; then
-    echo "WARNING: Version magic not found in binary, will flash"
+if [ -z "$SEGMENTS" ]; then
+    echo "Failed to parse ELF segments - reflashing required"
     NEEDS_FLASH="yes"
 else
-    # xxd output is hex, so offset is in hex characters (2 per byte)
-    BYTE_OFFSET=$((MAGIC_OFFSET / 2))
-    FLASH_VERSION_ADDR=$(printf "0x%08x" $((0x08000000 + BYTE_OFFSET)))
+    echo "ELF LOAD segments:"
+    echo "$SEGMENTS"
 
-    echo "Binary version block at offset: $BYTE_OFFSET (flash: $FLASH_VERSION_ADDR)"
+    NEEDS_FLASH="no"
+    SEGMENT_NUM=0
 
-    # Extract expected build ID from binary (24 bytes after 4-byte magic)
-    EXPECTED_BUILD_ID=$(xxd -p -s $((BYTE_OFFSET + 4)) -l $BUILD_ID_SIZE "$BINARY" | tr -d '\n')
-    EXPECTED_BUILD_STR=$(xxd -r -p <<< "$EXPECTED_BUILD_ID" | tr -d '\0')
-    echo "Expected build: $EXPECTED_BUILD_STR"
+    while read -r VADDR FILESZ; do
+        SEGMENT_NUM=$((SEGMENT_NUM + 1))
 
-    # Read build ID from STM32 flash (magic + build_id = 28 bytes)
-    echo "Reading build ID from STM32 flash..."
-    FLASH_DUMP="/tmp/flash_version.bin"
-    DUMP_OUTPUT=$(openocd -f "$OPENOCD_CFG" -c "init; halt; dump_image $FLASH_DUMP $FLASH_VERSION_ADDR 28; resume; shutdown" 2>&1)
+        # Convert hex to decimal
+        ADDR_DEC=$((VADDR))
+        SIZE_DEC=$((FILESZ))
 
-    if [ ! -f "$FLASH_DUMP" ] || echo "$DUMP_OUTPUT" | grep -q "Error\|error\|failed"; then
-        echo "WARNING: Failed to read from STM32, will attempt flash"
-        NEEDS_FLASH="yes"
-    else
-        # Read the dumped flash data
-        FLASH_HEX=$(xxd -p "$FLASH_DUMP" | tr -d '\n')
-
-        # First 8 hex chars (4 bytes) are magic
-        FLASH_MAGIC="${FLASH_HEX:0:8}"
-        # Next 48 hex chars (24 bytes) are build ID
-        FLASH_BUILD_HEX="${FLASH_HEX:8:48}"
-        FLASH_BUILD_STR=$(xxd -r -p <<< "$FLASH_BUILD_HEX" | tr -d '\0')
-
-        echo "Flash magic: 0x$FLASH_MAGIC (expected: 0x49425943)"
-        echo "Flash build: $FLASH_BUILD_STR"
-
-        rm -f "$FLASH_DUMP"
-
-        if [ "$FLASH_MAGIC" = "49425943" ] && [ "$FLASH_BUILD_HEX" = "$EXPECTED_BUILD_ID" ]; then
-            echo "Build ID matches - no flash needed"
-            NEEDS_FLASH="no"
-        else
-            echo "Build ID mismatch or invalid magic - flash required"
-            NEEDS_FLASH="yes"
+        # Skip zero-size segments
+        if [ "$SIZE_DEC" -eq 0 ]; then
+            continue
         fi
-    fi
+
+        # Calculate offset in binary file
+        BIN_OFFSET=$((ADDR_DEC - FLASH_BASE))
+
+        echo "Checking segment $SEGMENT_NUM: addr=$VADDR size=$SIZE_DEC offset=$BIN_OFFSET"
+
+        FLASH_DUMP="/tmp/flash_seg${SEGMENT_NUM}.bin"
+        BIN_EXTRACT="/tmp/bin_seg${SEGMENT_NUM}.bin"
+
+        # Dump this segment from flash
+        DUMP_OUTPUT=$(openocd -f "$OPENOCD_CFG" -c "
+init
+halt
+dump_image $FLASH_DUMP $VADDR $SIZE_DEC
+resume
+shutdown
+" 2>&1)
+
+        if [ ! -f "$FLASH_DUMP" ]; then
+            echo "Failed to dump segment $SEGMENT_NUM"
+            NEEDS_FLASH="yes"
+            break
+        fi
+
+        # Extract same region from binary
+        dd if="$BIN_FILE" of="$BIN_EXTRACT" bs=1 skip="$BIN_OFFSET" count="$SIZE_DEC" 2>/dev/null
+
+        # Compare
+        if ! cmp -s "$BIN_EXTRACT" "$FLASH_DUMP"; then
+            echo "Segment $SEGMENT_NUM differs"
+            NEEDS_FLASH="yes"
+            rm -f "$FLASH_DUMP" "$BIN_EXTRACT"
+            break
+        fi
+
+        echo "Segment $SEGMENT_NUM matches"
+        rm -f "$FLASH_DUMP" "$BIN_EXTRACT"
+
+    done <<< "$SEGMENTS"
 fi
 
 # Perform flash if needed
@@ -75,7 +84,8 @@ if [ "$NEEDS_FLASH" = "no" ]; then
     echo "Skipping flash, firmware is up to date"
 else
     echo "Flashing firmware..."
-    if ! openocd -f "$OPENOCD_CFG" -c "program $BINARY verify reset exit $FLASH_ADDR"; then
+    # Use BIN file with explicit erase to ensure padding bytes are written as 0xFF
+    if ! openocd -f "$OPENOCD_CFG" -c "program $BIN_FILE verify reset exit $FLASH_BASE"; then
         echo "ERROR: Flashing failed!"
         exit 1
     fi

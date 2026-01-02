@@ -20,18 +20,6 @@
 #include <pb_decode.h>
 #include "proto/cybics.pb.h"
 
-/*
- * Firmware version block - placed in flash for version checking.
- * The flash script reads this to determine if reflashing is needed.
- */
-const struct {
-	uint32_t magic;        /* FIRMWARE_VERSION_MAGIC to identify block */
-	char build_id[24];     /* Build timestamp: "YYYY.MM.DD HH:MM:SS" + null */
-} firmware_version_block = {
-	.magic = FIRMWARE_VERSION_MAGIC,
-	.build_id = FIRMWARE_BUILD_ID,
-};
-
 /* Register logging module */
 LOG_MODULE_REGISTER(cybics, LOG_LEVEL_INF);
 
@@ -1010,9 +998,8 @@ int main(void)
 {
 	int errors = 0;
 
-	/* Log firmware version - ensures version block is kept in the binary */
-	LOG_INF("Build: %s (magic: 0x%08x)", firmware_version_block.build_id,
-		firmware_version_block.magic);
+	/* Log firmware version */
+	LOG_INF("Build: %s %s", BUILD_DATE, BUILD_TIME);
 
 	/*
 	 * CRITICAL: Disable UCPD dead battery pulldowns on PD0/PD2

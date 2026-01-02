@@ -1,9 +1,9 @@
 FROM debian:12-slim
 
-# Install OpenOCD and xxd (for version extraction from binary)
+# Install OpenOCD and tools for flash verification
 RUN apt-get update && apt-get install -y \
     openocd \
-    xxd \
+    binutils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /CybICS
