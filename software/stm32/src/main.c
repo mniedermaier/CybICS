@@ -52,9 +52,12 @@ LOG_MODULE_REGISTER(cybics, LOG_LEVEL_INF);
 
 /* Global variables */
 uint8_t RxData[20] = {0};
-uint8_t TxData[cybics_PressureData_size] = {0};  /* Serialized PressureData protobuf */
-uint8_t TxDataUID[14] = {0};  /* 12 hex chars + mode flag + null */
-char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
+uint8_t TxData[1 + cybics_PressureData_size] = {0};  /* Length byte + serialized PressureData protobuf */
+uint8_t TxDataUID[1 + cybics_DeviceInfo_size] = {0};  /* Length byte + serialized DeviceInfo protobuf */
+uint8_t device_uid[6] = {0};  /* Raw 6-byte UID */
+uint8_t wifi_mode = 0;  /* 0 = STA, 1 = AP */
+char uid_hex[13] = {0};  /* 12 hex chars + null for display */
+char rpiIP[16] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0,0};
 uint8_t GSTpressure = 0;
 uint8_t HPTpressure = 0;
 
@@ -130,10 +133,10 @@ static int i2c_read_requested(struct i2c_target_config *config, uint8_t *val)
 	i2c_debug_reg = RxData[0];
 
 	if (RxData[0] == 0x00) {
-		/* Register 0x00: TxData (GST/HPT pressure values) */
+		/* Register 0x00: TxData (length-prefixed PressureData protobuf) */
 		*val = TxData[i2c_tx_index++];
 	} else if (RxData[0] == 0x01) {
-		/* Register 0x01: TxDataUID (STM32 UID + mode flag, 13 bytes) */
+		/* Register 0x01: TxDataUID (length-prefixed DeviceInfo protobuf) */
 		*val = TxDataUID[i2c_tx_index++];
 	} else {
 		*val = 0;
@@ -150,8 +153,8 @@ static int i2c_read_processed(struct i2c_target_config *config, uint8_t *val)
 			*val = 0;
 		}
 	} else if (RxData[0] == 0x01) {
-		/* Send 13 bytes: 12 hex chars + mode flag (not the null terminator) */
-		if (i2c_tx_index < 13) {
+		/* Send length-prefixed DeviceInfo protobuf */
+		if (i2c_tx_index < sizeof(TxDataUID)) {
 			*val = TxDataUID[i2c_tx_index++];
 		} else {
 			*val = 0;
@@ -186,6 +189,21 @@ static struct i2c_target_config i2c_target_cfg = {
 	.address = I2C_SLAVE_ADDRESS,
 	.callbacks = &i2c_callbacks,
 };
+
+/* Encode DeviceInfo protobuf to TxDataUID with length prefix */
+static void encode_device_info(void)
+{
+	cybics_DeviceInfo device_info = cybics_DeviceInfo_init_default;
+	device_info.uid.size = sizeof(device_uid);
+	memcpy(device_info.uid.bytes, device_uid, sizeof(device_uid));
+	device_info.wifi_mode = wifi_mode;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(&TxDataUID[1], sizeof(TxDataUID) - 1);
+	if (!pb_encode(&stream, cybics_DeviceInfo_fields, &device_info)) {
+		LOG_ERR("Failed to serialize DeviceInfo");
+	}
+	TxDataUID[0] = (uint8_t)stream.bytes_written;
+}
 
 /* Semaphore to signal initialization is complete */
 K_SEM_DEFINE(init_sem, 0, 1);
@@ -482,21 +500,29 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Display thread: startup animation complete");
 
 	/* Get unique ID from STM32 UID registers (same as LL_GetUID_Word0/1/2) */
-	volatile uint32_t *uid = (volatile uint32_t *)0x1FFF7590;
-	/*
-	 * IMPORTANT: Use lower 16 bits only to ensure exactly 12 hex chars.
-	 * %04lx means "minimum 4 digits" not "maximum 4 digits", so unmasked
-	 * 32-bit values would overflow the buffer and corrupt the mode flag.
-	 */
-	snprintf((char*)TxDataUID, sizeof(TxDataUID), "%04lx%04lx%04lx",
-		(unsigned long)(uid[0] & 0xFFFF),
-		(unsigned long)(uid[1] & 0xFFFF),
-		(unsigned long)(uid[2] & 0xFFFF));
-	TxDataUID[12] = '0'; /* default STA mode */
+	volatile uint32_t *uid_regs = (volatile uint32_t *)0x1FFF7590;
 
-	/* Debug: print UID (full values and truncated for SSID) */
+	/* Store raw UID bytes (lower 16 bits of each word = 6 bytes total) */
+	device_uid[0] = (uid_regs[0] >> 8) & 0xFF;
+	device_uid[1] = uid_regs[0] & 0xFF;
+	device_uid[2] = (uid_regs[1] >> 8) & 0xFF;
+	device_uid[3] = uid_regs[1] & 0xFF;
+	device_uid[4] = (uid_regs[2] >> 8) & 0xFF;
+	device_uid[5] = uid_regs[2] & 0xFF;
+
+	/* Create hex string for display (12 chars) */
+	snprintf(uid_hex, sizeof(uid_hex), "%04lx%04lx%04lx",
+		(unsigned long)(uid_regs[0] & 0xFFFF),
+		(unsigned long)(uid_regs[1] & 0xFFFF),
+		(unsigned long)(uid_regs[2] & 0xFFFF));
+
+	/* Initialize wifi_mode and encode DeviceInfo protobuf */
+	wifi_mode = 0;  /* default STA mode */
+	encode_device_info();
+
+	/* Debug: print UID */
 	LOG_INF("STM32 UID: %08lx %08lx %08lx -> SSID: %s",
-		(unsigned long)uid[0], (unsigned long)uid[1], (unsigned long)uid[2], TxDataUID);
+		(unsigned long)uid_regs[0], (unsigned long)uid_regs[1], (unsigned long)uid_regs[2], uid_hex);
 
 	LOG_INF("Display thread: starting main loop");
 
@@ -504,14 +530,15 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		/* Switch between station and AP mode of Wifi */
 		if (gpio_pin_get_dt(&button)) {
 			if (!wifiPressed) {
-				if (TxDataUID[12] == '0') {
-					TxDataUID[12] = '1';
+				if (wifi_mode == 0) {
+					wifi_mode = 1;
 					LOG_INF("WiFi: STA -> AP");
 				} else {
-					TxDataUID[12] = '0';
+					wifi_mode = 0;
 					LOG_INF("WiFi: AP -> STA");
 				}
-				snprintf(rpiIP, sizeof(rpiIP), "%-14s", "Unknown");
+				encode_device_info();  /* Re-encode with new wifi_mode */
+				snprintf(rpiIP, sizeof(rpiIP), "%-15s", "Unknown");
 				shifting = 0;
 				wifiPressed = 1;
 			}
@@ -540,7 +567,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		}
 		/* Display WiFi configuration */
 		else if (displayScreen == 1) {
-			if (TxDataUID[12] == '0') {
+			if (wifi_mode == 0) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "Wifi STA mode");
 				lcd_set_cursor(&lcd, 0, 0);
 				lcd_print(&lcd, displayText);
@@ -554,12 +581,11 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 				if (shifting > 3) {
 					shifting = 0;
 				}
-			} else if (TxDataUID[12] == '1') {
+			} else if (wifi_mode == 1) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "AP mode: cybics-");
 				lcd_set_cursor(&lcd, 0, 0);
 				lcd_print(&lcd, displayText);
-				snprintf(displayText, sizeof(displayText), "%-16s", TxDataUID);
-				displayText[12] = ' '; /* removing the 1, which is not part of the UID */
+				snprintf(displayText, sizeof(displayText), "%-16s", uid_hex);
 				lcd_set_cursor(&lcd, 1, 0);
 				lcd_print(&lcd, displayText);
 			} else {
@@ -717,14 +743,15 @@ void thread_physical(void *arg1, void *arg2, void *arg3)
 			GST_low = 0; GST_normal = 0; GST_full = 1;
 		}
 
-		/* Initialize protobuf pressure data and serialize to TxData */
+		/* Initialize protobuf pressure data and serialize to TxData[1:] with length prefix */
 		cybics_PressureData cybics_pressure_data = cybics_PressureData_init_default;
 		cybics_pressure_data.gst_pressure = GSTpressure;
 		cybics_pressure_data.hpt_pressure = HPTpressure;
-		pb_ostream_t stream = pb_ostream_from_buffer(TxData, sizeof(TxData));
+		pb_ostream_t stream = pb_ostream_from_buffer(&TxData[1], sizeof(TxData) - 1);
 		if (!pb_encode(&stream, cybics_PressureData_fields, &cybics_pressure_data)) {
 			LOG_ERR("Failed to serialize pressure data");
 		}
+		TxData[0] = (uint8_t)stream.bytes_written;  /* Length prefix */
 
 		HPTdelay++;
 		GSTdelay++;
@@ -747,10 +774,22 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Starting thread_i2c");
 
 	while (1) {
-		if(RxData[1] == 'I' && RxData[2] == 'P') {
-			for(uint8_t counter = 0; counter < sizeof(rpiIP); counter++) {
-				rpiIP[counter] = RxData[counter + 4];
+		/* Check if we received a write to register 0x00 (IPAddress protobuf) */
+		if (RxData[0] == 0x00 && RxData[1] > 0 && RxData[1] <= cybics_IPAddress_size) {
+			uint8_t msg_len = RxData[1];
+			cybics_IPAddress ip_msg = cybics_IPAddress_init_default;
+			pb_istream_t stream = pb_istream_from_buffer(&RxData[2], msg_len);
+
+			if (pb_decode(&stream, cybics_IPAddress_fields, &ip_msg)) {
+				/* Copy IP address string, ensure null termination */
+				size_t ip_len = strlen(ip_msg.ip_addr);
+				if (ip_len > 0 && ip_len < sizeof(rpiIP)) {
+					memcpy(rpiIP, ip_msg.ip_addr, ip_len);
+					rpiIP[ip_len] = '\0';
+				}
 			}
+			/* Clear RxData[1] to avoid re-processing */
+			RxData[1] = 0;
 		}
 		k_msleep(100);
 	}

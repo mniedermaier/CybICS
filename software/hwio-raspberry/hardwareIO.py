@@ -18,7 +18,7 @@ import RPi.GPIO as GPIO
 import logging
 import threading
 
-from cybics_pb2 import PressureData
+from cybics_pb2 import PressureData, DeviceInfo, IPAddress
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -46,7 +46,7 @@ listIp = [] # IP of the raspberry pi
 
 id = "unknown" # ID of the STM32
 data = [] # Data received over i2c from the STM32
-dataID = [] # dataID received over i2c from the STM32
+dataID = "0000000000000" # dataID received over i2c from the STM32 (12 hex + mode)
 
 # thread for openplc communication
 def thread_openplc():
@@ -254,14 +254,15 @@ def thread_i2c():
   logging.info("Entering while true in i2c thread")
   while True:
     try:
-      # Read the values for GST and HPT
-      data = bus.read_i2c_block_data(address, 0x00, 12)
-      logging.debug(f"Raw I2C data (register 0x00): {data}")
+      # Read the values for GST and HPT (length-prefixed protobuf)
+      data = bus.read_i2c_block_data(address, 0x00, 13)  # 1 byte length + max 12 bytes protobuf
+      msg_len = data[0]
+      logging.debug(f"Raw I2C data (register 0x00): len={msg_len}, data={data[1:msg_len+1]}")
 
       try:
         pressure_data = PressureData()
-        # Convert list of integers to bytes properly
-        byte_data = bytes(bytearray(data))
+        # Parse only the actual message bytes (skip length prefix)
+        byte_data = bytes(data[1:msg_len+1])
         pressure_data.ParseFromString(byte_data)
         gst = pressure_data.gst_pressure
         hpt = pressure_data.hpt_pressure
@@ -269,20 +270,35 @@ def thread_i2c():
       except Exception as pb_error:
         logging.warning(f"Failed to decode PressureData protobuf: {str(pb_error)}")
 
-      # Format the IP and send it via i2c to the RPI
-      sendIP = ['I', 'P',':'] + listIp
-      for row in range(len(sendIP)):
-        sendIP[row] = ord(sendIP[row])
-      bus.write_i2c_block_data(address, 0x00, sendIP)
+      # Send IP address as protobuf IPAddress message with length prefix
+      try:
+        ip_str = ''.join(c for c in listIp if c != '\0')  # Remove null terminator
+        if ip_str and ip_str != 'unknown':
+          ip_msg = IPAddress()
+          ip_msg.ip_addr = ip_str
+          ip_bytes = ip_msg.SerializeToString()
+          # Format: [length_byte, protobuf_data...]
+          send_data = [len(ip_bytes)] + list(ip_bytes)
+          bus.write_i2c_block_data(address, 0x00, send_data)
+          logging.debug(f"Sent IPAddress protobuf: {ip_str}")
+      except Exception as ip_error:
+        logging.warning(f"Failed to send IPAddress protobuf: {str(ip_error)}")
 
-      # Read STM32 ID Code
-      data = bus.read_i2c_block_data(address, 0x01, 13)
-      for c in range(len(data)):
-        data[c] = chr(data[c])
-      #id=str(c-"a" for c in id)
-      data="".join(data)
-      dataID=data
-      id = data[:12]
+      # Read STM32 DeviceInfo (length-prefixed protobuf)
+      data = bus.read_i2c_block_data(address, 0x01, 15)  # 1 byte length + max 14 bytes protobuf
+      msg_len = data[0]
+      try:
+        device_info = DeviceInfo()
+        byte_data = bytes(data[1:msg_len+1])
+        device_info.ParseFromString(byte_data)
+        # Convert uid bytes to hex string
+        uid_bytes = device_info.uid
+        id = ''.join(f'{b:02x}' for b in uid_bytes)
+        wifi_mode = device_info.wifi_mode
+        dataID = id + str(wifi_mode)  # Keep compatibility: 12 hex chars + mode
+        logging.debug(f"Decoded DeviceInfo - UID: {id}, WiFi mode: {wifi_mode}")
+      except Exception as di_error:
+        logging.warning(f"Failed to decode DeviceInfo protobuf: {str(di_error)}")
 
       time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
