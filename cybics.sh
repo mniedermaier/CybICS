@@ -206,6 +206,7 @@ start_environment() {
         print_message "OpenPLC: http://localhost:8080" "$GREEN"
         print_message "FUXA: http://localhost:1881" "$GREEN"
         print_message "HWIO: http://localhost:8090" "$GREEN"
+        print_message "Engineering Workstation (VNC): http://localhost:6080" "$GREEN"
         print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
         print_message "S7 Communication: localhost:102" "$GREEN"
     else
@@ -222,6 +223,7 @@ start_environment() {
                 print_message "OpenPLC: http://localhost:8080" "$GREEN"
                 print_message "FUXA: http://localhost:1881" "$GREEN"
                 print_message "HWIO: http://localhost:8090" "$GREEN"
+                print_message "Engineering Workstation (VNC): http://localhost:6080" "$GREEN"
                 print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
                 print_message "S7 Communication: localhost:102" "$GREEN"
                 return
