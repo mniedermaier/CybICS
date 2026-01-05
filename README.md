@@ -18,131 +18,373 @@
 
 ---
 
-The CybICS project is interesting for anyone who wants to delve into the world of industrial cybersecurity or deepen their knowledge.
+## What is CybICS?
 
-## Getting Started
+CybICS (Cybersecurity for Industrial Control Systems) is an open-source training platform designed to help cybersecurity professionals, students, and researchers understand the unique challenges of securing industrial control systems (ICS) and SCADA environments.
 
-First, read through this page to get a better understanding of the testbed setup.
+The platform simulates a realistic industrial gas pressure control system complete with:
+- **PLC** (Programmable Logic Controller) - OpenPLC
+- **HMI** (Human-Machine Interface) - FUXA
+- **Physical Process Simulation** - Gas pressure control system
+- **Multiple Industrial Protocols** - Modbus TCP, OPC-UA, S7comm, DNP3, EtherNet/IP
 
- - [CybICS](#cybics)
- - [Physical Process](#physical)
- - [Hardware](#hardware)
- - [Software](#software)
- - [Getting Started](doc/README.md)
- - [Training](#training)
- - [Abbreviations](#abbreviations)
+### Why CybICS?
 
-## CybICS  <a id="cybics"></a>
-Chose your side 🔵 🔴 
+- ✅ **Hands-on Learning**: Practice real-world ICS security techniques in a safe environment
+- ✅ **Cost-Effective**: Free and open-source
+- ✅ **Flexible**: Choose between virtual (Docker) or physical (Raspberry Pi + STM32) deployment
+- ✅ **Comprehensive**: Covers reconnaissance, exploitation, and defense
+- ✅ **CTF-Ready**: Built-in capture-the-flag challenges for training exercises
+
+---
+
+## Table of Contents
+
+- [What is CybICS?](#what-is-cybics)
+- [Deployment Options](#deployment-options)
+- [Quick Start - Virtual Testbed](#-quick-start---virtual-testbed)
+- [Physical Process Description](#physical-process-description)
+- [Hardware](#hardware)
+- [Software Components](#software-components)
+- [Training Modules](#training-modules)
+- [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
+- [Abbreviations](#abbreviations)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Deployment Options
+
+CybICS offers two deployment modes to suit different learning needs and budgets:
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
-### 💻 Virtual
-Docker-based deployment for easy setup
+### 💻 Virtual (Recommended for Beginners)
+**Docker-based deployment for easy setup**
 
 <img src="doc/pics/landing.png" width="100%">
 
 </td>
 <td width="50%" valign="top">
 
-### 🔧 Physical (Optional)
-Hardware-based deployment with Raspberry Pi
+### 🔧 Physical (Advanced)
+**Hardware-based deployment with Raspberry Pi**
 
 <img src="doc/pics/cybics.png" width="100%">
 
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+
+**Advantages**:
+- ✅ No hardware required
+- ✅ Quick setup (5 minutes)
+- ✅ Easy to reset and reproduce
+- ✅ Perfect for classroom/online training
+- ✅ Runs on Windows, Linux, macOS
+
+</td>
+<td width="50%" valign="top">
+
+**Advantages**:
+- ✅ Realistic physical hardware
+- ✅ Learn embedded systems security
+- ✅ Practice hardware attacks (UART, SWD)
+- ✅ Portable standalone device
+- ✅ Visual LED indicators
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Requirements**:
+- Docker & Docker Compose
+- 4GB RAM minimum
+- 10GB disk space
+
+</td>
+<td width="50%" valign="top">
+
+**Requirements**:
+- Raspberry Pi Zero 2 W
+- Custom CybICS PCB (~50 EUR)
+- LCD display
+- MicroSD card
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Use Cases**:
+- Learning ICS security fundamentals
+- Developing attack/defense techniques
+- Classroom training sessions
+- CTF competitions
+
+</td>
+<td width="50%" valign="top">
+
+**Use Cases**:
+- Advanced ICS security training
+- Hardware hacking workshops
+- Demonstrations at conferences
+- Permanent lab installations
+
+</td>
+</tr>
+<tr>
+<td colspan="2">
+
+**Comparison**:
+
+| Feature | Virtual | Physical |
+|---------|---------|----------|
+| **Cost** | Free | ~50-70 EUR |
+| **Setup Time** | 5 minutes | 1-2 hours |
+| **Hardware Attacks** | ❌ | ✅ |
+| **Portability** | Cloud-ready | Portable device |
+| **Scalability** | Unlimited instances | Limited by hardware |
+| **Realism** | Software simulation | Physical LEDs & display |
+
+</td>
+</tr>
 </table>
 
-## Physical Process  <a id="physical"></a>
-For educational purpose, a very simple process has been chosen.
-The process represents a control loop, where the system needs a specific gas pressure.
-This pressure is achieved by a compressor from a gas storage tank (GST) compressing the gas in the high pressure tank (HPT) buffer.
-The gas is toxic and flammable.
-It will be released and burned via a mechanical blow-out valve, if there is a critical overpressure in the HPT.
+---
 
-All pressure values are in bar above normal atmospheric pressure.
+## 🚀 Quick Start - Virtual Testbed
 
-### Gas Storage Tank (GST)
-The gas storage is used to buffer gas from the external gas supply.
-The pressure from the external gas supply can not be regulated.
-Only the fill level of the GST will be controlled by the PLC.
+Get CybICS running in under 5 minutes using the virtual environment!
 
-| Pressure    | Description | Range       |
-| ----------- | ----------- | ----------- |
-| <50         | Low         | 0-49        | 
-| <150        | Normal      | 50-99       |
-| 150+        | Full        | 150-255     |
+### Prerequisites
 
-**Controll Loop:**
-The GST is kept between 60 and 240 with a simple control (Filling GST to GST < 240 when GST < 60).
-The compressor to fill up the HPT can only run if the GST is at least filled up to a normal filling level.
+- **Docker** and **Docker Compose** installed
+- **Git** for cloning the repository
+- At least 4GB of free RAM
+- Linux, macOS, or Windows with WSL2
 
-### High Pressure Tank (HPT)
-The high pressure tank is the tank that serves as a buffer for the system pressure.
-The measurement unit of the sensor is in bar.
+### Installation
 
-| Pressure    | Description | Range       |
-| ----------- | ----------- | ----------- |
-| <1          | Empty       | 0-0         |
-| <50         | Low         | 1-49        |
-| <100        | Normal      | 50-99       |
-| <150        | High        | 100-149     |
-| 150+        | Critical    | 150-255     |
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/mniedermaier/CybICS.git --recursive
+   cd CybICS
+   ```
 
-**Controll Loop:**
-The HPT is kept between 60 and 90 with a simple control.
-(Running compressor when HPT < 60 up to HPT < 90)
+2. **Start the virtual environment**:
+   ```bash
+   ./cybics.sh start
+   ```
 
-### System
-The system can be operated in the normal pressure range between 50 to 100 bar (HPT > 50 & HPT < 100).
-If the pressure is too low, the system can not operate.
-If the pressure if too high, the system can be damaged.
+3. **Access the services**:
 
-### Blowout (BO)
-The blowout valve is a mechanical valve.
-This is not operated by the PLC.
-It will open and release toxic gas if the HPT pressure is above 220 bar to prevent bursting of the HPT.
-The blowout will release the toxic gas, until it is again in a range below 200 bar (BO open when HPT > 220 until HPT > 200).
+   Once started, open your browser and navigate to:
+
+   | Service | URL | Default Credentials |
+   |---------|-----|---------------------|
+   | **Landing Page** | http://localhost | - |
+
+### Managing the Environment
+
+```bash
+# Check status of all services
+./cybics.sh status
+
+# View logs from all containers
+./cybics.sh logs
+
+# Stop the environment
+./cybics.sh stop
+
+# Restart the environment
+./cybics.sh restart
+```
+---
+
+## Physical Process Description
+
+CybICS simulates a gas pressure control system commonly found in industrial environments. This simple yet realistic process provides an excellent foundation for learning ICS cybersecurity concepts.
+
+### System Overview
+
+The system maintains gas pressure in a High Pressure Tank (HPT) using gas from a Gas Storage Tank (GST). A PLC controls a compressor that transfers gas between tanks while monitoring pressure levels and safety conditions.
+
+### Components
+
+#### Gas Storage Tank (GST)
+Buffer tank for the external gas supply. The PLC maintains GST pressure between 60-240 bar.
+
+| Pressure | Status | Range (bar) | Color Indicator |
+|----------|--------|-------------|-----------------|
+| <50 | Low | 0-49 | Red |
+| 50-149 | Normal | 50-149 | Green |
+| 150+ | Full | 150-255 | Blue |
+
+**Control Loop**:
+- When GST < 60 bar → Start filling from external supply
+- Continue until GST ≥ 240 bar → Stop filling
+- Prevents compressor operation when GST is too low
+
+#### High Pressure Tank (HPT)
+Main buffer tank providing pressure to the system. Target range: 60-90 bar.
+
+| Pressure | Status | Range (bar) | Meaning |
+|----------|--------|-------------|---------|
+| 0 | Empty | 0 | System offline |
+| 1-49 | Low | 1-49 | Below operating range |
+| 50-99 | Normal | 50-99 | Safe operating range |
+| 100-149 | High | 100-149 | Above target, but safe |
+| 150+ | Critical | 150+ | Dangerous overpressure |
+
+**Control Loop**:
+- When HPT < 60 bar AND GST > 50 bar → Start compressor
+- Continue until HPT ≥ 90 bar → Stop compressor
+- Compressor disabled if GST < 50 bar (safety interlock)
+
+#### System Operation
+The system can operate normally when HPT is between 50-100 bar:
+- HPT < 50 bar → System cannot operate (insufficient pressure)
+- HPT > 100 bar → System at risk of damage
+
+#### Safety: Blowout Valve (BO)
+Mechanical safety valve (not PLC-controlled) that prevents catastrophic failure:
+- Opens when HPT > 220 bar
+- Vents toxic gas to atmosphere
+- Closes when HPT < 200 bar
+- **Security implication**: Triggering the blowout releases toxic gas
 
 
-## Hardware  <a id="hardware"></a>
-The hardware is kept minimal and ready to order.
-([link](hardware/README.md))
+---
 
-## Software  <a id="software"></a>
-The software contains all necessary elements to setup the CybICS testbed.
-For development two VSCode devcontainers are available.
-One for the STM32 controller, which is simulating the physical process and another for all the software running on the Raspberry Pi.
-([link](software/README.md))
+## Hardware
 
-| Component        | Description                   | Running on   |
-| ---------------- | ----------------------------- | ------------ |
-| OpenPLC          | Programmable Logic Controller | Raspberry Pi |
-| FUXA             | Historian and HMI             | Raspberry Pi |
-| Physical Process |                               | STM32        |
+For those choosing the physical deployment, CybICS uses affordable, off-the-shelf components.
 
-### Fuxa and OpenPLC
-For controlling the physical process, OpenPLC is used.
-This is an open source PLC, with an web interfce for programming and configuration.
-FUXA is used as an HMI and historian, with an web interface for the operator.
+**Detailed instructions**: [Hardware Guide](hardware/README.md) | [PCB Ordering Guide](hardware/pcb/README.md)
 
-<table align="center"><tr><td align="center" width="9999">
-<img src="doc/pics/openplc.png" width=49%></img>
-<img src="doc/pics/fuxa.png" width=49%></img>
-</td></tr></table>
+---
 
-## Training  <a id="training"></a>
-This part of the repository offers an insight into possible learning and training units.
-On the one hand, these include basic knowledge about PLCs and physical processes, as well as cyber attacks [link](training/README.md).
+## Training Modules
 
-## Abbreviations  <a id="abbreviations"></a>
-| Abbreviation | Long                            | Description |
-| ------------ | ------------------------------- | ----------- |
-| GST          | Gas Storage Tank                |             |
-| HPT          | High Pressure Tank              |             |
-| LED          | Light-emitting Diode            |             |
-| PCB          | Printed Circuit Board           |             |
-| PLC          | Programmable Logic Controller   |             |
+CybICS includes 13+ hands-on training modules covering the full ICS security lifecycle:
+
+Each module includes:
+- 📖 Background theory
+- 🎯 Hands-on exercises
+- 🚩 CTF-style flags
+- 💡 Hints and solutions
+
+**Start training**: [Training Overview](training/README.md)
+
+---
+
+## Documentation
+
+Comprehensive documentation is available for all components:
+
+### Getting Started
+- 📘 [Quick Start Guide](doc/README.md) - Detailed installation instructions
+- 🎓 [Training Overview](training/README.md) - All training modules
+- 🧪 [Testing Guide](tests/README.md) - Automated testing
+
+### Hardware
+- 🔧 [Hardware Overview](hardware/README.md) - BOM, assembly, specifications
+- 📟 [PCB Ordering Guide](hardware/pcb/README.md) - Step-by-step JLCPCB ordering
+- 📦 [3D Case Files](hardware/case/README.md) - Printable enclosure
+
+### Software
+- 💾 [Software Overview](software/README.md) - Setup and configuration
+- 🎛️ [OpenPLC Integration](software/OpenPLC/README.md) - PLC programming and configuration
+- 🖥️ [FUXA HMI](software/FUXA/README.md) - HMI configuration
+- 🔌 [Virtual Hardware I/O](software/hwio-virtual/README.md) - Virtual process simulation
+- 🍓 [Raspberry Pi I/O](software/hwio-raspberry/README.md) - Physical hardware interface
+- 🔬 [STM32 Firmware](software/stm32/README.md) - Embedded firmware (Zephyr RTOS)
+
+---
+
+## Abbreviations
+
+| Abbreviation | Full Name | Description |
+| ------------ | --------- | ----------- |
+| **BO** | Blowout | Safety valve that vents gas at critical pressure |
+| **CTF** | Capture The Flag | Security training challenge format |
+| **DNP3** | Distributed Network Protocol 3 | SCADA communication protocol |
+| **GST** | Gas Storage Tank | Buffer tank for external gas supply |
+| **HMI** | Human-Machine Interface | Operator control and monitoring interface |
+| **HPT** | High Pressure Tank | Main system pressure buffer |
+| **I2C** | Inter-Integrated Circuit | Serial communication protocol |
+| **ICS** | Industrial Control System | Systems controlling industrial processes |
+| **LED** | Light-Emitting Diode | Visual indicator on hardware |
+| **OPC-UA** | OPC Unified Architecture | Industry 4.0 communication standard |
+| **PCB** | Printed Circuit Board | CybICS custom hardware board |
+| **PLC** | Programmable Logic Controller | Industrial controller (OpenPLC) |
+| **RTOS** | Real-Time Operating System | Zephyr (on STM32) |
+| **SCADA** | Supervisory Control and Data Acquisition | Industrial monitoring system |
+| **STM32** | STMicroelectronics 32-bit MCU | Microcontroller on CybICS PCB |
+| **SWD** | Serial Wire Debug | Programming/debugging interface for STM32 |
+| **UART** | Universal Asynchronous Receiver-Transmitter | Serial communication |
+
+---
+
+## Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Ways to Contribute
+
+- 🐛 **Report bugs** via GitHub Issues
+- 💡 **Suggest features** or improvements
+- 📝 **Improve documentation** (typos, clarity, examples)
+- 🎓 **Create training modules** for new attack/defense techniques
+- 🔧 **Submit code improvements** via Pull Requests
+- 🌍 **Translate documentation** to other languages
+
+### Development Setup
+
+1. Fork the repository
+2. Clone your fork: `git clone --recursive https://github.com/YOUR_USERNAME/CybICS.git`
+3. Create a branch: `git checkout -b feature/your-feature-name`
+4. Make changes and test thoroughly
+5. Commit: `git commit -m "Description of changes"`
+6. Push: `git push origin feature/your-feature-name`
+7. Open a Pull Request
+
+---
+
+## License
+
+CybICS is released under the **MIT License**. See [LICENSE](/LICENSE) for details.
+
+### Third-Party Components
+
+- **OpenPLC**: GPL-3.0 License
+- **FUXA**: MIT License
+- **Zephyr RTOS**: Apache-2.0 License
+
+---
+
+## Acknowledgments
+
+CybICS is developed for educational purposes to improve ICS cybersecurity awareness. Special thanks to the open-source community and all contributors.
+
+**Disclaimer**: This platform is designed for authorized training and education only. Unauthorized use against production systems is illegal and unethical.
+
+---
+
+<p align="center">
+  <strong>Ready to start?</strong><br>
+  <code>./cybics.sh start</code>
+</p>
+
+<p align="center">
+  <a href="doc/README.md">📘 Detailed Setup Guide</a> •
+  <a href="training/README.md">🎓 Training Modules</a> •
+  <a href="https://github.com/mniedermaier/CybICS/issues">🐛 Report Issues</a>
+</p>

@@ -58,7 +58,7 @@ The initial build of the dev container will take several minutes depending on yo
 # Setting-up the Raspberry Pi Zero
 ## Install Raspberry Pi OS using Raspberry Pi Imager
 With the help of the Raspberry Pi Imager, the basic linux installation on the SD card can be done.
-The software can b e download for Windows, macOS, and Linux from the Raspberry Pi homepage (https://www.raspberrypi.com/software/).
+The software can be downloaded for Windows, macOS, and Linux from the Raspberry Pi homepage (https://www.raspberrypi.com/software/).
 After installation start the rpi-imager software.
 
 <table align="center"><tr><td align="center" width="9999">
@@ -111,7 +111,7 @@ The .dev.env in the root folder of the repository needs to be configured properl
 
 ## Option 1: Execute the Installation Script inside VS Code
 The dev container needs to be "software".
-To switch dev conainters press "Ctrl+Shift+P" and select "Dev Conainters: Switch Container".
+To switch dev containers press "Ctrl+Shift+P" and select "Dev Containers: Switch Container".
 Open a new terminal in VS Code with "Ctrl+Shift+`"
 
 
