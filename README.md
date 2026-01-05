@@ -139,22 +139,6 @@ CybICS offers two deployment modes to suit different learning needs and budgets:
 
 </td>
 </tr>
-<tr>
-<td colspan="2">
-
-**Comparison**:
-
-| Feature | Virtual | Physical |
-|---------|---------|----------|
-| **Cost** | Free | ~50-70 EUR |
-| **Setup Time** | 5 minutes | 1-2 hours |
-| **Hardware Attacks** | ❌ | ✅ |
-| **Portability** | Cloud-ready | Portable device |
-| **Scalability** | Unlimited instances | Limited by hardware |
-| **Realism** | Software simulation | Physical LEDs & display |
-
-</td>
-</tr>
 </table>
 
 ---
