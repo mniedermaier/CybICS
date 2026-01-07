@@ -80,14 +80,66 @@ RUN mkdir -p /root/.vnc \
 # Create VNC startup script
 RUN echo '#!/bin/bash\n\
 xrdb $HOME/.Xresources 2>/dev/null || true\n\
+# Disable screen blanking and DPMS\n\
+xset s off\n\
+xset -dpms\n\
+xset s noblank\n\
 exec startxfce4' > /root/.vnc/xstartup \
     && chmod +x /root/.vnc/xstartup
 
-# Create XFCE config directory
-RUN mkdir -p /root/.config/xfce4
+# Create XFCE config directory and backgrounds directory
+RUN mkdir -p /root/.config/xfce4 /usr/share/backgrounds
+
+# Copy CybICS background
+COPY engineeringWS/cybics-background.png /usr/share/backgrounds/cybics-background.png
+
+# Configure XFCE to use the CybICS background
+RUN mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-desktop" version="1.0">\n\
+  <property name="backdrop" type="empty">\n\
+    <property name="screen0" type="empty">\n\
+      <property name="monitor0" type="empty">\n\
+        <property name="workspace0" type="empty">\n\
+          <property name="color-style" type="int" value="0"/>\n\
+          <property name="image-style" type="int" value="5"/>\n\
+          <property name="last-image" type="string" value="/usr/share/backgrounds/cybics-background.png"/>\n\
+        </property>\n\
+      </property>\n\
+      <property name="monitorVNC-0" type="empty">\n\
+        <property name="workspace0" type="empty">\n\
+          <property name="color-style" type="int" value="0"/>\n\
+          <property name="image-style" type="int" value="5"/>\n\
+          <property name="last-image" type="string" value="/usr/share/backgrounds/cybics-background.png"/>\n\
+        </property>\n\
+      </property>\n\
+    </property>\n\
+  </property>\n\
+</channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
+
+# Disable XFCE screensaver and power management
+RUN echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-screensaver" version="1.0">\n\
+  <property name="saver" type="empty">\n\
+    <property name="mode" type="int" value="0"/>\n\
+    <property name="enabled" type="bool" value="false"/>\n\
+  </property>\n\
+  <property name="lock" type="empty">\n\
+    <property name="enabled" type="bool" value="false"/>\n\
+  </property>\n\
+</channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-power-manager" version="1.0">\n\
+  <property name="xfce4-power-manager" type="empty">\n\
+    <property name="dpms-enabled" type="bool" value="false"/>\n\
+    <property name="blank-on-ac" type="int" value="0"/>\n\
+    <property name="dpms-on-ac-sleep" type="uint" value="0"/>\n\
+    <property name="dpms-on-ac-off" type="uint" value="0"/>\n\
+  </property>\n\
+</channel>' > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml
 
 # Configure supervisor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY engineeringWS/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create desktop shortcut for OpenPLC Editor
 RUN mkdir -p /root/Desktop \
@@ -101,6 +153,24 @@ Icon=/opt/OpenPLC_Editor/editor/images/brz.ico\n\
 Terminal=false\n\
 Categories=Development;' > /root/Desktop/openplc-editor.desktop \
     && chmod +x /root/Desktop/openplc-editor.desktop
+
+# Create CybICS folder on Desktop for project files
+RUN mkdir -p /root/Desktop/CybICS
+
+# Copy Beremiz project files to Desktop
+COPY engineeringWS/plc-software/ /root/Desktop/CybICS/
+
+# Create a README in the CybICS folder
+RUN echo 'CybICS Project Files\n\
+=====================\n\n\
+This folder contains the CybICS PLC program (Beremiz project).\n\n\
+To open the project:\n\
+1. Double-click "OpenPLC Editor" on the desktop\n\
+2. File -> Open Project\n\
+3. Navigate to /root/Desktop/CybICS/\n\
+4. Select the folder and open beremiz.xml\n\n\
+You can then modify the program and generate code for deployment to OpenPLC.\n\n\
+For more information, visit: https://github.com/hsainnos/CybICS\n' > /root/Desktop/CybICS/README.txt
 
 # Expose VNC and noVNC ports
 EXPOSE 5901 6080

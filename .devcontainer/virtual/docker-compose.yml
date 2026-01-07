@@ -106,8 +106,8 @@ services:
   engineeringws:
     image: mniedermaier1337/cybics-engineeringws:latest
     build:
-      context: ../../software/engineeringWS
-      dockerfile: Dockerfile
+      context: ../../software
+      dockerfile: engineeringWS/Dockerfile
     restart: always
     ports:
       - 6080:6080

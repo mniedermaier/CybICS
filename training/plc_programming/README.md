@@ -11,7 +11,37 @@ With OpenPLC Editor, users can design and simulate control processes, making it 
 The editor supports real-time monitoring and debugging, allowing engineers to troubleshoot and refine their control logic efficiently.
 Its compatibility with multiple PLC hardware platforms and its open-source nature make it a versatile and accessible option for both professionals and hobbyists in industrial automation.
 
-## 📥 Installation
+## 🖥️ Using the Engineering Workstation (Virtual Environment Only)
+
+**⚠️ Note: The Engineering Workstation is only available in the virtual environment, not on physical hardware.**
+
+The easiest way to program the PLC is using the pre-configured Engineering Workstation Docker container. This provides a full desktop environment with OpenPLC Editor already installed and the CybICS project pre-loaded.
+
+### 🔧 Setup Steps
+
+1. Open your web browser and navigate to:
+   ```
+   http://localhost:6080/vnc.html
+   ```
+
+2. Click "Connect" (password: `cybics`)
+
+3. Double-click the "OpenPLC Editor" icon on the desktop
+
+4. The CybICS Beremiz project is available on the desktop at `/root/Desktop/CybICS/`
+
+### 💻 Using the Editor
+
+1. In the Engineering Workstation desktop, double-click "OpenPLC Editor"
+2. Go to **File → Open Project**
+3. Navigate to `/root/Desktop/CybICS/`
+4. Select the folder and open `beremiz.xml`
+5. The project contains the main PLC program named "CybICS"
+6. Start making changes to the program
+
+## 📥 Alternative: Local Installation
+
+If you prefer to install OpenPLC Editor on your local machine instead of using the Engineering Workstation:
 
 ### 🔧 Setup Steps
 1. Clone the repository of the OpenPLC editor:
@@ -34,9 +64,12 @@ Its compatibility with multiple PLC hardware platforms and its open-source natur
    ./openplc_editor.sh
    ```
 
-## 💻 Using the Editor
-1. Open the project called "software" in this folder
-2. Start making changes to the program
+### 💻 Using the Editor (Local Installation)
+1. Open OpenPLC Editor
+2. Go to **File → Open Project**
+3. Navigate to `training/plc_programming/software/`
+4. Select the folder and open `beremiz.xml`
+5. Start making changes to the program
 
 ## 🔄 Program Overview
 The CybICS program manages the operation of an industrial system by controlling components like a compressor, system valve, and various signals based on input conditions and internal states.

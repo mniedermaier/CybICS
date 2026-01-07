@@ -227,7 +227,7 @@ def index_page():
   global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
   # Create container for the content
-  with ui.element('div').style('text-align: center; min-width: 1024; width: 1024;'):
+  with ui.element('div').style('text-align: center; min-width: 1024px; width: 1024px; margin: 0 auto;'):
 
     # NiceGUI setup
     with ui.row().style('width: 900px; text-align: center; align-items: center; justify-content: center;'):
