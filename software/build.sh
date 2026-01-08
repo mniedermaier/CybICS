@@ -3,6 +3,9 @@
 set -e
 cd "$(dirname "$0")"
 
+# Ensure we always switch back to default builder, even on error/interrupt
+trap 'docker buildx use default' EXIT
+
 name=cybicsbuilder2
 docker buildx ls | grep -q $name && docker buildx use $name
 docker buildx ls | grep -q $name || docker buildx create  --use --config config.toml --name $name
@@ -20,5 +23,4 @@ docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-stm32:lates
 # Build landing service from root context
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-landing:latest --push -f ./landing/Dockerfile ..
 
-# Switch back to default builder to avoid breaking devcontainers
-docker buildx use default
+# Note: Builder automatically switches back to default on EXIT via trap

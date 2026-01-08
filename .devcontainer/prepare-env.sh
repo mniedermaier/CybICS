@@ -2,6 +2,14 @@
 
 set -e
 
+# Ensure default Docker builder is selected (required for devcontainers)
+# cybicsbuilder2 is a docker-container builder used for cross-platform builds,
+# but it doesn't have access to locally built images which breaks devcontainer UID updates
+if ! docker buildx ls 2>/dev/null | grep -q '^default\*'; then
+    echo "Switching to default Docker builder for devcontainer compatibility..."
+    docker buildx use default
+fi
+
 DOCKER_ENV_DIR="$(pwd)/.docker.env"
 mkdir -p "$DOCKER_ENV_DIR"
 
