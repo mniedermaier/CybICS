@@ -49,6 +49,14 @@ SERVICES = {
         'path': '/vnc.html?autoconnect=true&resize=scale',
         'icon': '💻',
         'description': 'Full desktop environment with OpenPLC Editor. Develop and modify PLC programs using Beremiz.'
+    },
+    'attackmachine': {
+        'name': 'Attack Machine',
+        'port': 6081,
+        'virtual_only': True,
+        'path': '/vnc.html?autoconnect=true&resize=scale',
+        'icon': '🎯',
+        'description': 'Kali Linux-based security testing environment. Perform penetration testing and vulnerability assessments on ICS/SCADA systems.'
     }
 }
 

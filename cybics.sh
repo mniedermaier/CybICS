@@ -207,6 +207,7 @@ start_environment() {
         print_message "FUXA: http://localhost:1881" "$GREEN"
         print_message "HWIO: http://localhost:8090" "$GREEN"
         print_message "Engineering Workstation (VNC): http://localhost:6080/vnc.html" "$GREEN"
+        print_message "Attack Machine (VNC): http://localhost:6081/vnc.html" "$GREEN"
         print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
         print_message "S7 Communication: localhost:102" "$GREEN"
     else
