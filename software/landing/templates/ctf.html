@@ -292,7 +292,6 @@
         </div>
 
         <div class="text-right flex items-center gap-4">
-            <a href="/" class="back-button">← Back to Dashboard</a>
             <div>
                 <div class="text-lg font-bold">{{ total_points }} Points</div>
                 <div class="text-sm opacity-75">{{ solved|length }}/{{ challenges.values()|map(attribute='challenges')|map('length')|sum }} Challenges</div>

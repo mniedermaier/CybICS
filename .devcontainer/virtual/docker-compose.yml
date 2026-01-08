@@ -103,6 +103,21 @@ services:
     depends_on:
     - openplc
 
+  engineeringws:
+    image: mniedermaier1337/cybics-engineeringws:latest
+    build:
+      context: ../../software
+      dockerfile: engineeringWS/Dockerfile
+    restart: always
+    ports:
+      - 6080:6080
+      - 5901:5901
+    depends_on:
+    - openplc
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.10
+
 networks:
   virt-cybics:
     driver: bridge
