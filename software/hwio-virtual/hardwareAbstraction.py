@@ -438,6 +438,7 @@ def index_page():
   # Three.js 3D Visualization - Clean implementation
   ui.add_body_html('''
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
         <script>
           window.CYBICS_3D_VERSION = "7.0.0-CLEAN";
           document.title = "CybICS 3D Visualization";
@@ -457,9 +458,10 @@ def index_page():
             // Clear container
             container.innerHTML = '';
 
-            // Create scene
+            // Create scene with atmospheric fog
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
+            scene.background = new THREE.Color(0x0a0a1a);
+            scene.fog = new THREE.Fog(0x0a0a1a, 20, 70);
 
             // Create camera
             const camera = new THREE.PerspectiveCamera(
@@ -471,31 +473,70 @@ def index_page():
             camera.position.set(0, 10, 25);
             camera.lookAt(0, 0, 0);
 
-            // Create renderer
+            // Create renderer with shadows enabled
             const canvas = document.createElement('canvas');
-            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.sortObjects = true;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
             container.appendChild(canvas);
 
-            // Add lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            // Enhanced lighting setup
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.4);
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(10, 20, 10);
+            // Main directional light (sun-like)
+            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+            directionalLight.position.set(15, 25, 15);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.left = -30;
+            directionalLight.shadow.camera.right = 30;
+            directionalLight.shadow.camera.top = 30;
+            directionalLight.shadow.camera.bottom = -30;
             scene.add(directionalLight);
 
-            // Ground
+            // Fill light from opposite side
+            const fillLight = new THREE.DirectionalLight(0x6688ff, 0.4);
+            fillLight.position.set(-10, 15, -10);
+            scene.add(fillLight);
+
+            // Rim light for dramatic effect
+            const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
+            rimLight.position.set(0, 10, -20);
+            scene.add(rimLight);
+
+            // Ground with better material
             const groundGeometry = new THREE.PlaneGeometry(60, 60);
-            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a3e });
+            const groundMaterial = new THREE.MeshStandardMaterial({
+              color: 0x1a1a2e,
+              roughness: 0.8,
+              metalness: 0.2
+            });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
             scene.add(ground);
 
             // Grid
             const gridHelper = new THREE.GridHelper(60, 30, 0x444466, 0x333344);
             gridHelper.position.y = 0.01;
             scene.add(gridHelper);
+
+            // Orbit Controls for interactive camera
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 10;
+            controls.maxDistance = 60;
+            controls.maxPolarAngle = Math.PI / 2.1;
+            controls.target.set(0, 3, 0);
+            controls.update();
 
             // Helper function to create text sprite
             function createTextSprite(text, color = '#000000', backgroundColor = '#ffff00') {
@@ -526,26 +567,81 @@ def index_page():
             const gstGroup = new THREE.Group();
             gstGroup.position.set(-7, 0, 0);
 
+            // Tank wireframe outline (thicker lines)
             const gstBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
-              new THREE.MeshStandardMaterial({ color: 0x4a90e2, metalness: 0.7, roughness: 0.3 })
+              new THREE.MeshBasicMaterial({
+                color: 0x6ab0ff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.8
+              })
             );
             gstBody.position.y = 4;
             gstGroup.add(gstBody);
 
             // GST fill level (animated based on pressure)
+            const gstFillGeometry = new THREE.CylinderGeometry(1.95, 1.95, 8, 32);
+            gstFillGeometry.translate(0, 4, 0); // Move geometry so bottom is at origin
             const gstFill = new THREE.Mesh(
-              new THREE.CylinderGeometry(1.95, 1.95, 8, 32),
+              gstFillGeometry,
               new THREE.MeshStandardMaterial({
                 color: 0x2196f3,
                 transparent: true,
-                opacity: 0.6,
+                opacity: 0.7,
                 emissive: 0x1976d2,
-                emissiveIntensity: 0.3
+                emissiveIntensity: 0.4,
+                roughness: 0.3,
+                metalness: 0.1
               })
             );
             gstFill.position.y = 0;
+            gstFill.scale.y = 0.01;
+            gstFill.castShadow = true;
+            gstFill.receiveShadow = true;
             gstGroup.add(gstFill);
+
+            // GST metallic bands for industrial look
+            const bandMaterial = new THREE.MeshStandardMaterial({
+              color: 0x88aacc,
+              metalness: 0.95,
+              roughness: 0.15
+            });
+
+            for(let i = 0; i < 3; i++) {
+              const band = new THREE.Mesh(
+                new THREE.TorusGeometry(2.05, 0.08, 8, 32),
+                bandMaterial
+              );
+              band.position.y = 1 + i * 3;
+              band.rotation.x = Math.PI / 2;
+              band.castShadow = true;
+              band.receiveShadow = true;
+              gstGroup.add(band);
+            }
+
+            // GST top and bottom caps
+            const capMaterial = new THREE.MeshStandardMaterial({
+              color: 0x7799bb,
+              metalness: 0.9,
+              roughness: 0.2
+            });
+
+            const gstTopCap = new THREE.Mesh(
+              new THREE.CylinderGeometry(2.1, 2.05, 0.3, 32),
+              capMaterial
+            );
+            gstTopCap.position.y = 8.15;
+            gstTopCap.castShadow = true;
+            gstGroup.add(gstTopCap);
+
+            const gstBottomCap = new THREE.Mesh(
+              new THREE.CylinderGeometry(2.05, 2.1, 0.3, 32),
+              capMaterial
+            );
+            gstBottomCap.position.y = -0.15;
+            gstBottomCap.castShadow = true;
+            gstGroup.add(gstBottomCap);
 
             // GST Label with text
             const gstLabel = createTextSprite('GST');
@@ -558,26 +654,81 @@ def index_page():
             const hptGroup = new THREE.Group();
             hptGroup.position.set(7, 0, 0);
 
+            // Tank wireframe outline (thicker lines)
             const hptBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
-              new THREE.MeshStandardMaterial({ color: 0xe24a4a, metalness: 0.7, roughness: 0.3 })
+              new THREE.MeshBasicMaterial({
+                color: 0xff6b6b,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.8
+              })
             );
             hptBody.position.y = 4;
             hptGroup.add(hptBody);
 
             // HPT fill level (animated based on pressure)
+            const hptFillGeometry = new THREE.CylinderGeometry(1.95, 1.95, 8, 32);
+            hptFillGeometry.translate(0, 4, 0); // Move geometry so bottom is at origin
             const hptFill = new THREE.Mesh(
-              new THREE.CylinderGeometry(1.95, 1.95, 8, 32),
+              hptFillGeometry,
               new THREE.MeshStandardMaterial({
                 color: 0xf44336,
                 transparent: true,
-                opacity: 0.6,
+                opacity: 0.7,
                 emissive: 0xd32f2f,
-                emissiveIntensity: 0.3
+                emissiveIntensity: 0.4,
+                roughness: 0.3,
+                metalness: 0.1
               })
             );
             hptFill.position.y = 0;
+            hptFill.scale.y = 0.01;
+            hptFill.castShadow = true;
+            hptFill.receiveShadow = true;
             hptGroup.add(hptFill);
+
+            // HPT metallic bands for industrial look
+            const hptBandMaterial = new THREE.MeshStandardMaterial({
+              color: 0xcc8888,
+              metalness: 0.95,
+              roughness: 0.15
+            });
+
+            for(let i = 0; i < 3; i++) {
+              const band = new THREE.Mesh(
+                new THREE.TorusGeometry(2.05, 0.08, 8, 32),
+                hptBandMaterial
+              );
+              band.position.y = 1 + i * 3;
+              band.rotation.x = Math.PI / 2;
+              band.castShadow = true;
+              band.receiveShadow = true;
+              hptGroup.add(band);
+            }
+
+            // HPT top and bottom caps
+            const hptCapMaterial = new THREE.MeshStandardMaterial({
+              color: 0xbb7777,
+              metalness: 0.9,
+              roughness: 0.2
+            });
+
+            const hptTopCap = new THREE.Mesh(
+              new THREE.CylinderGeometry(2.1, 2.05, 0.3, 32),
+              hptCapMaterial
+            );
+            hptTopCap.position.y = 8.15;
+            hptTopCap.castShadow = true;
+            hptGroup.add(hptTopCap);
+
+            const hptBottomCap = new THREE.Mesh(
+              new THREE.CylinderGeometry(2.05, 2.1, 0.3, 32),
+              hptCapMaterial
+            );
+            hptBottomCap.position.y = -0.15;
+            hptBottomCap.castShadow = true;
+            hptGroup.add(hptBottomCap);
 
             // HPT Label with text
             const hptLabel = createTextSprite('HPT');
@@ -586,16 +737,29 @@ def index_page():
 
             scene.add(hptGroup);
 
-            // Compressor (center front) with rotating fan
+            // Compressor (between tanks) with rotating fan
             const compressorGroup = new THREE.Group();
-            compressorGroup.position.set(0, 0, 8);
+            compressorGroup.position.set(0, 0, 0);
 
             const compressorBody = new THREE.Mesh(
               new THREE.BoxGeometry(3, 2, 2),
-              new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.8 })
+              new THREE.MeshStandardMaterial({
+                color: 0x555566,
+                metalness: 0.9,
+                roughness: 0.2,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0
+              })
             );
             compressorBody.position.y = 1;
+            compressorBody.castShadow = true;
+            compressorBody.receiveShadow = true;
             compressorGroup.add(compressorBody);
+
+            // Green indicator light for compressor
+            const compressorLight = new THREE.PointLight(0x00ff00, 0, 5);
+            compressorLight.position.set(0, 1.5, 0);
+            compressorGroup.add(compressorLight);
 
             // Rotating fan
             const fanGroup = new THREE.Group();
@@ -604,14 +768,98 @@ def index_page():
             for(let i = 0; i < 4; i++) {
               const blade = new THREE.Mesh(
                 new THREE.BoxGeometry(0.1, 0.8, 0.05),
-                new THREE.MeshStandardMaterial({ color: 0x333333 })
+                new THREE.MeshStandardMaterial({
+                  color: 0x222233,
+                  metalness: 0.7,
+                  roughness: 0.3
+                })
               );
               blade.rotation.z = (Math.PI / 2) * i;
+              blade.castShadow = true;
               fanGroup.add(blade);
             }
 
             compressorGroup.add(fanGroup);
             scene.add(compressorGroup);
+
+            // Pipes connecting GST -> Compressor -> HPT (separated inlet/outlet)
+            const pipeMaterial = new THREE.MeshStandardMaterial({
+              color: 0x888888,
+              metalness: 0.9,
+              roughness: 0.3
+            });
+
+            // INLET PIPE: GST wall to Compressor wall (lower level)
+            // GST is at (-7, 0, 0) with radius 2, right wall at -5
+            // Compressor is at (0, 0, 0) with width 3, left wall at -1.5
+            // Pipe length: -5 to -1.5 = 3.5 units, center at -3.25
+
+            const inletPipe = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.15, 0.15, 3.5, 16),
+              pipeMaterial
+            );
+            inletPipe.position.set(-3.25, 1.5, -0.5);
+            inletPipe.rotation.z = Math.PI / 2;
+            inletPipe.castShadow = true;
+            inletPipe.receiveShadow = true;
+            scene.add(inletPipe);
+
+            // OUTLET PIPE: Compressor wall to HPT wall (higher level)
+            // Compressor is at (0, 0, 0) with width 3, right wall at 1.5
+            // HPT is at (7, 0, 0) with radius 2, left wall at 5
+            // Pipe length: 1.5 to 5 = 3.5 units, center at 3.25
+
+            const outletPipe = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.15, 0.15, 3.5, 16),
+              pipeMaterial
+            );
+            outletPipe.position.set(3.25, 2.5, 0.5);
+            outletPipe.rotation.z = Math.PI / 2;
+            outletPipe.castShadow = true;
+            outletPipe.receiveShadow = true;
+            scene.add(outletPipe);
+
+            // Elbow joints at pipe connections
+            const elbowMaterial = new THREE.MeshStandardMaterial({
+              color: 0x666666,
+              metalness: 0.8
+            });
+
+            // Elbow at GST outlet (tank wall)
+            const elbowGST = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 16, 16),
+              elbowMaterial
+            );
+            elbowGST.position.set(-5, 1.5, -0.5);
+            elbowGST.castShadow = true;
+            scene.add(elbowGST);
+
+            // Elbow at Compressor inlet (left side)
+            const elbowCompIn = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 16, 16),
+              elbowMaterial
+            );
+            elbowCompIn.position.set(-1.5, 1.5, -0.5);
+            elbowCompIn.castShadow = true;
+            scene.add(elbowCompIn);
+
+            // Elbow at Compressor outlet (right side)
+            const elbowCompOut = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 16, 16),
+              elbowMaterial
+            );
+            elbowCompOut.position.set(1.5, 2.5, 0.5);
+            elbowCompOut.castShadow = true;
+            scene.add(elbowCompOut);
+
+            // Elbow at HPT inlet (tank wall)
+            const elbowHPT = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 16, 16),
+              elbowMaterial
+            );
+            elbowHPT.position.set(5, 2.5, 0.5);
+            elbowHPT.castShadow = true;
+            scene.add(elbowHPT);
 
             // Chimney (beside HPT)
             const chimneyGroup = new THREE.Group();
@@ -639,9 +887,9 @@ def index_page():
 
             scene.add(cabinetGroup);
 
-            // LED Panel
+            // LED Panel (right side)
             const ledPanel = new THREE.Group();
-            ledPanel.position.set(-12, 3, 0);
+            ledPanel.position.set(15, 3, 0);
 
             const ledBoard = new THREE.Mesh(
               new THREE.BoxGeometry(2, 3, 0.2),
@@ -673,19 +921,20 @@ def index_page():
 
             scene.add(ledPanel);
 
-            // Particle system for gas flow (from compressor to tanks)
+            // Particle system for gas flow (from compressor outlet pipe to HPT)
             const particleCount = 100;
             const particles = new Float32Array(particleCount * 3);
             const particleVelocities = [];
 
             for(let i = 0; i < particleCount; i++) {
-              particles[i * 3] = (Math.random() - 0.5) * 8 - 3;
-              particles[i * 3 + 1] = 1;
-              particles[i * 3 + 2] = (Math.random() - 0.5) * 2;
+              // Start particles along the outlet pipe path (compressor to HPT)
+              particles[i * 3] = Math.random() * 7; // X: 0 to 7 (compressor to HPT)
+              particles[i * 3 + 1] = 2.5; // Y: at outlet pipe height
+              particles[i * 3 + 2] = 0.5 + (Math.random() - 0.5) * 0.3; // Z: near outlet pipe
               particleVelocities.push({
-                x: (Math.random() - 0.5) * 0.02,
-                y: 0.05 + Math.random() * 0.05,
-                z: (Math.random() - 0.5) * 0.02
+                x: 0.03 + Math.random() * 0.02, // Moving right toward HPT
+                y: (Math.random() - 0.5) * 0.01, // Slight vertical variance
+                z: (Math.random() - 0.5) * 0.01
               });
             }
 
@@ -693,10 +942,13 @@ def index_page():
             particleGeometry.setAttribute('position', new THREE.BufferAttribute(particles, 3));
 
             const particleMaterial = new THREE.PointsMaterial({
-              color: 0x00ff88,
-              size: 0.15,
+              color: 0x00ffaa,
+              size: 0.2,
               transparent: true,
-              opacity: 0.6
+              opacity: 0.8,
+              sizeAttenuation: true,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false
             });
 
             const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
@@ -738,11 +990,13 @@ def index_page():
             flameGeometry.setAttribute('color', new THREE.BufferAttribute(flameColors, 3));
 
             const flameMaterial = new THREE.PointsMaterial({
-              size: 0.3,
+              size: 0.4,
               vertexColors: true,
               transparent: true,
-              opacity: 0.8,
-              blending: THREE.AdditiveBlending
+              opacity: 0.9,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              sizeAttenuation: true
             });
 
             const flameSystem = new THREE.Points(flameGeometry, flameMaterial);
@@ -754,10 +1008,22 @@ def index_page():
             flameLight.position.set(11, 10, 0);
             scene.add(flameLight);
 
-            // Status overlay
+            // Status overlay with all system values
             const statusOverlay = document.createElement('div');
-            statusOverlay.style.cssText = 'position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; color: white; font-family: monospace; z-index: 10;';
-            statusOverlay.innerHTML = '<h3 style="margin: 0 0 10px 0; color: #ff8c42;">System Status</h3><div>GST: <span id="gst-value">0</span></div><div>HPT: <span id="hpt-value">0</span></div>';
+            statusOverlay.style.cssText = 'position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 12px; color: white; font-family: monospace; z-index: 10; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);';
+            statusOverlay.innerHTML = `
+              <h3 style="margin: 0 0 15px 0; color: #ff8c42; font-size: 18px; border-bottom: 2px solid #ff8c42; padding-bottom: 8px;">System Status</h3>
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 15px;">
+                <div style="color: #6ab0ff;">GST Pressure:</div><div><span id="gst-value">0</span></div>
+                <div style="color: #ff6b6b;">HPT Pressure:</div><div><span id="hpt-value">0</span></div>
+                <div style="color: #ffdd57;">System Sensor:</div><div><span id="syssen-value">0</span></div>
+                <div style="color: #ff8844;">Blowout:</div><div><span id="bosen-value">0</span></div>
+                <div style="color: #00ff88;">Compressor:</div><div><span id="compressor-value">OFF</span></div>
+                <div style="color: #88ccff;">System Valve:</div><div><span id="systemvalve-value">CLOSED</span></div>
+                <div style="color: #cc88ff;">GST Signal:</div><div><span id="gstsig-value">0</span></div>
+                <div style="color: #ff88cc;">Heartbeat:</div><div><span id="heartbeat-value">0</span></div>
+              </div>
+            `;
             container.appendChild(statusOverlay);
 
             // Variables for smooth animations
@@ -770,21 +1036,24 @@ def index_page():
                 const response = await fetch('/api/state');
                 const data = await response.json();
 
-                // Update tank fill levels
-                const gstPercent = data.gst / 100;
-                const hptPercent = data.hpt / 100;
+                // Update tank fill levels (pressure values range 0-255)
+                const gstPercent = data.gst / 255;
+                const hptPercent = data.hpt / 255;
 
-                gstFill.scale.y = Math.max(0.1, gstPercent);
-                gstFill.position.y = 4 - 4 * (1 - gstPercent);
+                // Scale fill (geometry is anchored at bottom, so just scale)
+                gstFill.scale.y = Math.max(0.01, gstPercent);
+                hptFill.scale.y = Math.max(0.01, hptPercent);
 
-                hptFill.scale.y = Math.max(0.1, hptPercent);
-                hptFill.position.y = 4 - 4 * (1 - hptPercent);
-
-                // Update compressor fan speed
+                // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
 
+                // Update compressor green light effect
+                const compressorActive = data.compressor > 0;
+                compressorBody.material.emissiveIntensity = compressorActive ? 0.6 : 0;
+                compressorLight.intensity = compressorActive ? 3 : 0;
+
                 // Update particle visibility
-                particleSystem.visible = data.compressor > 0;
+                particleSystem.visible = compressorActive;
 
                 // Update flame system
                 flameSystem.visible = data.boSen > 0;
@@ -819,9 +1088,15 @@ def index_page():
                   led.material.emissiveIntensity = intensity;
                 });
 
-                // Update status overlay
+                // Update status overlay with all values
                 document.getElementById('gst-value').textContent = data.gst;
                 document.getElementById('hpt-value').textContent = data.hpt;
+                document.getElementById('syssen-value').textContent = data.sysSen ? 'OK' : 'ALARM';
+                document.getElementById('bosen-value').textContent = data.boSen > 0 ? 'ACTIVE' : 'INACTIVE';
+                document.getElementById('compressor-value').textContent = data.compressor > 0 ? 'ON' : 'OFF';
+                document.getElementById('systemvalve-value').textContent = data.systemValve ? 'OPEN' : 'CLOSED';
+                document.getElementById('gstsig-value').textContent = data.gstSig ? 'HIGH' : 'LOW';
+                document.getElementById('heartbeat-value').textContent = data.heartbeat;
               } catch (e) {
                 // Silent fail - will retry on next frame
               }
@@ -835,7 +1110,7 @@ def index_page():
               fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) * 0.1;
               fanGroup.rotation.z += fanRotationSpeed;
 
-              // Animate gas particles
+              // Animate gas particles (flowing along outlet pipe from compressor to HPT)
               if(particleSystem.visible) {
                 const positions = particleGeometry.attributes.position.array;
                 for(let i = 0; i < particleCount; i++) {
@@ -843,10 +1118,11 @@ def index_page():
                   positions[i * 3 + 1] += particleVelocities[i].y;
                   positions[i * 3 + 2] += particleVelocities[i].z;
 
-                  if(positions[i * 3 + 1] > 10) {
-                    positions[i * 3] = (Math.random() - 0.5) * 8 - 3;
-                    positions[i * 3 + 1] = 1;
-                    positions[i * 3 + 2] = (Math.random() - 0.5) * 2;
+                  // Reset particles that reach HPT back to compressor
+                  if(positions[i * 3] > 7.5) {
+                    positions[i * 3] = 0; // Back to compressor
+                    positions[i * 3 + 1] = 2.5; // At outlet pipe height
+                    positions[i * 3 + 2] = 0.5 + (Math.random() - 0.5) * 0.3;
                   }
                 }
                 particleGeometry.attributes.position.needsUpdate = true;
@@ -896,6 +1172,9 @@ def index_page():
 
                 flameLight.intensity = 5 + Math.sin(Date.now() * 0.01) * 2 + Math.random();
               }
+
+              // Update orbit controls
+              controls.update();
 
               renderer.render(scene, camera);
             }
