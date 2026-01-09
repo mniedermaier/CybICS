@@ -9,6 +9,15 @@ jobs:
     name: (linux/amd64) push docker image to hub
     runs-on: ubuntu-latest
     steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+
       - name: check repository
         uses: actions/checkout@v4
         with:
