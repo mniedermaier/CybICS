@@ -1,7 +1,7 @@
 {
 	"name": "CybICS-virtual",
 	"dockerComposeFile": "./docker-compose.yml",
-	"service": "attack",
+	"service": "attack-machine",
 	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
