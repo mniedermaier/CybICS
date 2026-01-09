@@ -437,8 +437,8 @@ def index_page():
 
   # Three.js 3D Visualization - Clean implementation
   ui.add_body_html('''
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="/static/js/three.min.js"></script>
+        <script src="/static/js/OrbitControls.js"></script>
         <script>
           window.CYBICS_3D_VERSION = "7.0.0-CLEAN";
           document.title = "CybICS 3D Visualization";
@@ -458,10 +458,25 @@ def index_page():
             // Clear container
             container.innerHTML = '';
 
-            // Create scene with atmospheric fog
+            // Create scene with stunning gradient background
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a1a);
-            scene.fog = new THREE.Fog(0x0a0a1a, 20, 70);
+
+            // Create gradient background
+            const bgCanvas = document.createElement('canvas');
+            bgCanvas.width = 2048;
+            bgCanvas.height = 2048;
+            const ctx = bgCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
+            gradient.addColorStop(0, '#0a0a1f');
+            gradient.addColorStop(0.3, '#1a1a3e');
+            gradient.addColorStop(0.7, '#2a1a3e');
+            gradient.addColorStop(1, '#1a0a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            const bgTexture = new THREE.CanvasTexture(bgCanvas);
+            scene.background = bgTexture;
+            scene.fog = new THREE.FogExp2(0x0a0a1a, 0.015);
 
             // Create camera
             const camera = new THREE.PerspectiveCamera(
@@ -481,15 +496,15 @@ def index_page():
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
+            renderer.toneMappingExposure = 0.9;
             container.appendChild(canvas);
 
-            // Enhanced lighting setup
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.4);
+            // Enhanced lighting setup (reduced brightness)
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.3);
             scene.add(ambientLight);
 
-            // Main directional light (sun-like)
-            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+            // Main directional light (sun-like) - reduced intensity
+            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 0.7);
             directionalLight.position.set(15, 25, 15);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048;
@@ -500,15 +515,36 @@ def index_page():
             directionalLight.shadow.camera.bottom = -30;
             scene.add(directionalLight);
 
-            // Fill light from opposite side
-            const fillLight = new THREE.DirectionalLight(0x6688ff, 0.4);
+            // Fill light from opposite side - reduced
+            const fillLight = new THREE.DirectionalLight(0x6688ff, 0.25);
             fillLight.position.set(-10, 15, -10);
             scene.add(fillLight);
 
-            // Rim light for dramatic effect
-            const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
+            // Rim light for dramatic effect - reduced
+            const rimLight = new THREE.DirectionalLight(0xff8844, 0.3);
             rimLight.position.set(0, 10, -20);
             scene.add(rimLight);
+
+            // Accent spotlights for dramatic atmosphere - reduced intensities
+            const createSpotlight = (color, intensity, x, y, z, targetX, targetY, targetZ) => {
+              const spotlight = new THREE.SpotLight(color, intensity, 50, Math.PI / 6, 0.5, 2);
+              spotlight.position.set(x, y, z);
+              spotlight.castShadow = true;
+              spotlight.shadow.mapSize.width = 1024;
+              spotlight.shadow.mapSize.height = 1024;
+
+              const target = new THREE.Object3D();
+              target.position.set(targetX, targetY, targetZ);
+              scene.add(target);
+              spotlight.target = target;
+
+              return spotlight;
+            };
+
+            // Spotlights illuminating tanks from above - softer lighting
+            scene.add(createSpotlight(0x6ab0ff, 1.2, -7, 12, 5, -7, 0, 0)); // GST
+            scene.add(createSpotlight(0xff6b6b, 1.2, 7, 12, 5, 7, 0, 0));   // HPT
+            scene.add(createSpotlight(0x00ff88, 0.8, 0, 8, 3, 0, 1, 0));    // Compressor
 
             // Ground with better material
             const groundGeometry = new THREE.PlaneGeometry(60, 60);
@@ -522,10 +558,49 @@ def index_page():
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Grid
-            const gridHelper = new THREE.GridHelper(60, 30, 0x444466, 0x333344);
+            // Enhanced grid with multiple layers
+            const gridHelper = new THREE.GridHelper(60, 30, 0x4466aa, 0x333355);
             gridHelper.position.y = 0.01;
             scene.add(gridHelper);
+
+            // Industrial platform base
+            const platformGroup = new THREE.Group();
+
+            // Main platform
+            const platform = new THREE.Mesh(
+              new THREE.BoxGeometry(20, 0.5, 12),
+              new THREE.MeshStandardMaterial({
+                color: 0x2a2a44,
+                metalness: 0.8,
+                roughness: 0.3
+              })
+            );
+            platform.position.y = 0.25;
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            platformGroup.add(platform);
+
+            // Platform edge strips (glowing)
+            const edgeStripMaterial = new THREE.MeshStandardMaterial({
+              color: 0x00ffff,
+              emissive: 0x00ffff,
+              emissiveIntensity: 0.6,
+              metalness: 0.9,
+              roughness: 0.1
+            });
+
+            const createEdgeStrip = (w, h, d, x, y, z) => {
+              const strip = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), edgeStripMaterial);
+              strip.position.set(x, y, z);
+              return strip;
+            };
+
+            platformGroup.add(createEdgeStrip(20.2, 0.1, 0.1, 0, 0.55, 6));   // Front
+            platformGroup.add(createEdgeStrip(20.2, 0.1, 0.1, 0, 0.55, -6));  // Back
+            platformGroup.add(createEdgeStrip(0.1, 0.1, 12.2, 10, 0.55, 0));  // Right
+            platformGroup.add(createEdgeStrip(0.1, 0.1, 12.2, -10, 0.55, 0)); // Left
+
+            scene.add(platformGroup);
 
             // Orbit Controls for interactive camera
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -643,6 +718,21 @@ def index_page():
             gstBottomCap.castShadow = true;
             gstGroup.add(gstBottomCap);
 
+            // GST animated glow ring
+            const gstGlowRing = new THREE.Mesh(
+              new THREE.TorusGeometry(2.3, 0.05, 8, 32),
+              new THREE.MeshStandardMaterial({
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 1.5,
+                transparent: true,
+                opacity: 0.8
+              })
+            );
+            gstGlowRing.position.y = 7;
+            gstGlowRing.rotation.x = Math.PI / 2;
+            gstGroup.add(gstGlowRing);
+
             // GST Label with text
             const gstLabel = createTextSprite('GST');
             gstLabel.position.set(0, 9, 0);
@@ -729,6 +819,21 @@ def index_page():
             hptBottomCap.position.y = -0.15;
             hptBottomCap.castShadow = true;
             hptGroup.add(hptBottomCap);
+
+            // HPT animated glow ring
+            const hptGlowRing = new THREE.Mesh(
+              new THREE.TorusGeometry(2.3, 0.05, 8, 32),
+              new THREE.MeshStandardMaterial({
+                color: 0xff00ff,
+                emissive: 0xff00ff,
+                emissiveIntensity: 1.5,
+                transparent: true,
+                opacity: 0.8
+              })
+            );
+            hptGlowRing.position.y = 7;
+            hptGlowRing.rotation.x = Math.PI / 2;
+            hptGroup.add(hptGlowRing);
 
             // HPT Label with text
             const hptLabel = createTextSprite('HPT');
@@ -861,16 +966,85 @@ def index_page():
             elbowHPT.castShadow = true;
             scene.add(elbowHPT);
 
-            // Chimney (beside HPT)
+            // Industrial Chimney Stack (beside HPT)
             const chimneyGroup = new THREE.Group();
             chimneyGroup.position.set(11, 0, 0);
 
-            const chimneyStack = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.6, 0.8, 10, 12),
-              new THREE.MeshStandardMaterial({ color: 0xff6600 })
+            // Chimney base (concrete/brick)
+            const chimneyBase = new THREE.Mesh(
+              new THREE.CylinderGeometry(1.0, 1.2, 2, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0x4a4a52,
+                roughness: 0.9,
+                metalness: 0.1
+              })
             );
-            chimneyStack.position.y = 5;
+            chimneyBase.position.y = 1;
+            chimneyBase.castShadow = true;
+            chimneyBase.receiveShadow = true;
+            chimneyGroup.add(chimneyBase);
+
+            // Main stack (brick/concrete with texture)
+            const chimneyStack = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.7, 0.9, 8, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0x5a4a42,
+                roughness: 0.85,
+                metalness: 0.05
+              })
+            );
+            chimneyStack.position.y = 6;
+            chimneyStack.castShadow = true;
+            chimneyStack.receiveShadow = true;
             chimneyGroup.add(chimneyStack);
+
+            // Metallic bands (3 reinforcement rings)
+            const bandMat = new THREE.MeshStandardMaterial({
+              color: 0x666677,
+              metalness: 0.9,
+              roughness: 0.2
+            });
+
+            for(let i = 0; i < 3; i++) {
+              const band = new THREE.Mesh(
+                new THREE.TorusGeometry(0.75, 0.06, 8, 16),
+                bandMat
+              );
+              band.position.y = 3.5 + i * 2;
+              band.rotation.x = Math.PI / 2;
+              band.castShadow = true;
+              chimneyGroup.add(band);
+            }
+
+            // Metallic top cap
+            const chimneyTop = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.8, 0.7, 0.5, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0x777788,
+                metalness: 0.9,
+                roughness: 0.3,
+                emissive: 0x442200,
+                emissiveIntensity: 0.3
+              })
+            );
+            chimneyTop.position.y = 10.25;
+            chimneyTop.castShadow = true;
+            chimneyGroup.add(chimneyTop);
+
+            // Heat glow ring at top
+            const heatGlow = new THREE.Mesh(
+              new THREE.TorusGeometry(0.75, 0.05, 8, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0xff4400,
+                emissive: 0xff4400,
+                emissiveIntensity: 1.0,
+                transparent: true,
+                opacity: 0.7
+              })
+            );
+            heatGlow.position.y = 10;
+            heatGlow.rotation.x = Math.PI / 2;
+            chimneyGroup.add(heatGlow);
 
             scene.add(chimneyGroup);
 
@@ -1008,20 +1182,56 @@ def index_page():
             flameLight.position.set(11, 10, 0);
             scene.add(flameLight);
 
-            // Status overlay with all system values
+            // Status overlay with glassmorphism design
             const statusOverlay = document.createElement('div');
-            statusOverlay.style.cssText = 'position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 12px; color: white; font-family: monospace; z-index: 10; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);';
+            statusOverlay.style.cssText = `
+              position: absolute;
+              bottom: 30px;
+              left: 30px;
+              background: linear-gradient(135deg, rgba(20, 20, 40, 0.9), rgba(30, 20, 50, 0.8));
+              backdrop-filter: blur(10px);
+              border: 2px solid rgba(100, 150, 255, 0.3);
+              padding: 25px;
+              border-radius: 20px;
+              color: white;
+              font-family: 'Courier New', monospace;
+              z-index: 10;
+              font-size: 15px;
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(100, 150, 255, 0.1);
+              animation: statusGlow 3s ease-in-out infinite;
+            `;
             statusOverlay.innerHTML = `
-              <h3 style="margin: 0 0 15px 0; color: #ff8c42; font-size: 18px; border-bottom: 2px solid #ff8c42; padding-bottom: 8px;">System Status</h3>
-              <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 15px;">
-                <div style="color: #6ab0ff;">GST Pressure:</div><div><span id="gst-value">0</span></div>
-                <div style="color: #ff6b6b;">HPT Pressure:</div><div><span id="hpt-value">0</span></div>
-                <div style="color: #ffdd57;">System Sensor:</div><div><span id="syssen-value">0</span></div>
-                <div style="color: #ff8844;">Blowout:</div><div><span id="bosen-value">0</span></div>
-                <div style="color: #00ff88;">Compressor:</div><div><span id="compressor-value">OFF</span></div>
-                <div style="color: #88ccff;">System Valve:</div><div><span id="systemvalve-value">CLOSED</span></div>
-                <div style="color: #cc88ff;">GST Signal:</div><div><span id="gstsig-value">0</span></div>
-                <div style="color: #ff88cc;">Heartbeat:</div><div><span id="heartbeat-value">0</span></div>
+              <style>
+                @keyframes statusGlow {
+                  0%, 100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(100, 150, 255, 0.1); }
+                  50% { box-shadow: 0 8px 32px rgba(100, 150, 255, 0.3), inset 0 0 30px rgba(100, 150, 255, 0.2); }
+                }
+                .status-value {
+                  font-weight: bold;
+                  text-shadow: 0 0 10px currentColor;
+                  transition: all 0.3s ease;
+                }
+              </style>
+              <h3 style="
+                margin: 0 0 20px 0;
+                color: #ff8c42;
+                font-size: 22px;
+                text-transform: uppercase;
+                letter-spacing: 3px;
+                border-bottom: 2px solid #ff8c42;
+                padding-bottom: 12px;
+                text-shadow: 0 0 20px rgba(255, 140, 66, 0.6);
+                font-weight: bold;
+              ">⚡ System Status</h3>
+              <div style="display: grid; grid-template-columns: auto auto; gap: 12px 20px; line-height: 1.8;">
+                <div style="color: #6ab0ff;">● GST Pressure:</div><div class="status-value" style="color: #6ab0ff; text-align: left;"><span id="gst-value">0</span></div>
+                <div style="color: #ff6b6b;">● HPT Pressure:</div><div class="status-value" style="color: #ff6b6b; text-align: left;"><span id="hpt-value">0</span></div>
+                <div style="color: #ffdd57;">● System Sensor:</div><div class="status-value" style="color: #ffdd57; text-align: left;"><span id="syssen-value">0</span></div>
+                <div style="color: #ff8844;">● Blowout:</div><div class="status-value" style="color: #ff8844; text-align: left;"><span id="bosen-value">0</span></div>
+                <div style="color: #00ff88;">● Compressor:</div><div class="status-value" style="color: #00ff88; text-align: left;"><span id="compressor-value">OFF</span></div>
+                <div style="color: #88ccff;">● System Valve:</div><div class="status-value" style="color: #88ccff; text-align: left;"><span id="systemvalve-value">CLOSED</span></div>
+                <div style="color: #cc88ff;">● GST Signal:</div><div class="status-value" style="color: #cc88ff; text-align: left;"><span id="gstsig-value">0</span></div>
+                <div style="color: #ff88cc;">● Heartbeat:</div><div class="status-value" style="color: #ff88cc; text-align: left;"><span id="heartbeat-value">0</span></div>
               </div>
             `;
             container.appendChild(statusOverlay);
@@ -1172,6 +1382,18 @@ def index_page():
 
                 flameLight.intensity = 5 + Math.sin(Date.now() * 0.01) * 2 + Math.random();
               }
+
+              // Animate glow rings
+              const time = Date.now() * 0.001;
+              gstGlowRing.rotation.z = time * 0.5;
+              gstGlowRing.material.emissiveIntensity = 1.5 + Math.sin(time * 2) * 0.5;
+
+              hptGlowRing.rotation.z = -time * 0.5;
+              hptGlowRing.material.emissiveIntensity = 1.5 + Math.cos(time * 2) * 0.5;
+
+              // Animate platform edge strips
+              const stripIntensity = 0.6 + Math.sin(time * 3) * 0.3;
+              edgeStripMaterial.emissiveIntensity = stripIntensity;
 
               // Update orbit controls
               controls.update();
@@ -1574,4 +1796,11 @@ if __name__ == "__main__":
   logging.info("Main    : Physical process thread started")
 
   logging.info("Main    : starting NiceGUI")
+
+  # Mount static files for offline access
+  from nicegui import app
+  import os
+  static_dir = os.path.join(os.path.dirname(__file__), 'static')
+  app.add_static_files('/static', static_dir)
+
   ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
