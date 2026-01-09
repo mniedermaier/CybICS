@@ -1,21 +1,29 @@
 services:
-  attack:
-    image: mniedermaier1337/cybicsattack:latest
+  attack-machine:
+    image: mniedermaier1337/cybics-attack-machine:latest
     build:
-      context: .
+      context: ../../software/attack-machine
       dockerfile: Dockerfile
-    env_file:
-      - ../../.dev.env
-      - ../../.env
+    hostname: attack-machine
+    restart: always
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      - 6081:6081
+      - 5902:5902
     volumes:
       - ../../:/CybICS
-      - ~/.ssh:/home/docker/.ssh/
-      - ~/.gitconfig:/home/docker/.gitconfig
-      - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
-    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
+      - ../../software/attack-machine/workspace:/root/Desktop/workspace
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.100
+    depends_on:
+      - openplc
+      - fuxa
+      - hwio
 
   openplc:
     image: mniedermaier1337/cybicsopenplc:latest
