@@ -525,34 +525,37 @@ def index_page():
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.4;
+            renderer.toneMappingExposure = 1.1;
+            renderer.physicallyCorrectLights = true;
             container.appendChild(canvas);
 
-            // CybICS orange-themed lighting setup - bright and warm
-            const ambientLight = new THREE.AmbientLight(0x554433, 0.6);
+            // Realistic industrial lighting setup
+            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.5);
             scene.add(ambientLight);
 
-            // Main directional light (bright warm white)
-            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
-            directionalLight.position.set(15, 25, 15);
+            // Main overhead directional light (soft daylight)
+            const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.0);
+            directionalLight.position.set(12, 20, 8);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
-            directionalLight.shadow.camera.left = -30;
-            directionalLight.shadow.camera.right = 30;
-            directionalLight.shadow.camera.top = 30;
-            directionalLight.shadow.camera.bottom = -30;
+            directionalLight.shadow.mapSize.width = 4096;
+            directionalLight.shadow.mapSize.height = 4096;
+            directionalLight.shadow.camera.left = -25;
+            directionalLight.shadow.camera.right = 25;
+            directionalLight.shadow.camera.top = 25;
+            directionalLight.shadow.camera.bottom = -25;
+            directionalLight.shadow.bias = -0.0001;
+            directionalLight.shadow.radius = 2;
             scene.add(directionalLight);
 
-            // Orange fill light (CybICS accent)
-            const fillLight = new THREE.DirectionalLight(0xff8c42, 0.5);
-            fillLight.position.set(-10, 15, -10);
+            // Soft fill light from side (subtle blue)
+            const fillLight = new THREE.DirectionalLight(0xa8c5dd, 0.35);
+            fillLight.position.set(-15, 12, -8);
             scene.add(fillLight);
 
-            // Warm rim light (orange accent)
-            const rimLight = new THREE.DirectionalLight(0xffa500, 0.4);
-            rimLight.position.set(0, 10, -20);
-            scene.add(rimLight);
+            // Warm accent light from opposite side (CybICS orange)
+            const accentLight = new THREE.DirectionalLight(0xff9955, 0.3);
+            accentLight.position.set(8, 10, -15);
+            scene.add(accentLight);
 
             // Accent spotlights for dramatic atmosphere - reduced intensities
             const createSpotlight = (color, intensity, x, y, z, targetX, targetY, targetZ) => {
@@ -570,56 +573,98 @@ def index_page():
               return spotlight;
             };
 
-            // CybICS orange-themed spotlights illuminating tanks from above
-            scene.add(createSpotlight(0xff6b00, 2.0, -7, 12, 5, -7, 0, 0)); // GST - Orange
-            scene.add(createSpotlight(0xff8c42, 2.0, 7, 12, 5, 7, 0, 0));   // HPT - Light Orange
-            scene.add(createSpotlight(0xffa500, 1.5, 0, 8, 3, 0, 1, 0));    // Compressor - Gold
+            // Subtle equipment spotlights (realistic industrial lighting)
+            scene.add(createSpotlight(0xffffff, 0.8, -7, 12, 5, -7, 2, 0));    // GST
+            scene.add(createSpotlight(0xffffff, 0.8, 7, 12, 5, 7, 2, 0));     // HPT
+            scene.add(createSpotlight(0xffffff, 0.6, 0, 8, 3, 0, 1.5, 0));    // Compressor
 
-            // CybICS themed ground with grid
+            // Industrial concrete floor
             const groundGeometry = new THREE.PlaneGeometry(60, 60);
             const groundMaterial = new THREE.MeshStandardMaterial({
-              color: 0x1a1a2e,
-              roughness: 0.8,
-              metalness: 0.2,
-              emissive: 0x1a1020,
-              emissiveIntensity: 0.2
+              color: 0x3a3f47,
+              roughness: 0.9,
+              metalness: 0.1
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Orange-themed grid
-            const gridHelper = new THREE.GridHelper(60, 30, 0xff6b00, 0xff8c42);
+            // Subtle grid lines (like expansion joints in concrete)
+            const gridHelper = new THREE.GridHelper(60, 20, 0x555a62, 0x404550);
             gridHelper.position.y = 0.01;
+            gridHelper.material.opacity = 0.4;
+            gridHelper.material.transparent = true;
             scene.add(gridHelper);
 
-            // Industrial platform base
+            // Industrial steel platform with grating
             const platformGroup = new THREE.Group();
 
-            // CybICS platform
-            const platform = new THREE.Mesh(
-              new THREE.BoxGeometry(20, 0.5, 12),
-              new THREE.MeshStandardMaterial({
-                color: 0x2a2a44,
-                metalness: 0.5,
-                roughness: 0.5,
-                emissive: 0x1a1020,
-                emissiveIntensity: 0.3
-              })
-            );
-            platform.position.y = 0.25;
-            platform.castShadow = true;
-            platform.receiveShadow = true;
-            platformGroup.add(platform);
+            // Platform grating (industrial diamond plate pattern)
+            const gratingMaterial = new THREE.MeshStandardMaterial({
+              color: 0x6b7280,
+              metalness: 0.8,
+              roughness: 0.4
+            });
 
-            // Orange edge strips (glowing bright)
+            // Create grating bars (multiple bars to simulate grating)
+            const numBars = 40;
+            for(let i = 0; i < numBars; i++) {
+              const bar = new THREE.Mesh(
+                new THREE.BoxGeometry(20, 0.08, 0.15),
+                gratingMaterial
+              );
+              bar.position.set(0, 0.3, -6 + (i * 12 / numBars));
+              bar.castShadow = true;
+              bar.receiveShadow = true;
+              platformGroup.add(bar);
+            }
+
+            // Cross bars
+            const numCrossBars = 25;
+            for(let i = 0; i < numCrossBars; i++) {
+              const bar = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 0.08, 12),
+                gratingMaterial
+              );
+              bar.position.set(-10 + (i * 20 / numCrossBars), 0.3, 0);
+              bar.castShadow = true;
+              bar.receiveShadow = true;
+              platformGroup.add(bar);
+            }
+
+            // Platform frame/edge beams
+            const frameMaterial = new THREE.MeshStandardMaterial({
+              color: 0x555a62,
+              metalness: 0.85,
+              roughness: 0.3
+            });
+
+            const frameBeams = [
+              { w: 20.4, h: 0.15, d: 0.2, x: 0, y: 0.22, z: 6 },    // Front
+              { w: 20.4, h: 0.15, d: 0.2, x: 0, y: 0.22, z: -6 },   // Back
+              { w: 0.2, h: 0.15, d: 12.4, x: 10, y: 0.22, z: 0 },   // Right
+              { w: 0.2, h: 0.15, d: 12.4, x: -10, y: 0.22, z: 0 }   // Left
+            ];
+
+            frameBeams.forEach(beam => {
+              const beamMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(beam.w, beam.h, beam.d),
+                frameMaterial
+              );
+              beamMesh.position.set(beam.x, beam.y, beam.z);
+              beamMesh.castShadow = true;
+              beamMesh.receiveShadow = true;
+              platformGroup.add(beamMesh);
+            });
+
+            // Orange safety edge strips (CybICS branding)
             const edgeStripMaterial = new THREE.MeshStandardMaterial({
               color: 0xff6b00,
               emissive: 0xff6b00,
-              emissiveIntensity: 1.2,
-              metalness: 0.9,
-              roughness: 0.1
+              emissiveIntensity: 0.8,
+              metalness: 0.7,
+              roughness: 0.3
             });
 
             const createEdgeStrip = (w, h, d, x, y, z) => {
@@ -628,10 +673,10 @@ def index_page():
               return strip;
             };
 
-            platformGroup.add(createEdgeStrip(20.2, 0.1, 0.1, 0, 0.55, 6));   // Front
-            platformGroup.add(createEdgeStrip(20.2, 0.1, 0.1, 0, 0.55, -6));  // Back
-            platformGroup.add(createEdgeStrip(0.1, 0.1, 12.2, 10, 0.55, 0));  // Right
-            platformGroup.add(createEdgeStrip(0.1, 0.1, 12.2, -10, 0.55, 0)); // Left
+            platformGroup.add(createEdgeStrip(20.2, 0.06, 0.06, 0, 0.4, 6));   // Front
+            platformGroup.add(createEdgeStrip(20.2, 0.06, 0.06, 0, 0.4, -6));  // Back
+            platformGroup.add(createEdgeStrip(0.06, 0.06, 12.2, 10, 0.4, 0));  // Right
+            platformGroup.add(createEdgeStrip(0.06, 0.06, 12.2, -10, 0.4, 0)); // Left
 
             scene.add(platformGroup);
 
@@ -671,95 +716,226 @@ def index_page():
               return sprite;
             }
 
-            // GST Tank (left)
+            // GST Tank (left) - Realistic industrial pressure vessel
             const gstGroup = new THREE.Group();
             gstGroup.position.set(-7, 0, 0);
 
-            // Tank wireframe outline (thicker lines)
+            // Main tank body - industrial steel (semi-transparent to see fill)
             const gstBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
-              new THREE.MeshBasicMaterial({
-                color: 0x6ab0ff,
-                wireframe: true,
+              new THREE.MeshStandardMaterial({
+                color: 0xc0c5ce,
+                metalness: 0.85,
+                roughness: 0.35,
+                envMapIntensity: 1.0,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.3,
+                side: THREE.DoubleSide
               })
             );
             gstBody.position.y = 4;
+            gstBody.castShadow = true;
+            gstBody.receiveShadow = true;
             gstGroup.add(gstBody);
 
-            // GST fill level (animated based on pressure)
-            const gstFillGeometry = new THREE.CylinderGeometry(1.95, 1.95, 8, 32);
-            gstFillGeometry.translate(0, 4, 0); // Move geometry so bottom is at origin
+            // GST fill level indicator (visible through transparent tank)
+            const gstFillGeometry = new THREE.CylinderGeometry(1.85, 1.85, 8, 32);
+            gstFillGeometry.translate(0, 4, 0);
             const gstFill = new THREE.Mesh(
               gstFillGeometry,
               new THREE.MeshStandardMaterial({
                 color: 0x2196f3,
                 transparent: true,
-                opacity: 0.7,
+                opacity: 0.8,
+                roughness: 0.2,
+                metalness: 0.0,
                 emissive: 0x1976d2,
-                emissiveIntensity: 0.4,
-                roughness: 0.3,
-                metalness: 0.1
+                emissiveIntensity: 0.3
               })
             );
             gstFill.position.y = 0;
             gstFill.scale.y = 0.01;
-            gstFill.castShadow = true;
-            gstFill.receiveShadow = true;
             gstGroup.add(gstFill);
 
-            // GST metallic bands for industrial look
+            // Add support legs to tank
+            const legMaterial = new THREE.MeshStandardMaterial({
+              color: 0x6b7280,
+              metalness: 0.8,
+              roughness: 0.4
+            });
+
+            for(let i = 0; i < 4; i++) {
+              const angle = (Math.PI / 2) * i;
+              const x = Math.cos(angle) * 1.8;
+              const z = Math.sin(angle) * 1.8;
+
+              const leg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.1, 0.8, 8),
+                legMaterial
+              );
+              leg.position.set(x, 0.4, z);
+              leg.castShadow = true;
+              gstGroup.add(leg);
+
+              // Add mounting plate
+              const plate = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.15, 0.15, 0.05, 8),
+                legMaterial
+              );
+              plate.position.set(x, 0.8, z);
+              plate.castShadow = true;
+              gstGroup.add(plate);
+            }
+
+            // GST reinforcement bands (realistic industrial detail)
             const bandMaterial = new THREE.MeshStandardMaterial({
-              color: 0x88aacc,
-              metalness: 0.95,
-              roughness: 0.15
+              color: 0x8b9099,
+              metalness: 0.9,
+              roughness: 0.25
             });
 
             for(let i = 0; i < 3; i++) {
               const band = new THREE.Mesh(
-                new THREE.TorusGeometry(2.05, 0.08, 8, 32),
+                new THREE.TorusGeometry(2.05, 0.06, 8, 32),
                 bandMaterial
               );
-              band.position.y = 1 + i * 3;
+              band.position.y = 1.5 + i * 2.5;
               band.rotation.x = Math.PI / 2;
               band.castShadow = true;
               band.receiveShadow = true;
               gstGroup.add(band);
             }
 
-            // GST top and bottom caps
+            // Add pressure gauge on tank
+            const gaugeMaterial = new THREE.MeshStandardMaterial({
+              color: 0x2c3e50,
+              metalness: 0.7,
+              roughness: 0.3
+            });
+
+            const gaugeBody = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16),
+              gaugeMaterial
+            );
+            gaugeBody.rotation.z = Math.PI / 2;
+            gaugeBody.position.set(2.15, 5, 0);
+            gaugeBody.castShadow = true;
+            gstGroup.add(gaugeBody);
+
+            // Gauge face
+            const gaugeFace = new THREE.Mesh(
+              new THREE.CircleGeometry(0.14, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0xf0f0f0,
+                metalness: 0.0,
+                roughness: 0.8
+              })
+            );
+            gaugeFace.rotation.y = Math.PI / 2;
+            gaugeFace.position.set(2.2, 5, 0);
+            gstGroup.add(gaugeFace);
+
+            // Add top manhole cover
+            const manholeMaterial = new THREE.MeshStandardMaterial({
+              color: 0x7a8288,
+              metalness: 0.85,
+              roughness: 0.3
+            });
+
+            const manhole = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16),
+              manholeMaterial
+            );
+            manhole.position.y = 8.15;
+            manhole.castShadow = true;
+            gstGroup.add(manhole);
+
+            // Add bolts around manhole
+            for(let i = 0; i < 8; i++) {
+              const angle = (Math.PI * 2 / 8) * i;
+              const bolt = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.04, 0.04, 0.08, 6),
+                new THREE.MeshStandardMaterial({
+                  color: 0x505050,
+                  metalness: 0.9,
+                  roughness: 0.2
+                })
+              );
+              bolt.position.set(
+                Math.cos(angle) * 0.35,
+                8.15,
+                Math.sin(angle) * 0.35
+              );
+              bolt.castShadow = true;
+              gstGroup.add(bolt);
+            }
+
+            // GST dished end caps (realistic pressure vessel heads)
             const capMaterial = new THREE.MeshStandardMaterial({
-              color: 0x7799bb,
-              metalness: 0.9,
-              roughness: 0.2
+              color: 0xb0b5bc,
+              metalness: 0.85,
+              roughness: 0.3
             });
 
             const gstTopCap = new THREE.Mesh(
-              new THREE.CylinderGeometry(2.1, 2.05, 0.3, 32),
+              new THREE.SphereGeometry(2.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
               capMaterial
             );
-            gstTopCap.position.y = 8.15;
+            gstTopCap.position.y = 8;
             gstTopCap.castShadow = true;
+            gstTopCap.receiveShadow = true;
             gstGroup.add(gstTopCap);
 
             const gstBottomCap = new THREE.Mesh(
-              new THREE.CylinderGeometry(2.05, 2.1, 0.3, 32),
+              new THREE.SphereGeometry(2.1, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
               capMaterial
             );
-            gstBottomCap.position.y = -0.15;
+            gstBottomCap.position.y = 0;
             gstBottomCap.castShadow = true;
+            gstBottomCap.receiveShadow = true;
             gstGroup.add(gstBottomCap);
 
-            // GST orange glow ring
+            // Add access ladder to tank
+            const ladderMaterial = new THREE.MeshStandardMaterial({
+              color: 0xffa500,
+              metalness: 0.6,
+              roughness: 0.5
+            });
+
+            // Ladder rails
+            for(let side = 0; side < 2; side++) {
+              const rail = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.03, 8, 8),
+                ladderMaterial
+              );
+              rail.position.set(-2.2, 4, side === 0 ? -0.25 : 0.25);
+              rail.castShadow = true;
+              gstGroup.add(rail);
+            }
+
+            // Ladder rungs
+            for(let i = 0; i < 10; i++) {
+              const rung = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.025, 0.025, 0.5, 8),
+                ladderMaterial
+              );
+              rung.rotation.z = Math.PI / 2;
+              rung.position.set(-2.2, 0.5 + i * 0.8, 0);
+              rung.castShadow = true;
+              gstGroup.add(rung);
+            }
+
+            // GST status indicator light (subtle orange glow)
             const gstGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.08, 8, 32),
+              new THREE.TorusGeometry(2.3, 0.04, 8, 32),
               new THREE.MeshStandardMaterial({
                 color: 0xff6b00,
                 emissive: 0xff6b00,
-                emissiveIntensity: 2.5,
+                emissiveIntensity: 1.0,
                 transparent: true,
-                opacity: 0.9
+                opacity: 0.7,
+                metalness: 0.8,
+                roughness: 0.2
               })
             );
             gstGlowRing.position.y = 7;
@@ -768,100 +944,140 @@ def index_page():
 
             // GST Label with text
             const gstLabel = createTextSprite('GST');
-            gstLabel.position.set(0, 9, 0);
+            gstLabel.position.set(0, 10.5, 0);
             gstGroup.add(gstLabel);
 
             scene.add(gstGroup);
 
-            // HPT Tank (right)
+            // HPT Tank (right) - Realistic industrial pressure vessel
             const hptGroup = new THREE.Group();
             hptGroup.position.set(7, 0, 0);
 
-            // Tank wireframe outline (thicker lines)
+            // Main tank body - industrial steel (semi-transparent to see fill)
             const hptBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
-              new THREE.MeshBasicMaterial({
-                color: 0xff6b6b,
-                wireframe: true,
+              new THREE.MeshStandardMaterial({
+                color: 0xc0c5ce,
+                metalness: 0.85,
+                roughness: 0.35,
+                envMapIntensity: 1.0,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.3,
+                side: THREE.DoubleSide
               })
             );
             hptBody.position.y = 4;
+            hptBody.castShadow = true;
+            hptBody.receiveShadow = true;
             hptGroup.add(hptBody);
 
-            // HPT fill level (animated based on pressure)
-            const hptFillGeometry = new THREE.CylinderGeometry(1.95, 1.95, 8, 32);
-            hptFillGeometry.translate(0, 4, 0); // Move geometry so bottom is at origin
+            // HPT fill level indicator (visible through transparent tank)
+            const hptFillGeometry = new THREE.CylinderGeometry(1.85, 1.85, 8, 32);
+            hptFillGeometry.translate(0, 4, 0);
             const hptFill = new THREE.Mesh(
               hptFillGeometry,
               new THREE.MeshStandardMaterial({
                 color: 0xf44336,
                 transparent: true,
-                opacity: 0.7,
+                opacity: 0.8,
+                roughness: 0.2,
+                metalness: 0.0,
                 emissive: 0xd32f2f,
-                emissiveIntensity: 0.4,
-                roughness: 0.3,
-                metalness: 0.1
+                emissiveIntensity: 0.3
               })
             );
             hptFill.position.y = 0;
             hptFill.scale.y = 0.01;
-            hptFill.castShadow = true;
-            hptFill.receiveShadow = true;
             hptGroup.add(hptFill);
 
-            // HPT metallic bands for industrial look
-            const hptBandMaterial = new THREE.MeshStandardMaterial({
-              color: 0xcc8888,
-              metalness: 0.95,
-              roughness: 0.15
-            });
+            // Add support legs to HPT tank
+            for(let i = 0; i < 4; i++) {
+              const angle = (Math.PI / 2) * i;
+              const x = Math.cos(angle) * 1.8;
+              const z = Math.sin(angle) * 1.8;
 
+              const leg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.1, 0.8, 8),
+                legMaterial
+              );
+              leg.position.set(x, 0.4, z);
+              leg.castShadow = true;
+              hptGroup.add(leg);
+
+              const plate = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.15, 0.15, 0.05, 8),
+                legMaterial
+              );
+              plate.position.set(x, 0.8, z);
+              plate.castShadow = true;
+              hptGroup.add(plate);
+            }
+
+            // HPT reinforcement bands (matching GST)
             for(let i = 0; i < 3; i++) {
               const band = new THREE.Mesh(
-                new THREE.TorusGeometry(2.05, 0.08, 8, 32),
-                hptBandMaterial
+                new THREE.TorusGeometry(2.05, 0.06, 8, 32),
+                bandMaterial
               );
-              band.position.y = 1 + i * 3;
+              band.position.y = 1.5 + i * 2.5;
               band.rotation.x = Math.PI / 2;
               band.castShadow = true;
               band.receiveShadow = true;
               hptGroup.add(band);
             }
 
-            // HPT top and bottom caps
-            const hptCapMaterial = new THREE.MeshStandardMaterial({
-              color: 0xbb7777,
-              metalness: 0.9,
-              roughness: 0.2
-            });
-
-            const hptTopCap = new THREE.Mesh(
-              new THREE.CylinderGeometry(2.1, 2.05, 0.3, 32),
-              hptCapMaterial
+            // Add pressure gauge and safety valve on HPT
+            const hptGaugeBody = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16),
+              gaugeMaterial
             );
-            hptTopCap.position.y = 8.15;
+            hptGaugeBody.rotation.z = Math.PI / 2;
+            hptGaugeBody.position.set(2.15, 5, 0);
+            hptGaugeBody.castShadow = true;
+            hptGroup.add(hptGaugeBody);
+
+            const hptGaugeFace = new THREE.Mesh(
+              new THREE.CircleGeometry(0.14, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0xf0f0f0,
+                metalness: 0.0,
+                roughness: 0.8
+              })
+            );
+            hptGaugeFace.rotation.y = Math.PI / 2;
+            hptGaugeFace.position.set(2.2, 5, 0);
+            hptGroup.add(hptGaugeFace);
+
+            // HPT dished end caps
+            const hptTopCap = new THREE.Mesh(
+              new THREE.SphereGeometry(2.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+              capMaterial
+            );
+            hptTopCap.position.y = 8;
             hptTopCap.castShadow = true;
+            hptTopCap.receiveShadow = true;
             hptGroup.add(hptTopCap);
 
             const hptBottomCap = new THREE.Mesh(
-              new THREE.CylinderGeometry(2.05, 2.1, 0.3, 32),
-              hptCapMaterial
+              new THREE.SphereGeometry(2.1, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+              capMaterial
             );
-            hptBottomCap.position.y = -0.15;
+            hptBottomCap.position.y = 0;
             hptBottomCap.castShadow = true;
+            hptBottomCap.receiveShadow = true;
             hptGroup.add(hptBottomCap);
 
-            // HPT orange glow ring
+            // HPT status indicator (subtle)
             const hptGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.08, 8, 32),
+              new THREE.TorusGeometry(2.3, 0.04, 8, 32),
               new THREE.MeshStandardMaterial({
                 color: 0xff8c42,
                 emissive: 0xff8c42,
-                emissiveIntensity: 2.5,
+                emissiveIntensity: 1.0,
                 transparent: true,
-                opacity: 0.9
+                opacity: 0.7,
+                metalness: 0.8,
+                roughness: 0.2
               })
             );
             hptGlowRing.position.y = 7;
@@ -870,21 +1086,36 @@ def index_page():
 
             // HPT Label with text
             const hptLabel = createTextSprite('HPT');
-            hptLabel.position.set(0, 9, 0);
+            hptLabel.position.set(0, 10.5, 0);
             hptGroup.add(hptLabel);
 
             scene.add(hptGroup);
 
-            // Compressor (between tanks) with rotating fan
+            // Realistic industrial compressor
             const compressorGroup = new THREE.Group();
             compressorGroup.position.set(0, 0, 0);
 
-            const compressorBody = new THREE.Mesh(
-              new THREE.BoxGeometry(3, 2, 2),
+            // Compressor base/skid
+            const compressorBase = new THREE.Mesh(
+              new THREE.BoxGeometry(3.5, 0.2, 2.5),
               new THREE.MeshStandardMaterial({
-                color: 0x555566,
-                metalness: 0.9,
-                roughness: 0.2,
+                color: 0x6b7280,
+                metalness: 0.8,
+                roughness: 0.4
+              })
+            );
+            compressorBase.position.y = 0.1;
+            compressorBase.castShadow = true;
+            compressorBase.receiveShadow = true;
+            compressorGroup.add(compressorBase);
+
+            // Main compressor body (painted industrial gray)
+            const compressorBody = new THREE.Mesh(
+              new THREE.BoxGeometry(2.5, 1.5, 1.8),
+              new THREE.MeshStandardMaterial({
+                color: 0x8a8f96,
+                metalness: 0.7,
+                roughness: 0.5,
                 emissive: 0x00ff00,
                 emissiveIntensity: 0
               })
@@ -894,21 +1125,95 @@ def index_page():
             compressorBody.receiveShadow = true;
             compressorGroup.add(compressorBody);
 
-            // Green indicator light for compressor
-            const compressorLight = new THREE.PointLight(0x00ff00, 0, 5);
-            compressorLight.position.set(0, 1.5, 0);
+            // Motor housing (cylindrical)
+            const motor = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.4, 0.4, 1.2, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0x3a3f47,
+                metalness: 0.8,
+                roughness: 0.3
+              })
+            );
+            motor.rotation.x = Math.PI / 2;
+            motor.position.set(-0.8, 1, 0);
+            motor.castShadow = true;
+            compressorGroup.add(motor);
+
+            // Motor cooling fins
+            for(let i = 0; i < 8; i++) {
+              const fin = new THREE.Mesh(
+                new THREE.BoxGeometry(0.02, 0.85, 0.05),
+                new THREE.MeshStandardMaterial({
+                  color: 0x3a3f47,
+                  metalness: 0.8,
+                  roughness: 0.3
+                })
+              );
+              const angle = (Math.PI * 2 / 8) * i;
+              fin.position.set(
+                -0.8 + Math.cos(angle) * 0.42,
+                1,
+                Math.sin(angle) * 0.42
+              );
+              fin.lookAt(-0.8, 1, 0);
+              compressorGroup.add(fin);
+            }
+
+            // Status indicator light
+            const indicator = new THREE.Mesh(
+              new THREE.SphereGeometry(0.08, 16, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0x00ff00,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0,
+                metalness: 0.5,
+                roughness: 0.3
+              })
+            );
+            indicator.position.set(0, 1.8, 0.95);
+            compressorGroup.add(indicator);
+
+            // Point light for status
+            const compressorLight = new THREE.PointLight(0x00ff00, 0, 4);
+            compressorLight.position.set(0, 1.8, 0.95);
             compressorGroup.add(compressorLight);
 
-            // Rotating fan
-            const fanGroup = new THREE.Group();
-            fanGroup.position.set(0, 1, 1.2);
+            // Control panel on front
+            const controlPanel = new THREE.Mesh(
+              new THREE.BoxGeometry(0.6, 0.8, 0.1),
+              new THREE.MeshStandardMaterial({
+                color: 0x2c3e50,
+                metalness: 0.6,
+                roughness: 0.4
+              })
+            );
+            controlPanel.position.set(0.5, 1.3, 0.95);
+            controlPanel.castShadow = true;
+            compressorGroup.add(controlPanel);
 
+            // Rotating fan on front
+            const fanGroup = new THREE.Group();
+            fanGroup.position.set(0, 1, 1.05);
+
+            // Fan housing/guard
+            const fanGuard = new THREE.Mesh(
+              new THREE.TorusGeometry(0.45, 0.02, 8, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0x505050,
+                metalness: 0.9,
+                roughness: 0.2
+              })
+            );
+            fanGuard.castShadow = true;
+            fanGroup.add(fanGuard);
+
+            // Fan blades
             for(let i = 0; i < 4; i++) {
               const blade = new THREE.Mesh(
-                new THREE.BoxGeometry(0.1, 0.8, 0.05),
+                new THREE.BoxGeometry(0.08, 0.7, 0.03),
                 new THREE.MeshStandardMaterial({
-                  color: 0x222233,
-                  metalness: 0.7,
+                  color: 0x3a3f47,
+                  metalness: 0.8,
                   roughness: 0.3
                 })
               );
@@ -920,20 +1225,55 @@ def index_page():
             compressorGroup.add(fanGroup);
             scene.add(compressorGroup);
 
-            // Pipes connecting GST -> Compressor -> HPT (separated inlet/outlet)
+            // Pipes with flanges - realistic industrial piping
             const pipeMaterial = new THREE.MeshStandardMaterial({
-              color: 0x888888,
+              color: 0x9095a0,
+              metalness: 0.85,
+              roughness: 0.4
+            });
+
+            const flangeMaterial = new THREE.MeshStandardMaterial({
+              color: 0x7a7f8a,
               metalness: 0.9,
               roughness: 0.3
             });
 
-            // INLET PIPE: GST wall to Compressor wall (lower level)
-            // GST is at (-7, 0, 0) with radius 2, right wall at -5
-            // Compressor is at (0, 0, 0) with width 3, left wall at -1.5
-            // Pipe length: -5 to -1.5 = 3.5 units, center at -3.25
+            // Helper function to create flange
+            function createFlange(x, y, z, rotation) {
+              const flangeGroup = new THREE.Group();
 
+              // Flange ring
+              const flange = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16),
+                flangeMaterial
+              );
+              flange.castShadow = true;
+              flangeGroup.add(flange);
+
+              // Bolts around flange
+              for(let i = 0; i < 6; i++) {
+                const angle = (Math.PI * 2 / 6) * i;
+                const bolt = new THREE.Mesh(
+                  new THREE.CylinderGeometry(0.02, 0.02, 0.1, 6),
+                  new THREE.MeshStandardMaterial({
+                    color: 0x505050,
+                    metalness: 0.9,
+                    roughness: 0.2
+                  })
+                );
+                bolt.position.set(Math.cos(angle) * 0.2, 0, Math.sin(angle) * 0.2);
+                bolt.castShadow = true;
+                flangeGroup.add(bolt);
+              }
+
+              flangeGroup.position.set(x, y, z);
+              if(rotation) flangeGroup.rotation.z = rotation;
+              return flangeGroup;
+            }
+
+            // INLET PIPE: GST to Compressor
             const inletPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.15, 0.15, 3.5, 16),
+              new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
               pipeMaterial
             );
             inletPipe.position.set(-3.25, 1.5, -0.5);
@@ -942,13 +1282,13 @@ def index_page():
             inletPipe.receiveShadow = true;
             scene.add(inletPipe);
 
-            // OUTLET PIPE: Compressor wall to HPT wall (higher level)
-            // Compressor is at (0, 0, 0) with width 3, right wall at 1.5
-            // HPT is at (7, 0, 0) with radius 2, left wall at 5
-            // Pipe length: 1.5 to 5 = 3.5 units, center at 3.25
+            // Flanges on inlet pipe
+            scene.add(createFlange(-5, 1.5, -0.5, Math.PI / 2));
+            scene.add(createFlange(-1.5, 1.5, -0.5, Math.PI / 2));
 
+            // OUTLET PIPE: Compressor to HPT
             const outletPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.15, 0.15, 3.5, 16),
+              new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
               pipeMaterial
             );
             outletPipe.position.set(3.25, 2.5, 0.5);
@@ -956,6 +1296,10 @@ def index_page():
             outletPipe.castShadow = true;
             outletPipe.receiveShadow = true;
             scene.add(outletPipe);
+
+            // Flanges on outlet pipe
+            scene.add(createFlange(1.5, 2.5, 0.5, Math.PI / 2));
+            scene.add(createFlange(5, 2.5, 0.5, Math.PI / 2));
 
             // Elbow joints at pipe connections
             const elbowMaterial = new THREE.MeshStandardMaterial({
@@ -1290,10 +1634,11 @@ def index_page():
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
 
-                // Update compressor green light effect (cyberpunk bright)
+                // Update compressor status light (realistic)
                 const compressorActive = data.compressor > 0;
-                compressorBody.material.emissiveIntensity = compressorActive ? 1.5 : 0;
-                compressorLight.intensity = compressorActive ? 6 : 0;
+                compressorBody.material.emissiveIntensity = compressorActive ? 0.3 : 0;
+                indicator.material.emissiveIntensity = compressorActive ? 1.5 : 0;
+                compressorLight.intensity = compressorActive ? 3 : 0;
 
                 // Update particle visibility
                 particleSystem.visible = compressorActive;
@@ -1416,16 +1761,16 @@ def index_page():
                 flameLight.intensity = 5 + Math.sin(Date.now() * 0.01) * 2 + Math.random();
               }
 
-              // Animate orange glow rings (bright pulsing)
+              // Animate status indicators (subtle realistic pulsing)
               const time = Date.now() * 0.001;
-              gstGlowRing.rotation.z = time * 0.5;
-              gstGlowRing.material.emissiveIntensity = 2.5 + Math.sin(time * 2) * 0.8;
+              gstGlowRing.rotation.z = time * 0.3;
+              gstGlowRing.material.emissiveIntensity = 1.0 + Math.sin(time * 1.5) * 0.3;
 
-              hptGlowRing.rotation.z = -time * 0.5;
-              hptGlowRing.material.emissiveIntensity = 2.5 + Math.cos(time * 2) * 0.8;
+              hptGlowRing.rotation.z = -time * 0.3;
+              hptGlowRing.material.emissiveIntensity = 1.0 + Math.cos(time * 1.5) * 0.3;
 
-              // Animate orange edge strips (bright pulsing)
-              const stripIntensity = 1.2 + Math.sin(time * 3) * 0.5;
+              // Animate platform edge strips (subtle)
+              const stripIntensity = 1.2 + Math.sin(time * 2) * 0.3;
               edgeStripMaterial.emissiveIntensity = stripIntensity;
 
               // Update orbit controls
