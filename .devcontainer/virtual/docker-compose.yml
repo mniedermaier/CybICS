@@ -1,6 +1,6 @@
 services:
   attack-machine:
-    image: mniedermaier1337/cybics-attack-machine:latest
+    image: mniedermaier1337/cybics-attack-machine:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/attack-machine
       dockerfile: Dockerfile
@@ -26,7 +26,7 @@ services:
       - hwio
 
   openplc:
-    image: mniedermaier1337/cybicsopenplc:latest
+    image: mniedermaier1337/cybicsopenplc:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/OpenPLC
       dockerfile: Dockerfile
@@ -41,7 +41,7 @@ services:
         ipv4_address: 172.18.0.3
 
   opcua:
-    image: mniedermaier1337/cybicsopcua:latest
+    image: mniedermaier1337/cybicsopcua:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/opcua
       dockerfile: Dockerfile
@@ -55,7 +55,7 @@ services:
         ipv4_address: 172.18.0.5
 
   s7com:
-    image: mniedermaier1337/cybicss7com:latest
+    image: mniedermaier1337/cybicss7com:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/s7com
       dockerfile: Dockerfile
@@ -69,7 +69,7 @@ services:
         ipv4_address: 172.18.0.6
 
   fuxa:
-    image: mniedermaier1337/cybicsfuxa:latest
+    image: mniedermaier1337/cybicsfuxa:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/FUXA
       dockerfile: Dockerfile
@@ -83,7 +83,7 @@ services:
         ipv4_address: 172.18.0.4
 
   hwio:
-    image: mniedermaier1337/cybicshwio:latest
+    image: mniedermaier1337/cybicshwio:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/hwio-virtual
       dockerfile: Dockerfile
@@ -97,7 +97,7 @@ services:
         ipv4_address: 172.18.0.2
 
   landing:
-    image: mniedermaier1337/landing:latest
+    image: mniedermaier1337/landing:${CYBICS_VERSION:-latest}
     build:
       context: ../..
       dockerfile: software/landing/Dockerfile
@@ -112,7 +112,7 @@ services:
     - openplc
 
   engineeringws:
-    image: mniedermaier1337/cybics-engineeringws:latest
+    image: mniedermaier1337/cybics-engineeringws:${CYBICS_VERSION:-latest}
     build:
       context: ../../software
       dockerfile: engineeringWS/Dockerfile
