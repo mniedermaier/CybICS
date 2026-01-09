@@ -461,22 +461,51 @@ def index_page():
             // Create scene with stunning gradient background
             const scene = new THREE.Scene();
 
-            // Create gradient background
+            // Create enhanced CybICS background with radial gradients
             const bgCanvas = document.createElement('canvas');
             bgCanvas.width = 2048;
             bgCanvas.height = 2048;
             const ctx = bgCanvas.getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
-            gradient.addColorStop(0, '#0a0a1f');
-            gradient.addColorStop(0.3, '#1a1a3e');
-            gradient.addColorStop(0.7, '#2a1a3e');
-            gradient.addColorStop(1, '#1a0a2e');
-            ctx.fillStyle = gradient;
+
+            // Base gradient (dark blue to dark)
+            const baseGradient = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
+            baseGradient.addColorStop(0, '#0f1520');
+            baseGradient.addColorStop(0.3, '#1a1a2e');
+            baseGradient.addColorStop(0.6, '#16213e');
+            baseGradient.addColorStop(1, '#0a0a10');
+            ctx.fillStyle = baseGradient;
             ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            // Add warm orange radial glow (top left)
+            const glow1 = ctx.createRadialGradient(400, 400, 200, 400, 400, 800);
+            glow1.addColorStop(0, 'rgba(255, 107, 0, 0.15)');
+            glow1.addColorStop(0.5, 'rgba(255, 140, 66, 0.08)');
+            glow1.addColorStop(1, 'rgba(255, 107, 0, 0)');
+            ctx.fillStyle = glow1;
+            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            // Add warm orange radial glow (bottom right)
+            const glow2 = ctx.createRadialGradient(1648, 1648, 200, 1648, 1648, 800);
+            glow2.addColorStop(0, 'rgba(255, 165, 0, 0.12)');
+            glow2.addColorStop(0.5, 'rgba(255, 140, 66, 0.06)');
+            glow2.addColorStop(1, 'rgba(255, 107, 0, 0)');
+            ctx.fillStyle = glow2;
+            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            // Add subtle texture with small dots
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+            for(let i = 0; i < 300; i++) {
+              const x = Math.random() * bgCanvas.width;
+              const y = Math.random() * bgCanvas.height;
+              const size = Math.random() * 2;
+              ctx.beginPath();
+              ctx.arc(x, y, size, 0, Math.PI * 2);
+              ctx.fill();
+            }
 
             const bgTexture = new THREE.CanvasTexture(bgCanvas);
             scene.background = bgTexture;
-            scene.fog = new THREE.FogExp2(0x0a0a1a, 0.015);
+            scene.fog = new THREE.FogExp2(0x0f1520, 0.010);
 
             // Create camera
             const camera = new THREE.PerspectiveCamera(
@@ -496,15 +525,15 @@ def index_page():
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 0.9;
+            renderer.toneMappingExposure = 1.4;
             container.appendChild(canvas);
 
-            // Enhanced lighting setup (reduced brightness)
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.3);
+            // CybICS orange-themed lighting setup - bright and warm
+            const ambientLight = new THREE.AmbientLight(0x554433, 0.6);
             scene.add(ambientLight);
 
-            // Main directional light (sun-like) - reduced intensity
-            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 0.7);
+            // Main directional light (bright warm white)
+            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
             directionalLight.position.set(15, 25, 15);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048;
@@ -515,13 +544,13 @@ def index_page():
             directionalLight.shadow.camera.bottom = -30;
             scene.add(directionalLight);
 
-            // Fill light from opposite side - reduced
-            const fillLight = new THREE.DirectionalLight(0x6688ff, 0.25);
+            // Orange fill light (CybICS accent)
+            const fillLight = new THREE.DirectionalLight(0xff8c42, 0.5);
             fillLight.position.set(-10, 15, -10);
             scene.add(fillLight);
 
-            // Rim light for dramatic effect - reduced
-            const rimLight = new THREE.DirectionalLight(0xff8844, 0.3);
+            // Warm rim light (orange accent)
+            const rimLight = new THREE.DirectionalLight(0xffa500, 0.4);
             rimLight.position.set(0, 10, -20);
             scene.add(rimLight);
 
@@ -541,38 +570,42 @@ def index_page():
               return spotlight;
             };
 
-            // Spotlights illuminating tanks from above - softer lighting
-            scene.add(createSpotlight(0x6ab0ff, 1.2, -7, 12, 5, -7, 0, 0)); // GST
-            scene.add(createSpotlight(0xff6b6b, 1.2, 7, 12, 5, 7, 0, 0));   // HPT
-            scene.add(createSpotlight(0x00ff88, 0.8, 0, 8, 3, 0, 1, 0));    // Compressor
+            // CybICS orange-themed spotlights illuminating tanks from above
+            scene.add(createSpotlight(0xff6b00, 2.0, -7, 12, 5, -7, 0, 0)); // GST - Orange
+            scene.add(createSpotlight(0xff8c42, 2.0, 7, 12, 5, 7, 0, 0));   // HPT - Light Orange
+            scene.add(createSpotlight(0xffa500, 1.5, 0, 8, 3, 0, 1, 0));    // Compressor - Gold
 
-            // Ground with better material
+            // CybICS themed ground with grid
             const groundGeometry = new THREE.PlaneGeometry(60, 60);
             const groundMaterial = new THREE.MeshStandardMaterial({
               color: 0x1a1a2e,
               roughness: 0.8,
-              metalness: 0.2
+              metalness: 0.2,
+              emissive: 0x1a1020,
+              emissiveIntensity: 0.2
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Enhanced grid with multiple layers
-            const gridHelper = new THREE.GridHelper(60, 30, 0x4466aa, 0x333355);
+            // Orange-themed grid
+            const gridHelper = new THREE.GridHelper(60, 30, 0xff6b00, 0xff8c42);
             gridHelper.position.y = 0.01;
             scene.add(gridHelper);
 
             // Industrial platform base
             const platformGroup = new THREE.Group();
 
-            // Main platform
+            // CybICS platform
             const platform = new THREE.Mesh(
               new THREE.BoxGeometry(20, 0.5, 12),
               new THREE.MeshStandardMaterial({
                 color: 0x2a2a44,
-                metalness: 0.8,
-                roughness: 0.3
+                metalness: 0.5,
+                roughness: 0.5,
+                emissive: 0x1a1020,
+                emissiveIntensity: 0.3
               })
             );
             platform.position.y = 0.25;
@@ -580,11 +613,11 @@ def index_page():
             platform.receiveShadow = true;
             platformGroup.add(platform);
 
-            // Platform edge strips (glowing)
+            // Orange edge strips (glowing bright)
             const edgeStripMaterial = new THREE.MeshStandardMaterial({
-              color: 0x00ffff,
-              emissive: 0x00ffff,
-              emissiveIntensity: 0.6,
+              color: 0xff6b00,
+              emissive: 0xff6b00,
+              emissiveIntensity: 1.2,
               metalness: 0.9,
               roughness: 0.1
             });
@@ -718,15 +751,15 @@ def index_page():
             gstBottomCap.castShadow = true;
             gstGroup.add(gstBottomCap);
 
-            // GST animated glow ring
+            // GST orange glow ring
             const gstGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.05, 8, 32),
+              new THREE.TorusGeometry(2.3, 0.08, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0x00ffff,
-                emissive: 0x00ffff,
-                emissiveIntensity: 1.5,
+                color: 0xff6b00,
+                emissive: 0xff6b00,
+                emissiveIntensity: 2.5,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9
               })
             );
             gstGlowRing.position.y = 7;
@@ -820,15 +853,15 @@ def index_page():
             hptBottomCap.castShadow = true;
             hptGroup.add(hptBottomCap);
 
-            // HPT animated glow ring
+            // HPT orange glow ring
             const hptGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.05, 8, 32),
+              new THREE.TorusGeometry(2.3, 0.08, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xff00ff,
-                emissive: 0xff00ff,
-                emissiveIntensity: 1.5,
+                color: 0xff8c42,
+                emissive: 0xff8c42,
+                emissiveIntensity: 2.5,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9
               })
             );
             hptGlowRing.position.y = 7;
@@ -1223,15 +1256,15 @@ def index_page():
                 text-shadow: 0 0 20px rgba(255, 140, 66, 0.6);
                 font-weight: bold;
               ">⚡ System Status</h3>
-              <div style="display: grid; grid-template-columns: auto auto; gap: 12px 20px; line-height: 1.8;">
-                <div style="color: #6ab0ff;">● GST Pressure:</div><div class="status-value" style="color: #6ab0ff; text-align: left;"><span id="gst-value">0</span></div>
-                <div style="color: #ff6b6b;">● HPT Pressure:</div><div class="status-value" style="color: #ff6b6b; text-align: left;"><span id="hpt-value">0</span></div>
-                <div style="color: #ffdd57;">● System Sensor:</div><div class="status-value" style="color: #ffdd57; text-align: left;"><span id="syssen-value">0</span></div>
-                <div style="color: #ff8844;">● Blowout:</div><div class="status-value" style="color: #ff8844; text-align: left;"><span id="bosen-value">0</span></div>
-                <div style="color: #00ff88;">● Compressor:</div><div class="status-value" style="color: #00ff88; text-align: left;"><span id="compressor-value">OFF</span></div>
-                <div style="color: #88ccff;">● System Valve:</div><div class="status-value" style="color: #88ccff; text-align: left;"><span id="systemvalve-value">CLOSED</span></div>
-                <div style="color: #cc88ff;">● GST Signal:</div><div class="status-value" style="color: #cc88ff; text-align: left;"><span id="gstsig-value">0</span></div>
-                <div style="color: #ff88cc;">● Heartbeat:</div><div class="status-value" style="color: #ff88cc; text-align: left;"><span id="heartbeat-value">0</span></div>
+              <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px 20px; line-height: 1.8;">
+                <div style="color: #6ab0ff;">● GST Pressure:</div><div class="status-value" style="color: #6ab0ff;"><span id="gst-value">0</span></div>
+                <div style="color: #ff6b6b;">● HPT Pressure:</div><div class="status-value" style="color: #ff6b6b;"><span id="hpt-value">0</span></div>
+                <div style="color: #ffdd57;">● System Sensor:</div><div class="status-value" style="color: #ffdd57;"><span id="syssen-value">0</span></div>
+                <div style="color: #ff8844;">● Blowout:</div><div class="status-value" style="color: #ff8844;"><span id="bosen-value">0</span></div>
+                <div style="color: #00ff88;">● Compressor:</div><div class="status-value" style="color: #00ff88;"><span id="compressor-value">OFF</span></div>
+                <div style="color: #88ccff;">● System Valve:</div><div class="status-value" style="color: #88ccff;"><span id="systemvalve-value">CLOSED</span></div>
+                <div style="color: #cc88ff;">● GST Signal:</div><div class="status-value" style="color: #cc88ff;"><span id="gstsig-value">0</span></div>
+                <div style="color: #ff88cc;">● Heartbeat:</div><div class="status-value" style="color: #ff88cc;"><span id="heartbeat-value">0</span></div>
               </div>
             `;
             container.appendChild(statusOverlay);
@@ -1257,10 +1290,10 @@ def index_page():
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
 
-                // Update compressor green light effect
+                // Update compressor green light effect (cyberpunk bright)
                 const compressorActive = data.compressor > 0;
-                compressorBody.material.emissiveIntensity = compressorActive ? 0.6 : 0;
-                compressorLight.intensity = compressorActive ? 3 : 0;
+                compressorBody.material.emissiveIntensity = compressorActive ? 1.5 : 0;
+                compressorLight.intensity = compressorActive ? 6 : 0;
 
                 // Update particle visibility
                 particleSystem.visible = compressorActive;
@@ -1383,16 +1416,16 @@ def index_page():
                 flameLight.intensity = 5 + Math.sin(Date.now() * 0.01) * 2 + Math.random();
               }
 
-              // Animate glow rings
+              // Animate orange glow rings (bright pulsing)
               const time = Date.now() * 0.001;
               gstGlowRing.rotation.z = time * 0.5;
-              gstGlowRing.material.emissiveIntensity = 1.5 + Math.sin(time * 2) * 0.5;
+              gstGlowRing.material.emissiveIntensity = 2.5 + Math.sin(time * 2) * 0.8;
 
               hptGlowRing.rotation.z = -time * 0.5;
-              hptGlowRing.material.emissiveIntensity = 1.5 + Math.cos(time * 2) * 0.5;
+              hptGlowRing.material.emissiveIntensity = 2.5 + Math.cos(time * 2) * 0.8;
 
-              // Animate platform edge strips
-              const stripIntensity = 0.6 + Math.sin(time * 3) * 0.3;
+              // Animate orange edge strips (bright pulsing)
+              const stripIntensity = 1.2 + Math.sin(time * 3) * 0.5;
               edgeStripMaterial.emissiveIntensity = stripIntensity;
 
               // Update orbit controls
