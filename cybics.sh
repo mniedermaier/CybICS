@@ -30,7 +30,7 @@ print_message() {
 
 # Function to show help message
 show_help() {
-    echo "Usage: $0 {start|stop|restart|status|logs|clean|compose}"
+    echo "Usage: $0 {start|stop|restart|status|logs|clean|compose} [--version <tag>]"
     echo "  start   - Start the CybICS virtual environment"
     echo "  stop    - Stop the CybICS virtual environment"
     echo "  restart - Restart the CybICS virtual environment"
@@ -38,6 +38,10 @@ show_help() {
     echo "  logs    - Show logs from all services"
     echo "  clean   - Remove all CybICS containers, images, and volumes"
     echo "  compose - Directly interact with docker compose (e.g., $0 compose ps)"
+    echo ""
+    echo "Options:"
+    echo "  --version <tag>  - Specify Docker image version tag (default: latest)"
+    echo "                     Examples: --version 1.0.0, --version abc1234, --version latest"
     exit 1
 }
 
@@ -288,7 +292,50 @@ check_docker
 ensure_env_files
 print_message "Using Docker Compose command: $DOCKER_COMPOSE" "$YELLOW"
 
-case "$1" in
+# Parse arguments for version option
+CYBICS_VERSION="latest"
+COMMAND=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                CYBICS_VERSION="$2"
+                shift 2
+            else
+                print_message "Error: --version requires a tag argument" "$RED"
+                show_help
+            fi
+            ;;
+        start|stop|restart|status|logs|clean|compose)
+            COMMAND="$1"
+            shift
+            # For 'compose' command, save remaining arguments
+            if [[ "$COMMAND" == "compose" ]]; then
+                COMPOSE_ARGS="$@"
+                break
+            fi
+            ;;
+        *)
+            if [[ -z "$COMMAND" ]]; then
+                show_help
+            else
+                # Unknown option after command
+                print_message "Error: Unknown option: $1" "$RED"
+                show_help
+            fi
+            ;;
+    esac
+done
+
+# Export version for docker-compose
+export CYBICS_VERSION
+
+if [[ "$CYBICS_VERSION" != "latest" ]]; then
+    print_message "Using Docker image version: $CYBICS_VERSION" "$BLUE"
+fi
+
+case "$COMMAND" in
     "start")
         start_environment
         ;;
@@ -309,8 +356,7 @@ case "$1" in
         remove_containers
         ;;
     "compose")
-        shift  # Remove the 'compose' argument
-        direct_compose "$@"
+        direct_compose $COMPOSE_ARGS
         ;;
     *)
         show_help
