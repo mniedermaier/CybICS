@@ -1391,33 +1391,33 @@ def index_page():
             chimneyBase.receiveShadow = true;
             chimneyGroup.add(chimneyBase);
 
-            // Main stack (brick/concrete with texture)
+            // Main stack (brick/concrete with texture) - Taller
             const chimneyStack = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.7, 0.9, 8, 16),
+              new THREE.CylinderGeometry(0.7, 0.9, 12, 16),
               new THREE.MeshStandardMaterial({
                 color: 0x5a4a42,
                 roughness: 0.85,
                 metalness: 0.05
               })
             );
-            chimneyStack.position.y = 6;
+            chimneyStack.position.y = 8;
             chimneyStack.castShadow = true;
             chimneyStack.receiveShadow = true;
             chimneyGroup.add(chimneyStack);
 
-            // Metallic bands (3 reinforcement rings)
+            // Metallic bands (4 reinforcement rings)
             const bandMat = new THREE.MeshStandardMaterial({
               color: 0x666677,
               metalness: 0.9,
               roughness: 0.2
             });
 
-            for(let i = 0; i < 3; i++) {
+            for(let i = 0; i < 4; i++) {
               const band = new THREE.Mesh(
                 new THREE.TorusGeometry(0.75, 0.06, 8, 16),
                 bandMat
               );
-              band.position.y = 3.5 + i * 2;
+              band.position.y = 3.5 + i * 2.5;
               band.rotation.x = Math.PI / 2;
               band.castShadow = true;
               chimneyGroup.add(band);
@@ -1434,7 +1434,7 @@ def index_page():
                 emissiveIntensity: 0.3
               })
             );
-            chimneyTop.position.y = 10.25;
+            chimneyTop.position.y = 14.25;
             chimneyTop.castShadow = true;
             chimneyGroup.add(chimneyTop);
 
@@ -1449,11 +1449,44 @@ def index_page():
                 opacity: 0.7
               })
             );
-            heatGlow.position.y = 10;
+            heatGlow.position.y = 14;
             heatGlow.rotation.x = Math.PI / 2;
             chimneyGroup.add(heatGlow);
 
             scene.add(chimneyGroup);
+
+            // Blowout Pipe: HPT to Chimney
+            const blowoutPipe = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.12, 0.12, 4, 16),
+              pipeMaterial
+            );
+            blowoutPipe.position.set(9, 7, 0);
+            blowoutPipe.rotation.z = Math.PI / 2;
+            blowoutPipe.castShadow = true;
+            blowoutPipe.receiveShadow = true;
+            scene.add(blowoutPipe);
+
+            // Flanges on blowout pipe
+            scene.add(createFlange(7, 7, 0, Math.PI / 2));
+            scene.add(createFlange(11, 7, 0, Math.PI / 2));
+
+            // Elbow at HPT blowout (top of tank)
+            const elbowHPTBlowout = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 16, 16),
+              elbowMaterial
+            );
+            elbowHPTBlowout.position.set(7, 7, 0);
+            elbowHPTBlowout.castShadow = true;
+            scene.add(elbowHPTBlowout);
+
+            // Elbow at Chimney inlet
+            const elbowChimneyInlet = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 16, 16),
+              elbowMaterial
+            );
+            elbowChimneyInlet.position.set(11, 7, 0);
+            elbowChimneyInlet.castShadow = true;
+            scene.add(elbowChimneyInlet);
 
             // System Cabinet (right of HPT)
             const cabinetGroup = new THREE.Group();
@@ -1500,6 +1533,27 @@ def index_page():
               leds.push(led);
             });
 
+            // Add labels for LED panel
+            const ledLabel1 = createTextSprite('GST', '#ffffff', '#333333');
+            ledLabel1.scale.set(2, 0.5, 1);
+            ledLabel1.position.set(13, 4.2, 0);
+            scene.add(ledLabel1);
+
+            const ledLabel2 = createTextSprite('COMP', '#ffffff', '#333333');
+            ledLabel2.scale.set(2, 0.5, 1);
+            ledLabel2.position.set(13, 3.6, 0);
+            scene.add(ledLabel2);
+
+            const ledLabel3 = createTextSprite('SYSTEM', '#ffffff', '#333333');
+            ledLabel3.scale.set(2, 0.5, 1);
+            ledLabel3.position.set(13, 3.0, 0);
+            scene.add(ledLabel3);
+
+            const ledLabel4 = createTextSprite('BLOWOUT', '#ffffff', '#333333');
+            ledLabel4.scale.set(2.5, 0.5, 1);
+            ledLabel4.position.set(13, 2.4, 0);
+            scene.add(ledLabel4);
+
             scene.add(ledPanel);
 
             // Particle system for gas flow (from compressor outlet pipe to HPT)
@@ -1544,7 +1598,7 @@ def index_page():
 
             for(let i = 0; i < flameCount; i++) {
               flameParticles[i * 3] = 11 + (Math.random() - 0.5) * 0.4;
-              flameParticles[i * 3 + 1] = 10 + Math.random() * 0.5;
+              flameParticles[i * 3 + 1] = 14 + Math.random() * 0.5;
               flameParticles[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
 
               flameVelocities.push({
@@ -1586,7 +1640,7 @@ def index_page():
 
             // Flame light
             const flameLight = new THREE.PointLight(0xff6600, 0, 10);
-            flameLight.position.set(11, 10, 0);
+            flameLight.position.set(11, 14, 0);
             scene.add(flameLight);
 
             // Status overlay with glassmorphism design
@@ -1758,9 +1812,9 @@ def index_page():
 
                   flameVelocities[i].life -= 0.015;
 
-                  if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 13) {
+                  if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 17) {
                     flamePos[i * 3] = 11 + (Math.random() - 0.5) * 0.4;
-                    flamePos[i * 3 + 1] = 10 + Math.random() * 0.5;
+                    flamePos[i * 3 + 1] = 14 + Math.random() * 0.5;
                     flamePos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
 
                     flameVelocities[i].x = (Math.random() - 0.5) * 0.04;
