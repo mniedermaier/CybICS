@@ -246,16 +246,18 @@ def index_page():
   # Create container for the content
   with ui.element('div').style('text-align: center; min-width: 1024px; width: 1200px; margin: 0 auto;'):
 
-    # NiceGUI setup - Header
-    with ui.row().style('width: 100%; text-align: center; align-items: center; justify-content: center;'):
-      ui.spinner('dots', size='lg', color='red')
-      ui.image('pics/CybICS_logo.png').classes('w-64')
-      ui.spinner('dots', size='lg', color='red')
+    # NiceGUI setup - Header with tabs on same row
+    with ui.row().style('width: 100%; align-items: center; justify-content: space-between; margin-bottom: 20px;'):
+      # Left side: Spinner and Logo
+      with ui.row().style('align-items: center;'):
+        ui.spinner('dots', size='lg', color='red')
+        ui.image('pics/CybICS_logo.png').classes('w-64')
+        ui.spinner('dots', size='lg', color='red')
 
-    # Create tabs for Classic and 3D views
-    with ui.tabs().classes('w-full').style('background-color: #1a1a2e; margin-bottom: 20px;') as tabs:
-      classic_tab = ui.tab('Classic View', icon='dashboard').style('color: white; font-size: 16px;')
-      viz_3d_tab = ui.tab('3D Visualization', icon='view_in_ar').style('color: white; font-size: 16px;')
+      # Right side: Tabs
+      with ui.tabs().style('background-color: #1a1a2e;') as tabs:
+        classic_tab = ui.tab('Classic View', icon='dashboard').style('color: white; font-size: 16px;')
+        viz_3d_tab = ui.tab('3D Visualization', icon='view_in_ar').style('color: white; font-size: 16px;')
 
     # Tab panels
     with ui.tab_panels(tabs, value=classic_tab).classes('w-full').props('keep-alive'):
@@ -282,121 +284,122 @@ def index_page():
                 'height: 1px; background-color: white; width: 80%; margin: 20px 0;'
             )
 
-        # Add PCB as a PNG image
-        with ui.element('div').style('position: relative; display: inline-block;'):
-          # Display the PNG image
-          ui.image('pics/pcb.png').style('width: 100%; height: auto; display: block; width: 800px; height: 500px; margin: auto;')
+        # Add PCB as a PNG image - centered wrapper
+        with ui.element('div').style('display: flex; justify-content: center; width: 100%;'):
+          with ui.element('div').style('position: relative; display: inline-block;'):
+            # Display the PNG image
+            ui.image('pics/pcb.png').style('width: 100%; height: auto; display: block; width: 800px; height: 500px; margin: auto;')
 
-          # Reset button
-          ui.button('reset', on_click=button_reset).style(
-            'position: absolute; top: 240px; left: 0px;'
-            'background-color: red; color: white; width: 40px; height: 5px;'
-            'display: block;'
-          )
+            # Reset button
+            ui.button('reset', on_click=button_reset).style(
+              'position: absolute; top: 240px; left: 0px;'
+              'background-color: red; color: white; width: 40px; height: 5px;'
+              'display: block;'
+            )
 
-          # Overlay Display
-          DISPLAYoverlay1 = ui.label('CybICS v1.1.2').style(
-            'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
-            'background-color: transparent; font-size: 40px;'
-            'display: block;'
-          )
-          DISPLAYoverlay2 = ui.label('0').style(
-            'position: absolute; top: 415px; left: 430px; border-radius: 50%; color=black'
-            'background-color: transparent; font-size: 40px; width:330px; text-align: right;'
-            'display: block;'
-          )
+            # Overlay Display
+            DISPLAYoverlay1 = ui.label('CybICS v1.1.2').style(
+              'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
+              'background-color: transparent; font-size: 40px;'
+              'display: block;'
+            )
+            DISPLAYoverlay2 = ui.label('0').style(
+              'position: absolute; top: 415px; left: 430px; border-radius: 50%; color=black'
+              'background-color: transparent; font-size: 40px; width:330px; text-align: right;'
+              'display: block;'
+            )
 
-          # Overlay GST
-          GSToverlayLow=ui.card().style(
-            'position: absolute; top: 140px; left: 115px; border-radius: 50%;'
-            'background-color: red; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          GSToverlayNormal=ui.card().style(
-            'position: absolute; top: 110px; left: 115px; border-radius: 50%;'
-            'background-color: green; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          GSToverlayHigh=ui.card().style(
-            'position: absolute; top: 80px; left: 115px; border-radius: 50%;'
-            'background-color: blue; width: 5px; height: 5px;'
-            'display: block;'
-          )
+            # Overlay GST
+            GSToverlayLow=ui.card().style(
+              'position: absolute; top: 140px; left: 115px; border-radius: 50%;'
+              'background-color: red; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            GSToverlayNormal=ui.card().style(
+              'position: absolute; top: 110px; left: 115px; border-radius: 50%;'
+              'background-color: green; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            GSToverlayHigh=ui.card().style(
+              'position: absolute; top: 80px; left: 115px; border-radius: 50%;'
+              'background-color: blue; width: 5px; height: 5px;'
+              'display: block;'
+            )
 
-          # Overlay Compressor
-          CoverlayOn=ui.card().style(
-            'position: absolute; top: 95px; left: 355px; border-radius: 50%;'
-            'background-color: green; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          CoverlayOff=ui.card().style(
-            'position: absolute; top: 125px; left: 355px; border-radius: 50%;'
-            'background-color: red; width: 5px; height: 5px;'
-            'display: block;'
-          )
+            # Overlay Compressor
+            CoverlayOn=ui.card().style(
+              'position: absolute; top: 95px; left: 355px; border-radius: 50%;'
+              'background-color: green; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            CoverlayOff=ui.card().style(
+              'position: absolute; top: 125px; left: 355px; border-radius: 50%;'
+              'background-color: red; width: 5px; height: 5px;'
+              'display: block;'
+            )
 
-          # Overlay HPT
-          HPToverlayEmpty=ui.card().style(
-            'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
-            'background-color: blue; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          HPToverlayLow=ui.card().style(
-            'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
-            'background-color: white; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          HPToverlayNormal=ui.card().style(
-            'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
-            'background-color: green; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          HPToverlayHigh=ui.card().style(
-            'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
-            'background-color: white; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          HPToverlayCritical=ui.card().style(
-            'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
-            'background-color: red; width: 5px; height: 5px;'
-            'display: block;'
-          )
+            # Overlay HPT
+            HPToverlayEmpty=ui.card().style(
+              'position: absolute; top: 210px; left: 495px; border-radius: 50%;'
+              'background-color: blue; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            HPToverlayLow=ui.card().style(
+              'position: absolute; top: 184px; left: 495px; border-radius: 50%;'
+              'background-color: white; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            HPToverlayNormal=ui.card().style(
+              'position: absolute; top: 158px; left: 495px; border-radius: 50%;'
+              'background-color: green; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            HPToverlayHigh=ui.card().style(
+              'position: absolute; top: 132px; left: 495px; border-radius: 50%;'
+              'background-color: white; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            HPToverlayCritical=ui.card().style(
+              'position: absolute; top: 106px; left: 495px; border-radius: 50%;'
+              'background-color: red; width: 5px; height: 5px;'
+              'display: block;'
+            )
 
-          # Overlay Blow Out
-          BOoverlayOpen=ui.card().style(
-            'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
-            'background-color: red; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          BOoverlayClosed=ui.card().style(
-            'position: absolute; top: 80px; left: 680px; border-radius: 50%;'
-            'background-color: green; width: 5px; height: 5px;'
-            'display: block;'
-          )
+            # Overlay Blow Out
+            BOoverlayOpen=ui.card().style(
+              'position: absolute; top: 55px; left: 680px; border-radius: 50%;'
+              'background-color: red; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            BOoverlayClosed=ui.card().style(
+              'position: absolute; top: 80px; left: 680px; border-radius: 50%;'
+              'background-color: green; width: 5px; height: 5px;'
+              'display: block;'
+            )
 
-          # Overlay System
-          SoverlayWorking=ui.card().style(
-            'position: absolute; top: 140px; left: 680px; border-radius: 50%;'
-            'background-color: green; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          SoverlayError=ui.card().style(
-            'position: absolute; top: 165px; left: 680px; border-radius: 50%;'
-            'background-color: red; width: 5px; height: 5px;'
-            'display: block;'
-          )
+            # Overlay System
+            SoverlayWorking=ui.card().style(
+              'position: absolute; top: 140px; left: 680px; border-radius: 50%;'
+              'background-color: green; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            SoverlayError=ui.card().style(
+              'position: absolute; top: 165px; left: 680px; border-radius: 50%;'
+              'background-color: red; width: 5px; height: 5px;'
+              'display: block;'
+            )
 
-          # Overlay System Valve
-          SVoverlayOpen=ui.card().style(
-            'position: absolute; top: 245px; left: 620px; border-radius: 50%;'
-            'background-color: green; width: 5px; height: 5px;'
-            'display: block;'
-          )
-          SVoverlayClosed=ui.card().style(
-            'position: absolute; top: 270px; left: 620px; border-radius: 50%;'
-            'background-color: red; width: 5px; height: 5px;'
-            'display: block;'
-          )
+            # Overlay System Valve
+            SVoverlayOpen=ui.card().style(
+              'position: absolute; top: 245px; left: 620px; border-radius: 50%;'
+              'background-color: green; width: 5px; height: 5px;'
+              'display: block;'
+            )
+            SVoverlayClosed=ui.card().style(
+              'position: absolute; top: 270px; left: 620px; border-radius: 50%;'
+              'background-color: red; width: 5px; height: 5px;'
+              'display: block;'
+            )
 
         # add horizontal line
         with ui.element('div').style('display: flex; justify-content: center;'):
@@ -405,30 +408,31 @@ def index_page():
             )
 
         # Build a visual representation of the process
-        with ui.row().style('width: 900px; text-align: center; align-items: center; justify-content: center;'):
-          with ui.column():
-            variableTable = ui.table(columns=columns, rows=rows, row_key='name')
-          with ui.column():
-            ui.label('Gas Storage Tank (GST)')
-            with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as gstCard:
-              gstLabel = ui.label(str(gst)).style('color: black;')
-            ui.label('System Valve ')
-            with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as systemValveCard:
-              systemValveLabel = ui.label(str(systemValve)).style('color: black;')
-          with ui.column():
-            ui.label('Compressor (C)')
-            with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as cCard:
-              cLabel = ui.label(str(compressor)).style('color: black;')
-            ui.label('System (Sys)')
-            with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as sysCard:
-              sysLabel = ui.label(str(sysSen)).style('color: black;')
-          with ui.column():
-            ui.label('High Pressure Tank (HPT)')
-            with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as hptCard:
-              hptLabel = ui.label(str(hpt)).style('color: black;')
-            ui.label('Blow Out (BO)')
-            with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as boCard:
-              boLabel = ui.label(str(boSen)).style('color: black;')
+        with ui.element('div').style('display: flex; justify-content: center; width: 100%;'):
+          with ui.row().style('width: 900px; text-align: center; align-items: center; justify-content: center;'):
+            with ui.column():
+              variableTable = ui.table(columns=columns, rows=rows, row_key='name')
+            with ui.column():
+              ui.label('Gas Storage Tank (GST)')
+              with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as gstCard:
+                gstLabel = ui.label(str(gst)).style('color: black;')
+              ui.label('System Valve ')
+              with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as systemValveCard:
+                systemValveLabel = ui.label(str(systemValve)).style('color: black;')
+            with ui.column():
+              ui.label('Compressor (C)')
+              with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as cCard:
+                cLabel = ui.label(str(compressor)).style('color: black;')
+              ui.label('System (Sys)')
+              with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as sysCard:
+                sysLabel = ui.label(str(sysSen)).style('color: black;')
+            with ui.column():
+              ui.label('High Pressure Tank (HPT)')
+              with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as hptCard:
+                hptLabel = ui.label(str(hpt)).style('color: black;')
+              ui.label('Blow Out (BO)')
+              with ui.card().style(f'background-color: grey; width: 200px; height: 100px; display: flex; justify-content: center; align-items: center;') as boCard:
+                boLabel = ui.label(str(boSen)).style('color: black;')
 
       # 3D Visualization Tab Panel
       with ui.tab_panel(viz_3d_tab):
@@ -1223,6 +1227,32 @@ def index_page():
             }
 
             compressorGroup.add(fanGroup);
+
+            // Compressor Label with text (custom wider canvas for long text)
+            // Create custom sprite with wider canvas
+            const compressorCanvas = document.createElement('canvas');
+            const compressorContext = compressorCanvas.getContext('2d');
+            compressorCanvas.width = 1024; // Wider canvas for longer text
+            compressorCanvas.height = 128;
+
+            // Background
+            compressorContext.fillStyle = '#ffff00';
+            compressorContext.fillRect(0, 0, compressorCanvas.width, compressorCanvas.height);
+
+            // Text
+            compressorContext.font = 'bold 80px Arial';
+            compressorContext.fillStyle = '#000000';
+            compressorContext.textAlign = 'center';
+            compressorContext.textBaseline = 'middle';
+            compressorContext.fillText('COMPRESSOR', compressorCanvas.width / 2, compressorCanvas.height / 2);
+
+            const compressorTexture = new THREE.CanvasTexture(compressorCanvas);
+            const compressorSpriteMaterial = new THREE.SpriteMaterial({ map: compressorTexture });
+            const compressorLabel = new THREE.Sprite(compressorSpriteMaterial);
+            compressorLabel.scale.set(5, 1, 1); // Adjusted scale for proper size
+            compressorLabel.position.set(0, 3, 0);
+            compressorGroup.add(compressorLabel);
+
             scene.add(compressorGroup);
 
             // Pipes with flanges - realistic industrial piping
@@ -1291,15 +1321,15 @@ def index_page():
               new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
               pipeMaterial
             );
-            outletPipe.position.set(3.25, 2.5, 0.5);
+            outletPipe.position.set(3.25, 1.2, 0.5);
             outletPipe.rotation.z = Math.PI / 2;
             outletPipe.castShadow = true;
             outletPipe.receiveShadow = true;
             scene.add(outletPipe);
 
             // Flanges on outlet pipe
-            scene.add(createFlange(1.5, 2.5, 0.5, Math.PI / 2));
-            scene.add(createFlange(5, 2.5, 0.5, Math.PI / 2));
+            scene.add(createFlange(1.5, 1.2, 0.5, Math.PI / 2));
+            scene.add(createFlange(5, 1.2, 0.5, Math.PI / 2));
 
             // Elbow joints at pipe connections
             const elbowMaterial = new THREE.MeshStandardMaterial({
@@ -1330,7 +1360,7 @@ def index_page():
               new THREE.SphereGeometry(0.2, 16, 16),
               elbowMaterial
             );
-            elbowCompOut.position.set(1.5, 2.5, 0.5);
+            elbowCompOut.position.set(1.5, 1.2, 0.5);
             elbowCompOut.castShadow = true;
             scene.add(elbowCompOut);
 
@@ -1339,7 +1369,7 @@ def index_page():
               new THREE.SphereGeometry(0.2, 16, 16),
               elbowMaterial
             );
-            elbowHPT.position.set(5, 2.5, 0.5);
+            elbowHPT.position.set(5, 1.2, 0.5);
             elbowHPT.castShadow = true;
             scene.add(elbowHPT);
 
@@ -1563,17 +1593,17 @@ def index_page():
             const statusOverlay = document.createElement('div');
             statusOverlay.style.cssText = `
               position: absolute;
-              bottom: 30px;
-              left: 30px;
+              bottom: 20px;
+              left: 20px;
               background: linear-gradient(135deg, rgba(20, 20, 40, 0.9), rgba(30, 20, 50, 0.8));
               backdrop-filter: blur(10px);
               border: 2px solid rgba(100, 150, 255, 0.3);
-              padding: 25px;
-              border-radius: 20px;
+              padding: 15px 18px;
+              border-radius: 12px;
               color: white;
               font-family: 'Courier New', monospace;
               z-index: 10;
-              font-size: 15px;
+              font-size: 13px;
               box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(100, 150, 255, 0.1);
               animation: statusGlow 3s ease-in-out infinite;
             `;
@@ -1590,25 +1620,25 @@ def index_page():
                 }
               </style>
               <h3 style="
-                margin: 0 0 20px 0;
+                margin: 0 0 12px 0;
                 color: #ff8c42;
-                font-size: 22px;
+                font-size: 18px;
                 text-transform: uppercase;
-                letter-spacing: 3px;
+                letter-spacing: 2px;
                 border-bottom: 2px solid #ff8c42;
-                padding-bottom: 12px;
+                padding-bottom: 8px;
                 text-shadow: 0 0 20px rgba(255, 140, 66, 0.6);
                 font-weight: bold;
               ">⚡ System Status</h3>
-              <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px 20px; line-height: 1.8;">
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 15px; line-height: 1.6; text-align: left;">
                 <div style="color: #6ab0ff;">● GST Pressure:</div><div class="status-value" style="color: #6ab0ff;"><span id="gst-value">0</span></div>
                 <div style="color: #ff6b6b;">● HPT Pressure:</div><div class="status-value" style="color: #ff6b6b;"><span id="hpt-value">0</span></div>
-                <div style="color: #ffdd57;">● System Sensor:</div><div class="status-value" style="color: #ffdd57;"><span id="syssen-value">0</span></div>
-                <div style="color: #ff8844;">● Blowout:</div><div class="status-value" style="color: #ff8844;"><span id="bosen-value">0</span></div>
-                <div style="color: #00ff88;">● Compressor:</div><div class="status-value" style="color: #00ff88;"><span id="compressor-value">OFF</span></div>
-                <div style="color: #88ccff;">● System Valve:</div><div class="status-value" style="color: #88ccff;"><span id="systemvalve-value">CLOSED</span></div>
-                <div style="color: #cc88ff;">● GST Signal:</div><div class="status-value" style="color: #cc88ff;"><span id="gstsig-value">0</span></div>
-                <div style="color: #ff88cc;">● Heartbeat:</div><div class="status-value" style="color: #ff88cc;"><span id="heartbeat-value">0</span></div>
+                <div style="color: #aabbcc;">● System Sensor:</div><div class="status-value" style="color: #aabbcc;"><span id="syssen-value">0</span></div>
+                <div style="color: #aabbcc;">● Blowout:</div><div class="status-value" style="color: #aabbcc;"><span id="bosen-value">0</span></div>
+                <div style="color: #aabbcc;">● Compressor:</div><div class="status-value" style="color: #aabbcc;"><span id="compressor-value">OFF</span></div>
+                <div style="color: #aabbcc;">● System Valve:</div><div class="status-value" style="color: #aabbcc;"><span id="systemvalve-value">CLOSED</span></div>
+                <div style="color: #aabbcc;">● GST Signal:</div><div class="status-value" style="color: #aabbcc;"><span id="gstsig-value">0</span></div>
+                <div style="color: #aabbcc;">● Heartbeat:</div><div class="status-value" style="color: #aabbcc;"><span id="heartbeat-value">0</span></div>
               </div>
             `;
             container.appendChild(statusOverlay);
