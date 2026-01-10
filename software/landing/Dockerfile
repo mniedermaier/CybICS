@@ -13,7 +13,8 @@ RUN apk add --no-cache \
     curl \
     wget \
     bind-tools \
-    netcat-openbsd
+    netcat-openbsd \
+    docker-cli
     
 WORKDIR /CybICS
 
