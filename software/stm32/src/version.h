@@ -10,8 +10,8 @@
 
 /* Firmware version for display - update this for releases */
 #define FIRMWARE_VERSION_MAJOR 1
-#define FIRMWARE_VERSION_MINOR 1
-#define FIRMWARE_VERSION_PATCH 2
+#define FIRMWARE_VERSION_MINOR 2
+#define FIRMWARE_VERSION_PATCH 0
 
 /* Version as string for display (uses Zephyr's STRINGIFY macro) */
 #define FIRMWARE_VERSION_STRING "v" STRINGIFY(FIRMWARE_VERSION_MAJOR) "." \
