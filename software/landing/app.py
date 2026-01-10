@@ -299,6 +299,277 @@ def serve_challenge_doc_asset(filename):
     logger.warning(f'Doc asset not found: {filename}')
     return "File not found", 404
 
+# ========== SETTINGS ROUTES ==========
+
+@app.route('/api/settings/theme', methods=['GET', 'POST'])
+def theme_settings():
+    """Get or set theme preference"""
+    if request.method == 'POST':
+        data = request.get_json()
+        theme = data.get('theme', 'dark')
+        session['theme'] = theme
+        session.modified = True
+        logger.info(f'Theme changed to: {theme}')
+        return jsonify({'success': True, 'theme': theme})
+    else:
+        theme = session.get('theme', 'dark')
+        return jsonify({'theme': theme})
+
+@app.route('/api/settings/logs/download')
+def download_logs():
+    """Download docker logs from all CybICS containers"""
+    import subprocess
+    import tempfile
+    from datetime import datetime
+    import socket
+
+    try:
+        logger.info('Generating docker logs')
+
+        # Get current container's hostname (which is the container ID)
+        hostname = socket.gethostname()
+        logger.info(f'Current container hostname: {hostname}')
+
+        # Get the docker-compose project name from our own container
+        inspect_result = subprocess.run(
+            ['docker', 'inspect', '--format', '{{index .Config.Labels "com.docker.compose.project"}}', hostname],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        project_name = inspect_result.stdout.strip()
+        if not project_name or inspect_result.returncode != 0:
+            logger.warning(f'Could not detect compose project name, using hostname: {hostname}')
+            # Fallback: try to detect from container name patterns
+            project_name = None
+
+        # Get list of all CybICS containers using docker-compose label
+        if project_name:
+            logger.info(f'Using docker-compose project: {project_name}')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--filter', f'label=com.docker.compose.project={project_name}', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+        else:
+            logger.info('Using all containers as fallback')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+        if ps_result.returncode != 0:
+            logger.error(f'Failed to list containers: {ps_result.stderr}')
+            return jsonify({'error': 'Failed to list containers'}), 500
+
+        containers = [c for c in ps_result.stdout.strip().split('\n') if c]
+
+        if not containers:
+            logger.warning('No containers found')
+            return jsonify({'error': 'No containers found'}), 404
+
+        logger.info(f'Found {len(containers)} containers: {containers}')
+
+        # Get container versions
+        container_versions = {}
+        for container in containers:
+            version_result = subprocess.run(
+                ['docker', 'inspect', '--format', '{{.Config.Image}}', container],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if version_result.returncode == 0:
+                container_versions[container] = version_result.stdout.strip()
+            else:
+                container_versions[container] = 'unknown'
+
+        # Collect logs from all containers
+        all_logs = []
+        for container in containers:
+            logs_result = subprocess.run(
+                ['docker', 'logs', '--timestamps', container],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            all_logs.append(f"{'='*80}\nContainer: {container}\n{'='*80}\n{logs_result.stdout}")
+            if logs_result.stderr:
+                all_logs.append(f"\nSTDERR:\n{logs_result.stderr}")
+            all_logs.append(f"\n\n")
+
+        # Create a temporary file with logs
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'cybics_logs_{timestamp}.txt'
+
+        # Write logs to temporary file
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            f.write(f"CybICS Docker Logs\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Containers: {len(containers)}\n")
+            f.write("="*80 + "\n\n")
+
+            # Write container versions
+            f.write("CONTAINER VERSIONS\n")
+            f.write("="*80 + "\n")
+            for container, version in sorted(container_versions.items()):
+                f.write(f"{container}: {version}\n")
+            f.write("="*80 + "\n\n")
+
+            f.write('\n'.join(all_logs))
+            temp_path = f.name
+
+        # Send file
+        from flask import send_file
+        return send_file(
+            temp_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/plain'
+        )
+    except subprocess.TimeoutExpired:
+        logger.error('Docker compose logs command timed out')
+        return jsonify({'error': 'Logs generation timed out'}), 500
+    except Exception as e:
+        logger.error(f'Error generating logs: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/system/info')
+def system_info():
+    """Get system information for settings panel"""
+    import subprocess
+    import platform
+
+    try:
+        # Get docker version
+        docker_version = subprocess.run(
+            ['docker', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        ).stdout.strip()
+
+        # Get docker compose version
+        compose_version = subprocess.run(
+            ['docker', 'compose', 'version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        ).stdout.strip()
+
+        # Get running containers count
+        containers_result = subprocess.run(
+            ['docker', 'ps', '-q'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        container_count = len([line for line in containers_result.stdout.strip().split('\n') if line])
+
+        return jsonify({
+            'platform': platform.system(),
+            'python_version': platform.python_version(),
+            'docker_version': docker_version,
+            'compose_version': compose_version,
+            'running_containers': container_count
+        })
+    except Exception as e:
+        logger.error(f'Error getting system info: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/containers/restart', methods=['POST'])
+def restart_containers():
+    """Restart all CybICS docker containers"""
+    import subprocess
+    import socket
+
+    try:
+        logger.info('Restarting CybICS docker containers')
+
+        # Get current container's hostname (which is the container ID)
+        hostname = socket.gethostname()
+        logger.info(f'Current container hostname: {hostname}')
+
+        # Get the docker-compose project name from our own container
+        inspect_result = subprocess.run(
+            ['docker', 'inspect', '--format', '{{index .Config.Labels "com.docker.compose.project"}}', hostname],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        project_name = inspect_result.stdout.strip()
+        if not project_name or inspect_result.returncode != 0:
+            logger.warning(f'Could not detect compose project name')
+            project_name = None
+
+        # Get list of all CybICS containers using docker-compose label
+        if project_name:
+            logger.info(f'Using docker-compose project: {project_name}')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--filter', f'label=com.docker.compose.project={project_name}', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+        else:
+            logger.info('Using all containers as fallback')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+        if ps_result.returncode != 0:
+            logger.error(f'Failed to list containers: {ps_result.stderr}')
+            return jsonify({'error': 'Failed to list containers'}), 500
+
+        containers = [c for c in ps_result.stdout.strip().split('\n') if c]
+
+        if not containers:
+            logger.warning('No containers found')
+            return jsonify({'error': 'No containers found'}), 404
+
+        logger.info(f'Restarting {len(containers)} containers: {containers}')
+
+        # Restart each container
+        failed_containers = []
+        for container in containers:
+            result = subprocess.run(
+                ['docker', 'restart', container],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            if result.returncode != 0:
+                logger.error(f'Failed to restart {container}: {result.stderr}')
+                failed_containers.append(container)
+
+        if failed_containers:
+            logger.error(f'Failed to restart some containers: {failed_containers}')
+            return jsonify({
+                'success': False,
+                'error': f'Failed to restart: {", ".join(failed_containers)}'
+            }), 500
+
+        logger.info('All containers restarted successfully')
+        return jsonify({
+            'success': True,
+            'message': f'Successfully restarted {len(containers)} containers'
+        })
+
+    except subprocess.TimeoutExpired:
+        logger.error('Container restart timed out')
+        return jsonify({'error': 'Restart operation timed out'}), 500
+    except Exception as e:
+        logger.error(f'Error restarting containers: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
 # ========== APPLICATION ENTRY POINT ==========
 
 if __name__ == '__main__':

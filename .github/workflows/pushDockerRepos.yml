@@ -38,12 +38,68 @@ jobs:
       - name: "Create environment files"
         run: .devcontainer/prepare-env.sh
 
-      - name: build and push docker image to registry
+      - name: Extract version metadata
+        id: meta
+        run: |
+          # Get short SHA for versioning
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+          # Check if this commit is tagged (for releases)
+          GIT_TAG=$(git describe --exact-match --tags 2>/dev/null || echo "")
+          echo "git_tag=${GIT_TAG}" >> $GITHUB_OUTPUT
+
+          # Create tag list: always include latest and SHA, optionally include git tag
+          if [ -n "$GIT_TAG" ]; then
+            # Remove 'v' prefix if present for Docker tag
+            VERSION_TAG=${GIT_TAG#v}
+            echo "tags=latest,$(git rev-parse --short HEAD),${VERSION_TAG}" >> $GITHUB_OUTPUT
+            echo "Building release version: ${GIT_TAG}"
+          else
+            echo "tags=latest,$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            echo "Building development version"
+          fi
+
+      - name: Build and push docker images to registry
+        env:
+          SHA_SHORT: ${{ steps.meta.outputs.sha_short }}
+          GIT_TAG: ${{ steps.meta.outputs.git_tag }}
         run: |
           # Create a new builder instance
           docker buildx create --name multiarch-builder --use || true
-          
-          # Build and push for all platforms
-          DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f .devcontainer/virtual/docker-compose.yml build
-          docker compose -f .devcontainer/virtual/docker-compose.yml push
+
+          # Helper function to build and push with multiple tags
+          build_and_push() {
+            local IMAGE_NAME=$1
+            local CONTEXT=$2
+            local DOCKERFILE=$3
+
+            # Build tag arguments
+            TAG_ARGS=""
+            if [ -n "$GIT_TAG" ]; then
+              VERSION_TAG=${GIT_TAG#v}
+              TAG_ARGS="-t ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${SHA_SHORT} -t ${IMAGE_NAME}:${VERSION_TAG}"
+              echo "Building ${IMAGE_NAME} with tags: latest, ${SHA_SHORT}, ${VERSION_TAG}"
+            else
+              TAG_ARGS="-t ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${SHA_SHORT}"
+              echo "Building ${IMAGE_NAME} with tags: latest, ${SHA_SHORT}"
+            fi
+
+            # Build and push
+            docker buildx build \
+              --platform linux/amd64 \
+              ${TAG_ARGS} \
+              --push \
+              -f ${DOCKERFILE} \
+              ${CONTEXT}
+          }
+
+          # Build and push all images
+          build_and_push "mniedermaier1337/cybics-attack-machine" "software/attack-machine" "software/attack-machine/Dockerfile"
+          build_and_push "mniedermaier1337/cybicsopenplc" "software/OpenPLC" "software/OpenPLC/Dockerfile"
+          build_and_push "mniedermaier1337/cybicsopcua" "software/opcua" "software/opcua/Dockerfile"
+          build_and_push "mniedermaier1337/cybicss7com" "software/s7com" "software/s7com/Dockerfile"
+          build_and_push "mniedermaier1337/cybicsfuxa" "software/FUXA" "software/FUXA/Dockerfile"
+          build_and_push "mniedermaier1337/cybicshwio" "software/hwio-virtual" "software/hwio-virtual/Dockerfile"
+          build_and_push "mniedermaier1337/landing" "." "software/landing/Dockerfile"
+          build_and_push "mniedermaier1337/cybics-engineeringws" "software" "software/engineeringWS/Dockerfile"
 
