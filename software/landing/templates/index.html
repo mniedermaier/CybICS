@@ -547,7 +547,7 @@
         /* Floating Detach Button */
         .detach-floating-btn {
             position: fixed;
-            bottom: 2rem;
+            bottom: 7rem;
             right: 2rem;
             background: linear-gradient(135deg, #ff6b00, #ff8c42);
             color: #ffffff;
@@ -1023,6 +1023,359 @@
 
         body.light-mode iframe {
             border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        /* Chat Widget Styles */
+        .chat-widget {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(74, 144, 226, 0.4);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .chat-widget:not(.expanded) {
+            width: 60px;
+            height: 60px;
+        }
+
+        .chat-widget.expanded {
+            width: 350px;
+            height: 500px;
+            border-radius: 1rem;
+            background: rgba(30, 30, 40, 0.98);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            cursor: default;
+        }
+
+        .chat-widget:hover:not(.expanded) {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 6px 30px rgba(74, 144, 226, 0.6);
+        }
+
+        .chat-widget:active:not(.expanded) {
+            transform: scale(0.95);
+        }
+
+        .chat-header {
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: none;
+            width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .chat-widget.expanded .chat-header {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.2), rgba(255, 140, 0, 0.1));
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+            height: auto;
+            justify-content: space-between;
+        }
+
+        .chat-icon {
+            font-size: 1.8rem;
+            display: block;
+        }
+
+        .chat-widget.expanded .chat-icon {
+            display: none;
+        }
+
+        .chat-title {
+            font-weight: 600;
+            color: #ff6b00;
+            font-size: 1rem;
+            display: none;
+        }
+
+        .chat-widget.expanded .chat-title {
+            display: block;
+        }
+
+        .chat-toggle {
+            color: #ff6b00;
+            transition: transform 0.3s;
+            display: none;
+        }
+
+        .chat-widget.expanded .chat-toggle {
+            display: block;
+            transform: rotate(180deg);
+        }
+
+        .chat-tooltip {
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(45, 45, 45, 0.95);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            white-space: nowrap;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(74, 144, 226, 0.3);
+        }
+
+        .chat-widget:hover:not(.expanded) .chat-tooltip {
+            opacity: 1;
+        }
+
+        .chat-widget.expanded .chat-tooltip {
+            display: none;
+        }
+
+        .chat-resize-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            display: none;
+            z-index: 1000;
+        }
+
+        .chat-widget.expanded .chat-resize-handle {
+            display: block;
+        }
+
+        .chat-resize-handle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 12px 12px 0 0;
+            border-color: rgba(255, 107, 0, 0.5) transparent transparent transparent;
+        }
+
+        .chat-body {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-widget.expanded .chat-body {
+            display: flex;
+        }
+
+        .chat-status {
+            padding: 0.5rem 1rem;
+            background: rgba(45, 45, 55, 0.6);
+            border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .message-text {
+            background: rgba(45, 45, 55, 0.8);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            flex: 1;
+            word-wrap: break-word;
+            color: #fff;
+            line-height: 1.5;
+        }
+
+        .user-message .message-text {
+            background: rgba(255, 107, 0, 0.2);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+        }
+
+        .agent-message .message-text {
+            background: rgba(45, 45, 55, 0.8);
+            border: 1px solid rgba(255, 107, 0, 0.1);
+        }
+
+        .typing-indicator .message-text {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff6b00;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(45, 45, 55, 0.6);
+            border-top: 1px solid rgba(255, 107, 0, 0.1);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(30, 30, 40, 0.8);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.5rem;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: #ff6b00;
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.1);
+        }
+
+        .chat-send-btn {
+            padding: 0.75rem 1.25rem;
+            background: rgba(255, 107, 0, 0.2);
+            border: 1px solid rgba(255, 107, 0, 0.4);
+            border-radius: 0.5rem;
+            color: #ff6b00;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .chat-send-btn:hover {
+            background: rgba(255, 107, 0, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
+        }
+
+        .chat-send-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Light mode chat styles */
+        body.light-mode .chat-widget {
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+        }
+
+        body.light-mode .chat-widget.expanded {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        body.light-mode .chat-widget.expanded .chat-header {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 140, 0, 0.05));
+        }
+
+        body.light-mode .chat-status {
+            background: rgba(245, 245, 245, 0.8);
+        }
+
+        body.light-mode .message-text {
+            color: #333;
+        }
+
+        body.light-mode .user-message .message-text {
+            background: rgba(255, 107, 0, 0.1);
+        }
+
+        body.light-mode .agent-message .message-text {
+            background: rgba(245, 245, 245, 0.9);
+        }
+
+        body.light-mode .chat-input-container {
+            background: rgba(245, 245, 245, 0.8);
+        }
+
+        body.light-mode .chat-input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        body.light-mode .chat-send-btn {
+            color: #ff6b00;
+        }
+
+        /* Responsive chat widget */
+        @media (max-width: 768px) {
+            .chat-widget:not(.expanded) {
+                width: 60px;
+                height: 60px;
+                bottom: 2rem;
+                right: 1rem;
+            }
+
+            .chat-widget.expanded {
+                width: calc(100% - 2rem);
+                height: 400px;
+                right: 1rem;
+                bottom: 2rem;
+            }
         }
     </style>
 </head>
@@ -1500,6 +1853,27 @@
                 </div>
             </div>
 
+            <!-- AI Agent Section -->
+            <div class="settings-section">
+                <h3>🤖 AI Assistant</h3>
+                <div class="setting-item">
+                    <span class="setting-label">CybICS Agent</span>
+                    <div class="theme-toggle">
+                        <div class="theme-option" data-agent="enabled" onclick="setAgentEnabled(true)">
+                            ✅ Enabled
+                        </div>
+                        <div class="theme-option" data-agent="disabled" onclick="setAgentEnabled(false)">
+                            ❌ Disabled
+                        </div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label" style="font-size: 0.9rem; color: #999;">
+                        AI assistant for CybICS help and support
+                    </span>
+                </div>
+            </div>
+
             <!-- System Actions Section -->
             <div class="settings-section">
                 <h3>🔧 System Actions</h3>
@@ -1537,6 +1911,7 @@
             document.getElementById('settingsModal').classList.add('active');
             loadSystemInfo();
             loadThemePreference();
+            loadAgentPreference();
         }
 
         function closeSettings() {
@@ -1702,6 +2077,307 @@
                     `;
                 });
         }
+
+        // ========== AI AGENT FUNCTIONS ==========
+
+        function setAgentEnabled(enabled) {
+            // Update UI
+            document.querySelectorAll('[data-agent]').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            document.querySelector(`[data-agent="${enabled ? 'enabled' : 'disabled'}"]`).classList.add('active');
+
+            // Save to server
+            fetch('/api/settings/agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ enabled: enabled })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Agent setting saved:', data);
+                // Update chat widget visibility
+                const chatWidget = document.getElementById('chatWidget');
+                if (chatWidget) {
+                    chatWidget.style.display = enabled ? 'flex' : 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error saving agent setting:', error);
+            });
+        }
+
+        function loadAgentPreference() {
+            fetch('/api/settings/agent')
+                .then(response => response.json())
+                .then(data => {
+                    const enabled = data.enabled !== undefined ? data.enabled : true;
+                    // Apply setting without saving again
+                    document.querySelectorAll('[data-agent]').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    document.querySelector(`[data-agent="${enabled ? 'enabled' : 'disabled'}"]`).classList.add('active');
+
+                    // Show/hide chat widget
+                    const chatWidget = document.getElementById('chatWidget');
+                    if (chatWidget) {
+                        chatWidget.style.display = enabled ? 'flex' : 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading agent preference:', error);
+                });
+        }
+
+        // Load settings on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAgentPreference();
+        });
+
+        // ========== CHAT WIDGET FUNCTIONS ==========
+
+        function toggleChat() {
+            const chatWidget = document.getElementById('chatWidget');
+            chatWidget.classList.toggle('expanded');
+
+            if (chatWidget.classList.contains('expanded')) {
+                document.getElementById('chatInput').focus();
+                checkAgentStatus();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat('user', message);
+
+            // Clear input
+            input.value = '';
+
+            // Show typing indicator
+            showTyping();
+
+            // Send to agent
+            fetch('/api/agent/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTyping();
+                if (data.error) {
+                    addMessageToChat('agent', `Error: ${data.error}`);
+                } else {
+                    addMessageToChat('agent', data.response);
+                }
+            })
+            .catch(error => {
+                hideTyping();
+                addMessageToChat('agent', `Sorry, I encountered an error: ${error.message}`);
+            });
+        }
+
+        function addMessageToChat(sender, message) {
+            const messages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}-message`;
+
+            const avatar = sender === 'user' ? '👤' : '🤖';
+            messageDiv.innerHTML = `
+                <span class="message-avatar">${avatar}</span>
+                <span class="message-text">${escapeHtml(message)}</span>
+            `;
+
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+
+            // Save to session storage
+            saveChatHistory();
+        }
+
+        function saveChatHistory() {
+            const messages = document.getElementById('chatMessages');
+            const history = [];
+            messages.querySelectorAll('.chat-message').forEach(msg => {
+                // Skip welcome message and typing indicator
+                if (msg.id === 'typingIndicator') return;
+                const isUser = msg.classList.contains('user-message');
+                const text = msg.querySelector('.message-text').textContent;
+                history.push({
+                    sender: isUser ? 'user' : 'agent',
+                    message: text
+                });
+            });
+            sessionStorage.setItem('cybics_chat_history', JSON.stringify(history));
+        }
+
+        function loadChatHistory() {
+            const history = sessionStorage.getItem('cybics_chat_history');
+            if (history) {
+                const messages = JSON.parse(history);
+                const messagesContainer = document.getElementById('chatMessages');
+                // Clear existing messages except welcome
+                messagesContainer.innerHTML = '';
+                // Restore all messages
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${msg.sender}-message`;
+                    const avatar = msg.sender === 'user' ? '👤' : '🤖';
+                    messageDiv.innerHTML = `
+                        <span class="message-avatar">${avatar}</span>
+                        <span class="message-text">${escapeHtml(msg.message)}</span>
+                    `;
+                    messagesContainer.appendChild(messageDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        function showTyping() {
+            const messages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message agent-message typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <span class="message-avatar">🤖</span>
+                <span class="message-text">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </span>
+            `;
+            messages.appendChild(typingDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) {
+                typing.remove();
+            }
+        }
+
+        function checkAgentStatus() {
+            fetch('/api/agent/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('agentStatus');
+                    if (data.available && data.enabled) {
+                        statusDiv.innerHTML = `✅ Agent Ready (${data.model})`;
+                        statusDiv.style.color = '#4ade80';
+                    } else if (!data.enabled) {
+                        statusDiv.innerHTML = '❌ Agent Disabled';
+                        statusDiv.style.color = '#f87171';
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Agent Unavailable';
+                        statusDiv.style.color = '#fbbf24';
+                    }
+                })
+                .catch(error => {
+                    const statusDiv = document.getElementById('agentStatus');
+                    statusDiv.innerHTML = '❌ Agent Offline';
+                    statusDiv.style.color = '#f87171';
+                });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter key to send message
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load chat history from session storage
+            loadChatHistory();
+
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+
+            // Chat widget resize functionality
+            const resizeHandle = document.getElementById('chatResizeHandle');
+            const chatWidget = document.getElementById('chatWidget');
+            let isResizing = false;
+            let startX, startY, startWidth, startHeight;
+
+            if (resizeHandle && chatWidget) {
+                resizeHandle.addEventListener('mousedown', function(e) {
+                    if (!chatWidget.classList.contains('expanded')) return;
+
+                    isResizing = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startWidth = chatWidget.offsetWidth;
+                    startHeight = chatWidget.offsetHeight;
+
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', function(e) {
+                    if (!isResizing) return;
+
+                    // Dragging from top-left: negative delta increases size
+                    const deltaX = startX - e.clientX; // Inverted for left edge
+                    const deltaY = startY - e.clientY; // Inverted for top edge
+
+                    const newWidth = Math.max(300, Math.min(startWidth + deltaX, window.innerWidth * 0.9));
+                    const newHeight = Math.max(400, Math.min(startHeight + deltaY, window.innerHeight * 0.9));
+
+                    chatWidget.style.width = newWidth + 'px';
+                    chatWidget.style.height = newHeight + 'px';
+                });
+
+                document.addEventListener('mouseup', function() {
+                    isResizing = false;
+                });
+            }
+        });
     </script>
+
+    <!-- Chat Widget -->
+    <div id="chatWidget" class="chat-widget">
+        <span class="chat-tooltip">CybICS AI Agent</span>
+        <div class="chat-header" onclick="toggleChat()">
+            <span class="chat-icon">🤖</span>
+            <span class="chat-title">🤖 CybICS Agent</span>
+            <span class="chat-toggle">▲</span>
+        </div>
+        <div class="chat-body">
+            <div class="chat-status" id="agentStatus">Checking status...</div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message agent-message">
+                    <span class="message-avatar">🤖</span>
+                    <span class="message-text">Hi! I'm the CybICS AI Assistant. Ask me anything about CybICS!</span>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input
+                    type="text"
+                    id="chatInput"
+                    class="chat-input"
+                    placeholder="Ask me about CybICS..."
+                    autocomplete="off"
+                />
+                <button class="chat-send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        <div class="chat-resize-handle" id="chatResizeHandle"></div>
+    </div>
+
 </body>
 </html> 
