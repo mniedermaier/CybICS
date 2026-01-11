@@ -2145,6 +2145,10 @@
             if (chatWidget.classList.contains('expanded')) {
                 document.getElementById('chatInput').focus();
                 checkAgentStatus();
+            } else {
+                // Reset to default circular icon size when minimizing
+                chatWidget.style.width = '';
+                chatWidget.style.height = '';
             }
         }
 
@@ -2163,15 +2167,23 @@
             // Show typing indicator
             showTyping();
 
+            // Create AbortController with 90 second timeout for AI responses
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 90000);
+
             // Send to agent
             fetch('/api/agent/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ message: message }),
+                signal: controller.signal
             })
-            .then(response => response.json())
+            .then(response => {
+                clearTimeout(timeoutId);
+                return response.json();
+            })
             .then(data => {
                 hideTyping();
                 if (data.error) {
@@ -2181,8 +2193,13 @@
                 }
             })
             .catch(error => {
+                clearTimeout(timeoutId);
                 hideTyping();
-                addMessageToChat('agent', `Sorry, I encountered an error: ${error.message}`);
+                if (error.name === 'AbortError') {
+                    addMessageToChat('agent', 'Sorry, the request took too long. The AI agent may be busy processing your question. Please try again.');
+                } else {
+                    addMessageToChat('agent', `Sorry, I encountered an error: ${error.message}`);
+                }
             });
         }
 
