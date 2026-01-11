@@ -570,6 +570,101 @@ def restart_containers():
         logger.error(f'Error restarting containers: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/settings/agent', methods=['GET', 'POST'])
+def agent_settings():
+    """Get or set agent enabled preference"""
+    if request.method == 'POST':
+        data = request.get_json()
+        enabled = data.get('enabled', True)
+        session['agent_enabled'] = enabled
+        session.modified = True
+        logger.info(f'Agent {"enabled" if enabled else "disabled"}')
+        return jsonify({'success': True, 'enabled': enabled})
+    else:
+        enabled = session.get('agent_enabled', True)
+        return jsonify({'enabled': enabled})
+
+@app.route('/api/agent/chat', methods=['POST'])
+def agent_chat():
+    """Proxy chat messages to the AI agent"""
+    import requests
+
+    # Check if agent is enabled
+    if not session.get('agent_enabled', True):
+        return jsonify({'error': 'Agent is disabled'}), 403
+
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+
+        # Forward to agent service
+        agent_url = 'http://172.18.0.11:5000/api/chat'
+        response = requests.post(
+            agent_url,
+            json={'message': message},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Agent service error'}), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent request timed out')
+        return jsonify({'error': 'Request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error communicating with agent: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/agent/status', methods=['GET'])
+def agent_status():
+    """Check if agent is available and enabled"""
+    import requests
+
+    enabled = session.get('agent_enabled', True)
+
+    if not enabled:
+        return jsonify({
+            'available': False,
+            'enabled': False,
+            'message': 'Agent is disabled in settings'
+        })
+
+    try:
+        # Check if agent service is responding
+        agent_url = 'http://172.18.0.11:5000/health'
+        response = requests.get(agent_url, timeout=5)
+
+        if response.status_code == 200:
+            agent_info = response.json()
+            return jsonify({
+                'available': True,
+                'enabled': True,
+                'status': agent_info.get('status', 'unknown'),
+                'model': agent_info.get('model', 'unknown')
+            })
+        else:
+            return jsonify({
+                'available': False,
+                'enabled': True,
+                'message': 'Agent service not responding'
+            })
+
+    except Exception as e:
+        logger.error(f'Error checking agent status: {str(e)}')
+        return jsonify({
+            'available': False,
+            'enabled': True,
+            'message': 'Agent service unavailable'
+        })
+
 # ========== APPLICATION ENTRY POINT ==========
 
 if __name__ == '__main__':

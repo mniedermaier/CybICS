@@ -6,6 +6,7 @@
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"overrideCommand": false,
+	"runServices": ["openplc", "fuxa", "hwio", "opcua", "s7com", "landing", "attack-machine", "engineeringws", "cybicsagent"],
 	"customizations": {
 		"vscode": {
 			"extensions": [

@@ -24,6 +24,9 @@ services:
       - openplc
       - fuxa
       - hwio
+    profiles:
+      - attack
+      - full
 
   openplc:
     image: mniedermaier1337/cybicsopenplc:${CYBICS_VERSION:-latest}
@@ -125,6 +128,32 @@ services:
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.10
+    profiles:
+      - engineering
+      - full
+
+  cybicsagent:
+    image: mniedermaier1337/cybicsagent:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/cybicsagent
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 5000:5000
+      - 11434:11434
+    environment:
+      - OLLAMA_MODEL=tinyllama
+      - OLLAMA_HOST=http://localhost:11434
+    volumes:
+      - ../../training:/knowledge/training:ro
+      - ../../README.md:/knowledge/README.md:ro
+      - ../../doc:/knowledge/doc:ro
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.11
+    profiles:
+      - ai
+      - full
 
 networks:
   virt-cybics:
