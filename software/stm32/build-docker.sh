@@ -10,16 +10,16 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # Build the Docker image
-docker build -t localhost:5000/cybics-stm32:latest .
+docker build -t localhost:5050/cybics-stm32:latest .
 
 echo ""
 echo "✓ Docker image built successfully!"
 echo ""
 echo "To push to local registry:"
-echo "  docker push localhost:5000/cybics-stm32:latest"
+echo "  docker push localhost:5050/cybics-stm32:latest"
 echo ""
 echo "To run the container and flash the STM32:"
-echo "  docker run --privileged -p 3333:3333 localhost:5000/cybics-stm32:latest"
+echo "  docker run --privileged -p 3333:3333 localhost:5050/cybics-stm32:latest"
 echo ""
 echo "Or use docker-compose from the software directory:"
 echo "  cd ../.. && docker-compose up stm32"
