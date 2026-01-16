@@ -471,6 +471,7 @@
             flex: 1;
             gap: 0.75rem;
             align-items: center;
+            justify-content: flex-end;
             flex-wrap: wrap;
         }
 
@@ -493,10 +494,6 @@
             height: 25px;
             background-color: #606060;
             margin: 0 0.25rem;
-        }
-
-        .nav-spacer {
-            flex: 1;
         }
 
         main {
@@ -1688,8 +1685,7 @@
                 <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')">⌨️ WebShell</button>
             </div>
 
-            <!-- Spacer to push CTF and Settings to the right -->
-            <div class="nav-spacer"></div>
+            <div class="nav-separator"></div>
 
             <!-- CTF Training (no label) -->
             <div class="nav-group">
