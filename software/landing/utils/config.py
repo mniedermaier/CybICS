@@ -48,7 +48,7 @@ SERVICES = {
         'virtual_only': True,
         'path': '/vnc.html?autoconnect=true&resize=scale',
         'icon': '💻',
-        'description': 'Full desktop environment with OpenPLC Editor. Develop and modify PLC programs using Beremiz.'
+        'description': 'Engineering workstation - Full desktop environment with OpenPLC Editor. Develop and modify PLC programs using Beremiz.'
     },
     'attackmachine': {
         'name': 'Attack Box',
