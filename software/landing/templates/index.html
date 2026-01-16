@@ -426,7 +426,7 @@
             color: #ff6b00;
             padding: 0.5rem 1rem;
             display: flex;
-            justify-content: space-between;
+            gap: 1rem;
             align-items: center;
             position: fixed;
             top: 0;
@@ -451,7 +451,6 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-left: 1.5rem;
         }
 
         .settings-btn:hover {
@@ -469,6 +468,7 @@
 
         nav {
             display: flex;
+            flex: 1;
             gap: 0.75rem;
             align-items: center;
             flex-wrap: wrap;
@@ -493,6 +493,10 @@
             height: 25px;
             background-color: #606060;
             margin: 0 0.25rem;
+        }
+
+        .nav-spacer {
+            flex: 1;
         }
 
         main {
@@ -1684,15 +1688,19 @@
                 <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')">⌨️ WebShell</button>
             </div>
 
-            <div class="nav-separator"></div>
+            <!-- Spacer to push CTF and Settings to the right -->
+            <div class="nav-spacer"></div>
 
             <!-- CTF Training (no label) -->
             <div class="nav-group">
                 <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')">🏆 CTF Training</button>
             </div>
-        </nav>
 
-        <button class="settings-btn" onclick="openSettings()" title="Settings"><span class="settings-icon">⚙️</span></button>
+            <div class="nav-separator"></div>
+
+            <!-- Settings -->
+            <button class="settings-btn" onclick="openSettings()" title="Settings"><span class="settings-icon">⚙️</span></button>
+        </nav>
     </header>
 
     <!-- Main container -->
