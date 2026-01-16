@@ -28,6 +28,7 @@ HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 DOCKER_ENV_DIR="$DOCKER_ENV_DIR"
 CYBICS_ROOT="$(pwd)"
+COMPOSE_PROFILES=full,attack,engineering,ai
 EOT
 
 touch "$DOCKER_ENV_DIR"/.bash_history # persist bash history
