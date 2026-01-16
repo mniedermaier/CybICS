@@ -36,7 +36,7 @@ For automated flashing via Raspberry Pi GPIO:
 ```bash
 cd software/stm32
 ./build-docker.sh
-docker run --privileged -p 3333:3333 localhost:5000/cybics-stm32:latest
+docker run --privileged -p 3333:3333 localhost:5050/cybics-stm32:latest
 ```
 
 **SWD Connections (Raspberry Pi → STM32):**

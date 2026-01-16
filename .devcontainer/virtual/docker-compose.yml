@@ -142,12 +142,18 @@ services:
       - 5000:5000
       - 11434:11434
     environment:
-      - OLLAMA_MODEL=tinyllama
+      # Recommended models: tinyllama (fast), phi3:mini (balanced), llama3.2:3b (quality)
+      # Model will be downloaded on first use if not already cached
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-tinyllama}
       - OLLAMA_HOST=http://localhost:11434
     volumes:
       - ../../training:/knowledge/training:ro
       - ../../README.md:/knowledge/README.md:ro
       - ../../doc:/knowledge/doc:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.11

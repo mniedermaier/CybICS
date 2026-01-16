@@ -605,7 +605,7 @@ def agent_chat():
         response = requests.post(
             agent_url,
             json={'message': message},
-            timeout=30
+            timeout=600
         )
 
         if response.status_code == 200:
@@ -664,6 +664,98 @@ def agent_status():
             'enabled': True,
             'message': 'Agent service unavailable'
         })
+
+@app.route('/api/agent/model', methods=['GET'])
+def get_agent_model():
+    """Get current agent model and available models"""
+    import requests
+
+    try:
+        agent_url = 'http://172.18.0.11:5000/api/model'
+        response = requests.get(agent_url, timeout=5)
+
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Failed to get model info'}), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent model request timed out')
+        return jsonify({'error': 'Request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error getting agent model: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/agent/model', methods=['POST'])
+def set_agent_model():
+    """Change the agent model"""
+    import requests
+
+    try:
+        data = request.get_json()
+        model = data.get('model', '')
+
+        if not model:
+            return jsonify({'error': 'No model specified'}), 400
+
+        logger.info(f'Changing agent model to: {model}')
+
+        agent_url = 'http://172.18.0.11:5000/api/model'
+        # Use 30 minute timeout to allow for large model downloads (up to 4.7GB)
+        # On slower connections, downloads can take 15-30+ minutes
+        response = requests.post(
+            agent_url,
+            json={'model': model},
+            timeout=1800  # 30 minutes
+        )
+
+        return jsonify(response.json()), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent model change request timed out')
+        return jsonify({'error': 'Request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error setting agent model: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/agent/model/pull', methods=['POST'])
+def pull_agent_model():
+    """Download a new agent model"""
+    import requests
+
+    try:
+        data = request.get_json()
+        model = data.get('model', '')
+
+        if not model:
+            return jsonify({'error': 'No model specified'}), 400
+
+        logger.info(f'Pulling agent model: {model}')
+
+        agent_url = 'http://172.18.0.11:5000/api/model/pull'
+        response = requests.post(
+            agent_url,
+            json={'model': model},
+            timeout=1800  # 30 minutes for model download
+        )
+
+        return jsonify(response.json()), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent model pull request timed out')
+        return jsonify({'error': 'Download timed out (>30 minutes). Please check your internet connection.'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error pulling agent model: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 # ========== APPLICATION ENTRY POINT ==========
 

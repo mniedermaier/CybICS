@@ -32,6 +32,10 @@ COMPOSE_PROFILES=full,attack,engineering,ai
 EOT
 
 touch "$DOCKER_ENV_DIR"/.bash_history # persist bash history
-cp .env .devcontainer/raspberry       # to also have some env values available in the docker-compose file
-cp .env .devcontainer/stm32           # to also have some env values available in the docker-compose file
-cp .env .devcontainer/virtual         # to also have some env values available in the docker-compose file
+
+# Only copy .env if content differs (avoids VS Code "configuration changed" prompts)
+for dir in raspberry stm32 virtual; do
+  if ! cmp -s .env ".devcontainer/$dir/.env" 2>/dev/null; then
+    cp .env ".devcontainer/$dir/.env"
+  fi
+done

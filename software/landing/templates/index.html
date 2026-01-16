@@ -796,6 +796,61 @@
             box-shadow: 0 0 15px rgba(255, 107, 0, 0.3);
         }
 
+        .model-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(45, 45, 55, 0.8);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.5rem;
+            color: #fff;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ff6b00' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2.5rem;
+        }
+
+        .model-select:hover {
+            border-color: rgba(255, 107, 0, 0.5);
+            background-color: rgba(45, 45, 55, 0.9);
+        }
+
+        .model-select:focus {
+            outline: none;
+            border-color: #ff6b00;
+            box-shadow: 0 0 10px rgba(255, 107, 0, 0.3);
+        }
+
+        .model-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            border-color: rgba(255, 107, 0, 0.2);
+        }
+
+        .model-select option {
+            background: #2d2d37;
+            color: #fff;
+            padding: 0.5rem;
+        }
+
+        body.light-mode .model-select {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .model-select option {
+            background: #fff;
+            color: #333;
+        }
+
+        body.light-mode .model-select:disabled {
+            opacity: 0.5;
+        }
+
         .action-btn {
             width: 100%;
             padding: 0.75rem;
@@ -1120,6 +1175,43 @@
             transform: rotate(180deg);
         }
 
+        .chat-clear-btn {
+            display: none;
+            background: rgba(255, 107, 0, 0.1);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.375rem;
+            padding: 0.3rem 0.6rem;
+            color: #ff6b00;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+            margin-right: 0.5rem;
+        }
+
+        .chat-widget.expanded .chat-clear-btn {
+            display: block;
+        }
+
+        .chat-clear-btn:hover {
+            background: rgba(255, 107, 0, 0.2);
+            border-color: rgba(255, 107, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        .chat-clear-btn:active {
+            transform: scale(0.95);
+        }
+
+        body.light-mode .chat-clear-btn {
+            background: rgba(255, 107, 0, 0.08);
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .chat-clear-btn:hover {
+            background: rgba(255, 107, 0, 0.15);
+        }
+
         .chat-tooltip {
             position: absolute;
             right: 70px;
@@ -1205,6 +1297,7 @@
             gap: 0.5rem;
             align-items: flex-start;
             animation: slideIn 0.3s ease;
+            max-width: 100%;
         }
 
         @keyframes slideIn {
@@ -1229,8 +1322,121 @@
             border-radius: 0.5rem;
             flex: 1;
             word-wrap: break-word;
+            overflow-wrap: break-word;
             color: #fff;
-            line-height: 1.5;
+            line-height: 1.6;
+            max-width: 100%;
+        }
+
+        /* Markdown styling in messages */
+        .message-text h1,
+        .message-text h2,
+        .message-text h3,
+        .message-text h4 {
+            margin: 0.5rem 0 0.3rem 0;
+            color: #ff8c00;
+            font-weight: 600;
+        }
+
+        .message-text h1 { font-size: 1.3rem; }
+        .message-text h2 { font-size: 1.2rem; }
+        .message-text h3 { font-size: 1.1rem; }
+        .message-text h4 { font-size: 1rem; }
+
+        .message-text p {
+            margin: 0.5rem 0;
+        }
+
+        .message-text ul,
+        .message-text ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .message-text li {
+            margin: 0.25rem 0;
+        }
+
+        .message-text code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #ffa500;
+            overflow-wrap: break-word;
+        }
+
+        .message-text pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid #ff6b00;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .message-text pre code {
+            background: none;
+            padding: 0;
+            color: #fff;
+            white-space: pre-wrap;
+        }
+
+        .message-text strong {
+            color: #ffa500;
+            font-weight: 600;
+        }
+
+        .message-text em {
+            color: #ffb84d;
+            font-style: italic;
+        }
+
+        .message-text a {
+            color: #4da6ff;
+            text-decoration: underline;
+        }
+
+        .message-text a:hover {
+            color: #80bfff;
+        }
+
+        .message-text blockquote {
+            border-left: 3px solid #ff6b00;
+            padding-left: 0.75rem;
+            margin: 0.5rem 0;
+            color: #ccc;
+        }
+
+        .message-text hr {
+            border: none;
+            border-top: 1px solid rgba(255, 107, 0, 0.3);
+            margin: 0.75rem 0;
+        }
+
+        .message-text table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5rem 0;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .message-text table th,
+        .message-text table td {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 107, 0, 0.2);
+            text-align: left;
+            overflow-wrap: break-word;
+        }
+
+        .message-text table th {
+            background: rgba(255, 107, 0, 0.2);
+            font-weight: 600;
         }
 
         .user-message .message-text {
@@ -1348,6 +1554,50 @@
             background: rgba(245, 245, 245, 0.9);
         }
 
+        /* Light mode markdown styling */
+        body.light-mode .message-text h1,
+        body.light-mode .message-text h2,
+        body.light-mode .message-text h3,
+        body.light-mode .message-text h4 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .message-text code {
+            background: rgba(0, 0, 0, 0.08);
+            color: #c7254e;
+        }
+
+        body.light-mode .message-text pre {
+            background: rgba(0, 0, 0, 0.05);
+            border-left-color: #ff6b00;
+        }
+
+        body.light-mode .message-text pre code {
+            background: none;
+            color: #333;
+        }
+
+        body.light-mode .message-text strong {
+            color: #d45500;
+        }
+
+        body.light-mode .message-text em {
+            color: #997000;
+        }
+
+        body.light-mode .message-text blockquote {
+            color: #666;
+        }
+
+        body.light-mode .message-text table th {
+            background: rgba(255, 107, 0, 0.15);
+        }
+
+        body.light-mode .message-text table th,
+        body.light-mode .message-text table td {
+            border-color: rgba(255, 107, 0, 0.25);
+        }
+
         body.light-mode .chat-input-container {
             background: rgba(245, 245, 245, 0.8);
         }
@@ -1378,6 +1628,17 @@
             }
         }
     </style>
+    <!-- Markdown parser for agent responses -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
+    <script>
+        // Configure marked for safe rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false
+        });
+    </script>
 </head>
 <body>
     <!-- Header -->
@@ -1872,6 +2133,27 @@
                         AI assistant for CybICS help and support
                     </span>
                 </div>
+                <div class="setting-item">
+                    <span class="setting-label">AI Model</span>
+                    <select id="agentModelSelect" class="model-select" onchange="changeAgentModel(this.value)">
+                        <option value="">Loading models...</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <span id="modelInfo" class="setting-label" style="font-size: 0.85rem; color: #999;">
+                        Select a model above
+                    </span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label" style="font-size: 0.75rem; color: #666; font-style: italic;">
+                        ℹ️ Models without ✓ will be downloaded on first use (may take 5-30 minutes depending on size and connection speed)
+                    </span>
+                </div>
+                <div class="setting-item" id="modelDownloadStatus" style="display: none;">
+                    <span class="setting-label" style="color: #4ade80;">
+                        <span id="downloadMessage"></span>
+                    </span>
+                </div>
             </div>
 
             <!-- System Actions Section -->
@@ -1912,6 +2194,7 @@
             loadSystemInfo();
             loadThemePreference();
             loadAgentPreference();
+            loadAvailableModels();
         }
 
         function closeSettings() {
@@ -2131,6 +2414,209 @@
                 });
         }
 
+        function loadAvailableModels() {
+            fetch('/api/agent/model')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('agentModelSelect');
+                    const modelInfo = document.getElementById('modelInfo');
+
+                    if (!select) return;
+
+                    // Clear existing options
+                    select.innerHTML = '';
+
+                    // Get recommended models
+                    const recommendedModels = data.recommended_models || [];
+                    const availableModels = data.available_models || [];
+                    const currentModel = data.current_model || '';
+
+                    // Add options
+                    recommendedModels.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = `${model.name} (${model.size})${model.recommended ? ' ⭐ Recommended' : ''}`;
+                        option.dataset.size = model.size;
+                        option.dataset.quality = model.quality;
+                        option.dataset.description = model.description;
+
+                        // Mark if downloaded
+                        if (availableModels.includes(model.name)) {
+                            option.textContent += ' ✓';
+                        }
+
+                        // Select current model
+                        if (model.name === currentModel) {
+                            option.selected = true;
+                        }
+
+                        select.appendChild(option);
+                    });
+
+                    // Update model info
+                    updateModelInfo(currentModel);
+                })
+                .catch(error => {
+                    console.error('Error loading models:', error);
+                    const select = document.getElementById('agentModelSelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">Error loading models</option>';
+                    }
+                });
+        }
+
+        function updateModelInfo(modelName) {
+            const select = document.getElementById('agentModelSelect');
+            const modelInfo = document.getElementById('modelInfo');
+
+            if (!select || !modelInfo) return;
+
+            const selectedOption = select.querySelector(`option[value="${modelName}"]`);
+
+            if (selectedOption) {
+                const size = selectedOption.dataset.size;
+                const quality = selectedOption.dataset.quality;
+                const description = selectedOption.dataset.description;
+                const stars = '⭐'.repeat(parseInt(quality));
+
+                modelInfo.innerHTML = `${description} | Size: ${size} | Quality: ${stars}`;
+            } else {
+                modelInfo.innerHTML = `Current: ${modelName}`;
+            }
+        }
+
+        function changeAgentModel(modelName) {
+            if (!modelName) return;
+
+            const select = document.getElementById('agentModelSelect');
+            const modelInfo = document.getElementById('modelInfo');
+            const downloadStatus = document.getElementById('modelDownloadStatus');
+            const downloadMessage = document.getElementById('downloadMessage');
+
+            // Get model info to check if it needs downloading
+            const selectedOption = select.querySelector(`option[value="${modelName}"]`);
+            const needsDownload = selectedOption && !selectedOption.textContent.includes('✓');
+
+            // Get estimated download time based on model size
+            let downloadEstimate = '';
+            if (needsDownload && selectedOption) {
+                const size = selectedOption.dataset.size || '';
+                if (size.includes('600MB')) {
+                    downloadEstimate = ' (~2-5 minutes on average connection)';
+                } else if (size.includes('2.3GB') || size.includes('2GB')) {
+                    downloadEstimate = ' (~5-15 minutes on average connection)';
+                } else if (size.includes('4.1GB') || size.includes('4.7GB')) {
+                    downloadEstimate = ' (~10-30 minutes on average connection)';
+                }
+            }
+
+            // Show appropriate loading message
+            if (modelInfo) {
+                if (needsDownload) {
+                    modelInfo.innerHTML = `📥 Downloading model...${downloadEstimate} Please wait.`;
+                    modelInfo.style.color = '#fbbf24';
+                } else {
+                    modelInfo.innerHTML = '⏳ Switching model...';
+                    modelInfo.style.color = '#fbbf24';
+                }
+            }
+
+            // Disable dropdown during change
+            select.disabled = true;
+
+            fetch('/api/agent/model', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ model: modelName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Re-enable dropdown
+                select.disabled = false;
+
+                if (data.success) {
+                    // Model changed successfully
+                    if (modelInfo) {
+                        if (data.downloaded) {
+                            modelInfo.innerHTML = '✅ Model downloaded and activated successfully!';
+                        } else {
+                            modelInfo.innerHTML = '✅ Model changed successfully!';
+                        }
+                        modelInfo.style.color = '#4ade80';
+                    }
+
+                    setTimeout(() => {
+                        updateModelInfo(modelName);
+                        if (modelInfo) {
+                            modelInfo.style.color = '';
+                        }
+                        checkAgentStatus();
+                        loadAvailableModels(); // Refresh to show checkmark
+                    }, 2000);
+                } else if (data.downloading) {
+                    // Model is being downloaded
+                    if (downloadStatus) {
+                        downloadStatus.style.display = 'block';
+                    }
+                    if (downloadMessage) {
+                        downloadMessage.innerHTML = `📥 ${data.message}`;
+                    }
+                    if (modelInfo) {
+                        modelInfo.innerHTML = '⏳ Downloading model... This may take several minutes.';
+                        modelInfo.style.color = '#fbbf24';
+                    }
+
+                    // Poll for download completion (optional)
+                    setTimeout(() => {
+                        if (downloadStatus) {
+                            downloadStatus.style.display = 'none';
+                        }
+                        updateModelInfo(modelName);
+                        if (modelInfo) {
+                            modelInfo.style.color = '';
+                        }
+                        loadAvailableModels();
+                    }, 30000); // Hide after 30 seconds
+                } else {
+                    // Error
+                    if (modelInfo) {
+                        modelInfo.innerHTML = `❌ ${data.error || data.message || 'Failed to change model'}`;
+                        modelInfo.style.color = '#f87171';
+                    }
+
+                    setTimeout(() => {
+                        updateModelInfo(modelName);
+                        if (modelInfo) {
+                            modelInfo.style.color = '';
+                        }
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                console.error('Error changing model:', error);
+                // Re-enable dropdown
+                select.disabled = false;
+
+                if (modelInfo) {
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        modelInfo.innerHTML = `❌ Agent service unavailable. Please ensure the agent is running.`;
+                    } else {
+                        modelInfo.innerHTML = `❌ Error: ${error.message}`;
+                    }
+                    modelInfo.style.color = '#f87171';
+                }
+
+                setTimeout(() => {
+                    updateModelInfo(modelName);
+                    if (modelInfo) {
+                        modelInfo.style.color = '';
+                    }
+                }, 5000);
+            });
+        }
+
         // Load settings on page load
         window.addEventListener('DOMContentLoaded', () => {
             loadAgentPreference();
@@ -2167,9 +2653,9 @@
             // Show typing indicator
             showTyping();
 
-            // Create AbortController with 90 second timeout for AI responses
+            // Create AbortController with 10 minute timeout for AI responses
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 90000);
+            const timeoutId = setTimeout(() => controller.abort(), 600000);
 
             // Send to agent
             fetch('/api/agent/chat', {
@@ -2209,9 +2695,15 @@
             messageDiv.className = `chat-message ${sender}-message`;
 
             const avatar = sender === 'user' ? '👤' : '🤖';
+
+            // Render markdown for agent messages, escape HTML for user messages
+            const messageContent = sender === 'agent'
+                ? marked.parse(message)
+                : escapeHtml(message);
+
             messageDiv.innerHTML = `
                 <span class="message-avatar">${avatar}</span>
-                <span class="message-text">${escapeHtml(message)}</span>
+                <span class="message-text">${messageContent}</span>
             `;
 
             messages.appendChild(messageDiv);
@@ -2249,9 +2741,15 @@
                     const messageDiv = document.createElement('div');
                     messageDiv.className = `chat-message ${msg.sender}-message`;
                     const avatar = msg.sender === 'user' ? '👤' : '🤖';
+
+                    // Render markdown for agent messages, escape HTML for user messages
+                    const messageContent = msg.sender === 'agent'
+                        ? marked.parse(msg.message)
+                        : escapeHtml(msg.message);
+
                     messageDiv.innerHTML = `
                         <span class="message-avatar">${avatar}</span>
-                        <span class="message-text">${escapeHtml(msg.message)}</span>
+                        <span class="message-text">${messageContent}</span>
                     `;
                     messagesContainer.appendChild(messageDiv);
                 });
@@ -2310,6 +2808,36 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function clearChatHistory() {
+            if (!confirm('Are you sure you want to clear the chat history? This cannot be undone.')) {
+                return;
+            }
+
+            // Clear session storage
+            sessionStorage.removeItem('cybics_chat_history');
+
+            // Clear messages and reset to welcome message
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = `
+                <div class="chat-message agent-message">
+                    <span class="message-avatar">🤖</span>
+                    <span class="message-text">Hi! I'm the CybICS AI Assistant. Ask me anything about CybICS!</span>
+                </div>
+            `;
+
+            // Show brief confirmation
+            const statusDiv = document.getElementById('agentStatus');
+            const originalStatus = statusDiv.innerHTML;
+            statusDiv.innerHTML = '✅ Chat history cleared';
+            statusDiv.style.color = '#4ade80';
+
+            setTimeout(() => {
+                statusDiv.innerHTML = originalStatus;
+                statusDiv.style.color = '';
+                checkAgentStatus();
+            }, 2000);
         }
 
         // Enter key to send message
@@ -2372,6 +2900,7 @@
         <div class="chat-header" onclick="toggleChat()">
             <span class="chat-icon">🤖</span>
             <span class="chat-title">🤖 CybICS Agent</span>
+            <button class="chat-clear-btn" onclick="event.stopPropagation(); clearChatHistory();" title="Clear chat history">🗑️ Clear</button>
             <span class="chat-toggle">▲</span>
         </div>
         <div class="chat-body">

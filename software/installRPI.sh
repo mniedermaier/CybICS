@@ -260,7 +260,7 @@ echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 echo -ne "${GREEN}# Install containers on the raspberry ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/$DEVICE_USER/CybICS
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/$DEVICE_USER/CybICS/docker-compose.yaml
-ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml pull
+ssh -R 5000:localhost:5050 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml pull
 
 ###
 ### Starting containers
