@@ -35,7 +35,7 @@ To get the flag, the blowout needs to be triggered.
   After login on the FUXA dashboard switch to the "System" view.
   By closing the "System Valve" (SV) and enabling the Compressor (C),
   the pressure is rising.
-  After a certain time, the pressure in the High Pressure Tank (HTB)
+  After a certain time, the pressure in the High Pressure Tank (HPT)
   gets a critical level and the Blowout (BO) will be opened.
 
   <div style="color:orange;font-weight: 900">
