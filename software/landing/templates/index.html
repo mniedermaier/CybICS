@@ -137,16 +137,24 @@
             margin-bottom: 0.25rem;
             font-weight: 700;
             letter-spacing: 1px;
-            animation: shimmer 3s infinite;
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid #ff6b00;
+            width: 0;
+            animation: typing 8s steps(17) infinite, blink-caret 0.75s step-end infinite;
         }
 
-        @keyframes shimmer {
-            0%, 100% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
+        @keyframes typing {
+            0% { width: 0; }
+            25% { width: 19ch; }
+            75% { width: 19ch; }
+            100% { width: 0; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #ff6b00; }
         }
 
         .home-header p {
@@ -426,7 +434,7 @@
             color: #ff6b00;
             padding: 0.5rem 1rem;
             display: flex;
-            justify-content: space-between;
+            gap: 1rem;
             align-items: center;
             position: fixed;
             top: 0;
@@ -451,7 +459,6 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-left: 1.5rem;
         }
 
         .settings-btn:hover {
@@ -469,8 +476,10 @@
 
         nav {
             display: flex;
+            flex: 1;
             gap: 0.75rem;
             align-items: center;
+            justify-content: flex-end;
             flex-wrap: wrap;
         }
 
@@ -497,13 +506,13 @@
 
         main {
             height: 100vh;
-            padding-top: 90px;
+            padding-top: 70px;
             overflow-x: hidden;
             box-sizing: border-box;
         }
 
         .services-container {
-            height: calc(100vh - 90px);
+            height: calc(100vh - 70px);
             display: flex;
             flex-wrap: wrap;
             max-width: 100%;
@@ -512,15 +521,9 @@
             box-sizing: border-box;
         }
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #ff6b00, #ffa500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: 2px;
-            text-shadow: 0 0 30px rgba(255, 107, 0, 0.3);
+        .header-logo {
+            height: 40px;
+            width: auto;
         }
 
         /* Staggered animation for service boxes */
@@ -600,8 +603,8 @@
                 padding: 0.75rem 1rem;
             }
 
-            h1 {
-                font-size: 1.5rem;
+            .header-logo {
+                height: 35px;
             }
 
             nav {
@@ -627,8 +630,8 @@
                 padding: 0.5rem 0.75rem;
             }
 
-            h1 {
-                font-size: 1.3rem;
+            .header-logo {
+                height: 32px;
             }
 
             nav {
@@ -661,8 +664,8 @@
                 height: calc(100vh - 130px);
             }
 
-            h1 {
-                font-size: 1.2rem;
+            .header-logo {
+                height: 28px;
             }
 
             nav {
@@ -1038,10 +1041,6 @@
 
         body.light-mode .nav-separator {
             background-color: #d0d0d0;
-        }
-
-        body.light-mode h1 {
-            color: #ff6b00;
         }
 
         body.light-mode .home-header h2 {
@@ -1643,7 +1642,7 @@
 <body>
     <!-- Header -->
     <header>
-        <h1>CybICS</h1>
+        <img src="/pics/CybICS_logo.png" alt="CybICS" class="header-logo">
 
         <!-- Navigation menu -->
         <nav>
@@ -1690,9 +1689,12 @@
             <div class="nav-group">
                 <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')">🏆 CTF Training</button>
             </div>
-        </nav>
 
-        <button class="settings-btn" onclick="openSettings()" title="Settings"><span class="settings-icon">⚙️</span></button>
+            <div class="nav-separator"></div>
+
+            <!-- Settings -->
+            <button class="settings-btn" onclick="openSettings()" title="Settings"><span class="settings-icon">⚙️</span></button>
+        </nav>
     </header>
 
     <!-- Main container -->

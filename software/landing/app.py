@@ -75,6 +75,14 @@ def favicon():
         mimetype='image/x-icon'
     )
 
+@app.route('/pics/<path:filename>')
+def serve_pics(filename):
+    """Serve images from pics folder"""
+    return send_from_directory(
+        os.path.join(app.root_path, 'pics'),
+        filename
+    )
+
 @app.route('/')
 def main_page():
     """Main dashboard page"""

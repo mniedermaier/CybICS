@@ -36,22 +36,22 @@ SERVICES = {
         'description': 'Human-Machine Interface (HMI). Monitor and control your industrial processes with a visual dashboard.'
     },
     'vhardware': {
-        'name': 'Virtual Hardware IO',
+        'name': 'Virtual Hardware',
         'port': 8090,
         'virtual_only': True,
         'icon': '🔌',
         'description': 'Simulated hardware interface. Test PLC programs without physical hardware in the virtual environment.'
     },
     'engineeringws': {
-        'name': 'Engineering Workstation',
+        'name': 'EngWS',
         'port': 6080,
         'virtual_only': True,
         'path': '/vnc.html?autoconnect=true&resize=scale',
         'icon': '💻',
-        'description': 'Full desktop environment with OpenPLC Editor. Develop and modify PLC programs using Beremiz.'
+        'description': 'Engineering workstation - Full desktop environment with OpenPLC Editor. Develop and modify PLC programs using Beremiz.'
     },
     'attackmachine': {
-        'name': 'Attack Machine',
+        'name': 'Attack Box',
         'port': 6081,
         'virtual_only': True,
         'path': '/vnc.html?autoconnect=true&resize=scale',
