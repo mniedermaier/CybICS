@@ -2,22 +2,23 @@
 <div class="section-content">
   <div class="skills-container">
     <div class="skills-grid">
-      <!-- Hardware Integration -->
+      <!-- Landing Page -->
       <div class="skill-card" data-aos="fade-up">
         <div class="skill-icon">
-          <i class="fas fa-microchip"></i>
+          <i class="fas fa-home"></i>
         </div>
-        <h3>Hardware (optional)</h3>
+        <h3>Unified Landing Page</h3>
         <div class="skill-content">
           <ul>
-            <li>Hardware for the physical process</li>
-            <li>Standalone and connection by WiFi</li>
-            <li>Cheap ~50 EUR</li>
+            <li>Single entry point for all services</li>
+            <li>Real-time system statistics</li>
+            <li>Network traffic monitoring</li>
+            <li>CTF training integration</li>
           </ul>
         </div>
       </div>
 
-      <!-- Virtual Environment -->
+      <!-- Full Virtual Environment -->
       <div class="skill-card" data-aos="fade-up" data-aos-delay="100">
         <div class="skill-icon">
           <i class="fas fa-server"></i>
@@ -28,7 +29,7 @@
             <li>Docker Compose Integration</li>
             <li>Multi-Container Setup</li>
             <li>Automated Deployment</li>
-            <li>Absolut no costs</li>
+            <li>Zero cost to run</li>
           </ul>
         </div>
       </div>
@@ -41,55 +42,106 @@
         <h3>ICS Components</h3>
         <div class="skill-content">
           <ul>
-            <li>OpenPLC Integration</li>
+            <li>OpenPLC Runtime</li>
             <li>OPC UA Server</li>
             <li>S7 Communication</li>
-            <li>etc.</li>
+            <li>Modbus TCP</li>
           </ul>
         </div>
       </div>
 
-      <!-- Security Features -->
+      <!-- Engineering Workstation -->
       <div class="skill-card" data-aos="fade-up" data-aos-delay="300">
         <div class="skill-icon">
-          <i class="fas fa-shield-alt"></i>
+          <i class="fas fa-laptop-code"></i>
         </div>
-        <h3>Security Features</h3>
+        <h3>Engineering Workstation</h3>
         <div class="skill-content">
           <ul>
-            <li>Attack Scenarios</li>
-            <li>Vulnerability Testing</li>
-            <li>Security Monitoring</li>
+            <li>Browser-based VNC access</li>
+            <li>OpenPLC Editor (Beremiz)</li>
+            <li>IEC 61131-3 programming</li>
+            <li>Full desktop environment</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Attack Machine -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="400">
+        <div class="skill-icon">
+          <i class="fas fa-skull-crossbones"></i>
+        </div>
+        <h3>Attack Machine</h3>
+        <div class="skill-content">
+          <ul>
+            <li>Kali Linux environment</li>
+            <li>Pre-installed ICS tools</li>
+            <li>Browser-based VNC access</li>
+            <li>Penetration testing ready</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- CTF Training -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="500">
+        <div class="skill-icon">
+          <i class="fas fa-flag"></i>
+        </div>
+        <h3>CTF Training</h3>
+        <div class="skill-content">
+          <ul>
+            <li>13+ training modules</li>
+            <li>Progressive difficulty</li>
+            <li>Hands-on exercises</li>
+            <li>Progress tracking</li>
           </ul>
         </div>
       </div>
 
       <!-- Web Interface -->
-      <div class="skill-card" data-aos="fade-up" data-aos-delay="400">
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="600">
         <div class="skill-icon">
           <i class="fas fa-desktop"></i>
         </div>
-        <h3>Web Interface</h3>
+        <h3>FUXA HMI</h3>
         <div class="skill-content">
           <ul>
-            <li>FUXA Integration</li>
-            <li>Real-time Monitoring</li>
-            <li>Interactive Controls</li>
+            <li>Modern HMI interface</li>
+            <li>Real-time monitoring</li>
+            <li>Interactive controls</li>
+            <li>Process visualization</li>
           </ul>
         </div>
       </div>
 
-      <!-- Development Tools -->
-      <div class="skill-card" data-aos="fade-up" data-aos-delay="500">
+      <!-- AI Agent -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="700">
         <div class="skill-icon">
-          <i class="fas fa-code"></i>
+          <i class="fas fa-robot"></i>
         </div>
-        <h3>Development Tools</h3>
+        <h3>AI Assistant</h3>
         <div class="skill-content">
           <ul>
-            <li>Git Version Control</li>
-            <li>CI/CD Pipeline</li>
-            <li>Documentation</li>
+            <li>Built-in AI agent</li>
+            <li>ICS security guidance</li>
+            <li>Training support</li>
+            <li>Local LLM (Ollama)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Hardware Integration -->
+      <div class="skill-card" data-aos="fade-up" data-aos-delay="800">
+        <div class="skill-icon">
+          <i class="fas fa-microchip"></i>
+        </div>
+        <h3>Hardware (Optional)</h3>
+        <div class="skill-content">
+          <ul>
+            <li>Raspberry Pi + STM32</li>
+            <li>Physical process simulation</li>
+            <li>Hardware attack practice</li>
+            <li>Affordable (~50 EUR)</li>
           </ul>
         </div>
       </div>
@@ -105,8 +157,8 @@
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
@@ -115,7 +167,7 @@
 .skill-card {
   background: linear-gradient(145deg, rgba(115, 115, 115, 0.15) 15%, rgba(43, 45, 47, 1) 80%);
   border-radius: 12px;
-  padding: 2rem;
+  padding: 1.5rem;
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 107, 0, 0.1);
   position: relative;
@@ -145,16 +197,16 @@
 }
 
 .skill-icon {
-  font-size: 2.5rem;
+  font-size: 2rem;
   color: var(--primary-color);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   text-align: center;
 }
 
 .skill-card h3 {
   color: var(--primary-color);
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
   text-align: center;
   font-weight: 600;
 }
@@ -167,14 +219,15 @@
 
 .skill-content ul li {
   color: #b0b0b0;
-  padding: 0.5rem 0;
+  padding: 0.4rem 0;
   position: relative;
   padding-left: 1.5rem;
   transition: color 0.3s ease;
+  font-size: 0.9rem;
 }
 
 .skill-content ul li::before {
-  content: '→';
+  content: '>';
   position: absolute;
   left: 0;
   color: var(--primary-color);
@@ -199,15 +252,15 @@
 @media screen and (min-width: 1024px) {
   .skills-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 2.5rem;
+    gap: 2rem;
   }
 }
 
 @media screen and (min-width: 1280px) {
   .skills-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 3rem;
+    gap: 2rem;
     padding: 0 3rem;
   }
 }
-</style> 
+</style>

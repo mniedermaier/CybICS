@@ -7,9 +7,13 @@
         <p>Experience the power of the virtual side:</p>
         <ul>
           <li>Setup in minutes</li>
-          <li>Absolut zero cost</li>
-          <li>Easy setup with docker compose</li>
+          <li>Zero cost to run</li>
+          <li>Easy setup with Docker Compose</li>
+          <li>Unified landing page interface</li>
         </ul>
+        <div class="virtual-image">
+          <img src="{{ "/assets/img/landing.png" | prepend: site.baseurl }}" alt="CybICS Landing Page">
+        </div>
         <a href="#getting-started" class="highlight-link">Explore Virtual Side</a>
       </div>
     </div>
@@ -19,7 +23,8 @@
         <p>Get hands-on with our physical implementation:</p>
         <ul>
           <li>For more experienced users</li>
-          <li>Hardware with physical interaction for the testbed</li>
+          <li>Physical process simulation</li>
+          <li>Hardware attack practice</li>
           <li>About 50 Euros</li>
         </ul>
         <div class="hardware-image">
@@ -29,4 +34,119 @@
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<style>
+.choose-side-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.side-column {
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+  background: linear-gradient(145deg, rgba(115, 115, 115, 0.15) 15%, rgba(43, 45, 47, 1) 80%);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 107, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.side-column:hover {
+  border-color: rgba(255, 107, 0, 0.3);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.side-column h2 {
+  color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.side-content {
+  color: #b0b0b0;
+}
+
+.side-content p {
+  margin-bottom: 1rem;
+}
+
+.side-content ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.side-content ul li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.side-content ul li::before {
+  content: '>';
+  position: absolute;
+  left: 0;
+  color: var(--primary-color);
+}
+
+.virtual-image,
+.hardware-image {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.virtual-image img,
+.hardware-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.side-column:hover .virtual-image img,
+.side-column:hover .hardware-image img {
+  transform: scale(1.02);
+}
+
+.highlight-link {
+  display: inline-block;
+  background: rgba(255, 107, 0, 0.2);
+  color: var(--primary-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 107, 0, 0.4);
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.highlight-link:hover {
+  background: rgba(255, 107, 0, 0.3);
+  border-color: rgba(255, 107, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+@media screen and (max-width: 768px) {
+  .choose-side-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .side-column {
+    max-width: 100%;
+  }
+}
+</style>
