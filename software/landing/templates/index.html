@@ -2016,15 +2016,13 @@
             if (!config) return;
 
             let url;
-            if (config.path) {
-                // For CTF and Tools, use relative path
-                if (config.path.startsWith('/')) {
-                    url = config.path;
-                } else {
-                    // For services with ports
-                    const hostname = window.location.hostname;
-                    url = `http://${hostname}:${config.port}${config.path}`;
-                }
+            if (config.path && config.port) {
+                // For services with both path and port (e.g., VNC services)
+                const hostname = window.location.hostname;
+                url = `http://${hostname}:${config.port}${config.path}`;
+            } else if (config.path) {
+                // For local paths without ports (CTF, Tools)
+                url = config.path;
             } else if (config.port) {
                 // For services with just ports
                 const hostname = window.location.hostname;
