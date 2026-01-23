@@ -1,1 +1,1 @@
-python-snap7
+# No external dependencies required - custom S7 protocol implementation

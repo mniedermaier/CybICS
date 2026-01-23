@@ -81,6 +81,8 @@ fp-info-cache
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
 
 # Unit test / coverage reports
 htmlcov/
@@ -96,7 +98,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-
+.log
 
 # do not push database
 historian.sqlite
@@ -113,3 +115,43 @@ _site/
 .bundle/
 vendor/
 
+# Python
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.log
+*.log.*
+.docker.env/
+
+# Landing application specific
+software/landing/data/*.json
+!software/landing/data/.gitkeep
+software/landing/app.py.backup
+software/landing/app.py.old

@@ -1,4 +1,4 @@
-FROM python:3-slim
+FROM python:3.12-alpine
 
 WORKDIR /CybICS
 COPY requirements.txt ./

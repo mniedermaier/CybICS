@@ -12,8 +12,17 @@ jobs:
   raspberry2204:
     name: Run devcontainer test raspberry on Ubuntu 22.04
     runs-on: ubuntu-22.04
-   
+
     steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -41,8 +50,17 @@ jobs:
   raspberry2404:
     name: Run devcontainer test raspberry on Ubuntu 24.04
     runs-on: ubuntu-24.04
-   
+
     steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -73,8 +91,17 @@ jobs:
   stm32:
     name: Run devcontainer test stm32
     runs-on: ubuntu-latest
-   
+
     steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -91,17 +118,22 @@ jobs:
         run: .devcontainer/prepare-env.sh
 
       - name: run tests stm32
-        uses: devcontainers/ci@v0.3
-        with:
-          configFile: .devcontainer/stm32/devcontainer.json
-          env: .devcontainer/stm32/.env
-          runCmd: make
+        run: docker compose -f .devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
 
   virtual:
     name: Run devcontainer test virtual
     runs-on: ubuntu-latest
    
     steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:

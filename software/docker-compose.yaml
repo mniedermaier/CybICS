@@ -6,6 +6,7 @@ services:
     - openplc
     restart: always
     privileged: true
+    mem_limit: 48m
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     networks:
@@ -17,6 +18,7 @@ services:
     depends_on:
     - openplc
     restart: always
+    mem_limit: 64m
     ports:
       - 4840:4840
     networks:
@@ -28,8 +30,9 @@ services:
     depends_on:
     - openplc
     restart: always
+    mem_limit: 32m
     ports:
-      - 102:102
+      - 1102:1102
     networks:
       br-cybics:
         ipv4_address: 172.18.0.6
@@ -37,6 +40,7 @@ services:
   openplc:
     image: localhost:5000/cybics-openplc:latest
     restart: always
+    mem_limit: 96m
     volumes:
       - /var/run:/var/run
     ports:
@@ -44,6 +48,7 @@ services:
       - 20000:20000
       - 8080:8080
       - 502:502
+      - 102:102
     networks:
       br-cybics:
         ipv4_address: 172.18.0.3
@@ -51,20 +56,41 @@ services:
   fuxa:
     image: localhost:5000/cybics-fuxa:latest
     restart: always
+    mem_limit: 80m
     depends_on:
     - openplc
     ports:
       - 1881:1881
+    volumes:
+      - fuxa_data:/_appdata
     networks:
       br-cybics:
         ipv4_address: 172.18.0.4
+
+  landing:
+    image: localhost:5000/cybics-landing:latest
+    restart: always
+    mem_limit: 64m
+    depends_on:
+    - openplc
+    - fuxa
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   stm32:
     image: localhost:5000/cybics-stm32:latest
     privileged: true
     restart: always
+    mem_limit: 32m
     ports:
       - 3333:3333
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.7
 
 networks:
   br-cybics:
@@ -76,4 +102,7 @@ networks:
       driver: default
       config:
         - subnet: 172.18.0.0/24
-          gateway: 1172.18.0.1
+          gateway: 172.18.0.1
+
+volumes:
+  fuxa_data:

@@ -6,49 +6,66 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-  - cron: "0 0 * * *"
+    - cron: "0 0 * * *"
 
 jobs:
-  docker:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
+    - name: Free up disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo docker system prune -af
+        df -h
+
     - name: Install nmap
       run: sudo apt-get install -y nmap
 
     - name: Checkout
       uses: actions/checkout@v4
       with:
-          submodules: recursive
+        submodules: recursive
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12' 
+        python-version: '3.12'
 
     - name: Setup docker compose
       uses: KengoTODA/actions-setup-docker-compose@main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Run prepre env
+    - name: Prepare environment
       run: |
-         chmod +x ./.devcontainer/prepare-env.sh
-         .devcontainer/prepare-env.sh
+        chmod +x ./.devcontainer/prepare-env.sh
+        .devcontainer/prepare-env.sh
       shell: bash
-      
+
     - name: Start containers
       run: docker-compose -f "docker-compose.yml" up -d --build
       working-directory: ./.devcontainer/virtual
 
-    - name: Sleep for 30 seconds to give conatiners time to spawn
-      run: sleep 30s
+    - name: Wait for services
+      run: sleep 120s
       shell: bash
 
-    - name: Pytest Connections
-      run: |
-        pip install --no-cache-dir -r tests/requirements.txt
-        pytest tests/test_connections.py --verbose
+    - name: Install test dependencies
+      run: pip install --no-cache-dir -r tests/requirements.txt
+
+    - name: Test connections
+      run: pytest tests/test_connections.py --verbose
+
+    - name: Test OPC UA authentication
+      run: pytest tests/test_opcua_auth.py --verbose
+
+    - name: Test training
+      run: pytest tests/test_training.py --verbose
 
     - name: Stop containers
       if: always()

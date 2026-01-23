@@ -1,0 +1,2929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - Industrial Control Systems</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(-45deg, #0a0a0f, #1a1a2e, #16213e, #0f3460);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            position: relative;
+            width: 100vw;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 69, 0, 0.05) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .service-card {
+            display: flex;
+            flex-direction: column;
+            background: rgba(45, 45, 45, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 107, 0, 0.2);
+            border-radius: 1rem;
+            overflow: hidden;
+            min-width: 300px;
+            max-width: calc(50vw - 24px);
+            flex: 1;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 2;
+            margin: 0.5rem;
+        }
+
+        .service-card.hidden {
+            display: none;
+        }
+
+        .service-card.full-width {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            border-radius: 0;
+            height: 100%;
+        }
+
+        .home-screen {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 1rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .home-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .home-header h2 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #ff6b00, #ff8c42, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.25rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid #ff6b00;
+            width: 0;
+            animation: typing 8s steps(17) infinite, blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            0% { width: 0; }
+            25% { width: 19ch; }
+            75% { width: 19ch; }
+            100% { width: 0; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #ff6b00; }
+        }
+
+        .home-header p {
+            color: #bbb;
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        .service-section {
+            margin-bottom: 2.5rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, #ff6b00, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(255, 107, 0, 0.3);
+            font-weight: 600;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, #ff6b00, transparent);
+        }
+
+        .section-description {
+            color: #aaa;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            font-style: italic;
+            font-weight: 300;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .service-box {
+            background: linear-gradient(135deg, rgba(45, 45, 45, 0.9), rgba(30, 30, 40, 0.95));
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            gap: 1.25rem;
+            align-items: flex-start;
+        }
+
+        .service-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .service-box:hover::before {
+            opacity: 1;
+        }
+
+        .service-box:hover {
+            border-color: #ff6b00;
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(255, 107, 0, 0.4), 0 0 20px rgba(255, 107, 0, 0.2);
+        }
+
+        .service-box-icon {
+            font-size: 3.5rem;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(255, 107, 0, 0.5));
+        }
+
+        .service-box-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .service-box:hover .service-box-icon {
+            animation: bounce 0.6s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .service-box-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b00, #ffa500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .service-box-description {
+            color: #ddd;
+            font-size: 1rem;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+            margin: 0;
+        }
+
+        .service-box-badge {
+            position: absolute;
+            top: 0.4rem;
+            right: 0.4rem;
+            background-color: #ff6b00;
+            color: #1a1a1a;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.65rem;
+            font-weight: bold;
+        }
+
+        .service-header {
+            background-color: #404040;
+            color: #ff6b00;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .service-header h2 {
+            font-size: 1.125rem;
+            font-weight: bold;
+        }
+
+        .service-iframe {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #2d2d2d;
+        }
+
+        .service-error {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            background-color: #2d2d2d;
+        }
+
+        .service-error.visible {
+            display: flex;
+        }
+
+        .service-iframe.hidden {
+            display: none;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .error-message {
+            color: #ff6b00;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-details {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, rgba(64, 64, 64, 0.8), rgba(40, 40, 50, 0.9));
+            color: #ff6b00;
+            border: 2px solid rgba(255, 107, 0, 0.4);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 500;
+            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 107, 0, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .nav-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .nav-button:hover {
+            background: linear-gradient(135deg, #ff6b00, #ff8c42);
+            color: #1a1a1a;
+            border-color: #ff6b00;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4);
+        }
+
+        .nav-button.active {
+            background: linear-gradient(135deg, #ff6b00, #ff8c42);
+            color: #1a1a1a;
+            border-color: #ff6b00;
+            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4);
+        }
+
+        header {
+            background: rgba(20, 20, 30, 0.95);
+            backdrop-filter: blur(10px);
+            color: #ff6b00;
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+            min-height: 60px;
+            height: auto;
+        }
+
+        .settings-btn {
+            background: rgba(255, 107, 0, 0.1);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            color: #ff6b00;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 107, 0, 0.2);
+        }
+
+        .settings-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+
+        .settings-btn:hover .settings-icon {
+            transform: rotate(45deg);
+        }
+
+        nav {
+            display: flex;
+            flex: 1;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .nav-group {
+            display: flex;
+            gap: 0.35rem;
+            align-items: center;
+        }
+
+        .nav-group-label {
+            color: #999;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            margin-right: 0.2rem;
+            font-weight: bold;
+        }
+
+        .nav-separator {
+            width: 1px;
+            height: 25px;
+            background-color: #606060;
+            margin: 0 0.25rem;
+        }
+
+        main {
+            height: 100vh;
+            padding-top: 70px;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .services-container {
+            height: calc(100vh - 70px);
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .header-logo {
+            height: 40px;
+            width: auto;
+        }
+
+        /* Staggered animation for service boxes */
+        .service-box:nth-child(1) { animation-delay: 0.1s; }
+        .service-box:nth-child(2) { animation-delay: 0.2s; }
+        .service-box:nth-child(3) { animation-delay: 0.3s; }
+        .service-box:nth-child(4) { animation-delay: 0.4s; }
+
+        .service-grid .service-box {
+            animation: slideIn 0.6s ease-out backwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Floating Detach Button */
+        .detach-floating-btn {
+            position: fixed;
+            bottom: 7rem;
+            right: 2rem;
+            background: linear-gradient(135deg, #ff6b00, #ff8c42);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            display: none;
+        }
+
+        .detach-floating-btn:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 6px 30px rgba(255, 107, 0, 0.6);
+            background: linear-gradient(135deg, #ff8c42, #ffa500);
+        }
+
+        .detach-floating-btn:active {
+            transform: scale(0.95);
+        }
+
+        .detach-tooltip {
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(45, 45, 45, 0.95);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            white-space: nowrap;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(255, 107, 0, 0.3);
+        }
+
+        .detach-floating-btn:hover .detach-tooltip {
+            opacity: 1;
+        }
+
+        /* Responsive adjustments for narrow screens */
+        @media (max-width: 1400px) {
+            header {
+                padding: 0.75rem 1rem;
+            }
+
+            .header-logo {
+                height: 35px;
+            }
+
+            nav {
+                gap: 1rem;
+            }
+
+            .nav-group {
+                gap: 0.4rem;
+            }
+
+            .nav-button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .nav-group-label {
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .header-logo {
+                height: 32px;
+            }
+
+            nav {
+                gap: 0.75rem;
+            }
+
+            .nav-button {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            .nav-separator {
+                height: 25px;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            main {
+                padding-top: 130px;
+            }
+
+            .services-container {
+                height: calc(100vh - 130px);
+            }
+
+            .header-logo {
+                height: 28px;
+            }
+
+            nav {
+                width: 100%;
+                gap: 0.5rem;
+            }
+
+            .nav-button {
+                padding: 0.4rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .nav-group-label {
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .settings-modal.active {
+            display: flex;
+        }
+
+        .settings-content {
+            background: rgba(30, 30, 40, 0.98);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(255, 107, 0, 0.2);
+        }
+
+        .settings-header h2 {
+            color: #ff6b00;
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .close-btn {
+            background: rgba(255, 107, 0, 0.1);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            color: #ff6b00;
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 107, 0, 0.3);
+            transform: scale(1.1);
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .settings-section h3 {
+            color: #ff6b00;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .setting-item {
+            background: rgba(45, 45, 55, 0.6);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 107, 0, 0.1);
+        }
+
+        .setting-label {
+            color: #ccc;
+            margin-bottom: 0.5rem;
+            display: block;
+            font-weight: 500;
+        }
+
+        .theme-toggle {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .theme-option {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(255, 107, 0, 0.1);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.5rem;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .theme-option:hover {
+            background: rgba(255, 107, 0, 0.2);
+        }
+
+        .theme-option.active {
+            background: rgba(255, 107, 0, 0.4);
+            border-color: #ff6b00;
+            box-shadow: 0 0 15px rgba(255, 107, 0, 0.3);
+        }
+
+        .model-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(45, 45, 55, 0.8);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.5rem;
+            color: #fff;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ff6b00' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2.5rem;
+        }
+
+        .model-select:hover {
+            border-color: rgba(255, 107, 0, 0.5);
+            background-color: rgba(45, 45, 55, 0.9);
+        }
+
+        .model-select:focus {
+            outline: none;
+            border-color: #ff6b00;
+            box-shadow: 0 0 10px rgba(255, 107, 0, 0.3);
+        }
+
+        .model-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            border-color: rgba(255, 107, 0, 0.2);
+        }
+
+        .model-select option {
+            background: #2d2d37;
+            color: #fff;
+            padding: 0.5rem;
+        }
+
+        body.light-mode .model-select {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .model-select option {
+            background: #fff;
+            color: #333;
+        }
+
+        body.light-mode .model-select:disabled {
+            opacity: 0.5;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 107, 0, 0.2);
+            border: 1px solid rgba(255, 107, 0, 0.4);
+            border-radius: 0.5rem;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 107, 0, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .system-info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .system-info-label {
+            color: #999;
+            font-weight: 500;
+        }
+
+        .system-info-value {
+            color: #fff;
+        }
+
+        /* Light Mode Styles */
+        body.light-mode {
+            background: linear-gradient(-45deg, #f5f5f5, #e8e8e8, #d5d5d5, #ffffff);
+        }
+
+        body.light-mode::before {
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 69, 0, 0.03) 0%, transparent 50%);
+        }
+
+        body.light-mode {
+            color: #333;
+        }
+
+        body.light-mode header {
+            background: rgba(255, 255, 255, 0.95);
+            color: #ff6b00;
+            border-bottom: 1px solid rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .service-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            color: #333;
+        }
+
+        body.light-mode .service-header {
+            background: rgba(255, 107, 0, 0.1);
+        }
+
+        body.light-mode .service-header h2 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .nav-button {
+            background: rgba(255, 107, 0, 0.1);
+            color: #ff6b00;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .nav-button:hover {
+            background: rgba(255, 107, 0, 0.2);
+        }
+
+        body.light-mode .nav-button.active {
+            background: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .settings-content {
+            background: rgba(255, 255, 255, 0.98);
+            color: #333;
+        }
+
+        body.light-mode .setting-item {
+            background: rgba(245, 245, 245, 0.8);
+        }
+
+        body.light-mode .setting-label {
+            color: #666;
+        }
+
+        body.light-mode ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+        }
+
+        body.light-mode ::-webkit-scrollbar-thumb {
+            background: #b0b0b0;
+        }
+
+        body.light-mode ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        body.light-mode .settings-btn {
+            background: rgba(255, 107, 0, 0.1);
+            color: #ff6b00;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .settings-btn:hover {
+            background: rgba(255, 107, 0, 0.2);
+        }
+
+        body.light-mode .settings-modal {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        body.light-mode .settings-header h2 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .settings-section h3 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .theme-option {
+            background: rgba(255, 107, 0, 0.1);
+            border-color: rgba(255, 107, 0, 0.3);
+            color: #333;
+        }
+
+        body.light-mode .theme-option:hover {
+            background: rgba(255, 107, 0, 0.2);
+        }
+
+        body.light-mode .theme-option.active {
+            background: rgba(255, 107, 0, 0.3);
+            border-color: #ff6b00;
+            color: #ff6b00;
+        }
+
+        body.light-mode .action-btn {
+            background: rgba(255, 107, 0, 0.2);
+            border-color: rgba(255, 107, 0, 0.4);
+            color: #ff6b00;
+        }
+
+        body.light-mode .action-btn:hover {
+            background: rgba(255, 107, 0, 0.3);
+            color: #ff6b00;
+        }
+
+        body.light-mode .close-btn {
+            background: rgba(255, 107, 0, 0.1);
+            border-color: rgba(255, 107, 0, 0.3);
+            color: #ff6b00;
+        }
+
+        body.light-mode .close-btn:hover {
+            background: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .system-info-label {
+            color: #666;
+        }
+
+        body.light-mode .system-info-value {
+            color: #333;
+        }
+
+        body.light-mode .nav-group-label {
+            color: #666;
+        }
+
+        body.light-mode .nav-separator {
+            background-color: #d0d0d0;
+        }
+
+        body.light-mode .home-header h2 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .home-header p {
+            color: #666;
+        }
+
+        body.light-mode .section-title {
+            color: #ff6b00;
+        }
+
+        body.light-mode .section-description {
+            color: #666;
+        }
+
+        body.light-mode .service-preview h3 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .service-preview p {
+            color: #666;
+        }
+
+        body.light-mode .service-status {
+            color: #666;
+        }
+
+        body.light-mode .status-indicator {
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode iframe {
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        /* Chat Widget Styles */
+        .chat-widget {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(74, 144, 226, 0.4);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .chat-widget:not(.expanded) {
+            width: 60px;
+            height: 60px;
+        }
+
+        .chat-widget.expanded {
+            width: 350px;
+            height: 500px;
+            border-radius: 1rem;
+            background: rgba(30, 30, 40, 0.98);
+            border: 2px solid rgba(255, 107, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            cursor: default;
+        }
+
+        .chat-widget:hover:not(.expanded) {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 6px 30px rgba(74, 144, 226, 0.6);
+        }
+
+        .chat-widget:active:not(.expanded) {
+            transform: scale(0.95);
+        }
+
+        .chat-header {
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: none;
+            width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .chat-widget.expanded .chat-header {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.2), rgba(255, 140, 0, 0.1));
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+            height: auto;
+            justify-content: space-between;
+        }
+
+        .chat-icon {
+            font-size: 1.8rem;
+            display: block;
+        }
+
+        .chat-widget.expanded .chat-icon {
+            display: none;
+        }
+
+        .chat-title {
+            font-weight: 600;
+            color: #ff6b00;
+            font-size: 1rem;
+            display: none;
+        }
+
+        .chat-widget.expanded .chat-title {
+            display: block;
+        }
+
+        .chat-toggle {
+            color: #ff6b00;
+            transition: transform 0.3s;
+            display: none;
+        }
+
+        .chat-widget.expanded .chat-toggle {
+            display: block;
+            transform: rotate(180deg);
+        }
+
+        .chat-clear-btn {
+            display: none;
+            background: rgba(255, 107, 0, 0.1);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.375rem;
+            padding: 0.3rem 0.6rem;
+            color: #ff6b00;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+            margin-right: 0.5rem;
+        }
+
+        .chat-widget.expanded .chat-clear-btn {
+            display: block;
+        }
+
+        .chat-clear-btn:hover {
+            background: rgba(255, 107, 0, 0.2);
+            border-color: rgba(255, 107, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        .chat-clear-btn:active {
+            transform: scale(0.95);
+        }
+
+        body.light-mode .chat-clear-btn {
+            background: rgba(255, 107, 0, 0.08);
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+
+        body.light-mode .chat-clear-btn:hover {
+            background: rgba(255, 107, 0, 0.15);
+        }
+
+        .chat-tooltip {
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(45, 45, 45, 0.95);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            white-space: nowrap;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(74, 144, 226, 0.3);
+        }
+
+        .chat-widget:hover:not(.expanded) .chat-tooltip {
+            opacity: 1;
+        }
+
+        .chat-widget.expanded .chat-tooltip {
+            display: none;
+        }
+
+        .chat-resize-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            display: none;
+            z-index: 1000;
+        }
+
+        .chat-widget.expanded .chat-resize-handle {
+            display: block;
+        }
+
+        .chat-resize-handle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 12px 12px 0 0;
+            border-color: rgba(255, 107, 0, 0.5) transparent transparent transparent;
+        }
+
+        .chat-body {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-widget.expanded .chat-body {
+            display: flex;
+        }
+
+        .chat-status {
+            padding: 0.5rem 1rem;
+            background: rgba(45, 45, 55, 0.6);
+            border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+            animation: slideIn 0.3s ease;
+            max-width: 100%;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .message-text {
+            background: rgba(45, 45, 55, 0.8);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            flex: 1;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            color: #fff;
+            line-height: 1.6;
+            max-width: 100%;
+        }
+
+        /* Markdown styling in messages */
+        .message-text h1,
+        .message-text h2,
+        .message-text h3,
+        .message-text h4 {
+            margin: 0.5rem 0 0.3rem 0;
+            color: #ff8c00;
+            font-weight: 600;
+        }
+
+        .message-text h1 { font-size: 1.3rem; }
+        .message-text h2 { font-size: 1.2rem; }
+        .message-text h3 { font-size: 1.1rem; }
+        .message-text h4 { font-size: 1rem; }
+
+        .message-text p {
+            margin: 0.5rem 0;
+        }
+
+        .message-text ul,
+        .message-text ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .message-text li {
+            margin: 0.25rem 0;
+        }
+
+        .message-text code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #ffa500;
+            overflow-wrap: break-word;
+        }
+
+        .message-text pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin: 0.5rem 0;
+            border-left: 3px solid #ff6b00;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .message-text pre code {
+            background: none;
+            padding: 0;
+            color: #fff;
+            white-space: pre-wrap;
+        }
+
+        .message-text strong {
+            color: #ffa500;
+            font-weight: 600;
+        }
+
+        .message-text em {
+            color: #ffb84d;
+            font-style: italic;
+        }
+
+        .message-text a {
+            color: #4da6ff;
+            text-decoration: underline;
+        }
+
+        .message-text a:hover {
+            color: #80bfff;
+        }
+
+        .message-text blockquote {
+            border-left: 3px solid #ff6b00;
+            padding-left: 0.75rem;
+            margin: 0.5rem 0;
+            color: #ccc;
+        }
+
+        .message-text hr {
+            border: none;
+            border-top: 1px solid rgba(255, 107, 0, 0.3);
+            margin: 0.75rem 0;
+        }
+
+        .message-text table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5rem 0;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .message-text table th,
+        .message-text table td {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 107, 0, 0.2);
+            text-align: left;
+            overflow-wrap: break-word;
+        }
+
+        .message-text table th {
+            background: rgba(255, 107, 0, 0.2);
+            font-weight: 600;
+        }
+
+        .user-message .message-text {
+            background: rgba(255, 107, 0, 0.2);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+        }
+
+        .agent-message .message-text {
+            background: rgba(45, 45, 55, 0.8);
+            border: 1px solid rgba(255, 107, 0, 0.1);
+        }
+
+        .typing-indicator .message-text {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff6b00;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(45, 45, 55, 0.6);
+            border-top: 1px solid rgba(255, 107, 0, 0.1);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(30, 30, 40, 0.8);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 0.5rem;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: #ff6b00;
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.1);
+        }
+
+        .chat-send-btn {
+            padding: 0.75rem 1.25rem;
+            background: rgba(255, 107, 0, 0.2);
+            border: 1px solid rgba(255, 107, 0, 0.4);
+            border-radius: 0.5rem;
+            color: #ff6b00;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .chat-send-btn:hover {
+            background: rgba(255, 107, 0, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
+        }
+
+        .chat-send-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Light mode chat styles */
+        body.light-mode .chat-widget {
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+        }
+
+        body.light-mode .chat-widget.expanded {
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        body.light-mode .chat-widget.expanded .chat-header {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 140, 0, 0.05));
+        }
+
+        body.light-mode .chat-status {
+            background: rgba(245, 245, 245, 0.8);
+        }
+
+        body.light-mode .message-text {
+            color: #333;
+        }
+
+        body.light-mode .user-message .message-text {
+            background: rgba(255, 107, 0, 0.1);
+        }
+
+        body.light-mode .agent-message .message-text {
+            background: rgba(245, 245, 245, 0.9);
+        }
+
+        /* Light mode markdown styling */
+        body.light-mode .message-text h1,
+        body.light-mode .message-text h2,
+        body.light-mode .message-text h3,
+        body.light-mode .message-text h4 {
+            color: #ff6b00;
+        }
+
+        body.light-mode .message-text code {
+            background: rgba(0, 0, 0, 0.08);
+            color: #c7254e;
+        }
+
+        body.light-mode .message-text pre {
+            background: rgba(0, 0, 0, 0.05);
+            border-left-color: #ff6b00;
+        }
+
+        body.light-mode .message-text pre code {
+            background: none;
+            color: #333;
+        }
+
+        body.light-mode .message-text strong {
+            color: #d45500;
+        }
+
+        body.light-mode .message-text em {
+            color: #997000;
+        }
+
+        body.light-mode .message-text blockquote {
+            color: #666;
+        }
+
+        body.light-mode .message-text table th {
+            background: rgba(255, 107, 0, 0.15);
+        }
+
+        body.light-mode .message-text table th,
+        body.light-mode .message-text table td {
+            border-color: rgba(255, 107, 0, 0.25);
+        }
+
+        body.light-mode .chat-input-container {
+            background: rgba(245, 245, 245, 0.8);
+        }
+
+        body.light-mode .chat-input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        body.light-mode .chat-send-btn {
+            color: #ff6b00;
+        }
+
+        /* Responsive chat widget */
+        @media (max-width: 768px) {
+            .chat-widget:not(.expanded) {
+                width: 60px;
+                height: 60px;
+                bottom: 2rem;
+                right: 1rem;
+            }
+
+            .chat-widget.expanded {
+                width: calc(100% - 2rem);
+                height: 400px;
+                right: 1rem;
+                bottom: 2rem;
+            }
+        }
+    </style>
+    <!-- Markdown parser for agent responses -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
+    <script>
+        // Configure marked for safe rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false
+        });
+    </script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <img src="/pics/CybICS_logo.png" alt="CybICS" class="header-logo">
+
+        <!-- Navigation menu -->
+        <nav>
+            <!-- Home Button -->
+            <button id="all-btn" class="nav-button active" onclick="updateView('all')">🏠 Home</button>
+
+            <div class="nav-separator"></div>
+
+            <!-- Core Group -->
+            <div class="nav-group">
+                <span class="nav-group-label">Core</span>
+                {% for service_id, service in services.items() %}
+                {% if not service.virtual_only %}
+                <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')">{{ service.name }}</button>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="nav-separator"></div>
+
+            <!-- Virtual Only Group -->
+            <div class="nav-group">
+                <span class="nav-group-label">Virtual Only</span>
+                {% for service_id, service in services.items() %}
+                {% if service.virtual_only %}
+                <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')">{{ service.name }}</button>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="nav-separator"></div>
+
+            <!-- Tools Group -->
+            <div class="nav-group">
+                <span class="nav-group-label">Tools</span>
+                <button id="stats-btn" class="nav-button" onclick="updateView('stats')">📊 System Stats</button>
+                <button id="network-btn" class="nav-button" onclick="updateView('network')">🦈 Sharky</button>
+                <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')">⌨️ WebShell</button>
+            </div>
+
+            <div class="nav-separator"></div>
+
+            <!-- CTF Training (no label) -->
+            <div class="nav-group">
+                <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')">🏆 CTF Training</button>
+            </div>
+
+            <div class="nav-separator"></div>
+
+            <!-- Settings -->
+            <button class="settings-btn" onclick="openSettings()" title="Settings"><span class="settings-icon">⚙️</span></button>
+        </nav>
+    </header>
+
+    <!-- Main container -->
+    <main>
+        <!-- Service cards container -->
+        <div class="services-container">
+            <!-- Home Screen -->
+            <div id="home-screen" class="service-card full-width">
+                <div class="home-screen">
+                    <div class="home-header">
+                        <h2>Welcome to CybICS</h2>
+                        <p>Industrial Control Systems Security Testbed</p>
+                    </div>
+
+                    <!-- Core Services Section -->
+                    <div class="service-section">
+                        <div class="section-title">Core Services</div>
+                        <div class="section-description">Available on both physical and virtual environments</div>
+                        <div class="service-grid">
+                            {% for service_id, service in services.items() %}
+                            {% if not service.virtual_only %}
+                            <div class="service-box" onclick="updateView('{{ service_id }}')">
+                                <div class="service-box-icon">{{ service.icon }}</div>
+                                <div class="service-box-content">
+                                    <div class="service-box-name">{{ service.name }}</div>
+                                    <div class="service-box-description">{{ service.description }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Virtual Only Services Section -->
+                    <div class="service-section">
+                        <div class="section-title">Virtual Environment Only</div>
+                        <div class="section-description">Additional services available in virtual/simulation mode</div>
+                        <div class="service-grid">
+                            {% for service_id, service in services.items() %}
+                            {% if service.virtual_only %}
+                            <div class="service-box" onclick="updateView('{{ service_id }}')">
+                                <span class="service-box-badge">VIRTUAL</span>
+                                <div class="service-box-icon">{{ service.icon }}</div>
+                                <div class="service-box-content">
+                                    <div class="service-box-name">{{ service.name }}</div>
+                                    <div class="service-box-description">{{ service.description }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- CTF Training Section -->
+                    <div class="service-section">
+                        <div class="section-title">CTF Training</div>
+                        <div class="section-description">Hands-on challenges to learn ICS security concepts</div>
+                        <div class="service-grid">
+                            <div class="service-box" onclick="updateView('ctf')">
+                                <div class="service-box-icon">🏆</div>
+                                <div class="service-box-content">
+                                    <div class="service-box-name">CTF Challenges</div>
+                                    <div class="service-box-description">Capture The Flag challenges covering reconnaissance, exploitation, and defense of industrial control systems.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tools Section -->
+                    <div class="service-section">
+                        <div class="section-title">Tools</div>
+                        <div class="section-description">Analysis and diagnostic tools for ICS security testing</div>
+                        <div class="service-grid">
+                            <div class="service-box" onclick="updateView('stats')">
+                                <div class="service-box-icon">📊</div>
+                                <div class="service-box-content">
+                                    <div class="service-box-name">System Stats</div>
+                                    <div class="service-box-description">Monitor system performance, CPU usage, memory, and Docker container statistics in real-time.</div>
+                                </div>
+                            </div>
+                            <div class="service-box" onclick="updateView('network')">
+                                <div class="service-box-icon">🦈</div>
+                                <div class="service-box-content">
+                                    <div class="service-box-name">Sharky Network Analyzer</div>
+                                    <div class="service-box-description">Capture and analyze industrial network traffic. Inspect Modbus, S7comm, and OPC-UA protocols.</div>
+                                </div>
+                            </div>
+                            <div class="service-box" onclick="updateView('webshell')">
+                                <div class="service-box-icon">⌨️</div>
+                                <div class="service-box-content">
+                                    <div class="service-box-name">WebShell</div>
+                                    <div class="service-box-description">Execute commands and run security testing tools directly from your browser.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Service Cards -->
+            {% for service_id, service in services.items() %}
+            <div id="{{ service_id }}-card" class="service-card hidden">
+                <iframe
+                    id="{{ service_id }}-iframe"
+                    class="service-iframe"
+                    title="{{ service.name }}"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    data-port="{{ service.port }}"
+                    data-service="{{ service_id }}"
+                    {% if service.path %}data-path="{{ service.path }}"{% endif %}
+                ></iframe>
+                <div id="{{ service_id }}-error" class="service-error">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-message">Service Unavailable</div>
+                    <div class="error-details">{{ service.name }} is not responding</div>
+                    <div class="error-details" style="margin-top: 1rem;">
+                        <span id="{{ service_id }}-url"></span>
+                    </div>
+                    <button onclick="refreshService('{{ service_id }}')" class="nav-button" style="margin-top: 1rem;">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- CTF Training Card -->
+            <div id="ctf-card" class="service-card hidden">
+                <iframe
+                    id="ctf-iframe"
+                    class="service-iframe"
+                    src="/ctf"
+                    title="CTF Training"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                ></iframe>
+            </div>
+
+            <!-- System Stats Card -->
+            <div id="stats-card" class="service-card hidden">
+                <iframe
+                    id="stats-iframe"
+                    class="service-iframe"
+                    src="/stats"
+                    title="System Stats"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                ></iframe>
+            </div>
+
+            <!-- Network Analyzer Card -->
+            <div id="network-card" class="service-card hidden">
+                <iframe
+                    id="network-iframe"
+                    class="service-iframe"
+                    src="/network"
+                    title="Network Analyzer"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                ></iframe>
+            </div>
+
+            <!-- WebShell Card -->
+            <div id="webshell-card" class="service-card hidden">
+                <iframe
+                    id="webshell-iframe"
+                    class="service-iframe"
+                    src="/webshell"
+                    title="WebShell"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                ></iframe>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Detach Button -->
+    <button id="detach-floating-btn" class="detach-floating-btn" onclick="detachView()">
+        🔗
+        <span class="detach-tooltip">Open in New Tab</span>
+    </button>
+
+    <script>
+        // Store service IDs in a JavaScript array
+        const serviceIds = [{% for service_id in services.keys() %}'{{ service_id }}',{% endfor %}];
+        // Additional view IDs for CTF and Tools
+        const additionalViewIds = ['ctf', 'stats', 'network', 'webshell'];
+        const allViewIds = [...serviceIds, ...additionalViewIds];
+
+        // Track current view
+        let currentView = 'all';
+
+        // Service configurations for URL building
+        const serviceConfigs = {
+            {% for service_id, service in services.items() %}
+            '{{ service_id }}': {
+                port: {{ service.port }},
+                path: '{{ service.path if service.path else "" }}'
+            },
+            {% endfor %}
+            'ctf': { path: '/ctf' },
+            'stats': { path: '/stats' },
+            'network': { path: '/network' },
+            'webshell': { path: '/webshell' }
+        };
+
+        // Set iframe src dynamically using current hostname
+        document.addEventListener('DOMContentLoaded', function() {
+            const hostname = window.location.hostname;
+            document.querySelectorAll('.service-iframe').forEach(iframe => {
+                const port = iframe.getAttribute('data-port');
+                const serviceId = iframe.getAttribute('data-service');
+                const path = iframe.getAttribute('data-path') || '';
+                const url = `http://${hostname}:${port}${path}`;
+
+                // Set the URL in the error message
+                document.getElementById(`${serviceId}-url`).textContent = url;
+
+                // Set up error detection
+                let errorShown = false;
+                let checkStarted = false;
+
+                function showError() {
+                    if (!errorShown) {
+                        errorShown = true;
+                        iframe.classList.add('hidden');
+                        document.getElementById(`${serviceId}-error`).classList.add('visible');
+                    }
+                }
+
+                // Use fetch to check if service is available before loading iframe
+                fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                    .then(() => {
+                        // Service appears to be available, load the iframe
+                        iframe.src = url;
+                        checkStarted = true;
+
+                        // Still check after a timeout in case the page doesn't load
+                        setTimeout(function() {
+                            try {
+                                // Try to access iframe document
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!iframeDoc || iframeDoc.readyState !== 'complete') {
+                                    showError();
+                                }
+                            } catch (e) {
+                                // Cross-origin means page loaded successfully
+                            }
+                        }, 5000);
+                    })
+                    .catch(() => {
+                        // Service is not available
+                        showError();
+                    });
+
+                iframe.addEventListener('error', function() {
+                    showError();
+                });
+            });
+        });
+
+        function refreshService(serviceId) {
+            // Handle both regular and tab iframes
+            const iframeId = serviceId.includes('-tab') ? `${serviceId}-iframe` : `${serviceId}-iframe`;
+            const errorId = serviceId.includes('-tab') ? `${serviceId}-error` : `${serviceId}-error`;
+
+            const iframe = document.getElementById(iframeId);
+            const errorDiv = document.getElementById(errorId);
+            const port = iframe.getAttribute('data-port');
+            const path = iframe.getAttribute('data-path') || '';
+            const hostname = window.location.hostname;
+            const url = `http://${hostname}:${port}${path}`;
+
+            // Hide error temporarily
+            errorDiv.classList.remove('visible');
+            iframe.classList.remove('hidden');
+
+            let errorShown = false;
+
+            function showError() {
+                if (!errorShown) {
+                    errorShown = true;
+                    iframe.classList.add('hidden');
+                    errorDiv.classList.add('visible');
+                }
+            }
+
+            // Use fetch to check if service is available before loading iframe
+            fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                .then(() => {
+                    // Service appears to be available, reload the iframe
+                    iframe.src = url;
+
+                    // Still check after a timeout in case the page doesn't load
+                    setTimeout(function() {
+                        try {
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            if (!iframeDoc || iframeDoc.readyState !== 'complete') {
+                                showError();
+                            }
+                        } catch (e) {
+                            // Cross-origin means page loaded successfully
+                        }
+                    }, 5000);
+                })
+                .catch(() => {
+                    // Service is still not available
+                    showError();
+                });
+        }
+
+        function detachView() {
+            if (currentView === 'all') return;
+
+            const config = serviceConfigs[currentView];
+            if (!config) return;
+
+            let url;
+            if (config.path && config.port) {
+                // For services with both path and port (e.g., VNC services)
+                const hostname = window.location.hostname;
+                url = `http://${hostname}:${config.port}${config.path}`;
+            } else if (config.path) {
+                // For local paths without ports (CTF, Tools)
+                url = config.path;
+            } else if (config.port) {
+                // For services with just ports
+                const hostname = window.location.hostname;
+                url = `http://${hostname}:${config.port}`;
+            }
+
+            if (url) {
+                window.open(url, '_blank');
+            }
+        }
+
+        function updateView(view) {
+            // Track current view
+            currentView = view;
+
+            // Update floating detach button visibility
+            const detachBtn = document.getElementById('detach-floating-btn');
+            if (view === 'all') {
+                detachBtn.style.display = 'none';
+            } else {
+                detachBtn.style.display = 'block';
+            }
+
+            // Update button styles
+            document.getElementById('all-btn').classList.remove('active');
+            allViewIds.forEach(viewId => {
+                const btn = document.getElementById(`${viewId}-btn`);
+                if (btn) btn.classList.remove('active');
+            });
+
+            if (view === 'all') {
+                document.getElementById('all-btn').classList.add('active');
+            } else {
+                const btn = document.getElementById(`${view}-btn`);
+                if (btn) btn.classList.add('active');
+            }
+
+            // Update card visibility
+            const homeScreen = document.getElementById('home-screen');
+
+            if (view === 'all') {
+                // Show home screen
+                homeScreen.classList.remove('hidden');
+                allViewIds.forEach(viewId => {
+                    const card = document.getElementById(`${viewId}-card`);
+                    if (card) card.classList.add('hidden');
+                });
+            } else {
+                // Show individual view
+                homeScreen.classList.add('hidden');
+                allViewIds.forEach(viewId => {
+                    const card = document.getElementById(`${viewId}-card`);
+                    if (card) {
+                        if (view === viewId) {
+                            card.classList.remove('hidden');
+                            card.classList.add('full-width');
+                        } else {
+                            card.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="settings-modal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>⚙️ Settings</h2>
+                <button class="close-btn" onclick="closeSettings()">✕</button>
+            </div>
+
+            <!-- Appearance Section -->
+            <div class="settings-section">
+                <h3>🎨 Appearance</h3>
+                <div class="setting-item">
+                    <span class="setting-label">Theme</span>
+                    <div class="theme-toggle">
+                        <div class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+                            🌙 Dark Mode
+                        </div>
+                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                            ☀️ Light Mode
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Agent Section -->
+            <div class="settings-section">
+                <h3>🤖 AI Assistant</h3>
+                <div class="setting-item">
+                    <span class="setting-label">CybICS Agent</span>
+                    <div class="theme-toggle">
+                        <div class="theme-option" data-agent="enabled" onclick="setAgentEnabled(true)">
+                            ✅ Enabled
+                        </div>
+                        <div class="theme-option" data-agent="disabled" onclick="setAgentEnabled(false)">
+                            ❌ Disabled
+                        </div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label" style="font-size: 0.9rem; color: #999;">
+                        AI assistant for CybICS help and support
+                    </span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">AI Model</span>
+                    <select id="agentModelSelect" class="model-select" onchange="changeAgentModel(this.value)">
+                        <option value="">Loading models...</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <span id="modelInfo" class="setting-label" style="font-size: 0.85rem; color: #999;">
+                        Select a model above
+                    </span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label" style="font-size: 0.75rem; color: #666; font-style: italic;">
+                        ℹ️ Models without ✓ will be downloaded on first use (may take 5-30 minutes depending on size and connection speed)
+                    </span>
+                </div>
+                <div class="setting-item" id="modelDownloadStatus" style="display: none;">
+                    <span class="setting-label" style="color: #4ade80;">
+                        <span id="downloadMessage"></span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- System Actions Section -->
+            <div class="settings-section">
+                <h3>🔧 System Actions</h3>
+                <div class="setting-item">
+                    <span class="setting-label">Docker Logs</span>
+                    <button class="action-btn" onclick="downloadLogs()">
+                        📥 Download Compose Logs
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Container Management</span>
+                    <button class="action-btn" onclick="restartContainers()">
+                        🔄 Restart All Containers
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Information Section -->
+            <div class="settings-section">
+                <h3>ℹ️ System Information</h3>
+                <div class="setting-item">
+                    <div class="system-info" id="systemInfo">
+                        <div class="system-info-label">Loading...</div>
+                        <div class="system-info-value"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings JavaScript -->
+    <script>
+        // Settings functionality
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            loadSystemInfo();
+            loadThemePreference();
+            loadAgentPreference();
+            loadAvailableModels();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('settingsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSettings();
+            }
+        });
+
+        // Theme Management
+        function setTheme(theme) {
+            // Update UI
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
+
+            // Apply theme
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+            } else {
+                document.body.classList.remove('light-mode');
+            }
+
+            // Save to server
+            fetch('/api/settings/theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ theme: theme })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Theme saved:', data);
+            })
+            .catch(error => {
+                console.error('Error saving theme:', error);
+            });
+        }
+
+        function loadThemePreference() {
+            fetch('/api/settings/theme')
+                .then(response => response.json())
+                .then(data => {
+                    const theme = data.theme || 'dark';
+                    // Apply theme without saving again
+                    document.querySelectorAll('.theme-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
+
+                    if (theme === 'light') {
+                        document.body.classList.add('light-mode');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading theme:', error);
+                });
+        }
+
+        // Initialize theme on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadThemePreference();
+        });
+
+        // Download Logs
+        function downloadLogs() {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '⏳ Generating logs...';
+            button.disabled = true;
+
+            window.location.href = '/api/settings/logs/download';
+
+            // Re-enable button after delay
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            }, 3000);
+        }
+
+        // Restart Containers
+        function restartContainers() {
+            if (!confirm('Are you sure you want to restart all containers? This may cause temporary service interruption.')) {
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '⏳ Restarting...';
+            button.disabled = true;
+
+            fetch('/api/settings/containers/restart', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    button.textContent = '✓ Restarted Successfully';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }, 3000);
+                } else {
+                    button.textContent = '✗ Failed';
+                    alert('Error restarting containers: ' + (data.error || 'Unknown error'));
+                    button.disabled = false;
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                button.textContent = '✗ Failed';
+                alert('Error restarting containers: ' + error.message);
+                button.disabled = false;
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Load System Information
+        function loadSystemInfo() {
+            const infoDiv = document.getElementById('systemInfo');
+            infoDiv.innerHTML = '<div class="system-info-label">Loading...</div>';
+
+            fetch('/api/settings/system/info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        infoDiv.innerHTML = `
+                            <div class="system-info-label">Error:</div>
+                            <div class="system-info-value">${data.error}</div>
+                        `;
+                        return;
+                    }
+
+                    infoDiv.innerHTML = `
+                        <div class="system-info-label">Platform:</div>
+                        <div class="system-info-value">${data.platform}</div>
+                        <div class="system-info-label">Python Version:</div>
+                        <div class="system-info-value">${data.python_version}</div>
+                        <div class="system-info-label">Docker Version:</div>
+                        <div class="system-info-value">${data.docker_version}</div>
+                        <div class="system-info-label">Compose Version:</div>
+                        <div class="system-info-value">${data.compose_version}</div>
+                        <div class="system-info-label">Running Containers:</div>
+                        <div class="system-info-value">${data.running_containers}</div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error loading system info:', error);
+                    infoDiv.innerHTML = `
+                        <div class="system-info-label">Error:</div>
+                        <div class="system-info-value">${error.message}</div>
+                    `;
+                });
+        }
+
+        // ========== AI AGENT FUNCTIONS ==========
+
+        function setAgentEnabled(enabled) {
+            // Update UI
+            document.querySelectorAll('[data-agent]').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            document.querySelector(`[data-agent="${enabled ? 'enabled' : 'disabled'}"]`).classList.add('active');
+
+            // Save to server
+            fetch('/api/settings/agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ enabled: enabled })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Agent setting saved:', data);
+                // Update chat widget visibility
+                const chatWidget = document.getElementById('chatWidget');
+                if (chatWidget) {
+                    chatWidget.style.display = enabled ? 'flex' : 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error saving agent setting:', error);
+            });
+        }
+
+        function loadAgentPreference() {
+            fetch('/api/settings/agent')
+                .then(response => response.json())
+                .then(data => {
+                    const enabled = data.enabled !== undefined ? data.enabled : true;
+                    // Apply setting without saving again
+                    document.querySelectorAll('[data-agent]').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    document.querySelector(`[data-agent="${enabled ? 'enabled' : 'disabled'}"]`).classList.add('active');
+
+                    // Show/hide chat widget
+                    const chatWidget = document.getElementById('chatWidget');
+                    if (chatWidget) {
+                        chatWidget.style.display = enabled ? 'flex' : 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading agent preference:', error);
+                });
+        }
+
+        function loadAvailableModels() {
+            fetch('/api/agent/model')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('agentModelSelect');
+                    const modelInfo = document.getElementById('modelInfo');
+
+                    if (!select) return;
+
+                    // Clear existing options
+                    select.innerHTML = '';
+
+                    // Get recommended models
+                    const recommendedModels = data.recommended_models || [];
+                    const availableModels = data.available_models || [];
+                    const currentModel = data.current_model || '';
+
+                    // Add options
+                    recommendedModels.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = `${model.name} (${model.size})${model.recommended ? ' ⭐ Recommended' : ''}`;
+                        option.dataset.size = model.size;
+                        option.dataset.quality = model.quality;
+                        option.dataset.description = model.description;
+
+                        // Mark if downloaded
+                        if (availableModels.includes(model.name)) {
+                            option.textContent += ' ✓';
+                        }
+
+                        // Select current model
+                        if (model.name === currentModel) {
+                            option.selected = true;
+                        }
+
+                        select.appendChild(option);
+                    });
+
+                    // Update model info
+                    updateModelInfo(currentModel);
+                })
+                .catch(error => {
+                    console.error('Error loading models:', error);
+                    const select = document.getElementById('agentModelSelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">Error loading models</option>';
+                    }
+                });
+        }
+
+        function updateModelInfo(modelName) {
+            const select = document.getElementById('agentModelSelect');
+            const modelInfo = document.getElementById('modelInfo');
+
+            if (!select || !modelInfo) return;
+
+            const selectedOption = select.querySelector(`option[value="${modelName}"]`);
+
+            if (selectedOption) {
+                const size = selectedOption.dataset.size;
+                const quality = selectedOption.dataset.quality;
+                const description = selectedOption.dataset.description;
+                const stars = '⭐'.repeat(parseInt(quality));
+
+                modelInfo.innerHTML = `${description} | Size: ${size} | Quality: ${stars}`;
+            } else {
+                modelInfo.innerHTML = `Current: ${modelName}`;
+            }
+        }
+
+        function changeAgentModel(modelName) {
+            if (!modelName) return;
+
+            const select = document.getElementById('agentModelSelect');
+            const modelInfo = document.getElementById('modelInfo');
+            const downloadStatus = document.getElementById('modelDownloadStatus');
+            const downloadMessage = document.getElementById('downloadMessage');
+
+            // Get model info to check if it needs downloading
+            const selectedOption = select.querySelector(`option[value="${modelName}"]`);
+            const needsDownload = selectedOption && !selectedOption.textContent.includes('✓');
+
+            // Get estimated download time based on model size
+            let downloadEstimate = '';
+            if (needsDownload && selectedOption) {
+                const size = selectedOption.dataset.size || '';
+                if (size.includes('600MB')) {
+                    downloadEstimate = ' (~2-5 minutes on average connection)';
+                } else if (size.includes('2.3GB') || size.includes('2GB')) {
+                    downloadEstimate = ' (~5-15 minutes on average connection)';
+                } else if (size.includes('4.1GB') || size.includes('4.7GB')) {
+                    downloadEstimate = ' (~10-30 minutes on average connection)';
+                }
+            }
+
+            // Show appropriate loading message
+            if (modelInfo) {
+                if (needsDownload) {
+                    modelInfo.innerHTML = `📥 Downloading model...${downloadEstimate} Please wait.`;
+                    modelInfo.style.color = '#fbbf24';
+                } else {
+                    modelInfo.innerHTML = '⏳ Switching model...';
+                    modelInfo.style.color = '#fbbf24';
+                }
+            }
+
+            // Disable dropdown during change
+            select.disabled = true;
+
+            fetch('/api/agent/model', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ model: modelName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Re-enable dropdown
+                select.disabled = false;
+
+                if (data.success) {
+                    // Model changed successfully
+                    if (modelInfo) {
+                        if (data.downloaded) {
+                            modelInfo.innerHTML = '✅ Model downloaded and activated successfully!';
+                        } else {
+                            modelInfo.innerHTML = '✅ Model changed successfully!';
+                        }
+                        modelInfo.style.color = '#4ade80';
+                    }
+
+                    setTimeout(() => {
+                        updateModelInfo(modelName);
+                        if (modelInfo) {
+                            modelInfo.style.color = '';
+                        }
+                        checkAgentStatus();
+                        loadAvailableModels(); // Refresh to show checkmark
+                    }, 2000);
+                } else if (data.downloading) {
+                    // Model is being downloaded
+                    if (downloadStatus) {
+                        downloadStatus.style.display = 'block';
+                    }
+                    if (downloadMessage) {
+                        downloadMessage.innerHTML = `📥 ${data.message}`;
+                    }
+                    if (modelInfo) {
+                        modelInfo.innerHTML = '⏳ Downloading model... This may take several minutes.';
+                        modelInfo.style.color = '#fbbf24';
+                    }
+
+                    // Poll for download completion (optional)
+                    setTimeout(() => {
+                        if (downloadStatus) {
+                            downloadStatus.style.display = 'none';
+                        }
+                        updateModelInfo(modelName);
+                        if (modelInfo) {
+                            modelInfo.style.color = '';
+                        }
+                        loadAvailableModels();
+                    }, 30000); // Hide after 30 seconds
+                } else {
+                    // Error
+                    if (modelInfo) {
+                        modelInfo.innerHTML = `❌ ${data.error || data.message || 'Failed to change model'}`;
+                        modelInfo.style.color = '#f87171';
+                    }
+
+                    setTimeout(() => {
+                        updateModelInfo(modelName);
+                        if (modelInfo) {
+                            modelInfo.style.color = '';
+                        }
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                console.error('Error changing model:', error);
+                // Re-enable dropdown
+                select.disabled = false;
+
+                if (modelInfo) {
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        modelInfo.innerHTML = `❌ Agent service unavailable. Please ensure the agent is running.`;
+                    } else {
+                        modelInfo.innerHTML = `❌ Error: ${error.message}`;
+                    }
+                    modelInfo.style.color = '#f87171';
+                }
+
+                setTimeout(() => {
+                    updateModelInfo(modelName);
+                    if (modelInfo) {
+                        modelInfo.style.color = '';
+                    }
+                }, 5000);
+            });
+        }
+
+        // Load settings on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAgentPreference();
+        });
+
+        // ========== CHAT WIDGET FUNCTIONS ==========
+
+        function toggleChat() {
+            const chatWidget = document.getElementById('chatWidget');
+            chatWidget.classList.toggle('expanded');
+
+            if (chatWidget.classList.contains('expanded')) {
+                document.getElementById('chatInput').focus();
+                checkAgentStatus();
+            } else {
+                // Reset to default circular icon size when minimizing
+                chatWidget.style.width = '';
+                chatWidget.style.height = '';
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat('user', message);
+
+            // Clear input
+            input.value = '';
+
+            // Show typing indicator
+            showTyping();
+
+            // Create AbortController with 10 minute timeout for AI responses
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 600000);
+
+            // Send to agent
+            fetch('/api/agent/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message }),
+                signal: controller.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                return response.json();
+            })
+            .then(data => {
+                hideTyping();
+                if (data.error) {
+                    addMessageToChat('agent', `Error: ${data.error}`);
+                } else {
+                    addMessageToChat('agent', data.response);
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                hideTyping();
+                if (error.name === 'AbortError') {
+                    addMessageToChat('agent', 'Sorry, the request took too long. The AI agent may be busy processing your question. Please try again.');
+                } else {
+                    addMessageToChat('agent', `Sorry, I encountered an error: ${error.message}`);
+                }
+            });
+        }
+
+        function addMessageToChat(sender, message) {
+            const messages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}-message`;
+
+            const avatar = sender === 'user' ? '👤' : '🤖';
+
+            // Render markdown for agent messages, escape HTML for user messages
+            const messageContent = sender === 'agent'
+                ? marked.parse(message)
+                : escapeHtml(message);
+
+            messageDiv.innerHTML = `
+                <span class="message-avatar">${avatar}</span>
+                <span class="message-text">${messageContent}</span>
+            `;
+
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+
+            // Save to session storage
+            saveChatHistory();
+        }
+
+        function saveChatHistory() {
+            const messages = document.getElementById('chatMessages');
+            const history = [];
+            messages.querySelectorAll('.chat-message').forEach(msg => {
+                // Skip welcome message and typing indicator
+                if (msg.id === 'typingIndicator') return;
+                const isUser = msg.classList.contains('user-message');
+                const text = msg.querySelector('.message-text').textContent;
+                history.push({
+                    sender: isUser ? 'user' : 'agent',
+                    message: text
+                });
+            });
+            sessionStorage.setItem('cybics_chat_history', JSON.stringify(history));
+        }
+
+        function loadChatHistory() {
+            const history = sessionStorage.getItem('cybics_chat_history');
+            if (history) {
+                const messages = JSON.parse(history);
+                const messagesContainer = document.getElementById('chatMessages');
+                // Clear existing messages except welcome
+                messagesContainer.innerHTML = '';
+                // Restore all messages
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${msg.sender}-message`;
+                    const avatar = msg.sender === 'user' ? '👤' : '🤖';
+
+                    // Render markdown for agent messages, escape HTML for user messages
+                    const messageContent = msg.sender === 'agent'
+                        ? marked.parse(msg.message)
+                        : escapeHtml(msg.message);
+
+                    messageDiv.innerHTML = `
+                        <span class="message-avatar">${avatar}</span>
+                        <span class="message-text">${messageContent}</span>
+                    `;
+                    messagesContainer.appendChild(messageDiv);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        function showTyping() {
+            const messages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message agent-message typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <span class="message-avatar">🤖</span>
+                <span class="message-text">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </span>
+            `;
+            messages.appendChild(typingDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) {
+                typing.remove();
+            }
+        }
+
+        function checkAgentStatus() {
+            fetch('/api/agent/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('agentStatus');
+                    if (data.available && data.enabled) {
+                        statusDiv.innerHTML = `✅ Agent Ready (${data.model})`;
+                        statusDiv.style.color = '#4ade80';
+                    } else if (!data.enabled) {
+                        statusDiv.innerHTML = '❌ Agent Disabled';
+                        statusDiv.style.color = '#f87171';
+                    } else {
+                        statusDiv.innerHTML = '⚠️ Agent Unavailable';
+                        statusDiv.style.color = '#fbbf24';
+                    }
+                })
+                .catch(error => {
+                    const statusDiv = document.getElementById('agentStatus');
+                    statusDiv.innerHTML = '❌ Agent Offline';
+                    statusDiv.style.color = '#f87171';
+                });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearChatHistory() {
+            if (!confirm('Are you sure you want to clear the chat history? This cannot be undone.')) {
+                return;
+            }
+
+            // Clear session storage
+            sessionStorage.removeItem('cybics_chat_history');
+
+            // Clear messages and reset to welcome message
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = `
+                <div class="chat-message agent-message">
+                    <span class="message-avatar">🤖</span>
+                    <span class="message-text">Hi! I'm the CybICS AI Assistant. Ask me anything about CybICS!</span>
+                </div>
+            `;
+
+            // Show brief confirmation
+            const statusDiv = document.getElementById('agentStatus');
+            const originalStatus = statusDiv.innerHTML;
+            statusDiv.innerHTML = '✅ Chat history cleared';
+            statusDiv.style.color = '#4ade80';
+
+            setTimeout(() => {
+                statusDiv.innerHTML = originalStatus;
+                statusDiv.style.color = '';
+                checkAgentStatus();
+            }, 2000);
+        }
+
+        // Enter key to send message
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load chat history from session storage
+            loadChatHistory();
+
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+
+            // Chat widget resize functionality
+            const resizeHandle = document.getElementById('chatResizeHandle');
+            const chatWidget = document.getElementById('chatWidget');
+            let isResizing = false;
+            let startX, startY, startWidth, startHeight;
+
+            if (resizeHandle && chatWidget) {
+                resizeHandle.addEventListener('mousedown', function(e) {
+                    if (!chatWidget.classList.contains('expanded')) return;
+
+                    isResizing = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startWidth = chatWidget.offsetWidth;
+                    startHeight = chatWidget.offsetHeight;
+
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', function(e) {
+                    if (!isResizing) return;
+
+                    // Dragging from top-left: negative delta increases size
+                    const deltaX = startX - e.clientX; // Inverted for left edge
+                    const deltaY = startY - e.clientY; // Inverted for top edge
+
+                    const newWidth = Math.max(300, Math.min(startWidth + deltaX, window.innerWidth * 0.9));
+                    const newHeight = Math.max(400, Math.min(startHeight + deltaY, window.innerHeight * 0.9));
+
+                    chatWidget.style.width = newWidth + 'px';
+                    chatWidget.style.height = newHeight + 'px';
+                });
+
+                document.addEventListener('mouseup', function() {
+                    isResizing = false;
+                });
+            }
+        });
+    </script>
+
+    <!-- Chat Widget -->
+    <div id="chatWidget" class="chat-widget">
+        <span class="chat-tooltip">CybICS AI Agent</span>
+        <div class="chat-header" onclick="toggleChat()">
+            <span class="chat-icon">🤖</span>
+            <span class="chat-title">🤖 CybICS Agent</span>
+            <button class="chat-clear-btn" onclick="event.stopPropagation(); clearChatHistory();" title="Clear chat history">🗑️ Clear</button>
+            <span class="chat-toggle">▲</span>
+        </div>
+        <div class="chat-body">
+            <div class="chat-status" id="agentStatus">Checking status...</div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message agent-message">
+                    <span class="message-avatar">🤖</span>
+                    <span class="message-text">Hi! I'm the CybICS AI Assistant. Ask me anything about CybICS!</span>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input
+                    type="text"
+                    id="chatInput"
+                    class="chat-input"
+                    placeholder="Ask me about CybICS..."
+                    autocomplete="off"
+                />
+                <button class="chat-send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        <div class="chat-resize-handle" id="chatResizeHandle"></div>
+    </div>
+
+</body>
+</html> 

@@ -10,6 +10,16 @@ ENDCOLOR="\e[0m"
 
 GIT_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
+# Source environment variables
+if [ -f "$GIT_ROOT/.dev.env" ]; then
+    set -a
+    source "$GIT_ROOT/.dev.env"
+    set +a
+else
+    echo -e "${RED}Error: .dev.env file not found at $GIT_ROOT/.dev.env${ENDCOLOR}"
+    exit 1
+fi
+
 # start time for calculation of the execution time
 START=$(date +%s)
 
@@ -43,6 +53,8 @@ echo "   |ICS|='   "
 echo "   \`---'    "
 echo -ne "${ENDCOLOR}"
 sleep 1
+
+if [ "$NO_SETUP" == "" ]; then
 
 ###
 ### Check if raspberry is up
@@ -97,18 +109,40 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
-### Increasing swap size
+### Configure zram swap
 ###
-echo -ne "${GREEN}# Increasing swap file ... \n${ENDCOLOR}"
+echo -ne "${GREEN}# Configure zram swap ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
-    if grep "CONF_SWAPSIZE=2048" /etc/dphys-swapfile; then
-        exit 0
+    # Install zram-tools if not present
+    if ! dpkg -l | grep -q zram-tools; then
+        sudo apt-get update
+        sudo apt-get install -y zram-tools
     fi
-    sudo dphys-swapfile swapoff
-    sudo sed -i s/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/g /etc/dphys-swapfile
-    sudo dphys-swapfile setup
-    sudo dphys-swapfile swapon
+
+    # Configure zram - use 1024 MB, lz4 compression
+    sudo tee /etc/default/zramswap > /dev/null <<'ZRAMCONF'
+# Compression algorithm
+ALGO=lz4
+# Fixed size in MB for zram swap
+SIZE=1024
+# Priority (higher = preferred over disk swap)
+PRIORITY=100
+ZRAMCONF
+
+    # Restart zram service to apply new config
+    sudo systemctl stop zramswap || true
+    sudo swapoff /dev/zram0 2>/dev/null || true
+    sudo systemctl start zramswap
+EOF
+
+###
+### Config apt local config
+###
+echo -ne "${GREEN}# Config apt local config... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    echo 'Dpkg::Options {"--force-confdef";"--force-confold";};' | sudo tee /etc/apt/apt.conf.d/local-config
 EOF
 
 ###
@@ -145,6 +179,18 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     if ! which lsof; then
         sudo apt-get install lsof -y
     fi
+
+    if ! which picocom; then
+        sudo apt-get install picocom -y
+    fi
+
+    if ! which smemstat; then
+        sudo apt-get install smemstat -y
+    fi
+
+    if ! dpkg -l | grep python3-serial; then
+        sudo apt-get install python3-serial -y
+    fi    
 EOF
 
 ###
@@ -181,6 +227,17 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Enable UART
+###
+echo -ne "${GREEN}# Enable UART on the RPi ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo raspi-config nonint do_serial_hw 0
+    sudo raspi-config nonint do_serial_cons 1
+EOF
+
+
+###
 ### Decrease memmory of GPU
 ###
 echo -ne "${GREEN}# Decrease memmory of GPU ... \n${ENDCOLOR}"
@@ -188,6 +245,8 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
     grep -qF -- 'gpu_mem=16' '/boot/config.txt' || echo 'gpu_mem=16' | sudo tee -a '/boot/config.txt' > /dev/null
 EOF
+
+fi
 
 ###
 ### Build container locally
@@ -201,7 +260,7 @@ echo -ne "${GREEN}# Build containers ... \n${ENDCOLOR}"
 echo -ne "${GREEN}# Install containers on the raspberry ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" mkdir -p /home/$DEVICE_USER/CybICS
 scp "$GIT_ROOT"/software/docker-compose.yaml "$DEVICE_USER"@"$DEVICE_IP":/home/$DEVICE_USER/CybICS/docker-compose.yaml
-ssh -R 5000:localhost:5000 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml pull
+ssh -R 5000:localhost:5050 -t "$DEVICE_USER"@"$DEVICE_IP" sudo docker compose -f /home/$DEVICE_USER/CybICS/docker-compose.yaml pull
 
 ###
 ### Starting containers
@@ -217,6 +276,8 @@ DIFF=$(echo "$END - $START" | bc)
 echo -ne "${GREEN}# Total execution time $((DIFF/60)):$((DIFF%60)) \n${ENDCOLOR}"
 echo -ne "${GREEN}# All done, ready to rumble ... \n${ENDCOLOR}"
 
+if [ "$NO_SETUP" == "" ]; then
+
 # Ask the user if they want to restart
 read -p "Do you want to restart the system? (yes/no): " user_input
 
@@ -230,4 +291,5 @@ if [[ "$user_input" == "yes" || "$user_input" == "y" ]]; then
     timeout 20 ssh "$DEVICE_USER"@"$DEVICE_IP" sudo reboot -f || true
 fi
 
+fi
 echo -ne "${GREEN}# done ... \n${ENDCOLOR}"

@@ -4,7 +4,6 @@ import asyncio
 import logging
 import socket
 import user_manager
-import time
 
 from pathlib import Path
 from asyncua import Server, ua
@@ -19,9 +18,8 @@ from pymodbus.client import ModbusTcpClient
 USE_TRUST_STORE = False
 
 async def main():
-    _logger = logging.getLogger(__name__)
-    _logger.info("Wait 5s that openplc can start")
-    time.sleep(5) # wait that openplc is up and running
+    # Wait for OpenPLC to start
+    await asyncio.sleep(5)
 
     # Define Path for self-signed server certificate used by secure channel
     cert_base = Path(__file__).parent
@@ -52,20 +50,12 @@ async def main():
     server.set_server_name("CybICS")
 
     # Set authentication modes and security modes/policies
+    # Reduced security policies to save memory on constrained devices
     server.set_security_IDs(["Anonymous", "Basic256Sha256", "Username"])
     server.set_security_policy(
         [
             ua.SecurityPolicyType.NoSecurity,
-            ua.SecurityPolicyType.Basic128Rsa15_Sign,
-            ua.SecurityPolicyType.Basic128Rsa15_SignAndEncrypt,
-            ua.SecurityPolicyType.Basic256_Sign,
-            ua.SecurityPolicyType.Basic256_SignAndEncrypt,
-            ua.SecurityPolicyType.Basic256Sha256_Sign,
             ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt,
-            ua.SecurityPolicyType.Aes128Sha256RsaOaep_Sign,
-            ua.SecurityPolicyType.Aes128Sha256RsaOaep_SignAndEncrypt,
-            ua.SecurityPolicyType.Aes256Sha256RsaPss_Sign,
-            ua.SecurityPolicyType.Aes256Sha256RsaPss_SignAndEncrypt,
         ],
         permission_ruleset=SimpleRoleRuleset()
     )
@@ -95,7 +85,9 @@ async def main():
         validator = CertificateValidator(options=CertificateValidatorOptions.TRUSTED_VALIDATION | CertificateValidatorOptions.PEER_CLIENT,
                                          trust_store = trust_store)
     else:
-        validator = CertificateValidator(options=CertificateValidatorOptions.EXT_VALIDATION | CertificateValidatorOptions.PEER_CLIENT)
+        # Use PEER_CLIENT only (removed EXT_VALIDATION to support certificates without Extended Key Usage)
+        # This allows certificate-based user authentication to work in various environments
+        validator = CertificateValidator(options=CertificateValidatorOptions.PEER_CLIENT)
     server.set_certificate_validator(validator)
 
     # populating the cybics address space
@@ -116,13 +108,9 @@ async def main():
         [ua.VariantType.Int64],
         [ua.VariantType.Int64],
     )
-    _logger.info("Starting server!")
     async with server:
-        _logger.info("Starting while True")
         while True:
-            # read GST and HPT to the OpenPLC
-            # Check if flag var is set and display flag
-            _logger.info("Reading from modbus")
+            # read GST and HPT from OpenPLC via Modbus
             try:
                 gst = client.read_holding_registers(1124)
                 hpt = client.read_holding_registers(1126)
@@ -142,9 +130,13 @@ async def main():
                 await adminflag.write_value("CybICS(0PC-UA-$ADMIN)")
             else: 
                 await adminflag.write_value("set the correct variable > 0")
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)  # Reduced polling frequency to lower I/O
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    asyncio.run(main(), debug=True)
+    # Suppress verbose logging from asyncua and dependencies to reduce I/O
+    logging.basicConfig(level=logging.WARNING)
+    logging.getLogger("asyncua").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("pymodbus").setLevel(logging.WARNING)
+    asyncio.run(main())

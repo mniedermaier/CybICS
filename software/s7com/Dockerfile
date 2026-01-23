@@ -1,8 +1,6 @@
-FROM python:3-slim
+FROM python:3.12-alpine
 
 WORKDIR /CybICS
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY s7com.py ./
+COPY s7com.py s7_server_custom.py ./
 
 CMD [ "python", "./s7com.py" ]

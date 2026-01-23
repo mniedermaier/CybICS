@@ -7,7 +7,10 @@
 # Additionally, the IP address of wlan0 will be transferred
 # to the STM32, to show it in the display
 
-import smbus
+try:
+    import smbus
+except ImportError:
+    import smbus2 as smbus
 import time 
 from pymodbus.client import ModbusTcpClient
 import nmcli
@@ -16,6 +19,7 @@ import logging
 import threading
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 GPIO.setup(8, GPIO.OUT) # compressor
 GPIO.setup(4, GPIO.OUT) # heartbeat
 GPIO.setup(7, GPIO.OUT) # systemValve
@@ -42,11 +46,11 @@ id = "unknown" # ID of the STM32
 data = [] # Data received over i2c from the STM32
 dataID = [] # dataID received over i2c from the STM32
 
-
-
 # thread for openplc communication
 def thread_openplc():
   attempts = 0
+  consecutive_failures = 0
+  MAX_FAILURES = 10
 
   # Connect to OpenPLC
   client = ModbusTcpClient(host="openplc",port=502)  # Create client object
@@ -68,31 +72,85 @@ def thread_openplc():
     global gst
     global hpt
     global flag
+
+    # Ensure connection to OpenPLC
+    if not client.connected:
+      try:
+        client.connect()
+        if client.connected:
+          logging.info("Successfully reconnected to OpenPLC")
+          consecutive_failures = 0
+      except Exception as e:
+        consecutive_failures += 1
+        if consecutive_failures % 50 == 0:  # Log every 50 failures to avoid spam
+          logging.warning(f"Cannot connect to OpenPLC - {str(e)} (Attempt {consecutive_failures})")
+        time.sleep(0.1)
+        continue  # Skip this cycle
+
     try:
       # write GST and HPT to the OpenPLC
       client.write_register(1124,gst) #
       client.write_register(1126,hpt) #
       flag = [17273, 25161, 17235, 10349, 12388, 25205, 9257]
       client.write_registers(1200,flag) #
+      # Reset failure counter on successful write
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Write to OpenPLC (GST|HPT|FLAG) failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Write to OpenPLC (GST|HPT|FLAG) failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     # read coils from OpenPLC
     try:
-      plcCoils=client.read_coils(0,count=4, slave=1)
+      plcCoils=client.read_coils(0,count=4, device_id=1)
       GPIO.output(4, plcCoils.bits[0])   # heartbeat
       GPIO.output(8, plcCoils.bits[1])   # compressor
       GPIO.output(7, plcCoils.bits[2])   # systemValve
       GPIO.output(20, plcCoils.bits[3])  # gstSig
+      # Reset failure counter on successful read
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Read from OpenPLC failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Read from OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     # write input register to OpenPLC
     try:
       client.write_register(1132,GPIO.input(1))  # System sensor
       client.write_register(1134,GPIO.input(12)) # BO sensor
+      # Reset failure counter on successful write
+      consecutive_failures = 0
     except Exception as e:
-      logging.error("Write to OpenPLC failed - " + str(e))
+      consecutive_failures += 1
+      logging.error(f"Write to OpenPLC failed - {str(e)} (Failure {consecutive_failures}/{MAX_FAILURES})")
+      
+      if consecutive_failures >= MAX_FAILURES:
+        logging.warning("Maximum consecutive failures reached. Attempting to reconnect to OpenPLC...")
+        try:
+          client.close()
+          client.connect()
+          consecutive_failures = 0
+          logging.info("Successfully reconnected to OpenPLC")
+        except Exception as reconnect_error:
+          logging.error(f"Failed to reconnect to OpenPLC - {str(reconnect_error)}")
 
     time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
@@ -116,7 +174,23 @@ def thread_network():
         break
   except Exception as e:
     logging.error("Error getting current connection... " + str(e))
-    
+
+  # Detect the Station mode connection (any WiFi connection that isn't 'cybics')
+  # This handles different naming conventions (e.g., 'preconfigured', 'netplan-*', etc.)
+  station_connection = None
+  try:
+    for conn in nmcli.connection():
+      # Find a WiFi connection that isn't the 'cybics' AP
+      if conn.conn_type == 'wifi' and conn.name != 'cybics':
+        station_connection = conn.name
+        logging.info(f"Detected Station mode connection: {station_connection}")
+        break
+    if station_connection is None:
+      logging.warning("No Station mode WiFi connection found (only 'cybics' AP exists)")
+  except Exception as e:
+    logging.error(f"Error detecting Station mode connection: {str(e)}")
+
+  current_ssid = None
   try:
     current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
     logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
@@ -129,7 +203,7 @@ def thread_network():
       # Get IP address of wlan0
       ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
       ip = ip.split('/')[0] # remove the network CIDR suffix
-      listIp = list(ip)
+      listIp = list(ip) + ['\0']  # Add null terminator for STM32 strlen()
 
       
 
@@ -139,7 +213,7 @@ def thread_network():
     # Simple check, if correct dataID was received
     if dataID[12] in ['0', '1']:
       ssid = f"cybics-{id}"
-      if current_ssid != ssid:
+      if current_ssid is None or current_ssid != ssid:
         try:
           logging.info(f"Configure ssid {ssid}")
           nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
@@ -148,16 +222,18 @@ def thread_network():
           logging.error("Configure ssid failed - " + str(e))
           time.sleep(1)
 
-    connection = 'cybics' if dataID[12] == '1' else 'preconfigured'
-    if current_connection != connection:
+    connection = 'cybics' if dataID[12] == '1' else station_connection
+    if connection and current_connection != connection:
       try:
         logging.info(f"Enable connection {connection}")
-        nmcli.connection.up(connection, 0) # do not wait for connection 
+        nmcli.connection.up(connection, 0) # do not wait for connection
         logging.info(f"Enable connection - " + str(nmcli.connection.show(connection)))
         current_connection = connection
       except Exception as e:
         logging.error("Enable connection failed - " + str(e))
         time.sleep(1)
+    elif not connection and dataID[12] != '1':
+      logging.warning("Cannot switch to Station mode: no Station connection detected")
     
     logging.debug("End of while true thread_network")
     time.sleep(1)
@@ -218,21 +294,29 @@ if __name__ == "__main__":
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
   
-  logging.info("Main    : before creating threads")
-  openplcX = threading.Thread(target=thread_openplc, args=())
-  i2cX = threading.Thread(target=thread_i2c, args=())
-  networkX = threading.Thread(target=thread_network, args=())
-  logging.info("Main    : before running threads")
-  openplcX.start()
-  i2cX.start()
-  networkX.start()
-  logging.info("Main    : after starting threads")
+  try:
+    logging.info("Main    : before creating threads")
+    openplcX = threading.Thread(target=thread_openplc, args=())
+    i2cX = threading.Thread(target=thread_i2c, args=())
+    networkX = threading.Thread(target=thread_network, args=())
+    logging.info("Main    : before running threads")
+    openplcX.start()
+    i2cX.start()
+    networkX.start()
+    logging.info("Main    : after starting threads")
 
-  # Continuously check if threads are active
-  while openplcX.is_alive() or i2cX.is_alive() or networkX.is_alive():
-    logging.info(f"Main    : openplcX is {'alive' if openplcX.is_alive() else 'not alive'}")
-    logging.info(f"Main    : i2cX is {'alive' if i2cX.is_alive() else 'not alive'}")
-    logging.info(f"Main    : networkX is {'alive' if networkX.is_alive() else 'not alive'}")
-    time.sleep(30)  # Check every 30 second
+    # Continuously check if threads are active
+    while openplcX.is_alive() or i2cX.is_alive() or networkX.is_alive():
+      logging.info(f"Main    : openplcX is {'alive' if openplcX.is_alive() else 'not alive'}")
+      logging.info(f"Main    : i2cX is {'alive' if i2cX.is_alive() else 'not alive'}")
+      logging.info(f"Main    : networkX is {'alive' if networkX.is_alive() else 'not alive'}")
+      time.sleep(30)  # Check every 30 second
 
-  logging.error(f"Main    : Something went horrible wrong. Should not reach this.")
+  except KeyboardInterrupt:
+    logging.info("Main    : Received keyboard interrupt, shutting down...")
+  except Exception as e:
+    logging.error(f"Main    : Unexpected error: {str(e)}")
+  finally:
+    logging.info("Main    : Cleaning up GPIO...")
+    GPIO.cleanup()
+    logging.info("Main    : GPIO cleanup complete")

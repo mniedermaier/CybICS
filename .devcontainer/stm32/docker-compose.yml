@@ -1,15 +1,15 @@
-version: "3.4"
 services:
   dev:
     container_name: cybics-stm32
+    image: cybics-stm32-dev
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: .devcontainer/stm32/Dockerfile
     env_file:
       - ../../.dev.env
       - ../../.env
     volumes:
-      - ../../:/CybICS
+      # Mount stm32 source into pre-baked Zephyr workspace
+      - $CYBICS_ROOT/software/stm32:/home/docker/zephyrproject/app
       - ~/.ssh:/home/docker/.ssh/
-      - ~/.gitconfig:/home/docker/.gitconfig
     user: ${HOST_UID:-1000}:${HOST_UID:-1000}

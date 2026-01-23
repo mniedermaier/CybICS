@@ -1,0 +1,3 @@
+# Workspace directory - contains user-generated files during attacks
+workspace/*
+!workspace/.gitkeep

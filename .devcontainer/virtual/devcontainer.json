@@ -1,16 +1,18 @@
 {
 	"name": "CybICS-virtual",
 	"dockerComposeFile": "./docker-compose.yml",
-	"service": "attack",
+	"service": "attack-machine",
 	"workspaceFolder": "/CybICS",
 	"shutdownAction": "stopCompose",
 	"initializeCommand": "./.devcontainer/prepare-env.sh",
 	"overrideCommand": false,
+	"runServices": ["openplc", "fuxa", "hwio", "opcua", "s7com", "landing", "attack-machine", "engineeringws", "cybicsagent"],
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"eamodio.gitlens",
 				"ms-python.python",
+				"ms-python.pylint",
 				"redhat.vscode-yaml",
 				"timonwong.shellcheck",
 				"bierner.markdown-emoji"

@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - System Statistics</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="/static/js/chart.umd.min.js"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        .stat-card {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            color: #ff6b00;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 1.5rem;
+            background-color: #404040;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b00, #ff8c42);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .container-card {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .container-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .container-name {
+            color: #ff6b00;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .status-running {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+
+        .status-online {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+
+        .status-offline {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
+        .status-checking {
+            background-color: #f59e0b;
+            color: #ffffff;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background-color: #1a1a1a;
+            border-radius: 0.25rem;
+        }
+
+        .nav-button {
+            background-color: #404040;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .refresh-indicator {
+            display: inline-block;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        header {
+            background-color: #2d2d2d;
+            color: #ff6b00;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #ff6b00;
+        }
+
+        h3 {
+            font-size: 0.875rem;
+            font-weight: bold;
+            color: #999;
+            margin-bottom: 0.5rem;
+        }
+
+        nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        nav .text-sm {
+            font-size: 0.875rem;
+            color: #999;
+        }
+
+        main {
+            padding: 1.5rem;
+            overflow-y: auto;
+            height: calc(100vh - 80px);
+        }
+
+        .grid {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        @media (min-width: 768px) {
+            .md\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .md\:grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .lg\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .xl\:grid-cols-6 {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .py-8 {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+
+        .ml-4 {
+            margin-left: 1rem;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .rounded {
+            border-radius: 0.25rem;
+        }
+
+        .border {
+            border-width: 1px;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .space-y-2 > * + * {
+            margin-top: 0.5rem;
+        }
+
+        .text-gray-400 {
+            color: #999;
+        }
+
+        .text-white {
+            color: #ffffff;
+        }
+
+        .text-green-400 {
+            color: #10b981;
+        }
+
+        .text-blue-400 {
+            color: #3b82f6;
+        }
+
+        .text-red-500 {
+            color: #ef4444;
+        }
+
+        .bg-\[#1a1a1a\] {
+            background-color: #1a1a1a;
+        }
+
+        .bg-\[#2d2d2d\] {
+            background-color: #2d2d2d;
+        }
+
+        .border-\[#404040\] {
+            border-color: #404040;
+        }
+
+        .text-\[#ff6b00\] {
+            color: #ff6b00;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1>CybICS - System Statistics</h1>
+
+        <!-- Navigation menu -->
+        <nav>
+            <span class="text-sm text-gray-400">
+                <span class="refresh-indicator">●</span> Auto-refresh: 1s
+            </span>
+        </nav>
+    </header>
+
+    <!-- Main container -->
+    <main>
+        <!-- System Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <!-- Uptime Card -->
+            <div class="stat-card">
+                <div class="stat-label">System Uptime</div>
+                <div class="stat-value" id="uptime-value" style="font-size: 1.5rem;">0d 0h 0m</div>
+                <div class="text-sm text-gray-400 mt-2">
+                    Since last boot
+                </div>
+            </div>
+
+            <!-- CPU Card -->
+            <div class="stat-card">
+                <div class="stat-label">CPU Usage</div>
+                <div class="stat-value" id="cpu-value">0%</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="cpu-progress" style="width: 0%">
+                        <span id="cpu-progress-text">0%</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    Cores: <span id="cpu-cores">0</span>
+                </div>
+            </div>
+
+            <!-- Memory Card -->
+            <div class="stat-card">
+                <div class="stat-label">Memory Usage</div>
+                <div class="stat-value" id="memory-value">0 GB</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="memory-progress" style="width: 0%">
+                        <span id="memory-progress-text">0%</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    Total: <span id="memory-total">0 GB</span>
+                </div>
+            </div>
+
+            <!-- Swap Card -->
+            <div class="stat-card">
+                <div class="stat-label">Swap Usage</div>
+                <div class="stat-value" id="swap-value">0 GB</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="swap-progress" style="width: 0%">
+                        <span id="swap-progress-text">0%</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    Total: <span id="swap-total">0 GB</span>
+                </div>
+            </div>
+
+            <!-- Disk Card -->
+            <div class="stat-card">
+                <div class="stat-label">Disk Usage</div>
+                <div class="stat-value" id="disk-value">0 GB</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="disk-progress" style="width: 0%">
+                        <span id="disk-progress-text">0%</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    Total: <span id="disk-total">0 GB</span>
+                </div>
+            </div>
+
+            <!-- Network Card -->
+            <div class="stat-card">
+                <div class="stat-label">Network I/O</div>
+                <div class="stat-value">
+                    <span class="text-green-400">↓</span> <span id="network-rx">0 GB</span>
+                    <span class="ml-4 text-blue-400">↑</span> <span id="network-tx">0 GB</span>
+                </div>
+                <div class="text-sm text-gray-400 mt-2">
+                    <div>Packets RX: <span id="network-packets-rx">0</span></div>
+                    <div>Packets TX: <span id="network-packets-tx">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Charts Section -->
+        <div class="stat-card mb-6">
+            <h2>Historical Data (Past Hour)</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-4">
+                <!-- CPU History Chart -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3>CPU Usage History</h3>
+                    <canvas id="cpu-chart"></canvas>
+                </div>
+
+                <!-- Memory & Swap History Chart -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3>Memory & Swap Usage History</h3>
+                    <canvas id="memory-chart"></canvas>
+                </div>
+
+                <!-- Disk History Chart -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3>Disk Usage History</h3>
+                    <canvas id="disk-chart"></canvas>
+                </div>
+
+                <!-- Network History Chart (Combined RX, TX, Total) -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <h3>Network Traffic (MB/s)</h3>
+                    <canvas id="network-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Monitoring Section -->
+        <div class="stat-card mb-6">
+            <h2>Service Monitoring</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3">
+                <!-- OpenPLC Service -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-bold text-[#ff6b00]">OpenPLC</h3>
+                        <div id="openplc-status" class="status-badge status-running">CHECKING</div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Port:</span>
+                            <span class="text-white">8080</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Response Time:</span>
+                            <span id="openplc-response" class="text-white">-</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Last Check:</span>
+                            <span id="openplc-lastcheck" class="text-white">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FUXA Service -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-bold text-[#ff6b00]">FUXA</h3>
+                        <div id="fuxa-status" class="status-badge status-running">CHECKING</div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Port:</span>
+                            <span class="text-white">1881</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Response Time:</span>
+                            <span id="fuxa-response" class="text-white">-</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Last Check:</span>
+                            <span id="fuxa-lastcheck" class="text-white">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Virtual Hardware IO Service -->
+                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-bold text-[#ff6b00]">Virtual Hardware IO</h3>
+                        <div id="vhardware-status" class="status-badge status-running">CHECKING</div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Port:</span>
+                            <span class="text-white">8090</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Response Time:</span>
+                            <span id="vhardware-response" class="text-white">-</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Last Check:</span>
+                            <span id="vhardware-lastcheck" class="text-white">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Docker Containers Section -->
+        <div class="stat-card">
+            <h2>Docker Containers (CybICS)</h2>
+            <div id="containers-list">
+                <div class="text-center text-gray-400 py-8">
+                    Loading container statistics...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let updateInterval;
+        let cpuChart, memoryChart, diskChart, networkChart;
+
+        // Chart configuration
+        const chartConfig = {
+            type: 'line',
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        ticks: {
+                            color: '#999',
+                            maxTicksLimit: 6,
+                            callback: function(value, index, values) {
+                                if (this.chart.data.labels[index]) {
+                                    const date = new Date(this.chart.data.labels[index]);
+                                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                }
+                                return '';
+                            }
+                        },
+                        grid: {
+                            color: '#404040'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            color: '#999',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: '#404040'
+                        }
+                    }
+                },
+                elements: {
+                    line: {
+                        tension: 0.4,
+                        borderWidth: 2
+                    },
+                    point: {
+                        radius: 0
+                    }
+                }
+            }
+        };
+
+        // Initialize charts
+        function initCharts() {
+            const cpuCtx = document.getElementById('cpu-chart').getContext('2d');
+            cpuChart = new Chart(cpuCtx, {
+                ...chartConfig,
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU %',
+                        data: [],
+                        borderColor: '#ff6b00',
+                        backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                        fill: true
+                    }]
+                }
+            });
+
+            const memoryCtx = document.getElementById('memory-chart').getContext('2d');
+            memoryChart = new Chart(memoryCtx, {
+                ...chartConfig,
+                options: {
+                    ...chartConfig.options,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#999',
+                                usePointStyle: true,
+                                padding: 10,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                },
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Memory %',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Swap %',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true
+                        }
+                    ]
+                }
+            });
+
+            const diskCtx = document.getElementById('disk-chart').getContext('2d');
+            diskChart = new Chart(diskCtx, {
+                ...chartConfig,
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Disk %',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true
+                    }]
+                }
+            });
+
+            // Network chart with different y-axis configuration (MB/s instead of %)
+            const networkChartConfig = {
+                ...chartConfig,
+                options: {
+                    ...chartConfig.options,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#999',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartConfig.options.scales,
+                        y: {
+                            display: true,
+                            min: 0,
+                            ticks: {
+                                color: '#999',
+                                callback: function(value) {
+                                    return value.toFixed(2) + ' MB/s';
+                                }
+                            },
+                            grid: {
+                                color: '#404040'
+                            }
+                        }
+                    }
+                }
+            };
+
+            const networkCtx = document.getElementById('network-chart').getContext('2d');
+            networkChart = new Chart(networkCtx, {
+                ...networkChartConfig,
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'RX (Download)',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: false
+                        },
+                        {
+                            label: 'TX (Upload)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: false
+                        },
+                        {
+                            label: 'Total',
+                            data: [],
+                            borderColor: '#ff6b00',
+                            backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                            fill: false
+                        }
+                    ]
+                }
+            });
+        }
+
+        // Update chart data
+        function updateCharts() {
+            fetch('/api/stats/history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.timestamps && data.timestamps.length > 0) {
+                        // Update CPU chart
+                        cpuChart.data.labels = data.timestamps;
+                        cpuChart.data.datasets[0].data = data.cpu;
+                        cpuChart.update('none');
+
+                        // Update Memory chart (with swap)
+                        memoryChart.data.labels = data.timestamps;
+                        memoryChart.data.datasets[0].data = data.memory;
+                        memoryChart.data.datasets[1].data = data.swap;
+                        memoryChart.update('none');
+
+                        // Update Disk chart
+                        diskChart.data.labels = data.timestamps;
+                        diskChart.data.datasets[0].data = data.disk;
+                        diskChart.update('none');
+
+                        // Update Network chart (all three datasets)
+                        networkChart.data.labels = data.timestamps;
+                        networkChart.data.datasets[0].data = data.network_rx;  // RX
+                        networkChart.data.datasets[1].data = data.network_tx;  // TX
+                        networkChart.data.datasets[2].data = data.network_total;  // Total
+                        networkChart.update('none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching history:', error);
+                });
+        }
+
+        function updateStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update Uptime
+                    document.getElementById('uptime-value').textContent =
+                        `${data.uptime.days}d ${data.uptime.hours}h ${data.uptime.minutes}m`;
+
+                    // Update CPU stats
+                    document.getElementById('cpu-value').textContent = data.cpu.percent + '%';
+                    document.getElementById('cpu-cores').textContent = data.cpu.count;
+                    document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
+                    document.getElementById('cpu-progress-text').textContent = data.cpu.percent + '%';
+
+                    // Update Memory stats
+                    document.getElementById('memory-value').textContent = data.memory.used_gb.toFixed(2) + ' GB';
+                    document.getElementById('memory-total').textContent = data.memory.total_gb.toFixed(2) + ' GB';
+                    document.getElementById('memory-progress').style.width = data.memory.percent + '%';
+                    document.getElementById('memory-progress-text').textContent = data.memory.percent.toFixed(1) + '%';
+
+                    // Update Swap stats
+                    document.getElementById('swap-value').textContent = data.swap.used_gb.toFixed(2) + ' GB';
+                    document.getElementById('swap-total').textContent = data.swap.total_gb.toFixed(2) + ' GB';
+                    document.getElementById('swap-progress').style.width = data.swap.percent + '%';
+                    document.getElementById('swap-progress-text').textContent = data.swap.percent.toFixed(1) + '%';
+
+                    // Update Disk stats
+                    document.getElementById('disk-value').textContent = data.disk.used_gb.toFixed(2) + ' GB';
+                    document.getElementById('disk-total').textContent = data.disk.total_gb.toFixed(2) + ' GB';
+                    document.getElementById('disk-progress').style.width = data.disk.percent + '%';
+                    document.getElementById('disk-progress-text').textContent = data.disk.percent.toFixed(1) + '%';
+
+                    // Update Network stats
+                    document.getElementById('network-rx').textContent = data.network.bytes_recv_gb.toFixed(2) + ' GB';
+                    document.getElementById('network-tx').textContent = data.network.bytes_sent_gb.toFixed(2) + ' GB';
+                    document.getElementById('network-packets-rx').textContent = data.network.packets_recv.toLocaleString();
+                    document.getElementById('network-packets-tx').textContent = data.network.packets_sent.toLocaleString();
+
+                    // Update containers list
+                    const containersList = document.getElementById('containers-list');
+                    if (data.containers && data.containers.length > 0) {
+                        containersList.innerHTML = data.containers.map(container => `
+                            <div class="container-card">
+                                <div class="container-header">
+                                    <div class="container-name">${container.name}</div>
+                                    <div class="status-badge status-${container.status}">
+                                        ${container.status.toUpperCase()}
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-400 mb-2">
+                                    ID: ${container.id} | Image: ${container.image} | Uptime: ${container.uptime}
+                                </div>
+                                <div class="stat-row">
+                                    <div class="stat-item">
+                                        <span class="text-gray-400">CPU:</span>
+                                        <span class="text-[#ff6b00] font-bold">${container.cpu_percent}%</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="text-gray-400">Memory:</span>
+                                        <span class="text-[#ff6b00] font-bold">${container.memory_usage_mb.toFixed(0)} MB / ${container.memory_limit_mb.toFixed(0)} MB</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="text-gray-400">Memory %:</span>
+                                        <span class="text-[#ff6b00] font-bold">${container.memory_percent.toFixed(1)}%</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row">
+                                    <div class="stat-item">
+                                        <span class="text-gray-400">Network RX:</span>
+                                        <span class="text-[#ff6b00] font-bold">${container.network_rx_mb.toFixed(2)} MB</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="text-gray-400">Network TX:</span>
+                                        <span class="text-[#ff6b00] font-bold">${container.network_tx_mb.toFixed(2)} MB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        containersList.innerHTML = `
+                            <div class="text-center text-gray-400 py-8">
+                                No CybICS containers found
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching stats:', error);
+                    document.getElementById('containers-list').innerHTML = `
+                        <div class="text-center text-red-500 py-8">
+                            Error loading statistics: ${error.message}
+                        </div>
+                    `;
+                });
+        }
+
+        // Service monitoring
+        const services = [
+            { id: 'openplc', port: 8080 },
+            { id: 'fuxa', port: 1881 },
+            { id: 'vhardware', port: 8090 }
+        ];
+
+        function checkService(service) {
+            const startTime = performance.now();
+            const hostname = window.location.hostname;
+            const url = `http://${hostname}:${service.port}`;
+
+            fetch(url, {
+                mode: 'no-cors',
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(5000)
+            })
+                .then(() => {
+                    const responseTime = Math.round(performance.now() - startTime);
+                    document.getElementById(`${service.id}-status`).className = 'status-badge status-online';
+                    document.getElementById(`${service.id}-status`).textContent = 'ONLINE';
+                    document.getElementById(`${service.id}-response`).textContent = `${responseTime}ms`;
+                    document.getElementById(`${service.id}-lastcheck`).textContent = new Date().toLocaleTimeString();
+                })
+                .catch(() => {
+                    document.getElementById(`${service.id}-status`).className = 'status-badge status-offline';
+                    document.getElementById(`${service.id}-status`).textContent = 'OFFLINE';
+                    document.getElementById(`${service.id}-response`).textContent = 'N/A';
+                    document.getElementById(`${service.id}-lastcheck`).textContent = new Date().toLocaleTimeString();
+                });
+        }
+
+        function checkAllServices() {
+            services.forEach(service => checkService(service));
+        }
+
+        // Initial load
+        initCharts();
+        updateStats();
+        checkAllServices();
+        updateCharts();
+
+        // Update stats every second
+        updateInterval = setInterval(updateStats, 1000);
+
+        // Check services every 5 seconds
+        setInterval(checkAllServices, 5000);
+
+        // Update charts every 10 seconds
+        setInterval(updateCharts, 10000);
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+flask==3.1.2
+markdown==3.9
+psutil==7.1.0
+python-dateutil==2.9.0
+requests-unixsocket==0.4.1
+netifaces2==0.0.22
+scapy==2.7.0rc1
+pymodbus==3.5.4
+python-dotenv==1.0.0

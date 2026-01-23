@@ -1,24 +1,35 @@
 services:
-  attack:
-    image: mniedermaier1337/cybicsattack:latest
+  attack-machine:
+    image: mniedermaier1337/cybics-attack-machine:${CYBICS_VERSION:-latest}
     build:
-      context: .
+      context: ../../software/attack-machine
       dockerfile: Dockerfile
-    env_file:
-      - ../../.dev.env
-      - ../../.env
+    hostname: attack-machine
+    restart: always
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      - 6081:6081
+      - 5902:5902
     volumes:
       - ../../:/CybICS
-      - ~/.ssh:/home/docker/.ssh/
-      - ~/.gitconfig:/home/docker/.gitconfig
-      - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
-    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
+      - ../../software/attack-machine/workspace:/root/Desktop/workspace
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.100
+        ipv4_address: 172.18.0.100
+    depends_on:
+      - openplc
+      - fuxa
+      - hwio
+    profiles:
+      - attack
+      - full
 
   openplc:
-    image: mniedermaier1337/cybicsopenplc:latest
+    image: mniedermaier1337/cybicsopenplc:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/OpenPLC
       dockerfile: Dockerfile
@@ -27,12 +38,13 @@ services:
     ports:
       - 8080:8080
       - 502:502
+      - 102:102
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.3
+        ipv4_address: 172.18.0.3
 
   opcua:
-    image: mniedermaier1337/cybicsopcua:latest
+    image: mniedermaier1337/cybicsopcua:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/opcua
       dockerfile: Dockerfile
@@ -43,24 +55,24 @@ services:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.5
+        ipv4_address: 172.18.0.5
 
   s7com:
-    image: mniedermaier1337/cybicss7comlatest
+    image: mniedermaier1337/cybicss7com:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/s7com
       dockerfile: Dockerfile
     restart: always
     ports:
-      - 102:102
+      - 1102:1102
     depends_on:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.6
+        ipv4_address: 172.18.0.6
 
   fuxa:
-    image: mniedermaier1337/cybicsfuxa:latest
+    image: mniedermaier1337/cybicsfuxa:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/FUXA
       dockerfile: Dockerfile
@@ -71,21 +83,83 @@ services:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.4
+        ipv4_address: 172.18.0.4
 
   hwio:
-    image: mniedermaier1337/cybicshwio:latest
+    image: mniedermaier1337/cybicshwio:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/hwio-virtual
       dockerfile: Dockerfile
     restart: always
     ports:
-      - 80:8090
+      - 8090:8090
     depends_on:
     - openplc
     networks:
       virt-cybics:
-        ipv4_address: 172.18.1.2
+        ipv4_address: 172.18.0.2
+
+  landing:
+    image: mniedermaier1337/landing:${CYBICS_VERSION:-latest}
+    build:
+      context: ../..
+      dockerfile: software/landing/Dockerfile
+    restart: always
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+    - openplc
+
+  engineeringws:
+    image: mniedermaier1337/cybics-engineeringws:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software
+      dockerfile: engineeringWS/Dockerfile
+    restart: always
+    ports:
+      - 6080:6080
+      - 5901:5901
+    depends_on:
+    - openplc
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.10
+    profiles:
+      - engineering
+      - full
+
+  cybicsagent:
+    image: mniedermaier1337/cybicsagent:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/cybicsagent
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 5000:5000
+      - 11434:11434
+    environment:
+      # Recommended models: tinyllama (fast), phi3:mini (balanced), llama3.2:3b (quality)
+      # Model will be downloaded on first use if not already cached
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-tinyllama}
+      - OLLAMA_HOST=http://localhost:11434
+    volumes:
+      - ../../training:/knowledge/training:ro
+      - ../../README.md:/knowledge/README.md:ro
+      - ../../doc:/knowledge/doc:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.11
+    profiles:
+      - ai
+      - full
 
 networks:
   virt-cybics:
@@ -93,6 +167,5 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.18.1.0/24
-          gateway: 172.18.1.1
-
+        - subnet: 172.18.0.0/24
+          gateway: 172.18.0.1

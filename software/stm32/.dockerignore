@@ -1,0 +1,12 @@
+# Ignore devcontainer files
+.devcontainer/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore editor files
+.vscode/
+*.swp
+*.swo
+*~

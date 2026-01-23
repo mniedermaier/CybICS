@@ -1,23 +1,24 @@
-FROM debian:12-slim AS build
-
-RUN apt-get update && apt-get install -y \
-    make \
-    gcc-arm-none-eabi \
-    && rm -rf /var/lib/apt/lists/*
-WORKDIR /CybICS
-COPY ./ ./
-RUN make -j$(nproc --all)
-
 FROM debian:12-slim
-WORKDIR /CybICS
+
+# Install OpenOCD and tools for flash verification
 RUN apt-get update && apt-get install -y \
     openocd \
+    binutils \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /CybICS/build/CybICS.bin/ ./CybICS.bin
-COPY ./openocd_rpi.cfg ./
+WORKDIR /CybICS
 
-EXPOSE 3333
-EXPOSE 4444
-CMD openocd -f /CybICS/openocd_rpi.cfg -c "program CybICS.bin verify reset exit 0x08000000" \
-    && sleep infinity
+# Copy the built firmware binary
+COPY build/zephyr/zephyr.bin ./CybICS.bin
+COPY build/zephyr/zephyr.elf ./CybICS.elf
+
+# Copy OpenOCD configuration and flash script
+COPY openocd_rpi.cfg ./
+COPY flash_if_needed.sh ./
+RUN chmod +x /CybICS/flash_if_needed.sh
+
+# Expose OpenOCD ports
+EXPOSE 3333 4444
+
+# Check firmware version and flash only if needed, then start GDB server
+CMD ["/CybICS/flash_if_needed.sh"]

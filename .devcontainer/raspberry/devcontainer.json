@@ -15,6 +15,7 @@
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-themes",
 				"ms-python.python",
+				"drblury.protobuf-vsc",
 				"redhat.vscode-yaml",
 				"foxundermoon.shell-format",
 				"timonwong.shellcheck",

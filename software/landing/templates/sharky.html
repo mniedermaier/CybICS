@@ -1,0 +1,2852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Analyzer - CybICS</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
+
+        header {
+            background-color: #2d2d2d;
+            color: #ff6b00;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #404040;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-button {
+            background-color: #404040;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .nav-button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .toolbar {
+            background-color: #2d2d2d;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .toolbar button {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.4rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .toolbar button:hover:not(:disabled) {
+            background-color: #606060;
+        }
+
+        .toolbar button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toolbar button.active {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+            border-color: #ff6b00;
+        }
+
+        .toolbar input, .toolbar select {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.9rem;
+        }
+
+        .toolbar label {
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 180px);
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background-color: #2d2d2d;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #404040;
+        }
+
+        .tab-button {
+            background-color: transparent;
+            color: #cccccc;
+            border: none;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .tab-button:hover {
+            background-color: #353535;
+            color: #ffffff;
+        }
+
+        .tab-button.active {
+            background-color: #1a1a1a;
+            color: #ff6b00;
+            border-bottom-color: #ff6b00;
+        }
+
+        .view-content {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .view-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #graphCanvas {
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            cursor: grab;
+        }
+
+        #graphCanvas:active {
+            cursor: grabbing;
+        }
+
+        .graph-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .graph-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .graph-controls button {
+            background-color: #2d2d2d;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            width: 40px;
+            height: 40px;
+        }
+
+        .graph-controls button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .graph-legend {
+            position: absolute;
+            bottom: 100px;
+            left: 10px;
+            background-color: #2d2d2dd0;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            max-width: 280px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .legend-title {
+            color: #ff6b00;
+            font-weight: bold;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .statistics-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .stat-card h3 {
+            color: #ff6b00;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #404040;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #303030;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .endpoint-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .endpoint-table th {
+            background-color: #404040;
+            color: #ff6b00;
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.85rem;
+            position: sticky;
+            top: 0;
+        }
+
+        .endpoint-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #303030;
+            font-size: 0.85rem;
+        }
+
+        .endpoint-table tbody tr:hover {
+            background-color: #252525;
+        }
+
+        .protocol-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-modbus { background-color: #ff6b6b; color: #1a1a1a; }
+        .badge-s7comm { background-color: #ffd93d; color: #1a1a1a; }
+        .badge-opcua { background-color: #a8e6cf; color: #1a1a1a; }
+        .badge-enip { background-color: #ff8b94; color: #1a1a1a; }
+        .badge-tcp { background-color: #66ccff; color: #1a1a1a; }
+        .badge-udp { background-color: #99ff99; color: #1a1a1a; }
+        .badge-other { background-color: #666; color: #ffffff; }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #404040;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #ff6b00;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .packet-list {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #404040;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: #2d2d2d;
+            z-index: 10;
+        }
+
+        th {
+            padding: 0.6rem;
+            text-align: left;
+            border-bottom: 2px solid #ff6b00;
+            font-weight: bold;
+            color: #ff6b00;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.5rem 0.6rem;
+            border-bottom: 1px solid #303030;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        tbody tr:hover {
+            background-color: #252525;
+        }
+
+        tbody tr.selected {
+            background-color: #404040;
+        }
+
+        .packet-details {
+            height: 350px;
+            background-color: #1a1a1a;
+            border-top: 2px solid #ff6b00;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .packet-details .details-tabs {
+            flex-shrink: 0;
+        }
+
+        .packet-details .details-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .packet-details h3 {
+            color: #ff6b00;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .packet-details .layer {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background-color: #2d2d2d;
+            border-left: 3px solid #ff6b00;
+        }
+
+        .packet-details .layer-title {
+            font-weight: bold;
+            color: #ff6b00;
+            margin-bottom: 0.5rem;
+        }
+
+        .packet-details .field {
+            margin-left: 1rem;
+            color: #cccccc;
+            line-height: 1.6;
+        }
+
+        .packet-details .field-name {
+            color: #66ccff;
+        }
+
+        .packet-details .field-value {
+            color: #99ff99;
+        }
+
+        .protocol-tcp { color: #66ccff; }
+        .protocol-udp { color: #99ff99; }
+        .protocol-icmp { color: #ffcc66; }
+        .protocol-http { color: #ff99cc; }
+        .protocol-dns { color: #cc99ff; }
+        .protocol-arp { color: #ffaa66; }
+        .protocol-modbus { color: #ff6b6b; font-weight: bold; }
+        .protocol-s7comm { color: #ffd93d; font-weight: bold; }
+        .protocol-opcua { color: #a8e6cf; font-weight: bold; }
+        .protocol-enip { color: #ff8b94; font-weight: bold; }
+        .protocol-other { color: #cccccc; }
+
+        .status-bar {
+            background-color: #2d2d2d;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #cccccc;
+        }
+
+        .status-item {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .recording-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #666;
+        }
+
+        .recording-indicator.active {
+            background-color: #ff0000;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .no-data {
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Hex dump viewer */
+        .hex-dump {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            background-color: #1a1a1a;
+            padding: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .hex-line {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .hex-offset {
+            color: #ff6b00;
+            min-width: 60px;
+        }
+
+        .hex-bytes {
+            color: #66ccff;
+            min-width: 400px;
+        }
+
+        .hex-ascii {
+            color: #99ff99;
+        }
+
+        /* Modal dialogs */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #2d2d2d;
+            border: 2px solid #ff6b00;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #404040;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #ff6b00;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        /* Search box */
+        .search-box {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .search-box input {
+            flex: 1;
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+        }
+
+        .search-box button {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #606060;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+
+        .search-box button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        /* Color rules */
+        .packet-row-error { background-color: rgba(220, 38, 38, 0.2) !important; }
+        .packet-row-warning { background-color: rgba(245, 158, 11, 0.2) !important; }
+        .packet-row-industrial { background-color: rgba(255, 107, 107, 0.1) !important; }
+
+        /* Time display options */
+        .time-format-selector {
+            font-size: 0.85rem;
+        }
+
+        /* Expert info badge */
+        .expert-badge {
+            display: inline-block;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+
+        .expert-error { background-color: #dc2626; color: #ffffff; }
+        .expert-warning { background-color: #f59e0b; color: #1a1a1a; }
+        .expert-note { background-color: #3b82f6; color: #ffffff; }
+
+        /* Packet details tabs */
+        .details-tabs {
+            display: flex;
+            gap: 0;
+            background-color: #2d2d2d;
+            border-bottom: 2px solid #404040;
+            padding: 0 0.5rem;
+        }
+
+        .details-tab {
+            background: none;
+            border: none;
+            color: #cccccc;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .details-tab:hover {
+            color: #ffffff;
+            background-color: #353535;
+        }
+
+        .details-tab.active {
+            color: #ff6b00;
+            border-bottom-color: #ff6b00;
+            background-color: #1a1a1a;
+        }
+
+        .details-content {
+            display: none;
+        }
+
+        .details-content.active {
+            display: block;
+        }
+
+        /* Column customization */
+        .column-settings {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .column-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .column-item label {
+            flex: 1;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🦈 Sharky - Network Analyzer</h1>
+    </header>
+
+    <!-- Main Toolbar -->
+    <div class="toolbar" style="padding: 0.5rem 1rem;">
+        <!-- Capture Controls -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <strong style="color: #ff6b00; margin-right: 0.5rem;">Capture:</strong>
+            <button id="startBtn" onclick="startCapture()">▶ Start</button>
+            <button id="stopBtn" onclick="stopCapture()" disabled>⏹ Stop</button>
+            <button onclick="clearCapture()">🗑 Clear</button>
+        </div>
+
+        <div style="border-left: 1px solid #606060; height: 30px; margin: 0 1rem;"></div>
+
+        <!-- Interface Selection -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label for="interfaceSelect" style="color: #ff6b00;">Interface:</label>
+            <select id="interfaceSelect" style="min-width: 150px;">
+                <option value="all">All</option>
+            </select>
+        </div>
+
+        <div style="flex: 1;"></div>
+
+        <!-- Export -->
+        <button onclick="exportCapture()" style="background-color: #ff6b00; color: #1a1a1a; border-color: #ff6b00;">💾 Export PCAP</button>
+    </div>
+
+    <!-- Filter and Tools Toolbar -->
+    <div class="toolbar" style="padding: 0.5rem 1rem; border-top: 1px solid #404040;">
+        <!-- Display Filter -->
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; max-width: 600px;">
+            <label for="filterInput" style="color: #ff6b00; white-space: nowrap;">Display Filter:</label>
+            <input type="text" id="filterInput" placeholder="e.g., ip.src == 192.168.1.1, tcp.port == 502" style="flex: 1;">
+            <button onclick="applyFilter()">Apply</button>
+        </div>
+
+        <div style="border-left: 1px solid #606060; height: 30px; margin: 0 1rem;"></div>
+
+        <!-- View Tools -->
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label for="timeFormat" style="color: #cccccc;">Time:</label>
+            <select id="timeFormat" onchange="updateTimeFormat()" class="time-format-selector">
+                <option value="relative">Relative</option>
+                <option value="absolute">Absolute</option>
+                <option value="delta">Delta</option>
+            </select>
+            <button onclick="showSearch()" title="Find packets">🔍 Find</button>
+            <button onclick="showColumnSettings()" title="Customize columns">⚙️ Columns</button>
+        </div>
+    </div>
+
+    <!-- Search Box -->
+    <div id="searchBox" class="search-box" style="display: none;">
+        <label>Find:</label>
+        <input type="text" id="searchInput" placeholder="Search in packets..." onkeypress="if(event.key==='Enter') findPackets()">
+        <select id="searchType">
+            <option value="display">Display Filter</option>
+            <option value="hex">Hex Value</option>
+            <option value="string">String</option>
+        </select>
+        <button onclick="findPackets()">Find</button>
+        <button onclick="findNext()">Next</button>
+        <button onclick="findPrevious()">Previous</button>
+        <button onclick="hideSearch()">✕</button>
+    </div>
+
+    <!-- View Tabs -->
+    <div class="view-tabs" style="display: flex; gap: 0; background-color: #2d2d2d; padding: 0.5rem 1rem; border-bottom: 2px solid #404040;">
+        <!-- Main Analysis -->
+        <div style="display: flex; gap: 0.25rem; margin-right: 1rem;">
+            <button class="tab-button active" onclick="switchView('packets', event)">📊 Packets</button>
+            <button class="tab-button" onclick="switchView('graph', event)">🔗 Network Graph</button>
+        </div>
+
+        <div style="border-left: 1px solid #606060; margin: 0 0.5rem;"></div>
+
+        <!-- Statistics & Analysis -->
+        <div style="display: flex; gap: 0.25rem;">
+            <button class="tab-button" onclick="switchView('conversations', event)">💬 Conversations</button>
+            <button class="tab-button" onclick="switchView('hierarchy', event)">🌳 Hierarchy</button>
+            <button class="tab-button" onclick="switchView('statistics', event)">📈 Statistics</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Packet List View -->
+        <div id="packetsView" class="view-content active">
+            <div class="packet-list">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Time</th>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>Protocol</th>
+                        <th>Length</th>
+                        <th>Info</th>
+                    </tr>
+                </thead>
+                <tbody id="packetTableBody">
+                    <tr>
+                        <td colspan="7" class="no-data">No packets captured. Click "Start" to begin capturing network traffic.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+            <div class="packet-details" id="packetDetails">
+                <div class="details-tabs">
+                    <button class="details-tab active" onclick="switchDetailsTab('details')">Details</button>
+                    <button class="details-tab" onclick="switchDetailsTab('hex')">Hex Dump</button>
+                    <button class="details-tab" onclick="switchDetailsTab('stream')">Follow Stream</button>
+                </div>
+                <div id="detailsContent" class="details-content active">
+                    <div class="no-data">Select a packet to view details</div>
+                </div>
+                <div id="hexContent" class="details-content">
+                    <div class="no-data">Select a packet to view hex dump</div>
+                </div>
+                <div id="streamContent" class="details-content">
+                    <div class="no-data">Select a TCP/UDP packet to follow stream</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Graph View -->
+        <div id="graphView" class="view-content">
+            <div class="graph-container">
+                <canvas id="graphCanvas"></canvas>
+
+                <div class="graph-controls">
+                    <button onclick="graphZoomIn()" title="Zoom In">+</button>
+                    <button onclick="graphZoomOut()" title="Zoom Out">−</button>
+                    <button onclick="graphResetView()" title="Reset View">⟲</button>
+                    <button onclick="graphAutoLayout()" title="Auto Layout">⚡</button>
+                </div>
+
+                <div class="graph-legend">
+                    <div class="legend-title">Network Nodes</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff6b6b;"></div>
+                        <span>Industrial Devices</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #66ccff;"></div>
+                        <span>Network Devices</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #99ff99;"></div>
+                        <span>Other Devices</span>
+                    </div>
+                    <div class="legend-title" style="margin-top: 0.5rem;">Connections</div>
+                    <div class="legend-item">
+                        <div style="width: 40px; height: 3px; background-color: #ff6b6b;"></div>
+                        <span>Modbus</span>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width: 40px; height: 3px; background-color: #ffd93d;"></div>
+                        <span>S7comm</span>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width: 40px; height: 3px; background-color: #a8e6cf;"></div>
+                        <span>OPC-UA</span>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width: 40px; height: 3px; background-color: #ff8b94;"></div>
+                        <span>EtherNet/IP</span>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width: 40px; height: 3px; background-color: #66ccff;"></div>
+                        <span>TCP/UDP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics View -->
+        <div id="statisticsView" class="view-content">
+            <div class="statistics-container">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>📦 Capture Summary</h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Total Packets</span>
+                            <span class="stat-value" id="stats-total-packets">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total Bytes</span>
+                            <span class="stat-value" id="stats-total-bytes">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Capture Duration</span>
+                            <span class="stat-value" id="stats-duration">0:00</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Packets/Second</span>
+                            <span class="stat-value" id="stats-pps">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Average Packet Size</span>
+                            <span class="stat-value" id="stats-avg-size">0 bytes</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <h3>🔌 Protocol Distribution</h3>
+                        <div id="protocol-stats"></div>
+                    </div>
+
+                    <div class="stat-card">
+                        <h3>🌐 Endpoints</h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Unique IP Addresses</span>
+                            <span class="stat-value" id="stats-unique-ips">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Active Connections</span>
+                            <span class="stat-value" id="stats-connections">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Industrial Devices</span>
+                            <span class="stat-value" id="stats-industrial">0</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <h3>⚡ Top Ports</h3>
+                        <div id="port-stats"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>📊 Endpoint Details</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Type</th>
+                                <th>Packets Sent</th>
+                                <th>Packets Received</th>
+                                <th>Total Packets</th>
+                                <th>Bytes</th>
+                                <th>Protocols</th>
+                            </tr>
+                        </thead>
+                        <tbody id="endpoint-table-body">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card" style="margin-top: 1rem;">
+                    <h3>🔗 Connection Matrix</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>Protocol</th>
+                                <th>Packets</th>
+                                <th>Ports</th>
+                            </tr>
+                        </thead>
+                        <tbody id="connection-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversations View -->
+        <div id="conversationsView" class="view-content">
+            <div class="statistics-container">
+                <div class="stat-card">
+                    <h3>💬 TCP Conversations</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Address A</th>
+                                <th>Port A</th>
+                                <th>Address B</th>
+                                <th>Port B</th>
+                                <th>Packets</th>
+                                <th>Bytes</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tcp-conversations-body">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="stat-card" style="margin-top: 1rem;">
+                    <h3>📡 UDP Conversations</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Address A</th>
+                                <th>Port A</th>
+                                <th>Address B</th>
+                                <th>Port B</th>
+                                <th>Packets</th>
+                                <th>Bytes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="udp-conversations-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Protocol Hierarchy View -->
+        <div id="hierarchyView" class="view-content">
+            <div class="statistics-container">
+                <div class="stat-card">
+                    <h3>🌳 Protocol Hierarchy Statistics</h3>
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Protocol</th>
+                                <th>Packets</th>
+                                <th>% Packets</th>
+                                <th>Bytes</th>
+                                <th>% Bytes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hierarchy-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Settings Modal -->
+    <div id="columnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: #ff6b00;">Customize Columns</h3>
+                <button class="modal-close" onclick="hideColumnSettings()">×</button>
+            </div>
+            <div class="column-settings">
+                <div class="column-item">
+                    <input type="checkbox" id="col-no" checked onchange="toggleColumn('no')">
+                    <label for="col-no">No.</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-time" checked onchange="toggleColumn('time')">
+                    <label for="col-time">Time</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-source" checked onchange="toggleColumn('source')">
+                    <label for="col-source">Source</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-source-port" onchange="toggleColumn('source-port')">
+                    <label for="col-source-port">Source Port</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-destination" checked onchange="toggleColumn('destination')">
+                    <label for="col-destination">Destination</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-dest-port" onchange="toggleColumn('dest-port')">
+                    <label for="col-dest-port">Dest Port</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-protocol" checked onchange="toggleColumn('protocol')">
+                    <label for="col-protocol">Protocol</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-length" checked onchange="toggleColumn('length')">
+                    <label for="col-length">Length</label>
+                </div>
+                <div class="column-item">
+                    <input type="checkbox" id="col-info" checked onchange="toggleColumn('info')">
+                    <label for="col-info">Info</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="recording-indicator" id="recordingIndicator"></div>
+            <span id="statusText">Stopped</span>
+        </div>
+        <div class="status-item">
+            <span>Packets: <strong id="packetCount">0</strong></span>
+        </div>
+        <div class="status-item">
+            <span>Displayed: <strong id="displayedCount">0</strong></span>
+        </div>
+        <div class="status-item">
+            <span>Capture Time: <strong id="captureTime">0:00</strong></span>
+        </div>
+    </div>
+
+    <script>
+        let capturing = false;
+        let packets = [];
+        let displayedPackets = [];
+        let selectedPacketId = null;
+        let packetCounter = 0;
+        let captureStartTime = null;
+        let captureTimer = null;
+        let updateInterval = null;
+
+        // New features state
+        let timeFormat = 'delta';
+        let visibleColumns = {
+            'no': true, 'time': true, 'source': true, 'source-port': false,
+            'destination': true, 'dest-port': false, 'protocol': true,
+            'length': true, 'info': true
+        };
+        let searchResults = [];
+        let currentSearchIndex = -1;
+        let colorRules = [];
+        let expertInfo = new Map();
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadInterfaces();
+            initializeColorRules();
+        });
+
+        async function loadInterfaces() {
+            try {
+                const response = await fetch('/api/network/interfaces');
+                const interfaces = await response.json();
+
+                const select = document.getElementById('interfaceSelect');
+                select.innerHTML = '<option value="all">All Interfaces</option>';
+
+                // Group interfaces by type
+                const ics_bridges = interfaces.filter(i => i.type === 'ics_bridge');
+                const physical = interfaces.filter(i => i.type === 'physical');
+                const docker = interfaces.filter(i => i.type === 'docker');
+                const bridge = interfaces.filter(i => i.type === 'bridge');
+                const veth = interfaces.filter(i => i.type === 'veth');
+
+                // Track default interface to select
+                let defaultInterface = null;
+
+                // Add ICS bridges FIRST (prioritized for ICS traffic capture)
+                if (ics_bridges.length > 0) {
+                    const icsGroup = document.createElement('optgroup');
+                    icsGroup.label = '🏭 ICS Networks (Docker Bridges)';
+                    ics_bridges.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} - ${iface.ip}`;
+                        icsGroup.appendChild(option);
+                    });
+                    select.appendChild(icsGroup);
+
+                    // Prefer ICS bridge as default
+                    if (!defaultInterface) defaultInterface = ics_bridges[0].name;
+                }
+
+                // Add physical interfaces first
+                if (physical.length > 0) {
+                    const physGroup = document.createElement('optgroup');
+                    physGroup.label = 'Physical Interfaces';
+                    physical.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} (${iface.ip || 'no IP'})`;
+                        physGroup.appendChild(option);
+                    });
+                    select.appendChild(physGroup);
+                }
+
+                // Add Docker interfaces
+                if (docker.length > 0) {
+                    const dockerGroup = document.createElement('optgroup');
+                    dockerGroup.label = 'Docker Interfaces';
+                    docker.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} (${iface.ip || 'no IP'})`;
+                        dockerGroup.appendChild(option);
+                    });
+                    select.appendChild(dockerGroup);
+                }
+
+                // Add Bridge interfaces
+                if (bridge.length > 0) {
+                    const bridgeGroup = document.createElement('optgroup');
+                    bridgeGroup.label = 'Bridge Interfaces';
+                    bridge.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} (${iface.ip || 'no IP'})`;
+                        bridgeGroup.appendChild(option);
+                    });
+                    select.appendChild(bridgeGroup);
+
+                    // Prefer bridge as default (overrides ICS bridges if no ICS)
+                    if (!defaultInterface) defaultInterface = bridge[0].name;
+                }
+
+                // Add veth interfaces (usually many, so keep collapsed)
+                if (veth.length > 0) {
+                    const vethGroup = document.createElement('optgroup');
+                    vethGroup.label = `Virtual Ethernet (${veth.length} interfaces)`;
+                    veth.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} (${iface.ip || 'no IP'})`;
+                        vethGroup.appendChild(option);
+                    });
+                    select.appendChild(vethGroup);
+                }
+
+                // Set the default interface (priority: ICS bridge > regular bridge > all)
+                if (defaultInterface) {
+                    select.value = defaultInterface;
+                }
+            } catch (error) {
+                console.error('Error loading interfaces:', error);
+            }
+        }
+
+        async function startCapture() {
+            const interface_ = document.getElementById('interfaceSelect').value;
+            const filter = document.getElementById('filterInput').value;
+
+            try {
+                const response = await fetch('/api/network/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interface: interface_, filter: filter })
+                });
+
+                if (response.ok) {
+                    capturing = true;
+                    captureStartTime = Date.now();
+
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    document.getElementById('recordingIndicator').classList.add('active');
+                    document.getElementById('statusText').textContent = 'Capturing...';
+
+                    // Start updating packet list
+                    updateInterval = setInterval(fetchPackets, 500);
+
+                    // Start capture timer
+                    captureTimer = setInterval(updateCaptureTime, 1000);
+                }
+            } catch (error) {
+                console.error('Error starting capture:', error);
+                alert('Failed to start capture. Make sure you have necessary permissions.');
+            }
+        }
+
+        async function stopCapture() {
+            try {
+                await fetch('/api/network/stop', { method: 'POST' });
+
+                capturing = false;
+
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('recordingIndicator').classList.remove('active');
+                document.getElementById('statusText').textContent = 'Stopped';
+
+                clearInterval(updateInterval);
+                clearInterval(captureTimer);
+
+                // Fetch final packets
+                await fetchPackets();
+            } catch (error) {
+                console.error('Error stopping capture:', error);
+            }
+        }
+
+        async function clearCapture() {
+            if (capturing) {
+                await stopCapture();
+            }
+
+            packets = [];
+            displayedPackets = [];
+            packetCounter = 0;
+            selectedPacketId = null;
+
+            updatePacketTable();
+            document.getElementById('packetDetails').innerHTML = '<div class="no-data">Select a packet to view details</div>';
+            document.getElementById('packetCount').textContent = '0';
+            document.getElementById('displayedCount').textContent = '0';
+            document.getElementById('captureTime').textContent = '0:00';
+
+            try {
+                await fetch('/api/network/clear', { method: 'POST' });
+            } catch (error) {
+                console.error('Error clearing capture:', error);
+            }
+        }
+
+        async function fetchPackets() {
+            try {
+                const response = await fetch('/api/network/packets');
+                const data = await response.json();
+
+                packets = data.packets || [];
+                displayedPackets = packets;
+
+                updatePacketTable();
+                document.getElementById('packetCount').textContent = packets.length;
+                document.getElementById('displayedCount').textContent = displayedPackets.length;
+            } catch (error) {
+                console.error('Error fetching packets:', error);
+            }
+        }
+
+        function updatePacketTable() {
+            const tbody = document.getElementById('packetTableBody');
+
+            if (displayedPackets.length === 0) {
+                const colCount = Object.values(visibleColumns).filter(v => v).length;
+                tbody.innerHTML = `<tr><td colspan="${colCount}" class="no-data">No packets to display</td></tr>`;
+                return;
+            }
+
+            // Build table header based on visible columns
+            const thead = document.querySelector('#packetTableBody').closest('table').querySelector('thead tr');
+            let headerHtml = '';
+            if (visibleColumns.no) headerHtml += '<th>No.</th>';
+            if (visibleColumns.time) headerHtml += '<th>Time</th>';
+            if (visibleColumns.source) headerHtml += '<th>Source</th>';
+            if (visibleColumns['source-port']) headerHtml += '<th>Src Port</th>';
+            if (visibleColumns.destination) headerHtml += '<th>Destination</th>';
+            if (visibleColumns['dest-port']) headerHtml += '<th>Dst Port</th>';
+            if (visibleColumns.protocol) headerHtml += '<th>Protocol</th>';
+            if (visibleColumns.length) headerHtml += '<th>Length</th>';
+            if (visibleColumns.info) headerHtml += '<th>Info</th>';
+            thead.innerHTML = headerHtml;
+
+            const html = displayedPackets.map((packet, index) => {
+                // Analyze expert info
+                packet.expert_info = analyzeExpertInfo(packet);
+
+                const selected = selectedPacketId === packet.id ? 'selected' : '';
+                const protocolClass = `protocol-${packet.protocol.toLowerCase()}`;
+                const colorClass = getPacketRowClass(packet);
+                const time = formatPacketTime(packet, index);
+                const expertBadge = getExpertBadge(packet.expert_info);
+
+                let rowHtml = `<tr class="${selected} ${colorClass}" data-packet-id="${packet.id}" onclick="selectPacket(${packet.id})">`;
+                if (visibleColumns.no) rowHtml += `<td>${packet.id}</td>`;
+                if (visibleColumns.time) rowHtml += `<td>${time}</td>`;
+                if (visibleColumns.source) rowHtml += `<td>${packet.source}</td>`;
+                if (visibleColumns['source-port']) rowHtml += `<td>${packet.source_port || ''}</td>`;
+                if (visibleColumns.destination) rowHtml += `<td>${packet.destination}</td>`;
+                if (visibleColumns['dest-port']) rowHtml += `<td>${packet.dest_port || ''}</td>`;
+                if (visibleColumns.protocol) rowHtml += `<td class="${protocolClass}">${packet.protocol}</td>`;
+                if (visibleColumns.length) rowHtml += `<td>${packet.length}</td>`;
+                if (visibleColumns.info) rowHtml += `<td>${packet.info}${expertBadge}</td>`;
+                rowHtml += `</tr>`;
+
+                return rowHtml;
+            }).join('');
+
+            tbody.innerHTML = html;
+        }
+
+        function selectPacket(packetId) {
+            selectedPacketId = packetId;
+            const packet = packets.find(p => p.id === packetId);
+
+            if (packet) {
+                displayPacketDetails(packet);
+            }
+
+            // Update selected row
+            document.querySelectorAll('tbody tr').forEach(row => {
+                row.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+
+        function displayPacketDetails(packet) {
+            const details = document.getElementById('detailsContent');
+
+            let html = '<h3>Packet Details</h3>';
+
+            // Frame layer
+            html += `
+                <div class="layer">
+                    <div class="layer-title">Frame ${packet.id}</div>
+                    <div class="field"><span class="field-name">Arrival Time:</span> <span class="field-value">${packet.timestamp || 'N/A'}</span></div>
+                    <div class="field"><span class="field-name">Frame Length:</span> <span class="field-value">${packet.length} bytes</span></div>
+                    <div class="field"><span class="field-name">Protocol:</span> <span class="field-value">${packet.protocol}</span></div>
+                </div>
+            `;
+
+            // Ethernet layer (if available)
+            if (packet.layers && packet.layers.ethernet) {
+                const eth = packet.layers.ethernet;
+                html += `
+                    <div class="layer">
+                        <div class="layer-title">Ethernet II</div>
+                        <div class="field"><span class="field-name">Source MAC:</span> <span class="field-value">${eth.src || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Destination MAC:</span> <span class="field-value">${eth.dst || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Type:</span> <span class="field-value">${eth.type || 'N/A'}</span></div>
+                    </div>
+                `;
+            }
+
+            // IP layer (if available)
+            if (packet.layers && packet.layers.ip) {
+                const ip = packet.layers.ip;
+                html += `
+                    <div class="layer">
+                        <div class="layer-title">Internet Protocol Version ${ip.version || '4'}</div>
+                        <div class="field"><span class="field-name">Source IP:</span> <span class="field-value">${packet.source}</span></div>
+                        <div class="field"><span class="field-name">Destination IP:</span> <span class="field-value">${packet.destination}</span></div>
+                        <div class="field"><span class="field-name">Protocol:</span> <span class="field-value">${ip.proto || packet.protocol}</span></div>
+                        <div class="field"><span class="field-name">TTL:</span> <span class="field-value">${ip.ttl || 'N/A'}</span></div>
+                    </div>
+                `;
+            }
+
+            // Transport layer (TCP/UDP)
+            if (packet.layers && packet.layers.tcp) {
+                const tcp = packet.layers.tcp;
+                html += `
+                    <div class="layer">
+                        <div class="layer-title">Transmission Control Protocol</div>
+                        <div class="field"><span class="field-name">Source Port:</span> <span class="field-value">${tcp.sport || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Destination Port:</span> <span class="field-value">${tcp.dport || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Flags:</span> <span class="field-value">${tcp.flags || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Sequence Number:</span> <span class="field-value">${tcp.seq || 'N/A'}</span></div>
+                    </div>
+                `;
+            } else if (packet.layers && packet.layers.udp) {
+                const udp = packet.layers.udp;
+                html += `
+                    <div class="layer">
+                        <div class="layer-title">User Datagram Protocol</div>
+                        <div class="field"><span class="field-name">Source Port:</span> <span class="field-value">${udp.sport || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Destination Port:</span> <span class="field-value">${udp.dport || 'N/A'}</span></div>
+                        <div class="field"><span class="field-name">Length:</span> <span class="field-value">${udp.len || 'N/A'} bytes</span></div>
+                    </div>
+                `;
+            }
+
+            // Industrial Protocol Layers
+
+            // Modbus TCP
+            if (packet.layers && packet.layers.modbus) {
+                const modbus = packet.layers.modbus;
+                html += `
+                    <div class="layer" style="border-left-color: #ff6b6b;">
+                        <div class="layer-title" style="color: #ff6b6b;">Modbus TCP Protocol</div>
+                        <div class="field"><span class="field-name">Transaction ID:</span> <span class="field-value">${modbus.transaction_id}</span></div>
+                        <div class="field"><span class="field-name">Protocol ID:</span> <span class="field-value">${modbus.protocol_id}</span></div>
+                        <div class="field"><span class="field-name">Unit ID:</span> <span class="field-value">${modbus.unit_id}</span></div>
+                        <div class="field"><span class="field-name">Function Code:</span> <span class="field-value">${modbus.function_code} (${modbus.function_name})</span></div>
+                        <div class="field"><span class="field-name">Length:</span> <span class="field-value">${modbus.length} bytes</span></div>
+                    </div>
+                `;
+            }
+
+            // S7comm
+            if (packet.layers && packet.layers.s7comm) {
+                const s7 = packet.layers.s7comm;
+                html += `
+                    <div class="layer" style="border-left-color: #ffd93d;">
+                        <div class="layer-title" style="color: #ffd93d;">S7 Communication Protocol</div>
+                        ${s7.tpkt_length ? `<div class="field"><span class="field-name">TPKT Length:</span> <span class="field-value">${s7.tpkt_length} bytes</span></div>` : ''}
+                        ${s7.protocol_id !== undefined ? `<div class="field"><span class="field-name">Protocol ID:</span> <span class="field-value">0x${s7.protocol_id.toString(16).padStart(2, '0')}</span></div>` : ''}
+                        ${s7.message_type !== undefined ? `<div class="field"><span class="field-name">Message Type:</span> <span class="field-value">${s7.message_type} (${s7.message_type_name})</span></div>` : ''}
+                    </div>
+                `;
+            }
+
+            // OPC-UA
+            if (packet.layers && packet.layers.opcua) {
+                const opcua = packet.layers.opcua;
+                html += `
+                    <div class="layer" style="border-left-color: #a8e6cf;">
+                        <div class="layer-title" style="color: #a8e6cf;">OPC Unified Architecture</div>
+                        <div class="field"><span class="field-name">Message Type:</span> <span class="field-value">${opcua.message_type} (${opcua.message_type_name})</span></div>
+                        <div class="field"><span class="field-name">Chunk Type:</span> <span class="field-value">${opcua.chunk_type} (${opcua.chunk_type_name})</span></div>
+                        <div class="field"><span class="field-name">Message Size:</span> <span class="field-value">${opcua.message_size} bytes</span></div>
+                    </div>
+                `;
+            }
+
+            // EtherNet/IP
+            if (packet.layers && packet.layers.enip) {
+                const enip = packet.layers.enip;
+                html += `
+                    <div class="layer" style="border-left-color: #ff8b94;">
+                        <div class="layer-title" style="color: #ff8b94;">EtherNet/IP Protocol</div>
+                        <div class="field"><span class="field-name">Command:</span> <span class="field-value">0x${enip.command.toString(16).padStart(4, '0')} (${enip.command_name})</span></div>
+                        <div class="field"><span class="field-name">Length:</span> <span class="field-value">${enip.length} bytes</span></div>
+                        <div class="field"><span class="field-name">Session Handle:</span> <span class="field-value">0x${enip.session_handle.toString(16).padStart(8, '0')}</span></div>
+                        <div class="field"><span class="field-name">Status:</span> <span class="field-value">0x${enip.status.toString(16).padStart(8, '0')}</span></div>
+                    </div>
+                `;
+            }
+
+            // Application layer data
+            if (packet.data) {
+                html += `
+                    <div class="layer">
+                        <div class="layer-title">Payload Data</div>
+                        <div class="field"><span class="field-value">${packet.data}</span></div>
+                    </div>
+                `;
+            }
+
+            details.innerHTML = html;
+        }
+
+        function updateCaptureTime() {
+            if (captureStartTime) {
+                const elapsed = Math.floor((Date.now() - captureStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('captureTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function applyFilter() {
+            const filterText = document.getElementById('filterInput').value;
+
+            if (!filterText) {
+                displayedPackets = packets;
+            } else {
+                // Use advanced Wireshark-like filter parser
+                const filterFunc = parseDisplayFilter(filterText);
+                displayedPackets = packets.filter(filterFunc);
+            }
+
+            updatePacketTable();
+            document.getElementById('displayedCount').textContent = displayedPackets.length;
+        }
+
+        async function exportCapture() {
+            try {
+                const response = await fetch('/api/network/export');
+
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // Get filename from Content-Disposition header if available
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `capture_${new Date().toISOString().replace(/[:.]/g, '-')}.pcap`;
+
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                console.log(`Exported ${packets.length} packets to ${filename}`);
+            } catch (error) {
+                console.error('Error exporting capture:', error);
+                alert('Failed to export capture data. Make sure packets have been captured.');
+            }
+        }
+
+        // ===== NETWORK GRAPH VISUALIZATION =====
+
+        let graphCanvas, graphCtx;
+        let graphNodes = new Map();
+        let graphEdges = [];
+        let graphScale = 1;
+        let graphOffsetX = 0;
+        let graphOffsetY = 0;
+        let graphDragging = false;
+        let graphDragStartX = 0;
+        let graphDragStartY = 0;
+        let graphSelectedNode = null;
+        let graphDraggingNode = null;
+
+        function switchView(view, event) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+
+            // Update views
+            document.querySelectorAll('.view-content').forEach(content => content.classList.remove('active'));
+
+            if (view === 'packets') {
+                document.getElementById('packetsView').classList.add('active');
+            } else if (view === 'graph') {
+                document.getElementById('graphView').classList.add('active');
+                setTimeout(() => {
+                    initGraph();
+                    updateGraph();
+                }, 100);
+            } else if (view === 'statistics') {
+                document.getElementById('statisticsView').classList.add('active');
+                updateStatistics();
+            } else if (view === 'conversations') {
+                document.getElementById('conversationsView').classList.add('active');
+                updateConversations();
+            } else if (view === 'hierarchy') {
+                document.getElementById('hierarchyView').classList.add('active');
+                updateProtocolHierarchy();
+            }
+        }
+
+        function updateStatistics() {
+            if (packets.length === 0) return;
+
+            // Calculate basic stats
+            const totalPackets = packets.length;
+            const totalBytes = packets.reduce((sum, p) => sum + (p.length || 0), 0);
+            const avgSize = Math.round(totalBytes / totalPackets);
+
+            // Calculate duration and rate
+            const duration = captureStartTime ? Math.floor((Date.now() - captureStartTime) / 1000) : 0;
+            const pps = duration > 0 ? (totalPackets / duration).toFixed(2) : 0;
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+
+            // Update summary
+            document.getElementById('stats-total-packets').textContent = totalPackets.toLocaleString();
+            document.getElementById('stats-total-bytes').textContent = formatBytes(totalBytes);
+            document.getElementById('stats-duration').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('stats-pps').textContent = pps;
+            document.getElementById('stats-avg-size').textContent = `${avgSize} bytes`;
+
+            // Protocol distribution
+            const protocolCount = {};
+            packets.forEach(p => {
+                protocolCount[p.protocol] = (protocolCount[p.protocol] || 0) + 1;
+            });
+
+            const protocolStatsHtml = Object.entries(protocolCount)
+                .sort((a, b) => b[1] - a[1])
+                .map(([protocol, count]) => {
+                    const percentage = ((count / totalPackets) * 100).toFixed(1);
+                    return `
+                        <div class="stat-row">
+                            <span class="stat-label">${protocol}</span>
+                            <span class="stat-value">${count} (${percentage}%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${percentage}%">
+                                ${percentage >= 10 ? percentage + '%' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            document.getElementById('protocol-stats').innerHTML = protocolStatsHtml;
+
+            // Endpoint analysis
+            const endpoints = new Map();
+            const connections = new Map();
+            let industrialCount = 0;
+
+            packets.forEach(p => {
+                if (!p.source || p.source === 'N/A') return;
+                if (!p.destination || p.destination === 'N/A') return;
+
+                // Track source
+                if (!endpoints.has(p.source)) {
+                    const type = getNodeType(p.source, p);
+                    if (type === 'industrial') industrialCount++;
+                    endpoints.set(p.source, {
+                        ip: p.source,
+                        type: type,
+                        sent: 0,
+                        received: 0,
+                        bytes: 0,
+                        protocols: new Set()
+                    });
+                }
+                const src = endpoints.get(p.source);
+                src.sent++;
+                src.bytes += p.length || 0;
+                src.protocols.add(p.protocol);
+
+                // Track destination
+                if (!endpoints.has(p.destination)) {
+                    const type = getNodeType(p.destination, p);
+                    if (type === 'industrial') industrialCount++;
+                    endpoints.set(p.destination, {
+                        ip: p.destination,
+                        type: type,
+                        sent: 0,
+                        received: 0,
+                        bytes: 0,
+                        protocols: new Set()
+                    });
+                }
+                const dst = endpoints.get(p.destination);
+                dst.received++;
+
+                // Track connections
+                const connKey = `${p.source}-${p.destination}`;
+                if (!connections.has(connKey)) {
+                    connections.set(connKey, {
+                        source: p.source,
+                        destination: p.destination,
+                        protocol: p.protocol,
+                        count: 0,
+                        ports: new Set()
+                    });
+                }
+                const conn = connections.get(connKey);
+                conn.count++;
+                if (p.source_port && p.dest_port) {
+                    conn.ports.add(`${p.source_port}→${p.dest_port}`);
+                }
+                if (p.protocol !== 'TCP' && p.protocol !== 'UDP') {
+                    conn.protocol = p.protocol;
+                }
+            });
+
+            document.getElementById('stats-unique-ips').textContent = endpoints.size;
+            document.getElementById('stats-connections').textContent = connections.size;
+            document.getElementById('stats-industrial').textContent = industrialCount;
+
+            // Top ports
+            const portCount = {};
+            packets.forEach(p => {
+                if (p.source_port) portCount[p.source_port] = (portCount[p.source_port] || 0) + 1;
+                if (p.dest_port) portCount[p.dest_port] = (portCount[p.dest_port] || 0) + 1;
+            });
+
+            const portStatsHtml = Object.entries(portCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([port, count]) => {
+                    const portName = getPortName(port);
+                    return `
+                        <div class="stat-row">
+                            <span class="stat-label">${port} ${portName ? '(' + portName + ')' : ''}</span>
+                            <span class="stat-value">${count}</span>
+                        </div>
+                    `;
+                }).join('');
+            document.getElementById('port-stats').innerHTML = portStatsHtml || '<div class="stat-row"><span class="stat-label">No port data</span></div>';
+
+            // Endpoint table
+            const endpointTableHtml = Array.from(endpoints.values())
+                .sort((a, b) => (b.sent + b.received) - (a.sent + a.received))
+                .map(ep => {
+                    const total = ep.sent + ep.received;
+                    const protocols = Array.from(ep.protocols).map(p =>
+                        `<span class="protocol-badge badge-${p.toLowerCase()}">${p}</span>`
+                    ).join(' ');
+                    const typeColor = ep.type === 'industrial' ? '#ff6b6b' : ep.type === 'network' ? '#66ccff' : '#99ff99';
+                    return `
+                        <tr>
+                            <td><strong>${ep.ip}</strong></td>
+                            <td><span style="color: ${typeColor}">●</span> ${ep.type}</td>
+                            <td>${ep.sent.toLocaleString()}</td>
+                            <td>${ep.received.toLocaleString()}</td>
+                            <td><strong>${total.toLocaleString()}</strong></td>
+                            <td>${formatBytes(ep.bytes)}</td>
+                            <td>${protocols}</td>
+                        </tr>
+                    `;
+                }).join('');
+            document.getElementById('endpoint-table-body').innerHTML = endpointTableHtml || '<tr><td colspan="7">No endpoint data</td></tr>';
+
+            // Connection matrix
+            const connectionTableHtml = Array.from(connections.values())
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 20)
+                .map(conn => {
+                    const ports = Array.from(conn.ports).join(', ');
+                    return `
+                        <tr>
+                            <td>${conn.source}</td>
+                            <td>${conn.destination}</td>
+                            <td><span class="protocol-badge badge-${conn.protocol.toLowerCase()}">${conn.protocol}</span></td>
+                            <td><strong>${conn.count.toLocaleString()}</strong></td>
+                            <td>${ports || 'N/A'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            document.getElementById('connection-table-body').innerHTML = connectionTableHtml || '<tr><td colspan="5">No connection data</td></tr>';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function getPortName(port) {
+            const portNames = {
+                '502': 'Modbus',
+                '102': 'S7comm',
+                '4840': 'OPC-UA',
+                '44818': 'EtherNet/IP',
+                '80': 'HTTP',
+                '443': 'HTTPS',
+                '22': 'SSH',
+                '23': 'Telnet',
+                '21': 'FTP',
+                '53': 'DNS'
+            };
+            return portNames[port] || '';
+        }
+
+        function initGraph() {
+            if (graphCanvas) {
+                console.log('Graph already initialized');
+                return; // Already initialized
+            }
+
+            console.log('Initializing graph');
+            graphCanvas = document.getElementById('graphCanvas');
+
+            if (!graphCanvas) {
+                console.error('Canvas element not found');
+                return;
+            }
+
+            graphCtx = graphCanvas.getContext('2d');
+            console.log('Canvas context created');
+
+            // Set canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Mouse events
+            graphCanvas.addEventListener('mousedown', graphMouseDown);
+            graphCanvas.addEventListener('mousemove', graphMouseMove);
+            graphCanvas.addEventListener('mouseup', graphMouseUp);
+            graphCanvas.addEventListener('wheel', graphWheel, { passive: false });
+
+            console.log('Graph initialization complete');
+        }
+
+        function resizeCanvas() {
+            if (!graphCanvas) return;
+            graphCanvas.width = graphCanvas.offsetWidth;
+            graphCanvas.height = graphCanvas.offsetHeight;
+            drawGraph();
+        }
+
+        function updateGraph() {
+            console.log('Updating graph with', packets.length, 'packets');
+
+            // Analyze packets to build nodes and edges
+            graphNodes.clear();
+            graphEdges = [];
+
+            const connectionCount = new Map(); // Track connection strength
+
+            packets.forEach(packet => {
+                const src = packet.source;
+                const dst = packet.destination;
+
+                if (!src || !dst || src === 'N/A' || dst === 'N/A') return;
+
+                // Add nodes with better initial spacing
+                if (!graphNodes.has(src)) {
+                    const angle = Math.random() * 2 * Math.PI;
+                    const radius = 200 + Math.random() * 100;
+                    graphNodes.set(src, {
+                        id: src,
+                        label: src,
+                        type: getNodeType(src, packet),
+                        x: 400 + Math.cos(angle) * radius,
+                        y: 300 + Math.sin(angle) * radius,
+                        vx: 0,
+                        vy: 0
+                    });
+                }
+
+                if (!graphNodes.has(dst)) {
+                    const angle = Math.random() * 2 * Math.PI;
+                    const radius = 200 + Math.random() * 100;
+                    graphNodes.set(dst, {
+                        id: dst,
+                        label: dst,
+                        type: getNodeType(dst, packet),
+                        x: 400 + Math.cos(angle) * radius,
+                        y: 300 + Math.sin(angle) * radius,
+                        vx: 0,
+                        vy: 0
+                    });
+                }
+
+                // Track connections - store port info per node
+                const edgeKey = `${src}-${dst}`;
+                const reverseEdgeKey = `${dst}-${src}`;
+
+                if (!connectionCount.has(edgeKey) && !connectionCount.has(reverseEdgeKey)) {
+                    connectionCount.set(edgeKey, {
+                        source: src,
+                        target: dst,
+                        protocol: packet.protocol,
+                        ports: new Map([[src, packet.source_port], [dst, packet.dest_port]]),
+                        count: 1
+                    });
+                } else {
+                    const key = connectionCount.has(edgeKey) ? edgeKey : reverseEdgeKey;
+                    const conn = connectionCount.get(key);
+                    conn.count++;
+                    // Keep the most common protocol for this connection
+                    if (packet.protocol !== 'TCP' && packet.protocol !== 'UDP') {
+                        conn.protocol = packet.protocol;
+                    }
+                    // Store port for each node (accumulate different ports seen)
+                    if (packet.source_port && !conn.ports.has(src)) {
+                        conn.ports.set(src, packet.source_port);
+                    }
+                    if (packet.dest_port && !conn.ports.has(dst)) {
+                        conn.ports.set(dst, packet.dest_port);
+                    }
+                }
+            });
+
+            // Create edges from connections
+            connectionCount.forEach(conn => {
+                graphEdges.push({
+                    source: conn.source,
+                    target: conn.target,
+                    protocol: conn.protocol,
+                    sourcePort: conn.ports.get(conn.source),
+                    destPort: conn.ports.get(conn.target),
+                    weight: Math.min(conn.count / 10, 5), // Line thickness
+                    color: getEdgeColor(conn.protocol)
+                });
+            });
+
+            console.log('Graph nodes:', graphNodes.size, 'Graph edges:', graphEdges.length);
+
+            // Log node details
+            if (graphNodes.size > 0) {
+                console.log('Node details:');
+                graphNodes.forEach((node, id) => {
+                    console.log(`  ${id}: pos(${node.x.toFixed(1)}, ${node.y.toFixed(1)}) type:${node.type}`);
+                });
+            }
+
+            // Run force-directed layout
+            if (graphNodes.size > 0) {
+                graphAutoLayout();
+            } else {
+                // Draw empty state
+                drawGraph();
+            }
+        }
+
+        function getNodeType(ip, packet) {
+            // Determine node type based on protocol and ports
+            const protocol = packet.protocol;
+            const ports = [packet.source_port, packet.dest_port].filter(p => p);
+
+            // Industrial protocols
+            if (['MODBUS', 'S7COMM', 'OPCUA', 'ENIP'].includes(protocol)) {
+                return 'industrial';
+            }
+
+            // Common industrial ports
+            if (ports.includes(502) || ports.includes(102) || ports.includes(4840) || ports.includes(44818)) {
+                return 'industrial';
+            }
+
+            // Network infrastructure
+            if (ip.endsWith('.1') || ip.endsWith('.254')) {
+                return 'network';
+            }
+
+            return 'other';
+        }
+
+        function getNodeColor(type) {
+            switch (type) {
+                case 'industrial': return '#ff6b6b';
+                case 'network': return '#66ccff';
+                default: return '#99ff99';
+            }
+        }
+
+        function getEdgeColor(protocol) {
+            if (protocol === 'MODBUS') return '#ff6b6b';
+            if (protocol === 'S7COMM') return '#ffd93d';
+            if (protocol === 'OPCUA') return '#a8e6cf';
+            if (protocol === 'ENIP') return '#ff8b94';
+            return '#66ccff';
+        }
+
+        function graphAutoLayout() {
+            if (graphNodes.size === 0) return;
+
+            console.log('Running auto layout...');
+
+            // Simple force-directed layout algorithm
+            const iterations = 100; // More iterations for better layout
+            const k = 150; // Increased optimal distance to spread nodes
+            const c = 0.4; // Damping
+            const repulsionStrength = 2.0; // Stronger repulsion to prevent overlap
+
+            for (let iter = 0; iter < iterations; iter++) {
+                // Calculate repulsive forces between all nodes
+                graphNodes.forEach(node1 => {
+                    node1.fx = 0;
+                    node1.fy = 0;
+
+                    graphNodes.forEach(node2 => {
+                        if (node1.id === node2.id) return;
+
+                        const dx = node1.x - node2.x;
+                        const dy = node1.y - node2.y;
+                        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 10);
+
+                        // Stronger repulsion to prevent overlap (inverse square law)
+                        const force = repulsionStrength * (k * k) / (dist * dist);
+                        node1.fx += (dx / dist) * force;
+                        node1.fy += (dy / dist) * force;
+                    });
+                });
+
+                // Calculate attractive forces for edges
+                graphEdges.forEach(edge => {
+                    const source = graphNodes.get(edge.source);
+                    const target = graphNodes.get(edge.target);
+
+                    if (!source || !target) return;
+
+                    const dx = target.x - source.x;
+                    const dy = target.y - source.y;
+                    const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+
+                    // Attraction (spring force)
+                    const force = dist / k;
+                    const fx = (dx / dist) * force;
+                    const fy = (dy / dist) * force;
+
+                    source.fx += fx;
+                    source.fy += fy;
+                    target.fx -= fx;
+                    target.fy -= fy;
+                });
+
+                // Update positions
+                graphNodes.forEach(node => {
+                    node.vx = (node.vx || 0) + node.fx;
+                    node.vy = (node.vy || 0) + node.fy;
+                    node.vx *= c;
+                    node.vy *= c;
+                    node.x += node.vx;
+                    node.y += node.vy;
+
+                    // Keep values finite
+                    if (!isFinite(node.x)) node.x = 300;
+                    if (!isFinite(node.y)) node.y = 300;
+                });
+            }
+
+            console.log('Layout complete, final positions:');
+            graphNodes.forEach((node, id) => {
+                console.log(`  ${id}: (${node.x.toFixed(1)}, ${node.y.toFixed(1)})`);
+            });
+
+            // Center the graph
+            graphResetView();
+        }
+
+        function drawGraph() {
+            if (!graphCtx) {
+                console.warn('Graph context not initialized');
+                return;
+            }
+
+            const ctx = graphCtx;
+            const width = graphCanvas.width;
+            const height = graphCanvas.height;
+
+            console.log('Drawing graph, canvas size:', width, 'x', height);
+
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw empty state message if no nodes
+            if (graphNodes.size === 0) {
+                ctx.fillStyle = '#ff6b00';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🦈 Sharky Network Graph', width / 2, height / 2 - 40);
+
+                ctx.fillStyle = '#999';
+                ctx.font = '16px Arial';
+                ctx.fillText('Start capturing packets to see network topology', width / 2, height / 2);
+
+                ctx.fillStyle = '#666';
+                ctx.font = '14px Arial';
+                ctx.fillText('Click "▶ Start" in the toolbar above', width / 2, height / 2 + 30);
+                ctx.fillText('Then switch back to this tab to see the graph', width / 2, height / 2 + 55);
+                return;
+            }
+
+            ctx.save();
+            ctx.translate(graphOffsetX, graphOffsetY);
+            ctx.scale(graphScale, graphScale);
+
+            // Draw edges
+            graphEdges.forEach(edge => {
+                const source = graphNodes.get(edge.source);
+                const target = graphNodes.get(edge.target);
+
+                if (!source || !target) return;
+
+                ctx.strokeStyle = edge.color;
+                ctx.lineWidth = Math.max(edge.weight || 1, 2);
+                ctx.globalAlpha = 0.7;
+
+                ctx.beginPath();
+                ctx.moveTo(source.x, source.y);
+                ctx.lineTo(target.x, target.y);
+                ctx.stroke();
+
+                ctx.globalAlpha = 1;
+
+                // Draw port labels near each endpoint with smart positioning
+                if (edge.sourcePort || edge.destPort) {
+                    ctx.font = 'bold 11px monospace';
+                    ctx.textBaseline = 'middle';
+
+                    // Calculate direction vector
+                    const dx = target.x - source.x;
+                    const dy = target.y - source.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const nx = dx / len; // normalized
+                    const ny = dy / len;
+
+                    // Calculate angle to determine label position
+                    const angle = Math.atan2(dy, dx);
+
+                    // Adaptive perpendicular offset (larger for nearly horizontal/vertical lines)
+                    const absAngle = Math.abs(angle);
+                    const isNearCardinal = (absAngle < 0.3 || absAngle > Math.PI - 0.3 ||
+                                           Math.abs(absAngle - Math.PI/2) < 0.3 ||
+                                           Math.abs(absAngle + Math.PI/2) < 0.3);
+                    const perpDist = isNearCardinal ? 22 : 18;
+                    const perpX = -ny * perpDist;
+                    const perpY = nx * perpDist;
+
+                    // Source port label (near source node, outside the circle)
+                    if (edge.sourcePort) {
+                        const srcLabelX = source.x + nx * 35 + perpX;
+                        const srcLabelY = source.y + ny * 35 + perpY;
+                        const portText = String(edge.sourcePort);
+
+                        // Background with rounded corners effect
+                        ctx.fillStyle = 'rgba(45, 45, 45, 0.95)';
+                        const srcMetrics = ctx.measureText(portText);
+                        const padding = 4;
+                        ctx.fillRect(srcLabelX - srcMetrics.width / 2 - padding,
+                                    srcLabelY - 7,
+                                    srcMetrics.width + padding * 2, 14);
+
+                        // Text with slight shadow for readability
+                        ctx.fillStyle = '#000';
+                        ctx.fillText(portText, srcLabelX + 0.5, srcLabelY + 0.5);
+                        ctx.fillStyle = edge.color;
+                        ctx.textAlign = 'center';
+                        ctx.fillText(portText, srcLabelX, srcLabelY);
+                    }
+
+                    // Destination port label (near target node, outside the circle)
+                    if (edge.destPort) {
+                        const dstLabelX = target.x - nx * 35 + perpX;
+                        const dstLabelY = target.y - ny * 35 + perpY;
+                        const portText = String(edge.destPort);
+
+                        // Background with rounded corners effect
+                        ctx.fillStyle = 'rgba(45, 45, 45, 0.95)';
+                        const dstMetrics = ctx.measureText(portText);
+                        const padding = 4;
+                        ctx.fillRect(dstLabelX - dstMetrics.width / 2 - padding,
+                                    dstLabelY - 7,
+                                    dstMetrics.width + padding * 2, 14);
+
+                        // Text with slight shadow for readability
+                        ctx.fillStyle = '#000';
+                        ctx.fillText(portText, dstLabelX + 0.5, dstLabelY + 0.5);
+                        ctx.fillStyle = edge.color;
+                        ctx.textAlign = 'center';
+                        ctx.fillText(portText, dstLabelX, dstLabelY);
+                    }
+                }
+            });
+
+            ctx.globalAlpha = 1;
+
+            // Draw nodes
+            graphNodes.forEach(node => {
+                const color = getNodeColor(node.type);
+
+                // Node circle
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Node border
+                ctx.strokeStyle = graphSelectedNode === node.id ? '#ff6b00' : '#ffffff';
+                ctx.lineWidth = graphSelectedNode === node.id ? 3 : 1;
+                ctx.stroke();
+
+                // Node label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(node.label, node.x, node.y + 35);
+            });
+
+            ctx.restore();
+        }
+
+        function graphMouseDown(e) {
+            const rect = graphCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Check if clicking on a node
+            const clickedNode = getNodeAtPosition(x, y);
+
+            if (clickedNode) {
+                graphSelectedNode = clickedNode.id;
+                graphDraggingNode = clickedNode;
+                // Store offset from node center for smooth dragging
+                graphDragStartX = x;
+                graphDragStartY = y;
+                graphCanvas.style.cursor = 'grabbing';
+                drawGraph();
+            } else {
+                graphDragging = true;
+                graphDragStartX = x - graphOffsetX;
+                graphDragStartY = y - graphOffsetY;
+                graphCanvas.style.cursor = 'grabbing';
+            }
+        }
+
+        function graphMouseMove(e) {
+            const rect = graphCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (graphDraggingNode) {
+                // Drag the node - convert screen coordinates to graph coordinates
+                const graphX = (x - graphOffsetX) / graphScale;
+                const graphY = (y - graphOffsetY) / graphScale;
+
+                graphDraggingNode.x = graphX;
+                graphDraggingNode.y = graphY;
+
+                drawGraph();
+            } else if (graphDragging) {
+                // Drag the entire canvas
+                graphOffsetX = x - graphDragStartX;
+                graphOffsetY = y - graphDragStartY;
+
+                drawGraph();
+            } else {
+                // Update cursor on hover
+                const hoveredNode = getNodeAtPosition(x, y);
+                graphCanvas.style.cursor = hoveredNode ? 'grab' : 'default';
+            }
+        }
+
+        function graphMouseUp(e) {
+            graphDragging = false;
+            graphDraggingNode = null;
+            graphCanvas.style.cursor = 'default';
+        }
+
+        function graphWheel(e) {
+            e.preventDefault();
+
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            graphScale *= delta;
+            graphScale = Math.max(0.1, Math.min(graphScale, 5));
+
+            drawGraph();
+        }
+
+        function getNodeAtPosition(x, y) {
+            // Transform coordinates
+            const tx = (x - graphOffsetX) / graphScale;
+            const ty = (y - graphOffsetY) / graphScale;
+
+            for (const node of graphNodes.values()) {
+                const dx = tx - node.x;
+                const dy = ty - node.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 20) {
+                    return node;
+                }
+            }
+
+            return null;
+        }
+
+        function graphZoomIn() {
+            graphScale *= 1.2;
+            graphScale = Math.min(graphScale, 5);
+            drawGraph();
+        }
+
+        function graphZoomOut() {
+            graphScale *= 0.8;
+            graphScale = Math.max(graphScale, 0.1);
+            drawGraph();
+        }
+
+        function graphResetView() {
+            if (graphNodes.size === 0) {
+                graphScale = 1;
+                graphOffsetX = 0;
+                graphOffsetY = 0;
+                drawGraph();
+                return;
+            }
+
+            console.log('Calculating bounding box for', graphNodes.size, 'nodes');
+
+            // Calculate bounding box
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
+
+            graphNodes.forEach((node, id) => {
+                console.log(`  Node ${id}: x=${node.x}, y=${node.y}`);
+
+                if (isFinite(node.x) && isFinite(node.y)) {
+                    minX = Math.min(minX, node.x);
+                    minY = Math.min(minY, node.y);
+                    maxX = Math.max(maxX, node.x);
+                    maxY = Math.max(maxY, node.y);
+                } else {
+                    console.warn(`  Node ${id} has invalid coordinates!`);
+                }
+            });
+
+            console.log('Bounding box:', {minX, minY, maxX, maxY});
+
+            const graphWidth = maxX - minX + 200;
+            const graphHeight = maxY - minY + 200;
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            console.log('Graph dimensions:', {graphWidth, graphHeight, centerX, centerY});
+
+            // Calculate scale to fit (with padding)
+            const scaleX = graphCanvas.width / graphWidth;
+            const scaleY = graphCanvas.height / graphHeight;
+            graphScale = Math.min(scaleX, scaleY, 2.0);
+
+            console.log('Calculated scale:', graphScale);
+
+            // Center the graph
+            graphOffsetX = graphCanvas.width / 2 - centerX * graphScale;
+            graphOffsetY = graphCanvas.height / 2 - centerY * graphScale;
+
+            console.log('Offset:', {graphOffsetX, graphOffsetY});
+
+            drawGraph();
+        }
+
+        // Update graph when packets change
+        const originalFetchPackets = fetchPackets;
+        fetchPackets = async function() {
+            await originalFetchPackets();
+            if (document.getElementById('graphView').classList.contains('active')) {
+                updateGraph();
+            }
+        };
+
+        // ===== NEW WIRESHARK-LIKE FEATURES =====
+
+        // 1. Column Customization
+        function showColumnSettings() {
+            document.getElementById('columnModal').classList.add('active');
+        }
+
+        function hideColumnSettings() {
+            document.getElementById('columnModal').classList.remove('active');
+        }
+
+        function toggleColumn(column) {
+            visibleColumns[column] = document.getElementById(`col-${column}`).checked;
+            updatePacketTable();
+        }
+
+        // 2. Advanced Filtering (Wireshark-like syntax)
+        function parseDisplayFilter(filterStr) {
+            if (!filterStr) return () => true;
+
+            filterStr = filterStr.toLowerCase().trim();
+
+            return (packet) => {
+                // ip.src == X or ip.dst == X
+                const ipSrcMatch = filterStr.match(/ip\.src\s*==\s*([0-9.]+)/);
+                if (ipSrcMatch && packet.source !== ipSrcMatch[1]) return false;
+
+                const ipDstMatch = filterStr.match(/ip\.dst\s*==\s*([0-9.]+)/);
+                if (ipDstMatch && packet.destination !== ipDstMatch[1]) return false;
+
+                // tcp.port == X or udp.port == X
+                const tcpPortMatch = filterStr.match(/tcp\.port\s*==\s*(\d+)/);
+                if (tcpPortMatch) {
+                    const port = parseInt(tcpPortMatch[1]);
+                    if (packet.protocol !== 'TCP' || (packet.source_port !== port && packet.dest_port !== port)) return false;
+                }
+
+                const udpPortMatch = filterStr.match(/udp\.port\s*==\s*(\d+)/);
+                if (udpPortMatch) {
+                    const port = parseInt(udpPortMatch[1]);
+                    if (packet.protocol !== 'UDP' || (packet.source_port !== port && packet.dest_port !== port)) return false;
+                }
+
+                // tcp, udp, modbus, etc (protocol filter)
+                if (filterStr === 'tcp' && packet.protocol !== 'TCP') return false;
+                if (filterStr === 'udp' && packet.protocol !== 'UDP') return false;
+                if (filterStr === 'modbus' && packet.protocol !== 'MODBUS') return false;
+                if (filterStr === 's7comm' && packet.protocol !== 'S7COMM') return false;
+                if (filterStr === 'opcua' && packet.protocol !== 'OPCUA') return false;
+
+                // Simple keyword search in info
+                if (filterStr.includes('contains')) {
+                    const containsMatch = filterStr.match(/contains\s+"([^"]+)"/);
+                    if (containsMatch && !packet.info.toLowerCase().includes(containsMatch[1])) return false;
+                }
+
+                return true;
+            };
+        }
+
+        // 3. Hex Dump Viewer
+        function displayHexDump(packet) {
+            if (!packet.raw_data) {
+                document.getElementById('hexContent').innerHTML = '<div class="no-data">No raw data available for this packet</div>';
+                return;
+            }
+
+            const bytes = packet.raw_data;
+            let html = '<div class="hex-dump">';
+
+            for (let i = 0; i < bytes.length; i += 16) {
+                const offset = i.toString(16).padStart(4, '0');
+                const hexBytes = [];
+                const asciiChars = [];
+
+                for (let j = 0; j < 16; j++) {
+                    if (i + j < bytes.length) {
+                        const byte = bytes[i + j];
+                        hexBytes.push(byte.toString(16).padStart(2, '0'));
+                        asciiChars.push(byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.');
+                    } else {
+                        hexBytes.push('  ');
+                        asciiChars.push(' ');
+                    }
+                }
+
+                html += `<div class="hex-line">`;
+                html += `<span class="hex-offset">${offset}:</span>`;
+                html += `<span class="hex-bytes">${hexBytes.join(' ')}</span>`;
+                html += `<span class="hex-ascii">${asciiChars.join('')}</span>`;
+                html += `</div>`;
+            }
+
+            html += '</div>';
+            document.getElementById('hexContent').innerHTML = html;
+        }
+
+        // 4. Follow Stream
+        async function followStream(srcIp, srcPort, dstIp, dstPort, protocol) {
+            const streamPackets = packets.filter(p =>
+                (p.source === srcIp && p.source_port === srcPort && p.destination === dstIp && p.dest_port === dstPort) ||
+                (p.source === dstIp && p.source_port === dstPort && p.destination === srcIp && p.dest_port === srcPort)
+            );
+
+            let html = `<div style="padding: 1rem;">`;
+            html += `<h4 style="color: #ff6b00;">Stream: ${srcIp}:${srcPort} ↔ ${dstIp}:${dstPort} (${protocol})</h4>`;
+            html += `<p style="color: #cccccc; margin: 0.5rem 0;">Packets in stream: ${streamPackets.length}</p>`;
+            html += `<div style="max-height: 400px; overflow-y: auto; background-color: #1a1a1a; padding: 0.5rem; margin-top: 1rem;">`;
+
+            streamPackets.forEach((p, idx) => {
+                const direction = (p.source === srcIp) ? '→' : '←';
+                const color = (p.source === srcIp) ? '#66ccff' : '#99ff99';
+                html += `<div style="margin-bottom: 0.5rem; border-left: 3px solid ${color}; padding-left: 0.5rem;">`;
+                html += `<span style="color: ${color};">[${idx + 1}] ${direction}</span> `;
+                html += `<span style="color: #cccccc;">${p.time} - ${p.length} bytes</span>`;
+                if (p.data) {
+                    html += `<div style="color: #ffffff; margin-top: 0.25rem; font-family: monospace; font-size: 0.85rem;">${p.data}</div>`;
+                }
+                html += `</div>`;
+            });
+
+            html += `</div></div>`;
+            document.getElementById('streamContent').innerHTML = html;
+        }
+
+        // 5. Time Display Options
+        function updateTimeFormat() {
+            timeFormat = document.getElementById('timeFormat').value;
+            updatePacketTable();
+        }
+
+        function formatPacketTime(packet, index) {
+            if (!packet.timestamp) return packet.time;
+
+            const packetTime = new Date(packet.timestamp);
+
+            switch (timeFormat) {
+                case 'absolute':
+                    return packetTime.toLocaleTimeString() + '.' + packetTime.getMilliseconds().toString().padStart(3, '0');
+                case 'delta':
+                    if (index === 0) return '0.000000';
+                    const prevPacket = displayedPackets[index - 1];
+                    if (!prevPacket.timestamp) return '0.000000';
+                    const delta = (new Date(packet.timestamp) - new Date(prevPacket.timestamp)) / 1000;
+                    return delta.toFixed(6);
+                case 'relative':
+                default:
+                    if (!captureStartTime) return packet.time;
+                    const relative = (packetTime - captureStartTime) / 1000;
+                    return relative.toFixed(6);
+            }
+        }
+
+        // 6. Color Rules
+        function initializeColorRules() {
+            colorRules = [
+                { name: 'Industrial Protocols', filter: (p) => ['MODBUS', 'S7COMM', 'OPCUA', 'ENIP'].includes(p.protocol), class: 'packet-row-industrial' },
+                { name: 'TCP Errors', filter: (p) => p.expert_info && p.expert_info.severity === 'error', class: 'packet-row-error' },
+                { name: 'Warnings', filter: (p) => p.expert_info && p.expert_info.severity === 'warning', class: 'packet-row-warning' }
+            ];
+        }
+
+        function getPacketRowClass(packet) {
+            for (const rule of colorRules) {
+                if (rule.filter(packet)) return rule.class;
+            }
+            return '';
+        }
+
+        // 7. Protocol Hierarchy Statistics
+        function updateProtocolHierarchy() {
+            if (packets.length === 0) {
+                document.getElementById('hierarchy-body').innerHTML = '<tr><td colspan="5" class="no-data">No packets captured yet</td></tr>';
+                return;
+            }
+
+            const totalPackets = packets.length;
+            const totalBytes = packets.reduce((sum, p) => sum + (p.length || 0), 0);
+
+            const hierarchy = new Map();
+
+            packets.forEach(p => {
+                // Root protocol (Ethernet)
+                if (!hierarchy.has('Ethernet')) {
+                    hierarchy.set('Ethernet', { packets: 0, bytes: 0, children: new Map() });
+                }
+                const eth = hierarchy.get('Ethernet');
+                eth.packets++;
+                eth.bytes += p.length || 0;
+
+                // IP layer
+                if (p.source && p.source !== 'N/A') {
+                    if (!eth.children.has('IP')) {
+                        eth.children.set('IP', { packets: 0, bytes: 0, children: new Map() });
+                    }
+                    const ip = eth.children.get('IP');
+                    ip.packets++;
+                    ip.bytes += p.length || 0;
+
+                    // Transport/Application layer
+                    const proto = p.protocol;
+                    if (!ip.children.has(proto)) {
+                        ip.children.set(proto, { packets: 0, bytes: 0 });
+                    }
+                    const transport = ip.children.get(proto);
+                    transport.packets++;
+                    transport.bytes += p.length || 0;
+                }
+            });
+
+            let html = '';
+            const renderHierarchy = (map, indent = 0) => {
+                map.forEach((data, proto) => {
+                    const pctPackets = ((data.packets / totalPackets) * 100).toFixed(2);
+                    const pctBytes = ((data.bytes / totalBytes) * 100).toFixed(2);
+                    const indentStr = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(indent);
+
+                    html += `<tr>`;
+                    html += `<td>${indentStr}${proto}</td>`;
+                    html += `<td>${data.packets.toLocaleString()}</td>`;
+                    html += `<td>${pctPackets}%</td>`;
+                    html += `<td>${formatBytes(data.bytes)}</td>`;
+                    html += `<td>${pctBytes}%</td>`;
+                    html += `</tr>`;
+
+                    if (data.children) {
+                        renderHierarchy(data.children, indent + 1);
+                    }
+                });
+            };
+
+            renderHierarchy(hierarchy);
+            document.getElementById('hierarchy-body').innerHTML = html;
+        }
+
+        // 8. Conversation Analysis
+        function updateConversations() {
+            if (packets.length === 0) {
+                document.getElementById('tcp-conversations-body').innerHTML = '<tr><td colspan="8" class="no-data">No packets captured yet</td></tr>';
+                document.getElementById('udp-conversations-body').innerHTML = '<tr><td colspan="7" class="no-data">No packets captured yet</td></tr>';
+                return;
+            }
+
+            const tcpConvs = new Map();
+            const udpConvs = new Map();
+
+            packets.forEach(p => {
+                if (p.protocol === 'TCP' && p.source_port && p.dest_port) {
+                    const key = [p.source, p.source_port, p.destination, p.dest_port].sort().join('-');
+                    if (!tcpConvs.has(key)) {
+                        tcpConvs.set(key, {
+                            addrA: p.source, portA: p.source_port,
+                            addrB: p.destination, portB: p.dest_port,
+                            packets: 0, bytes: 0, firstTime: p.timestamp, lastTime: p.timestamp
+                        });
+                    }
+                    const conv = tcpConvs.get(key);
+                    conv.packets++;
+                    conv.bytes += p.length || 0;
+                    conv.lastTime = p.timestamp;
+                } else if (p.protocol === 'UDP' && p.source_port && p.dest_port) {
+                    const key = [p.source, p.source_port, p.destination, p.dest_port].sort().join('-');
+                    if (!udpConvs.has(key)) {
+                        udpConvs.set(key, {
+                            addrA: p.source, portA: p.source_port,
+                            addrB: p.destination, portB: p.dest_port,
+                            packets: 0, bytes: 0
+                        });
+                    }
+                    const conv = udpConvs.get(key);
+                    conv.packets++;
+                    conv.bytes += p.length || 0;
+                }
+            });
+
+            // TCP conversations
+            let tcpHtml = '';
+            tcpConvs.forEach((conv, key) => {
+                const duration = conv.lastTime && conv.firstTime ?
+                    ((new Date(conv.lastTime) - new Date(conv.firstTime)) / 1000).toFixed(3) + 's' : 'N/A';
+                tcpHtml += `<tr>`;
+                tcpHtml += `<td>${conv.addrA}</td>`;
+                tcpHtml += `<td>${conv.portA}</td>`;
+                tcpHtml += `<td>${conv.addrB}</td>`;
+                tcpHtml += `<td>${conv.portB}</td>`;
+                tcpHtml += `<td>${conv.packets.toLocaleString()}</td>`;
+                tcpHtml += `<td>${formatBytes(conv.bytes)}</td>`;
+                tcpHtml += `<td>${duration}</td>`;
+                tcpHtml += `<td><button onclick="followStream('${conv.addrA}', ${conv.portA}, '${conv.addrB}', ${conv.portB}, 'TCP')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Follow</button></td>`;
+                tcpHtml += `</tr>`;
+            });
+            document.getElementById('tcp-conversations-body').innerHTML = tcpHtml || '<tr><td colspan="8">No TCP conversations</td></tr>';
+
+            // UDP conversations
+            let udpHtml = '';
+            udpConvs.forEach((conv, key) => {
+                udpHtml += `<tr>`;
+                udpHtml += `<td>${conv.addrA}</td>`;
+                udpHtml += `<td>${conv.portA}</td>`;
+                udpHtml += `<td>${conv.addrB}</td>`;
+                udpHtml += `<td>${conv.portB}</td>`;
+                udpHtml += `<td>${conv.packets.toLocaleString()}</td>`;
+                udpHtml += `<td>${formatBytes(conv.bytes)}</td>`;
+                udpHtml += `<td><button onclick="followStream('${conv.addrA}', ${conv.portA}, '${conv.addrB}', ${conv.portB}, 'UDP')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Follow</button></td>`;
+                udpHtml += `</tr>`;
+            });
+            document.getElementById('udp-conversations-body').innerHTML = udpHtml || '<tr><td colspan="7">No UDP conversations</td></tr>';
+        }
+
+        // 9. Expert Info System
+        function analyzeExpertInfo(packet) {
+            const info = [];
+
+            // TCP-specific checks
+            if (packet.protocol === 'TCP' && packet.layers && packet.layers.tcp) {
+                const tcp = packet.layers.tcp;
+
+                // Retransmission detection (simplified)
+                if (tcp.flags && tcp.flags.includes('R')) {
+                    info.push({ severity: 'warning', message: 'TCP Reset' });
+                }
+
+                // SYN without ACK (connection attempt)
+                if (tcp.flags && tcp.flags.includes('S') && !tcp.flags.includes('A')) {
+                    info.push({ severity: 'note', message: 'TCP Connection SYN' });
+                }
+            }
+
+            // Industrial protocol checks
+            if (['MODBUS', 'S7COMM', 'OPCUA', 'ENIP'].includes(packet.protocol)) {
+                info.push({ severity: 'note', message: `Industrial Protocol: ${packet.protocol}` });
+            }
+
+            return info.length > 0 ? info[0] : null;
+        }
+
+        function getExpertBadge(expertInfo) {
+            if (!expertInfo) return '';
+            const classes = {
+                'error': 'expert-error',
+                'warning': 'expert-warning',
+                'note': 'expert-note'
+            };
+            return `<span class="expert-badge ${classes[expertInfo.severity]}">${expertInfo.message}</span>`;
+        }
+
+        // 10. Search/Find Functionality
+        function showSearch() {
+            document.getElementById('searchBox').style.display = 'flex';
+            document.getElementById('searchInput').focus();
+        }
+
+        function hideSearch() {
+            document.getElementById('searchBox').style.display = 'none';
+            searchResults = [];
+            currentSearchIndex = -1;
+        }
+
+        function findPackets() {
+            const query = document.getElementById('searchInput').value;
+            const searchType = document.getElementById('searchType').value;
+
+            if (!query) return;
+
+            searchResults = [];
+
+            if (searchType === 'display') {
+                const filter = parseDisplayFilter(query);
+                searchResults = packets.filter(filter).map(p => p.id);
+            } else if (searchType === 'string') {
+                searchResults = packets.filter(p =>
+                    p.info.toLowerCase().includes(query.toLowerCase()) ||
+                    (p.data && p.data.toLowerCase().includes(query.toLowerCase()))
+                ).map(p => p.id);
+            } else if (searchType === 'hex') {
+                // Simplified hex search
+                searchResults = packets.filter(p =>
+                    p.raw_data && p.raw_data.toString('hex').includes(query.replace(/\s/g, ''))
+                ).map(p => p.id);
+            }
+
+            currentSearchIndex = 0;
+            if (searchResults.length > 0) {
+                jumpToPacket(searchResults[0]);
+            } else {
+                alert('No packets found matching the search criteria');
+            }
+        }
+
+        function findNext() {
+            if (searchResults.length === 0) return;
+            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+            jumpToPacket(searchResults[currentSearchIndex]);
+        }
+
+        function findPrevious() {
+            if (searchResults.length === 0) return;
+            currentSearchIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+            jumpToPacket(searchResults[currentSearchIndex]);
+        }
+
+        function jumpToPacket(packetId) {
+            selectedPacketId = packetId;
+            const packet = packets.find(p => p.id === packetId);
+            if (packet) {
+                displayPacketDetails(packet);
+                updatePacketTable();
+
+                // Scroll to packet
+                const row = document.querySelector(`#packetTableBody tr[data-packet-id="${packetId}"]`);
+                if (row) {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        // Details tab switching
+        function switchDetailsTab(tab) {
+            document.querySelectorAll('.details-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.details-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+
+            if (tab === 'details') {
+                document.getElementById('detailsContent').classList.add('active');
+            } else if (tab === 'hex') {
+                document.getElementById('hexContent').classList.add('active');
+                const packet = packets.find(p => p.id === selectedPacketId);
+                if (packet) displayHexDump(packet);
+            } else if (tab === 'stream') {
+                document.getElementById('streamContent').classList.add('active');
+            }
+        }
+
+    </script>
+</body>
+</html>

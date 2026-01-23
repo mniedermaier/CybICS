@@ -30,7 +30,7 @@ Alternatively, in station mode, the device attempts to join an existing network 
 First **connect in AP mode** to access the different applications running on the system.
 
 ## Virtual Environment
-As a requriement docker and docker compose needs to be setup on the system.
+As a requirement docker and docker compose needs to be setup on the system.
 
 ### Option 1: Run within VS Code / Codium Devcontainer
 VS Code oder Codium is required for this method.
