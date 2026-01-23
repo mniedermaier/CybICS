@@ -1,6 +1,9 @@
+# FUXA HMI
+
+## Overview
+FUXA is a web-based SCADA/HMI interface for monitoring and controlling the industrial process.
+
 ## Usage
-
-
 FUXA is running on port 1881.
 
 ## Users
@@ -97,3 +100,9 @@ Make a pretty version of the FUXA project file:
 ```sh
 jq . fuxa-project.json > fuxa-project-pretty.json
 ```
+
+## Related Documentation
+- [OpenPLC Integration](../OpenPLC/README.md)
+- [Virtual Hardware I/O](../hwio-virtual/README.md)
+- [Raspberry Pi Hardware I/O](../hwio-raspberry/README.md)
+- [Getting Started Guide](../../doc/README.md)

@@ -85,7 +85,7 @@ The flag has the format `CybICS(flag)`.
   ```
 
   Username: user1
-  Passwort: test
+  Password: test
   
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(OPC-UA)

@@ -1,6 +1,6 @@
 # 🔍 S7 Communication Scanning Guide
 
-## 📋 Introduction
+## 📋 Overview
 Siemens **S7 Communication (S7comm)** typically operates on **port 102**, but can also run on custom ports. In this environment, the S7 service runs on **port 1102**. Nmap provides an **NSE script (`s7-info`)** to scan for and retrieve information from **S7 PLCs**.
 
 ## ⚙️ Prerequisites

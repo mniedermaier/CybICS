@@ -262,7 +262,7 @@ If the AI Agent shows as unavailable:
 
 - Explore the [Training Modules](../training/) for hands-on cybersecurity scenarios
 - Review the [Software Documentation](../software/) for detailed component information
-- Join our community and contribute on [GitHub](https://github.com/hsainnos/CybICS)
+- Join our community and contribute on [GitHub](https://github.com/mniedermaier/CybICS)
 
 ## License
 

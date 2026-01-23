@@ -1,4 +1,9 @@
-### Configuration
+# OPC UA Server
+
+## Overview
+The OPC UA server provides an OPC Unified Architecture interface for industrial communication. It enables secure and reliable data exchange between clients and the CybICS platform.
+
+## Configuration
 
 Generate user hmac sha256:
 ```sh
@@ -14,3 +19,8 @@ Convert pem to der format:
 ```sh
 openssl x509 -in cert_admin.pem -out cert_admin.der -outform DER
 ```
+
+## Related Documentation
+- [OpenPLC Integration](../OpenPLC/README.md)
+- [OPC UA Training Module](../../training/opcua/README.md)
+- [Getting Started Guide](../../doc/README.md)
