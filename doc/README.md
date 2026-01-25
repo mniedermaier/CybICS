@@ -53,8 +53,23 @@ CybICS supports three different startup modes to match your needs:
 ./cybics.sh restart           # Restart all services
 ./cybics.sh status            # Show status of all services
 ./cybics.sh logs              # Show logs from all services
+./cybics.sh update            # Pull latest Docker images
 ./cybics.sh clean             # Remove all containers, images, and volumes
 ./cybics.sh compose ps        # Direct docker compose commands
+```
+
+#### Updating CybICS
+
+To pull the latest Docker images for all services:
+
+```bash
+./cybics.sh update
+```
+
+After updating, restart the environment to apply changes:
+
+```bash
+./cybics.sh restart
 ```
 
 #### Specifying Version

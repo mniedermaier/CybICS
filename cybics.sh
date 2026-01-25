@@ -37,7 +37,7 @@ print_message() {
 
 # Function to show help message
 show_help() {
-    echo "Usage: $0 {start|stop|restart|status|logs|clean|compose} [--mode <mode>] [--version <tag>]"
+    echo "Usage: $0 {start|stop|restart|status|logs|update|clean|compose} [--mode <mode>] [--version <tag>]"
     echo ""
     echo "Commands:"
     echo "  start   - Start the CybICS virtual environment"
@@ -45,6 +45,7 @@ show_help() {
     echo "  restart - Restart the CybICS virtual environment"
     echo "  status  - Show status of all services"
     echo "  logs    - Show logs from all services"
+    echo "  update  - Pull latest Docker images for all services"
     echo "  clean   - Remove all CybICS containers, images, and volumes"
     echo "  compose - Directly interact with docker compose (e.g., $0 compose ps)"
     echo ""
@@ -323,6 +324,24 @@ direct_compose() {
     $DOCKER_COMPOSE "$@"
 }
 
+# Function to update (pull latest images)
+update_images() {
+    print_message "Pulling latest CybICS Docker images..." "$YELLOW"
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
+    $DOCKER_COMPOSE pull
+    if [ $? -eq 0 ]; then
+        print_message "CybICS Docker images updated successfully!" "$GREEN"
+        print_message "\nTo apply updates, restart the environment with:" "$YELLOW"
+        print_message "  ./cybics.sh restart" "$BLUE"
+    else
+        print_message "Error: Failed to pull CybICS Docker images." "$RED"
+        exit 1
+    fi
+}
+
 # Main script
 print_banner
 check_docker
@@ -358,7 +377,7 @@ while [[ $# -gt 0 ]]; do
                 show_help
             fi
             ;;
-        start|stop|restart|status|logs|clean|compose)
+        start|stop|restart|status|logs|update|clean|compose)
             COMMAND="$1"
             shift
             # For 'compose' command, save remaining arguments
@@ -419,6 +438,9 @@ case "$COMMAND" in
         ;;
     "logs")
         show_logs
+        ;;
+    "update")
+        update_images
         ;;
     "clean")
         remove_containers
