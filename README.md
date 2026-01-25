@@ -189,6 +189,9 @@ Get CybICS running in under 5 minutes using the virtual environment!
 
 # Restart the environment
 ./cybics.sh restart
+
+# Update Docker images to latest version
+./cybics.sh update
 ```
 ---
 
