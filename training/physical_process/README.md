@@ -1,5 +1,7 @@
 # 🏭 Understanding the Physical Process
 
+> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/)
+
 ## 📋 Overview
 In an industrial environment, the physical process refers to the actual operations and mechanisms involved in manufacturing, processing, or producing goods.
 This includes activities such as the movement of raw materials through conveyor belts, the operation of machinery to shape or assemble components, and the monitoring of variables like temperature, pressure, and flow rates to ensure optimal performance.
@@ -29,9 +31,42 @@ To get the flag, the blowout needs to be triggered.
 
 **💡 Hint**: The flag appears on the FUXA HMI, when the blowout was triggered.
 
+## 🛡️ Security Framework References
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
-  
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Impair Process Control | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Adversaries may manipulate physical process control within the industrial environment to cause a disruption |
+
+**Why this matters:** This training demonstrates how an operator (or attacker with operator access) can manipulate process control parameters to cause unsafe conditions. In real-world attacks like Stuxnet or TRITON, adversaries manipulated control systems to cause physical damage or safety incidents. Understanding normal process operation is essential before learning to detect malicious manipulation.
+
+### MITRE D3FEND - Defensive Countermeasures
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Operational Process Monitoring | [D3-OPM](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/) | Monitoring operational processes for anomalies that may indicate compromise |
+| Physical Environment Monitoring | [D3-PEM](https://d3fend.mitre.org/technique/d3f:PhysicalEnvironmentMonitoring/) | Monitoring physical environment conditions to detect abnormal states |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **Physical and Environmental Protection (PE)** | PE-3, PE-6 | Physical access control and monitoring of OT environments |
+| **System and Information Integrity (SI)** | SI-4, SI-13 | System monitoring and predictive maintenance to detect unsafe process states |
+
+**Why NIST 800-82r3 matters here:** Understanding the physical process is foundational to implementing effective security controls. NIST 800-82r3 Section 5 emphasizes that OT security must account for the unique characteristics of physical processes, including safety implications of process manipulation. This training helps you understand what "normal" looks like—essential for detecting anomalies later.
+
+</details>
+
+## 🔍 Solution
+
+<details>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+
   After login on the FUXA dashboard switch to the "System" view.
   By closing the "System Valve" (SV) and enabling the Compressor (C),
   the pressure is rising.
@@ -41,6 +76,6 @@ To get the flag, the blowout needs to be triggered.
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(Bl0w0ut)
   </div>
-  
+
   ![Flag OpenPLC Password](doc/flag.png)
 </details>

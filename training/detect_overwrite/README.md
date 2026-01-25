@@ -1,5 +1,7 @@
 # 🔍 Detection Training - Override
 
+> **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-OPM - Operational Process Monitoring](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/)
+
 ## 📋 Overview
 One common attack is Modbus TCP register flooding, where an attacker sends a continuous stream of malicious Modbus commands to overwrite or spoof register values.
 This can disrupt processes, cause equipment failure, or provide incorrect data to operators.
@@ -39,8 +41,55 @@ Flooding often generates a high volume of packets, potentially leading to conges
 python3 override.py <DEVICE_IP>
 ```
 
+## 🛡️ Security Framework References
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS - Detected Techniques
+
+This training focuses on **detecting** the following adversary techniques:
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Impair Process Control | Modify Parameter | [T0836](https://attack.mitre.org/techniques/T0836/) | Modifying process parameters to affect operation |
+| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Sending unauthorized commands to ICS devices |
+| Impair Process Control | Brute Force I/O | [T0806](https://attack.mitre.org/techniques/T0806/) | Repeatedly overwriting I/O values |
+
+**Why this matters:** Detecting ongoing attacks is more challenging than detecting reconnaissance. Register flooding attacks actively manipulate the process while you're trying to detect them. This training simulates the pressure of real incident response—you must identify the attack, understand its impact, and gather evidence while the attack continues.
+
+### MITRE D3FEND - Defensive Techniques (Primary Focus)
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Analyzing Modbus traffic for anomalies |
+| Operational Process Monitoring | [D3-OPM](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/) | Monitoring process values for unexpected changes |
+| Message Analysis | [D3-MA](https://d3fend.mitre.org/technique/d3f:MessageAnalysis/) | Analyzing message content to identify malicious commands |
+| Baseline Deviation Detection | [D3-BDD](https://d3fend.mitre.org/technique/d3f:BaselineDeviationDetection/) | Detecting deviations from normal traffic baselines |
+
+**Detection indicators to look for:**
+- Abnormally high frequency of Modbus write commands (Function Code 6 or 16)
+- Repeated writes to the same register address
+- Write commands from unexpected source IPs
+- Process values that don't match expected physics (e.g., pressure changing faster than physically possible)
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **System and Information Integrity (SI)** | SI-4, SI-7 | System monitoring and software/information integrity |
+| **Audit and Accountability (AU)** | AU-3, AU-6 | Detailed audit records and automated review |
+| **Incident Response (IR)** | IR-4, IR-5 | Incident handling and monitoring |
+| **System and Communications Protection (SC)** | SC-5, SC-7 | Denial of service protection and boundary protection |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 recommends both network-based and process-based monitoring for comprehensive detection. SI-4 (System Monitoring) should include industrial protocol-aware intrusion detection systems (IDS) that understand Modbus semantics. SC-5 (Denial of Service Protection) recommends rate limiting and anomaly detection for industrial protocols. This training teaches you to correlate network observations (high write frequency) with process observations (unexpected pressure changes)—the hallmark of effective OT security monitoring.
+
+</details>
+
+## 🔍 Solution
+
+<details>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
 
   ### 🔍 Wireshark Analysis
 

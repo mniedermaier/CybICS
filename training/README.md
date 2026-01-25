@@ -10,6 +10,32 @@ You have the flexibility to complete the training modules in any sequence that b
 However, to maximize your learning and ensure a structured approach, we recommend following the suggested order.
 This recommended sequence is designed to build your knowledge progressively, laying a solid groundwork before advancing to more complex topics.
 
+## 🛡️ Security Framework Alignment
+
+All training modules are mapped to industry-standard security frameworks to help you understand the real-world relevance of each exercise:
+
+- **[MITRE ATT&CK for ICS](https://attack.mitre.org/matrices/ics/)** - Adversary tactics and techniques for Industrial Control Systems
+- **[MITRE D3FEND](https://d3fend.mitre.org/)** - Defensive countermeasures (for detection modules)
+- **[NIST SP 800-82r3](https://csrc.nist.gov/pubs/sp/800/82/r3/final)** - Guide to Operational Technology (OT) Security
+
+### 📊 MITRE ATT&CK for ICS Coverage Matrix
+
+| Module | Tactic | Techniques | IDs |
+|--------|--------|------------|-----|
+| [Physical Process](physical_process/README.md) | Impair Process Control | Manipulation of Control | T0831 |
+| [PLC Programming](plc_programming/README.md) | Execution, Persistence | Modify Program, Program Download | T0889, T0843 |
+| [Service Scanning](scanning/README.md) | Discovery | Remote System Discovery, Network Connection Enumeration | T0846, T0840 |
+| [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Point & Tag Identification | T0846, T0861 |
+| [Wireshark Capture](wireshark_capture/README.md) | Collection | Network Sniffing | T0842 |
+| [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control | Modify Parameter, Unauthorized Command Message, Brute Force I/O | T0836, T0855, T0806 |
+| [Password Attack](password_attack/README.md) | Initial Access, Persistence | Default Credentials, Valid Accounts | T0812, T0859 |
+| [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts, Exploitation of Remote Services | T0859, T0866 |
+| [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Command Message, Denial of Service | T0855, T0814 |
+| [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Spoof Reporting Message | T0830, T0856 |
+| [UART Training](uart_basic/README.md) | Initial Access | Default Credentials, External Remote Services | T0812, T0822 |
+| [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
+| [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
+
 ## 📚 Training Modules
 
 ### 🏭 Basic Understanding
@@ -32,3 +58,13 @@ This recommended sequence is designed to build your knowledge progressively, lay
 11. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
 12. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
 13. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+
+---
+
+## 📖 Further Reading
+
+### Security Frameworks
+- [MITRE ATT&CK for ICS Matrix](https://attack.mitre.org/matrices/ics/) - Complete ICS attack techniques reference
+- [MITRE ATT&CK for ICS Techniques](https://attack.mitre.org/techniques/ics/) - Detailed technique descriptions
+- [MITRE D3FEND](https://d3fend.mitre.org/) - Defensive countermeasures framework
+- [NIST SP 800-82r3](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf) - Guide to OT Security (PDF)
