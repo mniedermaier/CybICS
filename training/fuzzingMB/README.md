@@ -1,5 +1,7 @@
 # 🧪 Network Fuzzing Guide
 
+> **MITRE ATT&CK for ICS:** `Impair Process Control` `Impact` | [T0855 - Unauthorized Command Message](https://attack.mitre.org/techniques/T0855/) | [T0814 - Denial of Service](https://attack.mitre.org/techniques/T0814/)
+
 ## 📋 Introduction
 Network fuzzing is a security testing technique used to identify vulnerabilities in network protocols, services, and applications by sending malformed or unexpected data. The goal is to discover security flaws such as buffer overflows, denial-of-service (DoS) vulnerabilities, and other unintended behaviors.
 
@@ -79,9 +81,45 @@ Select the proper fuzzing method (e.g., 1 for all):
 ### ⏳ Time to Wait
 Grab a coffee ☕☕☕☕ while the fuzzer runs
 
+## 🛡️ Security Framework References
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
-  
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Adversaries may send malformed or unexpected commands to disrupt control |
+| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Adversaries may crash or disrupt services through malformed input |
+
+**Why this matters:** Protocol fuzzing reveals how ICS devices handle unexpected or malformed input. Many PLCs and industrial devices have limited error handling and can crash or behave unpredictably when receiving invalid data. Understanding these weaknesses helps both attackers (to find exploitable bugs) and defenders (to test device resilience before deployment).
+
+### MITRE D3FEND - Defensive Countermeasures
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Protocol Metadata Anomaly Detection | [D3-PMAD](https://d3fend.mitre.org/technique/d3f:ProtocolMetadataAnomalyDetection/) | Detecting malformed protocol messages |
+| Input Validation | [D3-IV](https://d3fend.mitre.org/technique/d3f:InputValidation/) | Validating input to prevent exploitation |
+| Application Exception Monitoring | [D3-AEM](https://d3fend.mitre.org/technique/d3f:ApplicationExceptionMonitoring/) | Monitoring for crashes and exceptions caused by fuzzing |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **System and Information Integrity (SI)** | SI-10, SI-17 | Information input validation and fail-safe procedures |
+| **System and Communications Protection (SC)** | SC-5 | Denial of service protection |
+| **Risk Assessment (RA)** | RA-5 | Vulnerability scanning including protocol fuzzing |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 addresses the need for input validation (SI-10) in OT systems. Many legacy devices were designed for trusted environments and lack proper input validation. RA-5 (Vulnerability Scanning) recommends testing systems for robustness, including protocol fuzzing—but only in controlled environments. SI-17 (Fail-Safe Procedures) ensures that when devices do fail, they fail safely without causing dangerous conditions.
+
+</details>
+
+## 🔍 Solution
+
+<details>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+
   After completion, use the following flag:
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(modbus_fuzzing_complete)

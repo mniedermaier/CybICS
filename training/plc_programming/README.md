@@ -1,5 +1,7 @@
 # 🏭 PLC Programming Guide
 
+> **MITRE ATT&CK for ICS:** `Execution` `Persistence` | [T0889 - Modify Program](https://attack.mitre.org/techniques/T0889/) | [T0843 - Program Download](https://attack.mitre.org/techniques/T0843/)
+
 ## 📋 Overview
 This module introduces the concept of programming the PLC in the CybICS testbed.
 
@@ -84,9 +86,45 @@ Upload the program to the OpenPLC via the web interface on port 8080.
 Do not forget to delete the previous CybICS ST code.
 
 
+## 🛡️ Security Framework References
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
-  
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Execution | Modify Program | [T0889](https://attack.mitre.org/techniques/T0889/) | Adversaries may modify or add programs on controllers to affect how they interact with physical processes |
+| Persistence | Program Download | [T0843](https://attack.mitre.org/techniques/T0843/) | Adversaries may download programs to controllers to establish persistence or modify process behavior |
+
+**Why this matters:** PLC program modification is one of the most impactful attack vectors in ICS environments. Attacks like Stuxnet used modified PLC code to cause centrifuge damage while hiding the manipulation from operators. Understanding legitimate PLC programming helps you recognize unauthorized changes and implement proper change management controls.
+
+### MITRE D3FEND - Defensive Countermeasures
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Firmware Verification | [D3-FV](https://d3fend.mitre.org/technique/d3f:FirmwareVerification/) | Verifying firmware integrity to detect unauthorized modifications |
+| File Hash Checking | [D3-FHC](https://d3fend.mitre.org/technique/d3f:FileHashChecking/) | Comparing file hashes to detect unauthorized program changes |
+| Operational Logic Validation | [D3-OLV](https://d3fend.mitre.org/technique/d3f:OperationalLogicValidation/) | Validating that operational logic matches expected behavior |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **Configuration Management (CM)** | CM-3, CM-5, CM-6 | Configuration change control, access restrictions, and baseline configurations |
+| **System and Information Integrity (SI)** | SI-7 | Software, firmware, and information integrity verification |
+| **Audit and Accountability (AU)** | AU-2, AU-12 | Logging of configuration changes and program modifications |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.5 specifically addresses the need for strict configuration management in OT environments. PLC programs are critical assets that directly control physical processes—unauthorized modifications can cause safety incidents, production disruptions, or equipment damage. This training builds the foundation for implementing CM-3 (Configuration Change Control) effectively.
+
+</details>
+
+## 🔍 Solution
+
+<details>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+
   After completion, use the following flag:
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(ladder_logic_modified)

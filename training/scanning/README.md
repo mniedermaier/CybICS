@@ -1,5 +1,7 @@
 # 🔍 Service Scanning Guide
 
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T0840 - Network Connection Enumeration](https://attack.mitre.org/techniques/T0840/)
+
 ## 📋 Overview
 Network scanning in industrial environments involves systematically probing the network to identify connected devices, open ports, and potential vulnerabilities.
 This process is crucial for maintaining the security and integrity of industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) networks.
@@ -17,8 +19,44 @@ To maximize security, network scans should be conducted periodically and after a
 ## 🛠️ Using Nmap
 To identify open ports and services within the CybICS testbed you can use nmap. Your goal is to perform service version detection to discover the flag hidden in a service banner.
 
+## 🛡️ Security Framework References
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Adversaries may attempt to get a listing of other systems by IP address, hostname, or other logical identifier |
+| Discovery | Network Connection Enumeration | [T0840](https://attack.mitre.org/techniques/T0840/) | Adversaries may enumerate connections to identify targets and understand network topology |
+
+**Why this matters:** Network scanning is typically the first step in any attack chain. Adversaries use tools like Nmap to identify ICS devices, determine running services, and find potential vulnerabilities. Understanding how attackers perform reconnaissance helps you implement effective detection mechanisms and network segmentation strategies.
+
+### MITRE D3FEND - Defensive Countermeasures
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Analyzing network traffic to detect scanning and enumeration activities |
+| Protocol Metadata Anomaly Detection | [D3-PMAD](https://d3fend.mitre.org/technique/d3f:ProtocolMetadataAnomalyDetection/) | Detecting anomalies in protocol metadata that indicate reconnaissance |
+| Connection Attempt Analysis | [D3-CAA](https://d3fend.mitre.org/technique/d3f:ConnectionAttemptAnalysis/) | Analyzing connection attempts to identify scanning behavior |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **System and Communications Protection (SC)** | SC-7 | Boundary protection and network segmentation to limit scan effectiveness |
+| **System and Information Integrity (SI)** | SI-4 | System monitoring to detect unauthorized scanning activities |
+| **Risk Assessment (RA)** | RA-5 | Vulnerability scanning (authorized) to identify exposures before attackers |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 5.1.2 emphasizes defense-in-depth through network segmentation and monitoring. By understanding how scanning works, you can better implement SC-7 (Boundary Protection) controls like firewalls and intrusion detection systems. The information revealed by service banners (as seen in this exercise) demonstrates why SI-4 (System Monitoring) is critical for detecting early-stage attacks.
+
+</details>
+
+## 🔍 Solution
+
+<details>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
 
   Execute the following nmap command to perform service version detection:
   ```sh

@@ -1,5 +1,7 @@
 # 🏭 OPC UA Security & Attack Guide
 
+> **MITRE ATT&CK for ICS:** `Initial Access` `Lateral Movement` | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/) | [T0866 - Exploitation of Remote Services](https://attack.mitre.org/techniques/T0866/)
+
 ## 📋 Overview
 An OPC UA client is a software application that connects to an OPC UA server to read, write, and monitor data within industrial systems.
 This client can interact with various devices and systems, enabling seamless communication and data exchange across different platforms and manufacturers.
@@ -48,8 +50,46 @@ In the case of a successful brute force attack, you should see the username and 
 The flag has the format `CybICS(flag)`.
 
 **💡 Hint**: The flag is readable on the OPC UA system of the user, which you need to brute force
+
+## 🛡️ Security Framework References
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Initial Access | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Adversaries may use valid credentials (username/password or certificates) to gain access |
+| Lateral Movement | Exploitation of Remote Services | [T0866](https://attack.mitre.org/techniques/T0866/) | Adversaries may exploit OPC UA services for lateral movement |
+
+**Why this matters:** OPC UA is the modern successor to legacy protocols and includes security features like encryption and certificate-based authentication. However, misconfigured OPC UA servers, weak passwords, and leaked certificates can still enable unauthorized access. This training demonstrates that even "secure" protocols require proper implementation—security features don't help if they're disabled or misconfigured.
+
+### MITRE D3FEND - Defensive Countermeasures
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Certificate-based Authentication | [D3-CBA](https://d3fend.mitre.org/technique/d3f:Certificate-basedAuthentication/) | Using certificates for strong authentication |
+| Public Key Infrastructure | [D3-PKI](https://d3fend.mitre.org/technique/d3f:PublicKeyInfrastructure/) | Managing certificates and trust relationships |
+| Authentication Event Monitoring | [D3-AEM](https://d3fend.mitre.org/technique/d3f:AuthenticationEventMonitoring/) | Detecting brute force and unauthorized authentication attempts |
+| Certificate Revocation | [D3-CR](https://d3fend.mitre.org/technique/d3f:CertificateRevocation/) | Revoking compromised certificates |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **Identification and Authentication (IA)** | IA-2, IA-5, IA-9 | Multi-factor authentication, authenticator management, and service identification |
+| **System and Communications Protection (SC)** | SC-8, SC-12, SC-17 | Transmission confidentiality, cryptographic key management, and PKI certificates |
+| **Access Control (AC)** | AC-3, AC-6 | Access enforcement and least privilege |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.10 recommends using OPC UA's security features where available. SC-17 (PKI Certificates) provides guidance on certificate management—certificates should be properly stored, rotated, and revoked when compromised. The leaked certificates in this exercise demonstrate why certificate management (SC-12) is as important as the cryptography itself. IA-9 (Service Identification) emphasizes authenticating services, not just users.
+
+</details>
+
+## 🔍 Solution (User Flag)
+
+<details>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
 
   Check if connection to OPC UA works with:
   ```
@@ -96,9 +136,11 @@ The flag has the format `CybICS(flag)`.
 ## 🛡️ Getting an Overview of the Security Configuration
 Use the metasploit module `auxiliary/scanner/opcua/opcua_server_config` for this investigation
 
+## 🔍 Solution (Security Configuration)
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
-  
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+
   ```
   msf6 > use auxiliary/scanner/opcua/opcua_server_config
   msf6 auxiliary(scanner/opcua/opcua_server_config) > set rhosts 10.0.0.1
@@ -145,15 +187,18 @@ Certificates in OPC UA (Open Platform Communications Unified Architecture) are c
 #### 📝 Summary
 Certificates in OPC UA are essential for establishing secure, authenticated, and encrypted communication channels in industrial environments. They play a vital role in protecting data integrity, confidentiality, and authenticity. Effective management of certificates, including their issuance, storage, revocation, and renewal, is crucial for maintaining a secure OPC UA network and ensuring reliable operation of industrial control systems.
 
+## 🔍 Solution (Admin Access)
+
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
+  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+
   Use opcua-client and configure on `Connect option` the usage of the certificate.
   ```
   opcua-client
   ```
 
   Now you can change the variable `Set > 0 to obtain flag!` to a value bigger than zero and access the variable for the admin flag `adminFLAG`
-  
+
   <div style="color:orange;font-weight: 900">
     🚩 Flag: CybICS(OPC-UA-$ADMIN)
   </div>
