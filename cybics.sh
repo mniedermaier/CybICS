@@ -238,7 +238,14 @@ start_environment() {
         exit 1
     }
 
-    # Capture both stdout and stderr
+    # Pull images first with visible progress
+    print_message "Pulling Docker images (this may take a while on first run)..." "$YELLOW"
+    if ! $DOCKER_COMPOSE pull; then
+        print_message "Warning: Some images could not be pulled. Continuing with available images..." "$YELLOW"
+    fi
+
+    # Start containers (capture output for error handling)
+    print_message "Starting containers..." "$YELLOW"
     local output
     output=$($DOCKER_COMPOSE up -d 2>&1)
     local exit_code=$?
