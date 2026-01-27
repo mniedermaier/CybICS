@@ -1,0 +1,12 @@
+docker.io
+docker-compose
+zram-tools
+tcpdump
+btop
+socat
+lsof
+picocom
+smemstat
+python3-serial
+network-manager
+i2c-tools

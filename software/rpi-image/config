@@ -1,0 +1,19 @@
+# CybICS Pi-Gen Configuration
+# This file configures the Raspberry Pi image build
+
+IMG_NAME="CybICS"
+RELEASE="trixie"
+TARGET_HOSTNAME="cybics"
+FIRST_USER_NAME="pi"
+FIRST_USER_PASS="raspberry"
+ENABLE_SSH="1"
+LOCALE_DEFAULT="en_US.UTF-8"
+KEYBOARD_KEYMAP="us"
+KEYBOARD_LAYOUT="English (US)"
+TIMEZONE_DEFAULT="UTC"
+WPA_COUNTRY="US"
+DEPLOY_COMPRESSION="xz"
+
+# Build only up to stage2 (Lite) + our custom stage
+# Skip stages 3-5 (desktop environments)
+STAGE_LIST="stage0 stage1 stage2 stage-cybics"

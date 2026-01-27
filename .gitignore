@@ -154,3 +154,15 @@ software/landing/data/*.json
 !software/landing/data/.gitkeep
 software/landing/app.py.backup
 software/landing/app.py.old
+
+# Raspberry Pi image build artifacts
+software/rpi-image/deploy/
+software/rpi-image/pi-gen/work/
+software/rpi-image/pi-gen/deploy/
+software/rpi-image/pi-gen/config
+software/rpi-image/pi-gen/stage-cybics/
+software/rpi-image/pi-gen/stage*/SKIP
+software/rpi-image/pi-gen/stage*/SKIP_IMAGES
+software/rpi-image/stage-cybics/02-load-containers/containers/
+*.img
+*.img.xz

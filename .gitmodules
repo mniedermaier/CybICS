@@ -1,3 +1,7 @@
 [submodule "software/OpenPLC/OpenPLC_v3"]
 	path = software/OpenPLC/OpenPLC_v3
 	url = ../OpenPLC_v3
+[submodule "software/rpi-image/pi-gen"]
+	path = software/rpi-image/pi-gen
+	url = https://github.com/RPi-Distro/pi-gen.git
+	branch = arm64

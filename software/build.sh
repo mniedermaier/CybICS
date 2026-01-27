@@ -3,6 +3,9 @@
 set -e
 cd "$(dirname "$0")"
 
+# Output directory for tarballs (can be set externally)
+TARBALL_DIR="${TARBALL_DIR:-}"
+
 # Ensure we always switch back to default builder, even on error/interrupt
 trap 'docker buildx use default' EXIT
 
@@ -14,13 +17,46 @@ docker buildx inspect --bootstrap
 docker compose -f ../.devcontainer/stm32/docker-compose.yml build
 docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
 
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-hwio-raspberry:latest --push ./hwio-raspberry
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-openplc:latest --push ./OpenPLC
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-opcua:latest --push ./opcua
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-s7com:latest --push ./s7com
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-fuxa:latest --push ./FUXA
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-stm32:latest --push ./stm32
+# Build function that handles both registry push and optional tarball export
+build_image() {
+    local name="$1"
+    local context="$2"
+    local dockerfile="${3:-}"
+
+    local registry_tag="172.17.0.1:5050/${name}:latest"
+    local local_tag="${name}:latest"
+
+    if [ -n "$TARBALL_DIR" ]; then
+        # Export directly to tarball with LOCAL name (for offline use on Pi)
+        echo "Building ${name} with tarball export..."
+        if [ -n "$dockerfile" ]; then
+            docker buildx build --platform linux/arm64 -t "$local_tag" --output "type=docker,dest=${TARBALL_DIR}/${name}.tar" -f "$dockerfile" "$context"
+        else
+            docker buildx build --platform linux/arm64 -t "$local_tag" --output "type=docker,dest=${TARBALL_DIR}/${name}.tar" "$context"
+        fi
+        # Also push to registry for caching (with registry tag)
+        if [ -n "$dockerfile" ]; then
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push -f "$dockerfile" "$context"
+        else
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push "$context"
+        fi
+    else
+        # Just push to registry
+        if [ -n "$dockerfile" ]; then
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push -f "$dockerfile" "$context"
+        else
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push "$context"
+        fi
+    fi
+}
+
+build_image "cybics-hwio-raspberry" "./hwio-raspberry"
+build_image "cybics-openplc" "./OpenPLC"
+build_image "cybics-opcua" "./opcua"
+build_image "cybics-s7com" "./s7com"
+build_image "cybics-fuxa" "./FUXA"
+build_image "cybics-stm32" "./stm32"
 # Build landing service from root context
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-landing:latest --push -f ./landing/Dockerfile ..
+build_image "cybics-landing" ".." "./landing/Dockerfile"
 
 # Note: Builder automatically switches back to default on EXIT via trap
