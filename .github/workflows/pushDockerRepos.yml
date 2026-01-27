@@ -102,4 +102,5 @@ jobs:
           build_and_push "mniedermaier1337/cybicshwio" "software/hwio-virtual" "software/hwio-virtual/Dockerfile"
           build_and_push "mniedermaier1337/landing" "." "software/landing/Dockerfile"
           build_and_push "mniedermaier1337/cybics-engineeringws" "software" "software/engineeringWS/Dockerfile"
+          build_and_push "mniedermaier1337/cybicsagent" "software/cybicsagent" "software/cybicsagent/Dockerfile"
 
