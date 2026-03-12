@@ -78,20 +78,19 @@ def record_demo():
         nav_click(page, "ctf", 3000)
         page.wait_for_timeout(1500)
 
-        # Scroll inside the CTF content area (the home-screen div inside ctf card)
-        # The CTF view replaces the home screen, so scroll the main content area
-        smooth_scroll(page, 500, steps=10, delay=100)
-        page.wait_for_timeout(1500)
-        smooth_scroll(page, 500, steps=10, delay=100)
-        page.wait_for_timeout(1500)
-        smooth_scroll(page, 500, steps=10, delay=100)
-        page.wait_for_timeout(1500)
-        smooth_scroll(page, 500, steps=10, delay=100)
-        page.wait_for_timeout(1500)
+        # CTF is inside an iframe — move mouse over it then scroll
+        page.mouse.move(WIDTH // 2, HEIGHT // 2)
+        page.wait_for_timeout(500)
+        # Scroll inside the CTF iframe by using JS on the iframe's document
+        ctf_frame = iframe_page(page, "ctf-iframe")
+        if ctf_frame:
+            for _ in range(4):
+                ctf_frame.evaluate("window.scrollBy({top: 500, behavior: 'smooth'})")
+                page.wait_for_timeout(1500)
 
         # ===== 3. OpenPLC (via nav) =====
         print("[3/10] OpenPLC...")
-        nav_click(page, "openplc", 3000)
+        nav_click(page, "openplc", 2000)
 
         frame = iframe_page(page, "openplc-iframe")
         if frame:
@@ -99,24 +98,23 @@ def record_demo():
                 frame.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass
-            page.wait_for_timeout(1500)
+            page.wait_for_timeout(1000)
 
-            # Login - click username field, type, click password, type, click LOGIN
+            # Login immediately
             user_el = frame.query_selector('input[name="username"]')
             if user_el:
                 user_el.click()
+                page.wait_for_timeout(150)
+                page.keyboard.type("openplc", delay=50)
                 page.wait_for_timeout(200)
-                page.keyboard.type("openplc", delay=60)
-                page.wait_for_timeout(300)
 
             pass_el = frame.query_selector('input[name="password"]')
             if pass_el:
                 pass_el.click()
+                page.wait_for_timeout(150)
+                page.keyboard.type("openplc", delay=50)
                 page.wait_for_timeout(200)
-                page.keyboard.type("openplc", delay=60)
-                page.wait_for_timeout(300)
 
-            # Click LOGIN button
             login_btn = frame.query_selector('button:has-text("LOGIN"), button:has-text("Login")')
             if login_btn:
                 login_btn.click()
@@ -145,7 +143,7 @@ def record_demo():
 
         # ===== 4. FUXA HMI (via nav) =====
         print("[4/10] FUXA HMI...")
-        nav_click(page, "fuxa", 4000)
+        nav_click(page, "fuxa", 2000)
 
         frame = iframe_page(page, "fuxa-iframe")
         if frame:
@@ -153,30 +151,25 @@ def record_demo():
                 frame.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(1000)
 
-            # FUXA shows a "Sign in..." modal dialog
-            # Find the visible username and password inputs in the dialog
+            # FUXA shows a "Sign in..." modal dialog — login immediately
             try:
-                # The dialog has Username label then input, Password label then input
                 all_inputs = frame.query_selector_all('input')
                 visible_text = [i for i in all_inputs if i.is_visible() and i.get_attribute("type") == "text"]
                 visible_pass = [i for i in all_inputs if i.is_visible() and i.get_attribute("type") == "password"]
 
                 if visible_text and visible_pass:
-                    # Click and type username
                     visible_text[-1].click()
+                    page.wait_for_timeout(150)
+                    page.keyboard.type("admin", delay=50)
                     page.wait_for_timeout(200)
-                    page.keyboard.type("admin", delay=60)
-                    page.wait_for_timeout(300)
 
-                    # Click and type password
                     visible_pass[-1].click()
+                    page.wait_for_timeout(150)
+                    page.keyboard.type("123456", delay=50)
                     page.wait_for_timeout(200)
-                    page.keyboard.type("123456", delay=60)
-                    page.wait_for_timeout(300)
 
-                    # Click OK button
                     ok_btn = frame.query_selector('button:has-text("OK")')
                     if ok_btn and ok_btn.is_visible():
                         ok_btn.click()
