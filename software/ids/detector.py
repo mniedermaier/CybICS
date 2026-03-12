@@ -1,6 +1,6 @@
 """
 CybICS IDS - Packet Capture and Detection Engine
-Lightweight sniffer using tcpdump + raw packet parsing for minimal CPU usage.
+Lightweight sniffer using tcpdump raw pcap output for minimal CPU usage.
 Optimized for Raspberry Pi Zero 2 W.
 """
 
@@ -17,7 +17,19 @@ from rules import RuleEngine, KNOWN_SERVICES, MODBUS_WRITE_FUNCTIONS
 logger = logging.getLogger("cybics-ids")
 
 MAX_ALERTS = 500
-CLEANUP_INTERVAL = 60  # seconds
+CLEANUP_PACKET_INTERVAL = 5000  # run cleanup every N packets
+
+# Ports the rule engine cares about
+_IDS_PORTS = (502, 102, 1102, 8080, 1881, 4840)
+
+# Known legitimate Modbus polling pairs (src, dst) to exclude in BPF.
+# These generate ~99% of traffic but never trigger any rule.
+_KNOWN_MODBUS_PAIRS = [
+    ("172.18.0.2", "172.18.0.3"),   # hwio -> openplc
+    ("172.18.0.3", "172.18.0.2"),   # openplc -> hwio
+    ("172.18.0.4", "172.18.0.3"),   # fuxa -> openplc
+    ("172.18.0.3", "172.18.0.4"),   # openplc -> fuxa
+]
 
 
 class Detector:
@@ -33,7 +45,6 @@ class Detector:
             "packets_analyzed": 0,
             "alerts_total": 0,
             "started_at": None,
-            "last_packet_at": None,
         }
         self._alert_id = 0
         self._tcpdump_proc = None
@@ -78,17 +89,48 @@ class Detector:
 
     # ========== CAPTURE LOOP ==========
 
+    @staticmethod
+    def _build_bpf_filter(base_filter):
+        """Build an optimized BPF filter that only captures packets the rules need.
+
+        Captures:
+        - ARP (for spoofing detection)
+        - Traffic on ICS/service ports EXCEPT known Modbus polling pairs
+        - TCP SYN packets on any port (for port scan + SYN flood detection)
+        Everything else is dropped in-kernel by the BPF filter.
+        """
+        port_filter = " or ".join(f"port {p}" for p in _IDS_PORTS)
+
+        # Exclude known legitimate Modbus polling pairs (biggest traffic source)
+        modbus_excludes = " and ".join(
+            f"not (src host {src} and dst host {dst} and port 502)"
+            for src, dst in _KNOWN_MODBUS_PAIRS
+        )
+
+        ids_filter = (
+            f"(arp or {port_filter} or (tcp[tcpflags] & tcp-syn != 0))"
+            f" and ({modbus_excludes})"
+        )
+
+        if base_filter:
+            return f"({base_filter}) and ({ids_filter})"
+        return ids_filter
+
     def _capture_loop(self, interface, bpf_filter):
-        """Main capture loop using tcpdump subprocess"""
+        """Main capture loop using tcpdump subprocess with raw pcap output"""
         iface = interface
         if iface is None or iface == "all":
             iface = self._find_bridge_interface(bpf_filter)
 
-        cmd = ["tcpdump", "-l", "-xx", "-n", "--immediate-mode", "-s", "300"]
+        optimized_filter = self._build_bpf_filter(bpf_filter)
+
+        # -U: packet-buffered output (flush after each packet)
+        # -w -: write raw pcap to stdout (no hex encoding overhead)
+        # -s 128: snap length — enough for headers + Modbus payload
+        cmd = ["tcpdump", "-U", "-w", "-", "-n", "--immediate-mode", "-s", "128"]
         if iface:
             cmd += ["-i", iface]
-        if bpf_filter:
-            cmd += bpf_filter.split()
+        cmd += optimized_filter.split()
 
         try:
             self._tcpdump_proc = subprocess.Popen(
@@ -102,63 +144,73 @@ class Detector:
             return
 
         logger.info(f"tcpdump started: {' '.join(cmd)} (pid={self._tcpdump_proc.pid})")
-        self._read_tcpdump_output()
+        self._read_pcap_stream()
 
-    def _read_tcpdump_output(self):
-        """Read tcpdump -xx output and parse packets from hex dump lines"""
+    def _read_pcap_stream(self):
+        """Read raw pcap binary stream from tcpdump stdout"""
         proc = self._tcpdump_proc
         if proc is None:
             return
 
-        last_cleanup = time.time()
-        hex_parts = []
+        stdout = proc.stdout
+        _read = stdout.read  # local ref for speed
 
-        for raw_line in iter(proc.stdout.readline, b""):
-            if not self.active:
+        # Read and validate pcap global header (24 bytes)
+        header = _read(24)
+        if len(header) < 24:
+            logger.error("Failed to read pcap header from tcpdump")
+            self._cleanup_tcpdump()
+            return
+
+        magic = struct.unpack("<I", header[0:4])[0]
+        if magic == 0xA1B2C3D4:
+            byte_order = "<"
+        elif magic == 0xD4C3B2A1:
+            byte_order = ">"
+        else:
+            logger.error(f"Invalid pcap magic: 0x{magic:08X}")
+            self._cleanup_tcpdump()
+            return
+
+        _unpack_pkt_hdr = struct.Struct(byte_order + "IIII").unpack
+        pkt_count = 0
+        rule_check = self.rule_engine.check_packet
+        stats = self.stats
+
+        while self.active:
+            # Read pcap packet header (16 bytes): ts_sec, ts_usec, incl_len, orig_len
+            pkt_hdr = _read(16)
+            if len(pkt_hdr) < 16:
                 break
 
-            line = raw_line.decode("utf-8", errors="ignore").rstrip()
-            if not line:
+            incl_len = _unpack_pkt_hdr(pkt_hdr)[2]
+
+            # Read raw packet data
+            raw = _read(incl_len)
+            if len(raw) < incl_len:
+                break
+
+            # Parse and process
+            pkt_info = _parse_raw_packet(raw)
+            if pkt_info is None:
                 continue
 
-            if line.startswith("\t0x"):
-                # Hex data line: "\t0x0000:  aabb ccdd eeff ..."
-                hex_part = line.split(":", 1)[1].strip()
-                hex_parts.append(hex_part.replace(" ", ""))
-            else:
-                # Header line for a new packet — process previous
-                if hex_parts:
-                    self._process_hex_packet(hex_parts)
-                    hex_parts = []
+            stats["packets_analyzed"] += 1
 
-                now = time.time()
-                if now - last_cleanup > CLEANUP_INTERVAL:
-                    self.rule_engine.cleanup()
-                    last_cleanup = now
-
-        # Process last buffered packet
-        if hex_parts:
-            self._process_hex_packet(hex_parts)
-
-        self._cleanup_tcpdump()
-
-    def _process_hex_packet(self, hex_parts):
-        """Convert accumulated hex lines to bytes and analyze"""
-        try:
-            raw = bytes.fromhex("".join(hex_parts))
-            pkt_info = _parse_raw_packet(raw)
-            if pkt_info:
-                self.stats["packets_analyzed"] += 1
-                self.stats["last_packet_at"] = datetime.now().isoformat()
-
-                alerts = self.rule_engine.check_packet(pkt_info)
+            alerts = rule_check(pkt_info)
+            if alerts:
                 for alert in alerts:
                     self._add_alert(alert)
 
-                if self.evasion_active:
-                    self._track_evasion_packet(pkt_info)
-        except Exception as e:
-            logger.debug(f"Packet processing error: {e}")
+            if self.evasion_active:
+                self._track_evasion_packet(pkt_info)
+
+            pkt_count += 1
+            if pkt_count >= CLEANUP_PACKET_INTERVAL:
+                self.rule_engine.cleanup()
+                pkt_count = 0
+
+        self._cleanup_tcpdump()
 
     def _cleanup_tcpdump(self):
         """Terminate tcpdump subprocess cleanly"""
@@ -231,15 +283,16 @@ class Detector:
 
     def _track_evasion_packet(self, pkt_info):
         """Track Modbus write packets from non-service hosts during evasion challenge"""
-        if pkt_info.get("dport") != 502:
+        dport = pkt_info[3]
+        if dport != 502:
             return
-        payload = pkt_info.get("payload", b"")
+        payload = pkt_info[6]
         if len(payload) < 8:
             return
         try:
             func_code = payload[7] & 0x7F
             if func_code in MODBUS_WRITE_FUNCTIONS:
-                src_ip = pkt_info.get("src_ip", "")
+                src_ip = pkt_info[0]
                 if KNOWN_SERVICES.get(src_ip) not in ("hwio", "fuxa", "openplc"):
                     self.evasion_modbus_writes += 1
                     logger.info(
@@ -328,12 +381,28 @@ class Detector:
 _UNPACK_H = struct.Struct("!H").unpack
 _UNPACK_HH = struct.Struct("!HH").unpack
 
+# Pre-computed flags lookup table: byte value -> flags string
+_TCP_FLAGS = [None] * 256
+for _i in range(256):
+    _f = []
+    if _i & 0x02: _f.append("S")
+    if _i & 0x10: _f.append("A")
+    if _i & 0x01: _f.append("F")
+    if _i & 0x04: _f.append("R")
+    if _i & 0x08: _f.append("P")
+    _TCP_FLAGS[_i] = "".join(_f)
+
+# SYN-only lookup: True if SYN set and ACK not set
+_IS_SYN_ONLY = [bool(i & 0x02 and not (i & 0x10)) for i in range(256)]
+
 
 def _parse_raw_packet(raw):
-    """Parse raw Ethernet frame bytes into pkt_info dict.
+    """Parse raw Ethernet frame into a tuple for the rule engine.
 
-    Returns None for packets we don't care about.
-    Handles: ARP, IPv4/TCP, IPv4/UDP.
+    Returns a tuple: (src_ip, dst_ip, sport, dport, flags_str, proto_id, payload,
+                      arp_op, arp_src_mac, arp_src_ip)
+    proto_id: 6=TCP, 17=UDP, 0=ARP, -1=OTHER
+    Returns None for packets we can't parse.
     """
     if len(raw) < 14:
         return None
@@ -359,14 +428,9 @@ def _parse_raw_packet(raw):
         src_mac = "%02x:%02x:%02x:%02x:%02x:%02x" % tuple(arp[8:14])
         src_ip = "%d.%d.%d.%d" % tuple(arp[14:18])
         dst_ip = "%d.%d.%d.%d" % tuple(arp[24:28])
-        return {
-            "proto": "ARP",
-            "arp_op": op,
-            "arp_src_mac": src_mac,
-            "arp_src_ip": src_ip,
-            "src_ip": src_ip,
-            "dst_ip": dst_ip,
-        }
+        # (src_ip, dst_ip, sport, dport, flags, proto_id, payload,
+        #  arp_op, arp_src_mac, arp_src_ip)
+        return (src_ip, dst_ip, 0, 0, "", 0, b"", op, src_mac, src_ip)
 
     # Only handle IPv4
     if eth_type != 0x0800:
@@ -389,42 +453,20 @@ def _parse_raw_packet(raw):
         if len(transport) < 20:
             return None
         sport, dport = _UNPACK_HH(transport[0:4])
-        flags_byte = transport[13]
-        # Build flags string matching Scapy convention (used by rules)
-        flags_chars = []
-        if flags_byte & 0x02:
-            flags_chars.append("S")
-        if flags_byte & 0x10:
-            flags_chars.append("A")
-        if flags_byte & 0x01:
-            flags_chars.append("F")
-        if flags_byte & 0x04:
-            flags_chars.append("R")
-        if flags_byte & 0x08:
-            flags_chars.append("P")
         tcp_hdr_len = ((transport[12] >> 4) & 0x0F) * 4
-        payload = bytes(transport[tcp_hdr_len:tcp_hdr_len + 256])
-        return {
-            "src_ip": src_ip, "dst_ip": dst_ip,
-            "proto": "TCP", "sport": sport, "dport": dport,
-            "flags": "".join(flags_chars), "payload": payload,
-        }
+        return (src_ip, dst_ip, sport, dport,
+                _TCP_FLAGS[transport[13]], 6,
+                bytes(transport[tcp_hdr_len:tcp_hdr_len + 256]),
+                0, None, None)
 
     # UDP (protocol 17)
     if protocol == 17:
         if len(transport) < 8:
             return None
         sport, dport = _UNPACK_HH(transport[0:4])
-        payload = bytes(transport[8:8 + 256])
-        return {
-            "src_ip": src_ip, "dst_ip": dst_ip,
-            "proto": "UDP", "sport": sport, "dport": dport,
-            "flags": "", "payload": payload,
-        }
+        return (src_ip, dst_ip, sport, dport, "", 17,
+                bytes(transport[8:8 + 256]),
+                0, None, None)
 
-    # Other protocols — still report for completeness
-    return {
-        "src_ip": src_ip, "dst_ip": dst_ip,
-        "proto": "OTHER", "sport": 0, "dport": 0,
-        "flags": "", "payload": b"",
-    }
+    # Other protocols
+    return (src_ip, dst_ip, 0, 0, "", -1, b"", 0, None, None)
