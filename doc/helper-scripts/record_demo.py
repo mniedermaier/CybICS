@@ -78,15 +78,21 @@ def record_demo():
         nav_click(page, "ctf", 3000)
         page.wait_for_timeout(1500)
 
-        # CTF is inside an iframe — move mouse over it then scroll
+        # CTF is inside an iframe — scroll through all challenges
         page.mouse.move(WIDTH // 2, HEIGHT // 2)
         page.wait_for_timeout(500)
-        # Scroll inside the CTF iframe by using JS on the iframe's document
         ctf_frame = iframe_page(page, "ctf-iframe")
         if ctf_frame:
+            # Slow scroll through the top sections
+            for _ in range(3):
+                ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
+                page.wait_for_timeout(2000)
+            # Scroll further and pause longer at the bottom sections
             for _ in range(4):
-                ctf_frame.evaluate("window.scrollBy({top: 500, behavior: 'smooth'})")
-                page.wait_for_timeout(1500)
+                ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
+                page.wait_for_timeout(2500)
+            # Hold at the bottom to show the last challenges
+            page.wait_for_timeout(3000)
 
         # ===== 3. OpenPLC (via nav) =====
         print("[3/10] OpenPLC...")
