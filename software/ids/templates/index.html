@@ -30,6 +30,17 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* Dark scrollbars globally */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) var(--bg);
+        }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: var(--bg); }
+        *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        *::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+        *::-webkit-scrollbar-corner { background: var(--bg); }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg);
@@ -161,14 +172,11 @@
         /* ===== MAIN CONTENT ===== */
         .main {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
             padding: 1rem 1.5rem;
         }
 
-        .main::-webkit-scrollbar { width: 8px; }
-        .main::-webkit-scrollbar-track { background: var(--bg); }
-        .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        .main::-webkit-scrollbar-thumb:hover { background: var(--orange); }
 
         /* ===== TAB CONTENT ===== */
         .tab-content { display: none; }
@@ -357,9 +365,6 @@
             overflow-y: auto;
         }
 
-        .alert-table-wrap::-webkit-scrollbar { width: 6px; }
-        .alert-table-wrap::-webkit-scrollbar-track { background: var(--surface); }
-        .alert-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
         table {
             width: 100%;
@@ -507,6 +512,156 @@
             gap: 0.25rem;
         }
 
+        .rule-card.clickable { cursor: pointer; }
+        .rule-card.has-hits { border-left: 3px solid var(--orange); }
+
+        .rule-stats-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            padding: 0.4rem 0.5rem;
+            background: var(--bg);
+            border-radius: 0.3rem;
+        }
+
+        .rule-hit-count {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--orange);
+            font-family: 'Courier New', monospace;
+            min-width: 40px;
+        }
+
+        .rule-hit-count.zero { color: var(--text-dim); }
+
+        .rule-hit-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .rule-last-seen {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            font-family: 'Courier New', monospace;
+            margin-left: auto;
+        }
+
+        .rule-sources {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .rule-source-chip {
+            font-size: 0.65rem;
+            font-family: 'Courier New', monospace;
+            background: var(--orange-dim);
+            color: var(--orange);
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.75rem;
+        }
+
+        .protocol-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .protocol-badge.modbus { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+        .protocol-badge.s7comm { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+        .protocol-badge.http { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .protocol-badge.tcp { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .protocol-badge.arp { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .protocol-badge.opcua { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+
+        .rule-hints {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .rule-hint {
+            font-size: 0.7rem;
+            line-height: 1.4;
+            margin-bottom: 0.3rem;
+        }
+
+        .rule-hint-label {
+            font-weight: 600;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .rule-hint-label.attack { color: var(--red); }
+        .rule-hint-label.evasion { color: var(--green); }
+
+        /* ===== RULE DISTRIBUTION CHART ===== */
+        .rule-dist-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .rule-dist-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.15rem 0;
+            border-radius: 0.2rem;
+            transition: background 0.15s;
+        }
+
+        .rule-dist-row:hover { background: rgba(255, 107, 0, 0.05); }
+
+        .rule-dist-name {
+            width: 130px;
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rule-dist-track {
+            flex: 1;
+            height: 16px;
+            background: var(--bg);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .rule-dist-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            background: var(--orange);
+            display: flex;
+            align-items: center;
+            padding-left: 4px;
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: var(--bg);
+            min-width: 0;
+        }
+
+        .rule-dist-count {
+            width: 30px;
+            text-align: right;
+            font-size: 0.75rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+        }
+
         /* ===== TIMELINE CANVAS ===== */
         .timeline-container {
             height: 120px;
@@ -545,6 +700,196 @@
             color: var(--text-muted);
         }
 
+        /* ===== CHALLENGES TAB ===== */
+        .challenges-header {
+            margin-bottom: 1rem;
+        }
+
+        .challenges-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--orange);
+            margin-bottom: 0.25rem;
+        }
+
+        .challenges-header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .challenges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1rem;
+        }
+
+        .ch-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .ch-card:hover { border-color: var(--orange); }
+        .ch-card.ch-solved { border-color: var(--green); }
+
+        .ch-card-top {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .ch-card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .ch-card-pts {
+            background: var(--orange-dim);
+            color: var(--orange);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            white-space: nowrap;
+        }
+
+        .ch-card.ch-solved .ch-card-pts {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+
+        .ch-card-body {
+            padding: 1rem;
+        }
+
+        .ch-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .ch-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .ch-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .ch-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+            background: var(--orange);
+        }
+
+        .ch-card.ch-solved .ch-progress-fill { background: var(--green); }
+
+        .ch-progress-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .ch-status {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+            margin-bottom: 0.75rem;
+        }
+
+        .ch-status.locked { background: var(--red-dim); color: var(--red); }
+        .ch-status.ready { background: var(--yellow-dim); color: var(--yellow); }
+        .ch-status.active { background: var(--blue-dim); color: var(--blue); }
+        .ch-status.solved { background: var(--green-dim); color: var(--green); }
+
+        .ch-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ch-input {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            width: 140px;
+        }
+
+        .ch-input:focus { outline: none; border-color: var(--orange); }
+        .ch-input::placeholder { color: var(--text-dim); }
+
+        .ch-flag-display {
+            background: var(--green-dim);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .ch-flag-label {
+            font-size: 0.65rem;
+            color: var(--green);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2rem;
+        }
+
+        .ch-flag-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--green);
+            font-weight: 600;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        .ch-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            font-size: 0.75rem;
+        }
+
+        .ch-info-label { color: var(--text-muted); }
+        .ch-info-value { color: var(--text); font-family: 'Courier New', monospace; }
+        .ch-info-value.danger { color: var(--red); }
+        .ch-info-value.success { color: var(--green); }
+
+        .ch-timer {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--orange);
+            text-align: center;
+            margin: 0.5rem 0;
+        }
+
+        .ch-msg {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
         /* ===== ANIMATIONS ===== */
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -573,9 +918,10 @@
         <div class="header-left">
             <a class="header-logo" href="/" target="_top">CybICS<span>IDS</span></a>
             <div class="header-nav">
-                <button class="active-tab" onclick="switchTab('overview')">Overview</button>
-                <button onclick="switchTab('alerts')">Alerts</button>
-                <button onclick="switchTab('rules')">Rules</button>
+                <button class="active-tab" data-tab="overview" onclick="switchTab('overview', this)">Overview</button>
+                <button data-tab="alerts" onclick="switchTab('alerts', this)">Alerts</button>
+                <button data-tab="rules" onclick="switchTab('rules', this)">Rules</button>
+                <button data-tab="challenges" onclick="switchTab('challenges', this)">Challenges</button>
             </div>
         </div>
         <div class="header-right">
@@ -684,6 +1030,19 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Rule Distribution -->
+                <div class="panel panel-full">
+                    <div class="panel-header">
+                        <span class="panel-title">Rule Distribution</span>
+                        <span style="font-size:0.7rem; color:var(--text-dim)" id="rule-dist-info">Click a rule to filter alerts</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="rule-dist-bars" id="rule-dist-bars">
+                            <div style="text-align:center; padding:0.5rem; color:var(--text-dim); font-size:0.8rem">No alert data</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Recent Alerts -->
@@ -748,6 +1107,125 @@
             <div class="rules-grid" id="rules-grid"></div>
         </div>
 
+        <!-- ===== CHALLENGES TAB ===== -->
+        <div class="tab-content" id="tab-challenges">
+            <div class="challenges-header">
+                <h2>IDS Challenges</h2>
+                <p>Complete these challenges to test your offensive and defensive IDS skills. Total: 950 points.</p>
+            </div>
+            <div class="challenges-grid">
+
+                <!-- DETECTION CHALLENGE -->
+                <div class="ch-card" id="ch-detection">
+                    <div class="ch-card-top">
+                        <span class="ch-card-title">IDS Detection</span>
+                        <span class="ch-card-pts">300 pts</span>
+                    </div>
+                    <div class="ch-card-body">
+                        <div class="ch-card-desc">
+                            Trigger the IDS by performing at least 3 different attacks against the CybICS network.
+                            Use port scanning, Modbus writes, S7comm access, or brute force attacks.
+                        </div>
+                        <div class="ch-progress">
+                            <div class="ch-progress-bar"><div class="ch-progress-fill" id="det-progress" style="width:0%"></div></div>
+                            <span class="ch-progress-text" id="det-progress-text">0 / 3 alerts</span>
+                        </div>
+                        <div id="det-status"></div>
+                        <div class="ch-actions">
+                            <button class="btn btn-orange" onclick="checkDetectionFlag()">Check Flag</button>
+                        </div>
+                        <div id="det-flag"></div>
+                    </div>
+                </div>
+
+                <!-- FORENSICS CHALLENGE -->
+                <div class="ch-card" id="ch-forensics">
+                    <div class="ch-card-top">
+                        <span class="ch-card-title">IDS Forensics</span>
+                        <span class="ch-card-pts">250 pts</span>
+                    </div>
+                    <div class="ch-card-body">
+                        <div class="ch-card-desc">
+                            Analyze the IDS alert data to investigate a security incident.
+                            Use the <code>/api/summary</code> and <code>/api/alerts</code> endpoints
+                            to answer three investigation questions.
+                        </div>
+                        <div id="forensics-status"></div>
+                        <div id="forensics-form" style="display:none">
+                            <div class="ch-info-row" style="margin-bottom:0.5rem; border-bottom:1px solid var(--border); padding-bottom:0.5rem">
+                                <span class="ch-info-label" style="font-weight:600; color:var(--orange)">Investigation Questions</span>
+                            </div>
+                            <div style="margin-bottom:0.5rem">
+                                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem">
+                                    1. IP address of the top attacker (most alerts)?
+                                </div>
+                                <input type="text" class="ch-input" id="f-top-attacker" placeholder="172.18.0.x" style="width:100%">
+                            </div>
+                            <div style="margin-bottom:0.5rem">
+                                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem">
+                                    2. How many unique detection rules triggered?
+                                </div>
+                                <input type="number" class="ch-input" id="f-unique-rules" placeholder="0" style="width:100%">
+                            </div>
+                            <div style="margin-bottom:0.75rem">
+                                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem">
+                                    3. How many critical-severity alerts recorded?
+                                </div>
+                                <input type="number" class="ch-input" id="f-critical-count" placeholder="0" style="width:100%">
+                            </div>
+                            <div class="ch-actions">
+                                <button class="btn btn-orange" onclick="submitForensics()">Submit Analysis</button>
+                            </div>
+                            <div class="ch-msg" id="forensics-errors"></div>
+                        </div>
+                        <div id="forensics-flag"></div>
+                    </div>
+                </div>
+
+                <!-- EVASION CHALLENGE -->
+                <div class="ch-card" id="ch-evasion">
+                    <div class="ch-card-top">
+                        <span class="ch-card-title">IDS Evasion</span>
+                        <span class="ch-card-pts">400 pts</span>
+                    </div>
+                    <div class="ch-card-body">
+                        <div class="ch-card-desc">
+                            Perform a stealth Modbus write operation without triggering any IDS alerts.
+                            You must send at least 3 Modbus write commands to OpenPLC (172.18.0.3:502)
+                            while staying below all detection thresholds.
+                        </div>
+                        <div id="evasion-idle">
+                            <span class="ch-status ready">Ready</span>
+                            <div class="ch-actions">
+                                <button class="btn btn-orange" onclick="startEvasion()">Start Evasion Window</button>
+                            </div>
+                            <div class="ch-msg">Starts a 2-minute window. Send Modbus writes slowly to avoid detection.</div>
+                        </div>
+                        <div id="evasion-active" style="display:none">
+                            <div class="ch-timer" id="evasion-timer">02:00</div>
+                            <div class="ch-info-row">
+                                <span class="ch-info-label">Modbus writes detected</span>
+                                <span class="ch-info-value" id="ev-writes">0 / 3</span>
+                            </div>
+                            <div class="ch-info-row">
+                                <span class="ch-info-label">New IDS alerts</span>
+                                <span class="ch-info-value" id="ev-alerts">0</span>
+                            </div>
+                            <div class="ch-info-row">
+                                <span class="ch-info-label">Status</span>
+                                <span class="ch-info-value" id="ev-status-text">Monitoring...</span>
+                            </div>
+                            <div class="ch-msg" id="evasion-hint">
+                                Send Modbus writes from the attack machine. Stay below 10 writes/30s to avoid modbus_unauth_write alerts.
+                            </div>
+                        </div>
+                        <div id="evasion-flag"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -773,24 +1251,51 @@
     };
 
     const RULES = [
-        { id: 'port_scan', name: 'Port Scan Detection', severity: 'medium', mitre: 'T0846',
-          desc: 'Detects SYN packets targeting multiple ports on a single host within a short time window. Indicates network reconnaissance.', threshold: '5 ports / 10s' },
-        { id: 'syn_flood', name: 'SYN Flood Detection', severity: 'high', mitre: 'T0836',
-          desc: 'Detects excessive SYN packets from a single source, indicating a denial-of-service attempt or aggressive scanning.', threshold: '100 SYNs / 10s' },
-        { id: 'modbus_flood', name: 'Modbus Write Flood', severity: 'critical', mitre: 'T0836',
-          desc: 'Detects high-rate Modbus write operations from non-service hosts, indicating an attempt to flood or overwrite PLC registers.', threshold: '50 writes / 5s' },
-        { id: 'modbus_unauth_write', name: 'Modbus Unauthorized Write', severity: 'high', mitre: 'T0855',
-          desc: 'Detects Modbus write function codes originating from hosts that are not known CybICS services (HWIO, FUXA).', threshold: '10 writes / 30s' },
-        { id: 'modbus_diagnostic', name: 'Modbus Diagnostic Function', severity: 'medium', mitre: 'T0846',
-          desc: 'Detects use of Modbus diagnostic or device identification function codes (0x08, 0x2B), often used during enumeration.', threshold: 'Any occurrence' },
-        { id: 's7_enumeration', name: 'S7comm Enumeration', severity: 'medium', mitre: 'T0846',
-          desc: 'Detects TCP connections to S7 communication ports (102, 1102), indicating Siemens PLC reconnaissance or protocol analysis.', threshold: 'Any connection' },
-        { id: 'http_brute_force', name: 'HTTP Brute Force', severity: 'high', mitre: 'T0812',
-          desc: 'Detects repeated HTTP POST requests to login endpoints on OpenPLC (8080) or FUXA (1881), indicating password attacks.', threshold: '5 attempts / 30s' },
-        { id: 'arp_spoof', name: 'ARP Spoofing Detection', severity: 'critical', mitre: 'T0856',
-          desc: 'Detects multiple MAC addresses associated with a single IP address, indicating ARP cache poisoning for man-in-the-middle attacks.', threshold: '2+ MACs per IP' },
-        { id: 'opcua_access', name: 'OPC-UA Unauthorized Access', severity: 'low', mitre: 'T0846',
-          desc: 'Detects OPC-UA connections from hosts not in the known service list, flagging potential unauthorized protocol access.', threshold: 'Any connection' },
+        { id: 'port_scan', name: 'Port Scan Detection', severity: 'medium', mitre: 'T0846', protocol: 'tcp',
+          desc: 'Detects SYN packets targeting multiple ports on a single host within a short time window. Indicates network reconnaissance.',
+          threshold: '5 ports / 10s',
+          attack_hint: 'nmap -sS 172.18.0.3 — SYN scan against OpenPLC',
+          evasion_hint: 'Scan fewer than 5 ports per 10s window per target' },
+        { id: 'syn_flood', name: 'SYN Flood Detection', severity: 'high', mitre: 'T0836', protocol: 'tcp',
+          desc: 'Detects excessive SYN packets from a single source, indicating a denial-of-service attempt or aggressive scanning.',
+          threshold: '100 SYNs / 10s',
+          attack_hint: 'hping3 -S --flood 172.18.0.3 — SYN flood',
+          evasion_hint: 'Keep SYN rate below 100 packets per 10s' },
+        { id: 'modbus_flood', name: 'Modbus Write Flood', severity: 'critical', mitre: 'T0836', protocol: 'modbus',
+          desc: 'Detects high-rate Modbus write operations from non-service hosts, indicating an attempt to flood or overwrite PLC registers.',
+          threshold: '50 writes / 5s',
+          attack_hint: 'Rapid Modbus FC 0x06/0x10 writes to 172.18.0.3:502',
+          evasion_hint: 'Keep write rate below 50 per 5s (10 writes/s)' },
+        { id: 'modbus_unauth_write', name: 'Modbus Unauthorized Write', severity: 'high', mitre: 'T0855', protocol: 'modbus',
+          desc: 'Detects Modbus write function codes originating from hosts that are not known CybICS services (HWIO, FUXA).',
+          threshold: '10 writes / 30s',
+          attack_hint: 'pymodbus: client.write_register(0, value, unit=1) to 172.18.0.3',
+          evasion_hint: 'Stay below 10 writes per 30s window — space writes ~4s apart' },
+        { id: 'modbus_diagnostic', name: 'Modbus Diagnostic Function', severity: 'medium', mitre: 'T0846', protocol: 'modbus',
+          desc: 'Detects use of Modbus diagnostic or device identification function codes (0x08, 0x2B), often used during enumeration.',
+          threshold: 'Any occurrence',
+          attack_hint: 'Send Modbus FC 0x08 or 0x2B to 172.18.0.3:502',
+          evasion_hint: 'Avoid diagnostic function codes entirely — use only read/write FCs' },
+        { id: 's7_enumeration', name: 'S7comm Enumeration', severity: 'medium', mitre: 'T0846', protocol: 's7comm',
+          desc: 'Detects TCP connections to S7 communication ports (102, 1102), indicating Siemens PLC reconnaissance or protocol analysis.',
+          threshold: 'Any connection',
+          attack_hint: 'nmap -p 102 172.18.0.6 or use snap7 client to connect',
+          evasion_hint: 'Alert fires on any S7 traffic — no threshold to stay under' },
+        { id: 'http_brute_force', name: 'HTTP Brute Force', severity: 'high', mitre: 'T0812', protocol: 'http',
+          desc: 'Detects repeated HTTP POST requests to login endpoints on OpenPLC (8080) or FUXA (1881), indicating password attacks.',
+          threshold: '5 attempts / 30s',
+          attack_hint: 'hydra -l admin -P wordlist.txt 172.18.0.3 http-post-form "/login:..."',
+          evasion_hint: 'Space login attempts >6s apart to stay under 5 per 30s' },
+        { id: 'arp_spoof', name: 'ARP Spoofing Detection', severity: 'critical', mitre: 'T0856', protocol: 'arp',
+          desc: 'Detects multiple MAC addresses associated with a single IP address, indicating ARP cache poisoning for man-in-the-middle attacks.',
+          threshold: '2+ MACs per IP',
+          attack_hint: 'arpspoof -i eth0 -t 172.18.0.3 172.18.0.1',
+          evasion_hint: 'Use your real MAC — any second MAC for an IP triggers the alert' },
+        { id: 'opcua_access', name: 'OPC-UA Unauthorized Access', severity: 'low', mitre: 'T0846', protocol: 'opcua',
+          desc: 'Detects OPC-UA connections from hosts not in the known service list, flagging potential unauthorized protocol access.',
+          threshold: 'Any connection',
+          attack_hint: 'Connect to opc.tcp://172.18.0.5:4840 from the attack machine',
+          evasion_hint: 'Alert fires for any non-service host — no threshold to evade' },
     ];
 
     /* ===== API HELPERS ===== */
@@ -802,11 +1307,16 @@
     }
 
     /* ===== TAB SWITCHING ===== */
-    function switchTab(tab) {
+    function switchTab(tab, btn) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(`tab-${tab}`).classList.add('active');
         document.querySelectorAll('.header-nav button').forEach(el => el.classList.remove('active-tab'));
-        event.target.classList.add('active-tab');
+        if (btn) {
+            btn.classList.add('active-tab');
+        } else {
+            const navBtn = document.querySelector(`.header-nav button[data-tab="${tab}"]`);
+            if (navBtn) navBtn.classList.add('active-tab');
+        }
     }
 
     /* ===== CONTROLS ===== */
@@ -1076,22 +1586,276 @@
     }
 
     /* ===== RENDER RULES ===== */
+    let ruleStats = {};
+
     function renderRules() {
         const grid = document.getElementById('rules-grid');
         grid.innerHTML = RULES.map(r => {
-            const sevClass = `severity-badge ${r.severity}`;
-            return `<div class="rule-card">
+            const stats = ruleStats[r.id] || { count: 0, last_seen: null, top_sources: [] };
+            const hasHits = stats.count > 0;
+            const hitClass = hasHits ? 'has-hits' : '';
+            const countClass = hasHits ? '' : 'zero';
+            const lastSeen = stats.last_seen
+                ? stats.last_seen.split('T')[1]?.split('.')[0] || ''
+                : 'never';
+            const sourcesHtml = stats.top_sources.length > 0
+                ? `<div class="rule-sources">${stats.top_sources.map(s =>
+                    `<span class="rule-source-chip">${s.ip} (${s.count})</span>`
+                  ).join('')}</div>`
+                : '';
+
+            return `<div class="rule-card clickable ${hitClass}" onclick="filterByRule('${r.id}')">
                 <div class="rule-card-header">
                     <span class="rule-name">${r.id}</span>
-                    <span class="${sevClass} rule-severity">${r.severity}</span>
+                    <span style="display:flex; gap:0.35rem; align-items:center">
+                        <span class="protocol-badge ${r.protocol}">${r.protocol}</span>
+                        <span class="severity-badge rule-severity ${r.severity}">${r.severity}</span>
+                    </span>
                 </div>
+                <div class="rule-stats-row">
+                    <span class="rule-hit-count ${countClass}" id="rule-count-${r.id}">${stats.count}</span>
+                    <span style="display:flex; flex-direction:column">
+                        <span class="rule-hit-label">hits</span>
+                        <span class="rule-last-seen">last: ${lastSeen}</span>
+                    </span>
+                </div>
+                ${sourcesHtml}
                 <div class="rule-desc">${r.desc}</div>
                 <div class="rule-meta">
                     <span class="rule-meta-item"><span class="mitre-tag">${r.mitre}</span></span>
                     <span class="rule-meta-item" style="color:var(--text-dim)">Threshold: ${r.threshold}</span>
                 </div>
+                <div class="rule-hints">
+                    <div class="rule-hint"><span class="rule-hint-label attack">Attack: </span>${r.attack_hint}</div>
+                    <div class="rule-hint"><span class="rule-hint-label evasion">Evade: </span>${r.evasion_hint}</div>
+                </div>
             </div>`;
         }).join('');
+    }
+
+    function filterByRule(ruleId) {
+        switchTab('alerts');
+        const ruleSelect = document.getElementById('filter-rule');
+        ruleSelect.value = ruleId;
+        applyFilters();
+    }
+
+    async function updateRuleStats() {
+        const data = await api('/api/rules/stats');
+        if (!data) return;
+        ruleStats = data;
+        renderRules();
+        renderRuleDistribution(data);
+    }
+
+    function renderRuleDistribution(stats) {
+        const container = document.getElementById('rule-dist-bars');
+        const maxCount = Math.max(1, ...RULES.map(r => (stats[r.id]?.count || 0)));
+        const totalHits = RULES.reduce((sum, r) => sum + (stats[r.id]?.count || 0), 0);
+
+        if (totalHits === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:0.5rem; color:var(--text-dim); font-size:0.8rem">No alert data</div>';
+            return;
+        }
+
+        container.innerHTML = RULES.map(r => {
+            const count = stats[r.id]?.count || 0;
+            const pct = (count / maxCount * 100).toFixed(1);
+            return `<div class="rule-dist-row" onclick="filterByRule('${r.id}')">
+                <span class="rule-dist-name">${r.id}</span>
+                <div class="rule-dist-track"><div class="rule-dist-fill" style="width:${pct}%"></div></div>
+                <span class="rule-dist-count">${count}</span>
+            </div>`;
+        }).join('');
+    }
+
+    /* ===== CHALLENGE: DETECTION ===== */
+    let detectionSolved = false;
+
+    async function checkDetectionFlag() {
+        const data = await api('/api/flag');
+        if (!data) return;
+
+        const card = document.getElementById('ch-detection');
+        if (data.flag) {
+            detectionSolved = true;
+            card.classList.add('ch-solved');
+            document.getElementById('det-status').innerHTML =
+                '<span class="ch-status solved">Solved</span>';
+            document.getElementById('det-flag').innerHTML =
+                `<div class="ch-flag-display"><div class="ch-flag-label">Flag</div><div class="ch-flag-value">${data.flag}</div></div>`;
+        } else {
+            document.getElementById('det-status').innerHTML =
+                `<span class="ch-status locked">${data.message}</span>`;
+        }
+    }
+
+    function updateDetectionProgress() {
+        const count = Math.min(allAlerts.length, 3);
+        const pct = (count / 3) * 100;
+        document.getElementById('det-progress').style.width = `${pct}%`;
+        document.getElementById('det-progress-text').textContent = `${Math.min(allAlerts.length, 3)} / 3 alerts`;
+        if (count >= 3 && !detectionSolved) {
+            document.getElementById('det-status').innerHTML =
+                '<span class="ch-status ready">Threshold reached - check flag!</span>';
+        }
+    }
+
+    /* ===== CHALLENGE: FORENSICS ===== */
+    let forensicsSolved = false;
+
+    async function updateForensicsStatus() {
+        if (forensicsSolved) return;
+        const data = await api('/api/forensics');
+        if (!data) return;
+
+        const statusEl = document.getElementById('forensics-status');
+        const formEl = document.getElementById('forensics-form');
+
+        if (data.ready) {
+            statusEl.innerHTML = `<span class="ch-status ready">Investigation ready</span>
+                <span style="font-size:0.7rem; color:var(--text-dim); margin-left:0.5rem">${data.alert_count} alerts, ${data.unique_rules} rule types</span>`;
+            formEl.style.display = 'block';
+        } else {
+            statusEl.innerHTML = `<span class="ch-status locked">Not ready</span>
+                <div class="ch-msg">${data.message}</div>`;
+            formEl.style.display = 'none';
+        }
+    }
+
+    async function submitForensics() {
+        const body = {
+            top_attacker: document.getElementById('f-top-attacker').value,
+            unique_rules: parseInt(document.getElementById('f-unique-rules').value) || 0,
+            critical_count: parseInt(document.getElementById('f-critical-count').value) || 0,
+        };
+
+        const data = await api('/api/forensics/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        if (!data) return;
+
+        const errEl = document.getElementById('forensics-errors');
+        if (data.success) {
+            forensicsSolved = true;
+            document.getElementById('ch-forensics').classList.add('ch-solved');
+            document.getElementById('forensics-status').innerHTML =
+                '<span class="ch-status solved">Solved</span>';
+            document.getElementById('forensics-form').style.display = 'none';
+            errEl.textContent = '';
+            document.getElementById('forensics-flag').innerHTML =
+                `<div class="ch-flag-display"><div class="ch-flag-label">Flag</div><div class="ch-flag-value">${data.flag}</div></div>`;
+        } else {
+            errEl.innerHTML = data.errors ?
+                data.errors.map(e => `<span style="color:var(--red)">${e}</span>`).join('<br>') :
+                `<span style="color:var(--red)">${data.message}</span>`;
+        }
+    }
+
+    /* ===== CHALLENGE: EVASION ===== */
+    let evasionSolved = false;
+    let evasionPolling = null;
+
+    async function startEvasion() {
+        const data = await api('/api/evasion/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!data || !data.success) {
+            alert(data ? data.message : 'Failed to start evasion challenge');
+            return;
+        }
+
+        document.getElementById('evasion-idle').style.display = 'none';
+        document.getElementById('evasion-active').style.display = 'block';
+        document.getElementById('evasion-flag').innerHTML = '';
+
+        // Start polling
+        if (evasionPolling) clearInterval(evasionPolling);
+        evasionPolling = setInterval(pollEvasion, 1000);
+        pollEvasion();
+    }
+
+    async function pollEvasion() {
+        if (evasionSolved) {
+            if (evasionPolling) clearInterval(evasionPolling);
+            return;
+        }
+
+        const data = await api('/api/evasion/check');
+        if (!data) return;
+
+        if (data.active) {
+            // Update timer
+            const mins = Math.floor(data.remaining / 60);
+            const secs = data.remaining % 60;
+            document.getElementById('evasion-timer').textContent =
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            // Update stats
+            const writesEl = document.getElementById('ev-writes');
+            writesEl.textContent = `${data.modbus_writes_detected} / ${data.writes_required}`;
+            writesEl.className = `ch-info-value ${data.modbus_writes_detected >= data.writes_required ? 'success' : ''}`;
+
+            const alertsEl = document.getElementById('ev-alerts');
+            alertsEl.textContent = data.new_alerts;
+            alertsEl.className = `ch-info-value ${data.new_alerts > 0 ? 'danger' : 'success'}`;
+
+            const statusEl = document.getElementById('ev-status-text');
+            if (data.new_alerts > 0) {
+                statusEl.textContent = 'DETECTED! Alerts triggered.';
+                statusEl.className = 'ch-info-value danger';
+            } else if (data.modbus_writes_detected >= data.writes_required) {
+                statusEl.textContent = 'Writes confirmed, no alerts!';
+                statusEl.className = 'ch-info-value success';
+            } else {
+                statusEl.textContent = 'Monitoring...';
+                statusEl.className = 'ch-info-value';
+            }
+
+            // Check for success
+            if (data.success && data.flag) {
+                evasionSolved = true;
+                clearInterval(evasionPolling);
+                document.getElementById('ch-evasion').classList.add('ch-solved');
+                document.getElementById('evasion-active').style.display = 'none';
+                document.getElementById('evasion-idle').style.display = 'block';
+                document.getElementById('evasion-idle').innerHTML =
+                    '<span class="ch-status solved">Solved</span>';
+                document.getElementById('evasion-flag').innerHTML =
+                    `<div class="ch-flag-display"><div class="ch-flag-label">Flag</div><div class="ch-flag-value">${data.flag}</div></div>`;
+            }
+        } else {
+            // Evasion expired or not active
+            clearInterval(evasionPolling);
+            document.getElementById('evasion-active').style.display = 'none';
+            document.getElementById('evasion-idle').style.display = 'block';
+
+            if (data.expired) {
+                const msg = data.modbus_writes_detected < 3
+                    ? `Time expired. Only ${data.modbus_writes_detected}/3 writes detected.`
+                    : `Time expired with ${data.new_alerts} alert(s) triggered.`;
+                document.getElementById('evasion-idle').innerHTML =
+                    `<span class="ch-status locked">Failed</span>
+                     <div class="ch-msg" style="color:var(--red)">${msg}</div>
+                     <div class="ch-actions" style="margin-top:0.5rem">
+                         <button class="btn btn-orange" onclick="resetEvasionUI()">Try Again</button>
+                     </div>`;
+            }
+        }
+    }
+
+    function resetEvasionUI() {
+        document.getElementById('evasion-idle').innerHTML =
+            `<span class="ch-status ready">Ready</span>
+             <div class="ch-actions">
+                 <button class="btn btn-orange" onclick="startEvasion()">Start Evasion Window</button>
+             </div>
+             <div class="ch-msg">Starts a 2-minute window. Send Modbus writes slowly to avoid detection.</div>`;
     }
 
     /* ===== MAIN LOOP ===== */
@@ -1099,12 +1863,16 @@
         await updateStatus();
         await updateSummary();
         await pollAlerts();
+        updateDetectionProgress();
+        await updateRuleStats();
     }
 
     // Init
     renderRules();
     updateAll();
+    updateForensicsStatus();
     setInterval(updateAll, 2000);
+    setInterval(updateForensicsStatus, 5000);
 
     // Resize handler for timeline
     window.addEventListener('resize', () => {
