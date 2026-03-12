@@ -538,7 +538,7 @@
     <!-- Header -->
     <header>
         <div class="flex items-center gap-4">
-            <a href="/ctf" class="back-button">← Back to CTF</a>
+            <a href="/ctf" class="back-button" target="_top">← Back to CTF</a>
             <h1 class="text-2xl font-bold">{{ challenge.title }}</h1>
         </div>
         
@@ -614,7 +614,7 @@
                 You may need to analyze logs, network traffic, or system configurations depending on the challenge type.
             </p>
             <div class="mt-4">
-                <a href="/" class="back-button">Access System Tools →</a>
+                <a href="/" class="back-button" target="_top">Access System Tools →</a>
             </div>
         </div>
     </main>
@@ -738,7 +738,7 @@
                     submitButton.textContent = 'Solved! ✓';
                     showSuccessAnimation();
                     setTimeout(() => {
-                        window.location.href = '/ctf';
+                        window.top.location.href = '/ctf';
                     }, 4000);
                 } else {
                     submitButton.disabled = false;

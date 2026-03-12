@@ -140,6 +140,15 @@
           "flag": "CybICS(detection_evasion_complete)",
           "hint": "Understand how security systems detect attacks and find ways to bypass them",
           "training_content": "training/detect_overwrite/README.md"
+        },
+        {
+          "id": "ids_challenge",
+          "title": "IDS Challenge",
+          "description": "Trigger the intrusion detection system by performing attacks and retrieve the flag",
+          "points": 300,
+          "flag": "CybICS(1ntrusi0n_d3tect3d)",
+          "hint": "Perform multiple different attacks and check the IDS flag endpoint",
+          "training_content": "training/ids_challenge/README.md"
         }
       ]
     }
