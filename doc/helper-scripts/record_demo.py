@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-CybICS Demo Video Recorder (~2 minutes)
+CybICS Demo Video Recorder (~2 minutes, smooth 30fps)
 Navigates entirely through the landing page's built-in views.
+Captures screenshots inline at ~30fps, then stitches with ffmpeg.
 """
 
 import os
+import time
 from playwright.sync_api import sync_playwright
 
 LANDING_URL = "http://localhost:80"
@@ -13,25 +15,44 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 WIDTH = 1920
 HEIGHT = 1080
+CAPTURE_FPS = 3   # actual screenshot capture rate (~330ms per frame)
+OUTPUT_FPS = 30   # output video framerate (frames are duplicated for smoothness)
+FRAME_DIR = os.path.join(OUTPUT_DIR, "frames")
+FRAME_INTERVAL = 1.0 / CAPTURE_FPS
+
+# Global frame counter
+frame_num = 0
 
 
-def smooth_scroll(page, distance, steps=5, delay=80):
-    step = distance // steps
-    for _ in range(steps):
-        page.mouse.wheel(0, step)
-        page.wait_for_timeout(delay)
+def capture_frame(page):
+    """Capture a single screenshot frame."""
+    global frame_num
+    path = os.path.join(FRAME_DIR, f"frame_{frame_num:06d}.jpg")
+    page.screenshot(path=path, type="jpeg", quality=85)
+    frame_num += 1
+
+
+def wait_recording(page, ms):
+    """Wait while continuously capturing frames at FPS rate."""
+    end = time.time() + ms / 1000.0
+    while time.time() < end:
+        t0 = time.time()
+        capture_frame(page)
+        elapsed = time.time() - t0
+        remaining = FRAME_INTERVAL - elapsed
+        if remaining > 0:
+            time.sleep(remaining)
 
 
 def nav_click(page, view_name, wait=3000):
-    """Click a nav button by its id via landing page."""
     btn = page.query_selector(f"#{view_name}-btn")
     if btn:
         box = btn.bounding_box()
         if box:
             page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            page.wait_for_timeout(300)
+            wait_recording(page, 300)
             btn.click()
-            page.wait_for_timeout(wait)
+            wait_recording(page, wait)
 
 
 def hover_el(page, selector, pause=600):
@@ -40,11 +61,10 @@ def hover_el(page, selector, pause=600):
         box = el.bounding_box()
         if box:
             page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            page.wait_for_timeout(pause)
+            wait_recording(page, pause)
 
 
 def iframe_page(page, iframe_id):
-    """Get the inner page of an iframe by its element id."""
     el = page.query_selector(f"#{iframe_id}")
     if el:
         return el.content_frame()
@@ -52,49 +72,51 @@ def iframe_page(page, iframe_id):
 
 
 def record_demo():
+    global frame_num
+    frame_num = 0
+
+    # Clean up old frames
+    os.makedirs(FRAME_DIR, exist_ok=True)
+    for f in os.listdir(FRAME_DIR):
+        os.remove(os.path.join(FRAME_DIR, f))
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             viewport={"width": WIDTH, "height": HEIGHT},
-            record_video_dir=OUTPUT_DIR,
-            record_video_size={"width": WIDTH, "height": HEIGHT},
         )
         page = context.new_page()
 
         # ===== 1. LANDING PAGE - Home screen =====
         print("[1/10] Landing page - Home...")
         page.goto(LANDING_URL, wait_until="networkidle")
-        page.wait_for_timeout(3000)
+        wait_recording(page, 2500)
 
-        # Hover over service boxes on home screen
+        # Hover over service boxes
         for name in ["openplc", "fuxa", "ids", "vhardware", "engineeringws", "attackmachine"]:
             sel = f".service-box[onclick=\"updateView('{name}')\"]"
             hover_el(page, sel, 400)
 
-        page.wait_for_timeout(1000)
+        wait_recording(page, 1000)
 
         # ===== 2. CTF Training =====
         print("[2/10] CTF Training...")
         nav_click(page, "ctf", 3000)
-        page.wait_for_timeout(1500)
+        wait_recording(page, 1500)
 
-        # CTF is inside an iframe — scroll through all challenges
         page.mouse.move(WIDTH // 2, HEIGHT // 2)
-        page.wait_for_timeout(500)
+        wait_recording(page, 500)
         ctf_frame = iframe_page(page, "ctf-iframe")
         if ctf_frame:
-            # Slow scroll through the top sections
             for _ in range(3):
                 ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
-                page.wait_for_timeout(2000)
-            # Scroll further and pause longer at the bottom sections
+                wait_recording(page, 2000)
             for _ in range(4):
                 ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
-                page.wait_for_timeout(2500)
-            # Hold at the bottom to show the last challenges
-            page.wait_for_timeout(3000)
+                wait_recording(page, 2500)
+            wait_recording(page, 3000)
 
-        # ===== 3. OpenPLC (via nav) =====
+        # ===== 3. OpenPLC =====
         print("[3/10] OpenPLC...")
         nav_click(page, "openplc", 2000)
 
@@ -104,50 +126,45 @@ def record_demo():
                 frame.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass
-            page.wait_for_timeout(1000)
+            wait_recording(page, 1000)
 
-            # Login immediately
             user_el = frame.query_selector('input[name="username"]')
             if user_el:
                 user_el.click()
-                page.wait_for_timeout(150)
+                wait_recording(page, 150)
                 page.keyboard.type("openplc", delay=50)
-                page.wait_for_timeout(200)
+                wait_recording(page, 200)
 
             pass_el = frame.query_selector('input[name="password"]')
             if pass_el:
                 pass_el.click()
-                page.wait_for_timeout(150)
+                wait_recording(page, 150)
                 page.keyboard.type("openplc", delay=50)
-                page.wait_for_timeout(200)
+                wait_recording(page, 200)
 
             login_btn = frame.query_selector('button:has-text("LOGIN"), button:has-text("Login")')
             if login_btn:
                 login_btn.click()
-                page.wait_for_timeout(3000)
+                wait_recording(page, 3000)
 
-            # Browse dashboard - stay for a moment
-            page.wait_for_timeout(2000)
+            wait_recording(page, 2000)
 
-            # Click Programs
             programs = frame.query_selector("text=Programs") or frame.query_selector("a[href*='program']")
             if programs:
                 programs.click()
-                page.wait_for_timeout(2500)
+                wait_recording(page, 2500)
 
-            # Click Monitoring
             monitoring = frame.query_selector("text=Monitoring") or frame.query_selector("a[href*='monitor']")
             if monitoring:
                 monitoring.click()
-                page.wait_for_timeout(2500)
+                wait_recording(page, 2500)
 
-            # Back to Dashboard
             dashboard = frame.query_selector("text=Dashboard") or frame.query_selector("a[href*='dashboard'], a[href='/']")
             if dashboard:
                 dashboard.click()
-                page.wait_for_timeout(2000)
+                wait_recording(page, 2000)
 
-        # ===== 4. FUXA HMI (via nav) =====
+        # ===== 4. FUXA HMI =====
         print("[4/10] FUXA HMI...")
         nav_click(page, "fuxa", 2000)
 
@@ -157,9 +174,8 @@ def record_demo():
                 frame.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass
-            page.wait_for_timeout(1000)
+            wait_recording(page, 1000)
 
-            # FUXA shows a "Sign in..." modal dialog — login immediately
             try:
                 all_inputs = frame.query_selector_all('input')
                 visible_text = [i for i in all_inputs if i.is_visible() and i.get_attribute("type") == "text"]
@@ -167,47 +183,43 @@ def record_demo():
 
                 if visible_text and visible_pass:
                     visible_text[-1].click()
-                    page.wait_for_timeout(150)
+                    wait_recording(page, 150)
                     page.keyboard.type("admin", delay=50)
-                    page.wait_for_timeout(200)
+                    wait_recording(page, 200)
 
                     visible_pass[-1].click()
-                    page.wait_for_timeout(150)
+                    wait_recording(page, 150)
                     page.keyboard.type("123456", delay=50)
-                    page.wait_for_timeout(200)
+                    wait_recording(page, 200)
 
                     ok_btn = frame.query_selector('button:has-text("OK")')
                     if ok_btn and ok_btn.is_visible():
                         ok_btn.click()
-                        page.wait_for_timeout(3000)
+                        wait_recording(page, 3000)
             except Exception as e:
                 print(f"    FUXA login error: {e}")
 
-            # Stay on FUXA for a bit to show the HMI
-            page.wait_for_timeout(3000)
+            wait_recording(page, 3000)
 
-            # Click Pressure view
             try:
                 pressure = frame.query_selector('button:has-text("Pressure")')
                 if pressure and pressure.is_visible():
                     pressure.click()
-                    page.wait_for_timeout(2500)
+                    wait_recording(page, 2500)
 
-                # Click System view
                 system = frame.query_selector('button:has-text("System")')
                 if system and system.is_visible():
                     system.click()
-                    page.wait_for_timeout(2500)
+                    wait_recording(page, 2500)
 
-                # Back to Overview
                 overview = frame.query_selector('button:has-text("Overview")')
                 if overview and overview.is_visible():
                     overview.click()
-                    page.wait_for_timeout(2000)
+                    wait_recording(page, 2000)
             except Exception as e:
                 print(f"    FUXA nav error: {e}")
 
-        # ===== 5. Virtual Hardware - 2D (Classic View) =====
+        # ===== 5. Virtual Hardware - 2D =====
         print("[5/10] Virtual Hardware - 2D...")
         nav_click(page, "vhardware", 4000)
 
@@ -217,33 +229,30 @@ def record_demo():
                 frame.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass
-            page.wait_for_timeout(4000)
+            wait_recording(page, 4000)
+            wait_recording(page, 3000)
 
-            # Stay on Classic View (2D) to show PCB and sensor data
-            page.wait_for_timeout(3000)
-
-            # ===== 6. Virtual Hardware - 3D =====
+            # ===== 6. 3D =====
             print("[6/10] Virtual Hardware - 3D...")
             tab_3d = frame.query_selector("text=3D Visualization")
             if tab_3d:
                 tab_3d.click()
-                page.wait_for_timeout(5000)
+                wait_recording(page, 5000)
 
-                # Drag to rotate the 3D view
                 page.mouse.move(WIDTH // 2, HEIGHT // 2)
-                page.wait_for_timeout(500)
+                wait_recording(page, 500)
                 page.mouse.down()
                 for i in range(20):
                     page.mouse.move(WIDTH // 2 + i * 15, HEIGHT // 2 + i * 5)
-                    page.wait_for_timeout(50)
+                    capture_frame(page)
+                    time.sleep(0.03)
                 page.mouse.up()
-                page.wait_for_timeout(2000)
+                wait_recording(page, 2000)
 
-            # Switch back to Classic View
             tab_2d = frame.query_selector("text=Classic View")
             if tab_2d:
                 tab_2d.click()
-                page.wait_for_timeout(2000)
+                wait_recording(page, 2000)
 
         # ===== 7. IDS Dashboard =====
         print("[7/10] IDS Dashboard - Overview...")
@@ -255,79 +264,89 @@ def record_demo():
                 frame.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass
-            page.wait_for_timeout(2500)
+            wait_recording(page, 2500)
 
-            # Overview tab - hover stat cards
             for sel in ["#s-packets", "#s-total", "#s-critical"]:
                 el = frame.query_selector(sel)
                 if el:
                     box = el.bounding_box()
                     if box:
                         page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-                        page.wait_for_timeout(400)
+                        wait_recording(page, 400)
 
-            page.wait_for_timeout(1500)
+            wait_recording(page, 1500)
 
-            # Switch to Alerts tab
             print("[8/10] IDS - Alerts tab...")
             alerts_btn = frame.query_selector('button[data-tab="alerts"]')
             if alerts_btn:
                 alerts_btn.click()
-                page.wait_for_timeout(2500)
+                wait_recording(page, 2500)
 
-            # Switch to Rules tab
             print("[9/10] IDS - Rules tab...")
             rules_btn = frame.query_selector('button[data-tab="rules"]')
             if rules_btn:
                 rules_btn.click()
-                page.wait_for_timeout(2500)
+                wait_recording(page, 2500)
 
-            # Switch to Challenges tab
             challenges_btn = frame.query_selector('button[data-tab="challenges"]')
             if challenges_btn:
                 challenges_btn.click()
-                page.wait_for_timeout(2500)
+                wait_recording(page, 2500)
 
-            # Back to Overview
             overview_btn = frame.query_selector('button[data-tab="overview"]')
             if overview_btn:
                 overview_btn.click()
-                page.wait_for_timeout(1500)
+                wait_recording(page, 1500)
 
-        # ===== 10. Engineering Workstation & Attack Box =====
+        # ===== 10. Engineering WS & Attack Box =====
         print("[10/10] Engineering WS & Attack Box...")
         nav_click(page, "engineeringws", 4000)
-        page.wait_for_timeout(3000)
+        wait_recording(page, 3000)
 
         nav_click(page, "attackmachine", 4000)
-        page.wait_for_timeout(3000)
+        wait_recording(page, 3000)
 
         # ===== BACK TO HOME =====
         print("[End] Back to home...")
         nav_click(page, "all", 3000)
-        page.wait_for_timeout(2000)
+        wait_recording(page, 2000)
 
-        # Close — finalizes video
         context.close()
         browser.close()
 
-    # Find and rename the recorded video
-    videos = sorted(
-        [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".webm")],
-        key=lambda f: os.path.getmtime(os.path.join(OUTPUT_DIR, f)),
-        reverse=True,
+    print(f"    Captured {frame_num} frames")
+
+    # Stitch frames into video with ffmpeg
+    output_path = os.path.join(OUTPUT_DIR, "cybics-demo.mp4")
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
+    print("Encoding video with ffmpeg...")
+    ffmpeg_cmd = (
+        f"ffmpeg -y -framerate {CAPTURE_FPS} "
+        f"-i {FRAME_DIR}/frame_%06d.jpg "
+        f"-c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p "
+        f"-r {OUTPUT_FPS} "
+        f"-movflags +faststart "
+        f"{output_path}"
     )
-    if videos:
-        src = os.path.join(OUTPUT_DIR, videos[0])
-        dst = os.path.join(OUTPUT_DIR, "cybics-demo.webm")
-        if os.path.exists(dst):
-            os.remove(dst)
-        os.rename(src, dst)
-        print(f"\nVideo saved: {dst}")
-        size_mb = os.path.getsize(dst) / 1024 / 1024
+    ret = os.system(ffmpeg_cmd + " 2>/dev/null")
+
+    if ret == 0 and os.path.exists(output_path):
+        size_mb = os.path.getsize(output_path) / 1024 / 1024
+        duration = frame_num / CAPTURE_FPS
+        print(f"\nVideo saved: {output_path}")
+        print(f"Duration: {int(duration // 60)}:{int(duration % 60):02d}")
         print(f"Size: {size_mb:.1f} MB")
+        print(f"Resolution: {WIDTH}x{HEIGHT} @ {OUTPUT_FPS}fps (captured {frame_num} frames @ ~{CAPTURE_FPS}fps)")
     else:
-        print("Warning: no video file found!")
+        print("ffmpeg encoding failed!")
+
+    # Clean up frames
+    print("Cleaning up frames...")
+    for f in os.listdir(FRAME_DIR):
+        os.remove(os.path.join(FRAME_DIR, f))
+    os.rmdir(FRAME_DIR)
 
 
 if __name__ == "__main__":
