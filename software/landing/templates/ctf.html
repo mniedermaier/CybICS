@@ -332,7 +332,7 @@
             <div class="grid gap-4">
                 {% for challenge in category.challenges %}
                 <div class="challenge-card {% if challenge.id in solved %}solved{% endif %}" 
-                     onclick="location.href='/ctf/challenge/{{ challenge.id }}'">
+                     onclick="window.top.location.href='/ctf/challenge/{{ challenge.id }}'">
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="text-lg font-semibold">{{ challenge.title }}</h3>
                         <div class="flex gap-2">

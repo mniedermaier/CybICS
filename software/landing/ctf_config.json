@@ -140,6 +140,33 @@
           "flag": "CybICS(detection_evasion_complete)",
           "hint": "Understand how security systems detect attacks and find ways to bypass them",
           "training_content": "training/detect_overwrite/README.md"
+        },
+        {
+          "id": "ids_challenge",
+          "title": "IDS Challenge",
+          "description": "Trigger the intrusion detection system by performing attacks and retrieve the flag",
+          "points": 300,
+          "flag": "CybICS(1ntrusi0n_d3tect3d)",
+          "hint": "Perform multiple different attacks and check the IDS flag endpoint",
+          "training_content": "training/ids_challenge/README.md"
+        },
+        {
+          "id": "ids_forensics",
+          "title": "IDS Forensics",
+          "description": "Analyze IDS alert data to investigate a security incident and answer forensic questions",
+          "points": 250,
+          "flag": "CybICS(f0r3ns1c_4n4lyst)",
+          "hint": "Use the /api/summary and /api/alerts endpoints to gather data about the incident",
+          "training_content": "training/ids_forensics/README.md"
+        },
+        {
+          "id": "ids_evasion",
+          "title": "IDS Evasion",
+          "description": "Perform a stealth Modbus write operation without triggering any IDS alerts",
+          "points": 400,
+          "flag": "CybICS(st34lth_0p3r4t0r)",
+          "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
+          "training_content": "training/ids_evasion/README.md"
         }
       ]
     }

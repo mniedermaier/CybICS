@@ -57,6 +57,13 @@ SERVICES = {
         'path': '/vnc.html?autoconnect=true&resize=scale',
         'icon': '🎯',
         'description': 'Kali Linux-based security testing environment. Perform penetration testing and vulnerability assessments on ICS/SCADA systems.'
+    },
+    'ids': {
+        'name': 'IDS',
+        'port': 8443,
+        'virtual_only': False,
+        'icon': '🛡️',
+        'description': 'Intrusion Detection System. Monitor network traffic for attacks against industrial protocols.'
     }
 }
 
