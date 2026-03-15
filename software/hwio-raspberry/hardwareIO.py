@@ -18,6 +18,8 @@ import RPi.GPIO as GPIO
 import logging
 import threading
 
+from cybics_pb2 import PressureData
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(8, GPIO.OUT) # compressor
@@ -253,24 +255,25 @@ def thread_i2c():
   while True:
     try:
       # Read the values for GST and HPT
-      data = bus.read_i2c_block_data(address, 0x00, 20)
-      # print(data)
-      for row in range(len(data)):
-        data[row] = chr(data[row])
-      logging.debug("Read over i2c: " + str(data))
+      data = bus.read_i2c_block_data(address, 0x00, 12)
+      logging.debug(f"Raw I2C data (register 0x00): {data}")
+
+      try:
+        pressure_data = PressureData()
+        # Convert list of integers to bytes properly
+        byte_data = bytes(bytearray(data))
+        pressure_data.ParseFromString(byte_data)
+        gst = pressure_data.gst_pressure
+        hpt = pressure_data.hpt_pressure
+        logging.debug(f"Decoded protobuf - GST: {gst}, HPT: {hpt}")
+      except Exception as pb_error:
+        logging.warning(f"Failed to decode PressureData protobuf: {str(pb_error)}")
 
       # Format the IP and send it via i2c to the RPI
       sendIP = ['I', 'P',':'] + listIp
       for row in range(len(sendIP)):
         sendIP[row] = ord(sendIP[row])
       bus.write_i2c_block_data(address, 0x00, sendIP)
-
-      # Simple check, if correct data was received
-      if(str(data[0]) == "G" and str(data[1]) == "S" and str(data[2]) == "T"):
-        gst = int(str(data[5] + data[6] + data[7]))
-        hpt = int(str(data[14] + data[15] + data[16]))
-
-      logging.debug(f"Setting GST to {str(gst)} and HPT to {str(hpt)}")
 
       # Read STM32 ID Code
       data = bus.read_i2c_block_data(address, 0x01, 13)
