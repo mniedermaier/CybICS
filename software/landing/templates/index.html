@@ -51,22 +51,22 @@
             33% { transform: translate(30px, -30px) scale(1.1); }
             66% { transform: translate(-20px, 20px) scale(0.9); }
         }
-        
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: #1a1a1a;
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: #404040;
             border-radius: 4px;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
             background: #ff6b00;
         }
@@ -2088,6 +2088,16 @@
                 });
             }
         }
+
+        // Handle postMessage from CTF iframe for navigation
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "navigate") {
+                const ctfIframe = document.getElementById("ctf-iframe");
+                if (ctfIframe) {
+                    ctfIframe.src = event.data.url;
+                }
+            }
+        });
     </script>
 
     <!-- Settings Modal -->
@@ -2926,4 +2936,4 @@
     </div>
 
 </body>
-</html> 
+</html>
