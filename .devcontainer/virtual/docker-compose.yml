@@ -139,7 +139,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - 5000:5000
+      - 5001:5000
       - 11434:11434
     environment:
       # Recommended models: tinyllama (fast), phi3:mini (balanced), llama3.2:3b (quality)
