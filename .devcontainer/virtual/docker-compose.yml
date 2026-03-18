@@ -105,7 +105,8 @@ services:
       context: ../..
       dockerfile: software/landing/Dockerfile
     restart: always
-    network_mode: host
+    ports:
+      - 80:80
     cap_add:
       - NET_ADMIN
       - NET_RAW
