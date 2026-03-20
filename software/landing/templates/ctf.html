@@ -12,21 +12,21 @@
             margin: 0;
             padding: 0;
         }
-        
+
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: #1a1a1a;
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: #404040;
             border-radius: 4px;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
             background: #ff6b00;
         }
@@ -328,11 +328,11 @@
         <div class="category-card">
             <h2 class="text-xl font-bold text-[#ff6b00] mb-2">{{ category.name }}</h2>
             <p class="text-gray-300 mb-4">{{ category.description }}</p>
-            
+
             <div class="grid gap-4">
                 {% for challenge in category.challenges %}
-                <div class="challenge-card {% if challenge.id in solved %}solved{% endif %}" 
-                     onclick="window.top.location.href='/ctf/challenge/{{ challenge.id }}'">
+                <div class="challenge-card {% if challenge.id in solved %}solved{% endif %}"
+                     onclick="window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ challenge.id }}' }, '*')">
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="text-lg font-semibold">{{ challenge.title }}</h3>
                         <div class="flex gap-2">
