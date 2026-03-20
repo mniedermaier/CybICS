@@ -161,6 +161,19 @@ services:
       - ai
       - full
 
+  ids:
+    image: mniedermaier1337/cybics-ids:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/ids
+      dockerfile: Dockerfile
+    restart: always
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - openplc
+
 networks:
   virt-cybics:
     driver: bridge

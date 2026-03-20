@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS IDS - Intrusion Detection System</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --surface: #2d2d2d;
+            --surface-alt: #353535;
+            --border: #404040;
+            --border-light: #606060;
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #999999;
+            --text-dim: #666666;
+            --orange: #ff6b00;
+            --orange-hover: #ff8c42;
+            --orange-dim: rgba(255, 107, 0, 0.15);
+            --green: #10b981;
+            --green-dim: rgba(16, 185, 129, 0.15);
+            --yellow: #f59e0b;
+            --yellow-dim: rgba(245, 158, 11, 0.15);
+            --red: #ef4444;
+            --red-dim: rgba(239, 68, 68, 0.15);
+            --blue: #3b82f6;
+            --blue-dim: rgba(59, 130, 246, 0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* Dark scrollbars globally */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) var(--bg);
+        }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: var(--bg); }
+        *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        *::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+        *::-webkit-scrollbar-corner { background: var(--bg); }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: rgba(45, 45, 45, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--orange);
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            flex-shrink: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            color: var(--orange);
+            font-weight: bold;
+            font-size: 1.25rem;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+
+        .header-logo span {
+            color: var(--text-secondary);
+            font-weight: normal;
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .header-nav a, .header-nav button {
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .header-nav a:hover, .header-nav button:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .header-nav .active-tab {
+            background: var(--orange);
+            color: var(--bg);
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.online {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.offline {
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-badge.online .status-dot { background: var(--green); }
+        .status-badge.offline .status-dot { background: var(--red); animation: none; }
+
+        .btn {
+            background: var(--border);
+            color: var(--text);
+            border: 1px solid var(--border-light);
+            padding: 0.35rem 0.85rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover { background: var(--border-light); }
+        .btn-orange { background: var(--orange); color: var(--bg); border-color: var(--orange); font-weight: 600; }
+        .btn-orange:hover { background: var(--orange-hover); }
+        .btn-danger { border-color: var(--red); color: var(--red); }
+        .btn-danger:hover { background: var(--red); color: var(--bg); }
+
+        /* ===== MAIN CONTENT ===== */
+        .main {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1rem 1.5rem;
+        }
+
+
+        /* ===== TAB CONTENT ===== */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ===== STAT CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .stat-card.accent-orange::before { background: var(--orange); }
+        .stat-card.accent-green::before { background: var(--green); }
+        .stat-card.accent-yellow::before { background: var(--yellow); }
+        .stat-card.accent-red::before { background: var(--red); }
+        .stat-card.accent-blue::before { background: var(--blue); }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .stat-sub {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 0.25rem;
+        }
+
+        /* ===== PANEL LAYOUT ===== */
+        .panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .panel-full { grid-column: 1 / -1; }
+
+        .panel-header {
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--orange);
+        }
+
+        .panel-body {
+            padding: 0.75rem 1rem;
+        }
+
+        .panel-body.no-pad { padding: 0; }
+
+        /* ===== SEVERITY BAR CHART ===== */
+        .sev-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sev-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sev-label {
+            width: 65px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .sev-bar-track {
+            flex: 1;
+            height: 20px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .sev-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            padding-left: 6px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            min-width: 0;
+        }
+
+        .sev-bar-fill.critical { background: var(--red); }
+        .sev-bar-fill.high { background: #db6d28; }
+        .sev-bar-fill.medium { background: var(--yellow); color: var(--bg); }
+        .sev-bar-fill.low { background: var(--blue); }
+
+        .sev-count {
+            width: 30px;
+            text-align: right;
+            font-size: 0.8rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ===== TOP SOURCES ===== */
+        .source-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(64, 64, 64, 0.5);
+        }
+
+        .source-ip {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .source-name {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        .source-count {
+            background: var(--orange-dim);
+            color: var(--orange);
+            padding: 0.15rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        /* ===== ALERT TABLE ===== */
+        .alert-table-wrap {
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+        }
+
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        thead th {
+            background: var(--surface-alt);
+            color: var(--orange);
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--orange);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        tbody td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid rgba(64, 64, 64, 0.4);
+        }
+
+        tbody tr:hover { background: rgba(255, 107, 0, 0.05); }
+
+        .severity-badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.2rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .severity-badge.critical { background: var(--red-dim); color: var(--red); }
+        .severity-badge.high { background: rgba(219, 109, 40, 0.15); color: #db6d28; }
+        .severity-badge.medium { background: var(--yellow-dim); color: var(--yellow); }
+        .severity-badge.low { background: var(--blue-dim); color: var(--blue); }
+
+        .mitre-tag {
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.2rem;
+        }
+
+        .rule-tag {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .ip-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+
+        .msg-cell {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* ===== RULES TAB ===== */
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .rule-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .rule-card:hover { border-color: var(--orange); }
+
+        .rule-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .rule-name {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--orange);
+            font-size: 0.85rem;
+        }
+
+        .rule-severity {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.2rem;
+            text-transform: uppercase;
+        }
+
+        .rule-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .rule-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .rule-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .rule-card.clickable { cursor: pointer; }
+        .rule-card.has-hits { border-left: 3px solid var(--orange); }
+
+        .rule-stats-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            padding: 0.4rem 0.5rem;
+            background: var(--bg);
+            border-radius: 0.3rem;
+        }
+
+        .rule-hit-count {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--orange);
+            font-family: 'Courier New', monospace;
+            min-width: 40px;
+        }
+
+        .rule-hit-count.zero { color: var(--text-dim); }
+
+        .rule-hit-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .rule-last-seen {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            font-family: 'Courier New', monospace;
+            margin-left: auto;
+        }
+
+        .rule-sources {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .rule-source-chip {
+            font-size: 0.65rem;
+            font-family: 'Courier New', monospace;
+            background: var(--orange-dim);
+            color: var(--orange);
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.75rem;
+        }
+
+        .protocol-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .protocol-badge.modbus { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+        .protocol-badge.s7comm { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+        .protocol-badge.http { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .protocol-badge.tcp { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .protocol-badge.arp { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .protocol-badge.opcua { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+
+        .rule-hints {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .rule-hint {
+            font-size: 0.7rem;
+            line-height: 1.4;
+            margin-bottom: 0.3rem;
+        }
+
+        .rule-hint-label {
+            font-weight: 600;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .rule-hint-label.attack { color: var(--red); }
+        .rule-hint-label.evasion { color: var(--green); }
+
+        /* ===== RULE DISTRIBUTION CHART ===== */
+        .rule-dist-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .rule-dist-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.15rem 0;
+            border-radius: 0.2rem;
+            transition: background 0.15s;
+        }
+
+        .rule-dist-row:hover { background: rgba(255, 107, 0, 0.05); }
+
+        .rule-dist-name {
+            width: 130px;
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rule-dist-track {
+            flex: 1;
+            height: 16px;
+            background: var(--bg);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .rule-dist-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            background: var(--orange);
+            display: flex;
+            align-items: center;
+            padding-left: 4px;
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: var(--bg);
+            min-width: 0;
+        }
+
+        .rule-dist-count {
+            width: 30px;
+            text-align: right;
+            font-size: 0.75rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+        }
+
+        /* ===== TIMELINE CANVAS ===== */
+        .timeline-container {
+            height: 120px;
+            position: relative;
+        }
+
+        .timeline-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select, .filter-bar input {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .filter-bar select:focus, .filter-bar input:focus {
+            outline: none;
+            border-color: var(--orange);
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== CHALLENGES TAB ===== */
+        .challenges-header {
+            margin-bottom: 1rem;
+        }
+
+        .challenges-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--orange);
+            margin-bottom: 0.25rem;
+        }
+
+        .challenges-header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .challenges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1rem;
+        }
+
+        .ch-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .ch-card:hover { border-color: var(--orange); }
+        .ch-card.ch-solved { border-color: var(--green); }
+
+        .ch-card-top {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .ch-card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .ch-card-pts {
+            background: var(--orange-dim);
+            color: var(--orange);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            white-space: nowrap;
+        }
+
+        .ch-card.ch-solved .ch-card-pts {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+
+        .ch-card-body {
+            padding: 1rem;
+        }
+
+        .ch-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .ch-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .ch-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .ch-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+            background: var(--orange);
+        }
+
+        .ch-card.ch-solved .ch-progress-fill { background: var(--green); }
+
+        .ch-progress-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .ch-status {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+            margin-bottom: 0.75rem;
+        }
+
+        .ch-status.locked { background: var(--red-dim); color: var(--red); }
+        .ch-status.ready { background: var(--yellow-dim); color: var(--yellow); }
+        .ch-status.active { background: var(--blue-dim); color: var(--blue); }
+        .ch-status.solved { background: var(--green-dim); color: var(--green); }
+
+        .ch-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ch-input {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            width: 140px;
+        }
+
+        .ch-input:focus { outline: none; border-color: var(--orange); }
+        .ch-input::placeholder { color: var(--text-dim); }
+
+        .ch-flag-display {
+            background: var(--green-dim);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .ch-flag-label {
+            font-size: 0.65rem;
+            color: var(--green);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2rem;
+        }
+
+        .ch-flag-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--green);
+            font-weight: 600;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        .ch-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            font-size: 0.75rem;
+        }
+
+        .ch-info-label { color: var(--text-muted); }
+        .ch-info-value { color: var(--text); font-family: 'Courier New', monospace; }
+        .ch-info-value.danger { color: var(--red); }
+        .ch-info-value.success { color: var(--green); }
+
+        .ch-timer {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--orange);
+            text-align: center;
+            margin: 0.5rem 0;
+        }
+
+        .ch-msg {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-new { animation: slideIn 0.3s ease; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .panels { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+            .header { padding: 0 1rem; }
+            .main { padding: 0.75rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <a class="header-logo" href="/" target="_top">CybICS<span>IDS</span></a>
+            <div class="header-nav">
+                <button class="active-tab" data-tab="overview" onclick="switchTab('overview', this)">Overview</button>
+                <button data-tab="alerts" onclick="switchTab('alerts', this)">Alerts</button>
+                <button data-tab="rules" onclick="switchTab('rules', this)">Rules</button>
+                <button data-tab="challenges" onclick="switchTab('challenges', this)">Challenges</button>
+            </div>
+        </div>
+        <div class="header-right">
+            <span id="status-badge" class="status-badge offline">
+                <span class="status-dot"></span>
+                <span id="status-text">Offline</span>
+            </span>
+            <button class="btn btn-orange" id="btn-toggle" onclick="toggleIDS()">Start</button>
+            <button class="btn btn-danger" onclick="clearAlerts()">Clear</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+        <!-- ===== OVERVIEW TAB ===== -->
+        <div class="tab-content active" id="tab-overview">
+            <!-- STAT CARDS -->
+            <div class="stats-grid">
+                <div class="stat-card accent-orange">
+                    <div class="stat-label">Packets Analyzed</div>
+                    <div class="stat-value" id="s-packets">0</div>
+                    <div class="stat-sub" id="s-pps">0 pkt/s</div>
+                </div>
+                <div class="stat-card accent-red">
+                    <div class="stat-label">Total Alerts</div>
+                    <div class="stat-value" id="s-total" style="color: var(--red)">0</div>
+                    <div class="stat-sub" id="s-alert-rate">--</div>
+                </div>
+                <div class="stat-card accent-yellow">
+                    <div class="stat-label">Critical</div>
+                    <div class="stat-value" id="s-critical" style="color: var(--red)">0</div>
+                    <div class="stat-sub">Immediate threat</div>
+                </div>
+                <div class="stat-card accent-blue">
+                    <div class="stat-label">High</div>
+                    <div class="stat-value" id="s-high" style="color: #db6d28">0</div>
+                    <div class="stat-sub">Potential attack</div>
+                </div>
+                <div class="stat-card accent-green">
+                    <div class="stat-label">Medium</div>
+                    <div class="stat-value" id="s-medium" style="color: var(--yellow)">0</div>
+                    <div class="stat-sub">Suspicious activity</div>
+                </div>
+                <div class="stat-card accent-green">
+                    <div class="stat-label">Uptime</div>
+                    <div class="stat-value" id="s-uptime" style="color: var(--green); font-size:1.1rem">--</div>
+                    <div class="stat-sub" id="s-started">--</div>
+                </div>
+            </div>
+
+            <!-- PANELS -->
+            <div class="panels">
+                <!-- Alert Timeline -->
+                <div class="panel panel-full">
+                    <div class="panel-header">
+                        <span class="panel-title">Alert Timeline</span>
+                        <span style="font-size:0.7rem; color:var(--text-dim)" id="timeline-info">Last 100 alerts</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="timeline-container">
+                            <canvas class="timeline-canvas" id="timeline-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Severity Distribution -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Severity Distribution</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="sev-bars" id="sev-bars">
+                            <div class="sev-row">
+                                <span class="sev-label" style="color:var(--red)">Critical</span>
+                                <div class="sev-bar-track"><div class="sev-bar-fill critical" id="bar-critical" style="width:0%"></div></div>
+                                <span class="sev-count" id="cnt-critical">0</span>
+                            </div>
+                            <div class="sev-row">
+                                <span class="sev-label" style="color:#db6d28">High</span>
+                                <div class="sev-bar-track"><div class="sev-bar-fill high" id="bar-high" style="width:0%"></div></div>
+                                <span class="sev-count" id="cnt-high">0</span>
+                            </div>
+                            <div class="sev-row">
+                                <span class="sev-label" style="color:var(--yellow)">Medium</span>
+                                <div class="sev-bar-track"><div class="sev-bar-fill medium" id="bar-medium" style="width:0%"></div></div>
+                                <span class="sev-count" id="cnt-medium">0</span>
+                            </div>
+                            <div class="sev-row">
+                                <span class="sev-label" style="color:var(--blue)">Low</span>
+                                <div class="sev-bar-track"><div class="sev-bar-fill low" id="bar-low" style="width:0%"></div></div>
+                                <span class="sev-count" id="cnt-low">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Sources -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Top Attack Sources</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="source-list" id="source-list">
+                            <div class="empty-state" style="padding:1rem"><p style="font-size:0.8rem">No sources detected</p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rule Distribution -->
+                <div class="panel panel-full">
+                    <div class="panel-header">
+                        <span class="panel-title">Rule Distribution</span>
+                        <span style="font-size:0.7rem; color:var(--text-dim)" id="rule-dist-info">Click a rule to filter alerts</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="rule-dist-bars" id="rule-dist-bars">
+                            <div style="text-align:center; padding:0.5rem; color:var(--text-dim); font-size:0.8rem">No alert data</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="panel panel-full">
+                <div class="panel-header">
+                    <span class="panel-title">Recent Alerts</span>
+                    <span style="font-size:0.7rem; color:var(--text-dim)" id="recent-count">0 alerts</span>
+                </div>
+                <div class="panel-body no-pad">
+                    <div style="max-height:260px; overflow-y:auto">
+                        <table>
+                            <thead>
+                                <tr><th>Time</th><th>Severity</th><th>Rule</th><th>Source</th><th>Target</th><th>Message</th><th>MITRE</th></tr>
+                            </thead>
+                            <tbody id="recent-alerts-body">
+                                <tr><td colspan="7" class="empty-state" style="padding:1.5rem"><p>No alerts yet</p></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ALERTS TAB ===== -->
+        <div class="tab-content" id="tab-alerts">
+            <div class="panel panel-full">
+                <div class="panel-header">
+                    <span class="panel-title">All Alerts</span>
+                    <div class="filter-bar">
+                        <span class="filter-label">Filter:</span>
+                        <select id="filter-severity" onchange="applyFilters()">
+                            <option value="">All Severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <select id="filter-rule" onchange="applyFilters()">
+                            <option value="">All Rules</option>
+                        </select>
+                        <input type="text" id="filter-ip" placeholder="Filter by IP..." onkeyup="applyFilters()" style="width:130px">
+                        <span style="font-size:0.75rem; color:var(--text-dim)" id="filter-count"></span>
+                    </div>
+                </div>
+                <div class="panel-body no-pad">
+                    <div class="alert-table-wrap">
+                        <table>
+                            <thead>
+                                <tr><th>ID</th><th>Timestamp</th><th>Severity</th><th>Rule</th><th>Source</th><th>Target</th><th>Message</th><th>MITRE</th></tr>
+                            </thead>
+                            <tbody id="all-alerts-body">
+                                <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">&#128737;</div><p>No alerts recorded</p><p style="font-size:0.75rem; color:var(--text-dim)">Alerts will appear here when the IDS detects suspicious activity</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== RULES TAB ===== -->
+        <div class="tab-content" id="tab-rules">
+            <div class="rules-grid" id="rules-grid"></div>
+        </div>
+
+        <!-- ===== CHALLENGES TAB ===== -->
+        <div class="tab-content" id="tab-challenges">
+            <div class="challenges-header">
+                <h2>IDS Challenges</h2>
+                <p>Complete these challenges to test your offensive and defensive IDS skills. Total: 950 points.</p>
+            </div>
+            <div class="challenges-grid">
+
+                <!-- DETECTION CHALLENGE -->
+                <div class="ch-card" id="ch-detection">
+                    <div class="ch-card-top">
+                        <span class="ch-card-title">IDS Detection</span>
+                        <span class="ch-card-pts">300 pts</span>
+                    </div>
+                    <div class="ch-card-body">
+                        <div class="ch-card-desc">
+                            Trigger the IDS by performing at least 3 different attacks against the CybICS network.
+                            Use port scanning, Modbus writes, S7comm access, or brute force attacks.
+                        </div>
+                        <div class="ch-progress">
+                            <div class="ch-progress-bar"><div class="ch-progress-fill" id="det-progress" style="width:0%"></div></div>
+                            <span class="ch-progress-text" id="det-progress-text">0 / 3 alerts</span>
+                        </div>
+                        <div id="det-status"></div>
+                        <div class="ch-actions">
+                            <button class="btn btn-orange" onclick="checkDetectionFlag()">Check Flag</button>
+                        </div>
+                        <div id="det-flag"></div>
+                    </div>
+                </div>
+
+                <!-- FORENSICS CHALLENGE -->
+                <div class="ch-card" id="ch-forensics">
+                    <div class="ch-card-top">
+                        <span class="ch-card-title">IDS Forensics</span>
+                        <span class="ch-card-pts">250 pts</span>
+                    </div>
+                    <div class="ch-card-body">
+                        <div class="ch-card-desc">
+                            Analyze the IDS alert data to investigate a security incident.
+                            Use the <code>/api/summary</code> and <code>/api/alerts</code> endpoints
+                            to answer three investigation questions.
+                        </div>
+                        <div id="forensics-status"></div>
+                        <div id="forensics-form" style="display:none">
+                            <div class="ch-info-row" style="margin-bottom:0.5rem; border-bottom:1px solid var(--border); padding-bottom:0.5rem">
+                                <span class="ch-info-label" style="font-weight:600; color:var(--orange)">Investigation Questions</span>
+                            </div>
+                            <div style="margin-bottom:0.5rem">
+                                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem">
+                                    1. IP address of the top attacker (most alerts)?
+                                </div>
+                                <input type="text" class="ch-input" id="f-top-attacker" placeholder="172.18.0.x" style="width:100%">
+                            </div>
+                            <div style="margin-bottom:0.5rem">
+                                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem">
+                                    2. How many unique detection rules triggered?
+                                </div>
+                                <input type="number" class="ch-input" id="f-unique-rules" placeholder="0" style="width:100%">
+                            </div>
+                            <div style="margin-bottom:0.75rem">
+                                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem">
+                                    3. How many critical-severity alerts recorded?
+                                </div>
+                                <input type="number" class="ch-input" id="f-critical-count" placeholder="0" style="width:100%">
+                            </div>
+                            <div class="ch-actions">
+                                <button class="btn btn-orange" onclick="submitForensics()">Submit Analysis</button>
+                            </div>
+                            <div class="ch-msg" id="forensics-errors"></div>
+                        </div>
+                        <div id="forensics-flag"></div>
+                    </div>
+                </div>
+
+                <!-- EVASION CHALLENGE -->
+                <div class="ch-card" id="ch-evasion">
+                    <div class="ch-card-top">
+                        <span class="ch-card-title">IDS Evasion</span>
+                        <span class="ch-card-pts">400 pts</span>
+                    </div>
+                    <div class="ch-card-body">
+                        <div class="ch-card-desc">
+                            Perform a stealth Modbus write operation without triggering any IDS alerts.
+                            You must send at least 3 Modbus write commands to OpenPLC (172.18.0.3:502)
+                            while staying below all detection thresholds.
+                        </div>
+                        <div id="evasion-idle">
+                            <span class="ch-status ready">Ready</span>
+                            <div class="ch-actions">
+                                <button class="btn btn-orange" onclick="startEvasion()">Start Evasion Window</button>
+                            </div>
+                            <div class="ch-msg">Starts a 2-minute window. Send Modbus writes slowly to avoid detection.</div>
+                        </div>
+                        <div id="evasion-active" style="display:none">
+                            <div class="ch-timer" id="evasion-timer">02:00</div>
+                            <div class="ch-info-row">
+                                <span class="ch-info-label">Modbus writes detected</span>
+                                <span class="ch-info-value" id="ev-writes">0 / 3</span>
+                            </div>
+                            <div class="ch-info-row">
+                                <span class="ch-info-label">New IDS alerts</span>
+                                <span class="ch-info-value" id="ev-alerts">0</span>
+                            </div>
+                            <div class="ch-info-row">
+                                <span class="ch-info-label">Status</span>
+                                <span class="ch-info-value" id="ev-status-text">Monitoring...</span>
+                            </div>
+                            <div class="ch-msg" id="evasion-hint">
+                                Send Modbus writes from the attack machine. Stay below 10 writes/30s to avoid modbus_unauth_write alerts.
+                            </div>
+                        </div>
+                        <div id="evasion-flag"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+    /* ===== STATE ===== */
+    let idsActive = false;
+    let lastAlertId = 0;
+    let allAlerts = [];
+    let prevPackets = 0;
+    let prevTime = Date.now();
+    let startedAt = null;
+
+    const KNOWN_SERVICES = {
+        '172.18.0.1': 'gateway',
+        '172.18.0.2': 'hwio',
+        '172.18.0.3': 'openplc',
+        '172.18.0.4': 'fuxa',
+        '172.18.0.5': 'opcua',
+        '172.18.0.6': 's7com',
+        '172.18.0.7': 'stm32',
+        '172.18.0.10': 'engineeringws',
+        '172.18.0.11': 'cybicsagent',
+        '172.18.0.100': 'attack-machine'
+    };
+
+    const RULES = [
+        { id: 'port_scan', name: 'Port Scan Detection', severity: 'medium', mitre: 'T0846', protocol: 'tcp',
+          desc: 'Detects SYN packets targeting multiple ports on a single host within a short time window. Indicates network reconnaissance.',
+          threshold: '5 ports / 10s',
+          attack_hint: 'nmap -sS 172.18.0.3 — SYN scan against OpenPLC',
+          evasion_hint: 'Scan fewer than 5 ports per 10s window per target' },
+        { id: 'syn_flood', name: 'SYN Flood Detection', severity: 'high', mitre: 'T0836', protocol: 'tcp',
+          desc: 'Detects excessive SYN packets from a single source, indicating a denial-of-service attempt or aggressive scanning.',
+          threshold: '100 SYNs / 10s',
+          attack_hint: 'hping3 -S --flood 172.18.0.3 — SYN flood',
+          evasion_hint: 'Keep SYN rate below 100 packets per 10s' },
+        { id: 'modbus_flood', name: 'Modbus Write Flood', severity: 'critical', mitre: 'T0836', protocol: 'modbus',
+          desc: 'Detects high-rate Modbus write operations from non-service hosts, indicating an attempt to flood or overwrite PLC registers.',
+          threshold: '50 writes / 5s',
+          attack_hint: 'Rapid Modbus FC 0x06/0x10 writes to 172.18.0.3:502',
+          evasion_hint: 'Keep write rate below 50 per 5s (10 writes/s)' },
+        { id: 'modbus_unauth_write', name: 'Modbus Unauthorized Write', severity: 'high', mitre: 'T0855', protocol: 'modbus',
+          desc: 'Detects Modbus write function codes originating from hosts that are not known CybICS services (HWIO, FUXA).',
+          threshold: '10 writes / 30s',
+          attack_hint: 'pymodbus: client.write_register(0, value, unit=1) to 172.18.0.3',
+          evasion_hint: 'Stay below 10 writes per 30s window — space writes ~4s apart' },
+        { id: 'modbus_diagnostic', name: 'Modbus Diagnostic Function', severity: 'medium', mitre: 'T0846', protocol: 'modbus',
+          desc: 'Detects use of Modbus diagnostic or device identification function codes (0x08, 0x2B), often used during enumeration.',
+          threshold: 'Any occurrence',
+          attack_hint: 'Send Modbus FC 0x08 or 0x2B to 172.18.0.3:502',
+          evasion_hint: 'Avoid diagnostic function codes entirely — use only read/write FCs' },
+        { id: 's7_enumeration', name: 'S7comm Enumeration', severity: 'medium', mitre: 'T0846', protocol: 's7comm',
+          desc: 'Detects TCP connections to S7 communication ports (102, 1102), indicating Siemens PLC reconnaissance or protocol analysis.',
+          threshold: 'Any connection',
+          attack_hint: 'nmap -p 102 172.18.0.6 or use snap7 client to connect',
+          evasion_hint: 'Alert fires on any S7 traffic — no threshold to stay under' },
+        { id: 'http_brute_force', name: 'HTTP Brute Force', severity: 'high', mitre: 'T0812', protocol: 'http',
+          desc: 'Detects repeated HTTP POST requests to login endpoints on OpenPLC (8080) or FUXA (1881), indicating password attacks.',
+          threshold: '5 attempts / 30s',
+          attack_hint: 'hydra -l admin -P wordlist.txt 172.18.0.3 http-post-form "/login:..."',
+          evasion_hint: 'Space login attempts >6s apart to stay under 5 per 30s' },
+        { id: 'arp_spoof', name: 'ARP Spoofing Detection', severity: 'critical', mitre: 'T0856', protocol: 'arp',
+          desc: 'Detects multiple MAC addresses associated with a single IP address, indicating ARP cache poisoning for man-in-the-middle attacks.',
+          threshold: '2+ MACs per IP',
+          attack_hint: 'arpspoof -i eth0 -t 172.18.0.3 172.18.0.1',
+          evasion_hint: 'Use your real MAC — any second MAC for an IP triggers the alert' },
+        { id: 'opcua_access', name: 'OPC-UA Unauthorized Access', severity: 'low', mitre: 'T0846', protocol: 'opcua',
+          desc: 'Detects OPC-UA connections from hosts not in the known service list, flagging potential unauthorized protocol access.',
+          threshold: 'Any connection',
+          attack_hint: 'Connect to opc.tcp://172.18.0.5:4840 from the attack machine',
+          evasion_hint: 'Alert fires for any non-service host — no threshold to evade' },
+    ];
+
+    /* ===== API HELPERS ===== */
+    async function api(url, opts) {
+        try {
+            const r = await fetch(url, opts);
+            return await r.json();
+        } catch (e) { return null; }
+    }
+
+    /* ===== TAB SWITCHING ===== */
+    function switchTab(tab, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.querySelectorAll('.header-nav button').forEach(el => el.classList.remove('active-tab'));
+        if (btn) {
+            btn.classList.add('active-tab');
+        } else {
+            const navBtn = document.querySelector(`.header-nav button[data-tab="${tab}"]`);
+            if (navBtn) navBtn.classList.add('active-tab');
+        }
+    }
+
+    /* ===== CONTROLS ===== */
+    async function toggleIDS() {
+        const endpoint = idsActive ? '/api/stop' : '/api/start';
+        await api(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'} });
+        await updateAll();
+    }
+
+    async function clearAlerts() {
+        await api('/api/alerts/clear', { method: 'POST' });
+        lastAlertId = 0;
+        allAlerts = [];
+        renderRecentAlerts();
+        renderAllAlerts();
+        await updateAll();
+    }
+
+    /* ===== STATUS UPDATE ===== */
+    async function updateStatus() {
+        const data = await api('/api/status');
+        if (!data) return;
+
+        idsActive = data.active;
+
+        // Status badge
+        const badge = document.getElementById('status-badge');
+        const text = document.getElementById('status-text');
+        badge.className = `status-badge ${idsActive ? 'online' : 'offline'}`;
+        text.textContent = idsActive ? 'Monitoring' : 'Offline';
+
+        // Toggle button
+        const btn = document.getElementById('btn-toggle');
+        btn.textContent = idsActive ? 'Stop' : 'Start';
+        btn.className = idsActive ? 'btn btn-danger' : 'btn btn-orange';
+
+        // Stat cards
+        const packets = data.stats.packets_analyzed || 0;
+        document.getElementById('s-packets').textContent = packets.toLocaleString();
+
+        // Packets per second
+        const now = Date.now();
+        const elapsed = (now - prevTime) / 1000;
+        if (elapsed > 0 && prevPackets > 0) {
+            const pps = Math.round((packets - prevPackets) / elapsed);
+            document.getElementById('s-pps').textContent = `${pps.toLocaleString()} pkt/s`;
+        }
+        prevPackets = packets;
+        prevTime = now;
+
+        document.getElementById('s-total').textContent = data.stats.alerts_in_buffer || 0;
+
+        // Uptime
+        if (data.stats.started_at) {
+            startedAt = new Date(data.stats.started_at);
+            const diff = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            const s = diff % 60;
+            document.getElementById('s-uptime').textContent =
+                `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            document.getElementById('s-started').textContent =
+                `Since ${startedAt.toLocaleTimeString()}`;
+        }
+    }
+
+    /* ===== SUMMARY UPDATE ===== */
+    async function updateSummary() {
+        const data = await api('/api/summary');
+        if (!data) return;
+
+        // Severity counts
+        const sev = data.severity || {};
+        document.getElementById('s-critical').textContent = sev.critical || 0;
+        document.getElementById('s-high').textContent = sev.high || 0;
+        document.getElementById('s-medium').textContent = sev.medium || 0;
+
+        const total = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0);
+
+        // Severity bars
+        ['critical','high','medium','low'].forEach(level => {
+            const count = sev[level] || 0;
+            const pct = total > 0 ? (count / total * 100) : 0;
+            document.getElementById(`bar-${level}`).style.width = `${pct}%`;
+            document.getElementById(`cnt-${level}`).textContent = count;
+        });
+
+        // Alert rate
+        if (total > 0 && startedAt) {
+            const mins = (Date.now() - startedAt.getTime()) / 60000;
+            if (mins > 0) {
+                document.getElementById('s-alert-rate').textContent =
+                    `${(total / mins).toFixed(1)} alerts/min`;
+            }
+        }
+
+        // Top sources
+        const srcList = document.getElementById('source-list');
+        if (data.top_sources && data.top_sources.length > 0) {
+            srcList.innerHTML = data.top_sources.map(s => {
+                const name = KNOWN_SERVICES[s.ip] || '';
+                const nameTag = name ? `<span class="source-name">(${name})</span>` : '';
+                return `<div class="source-item">
+                    <span><span class="source-ip">${s.ip}</span>${nameTag}</span>
+                    <span class="source-count">${s.count}</span>
+                </div>`;
+            }).join('');
+        } else {
+            srcList.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-dim); font-size:0.8rem">No sources detected</div>';
+        }
+
+        // Timeline
+        drawTimeline(data.timeline || []);
+
+        // Populate rule filter dropdown
+        const ruleSelect = document.getElementById('filter-rule');
+        const currentVal = ruleSelect.value;
+        const rules = data.rules || {};
+        const opts = ['<option value="">All Rules</option>'];
+        Object.keys(rules).forEach(r => opts.push(`<option value="${r}">${r} (${rules[r]})</option>`));
+        ruleSelect.innerHTML = opts.join('');
+        ruleSelect.value = currentVal;
+    }
+
+    /* ===== TIMELINE DRAWING ===== */
+    function drawTimeline(timeline) {
+        const canvas = document.getElementById('timeline-canvas');
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        const W = rect.width, H = rect.height;
+
+        ctx.clearRect(0, 0, W, H);
+
+        if (timeline.length === 0) {
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Segoe UI, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('No alert data to display', W/2, H/2);
+            return;
+        }
+
+        document.getElementById('timeline-info').textContent = `Showing ${timeline.length} alerts`;
+
+        const sevColors = { critical: '#ef4444', high: '#db6d28', medium: '#f59e0b', low: '#3b82f6' };
+        const sevY = { critical: 0.15, high: 0.35, medium: 0.6, low: 0.8 };
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(64, 64, 64, 0.5)';
+        ctx.lineWidth = 1;
+        [0.25, 0.5, 0.75].forEach(y => {
+            ctx.beginPath();
+            ctx.moveTo(40, y * H);
+            ctx.lineTo(W, y * H);
+            ctx.stroke();
+        });
+
+        // Y-axis labels
+        ctx.fillStyle = '#666';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText('CRIT', 35, 0.15 * H + 4);
+        ctx.fillText('HIGH', 35, 0.35 * H + 4);
+        ctx.fillText('MED', 35, 0.6 * H + 4);
+        ctx.fillText('LOW', 35, 0.8 * H + 4);
+
+        // Plot alerts as dots
+        const padding = 45;
+        const plotW = W - padding - 10;
+
+        timeline.forEach((a, i) => {
+            const x = padding + (i / Math.max(timeline.length - 1, 1)) * plotW;
+            const y = (sevY[a.severity] || 0.5) * H;
+            const color = sevColors[a.severity] || '#666';
+
+            // Glow effect
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = color + '30';
+            ctx.fill();
+
+            // Dot
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        });
+    }
+
+    /* ===== POLL ALERTS ===== */
+    async function pollAlerts() {
+        const data = await api(`/api/alerts?since_id=${lastAlertId}`);
+        if (!data || !data.alerts) return;
+
+        if (data.alerts.length > 0) {
+            for (const a of data.alerts) {
+                if (a.id > lastAlertId) lastAlertId = a.id;
+                allAlerts.push(a);
+            }
+            // Keep buffer limited client-side
+            if (allAlerts.length > 500) allAlerts = allAlerts.slice(-500);
+
+            renderRecentAlerts();
+            renderAllAlerts();
+        }
+    }
+
+    /* ===== RENDER HELPERS ===== */
+    function formatAlertRow(a, showId) {
+        const ts = a.timestamp ? a.timestamp.split('T')[1]?.split('.')[0] || '' : '';
+        const srcName = KNOWN_SERVICES[a.src];
+        const srcExtra = srcName ? ` <span style="color:var(--text-dim);font-size:0.65rem">${srcName}</span>` : '';
+        const idCol = showId ? `<td style="color:var(--text-dim)">${a.id}</td>` : '';
+        return `<tr class="alert-new">
+            ${idCol}
+            <td style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted)">${ts}</td>
+            <td><span class="severity-badge ${a.severity}">${a.severity}</span></td>
+            <td><span class="rule-tag">${a.rule}</span></td>
+            <td class="ip-cell">${a.src || ''}${srcExtra}</td>
+            <td class="ip-cell">${a.dst || ''}</td>
+            <td class="msg-cell" title="${(a.message||'').replace(/"/g,'&quot;')}">${a.message || ''}</td>
+            <td>${a.mitre ? `<span class="mitre-tag">${a.mitre}</span>` : ''}</td>
+        </tr>`;
+    }
+
+    function renderRecentAlerts() {
+        const tbody = document.getElementById('recent-alerts-body');
+        const recent = allAlerts.slice(-20).reverse();
+        document.getElementById('recent-count').textContent = `${allAlerts.length} alerts`;
+
+        if (recent.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:1.5rem"><p>No alerts yet</p></td></tr>';
+            return;
+        }
+        tbody.innerHTML = recent.map(a => formatAlertRow(a, false)).join('');
+    }
+
+    function renderAllAlerts() {
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const sevFilter = document.getElementById('filter-severity').value;
+        const ruleFilter = document.getElementById('filter-rule').value;
+        const ipFilter = document.getElementById('filter-ip').value.toLowerCase();
+
+        let filtered = allAlerts;
+        if (sevFilter) filtered = filtered.filter(a => a.severity === sevFilter);
+        if (ruleFilter) filtered = filtered.filter(a => a.rule === ruleFilter);
+        if (ipFilter) filtered = filtered.filter(a =>
+            (a.src || '').toLowerCase().includes(ipFilter) ||
+            (a.dst || '').toLowerCase().includes(ipFilter)
+        );
+
+        document.getElementById('filter-count').textContent = `${filtered.length} / ${allAlerts.length}`;
+
+        const tbody = document.getElementById('all-alerts-body');
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">&#128737;</div><p>No alerts match filters</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.slice().reverse().map(a => formatAlertRow(a, true)).join('');
+    }
+
+    /* ===== RENDER RULES ===== */
+    let ruleStats = {};
+
+    function renderRules() {
+        const grid = document.getElementById('rules-grid');
+        grid.innerHTML = RULES.map(r => {
+            const stats = ruleStats[r.id] || { count: 0, last_seen: null, top_sources: [] };
+            const hasHits = stats.count > 0;
+            const hitClass = hasHits ? 'has-hits' : '';
+            const countClass = hasHits ? '' : 'zero';
+            const lastSeen = stats.last_seen
+                ? stats.last_seen.split('T')[1]?.split('.')[0] || ''
+                : 'never';
+            const sourcesHtml = stats.top_sources.length > 0
+                ? `<div class="rule-sources">${stats.top_sources.map(s =>
+                    `<span class="rule-source-chip">${s.ip} (${s.count})</span>`
+                  ).join('')}</div>`
+                : '';
+
+            return `<div class="rule-card clickable ${hitClass}" onclick="filterByRule('${r.id}')">
+                <div class="rule-card-header">
+                    <span class="rule-name">${r.id}</span>
+                    <span style="display:flex; gap:0.35rem; align-items:center">
+                        <span class="protocol-badge ${r.protocol}">${r.protocol}</span>
+                        <span class="severity-badge rule-severity ${r.severity}">${r.severity}</span>
+                    </span>
+                </div>
+                <div class="rule-stats-row">
+                    <span class="rule-hit-count ${countClass}" id="rule-count-${r.id}">${stats.count}</span>
+                    <span style="display:flex; flex-direction:column">
+                        <span class="rule-hit-label">hits</span>
+                        <span class="rule-last-seen">last: ${lastSeen}</span>
+                    </span>
+                </div>
+                ${sourcesHtml}
+                <div class="rule-desc">${r.desc}</div>
+                <div class="rule-meta">
+                    <span class="rule-meta-item"><span class="mitre-tag">${r.mitre}</span></span>
+                    <span class="rule-meta-item" style="color:var(--text-dim)">Threshold: ${r.threshold}</span>
+                </div>
+                <div class="rule-hints">
+                    <div class="rule-hint"><span class="rule-hint-label attack">Attack: </span>${r.attack_hint}</div>
+                    <div class="rule-hint"><span class="rule-hint-label evasion">Evade: </span>${r.evasion_hint}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function filterByRule(ruleId) {
+        switchTab('alerts');
+        const ruleSelect = document.getElementById('filter-rule');
+        ruleSelect.value = ruleId;
+        applyFilters();
+    }
+
+    async function updateRuleStats() {
+        const data = await api('/api/rules/stats');
+        if (!data) return;
+        ruleStats = data;
+        renderRules();
+        renderRuleDistribution(data);
+    }
+
+    function renderRuleDistribution(stats) {
+        const container = document.getElementById('rule-dist-bars');
+        const maxCount = Math.max(1, ...RULES.map(r => (stats[r.id]?.count || 0)));
+        const totalHits = RULES.reduce((sum, r) => sum + (stats[r.id]?.count || 0), 0);
+
+        if (totalHits === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:0.5rem; color:var(--text-dim); font-size:0.8rem">No alert data</div>';
+            return;
+        }
+
+        container.innerHTML = RULES.map(r => {
+            const count = stats[r.id]?.count || 0;
+            const pct = (count / maxCount * 100).toFixed(1);
+            return `<div class="rule-dist-row" onclick="filterByRule('${r.id}')">
+                <span class="rule-dist-name">${r.id}</span>
+                <div class="rule-dist-track"><div class="rule-dist-fill" style="width:${pct}%"></div></div>
+                <span class="rule-dist-count">${count}</span>
+            </div>`;
+        }).join('');
+    }
+
+    /* ===== CHALLENGE: DETECTION ===== */
+    let detectionSolved = false;
+
+    async function checkDetectionFlag() {
+        const data = await api('/api/flag');
+        if (!data) return;
+
+        const card = document.getElementById('ch-detection');
+        if (data.flag) {
+            detectionSolved = true;
+            card.classList.add('ch-solved');
+            document.getElementById('det-status').innerHTML =
+                '<span class="ch-status solved">Solved</span>';
+            document.getElementById('det-flag').innerHTML =
+                `<div class="ch-flag-display"><div class="ch-flag-label">Flag</div><div class="ch-flag-value">${data.flag}</div></div>`;
+        } else {
+            document.getElementById('det-status').innerHTML =
+                `<span class="ch-status locked">${data.message}</span>`;
+        }
+    }
+
+    function updateDetectionProgress() {
+        const count = Math.min(allAlerts.length, 3);
+        const pct = (count / 3) * 100;
+        document.getElementById('det-progress').style.width = `${pct}%`;
+        document.getElementById('det-progress-text').textContent = `${Math.min(allAlerts.length, 3)} / 3 alerts`;
+        if (count >= 3 && !detectionSolved) {
+            document.getElementById('det-status').innerHTML =
+                '<span class="ch-status ready">Threshold reached - check flag!</span>';
+        }
+    }
+
+    /* ===== CHALLENGE: FORENSICS ===== */
+    let forensicsSolved = false;
+
+    async function updateForensicsStatus() {
+        if (forensicsSolved) return;
+        const data = await api('/api/forensics');
+        if (!data) return;
+
+        const statusEl = document.getElementById('forensics-status');
+        const formEl = document.getElementById('forensics-form');
+
+        if (data.ready) {
+            statusEl.innerHTML = `<span class="ch-status ready">Investigation ready</span>
+                <span style="font-size:0.7rem; color:var(--text-dim); margin-left:0.5rem">${data.alert_count} alerts, ${data.unique_rules} rule types</span>`;
+            formEl.style.display = 'block';
+        } else {
+            statusEl.innerHTML = `<span class="ch-status locked">Not ready</span>
+                <div class="ch-msg">${data.message}</div>`;
+            formEl.style.display = 'none';
+        }
+    }
+
+    async function submitForensics() {
+        const body = {
+            top_attacker: document.getElementById('f-top-attacker').value,
+            unique_rules: parseInt(document.getElementById('f-unique-rules').value) || 0,
+            critical_count: parseInt(document.getElementById('f-critical-count').value) || 0,
+        };
+
+        const data = await api('/api/forensics/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        if (!data) return;
+
+        const errEl = document.getElementById('forensics-errors');
+        if (data.success) {
+            forensicsSolved = true;
+            document.getElementById('ch-forensics').classList.add('ch-solved');
+            document.getElementById('forensics-status').innerHTML =
+                '<span class="ch-status solved">Solved</span>';
+            document.getElementById('forensics-form').style.display = 'none';
+            errEl.textContent = '';
+            document.getElementById('forensics-flag').innerHTML =
+                `<div class="ch-flag-display"><div class="ch-flag-label">Flag</div><div class="ch-flag-value">${data.flag}</div></div>`;
+        } else {
+            errEl.innerHTML = data.errors ?
+                data.errors.map(e => `<span style="color:var(--red)">${e}</span>`).join('<br>') :
+                `<span style="color:var(--red)">${data.message}</span>`;
+        }
+    }
+
+    /* ===== CHALLENGE: EVASION ===== */
+    let evasionSolved = false;
+    let evasionPolling = null;
+
+    async function startEvasion() {
+        const data = await api('/api/evasion/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!data || !data.success) {
+            alert(data ? data.message : 'Failed to start evasion challenge');
+            return;
+        }
+
+        document.getElementById('evasion-idle').style.display = 'none';
+        document.getElementById('evasion-active').style.display = 'block';
+        document.getElementById('evasion-flag').innerHTML = '';
+
+        // Start polling
+        if (evasionPolling) clearInterval(evasionPolling);
+        evasionPolling = setInterval(pollEvasion, 1000);
+        pollEvasion();
+    }
+
+    async function pollEvasion() {
+        if (evasionSolved) {
+            if (evasionPolling) clearInterval(evasionPolling);
+            return;
+        }
+
+        const data = await api('/api/evasion/check');
+        if (!data) return;
+
+        if (data.active) {
+            // Update timer
+            const mins = Math.floor(data.remaining / 60);
+            const secs = data.remaining % 60;
+            document.getElementById('evasion-timer').textContent =
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            // Update stats
+            const writesEl = document.getElementById('ev-writes');
+            writesEl.textContent = `${data.modbus_writes_detected} / ${data.writes_required}`;
+            writesEl.className = `ch-info-value ${data.modbus_writes_detected >= data.writes_required ? 'success' : ''}`;
+
+            const alertsEl = document.getElementById('ev-alerts');
+            alertsEl.textContent = data.new_alerts;
+            alertsEl.className = `ch-info-value ${data.new_alerts > 0 ? 'danger' : 'success'}`;
+
+            const statusEl = document.getElementById('ev-status-text');
+            if (data.new_alerts > 0) {
+                statusEl.textContent = 'DETECTED! Alerts triggered.';
+                statusEl.className = 'ch-info-value danger';
+            } else if (data.modbus_writes_detected >= data.writes_required) {
+                statusEl.textContent = 'Writes confirmed, no alerts!';
+                statusEl.className = 'ch-info-value success';
+            } else {
+                statusEl.textContent = 'Monitoring...';
+                statusEl.className = 'ch-info-value';
+            }
+
+            // Check for success
+            if (data.success && data.flag) {
+                evasionSolved = true;
+                clearInterval(evasionPolling);
+                document.getElementById('ch-evasion').classList.add('ch-solved');
+                document.getElementById('evasion-active').style.display = 'none';
+                document.getElementById('evasion-idle').style.display = 'block';
+                document.getElementById('evasion-idle').innerHTML =
+                    '<span class="ch-status solved">Solved</span>';
+                document.getElementById('evasion-flag').innerHTML =
+                    `<div class="ch-flag-display"><div class="ch-flag-label">Flag</div><div class="ch-flag-value">${data.flag}</div></div>`;
+            }
+        } else {
+            // Evasion expired or not active
+            clearInterval(evasionPolling);
+            document.getElementById('evasion-active').style.display = 'none';
+            document.getElementById('evasion-idle').style.display = 'block';
+
+            if (data.expired) {
+                const msg = data.modbus_writes_detected < 3
+                    ? `Time expired. Only ${data.modbus_writes_detected}/3 writes detected.`
+                    : `Time expired with ${data.new_alerts} alert(s) triggered.`;
+                document.getElementById('evasion-idle').innerHTML =
+                    `<span class="ch-status locked">Failed</span>
+                     <div class="ch-msg" style="color:var(--red)">${msg}</div>
+                     <div class="ch-actions" style="margin-top:0.5rem">
+                         <button class="btn btn-orange" onclick="resetEvasionUI()">Try Again</button>
+                     </div>`;
+            }
+        }
+    }
+
+    function resetEvasionUI() {
+        document.getElementById('evasion-idle').innerHTML =
+            `<span class="ch-status ready">Ready</span>
+             <div class="ch-actions">
+                 <button class="btn btn-orange" onclick="startEvasion()">Start Evasion Window</button>
+             </div>
+             <div class="ch-msg">Starts a 2-minute window. Send Modbus writes slowly to avoid detection.</div>`;
+    }
+
+    /* ===== MAIN LOOP ===== */
+    async function updateAll() {
+        await updateStatus();
+        await updateSummary();
+        await pollAlerts();
+        updateDetectionProgress();
+        await updateRuleStats();
+    }
+
+    // Init
+    renderRules();
+    updateAll();
+    updateForensicsStatus();
+    setInterval(updateAll, 2000);
+    setInterval(updateForensicsStatus, 5000);
+
+    // Resize handler for timeline
+    window.addEventListener('resize', () => {
+        if (allAlerts.length > 0) {
+            updateSummary();
+        }
+    });
+    </script>
+</body>
+</html>
