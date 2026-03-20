@@ -49,7 +49,7 @@
           "training_content": "training/scanning2/README.md"
         },
         {
-          "id": "wireshark_capture", 
+          "id": "wireshark_capture",
           "title": "Wireshark Capture",
           "description": "Learn network traffic analysis",
           "points": 200,
@@ -167,6 +167,15 @@
           "flag": "CybICS(st34lth_0p3r4t0r)",
           "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
           "training_content": "training/ids_evasion/README.md"
+        },
+        {
+          "id": "firmware_update",
+          "title": "Malicious Firmware Update",
+          "description": "Exploit insecure firmware update mechanism",
+          "points": 400,
+          "flag": "CybICS(malicious_firmware_injected)",
+          "hint": "Analyze firmware updates and manipulate them",
+          "training_content": "training/time-travelers-update/README.md"
         }
       ]
     }
