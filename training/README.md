@@ -36,6 +36,16 @@ All training modules are mapped to industry-standard security frameworks to help
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
 | [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
 
+## 📦 Prerequisites
+
+Install the Python dependencies for all training modules:
+
+```bash
+pip install -r training/requirements.txt
+```
+
+Alternatively, each training module has its own `requirements.txt` if you only want dependencies for a specific exercise.
+
 ## 📚 Training Modules
 
 ### 🏭 Basic Understanding
