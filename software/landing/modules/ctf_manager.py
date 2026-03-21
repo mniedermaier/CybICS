@@ -166,6 +166,21 @@ class CTFManager:
                 markdown_content = re.sub(r'<summary>', '<summary markdown="1">', markdown_content)
                 markdown_content = re.sub(r'<div([^>]*)>', r'<div\1 markdown="1">', markdown_content)
 
+                # Dedent fenced code blocks so they render inside list items
+                def _dedent_fenced(m):
+                    indent = m.group(1)
+                    return '\n'.join(
+                        line[len(indent):] if line.startswith(indent) else line
+                        for line in m.group(0).split('\n')
+                    )
+
+                markdown_content = re.sub(
+                    r'^([ \t]+)(```\w*\n.*?\n[ \t]*```)',
+                    _dedent_fenced,
+                    markdown_content,
+                    flags=re.MULTILINE | re.DOTALL
+                )
+
                 # Convert markdown to HTML with extensions
                 html = markdown.markdown(markdown_content, extensions=[
                     'fenced_code',
