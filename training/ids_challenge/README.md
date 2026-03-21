@@ -92,6 +92,13 @@ The CybICS IDS implements 9 detection rules:
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+You need to trigger at least 3 different IDS rules. Try a port scan (nmap), Modbus writes (pymodbus), and S7 access (nmap s7-info script). After triggering alerts, check the flag endpoint at `/api/flag`.
+
+</details>
+
 ## 🔍 Defensive Thinking
 
 After completing the offensive tasks, consider:

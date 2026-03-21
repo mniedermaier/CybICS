@@ -106,6 +106,13 @@ Using Nmap's s7-info script, you can:
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+The nmap `s7-info` script is hardcoded for port 102. Since S7comm runs on a non-standard port here, you will need to modify the script's `portrule` to include the custom port before scanning.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

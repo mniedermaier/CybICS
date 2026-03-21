@@ -51,6 +51,13 @@ client.close()
 #### Step 4: Verify Detection
 Check the IDS dashboard to confirm alerts have been generated from at least 3 different rules. Then click **Verify Defense** on this challenge page.
 
+<details>
+<summary>💡 Hint</summary>
+
+Start the IDS capture via `curl -X POST http://localhost:8443/api/start`, then trigger attacks from the webshell or attack machine. A quick port scan (`nmap -sS 172.18.0.3`), some Modbus writes, and an S7 access attempt will each trigger a different rule. Check the IDS dashboard to confirm 3+ rules have fired.
+
+</details>
+
 ## 🛡️ Security Framework References
 
 <details>

@@ -86,6 +86,13 @@ This training focuses on **detecting** the following adversary techniques:
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+Run the `override.py` script to generate Modbus write traffic, then capture the packets. In Wireshark, filter for Modbus write function codes (0x06 and 0x10) to identify the overwrite attack pattern.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

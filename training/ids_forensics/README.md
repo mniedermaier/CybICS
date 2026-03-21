@@ -122,6 +122,13 @@ result = requests.post(f"{BASE}/api/forensics/submit", json={
 print(result)
 ```
 
+<details>
+<summary>💡 Hint</summary>
+
+Query `/api/summary` to get aggregated data — it contains `top_sources` (sorted by alert count), `rules` (unique rule names), and `severity` (counts per level). The three answers can all be derived from this single endpoint without parsing raw alerts.
+
+</details>
+
 ## 🛡️ Security Framework References
 
 <details>

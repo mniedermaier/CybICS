@@ -105,6 +105,13 @@ If successful, the flag will be included in the response.
 3. **Connecting to multiple ports**: Stick to port 502 only
 4. **Running flooding scripts**: Scripts like `flooding_hpt.py` send writes in tight loops, triggering `modbus_flood`
 
+<details>
+<summary>💡 Hint</summary>
+
+The key threshold is `modbus_unauth_write`: 10 writes in 30 seconds. Send only 3 writes with 5-second delays between them — this keeps you well under the limit. Use a single TCP connection to port 502 only, and don't run any scans during the evasion window.
+
+</details>
+
 ## 🛡️ Security Framework References
 
 <details>

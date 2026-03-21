@@ -90,6 +90,13 @@ A basic understanding of Modbus/TCP is required for this example.
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+Run the provided flooding script to overwrite Modbus registers on the PLC. While the attack is running, watch the FUXA HMI to observe how the physical process changes in response to the manipulated register values.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

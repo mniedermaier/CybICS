@@ -85,6 +85,13 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+You need to become the man-in-the-middle by using ARP spoofing to intercept traffic between FUXA and OpenPLC. The provided `mitm.py` script handles the proxy — focus on understanding the ARP spoofing and running the proxy.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

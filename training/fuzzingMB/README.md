@@ -115,6 +115,13 @@ Grab a coffee ☕☕☕☕ while the fuzzer runs
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+Clone the Modbus fuzzer repository, install its dependencies with pip, and run it against the OpenPLC Modbus port (502). The flag is awarded for completing the fuzzing exercise.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

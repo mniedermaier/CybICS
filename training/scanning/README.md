@@ -53,6 +53,13 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+Look carefully at the HTTP response headers from the web services — flags can be hidden in server banners. Try using nmap's service version detection.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

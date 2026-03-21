@@ -120,6 +120,13 @@ Do not forget to delete the previous CybICS ST code.
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+Check the OpenPLC users page — the flag is hidden in the user account information. Pay close attention to the email field.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

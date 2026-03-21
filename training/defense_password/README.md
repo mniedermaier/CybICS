@@ -32,6 +32,13 @@ The FUXA HMI runs on port **1881** and uses the default admin credentials:
 3. Navigate to the settings and change the admin password
 4. Click **Verify Defense** on this challenge page to confirm
 
+<details>
+<summary>💡 Hint</summary>
+
+For OpenPLC, navigate to the web UI at port 8080, log in with `openplc`/`openplc`, then go to **Users** in the sidebar to find the password change option. For FUXA, access port 1881 and look for user settings in the top-right menu.
+
+</details>
+
 ## ⚠️ Important Notes
 - Remember your new passwords! If you forget them, you may need to restart the containers.
 - Choose passwords that are strong enough to resist dictionary attacks (the same attack you performed in the Password Attack challenge).

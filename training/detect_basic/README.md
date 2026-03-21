@@ -80,6 +80,13 @@ This training focuses on **detecting** the following adversary techniques:
 
 </details>
 
+<details>
+<summary>💡 Hint</summary>
+
+Capture network traffic with tcpdump or Wireshark while running a port scan. Analyze the PCAP to identify the scanning patterns — look for SYN packets to many different ports from the same source.
+
+</details>
+
 ## 🔍 Solution
 
 <details>

@@ -46,6 +46,13 @@ Add iptables rules on the **OpenPLC container** to restrict access to Modbus TCP
 
 5. Click **Verify Defense** on this challenge page to confirm.
 
+<details>
+<summary>💡 Hint</summary>
+
+Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. Then use `iptables -A INPUT` rules to ACCEPT traffic from authorized IPs (FUXA and hwio) on port 502 first, and DROP everything else to that port last. Order matters — iptables processes rules top to bottom.
+
+</details>
+
 ### ⚠️ Important Notes
 - The `hwio` service (172.18.0.2) must be able to write sensor values to OpenPLC via Modbus. Do not block it.
 - The `FUXA` HMI (172.18.0.4) needs Modbus access for process monitoring and control. Do not block it.

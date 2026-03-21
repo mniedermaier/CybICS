@@ -70,6 +70,13 @@ docker exec <attack_container> nc -z -w 3 172.18.0.5 4840
 
 Click **Verify Defense** on this challenge page to confirm.
 
+<details>
+<summary>💡 Hint</summary>
+
+You can apply iptables rules either on each target container (DROP traffic from 172.18.0.100) or on the attack machine itself (DROP outbound traffic to the targets). The simplest approach is to add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA containers.
+
+</details>
+
 ## ⚠️ Important Notes
 - Do not block legitimate traffic between authorized services (hwio, FUXA, etc.)
 - These rules are not persistent — they will be lost when containers restart
