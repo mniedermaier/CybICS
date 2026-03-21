@@ -15,7 +15,7 @@ The CybICS IDS is a lightweight, purpose-built IDS designed for ICS environments
 | Technique | ID | Detection Rule |
 |---|---|---|
 | Remote System Discovery | T0846 | Port scan, S7 enumeration, OPC-UA access |
-| Denial of Service | T0836 | SYN flood, Modbus write flood |
+| Denial of Service | T0814 | SYN flood, Modbus write flood |
 | Unauthorized Command Message | T0855 | Modbus writes from unexpected sources |
 | Spoof Reporting Message | T0856 | ARP spoofing |
 | Default Credentials | T0812 | HTTP brute force against OpenPLC/FUXA |

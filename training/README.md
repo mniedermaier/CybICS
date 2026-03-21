@@ -35,6 +35,9 @@ All training modules are mapped to industry-standard security frameworks to help
 | [UART Training](uart_basic/README.md) | Initial Access | Default Credentials, External Remote Services | T0812, T0822 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
 | [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
+| [IDS Challenge](ids_challenge/README.md) | Discovery, Impair Process Control | Remote System Discovery, Denial of Service, Unauthorized Command Message | T0846, T0814, T0855 |
+| [IDS Evasion](ids_evasion/README.md) | Impair Process Control, Evasion | Unauthorized Command Message, Exploitation of Remote Services, Manipulation of Control | T0855, T0866, T0831 |
+| [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Alert Triage | D3-NTA, D3-AT |
 
 ## 📦 Prerequisites
 
@@ -68,6 +71,11 @@ Alternatively, each training module has its own `requirements.txt` if you only w
 11. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
 12. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
 13. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+
+### 🔎 IDS Challenges
+14. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and observe alerts
+15. [IDS Evasion](ids_evasion/README.md) - Perform stealth attacks below detection thresholds
+16. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident response
 
 ---
 
