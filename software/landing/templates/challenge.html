@@ -614,7 +614,7 @@
     <!-- Header -->
     <header>
         <div class="flex items-center gap-4">
-            <a href="/ctf" class="back-button" target="_top">← Back to CTF</a>
+            <a href="/ctf" class="back-button" onclick="event.preventDefault(); window.parent.postMessage({ type: 'navigate', url: '/ctf' }, '*');">← Back to CTF</a>
             <h1 class="text-2xl font-bold">{{ challenge.title }}</h1>
         </div>
         
@@ -835,7 +835,7 @@
                     submitButton.textContent = 'Solved! ✓';
                     showSuccessAnimation();
                     setTimeout(() => {
-                        window.top.location.href = '/ctf';
+                        window.parent.postMessage({ type: 'navigate', url: '/ctf' }, '*');
                     }, 4000);
                 } else {
                     submitButton.disabled = false;
@@ -883,7 +883,7 @@
                     showMessage(data.message, true);
                     verifyButton.innerHTML = '✅ Verified!';
                     showSuccessAnimation();
-                    setTimeout(() => { window.top.location.href = '/ctf'; }, 4000);
+                    setTimeout(() => { window.parent.postMessage({ type: 'navigate', url: '/ctf' }, '*'); }, 4000);
                 } else {
                     showMessage(data.message, false);
                     verifyButton.disabled = false;
