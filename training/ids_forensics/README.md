@@ -1,31 +1,14 @@
-# IDS Forensics Challenge
+# 🔎 IDS Forensics Challenge
 
-## Objective
+> **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/)
 
-Analyze IDS alert data to investigate a security incident on the CybICS industrial network. Demonstrate your ability to use IDS APIs for incident response and forensic analysis.
-
-## Background
+## 📋 Overview
 
 Security Operations Center (SOC) analysts regularly triage alerts from intrusion detection systems to understand the scope and nature of attacks. This challenge simulates a real-world incident investigation where you must analyze IDS data programmatically.
 
 The CybICS IDS exposes a REST API that provides alert data, summary statistics, and aggregated metrics. Your task is to query these endpoints, analyze the data, and answer three investigation questions.
 
-## MITRE ATT&CK for ICS Alignment
-
-| Technique | ID | Relevance |
-|---|---|---|
-| Remote System Discovery | T0846 | Identifying reconnaissance patterns |
-| Unauthorized Command Message | T0855 | Detecting unauthorized Modbus writes |
-| Denial of Service | T0836 | Identifying flooding attacks |
-
-## MITRE D3FEND Alignment
-
-| Technique | ID | Description |
-|---|---|---|
-| Network Traffic Analysis | D3-NTA | Analyzing captured network alert data |
-| Alert Triage | D3-AT | Prioritizing and classifying security alerts |
-
-## Prerequisites
+## 📦 Prerequisites
 
 Before starting this challenge, you need alert data in the IDS. Complete the **IDS Challenge** first or trigger multiple different attacks to generate diverse alerts:
 
@@ -36,7 +19,7 @@ Before starting this challenge, you need alert data in the IDS. Complete the **I
 
 You need at least **5 alerts** from at least **3 different rule types**.
 
-## Task
+## 🎯 Task
 
 ### Step 1: Check Investigation Readiness
 
@@ -104,7 +87,7 @@ If all answers are correct, the flag will be revealed.
 
 You can also submit via the **Challenges tab** on the IDS dashboard.
 
-### Python Scripting Approach
+### 🐍 Python Scripting Approach
 
 For a more programmatic approach:
 
@@ -139,18 +122,41 @@ result = requests.post(f"{BASE}/api/forensics/submit", json={
 print(result)
 ```
 
-## Key Takeaways
+## 🛡️ Security Framework References
 
-- SOC analysts must efficiently query and correlate alert data from multiple sources
-- API-based analysis enables automation and faster incident response
-- Understanding alert severity, source attribution, and rule classification is fundamental to triage
-- The same API skills apply to commercial SIEMs (Splunk, QRadar, Elastic Security)
+<details>
+  <summary>Click to expand</summary>
 
-## NIST SP 800-82r3 Alignment
+### MITRE ATT&CK for ICS — Techniques Investigated
 
-| Control Family | Control | Description |
-|---|---|---|
-| SI (System and Information Integrity) | SI-4 | Information System Monitoring |
-| IR (Incident Response) | IR-4 | Incident Handling |
-| IR (Incident Response) | IR-5 | Incident Monitoring |
-| AU (Audit and Accountability) | AU-6 | Audit Review, Analysis, and Reporting |
+| Tactic | Technique | ID | Relevance |
+|--------|-----------|-----|-----------|
+| Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Identifying reconnaissance patterns |
+| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Detecting unauthorized Modbus writes |
+| Impact | Denial of Service | [T0836](https://attack.mitre.org/techniques/T0836/) | Identifying flooding attacks |
+
+### MITRE D3FEND — Defensive Techniques Applied
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Analyzing captured network alert data |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **System and Information Integrity (SI)** | SI-4 | Information system monitoring |
+| **Incident Response (IR)** | IR-4, IR-5 | Incident handling and monitoring |
+| **Audit and Accountability (AU)** | AU-6 | Audit review, analysis, and reporting |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 emphasizes that monitoring (SI-4) must be paired with effective incident handling (IR-4). Simply collecting alerts is insufficient — analysts must be able to query, correlate, and interpret alert data to respond effectively. AU-6 (Audit Review) requires that security alerts are reviewed and analyzed. The same API-based analysis skills apply to commercial SIEMs (Splunk, QRadar, Elastic Security).
+
+</details>
+
+## 🔍 Defensive Thinking
+
+After completing this challenge, consider:
+- How would you automate alert triage to reduce analyst workload?
+- What correlation rules would you create to identify multi-stage attacks?
+- How would you distinguish false positives from real attacks in ICS alert data?
+- What metrics would you track to measure IDS effectiveness over time?

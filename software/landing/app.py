@@ -215,7 +215,38 @@ def challenge_detail(challenge_id):
                          challenge=challenge,
                          category=category,
                          training_content=training_content,
-                         solved=challenge_id in session['solved_challenges'])
+                         solved=challenge_id in session['solved_challenges'],
+                         challenge_type=challenge.get('type', 'offensive'))
+
+@app.route('/ctf/verify/<challenge_id>', methods=['POST'])
+def verify_defense(challenge_id):
+    """Verify a defense challenge and auto-submit flag on success"""
+    initialize_session()
+
+    current_progress = get_current_progress()
+
+    # Check if already solved
+    if challenge_id in current_progress.get('solved_challenges', []):
+        return jsonify({'success': True, 'message': 'Challenge already solved!', 'checks': []})
+
+    # Run verification
+    result = ctf_manager.verify_defense(challenge_id)
+
+    # If verification passed, auto-submit the flag
+    if result.get('success') and result.get('flag'):
+        submit_result = ctf_manager.submit_flag(challenge_id, result['flag'], current_progress)
+        if submit_result['success']:
+            session['solved_challenges'].append(challenge_id)
+            session['total_points'] += submit_result['points']
+            session.modified = True
+            ctf_manager.save_progress({
+                'solved_challenges': session['solved_challenges'],
+                'total_points': session['total_points']
+            })
+            result['points'] = submit_result['points']
+            result['message'] = f"{result['message']} You earned {submit_result['points']} points!"
+
+    return jsonify(result)
 
 @app.route('/ctf/submit', methods=['POST'])
 def submit_flag():

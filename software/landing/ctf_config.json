@@ -169,6 +169,67 @@
           "training_content": "training/ids_evasion/README.md"
         }
       ]
+    },
+    "defense": {
+      "name": "🛡️ Defense & Hardening",
+      "description": "Harden the ICS environment by applying defensive security measures",
+      "challenges": [
+        {
+          "id": "defense_openplc_password",
+          "title": "Harden OpenPLC Credentials",
+          "description": "Change the default OpenPLC password to prevent unauthorized access to the PLC runtime",
+          "points": 150,
+          "type": "defense",
+          "verify_module": "check_openplc_password",
+          "flag": "CybICS(0penPLC_h4rd3n3d)",
+          "hint": "Log into the OpenPLC web UI at port 8080 and change the default password from 'openplc'",
+          "training_content": "training/defense_password/README.md"
+        },
+        {
+          "id": "defense_fuxa_password",
+          "title": "Harden FUXA Credentials",
+          "description": "Change the default FUXA admin password to prevent unauthorized HMI access",
+          "points": 150,
+          "type": "defense",
+          "verify_module": "check_fuxa_password",
+          "flag": "CybICS(FUXA_s3cur3d)",
+          "hint": "Access FUXA at port 1881 and change the admin password from its default value",
+          "training_content": "training/defense_password/README.md"
+        },
+        {
+          "id": "defense_firewall",
+          "title": "Modbus Firewall Rules",
+          "description": "Restrict Modbus (port 502) access so only authorized systems can communicate with the PLC",
+          "points": 250,
+          "type": "defense",
+          "verify_module": "check_firewall",
+          "flag": "CybICS(f1r3w4ll_h4rd3n3d)",
+          "hint": "Use iptables on the OpenPLC container to only allow 172.18.0.4 (FUXA) to access port 502",
+          "training_content": "training/defense_firewall/README.md"
+        },
+        {
+          "id": "defense_network_segmentation",
+          "title": "Network Segmentation",
+          "description": "Block the attack machine from reaching critical ICS services",
+          "points": 300,
+          "type": "defense",
+          "verify_module": "check_network_segmentation",
+          "flag": "CybICS(n3tw0rk_s3gm3nt3d)",
+          "hint": "Block the attack machine (172.18.0.100) from accessing the PLC and OPC-UA server",
+          "training_content": "training/defense_network/README.md"
+        },
+        {
+          "id": "defense_ids_tuning",
+          "title": "IDS Monitoring & Tuning",
+          "description": "Ensure the IDS is running and actively detecting multiple types of attacks",
+          "points": 200,
+          "type": "defense",
+          "verify_module": "check_ids_tuning",
+          "flag": "CybICS(1ds_tun3d)",
+          "hint": "Start the IDS, ensure it is capturing packets, and trigger at least 3 different detection rules",
+          "training_content": "training/defense_ids/README.md"
+        }
+      ]
     }
   }
 }

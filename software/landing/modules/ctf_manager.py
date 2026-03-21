@@ -3,6 +3,7 @@ CTF (Capture The Flag) management module
 """
 import json
 import os
+import importlib
 import markdown
 import re
 
@@ -95,6 +96,38 @@ class CTFManager:
         else:
             logger.info(f"Incorrect flag submitted for {challenge_id}")
             return {'success': False, 'message': 'Incorrect flag. Try again!'}
+
+    def verify_defense(self, challenge_id):
+        """Run defense verification for a challenge.
+
+        Returns:
+            dict with keys: success, message, flag (if success), checks (list of check results)
+        """
+        challenge, _ = self.get_challenge(challenge_id)
+        if not challenge:
+            return {'success': False, 'message': 'Challenge not found', 'checks': []}
+
+        if challenge.get('type') != 'defense':
+            return {'success': False, 'message': 'Not a defense challenge', 'checks': []}
+
+        verify_module = challenge.get('verify_module')
+        if not verify_module:
+            return {'success': False, 'message': 'No verification module configured', 'checks': []}
+
+        try:
+            module = importlib.import_module(f'modules.defense_checks.{verify_module}')
+            result = module.verify()
+
+            if result.get('success'):
+                result['flag'] = challenge['flag']
+
+            return result
+        except ImportError as e:
+            logger.error(f"Could not load defense check module: {verify_module}: {e}")
+            return {'success': False, 'message': f'Verification module not found: {verify_module}', 'checks': []}
+        except Exception as e:
+            logger.error(f"Error running defense check {verify_module}: {e}", exc_info=True)
+            return {'success': False, 'message': f'Verification error: {str(e)}', 'checks': []}
 
     def reset_progress(self):
         """Reset all progress"""

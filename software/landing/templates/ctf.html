@@ -77,6 +77,21 @@
             color: #ffffff;
         }
 
+        .badge-easy {
+            background-color: #22c55e;
+            color: #1a1a1a;
+        }
+
+        .badge-medium {
+            background-color: #f59e0b;
+            color: #1a1a1a;
+        }
+
+        .badge-hard {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
         .progress-bar {
             background-color: #404040;
             border-radius: 0.5rem;
@@ -336,6 +351,13 @@
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="text-lg font-semibold">{{ challenge.title }}</h3>
                         <div class="flex gap-2">
+                            {% if challenge.points <= 150 %}
+                            <span class="badge badge-easy">Easy</span>
+                            {% elif challenge.points <= 250 %}
+                            <span class="badge badge-medium">Medium</span>
+                            {% else %}
+                            <span class="badge badge-hard">Hard</span>
+                            {% endif %}
                             <span class="badge badge-points">{{ challenge.points }} pts</span>
                             {% if challenge.id in solved %}
                             <span class="badge badge-solved">✓ Solved</span>

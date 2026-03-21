@@ -108,6 +108,21 @@
             color: #ffffff;
         }
 
+        .badge-easy {
+            background-color: #22c55e;
+            color: #1a1a1a;
+        }
+
+        .badge-medium {
+            background-color: #f59e0b;
+            color: #1a1a1a;
+        }
+
+        .badge-hard {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
         .hint-box {
             background-color: #404040;
             border-left: 4px solid #ff6b00;
@@ -532,6 +547,67 @@
         .text-center {
             text-align: center;
         }
+
+        /* Defense verification styles */
+        .verify-button {
+            background-color: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .verify-button:hover {
+            background-color: #2563eb;
+        }
+
+        .verify-button:disabled {
+            background-color: #606060;
+            cursor: not-allowed;
+        }
+
+        .verify-checklist {
+            margin: 1rem 0;
+            padding: 0;
+        }
+
+        .verify-check {
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .verify-check.passed {
+            background-color: #1a4d2e;
+            border-left: 3px solid #22c55e;
+        }
+
+        .verify-check.failed {
+            background-color: #4d1a1a;
+            border-left: 3px solid #ef4444;
+        }
+
+        .verify-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #606060;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -543,6 +619,13 @@
         </div>
         
         <div class="flex items-center gap-2">
+            {% if challenge.points <= 150 %}
+            <span class="badge badge-easy">Easy</span>
+            {% elif challenge.points <= 250 %}
+            <span class="badge badge-medium">Medium</span>
+            {% else %}
+            <span class="badge badge-hard">Hard</span>
+            {% endif %}
             <span class="badge badge-points">{{ challenge.points }} pts</span>
             {% if solved %}
             <span class="badge badge-solved">✓ Solved</span>
@@ -579,29 +662,41 @@
         </div>
         {% endif %}
 
-        <!-- Flag Submission -->
+        <!-- Flag Submission / Defense Verification -->
         <div class="challenge-container">
-            <h2 class="text-xl font-bold mb-4">Submit Flag</h2>
-            
             {% if solved %}
+            <h2 class="text-xl font-bold mb-4">{% if challenge_type == 'defense' %}Defense Verified{% else %}Submit Flag{% endif %}</h2>
             <div class="message success">
                 <strong>🎉 Challenge Completed!</strong><br>
                 You have already solved this challenge and earned {{ challenge.points }} points.
             </div>
+            {% elif challenge_type == 'defense' %}
+            <h2 class="text-xl font-bold mb-4">🛡️ Verify Defense</h2>
+            <p class="text-gray-300 mb-4">
+                Complete the defensive actions described above, then click the button to verify your work.
+            </p>
+
+            <button id="verify-button" class="verify-button">
+                🛡️ Verify Defense
+            </button>
+
+            <div id="verify-results"></div>
+            <div id="message-container"></div>
             {% else %}
+            <h2 class="text-xl font-bold mb-4">Submit Flag</h2>
             <div class="mb-4">
                 <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag (format: CybICS(...))</label>
-                <input type="text" 
-                       id="flag-input" 
-                       class="flag-input" 
+                <input type="text"
+                       id="flag-input"
+                       class="flag-input"
                        placeholder="CybICS(flag_here)"
                        autocomplete="off">
             </div>
-            
+
             <button id="submit-button" class="submit-button">
                 Submit Flag
             </button>
-            
+
             <div id="message-container"></div>
             {% endif %}
         </div>
@@ -632,8 +727,10 @@
 
     <script>
         const challengeId = '{{ challenge.id }}';
+        const challengeType = '{{ challenge_type }}';
         const flagInput = document.getElementById('flag-input');
         const submitButton = document.getElementById('submit-button');
+        const verifyButton = document.getElementById('verify-button');
         const messageContainer = document.getElementById('message-container');
 
         function showMessage(message, isSuccess) {
@@ -754,8 +851,59 @@
             });
         }
 
+        function verifyDefense() {
+            const resultsContainer = document.getElementById('verify-results');
+
+            verifyButton.disabled = true;
+            verifyButton.innerHTML = '<span class="verify-spinner"></span> Verifying...';
+            resultsContainer.innerHTML = '';
+
+            fetch(`/ctf/verify/${challengeId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                let checksHtml = '';
+                if (data.checks && data.checks.length > 0) {
+                    checksHtml = '<div class="verify-checklist">';
+                    data.checks.forEach(check => {
+                        const icon = check.passed ? '✅' : '❌';
+                        const cls = check.passed ? 'passed' : 'failed';
+                        checksHtml += `<div class="verify-check ${cls}">
+                            <span>${icon}</span> <strong>${check.name}</strong>: ${check.detail}
+                        </div>`;
+                    });
+                    checksHtml += '</div>';
+                }
+
+                resultsContainer.innerHTML = checksHtml;
+
+                if (data.success) {
+                    showMessage(data.message, true);
+                    verifyButton.innerHTML = '✅ Verified!';
+                    showSuccessAnimation();
+                    setTimeout(() => { window.top.location.href = '/ctf'; }, 4000);
+                } else {
+                    showMessage(data.message, false);
+                    verifyButton.disabled = false;
+                    verifyButton.innerHTML = '🛡️ Verify Defense';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Verification error. Please try again.', false);
+                verifyButton.disabled = false;
+                verifyButton.innerHTML = '🛡️ Verify Defense';
+            });
+        }
+
         if (submitButton) {
             submitButton.addEventListener('click', submitFlag);
+        }
+
+        if (verifyButton) {
+            verifyButton.addEventListener('click', verifyDefense);
         }
 
         if (flagInput) {

@@ -172,11 +172,10 @@ class RuleEngine:
             tracker[port_key] = {}
         ports = tracker[port_key]
         ports[dport] = now
-        # Prune expired (only when dict grows, amortized)
-        if len(ports) > self.PORT_SCAN_THRESHOLD + 5:
-            cutoff = now - self.PORT_SCAN_WINDOW
-            tracker[port_key] = {p: t for p, t in ports.items() if t >= cutoff}
-            ports = tracker[port_key]
+        # Prune expired entries before checking threshold
+        cutoff = now - self.PORT_SCAN_WINDOW
+        tracker[port_key] = {p: t for p, t in ports.items() if t >= cutoff}
+        ports = tracker[port_key]
         unique_ports = len(ports)
         if unique_ports >= self.PORT_SCAN_THRESHOLD:
             if self._should_alert("port_scan", src_ip, now):
