@@ -206,15 +206,18 @@ def challenge_detail(challenge_id):
         logger.warning(f'Challenge not found: {challenge_id}')
         return "Challenge not found", 404
 
-    # Load training content if available
+    # Load training content and extract progressive hints
     training_content = ""
+    readme_hint = None
     if 'training_content' in challenge:
         training_content = ctf_manager.load_markdown_content(challenge['training_content'])
+        readme_hint, training_content = ctf_manager.extract_hint_from_html(training_content)
 
     return render_template('challenge.html',
                          challenge=challenge,
                          category=category,
                          training_content=training_content,
+                         readme_hint=readme_hint,
                          solved=challenge_id in session['solved_challenges'],
                          challenge_type=challenge.get('type', 'offensive'))
 

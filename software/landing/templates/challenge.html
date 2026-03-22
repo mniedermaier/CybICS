@@ -659,13 +659,31 @@
             <h2 class="text-xl font-bold mb-4">Challenge Description</h2>
             <p class="text-gray-300 mb-6 leading-relaxed">{{ challenge.description }}</p>
             
-            {% if challenge.hint %}
-            <details class="hint-box" style="cursor: pointer;">
-                <summary class="font-semibold" style="color: #ff6b00; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="transition: transform 0.2s; display: inline-block;" class="hint-arrow">▶</span> 💡 Show Hint
-                </summary>
-                <p class="text-gray-300" style="margin-top: 0.75rem;">{{ challenge.hint }}</p>
-            </details>
+            {% if challenge.hint or readme_hint %}
+            <div style="margin-top: 1rem;">
+                {% if challenge.hint %}
+                <details class="hint-box" style="cursor: pointer; margin-bottom: 0.5rem;">
+                    <summary class="font-semibold" style="color: #ff6b00; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="transition: transform 0.2s; display: inline-block;" class="hint-arrow">▶</span> 💡 Hint 1 — Getting Started
+                    </summary>
+                    <p class="text-gray-300" style="margin-top: 0.75rem;">{{ challenge.hint }}</p>
+                </details>
+                {% endif %}
+                {% if readme_hint %}
+                <details class="hint-box" style="cursor: pointer; margin-bottom: 0.5rem; border-left-color: #f59e0b;">
+                    <summary class="font-semibold" style="color: #f59e0b; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="transition: transform 0.2s; display: inline-block;" class="hint-arrow">▶</span> 💡 Hint 2 — More Detail
+                    </summary>
+                    <div class="text-gray-300 training-content" style="margin-top: 0.75rem;">{{ readme_hint | safe }}</div>
+                </details>
+                {% endif %}
+                <details class="hint-box" style="cursor: pointer; border-left-color: #ef4444;">
+                    <summary class="font-semibold" style="color: #ef4444; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="transition: transform 0.2s; display: inline-block;" class="hint-arrow">▶</span> 💡 Hint 3 — Solution Approach
+                    </summary>
+                    <p class="text-gray-300" style="margin-top: 0.75rem;">Check the <strong>Training Material</strong> section below for the full walkthrough. Look for collapsible solution sections.</p>
+                </details>
+            </div>
             {% endif %}
         </div>
 
@@ -702,12 +720,13 @@
             {% else %}
             <h2 class="text-xl font-bold mb-4">Submit Flag</h2>
             <div class="mb-4">
-                <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag (format: CybICS(...))</label>
+                <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag</label>
                 <input type="text"
                        id="flag-input"
                        class="flag-input"
                        placeholder="CybICS(flag_here)"
                        autocomplete="off">
+                <div style="font-size: 0.75rem; color: #777; margin-top: 0.35rem;">Format: <code style="color: #ff6b00; background: #333; padding: 0.1rem 0.3rem; border-radius: 3px;">CybICS(...)</code></div>
             </div>
 
             <button id="submit-button" class="submit-button">
@@ -824,9 +843,14 @@
 
         function submitFlag() {
             const flag = flagInput.value.trim();
-            
+
             if (!flag) {
                 showMessage('Please enter a flag', false);
+                return;
+            }
+
+            if (!/^CybICS\(.*\)$/.test(flag)) {
+                showMessage('Check the format — flags look like <code>CybICS(...)</code>', false);
                 return;
             }
 

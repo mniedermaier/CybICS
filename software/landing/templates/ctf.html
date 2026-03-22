@@ -28,72 +28,106 @@
             border-bottom: 2px solid #ff6b00;
         }
 
-        header h1 {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #ff6b00;
-        }
+        header h1 { font-size: 1.25rem; font-weight: bold; color: #ff6b00; }
 
-        .header-stats {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
+        .header-stats { display: flex; align-items: center; gap: 1.5rem; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.25rem; font-weight: bold; color: #ff6b00; }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; }
 
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #ff6b00;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            opacity: 0.6;
-        }
-
-        .progress-bar-mini {
-            width: 120px;
-            height: 6px;
-            background: #404040;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress-bar-mini .fill {
-            height: 100%;
-            background: #ff6b00;
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
+        .progress-bar-mini { width: 120px; height: 6px; background: #404040; border-radius: 3px; overflow: hidden; }
+        .progress-bar-mini .fill { height: 100%; background: #ff6b00; border-radius: 3px; transition: width 0.3s; }
 
         .reset-btn {
-            background: none;
-            border: 1px solid #606060;
-            color: #999;
-            padding: 0.35rem 0.75rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
+            background: none; border: 1px solid #606060; color: #999;
+            padding: 0.35rem 0.75rem; border-radius: 0.25rem; font-size: 0.75rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .reset-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+        /* ── Filter Bar ── */
+        .filter-bar {
+            background: #232323;
+            border-bottom: 1px solid #333;
+            padding: 0.6rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
-        .reset-btn:hover {
-            border-color: #ef4444;
-            color: #ef4444;
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
         }
+
+        .filter-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-right: 0.2rem;
+        }
+
+        .filter-pill {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.2rem;
+            border: 1px solid #444;
+            background: transparent;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
+        }
+
+        .filter-pill:hover { border-color: #888; color: #ccc; }
+
+        .filter-pill.active { border-color: #ff6b00; color: #ff6b00; background: rgba(255, 107, 0, 0.1); }
+
+        .filter-pill.active.tag-recon { border-color: #a78bfa; color: #a78bfa; background: rgba(139, 92, 246, 0.1); }
+        .filter-pill.active.tag-exploit { border-color: #f87171; color: #f87171; background: rgba(239, 68, 68, 0.1); }
+        .filter-pill.active.tag-analysis { border-color: #60a5fa; color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
+        .filter-pill.active.tag-evasion { border-color: #fbbf24; color: #fbbf24; background: rgba(245, 158, 11, 0.1); }
+        .filter-pill.active.tag-defense { border-color: #4ade80; color: #4ade80; background: rgba(34, 197, 94, 0.1); }
+        .filter-pill.active.tag-hardware { border-color: #f472b6; color: #f472b6; background: rgba(236, 72, 153, 0.1); }
+
+        .filter-pill.active.diff-easy { border-color: #22c55e; color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+        .filter-pill.active.diff-medium { border-color: #f59e0b; color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .filter-pill.active.diff-hard { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+        .filter-separator { width: 1px; height: 1.2rem; background: #444; }
+
+        .filter-clear {
+            font-size: 0.65rem; color: #666; cursor: pointer;
+            background: none; border: none; text-decoration: underline;
+            transition: color 0.15s;
+        }
+        .filter-clear:hover { color: #ff6b00; }
+
+        /* ── Learning Path ── */
+        .learning-path {
+            padding: 0.6rem 1.5rem;
+            font-size: 0.75rem;
+            color: #666;
+            background: #1e1e1e;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .learning-path span { color: #888; }
+        .learning-path .path-arrow { color: #555; }
+        .learning-path .path-step { color: #aaa; }
+        .learning-path .path-label { color: #666; margin-right: 0.3rem; }
 
         /* ── Main Layout ── */
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
+        main { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
 
         /* ── Category Tiles Grid ── */
         .categories-grid {
@@ -103,222 +137,104 @@
         }
 
         @media (max-width: 900px) {
-            .categories-grid {
-                grid-template-columns: 1fr;
-            }
+            .categories-grid { grid-template-columns: 1fr; }
         }
 
         /* ── Category Tile ── */
         .category-tile {
-            background: #232323;
-            border: 1px solid #333;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            transition: border-color 0.2s;
+            background: #232323; border: 1px solid #333;
+            border-radius: 0.75rem; overflow: hidden; transition: border-color 0.2s;
         }
-
-        .category-tile:hover {
-            border-color: #555;
-        }
+        .category-tile:hover { border-color: #555; }
+        .category-tile.hidden { display: none; }
 
         .category-header {
-            padding: 1rem 1.25rem 0.75rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #333;
-            background: #282828;
+            padding: 0.85rem 1.25rem 0.65rem;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #333; background: #282828;
         }
 
-        .category-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #ff6b00;
+        .category-title-group { display: flex; align-items: center; gap: 0.6rem; }
+
+        .step-badge {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(255, 107, 0, 0.15); color: #ff6b00;
+            font-size: 0.7rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
         }
+
+        .category-title { font-size: 1rem; font-weight: 700; color: #ff6b00; }
 
         .category-progress {
-            font-size: 0.75rem;
-            color: #888;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 0.75rem; color: #888;
+            display: flex; align-items: center; gap: 0.5rem;
         }
 
-        .category-progress-bar {
-            width: 60px;
-            height: 4px;
-            background: #404040;
-            border-radius: 2px;
-            overflow: hidden;
-        }
+        .category-progress-bar { width: 60px; height: 4px; background: #404040; border-radius: 2px; overflow: hidden; }
+        .category-progress-bar .fill { height: 100%; background: #22c55e; border-radius: 2px; }
 
-        .category-progress-bar .fill {
-            height: 100%;
-            background: #22c55e;
-            border-radius: 2px;
-        }
-
-        .category-body {
-            padding: 0.5rem;
-        }
+        .category-body { padding: 0.5rem; }
 
         /* ── Challenge Row ── */
         .challenge-row {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.6rem 0.75rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background 0.15s;
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.6rem 0.75rem; border-radius: 0.5rem;
+            cursor: pointer; transition: background 0.15s;
         }
+        .challenge-row:hover { background: #333; }
+        .challenge-row.solved { background: rgba(34, 197, 94, 0.08); }
+        .challenge-row.solved:hover { background: rgba(34, 197, 94, 0.15); }
+        .challenge-row.filtered-out { display: none; }
 
-        .challenge-row:hover {
-            background: #333;
-        }
-
-        .challenge-row.solved {
-            background: rgba(34, 197, 94, 0.08);
-        }
-
-        .challenge-row.solved:hover {
-            background: rgba(34, 197, 94, 0.15);
-        }
-
-        /* Status icon */
         .challenge-status {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 0.75rem;
-            font-weight: bold;
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 0.75rem; font-weight: bold;
         }
+        .challenge-status.unsolved { border: 2px solid #555; color: #555; }
+        .challenge-status.done { background: #22c55e; color: #fff; border: none; }
 
-        .challenge-status.unsolved {
-            border: 2px solid #555;
-            color: #555;
-        }
-
-        .challenge-status.done {
-            background: #22c55e;
-            color: #fff;
-            border: none;
-        }
-
-        /* Challenge info */
-        .challenge-info {
-            flex: 1;
-            min-width: 0;
-        }
-
+        .challenge-info { flex: 1; min-width: 0; }
         .challenge-name {
-            font-size: 0.875rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: #e5e5e5;
+            font-size: 0.875rem; font-weight: 600;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e5e5e5;
         }
-
-        .challenge-row.solved .challenge-name {
-            color: #aaa;
-        }
-
+        .challenge-row.solved .challenge-name { color: #aaa; }
         .challenge-desc {
-            font-size: 0.7rem;
-            color: #777;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-top: 1px;
+            font-size: 0.7rem; color: #777;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
         }
 
-        /* Badges */
-        .challenge-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            flex-shrink: 0;
-        }
+        .challenge-meta { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
 
         .badge {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            border-radius: 0.2rem;
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
+            display: inline-block; padding: 0.15rem 0.5rem;
+            border-radius: 0.2rem; font-size: 0.65rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.03em;
         }
 
-        .badge-points {
-            background: rgba(255, 107, 0, 0.15);
-            color: #ff6b00;
-            border: 1px solid rgba(255, 107, 0, 0.3);
-        }
-
-        .badge-easy {
-            background: rgba(34, 197, 94, 0.15);
-            color: #22c55e;
-        }
-
-        .badge-medium {
-            background: rgba(245, 158, 11, 0.15);
-            color: #f59e0b;
-        }
-
-        .badge-hard {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-        }
-
-        .badge-defense {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-        }
+        .badge-points { background: rgba(255,107,0,0.15); color: #ff6b00; border: 1px solid rgba(255,107,0,0.3); }
+        .badge-easy { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .badge-medium { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .badge-hard { background: rgba(239,68,68,0.15); color: #ef4444; }
 
         .badge-tag {
-            font-size: 0.6rem;
-            padding: 0.1rem 0.4rem;
-            border-radius: 0.15rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-weight: 600;
+            font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 0.15rem;
+            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
         }
+        .tag-recon { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .tag-exploit { background: rgba(239,68,68,0.15); color: #f87171; }
+        .tag-analysis { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .tag-evasion { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .tag-defense { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .tag-hardware { background: rgba(236,72,153,0.15); color: #f472b6; }
 
-        .tag-recon {
-            background: rgba(139, 92, 246, 0.15);
-            color: #a78bfa;
+        .no-results {
+            text-align: center; padding: 3rem; color: #666; font-size: 0.9rem;
+            display: none;
         }
-
-        .tag-exploit {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-        }
-
-        .tag-analysis {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-        }
-
-        .tag-evasion {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-        }
-
-        .tag-defense {
-            background: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-        }
-
-        .tag-hardware {
-            background: rgba(236, 72, 153, 0.15);
-            color: #f472b6;
-        }
+        .no-results.visible { display: block; }
     </style>
 </head>
 <body>
@@ -326,7 +242,6 @@
         <div style="display: flex; align-items: center; gap: 1rem;">
             <h1>{{ config.title or 'CybICS CTF Training' }}</h1>
         </div>
-
         <div class="header-stats">
             <div class="stat-item">
                 <div class="stat-value">{{ solved|length }}<span style="font-size: 0.7rem; color: #888; font-weight: normal;">/{{ challenges.values()|map(attribute='challenges')|map('length')|sum }}</span></div>
@@ -346,14 +261,54 @@
         </div>
     </header>
 
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <span class="filter-label">Type</span>
+            <button class="filter-pill tag-recon" data-filter="tag" data-value="recon" onclick="toggleFilter(this)">Recon</button>
+            <button class="filter-pill tag-exploit" data-filter="tag" data-value="exploit" onclick="toggleFilter(this)">Exploit</button>
+            <button class="filter-pill tag-analysis" data-filter="tag" data-value="analysis" onclick="toggleFilter(this)">Analysis</button>
+            <button class="filter-pill tag-evasion" data-filter="tag" data-value="evasion" onclick="toggleFilter(this)">Evasion</button>
+            <button class="filter-pill tag-defense" data-filter="tag" data-value="defense" onclick="toggleFilter(this)">Defense</button>
+            <button class="filter-pill tag-hardware" data-filter="tag" data-value="hardware" onclick="toggleFilter(this)">Hardware</button>
+        </div>
+        <div class="filter-separator"></div>
+        <div class="filter-group">
+            <span class="filter-label">Difficulty</span>
+            <button class="filter-pill diff-easy" data-filter="difficulty" data-value="easy" onclick="toggleFilter(this)">Easy</button>
+            <button class="filter-pill diff-medium" data-filter="difficulty" data-value="medium" onclick="toggleFilter(this)">Medium</button>
+            <button class="filter-pill diff-hard" data-filter="difficulty" data-value="hard" onclick="toggleFilter(this)">Hard</button>
+        </div>
+        <div class="filter-separator"></div>
+        <div class="filter-group">
+            <span class="filter-label">Status</span>
+            <button class="filter-pill" data-filter="status" data-value="unsolved" onclick="toggleFilter(this)">Unsolved</button>
+            <button class="filter-pill" data-filter="status" data-value="solved" onclick="toggleFilter(this)">Solved</button>
+        </div>
+        <button class="filter-clear" onclick="clearFilters()">Clear all</button>
+    </div>
+
+    <!-- Recommended Learning Path -->
+    <div class="learning-path">
+        <span class="path-label">Recommended:</span>
+        {% for category_id, category in challenges.items() %}
+        <span class="path-step">{{ category.name }}</span>
+        {% if not loop.last %}<span class="path-arrow">→</span>{% endif %}
+        {% endfor %}
+    </div>
+
     <main>
-        <div class="categories-grid">
+        <div class="categories-grid" id="categories-grid">
+            {% set ns = namespace(step=1) %}
             {% for category_id, category in challenges.items() %}
             {% set cat_solved = category.challenges|selectattr('id', 'in', solved)|list|length %}
             {% set cat_total = category.challenges|length %}
-            <div class="category-tile">
+            <div class="category-tile" data-category="{{ category_id }}" id="cat-{{ category_id }}">
                 <div class="category-header">
-                    <div class="category-title">{{ category.name }}</div>
+                    <div class="category-title-group">
+                        <div class="step-badge">{{ ns.step }}</div>
+                        <div class="category-title">{{ category.name }}</div>
+                    </div>
                     <div class="category-progress">
                         <span>{{ cat_solved }}/{{ cat_total }}</span>
                         <div class="category-progress-bar">
@@ -364,7 +319,11 @@
                 <div class="category-body">
                     {% for challenge in category.challenges %}
                     {% set is_solved = challenge.id in solved %}
+                    {% set difficulty = 'easy' if challenge.points <= 150 else ('medium' if challenge.points <= 250 else 'hard') %}
                     <div class="challenge-row {% if is_solved %}solved{% endif %}"
+                         data-tag="{{ challenge.get('tag', '') }}"
+                         data-difficulty="{{ difficulty }}"
+                         data-solved="{{ 'true' if is_solved else 'false' }}"
                          onclick="window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ challenge.id }}' }, '*')">
 
                         <div class="challenge-status {% if is_solved %}done{% else %}unsolved{% endif %}">
@@ -380,9 +339,9 @@
                             {% if challenge.get('tag') %}
                             <span class="badge badge-tag tag-{{ challenge.tag }}">{{ challenge.tag }}</span>
                             {% endif %}
-                            {% if challenge.points <= 150 %}
+                            {% if difficulty == 'easy' %}
                             <span class="badge badge-easy">Easy</span>
-                            {% elif challenge.points <= 250 %}
+                            {% elif difficulty == 'medium' %}
                             <span class="badge badge-medium">Medium</span>
                             {% else %}
                             <span class="badge badge-hard">Hard</span>
@@ -393,22 +352,76 @@
                     {% endfor %}
                 </div>
             </div>
+            {% set ns.step = ns.step + 1 %}
             {% endfor %}
         </div>
+        <div class="no-results" id="no-results">No challenges match the current filters.</div>
     </main>
 
     <script>
+        const activeFilters = { tag: new Set(), difficulty: new Set(), status: new Set() };
+
+        function toggleFilter(btn) {
+            const group = btn.dataset.filter;
+            const value = btn.dataset.value;
+
+            if (activeFilters[group].has(value)) {
+                activeFilters[group].delete(value);
+                btn.classList.remove('active');
+            } else {
+                activeFilters[group].add(value);
+                btn.classList.add('active');
+            }
+            applyFilters();
+        }
+
+        function clearFilters() {
+            for (const group of Object.keys(activeFilters)) activeFilters[group].clear();
+            document.querySelectorAll('.filter-pill.active').forEach(b => b.classList.remove('active'));
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const rows = document.querySelectorAll('.challenge-row');
+            const hasFilters = Object.values(activeFilters).some(s => s.size > 0);
+
+            rows.forEach(row => {
+                if (!hasFilters) {
+                    row.classList.remove('filtered-out');
+                    return;
+                }
+
+                let visible = true;
+
+                if (activeFilters.tag.size > 0 && !activeFilters.tag.has(row.dataset.tag)) visible = false;
+                if (activeFilters.difficulty.size > 0 && !activeFilters.difficulty.has(row.dataset.difficulty)) visible = false;
+                if (activeFilters.status.size > 0) {
+                    const isSolved = row.dataset.solved === 'true';
+                    const wantSolved = activeFilters.status.has('solved');
+                    const wantUnsolved = activeFilters.status.has('unsolved');
+                    if (wantSolved && !wantUnsolved && !isSolved) visible = false;
+                    if (wantUnsolved && !wantSolved && isSolved) visible = false;
+                }
+
+                row.classList.toggle('filtered-out', !visible);
+            });
+
+            // Hide empty categories
+            document.querySelectorAll('.category-tile').forEach(tile => {
+                const visibleRows = tile.querySelectorAll('.challenge-row:not(.filtered-out)');
+                tile.classList.toggle('hidden', visibleRows.length === 0);
+            });
+
+            // Show "no results" message
+            const allHidden = document.querySelectorAll('.category-tile:not(.hidden)').length === 0;
+            document.getElementById('no-results').classList.toggle('visible', allHidden);
+        }
+
         function resetProgress() {
             if (confirm('Are you sure you want to reset all CTF progress? This action cannot be undone.')) {
-                fetch('/ctf/reset', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                })
+                fetch('/ctf/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                 .then(r => r.json())
-                .then(data => {
-                    if (data.success) location.reload();
-                    else alert('Error: ' + data.message);
-                })
+                .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.message); })
                 .catch(() => alert('An error occurred while resetting progress.'));
             }
         }

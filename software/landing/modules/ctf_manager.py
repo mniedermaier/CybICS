@@ -95,7 +95,9 @@ class CTFManager:
             }
         else:
             logger.info(f"Incorrect flag submitted for {challenge_id}")
-            return {'success': False, 'message': 'Incorrect flag. Try again!'}
+            if not re.match(r'^CybICS\(.*\)$', submitted_flag.strip()):
+                return {'success': False, 'message': 'Incorrect format. Flags look like CybICS(...)'}
+            return {'success': False, 'message': 'Incorrect flag. The format is right, but the value is wrong.'}
 
     def verify_defense(self, challenge_id):
         """Run defense verification for a challenge.
@@ -149,6 +151,17 @@ class CTFManager:
             'max_points': max_points,
             'progress_percentage': (solved_count / total_challenges * 100) if total_challenges > 0 else 0
         }
+
+    @staticmethod
+    def extract_hint_from_html(html):
+        """Extract the 💡 Hint <details> block from rendered HTML and return (hint_html, cleaned_html)."""
+        pattern = r'<details[^>]*>\s*<summary[^>]*>[^<]*💡\s*Hint[^<]*</summary>(.*?)</details>'
+        match = re.search(pattern, html, re.DOTALL | re.IGNORECASE)
+        if match:
+            hint_html = match.group(1).strip()
+            cleaned = html[:match.start()] + html[match.end():]
+            return hint_html, cleaned
+        return None, html
 
     def load_markdown_content(self, relative_path):
         """Load and convert markdown content to HTML"""
