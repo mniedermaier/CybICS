@@ -45,87 +45,6 @@
         }
         .reset-btn:hover { border-color: #ef4444; color: #ef4444; }
 
-        /* ── Filter Bar ── */
-        .filter-bar {
-            background: #232323;
-            border-bottom: 1px solid #333;
-            padding: 0.6rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .filter-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #666;
-            margin-right: 0.2rem;
-        }
-
-        .filter-pill {
-            font-size: 0.65rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.2rem;
-            border: 1px solid #444;
-            background: transparent;
-            color: #999;
-            cursor: pointer;
-            transition: all 0.15s;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            font-weight: 600;
-        }
-
-        .filter-pill:hover { border-color: #888; color: #ccc; }
-
-        .filter-pill.active { border-color: #ff6b00; color: #ff6b00; background: rgba(255, 107, 0, 0.1); }
-
-        .filter-pill.active.tag-recon { border-color: #a78bfa; color: #a78bfa; background: rgba(139, 92, 246, 0.1); }
-        .filter-pill.active.tag-exploit { border-color: #f87171; color: #f87171; background: rgba(239, 68, 68, 0.1); }
-        .filter-pill.active.tag-analysis { border-color: #60a5fa; color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
-        .filter-pill.active.tag-evasion { border-color: #fbbf24; color: #fbbf24; background: rgba(245, 158, 11, 0.1); }
-        .filter-pill.active.tag-defense { border-color: #4ade80; color: #4ade80; background: rgba(34, 197, 94, 0.1); }
-        .filter-pill.active.tag-hardware { border-color: #f472b6; color: #f472b6; background: rgba(236, 72, 153, 0.1); }
-
-        .filter-pill.active.diff-easy { border-color: #22c55e; color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-        .filter-pill.active.diff-medium { border-color: #f59e0b; color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-        .filter-pill.active.diff-hard { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-
-        .filter-separator { width: 1px; height: 1.2rem; background: #444; }
-
-        .filter-clear {
-            font-size: 0.65rem; color: #666; cursor: pointer;
-            background: none; border: none; text-decoration: underline;
-            transition: color 0.15s;
-        }
-        .filter-clear:hover { color: #ff6b00; }
-
-        /* ── Learning Path ── */
-        .learning-path {
-            padding: 0.6rem 1.5rem;
-            font-size: 0.75rem;
-            color: #666;
-            background: #1e1e1e;
-            border-bottom: 1px solid #2a2a2a;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            flex-wrap: wrap;
-        }
-
-        .learning-path span { color: #888; }
-        .learning-path .path-arrow { color: #555; }
-        .learning-path .path-step { color: #aaa; }
-        .learning-path .path-label { color: #666; margin-right: 0.3rem; }
-
         /* ── Main Layout ── */
         main { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
 
@@ -146,7 +65,6 @@
             border-radius: 0.75rem; overflow: hidden; transition: border-color 0.2s;
         }
         .category-tile:hover { border-color: #555; }
-        .category-tile.hidden { display: none; }
 
         .category-header {
             padding: 0.85rem 1.25rem 0.65rem;
@@ -185,7 +103,6 @@
         .challenge-row:hover { background: #333; }
         .challenge-row.solved { background: rgba(34, 197, 94, 0.08); }
         .challenge-row.solved:hover { background: rgba(34, 197, 94, 0.15); }
-        .challenge-row.filtered-out { display: none; }
 
         .challenge-status {
             width: 28px; height: 28px; border-radius: 50%;
@@ -230,11 +147,6 @@
         .tag-defense { background: rgba(34,197,94,0.15); color: #4ade80; }
         .tag-hardware { background: rgba(236,72,153,0.15); color: #f472b6; }
 
-        .no-results {
-            text-align: center; padding: 3rem; color: #666; font-size: 0.9rem;
-            display: none;
-        }
-        .no-results.visible { display: block; }
     </style>
 </head>
 <body>
@@ -260,42 +172,6 @@
             <button class="reset-btn" onclick="resetProgress()">Reset</button>
         </div>
     </header>
-
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-        <div class="filter-group">
-            <span class="filter-label">Type</span>
-            <button class="filter-pill tag-recon" data-filter="tag" data-value="recon" onclick="toggleFilter(this)">Recon</button>
-            <button class="filter-pill tag-exploit" data-filter="tag" data-value="exploit" onclick="toggleFilter(this)">Exploit</button>
-            <button class="filter-pill tag-analysis" data-filter="tag" data-value="analysis" onclick="toggleFilter(this)">Analysis</button>
-            <button class="filter-pill tag-evasion" data-filter="tag" data-value="evasion" onclick="toggleFilter(this)">Evasion</button>
-            <button class="filter-pill tag-defense" data-filter="tag" data-value="defense" onclick="toggleFilter(this)">Defense</button>
-            <button class="filter-pill tag-hardware" data-filter="tag" data-value="hardware" onclick="toggleFilter(this)">Hardware</button>
-        </div>
-        <div class="filter-separator"></div>
-        <div class="filter-group">
-            <span class="filter-label">Difficulty</span>
-            <button class="filter-pill diff-easy" data-filter="difficulty" data-value="easy" onclick="toggleFilter(this)">Easy</button>
-            <button class="filter-pill diff-medium" data-filter="difficulty" data-value="medium" onclick="toggleFilter(this)">Medium</button>
-            <button class="filter-pill diff-hard" data-filter="difficulty" data-value="hard" onclick="toggleFilter(this)">Hard</button>
-        </div>
-        <div class="filter-separator"></div>
-        <div class="filter-group">
-            <span class="filter-label">Status</span>
-            <button class="filter-pill" data-filter="status" data-value="unsolved" onclick="toggleFilter(this)">Unsolved</button>
-            <button class="filter-pill" data-filter="status" data-value="solved" onclick="toggleFilter(this)">Solved</button>
-        </div>
-        <button class="filter-clear" onclick="clearFilters()">Clear all</button>
-    </div>
-
-    <!-- Recommended Learning Path -->
-    <div class="learning-path">
-        <span class="path-label">Recommended:</span>
-        {% for category_id, category in challenges.items() %}
-        <span class="path-step">{{ category.name }}</span>
-        {% if not loop.last %}<span class="path-arrow">→</span>{% endif %}
-        {% endfor %}
-    </div>
 
     <main>
         <div class="categories-grid" id="categories-grid">
@@ -355,68 +231,9 @@
             {% set ns.step = ns.step + 1 %}
             {% endfor %}
         </div>
-        <div class="no-results" id="no-results">No challenges match the current filters.</div>
     </main>
 
     <script>
-        const activeFilters = { tag: new Set(), difficulty: new Set(), status: new Set() };
-
-        function toggleFilter(btn) {
-            const group = btn.dataset.filter;
-            const value = btn.dataset.value;
-
-            if (activeFilters[group].has(value)) {
-                activeFilters[group].delete(value);
-                btn.classList.remove('active');
-            } else {
-                activeFilters[group].add(value);
-                btn.classList.add('active');
-            }
-            applyFilters();
-        }
-
-        function clearFilters() {
-            for (const group of Object.keys(activeFilters)) activeFilters[group].clear();
-            document.querySelectorAll('.filter-pill.active').forEach(b => b.classList.remove('active'));
-            applyFilters();
-        }
-
-        function applyFilters() {
-            const rows = document.querySelectorAll('.challenge-row');
-            const hasFilters = Object.values(activeFilters).some(s => s.size > 0);
-
-            rows.forEach(row => {
-                if (!hasFilters) {
-                    row.classList.remove('filtered-out');
-                    return;
-                }
-
-                let visible = true;
-
-                if (activeFilters.tag.size > 0 && !activeFilters.tag.has(row.dataset.tag)) visible = false;
-                if (activeFilters.difficulty.size > 0 && !activeFilters.difficulty.has(row.dataset.difficulty)) visible = false;
-                if (activeFilters.status.size > 0) {
-                    const isSolved = row.dataset.solved === 'true';
-                    const wantSolved = activeFilters.status.has('solved');
-                    const wantUnsolved = activeFilters.status.has('unsolved');
-                    if (wantSolved && !wantUnsolved && !isSolved) visible = false;
-                    if (wantUnsolved && !wantSolved && isSolved) visible = false;
-                }
-
-                row.classList.toggle('filtered-out', !visible);
-            });
-
-            // Hide empty categories
-            document.querySelectorAll('.category-tile').forEach(tile => {
-                const visibleRows = tile.querySelectorAll('.challenge-row:not(.filtered-out)');
-                tile.classList.toggle('hidden', visibleRows.length === 0);
-            });
-
-            // Show "no results" message
-            const allHidden = document.querySelectorAll('.category-tile:not(.hidden)').length === 0;
-            document.getElementById('no-results').classList.toggle('visible', allHidden);
-        }
-
         function resetProgress() {
             if (confirm('Are you sure you want to reset all CTF progress? This action cannot be undone.')) {
                 fetch('/ctf/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
