@@ -1,54 +1,137 @@
-# 🔍 Detection Training - Override
+# 🔥 Detect Modbus Flooding
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-OPM - Operational Process Monitoring](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/)
 
 ## 📋 Overview
-One common attack is Modbus TCP register flooding, where an attacker sends a continuous stream of malicious Modbus commands to overwrite or spoof register values.
-This can disrupt processes, cause equipment failure, or provide incorrect data to operators.
-This training focuses on how to detect this type of attack by analyzing network traffic and monitoring system behavior.
 
-## 🎯 Indicators of Modbus Flooding Attacks
-Detecting Modbus flooding and register overwriting attacks requires understanding how normal Modbus traffic behaves and recognizing anomalies in the communication pattern. Key indicators include:
+Modbus TCP has **no authentication** — any device on the network can write to PLC registers. A flooding attack sends hundreds or thousands of write commands per second to overwrite process values, disrupting the physical process.
 
-### 1. 📈 High Frequency of Modbus Write Requests
-Modbus systems typically have a stable frequency of write operations. A sudden spike in write requests, particularly to the same registers, is a sign of flooding. Monitor for:
-- Unusual write frequencies: Multiple write commands to the same register in a short time span
-- Repeated overwrites: The same register being modified continuously
+In this challenge you will launch a Modbus flooding attack, observe its impact on the physical process, verify the IDS detected it, analyze the attack in a packet capture, and retrieve the flag from the IDS.
 
-### 2. 🔄 Unexplained Process Values Changes
-When a Modbus register is being spoofed, the values stored in registers might change frequently without corresponding physical events. For example:
-- A temperature sensor reports fluctuating values despite stable environmental conditions
-- Equipment parameters (e.g., pressure, motor speed) are altered without operator action
+### Detection Rules
 
-### 3. 🚫 Unusual Source IPs or Unauthorized Devices
-Flooding may come from unauthorized IP addresses or devices not normally involved in the communication. Look for:
-- Write commands originating from unknown sources
-- Devices sending Modbus traffic that do not typically perform write operations
+The IDS has two rules that detect Modbus write attacks:
 
-### 4. 📊 Network Traffic Abnormalities
-Flooding often generates a high volume of packets, potentially leading to congestion or delays in legitimate traffic. Watch for:
-- Unusually high Modbus traffic: A sharp increase in Modbus TCP packets on the network
-- Packet loss: Legitimate Modbus traffic may be delayed or dropped due to the attack
+| Rule | Threshold | What It Detects |
+|------|-----------|-----------------|
+| `modbus_flood` | **50 writes in 5 seconds** | High-rate Modbus writes (flooding) |
+| `modbus_unauth_write` | **10 writes in 30 seconds** | Modbus writes from unauthorized sources |
 
-## ❓ Training Questions
-1. What is happening with the physical process?
-2. What can you observe within the network capture?
+The flooding script sends ~1000 writes/second — far above both thresholds.
 
-## ⚠️ Important Note
-***!!! Execute the python script without looking into it !!!***
+## 🎯 Task
 
-```sh
-python3 override.py <DEVICE_IP>
-```
+Launch the attack, observe the IDS detection, capture and analyze the traffic, and find the flag.
+
+---
+
+### Phase 1: Launch the Attack
+
+> **Important:** Run the script first **without looking at its source code** — observe the effects before understanding the cause.
+
+1. Open the FUXA HMI at [http://localhost:1881](http://localhost:1881) in one browser tab to watch the physical process.
+
+2. In a terminal, start a packet capture (stop it later with Ctrl+C):
+   ```bash
+   tcpdump -i any -w modbus_attack.pcap 'tcp port 502' &
+   ```
+
+3. Run the attack script:
+   ```bash
+   python3 override.py 172.18.0.3
+   ```
+
+4. Watch the FUXA HMI — what happens to the process values? The Gas Storage Tank (GST) register is being overwritten with a fixed value.
+
+5. After ~30 seconds, stop the attack (Ctrl+C) and stop tcpdump (`kill %1`).
+
+### Phase 2: IDS Analysis
+
+Your attack triggered IDS alerts. Verify this:
+
+1. Open the IDS dashboard at [http://localhost:8443](http://localhost:8443) and check the **Alerts** tab.
+
+2. Query the rule statistics:
+   ```bash
+   curl -s http://localhost:8443/api/rules/stats | python3 -m json.tool
+   ```
+
+3. Look at the `modbus_flood` entry — when `count > 0`, the **flag is revealed** in the response:
+   ```bash
+   curl -s http://localhost:8443/api/rules/stats | python3 -c "
+   import sys, json
+   data = json.load(sys.stdin)
+   for rule in ['modbus_flood', 'modbus_unauth_write']:
+       r = data.get(rule, {})
+       print(f'{rule}: count={r.get(\"count\", 0)}, flag={r.get(\"flag\", \"-\")}')
+   "
+   ```
+
+4. Check the alert details — what source IP was detected? What severity?
+   ```bash
+   curl -s http://localhost:8443/api/alerts | python3 -c "
+   import sys, json
+   for a in json.load(sys.stdin).get('alerts', []):
+       if 'modbus' in a['rule']:
+           print(f\"{a['rule']:25s} | {a['src']:15s} -> {a['dst']:15s} | {a['severity']}\")
+   "
+   ```
+
+### Phase 3: PCAP Forensics
+
+Analyze the captured traffic to understand the attack pattern:
+
+1. Open the packet capture in Wireshark (or use tshark):
+   ```bash
+   wireshark modbus_attack.pcap
+   ```
+
+2. Apply this filter to see only Modbus write commands:
+   ```
+   modbus.func_code == 6 || modbus.func_code == 16
+   ```
+
+3. Answer these analysis questions:
+
+   | Question | How to Find It |
+   |----------|---------------|
+   | How many total Modbus write packets? | Wireshark status bar after applying filter |
+   | What is the write rate (writes/second)? | Total writes / capture duration |
+   | Which register is being overwritten? | Check Modbus payload: register address 1124 |
+   | What value is being written? | Check Modbus payload: value = 1 |
+   | What is the attacker's source IP? | Source column in Wireshark |
+
+4. Use Wireshark's **IO Graph** (Statistics -> IO Graphs) to visualize the write rate spike:
+   - Display filter: `modbus.func_code == 16`
+   - This shows the dramatic spike during the flooding attack
+
+### Phase 4: Correlation
+
+Connect your findings across all three data sources:
+
+| Data Point | PCAP (Wireshark) | IDS Alert | Match? |
+|------------|-------------------|-----------|--------|
+| Attacker IP | ___________ | ___________ | Yes / No |
+| Target IP | ___________ | ___________ | Yes / No |
+| Write rate | ___/sec | Threshold: 50/5s | Exceeded? |
+| Rule triggered | N/A | `modbus_flood` | |
+
+**Why did `modbus_flood` fire?**
+- Threshold: 50 writes in 5 seconds
+- Your attack: ~1000 writes/second = ~5000 writes in 5 seconds
+- 5000 >> 50 = rule triggered
+
+**Why did `modbus_unauth_write` fire?**
+- Threshold: 10 writes in 30 seconds from a non-service IP
+- Your attack machine is not in the authorized Modbus writers list (hwio, fuxa)
+- Any write from your IP triggers this rule after 10 writes
 
 ## 🛡️ Security Framework References
 
 <details>
-  <summary>Click to expand</summary>
+<summary>Click to expand</summary>
 
-### MITRE ATT&CK for ICS - Detected Techniques
-
-This training focuses on **detecting** the following adversary techniques:
+### MITRE ATT&CK for ICS — Detected Techniques
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
@@ -56,68 +139,36 @@ This training focuses on **detecting** the following adversary techniques:
 | Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Sending unauthorized commands to ICS devices |
 | Impair Process Control | Brute Force I/O | [T0806](https://attack.mitre.org/techniques/T0806/) | Repeatedly overwriting I/O values |
 
-**Why this matters:** Detecting ongoing attacks is more challenging than detecting reconnaissance. Register flooding attacks actively manipulate the process while you're trying to detect them. This training simulates the pressure of real incident response—you must identify the attack, understand its impact, and gather evidence while the attack continues.
-
-### MITRE D3FEND - Defensive Techniques (Primary Focus)
+### MITRE D3FEND — Defensive Techniques
 
 | Technique | ID | Description |
 |-----------|-----|-------------|
-| Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Analyzing Modbus traffic for anomalies |
+| Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Analyzing Modbus traffic for flooding patterns |
 | Operational Process Monitoring | [D3-OPM](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/) | Monitoring process values for unexpected changes |
-| Message Analysis | [D3-MA](https://d3fend.mitre.org/technique/d3f:MessageAnalysis/) | Analyzing message content to identify malicious commands |
-| Baseline Deviation Detection | [D3-BDD](https://d3fend.mitre.org/technique/d3f:BaselineDeviationDetection/) | Detecting deviations from normal traffic baselines |
-
-**Detection indicators to look for:**
-- Abnormally high frequency of Modbus write commands (Function Code 6 or 16)
-- Repeated writes to the same register address
-- Write commands from unexpected source IPs
-- Process values that don't match expected physics (e.g., pressure changing faster than physically possible)
 
 ### NIST SP 800-82r3 Reference
 
 | Control Family | Controls | Relevance |
 |----------------|----------|-----------|
-| **System and Information Integrity (SI)** | SI-4, SI-7 | System monitoring and software/information integrity |
-| **Audit and Accountability (AU)** | AU-3, AU-6 | Detailed audit records and automated review |
+| **System and Information Integrity (SI)** | SI-4, SI-7 | System monitoring and integrity verification |
+| **Audit and Accountability (AU)** | AU-3, AU-6 | Audit record content and automated review |
 | **Incident Response (IR)** | IR-4, IR-5 | Incident handling and monitoring |
-| **System and Communications Protection (SC)** | SC-5, SC-7 | Denial of service protection and boundary protection |
 
-**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 recommends both network-based and process-based monitoring for comprehensive detection. SI-4 (System Monitoring) should include industrial protocol-aware intrusion detection systems (IDS) that understand Modbus semantics. SC-5 (Denial of Service Protection) recommends rate limiting and anomaly detection for industrial protocols. This training teaches you to correlate network observations (high write frequency) with process observations (unexpected pressure changes)—the hallmark of effective OT security monitoring.
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 emphasizes that OT monitoring (SI-4) must include both network-level detection (IDS alerts) and process-level monitoring (register values). The combination of PCAP forensics and IDS analysis practiced here mirrors real SOC workflows where analysts correlate multiple data sources during incident response.
 
 </details>
 
 <details>
 <summary>💡 Hint</summary>
 
-Run the `override.py` script to generate Modbus write traffic, then capture the packets. In Wireshark, filter for Modbus write function codes (0x06 and 0x10) to identify the overwrite attack pattern.
+Run `override.py` against the PLC, then query `http://localhost:8443/api/rules/stats`. Look at the `modbus_flood` entry — when `count > 0`, a `flag` field appears in the JSON response. For the PCAP analysis, use Wireshark filter `modbus.func_code == 16` to isolate the write commands.
 
 </details>
 
-## 🔍 Solution
+## 🔍 Defensive Thinking
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  ### 🔍 Wireshark Analysis
-
-  #### 📡 Modbus Filter
-  To filter only Modbus traffic, use the following filter in Wireshark:
-  ```sh
-  tcp.port == 502
-  ```
-
-  #### ✍️ Identifying Excessive Write Requests
-  Apply a filter for Modbus function codes responsible for writing registers:
-  ```sh
-  modbus.func_code == 6 || modbus.func_code == 16
-  ```
-  Look for a large number of write requests to the same register (e.g., modbus.reference_num indicates the register address).
-
-  #### 📊 IO Graphs
-  Use Wireshark's IO Graphs to visualize the traffic over time. A spike in the number of write requests is a strong indicator of flooding.
-
-  After completion, use the following flag:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(detection_evasion_complete)
-  </div>
-</details>
+After completing this challenge, consider:
+- The attack sends ~1000 writes/second but the threshold is only 50/5s. How would you lower the threshold without causing false positives from legitimate FUXA polling?
+- What if the attacker sent only 9 writes per 30 seconds (below `modbus_unauth_write` threshold)? The **IDS Evasion** challenge explores exactly this.
+- How would you implement **allowlisting** so only FUXA and hwio can write to Modbus?
+- What process-level indicators (register values, control loop behavior) could supplement network detection?

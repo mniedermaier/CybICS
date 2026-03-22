@@ -136,22 +136,22 @@
         },
         {
           "id": "detect_basic",
-          "title": "Detect Basic",
-          "description": "Basic intrusion detection",
+          "title": "Detect Port Scan",
+          "description": "Perform a port scan and verify the IDS detected it — find the flag in the IDS rule stats",
           "points": 250,
           "tag": "analysis",
-          "flag": "CybICS(basic_detection_complete)",
-          "hint": "Identify basic attack patterns and signatures",
+          "flag": "CybICS(sc4n_d3tect3d)",
+          "hint": "Run a port scan, then query the IDS at /api/rules/stats — the flag appears when the port_scan rule has fired",
           "training_content": "training/detect_basic/README.md"
         },
         {
           "id": "detect_overwrite",
-          "title": "Detect Overwrite",
-          "description": "Advanced detection techniques",
+          "title": "Detect Modbus Flooding",
+          "description": "Launch a Modbus flooding attack, analyze it with the IDS, and find the flag in the rule stats",
           "points": 400,
           "tag": "analysis",
-          "flag": "CybICS(detection_evasion_complete)",
-          "hint": "Understand how security systems detect attacks and find ways to bypass them",
+          "flag": "CybICS(m0dbus_fl00d_d3tect3d)",
+          "hint": "Run the override script, then query /api/rules/stats — the flag appears when the modbus_flood rule fires",
           "training_content": "training/detect_overwrite/README.md"
         }
       ]
