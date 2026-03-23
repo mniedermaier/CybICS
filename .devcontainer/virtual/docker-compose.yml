@@ -174,6 +174,40 @@ services:
     depends_on:
       - openplc
 
+  firmware-updater:
+    image: mniedermaier1337/cybics-firmware-updater:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/firmware-updater
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - stm32
+    volumes:
+      - firmware_data:/opt/cybics/firmware
+      - firmware_keys:/opt/cybics/keys
+    environment:
+      - UPDATE_SERVER_URL=${UPDATE_SERVER_URL:-http://update.cybics:8080}
+      - OPENOCD_HOST=stm32
+      - OPENOCD_TELNET_PORT=4444
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.8
+
+  stm32:
+    image: mniedermaier1337/cybics-stm32:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/stm32
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 3333:3333
+      - 4444:4444
+    volumes:
+      - firmware_data:/opt/cybics/firmware
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.7
+
 networks:
   virt-cybics:
     driver: bridge
@@ -183,3 +217,6 @@ networks:
         - subnet: 172.18.0.0/24
           gateway: 172.18.0.1
 
+volumes:
+  firmware_data:
+  firmware_keys:
