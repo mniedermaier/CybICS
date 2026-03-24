@@ -11,13 +11,25 @@ DEBUG = False
 
 # Data Directories
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+if os.environ.get('CYBICS_REPO_ROOT'):
+    REPO_ROOT = os.environ['CYBICS_REPO_ROOT']
+elif os.path.basename(BASE_DIR) == 'landing' and os.path.basename(os.path.dirname(BASE_DIR)) == 'software':
+    REPO_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
+else:
+    REPO_ROOT = BASE_DIR
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 TRAINING_DIR = os.path.join(BASE_DIR, 'training')
+SCRIPTS_DIR = os.path.join(BASE_DIR, 'scripts')
+CHALLENGE_SCRIPTS_DIR = os.path.join(SCRIPTS_DIR, 'challenges')
 PROGRESS_FILE = os.path.join(DATA_DIR, 'ctf_progress.json')
 CTF_CONFIG_FILE = os.path.join(BASE_DIR, 'ctf_config.json')
+ACTIVE_CHALLENGE_FILE = os.path.join(DATA_DIR, 'active_challenge.json')
+COMPOSE_DIR = os.environ.get('CYBICS_COMPOSE_DIR', os.path.join(REPO_ROOT, '.devcontainer', 'virtual'))
+COMPOSE_FILE = os.environ.get('CYBICS_COMPOSE_FILE', os.path.join(COMPOSE_DIR, 'docker-compose.yml'))
 
 # Ensure directories exist
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(CHALLENGE_SCRIPTS_DIR, exist_ok=True)
 
 # Service Configurations
 SERVICES = {
