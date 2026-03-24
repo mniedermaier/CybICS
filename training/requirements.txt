@@ -1,0 +1,6 @@
+colorama
+pymodbus
+python-dotenv
+python-nmap
+pyserial
+requests
