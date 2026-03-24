@@ -12,7 +12,7 @@ Intentionally vulnerable to Length Extension Attack for the CTF scenario.
 import hashlib
 import logging
 import os
-import subprocess
+import socket
 import time
 
 import requests
@@ -30,9 +30,10 @@ CONFIG_PATH = os.environ.get(
     "CONFIG_PATH", "/opt/cybics/update-service/config.yaml"
 )
 
-_FLASH_SCRIPT = os.path.join(os.path.dirname(__file__), "flash_firmware.sh")
-_FLASH_TIMEOUT = 120        # FLASH_TIMEOUT passed to the shell script (seconds)
-_SCRIPT_TIMEOUT_BUFFER = 10  # extra seconds for subprocess overhead beyond the flash timeout
+# OpenOCD telnet interaction constants
+_OPENOCD_BANNER_DELAY = 0.3   # seconds to wait for the welcome banner
+_SOCKET_RECV_TIMEOUT = 5      # per-recv timeout in seconds
+_FLASH_TIMEOUT = 60           # maximum seconds to wait for flash to complete
 
 
 def load_config(path: str) -> dict:
@@ -63,42 +64,62 @@ def save_firmware(firmware: bytes, path: str) -> None:
 
 
 def flash_via_openocd(firmware_path: str, host: str, port: int) -> bool:
-    """Flash firmware by delegating to flash_firmware.sh.
+    """Flash firmware via OpenOCD telnet interface (port 4444).
 
-    Calls flash_firmware.sh (the firmware-updater counterpart to
-    flash_if_needed.sh in the stm32 container) which pipes the OpenOCD
-    ``program`` command to the running OpenOCD telnet server via ``nc``.
+    Sends the ``program`` command to the running OpenOCD server so that
+    the firmware file (accessible inside the stm32 container via the
+    shared volume) is written to flash.
     """
-    env = os.environ.copy()
-    env["OPENOCD_HOST"] = host
-    env["OPENOCD_TELNET_PORT"] = str(port)
-    env["FLASH_TIMEOUT"] = str(_FLASH_TIMEOUT)
-    logger.info("Flashing %s via OpenOCD at %s:%d", firmware_path, host, port)
-    script_timeout = _FLASH_TIMEOUT + _SCRIPT_TIMEOUT_BUFFER
+    cmd = f"program {firmware_path} verify reset 0x08000000\n"
+    logger.info("Connecting to OpenOCD at %s:%d", host, port)
     try:
-        result = subprocess.run(
-            [_FLASH_SCRIPT, firmware_path],
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=script_timeout,
-        )
-        output = (result.stdout + result.stderr).strip()
-        logger.debug("flash_firmware.sh output:\n%s", output)
-        if result.returncode == 0:
-            logger.info("Flashing completed successfully")
-            return True
-        logger.error(
-            "Flashing failed (exit %d):\n%s", result.returncode, output
-        )
-        return False
-    except subprocess.TimeoutExpired:
-        logger.error(
-            "Flash script timed out after %d seconds", script_timeout
-        )
-        return False
+        with socket.create_connection((host, port), timeout=30) as sock:
+            # Use a short per-recv timeout so the loop stays responsive
+            sock.settimeout(_SOCKET_RECV_TIMEOUT)
+
+            # Discard OpenOCD welcome banner
+            time.sleep(_OPENOCD_BANNER_DELAY)
+            try:
+                sock.recv(4096)
+            except socket.timeout:
+                pass
+
+            sock.sendall(cmd.encode())
+            logger.info("Sent flash command, waiting for OpenOCD...")
+
+            output = b""
+            deadline = time.monotonic() + _FLASH_TIMEOUT
+            while time.monotonic() < deadline:
+                try:
+                    chunk = sock.recv(4096)
+                    if not chunk:
+                        break
+                    output += chunk
+                    if (
+                        b"** Programming Finished **" in output
+                        or b"verified" in output.lower()
+                        or b"Error" in output
+                    ):
+                        break
+                except socket.timeout:
+                    # No data within 5 s – check overall deadline and retry
+                    continue
+
+            sock.sendall(b"exit\n")
+            logger.debug("OpenOCD output: %s", output.decode(errors="replace"))
+
+            if b"** Programming Finished **" in output or b"verified" in output.lower():
+                logger.info("Flashing completed successfully")
+                return True
+
+            logger.error(
+                "Flashing may have failed. OpenOCD output: %s",
+                output.decode(errors="replace"),
+            )
+            return False
+
     except OSError as exc:
-        logger.error("Could not run flash script %s: %s", _FLASH_SCRIPT, exc)
+        logger.error("Could not connect to OpenOCD at %s:%d: %s", host, port, exc)
         return False
 
 
