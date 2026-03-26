@@ -11,6 +11,7 @@
           "title": "Understanding the Physical Process",
           "description": "Learn about industrial processes and control systems",
           "points": 100,
+          "tag": "analysis",
           "flag": "CybICS(Bl0w0ut)",
           "hint": "Examine the physical process simulation and look for anomalies",
           "training_content": "training/physical_process/README.md"
@@ -20,6 +21,7 @@
           "title": "PLC Programming",
           "description": "Introduction to PLC programming and control logic",
           "points": 150,
+          "tag": "analysis",
           "flag": "CybICS(ladder_logic_modified)",
           "hint": "Look for backdoors or unauthorized modifications in the ladder logic",
           "training_content": "training/plc_programming/README.md"
@@ -35,6 +37,7 @@
           "title": "Service Scanning",
           "description": "Discover network services and open ports",
           "points": 100,
+          "tag": "recon",
           "flag": "CybICS(scanning_d0ne)",
           "hint": "Use network scanning tools to discover open ports and services",
           "training_content": "training/scanning/README.md"
@@ -44,15 +47,17 @@
           "title": "S7comm Scanning",
           "description": "Analyze Siemens S7 communication",
           "points": 150,
+          "tag": "recon",
           "flag": "CybICS(s7comm_analysis_complete)",
           "hint": "Focus on Siemens S7 protocol communication patterns",
           "training_content": "training/scanning2/README.md"
         },
         {
-          "id": "wireshark_capture", 
+          "id": "wireshark_capture",
           "title": "Wireshark Capture",
           "description": "Learn network traffic analysis",
           "points": 200,
+          "tag": "analysis",
           "flag": "CybICS(m0dbu$)",
           "hint": "Look for unusual protocols or data patterns in network traffic",
           "training_content": "training/wireshark_capture/README.md"
@@ -60,7 +65,7 @@
       ]
     },
     "security_testing": {
-      "name": "🛡️ Security Testing",
+      "name": "⚔️ Security Testing",
       "description": "Test system resilience and security mechanisms",
       "challenges": [
         {
@@ -68,6 +73,7 @@
           "title": "Flood & Overwrite",
           "description": "Test system resilience against flooding attacks",
           "points": 200,
+          "tag": "exploit",
           "flag": "CybICS(flood_attack_successful)",
           "hint": "Overwhelm the system with excessive requests or data",
           "training_content": "training/flood_overwrite/README.md"
@@ -77,6 +83,7 @@
           "title": "Password Attack",
           "description": "Practice password security testing",
           "points": 150,
+          "tag": "exploit",
           "flag": "CybICS(FU##A)",
           "hint": "Look for common passwords in authentication attempts",
           "training_content": "training/password_attack/README.md"
@@ -86,6 +93,7 @@
           "title": "OPC-UA",
           "description": "Explore OPC-UA protocol security",
           "points": 250,
+          "tag": "exploit",
           "flag": "CybICS(OPC-UA-$ADMIN)",
           "hint": "Check for default credentials or weak authentication",
           "training_content": "training/opcua/README.md"
@@ -95,6 +103,7 @@
           "title": "Fuzzing Modbus",
           "description": "Test Modbus protocol robustness",
           "points": 300,
+          "tag": "exploit",
           "flag": "CybICS(modbus_fuzzing_complete)",
           "hint": "Send malformed or unexpected data to test protocol handling",
           "training_content": "training/fuzzingMB/README.md"
@@ -103,49 +112,60 @@
     },
     "advanced_security": {
       "name": "🔐 Advanced Security",
-      "description": "Advanced security techniques and detection methods",
+      "description": "Advanced attack and detection techniques",
       "challenges": [
         {
           "id": "mitm",
           "title": "Man-in-the-Middle (MitM)",
           "description": "Learn about network interception",
           "points": 350,
+          "tag": "exploit",
           "flag": "CybICS(mitm_attack_successful)",
           "hint": "Position yourself between communicating devices",
           "training_content": "training/mitm/README.md"
         },
         {
           "id": "uart_basic",
-          "title": "UART Training Guide (Hardware Required)",
-          "description": "Hardware-level communication",
+          "title": "UART Training Guide",
+          "description": "Hardware-level communication (requires hardware)",
           "points": 300,
+          "tag": "hardware",
           "flag": "CybICS(U#RT)",
           "hint": "Monitor serial communications for credentials or commands",
           "training_content": "training/uart_basic/README.md"
         },
         {
           "id": "detect_basic",
-          "title": "Detect Basic",
-          "description": "Basic intrusion detection",
+          "title": "Detect Port Scan",
+          "description": "Perform a port scan and verify the IDS detected it — find the flag in the IDS rule stats",
           "points": 250,
-          "flag": "CybICS(basic_detection_complete)",
-          "hint": "Identify basic attack patterns and signatures",
+          "tag": "analysis",
+          "flag": "CybICS(sc4n_d3tect3d)",
+          "hint": "Run a port scan, then query the IDS at /api/rules/stats — the flag appears when the port_scan rule has fired",
           "training_content": "training/detect_basic/README.md"
         },
         {
           "id": "detect_overwrite",
-          "title": "Detect Overwrite",
-          "description": "Advanced detection techniques",
+          "title": "Detect Modbus Flooding",
+          "description": "Launch a Modbus flooding attack, analyze it with the IDS, and find the flag in the rule stats",
           "points": 400,
-          "flag": "CybICS(detection_evasion_complete)",
-          "hint": "Understand how security systems detect attacks and find ways to bypass them",
+          "tag": "analysis",
+          "flag": "CybICS(m0dbus_fl00d_d3tect3d)",
+          "hint": "Run the override script, then query /api/rules/stats — the flag appears when the modbus_flood rule fires",
           "training_content": "training/detect_overwrite/README.md"
-        },
+        }
+      ]
+    },
+    "ids_challenges": {
+      "name": "🔍 IDS Challenges",
+      "description": "Interact with the Intrusion Detection System — trigger alerts, analyze incidents, and evade detection",
+      "challenges": [
         {
           "id": "ids_challenge",
           "title": "IDS Challenge",
           "description": "Trigger the intrusion detection system by performing attacks and retrieve the flag",
           "points": 300,
+          "tag": "exploit",
           "flag": "CybICS(1ntrusi0n_d3tect3d)",
           "hint": "Perform multiple different attacks and check the IDS flag endpoint",
           "training_content": "training/ids_challenge/README.md"
@@ -153,8 +173,9 @@
         {
           "id": "ids_forensics",
           "title": "IDS Forensics",
-          "description": "Analyze IDS alert data to investigate a security incident and answer forensic questions",
+          "description": "Analyze IDS alert data to investigate a security incident",
           "points": 250,
+          "tag": "analysis",
           "flag": "CybICS(f0r3ns1c_4n4lyst)",
           "hint": "Use the /api/summary and /api/alerts endpoints to gather data about the incident",
           "training_content": "training/ids_forensics/README.md"
@@ -162,11 +183,78 @@
         {
           "id": "ids_evasion",
           "title": "IDS Evasion",
-          "description": "Perform a stealth Modbus write operation without triggering any IDS alerts",
+          "description": "Perform a stealth Modbus write without triggering any IDS alerts",
           "points": 400,
+          "tag": "evasion",
           "flag": "CybICS(st34lth_0p3r4t0r)",
           "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
           "training_content": "training/ids_evasion/README.md"
+        }
+      ]
+    },
+    "defense": {
+      "name": "🛡️ Defense & Hardening",
+      "description": "Harden the ICS environment by applying defensive security measures",
+      "challenges": [
+        {
+          "id": "defense_openplc_password",
+          "title": "Harden OpenPLC Credentials",
+          "description": "Change the default OpenPLC password to prevent unauthorized access",
+          "points": 150,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_openplc_password",
+          "flag": "CybICS(0penPLC_h4rd3n3d)",
+          "hint": "Log into the OpenPLC web UI at port 8080 and change the default password from 'openplc'",
+          "training_content": "training/defense_password/README.md"
+        },
+        {
+          "id": "defense_fuxa_password",
+          "title": "Harden FUXA Credentials",
+          "description": "Change the default FUXA admin password to prevent unauthorized HMI access",
+          "points": 150,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_fuxa_password",
+          "flag": "CybICS(FUXA_s3cur3d)",
+          "hint": "Access FUXA at port 1881 and change the admin password from its default value",
+          "training_content": "training/defense_password/README.md"
+        },
+        {
+          "id": "defense_firewall",
+          "title": "Modbus Firewall Rules",
+          "description": "Restrict Modbus (port 502) access so only authorized systems can communicate with the PLC",
+          "points": 250,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_firewall",
+          "flag": "CybICS(f1r3w4ll_h4rd3n3d)",
+          "hint": "Use iptables on the OpenPLC container to only allow 172.18.0.4 (FUXA) to access port 502",
+          "training_content": "training/defense_firewall/README.md"
+        },
+        {
+          "id": "defense_network_segmentation",
+          "title": "Network Segmentation",
+          "description": "Block the attack machine from reaching critical ICS services",
+          "points": 300,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_network_segmentation",
+          "flag": "CybICS(n3tw0rk_s3gm3nt3d)",
+          "hint": "Block the attack machine (172.18.0.100) from accessing the PLC and OPC-UA server",
+          "training_content": "training/defense_network/README.md"
+        },
+        {
+          "id": "defense_ids_tuning",
+          "title": "IDS Monitoring & Tuning",
+          "description": "Ensure the IDS is running and actively detecting multiple types of attacks",
+          "points": 200,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_ids_tuning",
+          "flag": "CybICS(1ds_tun3d)",
+          "hint": "Start the IDS, ensure it is capturing packets, and trigger at least 3 different detection rules",
+          "training_content": "training/defense_ids/README.md"
         }
       ]
     }

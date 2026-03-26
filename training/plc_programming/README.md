@@ -85,6 +85,17 @@ The countHeartbeat variable is used for timing purposes, and the program is conf
 Upload the program to the OpenPLC via the web interface on port 8080.
 Do not forget to delete the previous CybICS ST code.
 
+## 🎯 Task
+The flag has the format `CybICS(flag)`.
+
+Your objective is to modify the PLC program, compile it, upload it to the OpenPLC runtime, and then find the flag hidden in the OpenPLC system.
+
+### 📝 Steps
+1. Open the CybICS project in OpenPLC Editor (using either the Engineering Workstation or a local installation as described above)
+2. Review the program logic and make a modification to the PLC program
+3. Compile the modified program and upload it to the OpenPLC runtime via the web interface on port 8080
+4. Once your modified program is uploaded and running, explore the OpenPLC web interface to find the flag
+5. Check the **Users** page in the OpenPLC web interface — the flag is hidden in the user account information, specifically in the **email field**
 
 ## 🛡️ Security Framework References
 
@@ -120,15 +131,14 @@ Do not forget to delete the previous CybICS ST code.
 
 </details>
 
+
+## 💡 Hints
+
+Navigate to the Users page in the OpenPLC web interface at `http://<IP>:8080/users` and click on the default `openplc` user to view their full profile details.
+
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+After completion, use the following flag:
 
-  After completion, use the following flag:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(ladder_logic_modified)
-  </div>
-
-</details>
+**Flag:** `CybICS(ladder_logic_modified)`
 
