@@ -338,7 +338,8 @@ def start_modbus_proxy():
     Start the Modbus TCP proxy that listens for incoming Modbus clients.
     """
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    proxy_socket.bind((PROXY_HOST, PROXY_PORT))
+    # Intentional: MITM proxy must listen on all interfaces to intercept traffic
+    proxy_socket.bind((PROXY_HOST, PROXY_PORT))  # nosec - intentional for MITM training
     proxy_socket.listen(5)
     print(f"[*] Modbus Proxy listening on {PROXY_HOST}:{PROXY_PORT}")
 

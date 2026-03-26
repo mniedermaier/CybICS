@@ -250,7 +250,8 @@ async def test_opcua_invalid_credentials_rejected():
         )
 
         print(f"✓ Correctly rejected: {description}")
-        print(f"  Username: '{username}', Password: '{password}'")
+        print(f"  Username: '{username}', Password: '{'*' * len(password)}'")
+
         print(f"  Error: {error_message[:100]}")
 
     print(f"\n✓ All {len(invalid_credentials)} invalid credential combinations were properly rejected")
