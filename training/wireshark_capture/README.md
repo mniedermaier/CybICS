@@ -154,7 +154,7 @@ Examine the **data values** being written to registers — in a CTF context, fla
 
 ## 💡 Hints
 
-Filter for `modbus.func_code == 6` (Write Single Register) and inspect the register data values for ASCII text.
+Filter for `modbus.func_code == 6 || modbus.func_code == 16` (Write Single Register and Write Multiple Registers) and inspect the register data values for ASCII text.
 
 ## 🔍 Solution
 

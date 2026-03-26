@@ -130,7 +130,7 @@ Grab a coffee ☕☕☕☕ while the fuzzer runs
 
 ## 💡 Hints
 
-Run the fuzzer with: `python3 modbus_fuzzer.py -i <DEVICE_IP> -p 502` and select option 1 to fuzz all function codes.
+Run the fuzzer with `python3 modbus_fuzzer.py`, enter the target IP and port 502 when prompted, then select option 1 from the interactive menu to fuzz all function codes.
 
 ## 🔍 Solution
 

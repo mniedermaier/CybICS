@@ -36,41 +36,28 @@ The flag has the format `CybICS(flag)`.
 2. **Modbus TCP** (172.18.0.3:502)
 3. **OPC-UA Server** (172.18.0.5:4840)
 
-### 📝 Approach 1: Firewall Rules on Target Containers
+### 📝 Steps
 
-Apply iptables rules on each target container to drop traffic from the attack machine:
+Apply iptables rules on each **target container** to drop inbound traffic from the attack machine. In a real ICS environment, these rules would be applied on network firewalls or switches — here we apply them directly on the containers to simulate the same effect.
 
-```bash
-# On the OpenPLC container:
-docker exec -it <openplc_container> bash
-iptables -A INPUT -s 172.18.0.100 -j DROP
+1. Access the OpenPLC container and block the attacker:
+   ```bash
+   docker exec -it <openplc_container> bash
+   iptables -A INPUT -s 172.18.0.100 -j DROP
+   ```
 
-# On the OPC-UA container:
-docker exec -it <opcua_container> bash
-iptables -A INPUT -s 172.18.0.100 -j DROP
-```
+2. Access the OPC-UA container and block the attacker:
+   ```bash
+   docker exec -it <opcua_container> bash
+   iptables -A INPUT -s 172.18.0.100 -j DROP
+   ```
 
-### 📝 Approach 2: Firewall Rules on the Attack Machine
+3. Verify the rules are applied on each container:
+   ```bash
+   iptables -L INPUT -n
+   ```
 
-Alternatively, apply outbound rules on the attack machine itself:
-
-```bash
-docker exec -it <attack_container> bash
-iptables -A OUTPUT -d 172.18.0.3 -j DROP
-iptables -A OUTPUT -d 172.18.0.5 -j DROP
-```
-
-### Verification
-
-After applying rules, verify from the attack machine:
-```bash
-# These should all fail/timeout:
-docker exec <attack_container> nc -z -w 3 172.18.0.3 8080
-docker exec <attack_container> nc -z -w 3 172.18.0.3 502
-docker exec <attack_container> nc -z -w 3 172.18.0.5 4840
-```
-
-Click **Verify Defense** on this challenge page to confirm.
+4. Click **Verify Defense** on this challenge page to confirm.
 
 ## ⚠️ Important Notes
 - Do not block legitimate traffic between authorized services (hwio, FUXA, etc.)
@@ -120,7 +107,7 @@ After completing this challenge, consider:
 
 ## 💡 Hints
 
-You can apply iptables rules either on each target container (DROP traffic from 172.18.0.100) or on the attack machine itself (DROP outbound traffic to the targets). The simplest approach is to add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA containers.
+Add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA containers. This blocks all traffic from the attack machine to those services.
 
 ## 🔍 Solution
 

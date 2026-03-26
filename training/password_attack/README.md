@@ -74,6 +74,8 @@ The flag has the format `CybICS(flag)`.
 Use the previous knowledge to fuzz the admin login of FUXA.
 FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 
+**Note:** FUXA uses a different authentication mechanism than OpenPLC. While OpenPLC accepts form-encoded POST data at `/login`, FUXA uses a JSON-based API at `/api/signin`. This means you need to change the `Content-Type` header to `application/json`, format the payload as a JSON object, and use a different filter flag (e.g., `-fr "error"` instead of `-fs`) to distinguish successful from failed attempts.
+
 ## 🛡️ Security Framework References
 
 <details>
