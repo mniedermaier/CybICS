@@ -16,7 +16,7 @@ The CybICS IDS exposes a REST API that provides alert data, summary statistics, 
 |---|---|---|
 | Remote System Discovery | T0846 | Identifying reconnaissance patterns |
 | Unauthorized Command Message | T0855 | Detecting unauthorized Modbus writes |
-| Denial of Service | T0836 | Identifying flooding attacks |
+| Denial of Service | T0814 | Identifying flooding attacks |
 
 ## MITRE D3FEND Alignment
 
