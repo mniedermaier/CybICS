@@ -31,6 +31,42 @@ This shows the basic flow:
 - Server responds (<-----) to the Attacker.
 - Attacker potentially modifies and sends the response back to the Client.
 
+## 🔧 ARP Spoofing: Becoming the Man-in-the-Middle
+
+To position yourself between the client (FUXA HMI) and server (OpenPLC), you need to redirect their network traffic through your machine. This is accomplished using **ARP spoofing** (also called ARP cache poisoning).
+
+### What is ARP Spoofing?
+
+The Address Resolution Protocol (ARP) maps IP addresses to MAC addresses on a local network. Each device maintains an ARP cache — a table of IP-to-MAC mappings. ARP spoofing exploits the fact that ARP has **no authentication**: any device can send ARP replies claiming to be any other device.
+
+By sending forged ARP replies, you trick both the client and server into sending their traffic to your machine instead of directly to each other:
+
+1. **Tell the client (FUXA):** "I am the server (OpenPLC)" — send a spoofed ARP reply to FUXA with OpenPLC's IP but your MAC address
+2. **Tell the server (OpenPLC):** "I am the client (FUXA)" — send a spoofed ARP reply to OpenPLC with FUXA's IP but your MAC address
+
+Once both devices update their ARP caches, all traffic between them flows through your machine.
+
+### Tools for ARP Spoofing
+
+Common tools include:
+- **arpspoof** (part of the `dsniff` package) — simple command-line ARP spoofing
+- **ettercap** — full-featured MITM framework
+- **scapy** — Python-based packet crafting (for custom scripts)
+
+You will need to run ARP spoofing in **both directions** (one for each target) so that traffic flows through your machine bidirectionally. You also need IP forwarding enabled on your machine so that intercepted packets are forwarded rather than dropped.
+
+## 🛠️ Two-Step Attack Process
+
+The full MITM attack requires two steps running simultaneously:
+
+### Step 1: ARP Spoof to Redirect Traffic
+
+Use ARP spoofing to redirect traffic between FUXA and OpenPLC through your machine. This must remain running for the duration of the attack.
+
+### Step 2: Run the Modbus Proxy
+
+Once traffic is flowing through your machine, run the Modbus TCP proxy to intercept and optionally manipulate the traffic.
+
 ## 🛠️ Prerequisite: Admin Access on FUXA HMI
 Before setting up the Python proxy for intercepting Modbus traffic, you need administrator access on the FUXA HMI. This is necessary to modify the IP settings of the connected PLC, directing its communication through the Python proxy.
 
@@ -39,7 +75,7 @@ With admin access, you'll be able to change the PLC's configuration to use the p
 ![FUXA IP Configuration](doc/fuxa_ip.png)
 
 ## 🚀 Example: Running the Proxy
-An example of this proxy can be found in the `mitm.py` file. 
+An example of this proxy can be found in the `mitm.py` file.
 By default, it does not modify or manipulate any values, allowing the proxy to only focus on significant traffic changes. You can easily extend it to customize the manipulations as needed for your specific use case.
 For this, a good understanding of Modbus/TCP is required.
 
@@ -47,8 +83,17 @@ For this, a good understanding of Modbus/TCP is required.
 python3 mitm.py
 ```
 
-## 🎯 Find the Flag
+## 🎯 Task
+Perform a Man-in-the-Middle attack using ARP spoofing and the provided Modbus proxy to intercept and analyze PLC communication.
+
 The flag has the format `CybICS(flag)`.
+
+### Steps
+1. Ensure you have access to the attack machine and identify the target IPs (PLC and HMI)
+2. Enable IP forwarding on the attack machine
+3. Run ARP spoofing to poison the ARP caches of both the PLC and HMI
+4. Start the provided mitm.py Modbus proxy script
+5. Observe the intercepted Modbus traffic and find the flag
 
 ## 🛡️ Security Framework References
 
@@ -85,21 +130,13 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
-<details>
-<summary>💡 Hint</summary>
 
-You need to become the man-in-the-middle by using ARP spoofing to intercept traffic between FUXA and OpenPLC. The provided `mitm.py` script handles the proxy — focus on understanding the ARP spoofing and running the proxy.
+## 💡 Hints
 
-</details>
+Use `arpspoof -i eth0 -t <FUXA_IP> <OpenPLC_IP>` in one terminal and `arpspoof -i eth0 -t <OpenPLC_IP> <FUXA_IP>` in another. Enable IP forwarding with `echo 1 > /proc/sys/net/ipv4/ip_forward`. Then run `python3 mitm.py` in a third terminal.
 
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+After completion, use the following flag:
 
-  After completion, use the following flag:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(mitm_attack_successful)
-  </div>
-
-</details>
+**Flag:** `CybICS(mitm_attack_successful)`

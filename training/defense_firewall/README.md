@@ -21,6 +21,16 @@ This challenge requires you to apply **firewall rules** on the OpenPLC container
 
 Add iptables rules on the **OpenPLC container** to restrict access to Modbus TCP (port 502). Only authorized hosts should be able to reach the PLC.
 
+The flag has the format `CybICS(flag)`.
+
+### ⚙️ Understanding iptables Rule Order
+
+**iptables evaluates rules top to bottom, and the first matching rule wins.** This means the order in which you add rules is critical:
+
+- **ACCEPT rules must come before DROP rules** — if a DROP rule matches first, traffic will be blocked even if a later ACCEPT rule would have allowed it.
+- A common pattern is to explicitly ACCEPT traffic from authorized sources first, then add a final DROP rule that blocks everything else.
+- If you add the DROP rule first, all traffic to that port will be blocked regardless of any ACCEPT rules added afterward.
+
 ### 📝 Steps
 
 1. Access the OpenPLC container shell:
@@ -45,13 +55,6 @@ Add iptables rules on the **OpenPLC container** to restrict access to Modbus TCP
    ```
 
 5. Click **Verify Defense** on this challenge page to confirm.
-
-<details>
-<summary>💡 Hint</summary>
-
-Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. Then use `iptables -A INPUT` rules to ACCEPT traffic from authorized IPs (FUXA and hwio) on port 502 first, and DROP everything else to that port last. Order matters — iptables processes rules top to bottom.
-
-</details>
 
 ### ⚠️ Important Notes
 - The `hwio` service (172.18.0.2) must be able to write sensor values to OpenPLC via Modbus. Do not block it.
@@ -96,3 +99,24 @@ After completing this challenge, consider:
 - How would you implement deep packet inspection for Modbus to allow reads but block writes?
 - What are the trade-offs between host-based firewalls (iptables) and network firewalls?
 - How would you make these rules persistent across container restarts?
+
+
+## 💡 Hints
+
+Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. Then use `iptables -A INPUT` rules to ACCEPT traffic from authorized IPs (FUXA and hwio) on port 502 first, and DROP everything else to that port last. Remember: iptables processes rules top to bottom, first match wins.
+
+## 🔍 Solution
+
+1. Access the OpenPLC container shell:
+   ```bash
+   docker exec -it <openplc_container> bash
+   ```
+2. Allow Modbus (port 502) from authorized hosts only:
+   ```bash
+   iptables -A INPUT -p tcp --dport 502 -s 172.18.0.2 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 502 -s 172.18.0.4 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 502 -j DROP
+   ```
+3. Click **Verify Defense** in the CTF interface to receive the flag.
+
+**Flag:** `CybICS(f1r3w4ll_h4rd3n3d)`

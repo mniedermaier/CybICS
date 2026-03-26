@@ -16,6 +16,8 @@ The IDS triggers the `port_scan` rule when it observes **5 or more unique destin
 
 Perform a port scan, observe the IDS detection, and retrieve the flag from the IDS API.
 
+The flag has the format `CybICS(flag)`.
+
 ---
 
 ### Phase 1: Launch the Scan
@@ -104,13 +106,6 @@ Your scan (6 ports) → IDS sees SYN packets → 6 > 5 threshold → port_scan r
 
 </details>
 
-<details>
-<summary>💡 Hint</summary>
-
-Run the scan, then query `http://localhost:8443/api/rules/stats`. Look at the `port_scan` entry — when `count > 0`, a `flag` field appears in the JSON response with the CTF flag.
-
-</details>
-
 ## 🔍 Defensive Thinking
 
 After completing this challenge, consider:
@@ -118,3 +113,20 @@ After completing this challenge, consider:
 - How would you detect slow scans (1 port every 30 seconds)?
 - What other protocols besides TCP could be used for reconnaissance?
 - How does the IDS distinguish a legitimate service check from a malicious scan?
+
+
+## 💡 Hints
+
+Run the scan, then query `http://localhost:8443/api/rules/stats`. Look at the `port_scan` entry — when `count > 0`, a `flag` field appears in the JSON response with the CTF flag.
+
+## 🔍 Solution
+
+Run a port scan against the target, then query the IDS rule statistics API:
+
+```bash
+curl -s http://localhost:8443/api/rules/stats
+```
+
+Look for the `flag` field in the `port_scan` entry when `count > 0`.
+
+**Flag:** `CybICS(sc4n_d3tect3d)`

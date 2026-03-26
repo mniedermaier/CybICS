@@ -23,6 +23,8 @@ The flooding script sends ~1000 writes/second — far above both thresholds.
 
 Launch the attack, observe the IDS detection, capture and analyze the traffic, and find the flag.
 
+The flag has the format `CybICS(flag)`.
+
 ---
 
 ### Phase 1: Launch the Attack
@@ -158,13 +160,6 @@ Connect your findings across all three data sources:
 
 </details>
 
-<details>
-<summary>💡 Hint</summary>
-
-Run `override.py` against the PLC, then query `http://localhost:8443/api/rules/stats`. Look at the `modbus_flood` entry — when `count > 0`, a `flag` field appears in the JSON response. For the PCAP analysis, use Wireshark filter `modbus.func_code == 16` to isolate the write commands.
-
-</details>
-
 ## 🔍 Defensive Thinking
 
 After completing this challenge, consider:
@@ -172,3 +167,20 @@ After completing this challenge, consider:
 - What if the attacker sent only 9 writes per 30 seconds (below `modbus_unauth_write` threshold)? The **IDS Evasion** challenge explores exactly this.
 - How would you implement **allowlisting** so only FUXA and hwio can write to Modbus?
 - What process-level indicators (register values, control loop behavior) could supplement network detection?
+
+
+## 💡 Hints
+
+Run `override.py` against the PLC, then query `http://localhost:8443/api/rules/stats`. Look at the `modbus_flood` entry — when `count > 0`, a `flag` field appears in the JSON response. For the PCAP analysis, use Wireshark filter `modbus.func_code == 16` to isolate the write commands.
+
+## 🔍 Solution
+
+Run the Modbus flooding attack, then query the IDS rule statistics API:
+
+```bash
+curl -s http://localhost:8443/api/rules/stats
+```
+
+Look for the `flag` field in the `modbus_flood` entry when `count > 0`.
+
+**Flag:** `CybICS(m0dbus_fl00d_d3tect3d)`

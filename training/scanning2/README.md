@@ -32,32 +32,45 @@ Before scanning, ensure you have:
 - ⏰ Avoid scanning production systems during working hours to prevent disruptions
 - 🔐 Use a VPN or secure network when scanning remote devices
 
-## 🚀 Running the Scan
+## 🚀 Background: S7comm and Nmap's s7-info Script
 
-There are two S7 services running on port 102 and 1102 (the standard port 102 is used by OpenPLC). Due to nmap's s7-info script being hardcoded for port 102, you'll need to do changes to the s7-info script or use an alternative approach to query the S7 service and discover the CTF flag.
+There are two S7 services running on port 102 and 1102 (the standard port 102 is used by OpenPLC). Nmap's `s7-info` NSE script can query S7 PLCs to retrieve detailed device information. However, the script's `portrule` is hardcoded for port 102 only, which means it will not automatically run against the S7 service on port 1102.
 
-```bash
-locate s7-info.nse
-```
-Usually at: /usr/share/nmap/scripts/s7-info.nse
-
-Edit the script (you'll need sudo):
-
-```bash
-sudo nano /usr/share/nmap/scripts/s7-info.nse
-```
-
-Find the portrule section (near the top) and modify it:
-```bash
-portrule = shortport.port_or_service({102, 1102}, "iso-tsap", "tcp")
-```
-
-### 📊 Output Analysis
-  - **Module**: Hardware module identifier (6ES7 315-2AG10-0AB0)
-  - **Basic Hardware**: Basic hardware type (SIMATIC 300)
-  - **Version**: Firmware version (2.6.9)
-  - **System Name**: System identifier (SIMATIC 300(1))
+### 📊 Understanding the Output
+The s7-info script returns several fields about the PLC:
+  - **Module**: Hardware module identifier (e.g., 6ES7 315-2AG10-0AB0)
+  - **Basic Hardware**: Basic hardware type (e.g., SIMATIC 300)
+  - **Version**: Firmware version (e.g., 2.6.9)
+  - **System Name**: System identifier (e.g., SIMATIC 300(1))
   - **Module Type**: Extended module type - **Contains the CTF flag!** 🚩
+
+## 🎯 Task
+Your goal is to use nmap's `s7-info` NSE script to query the Siemens S7 PLC running on a non-standard port and retrieve the CTF flag from the device identification fields.
+
+The flag has the format `CybICS(flag)` and is found in the **Module Type** field of the s7-info output.
+
+### Steps
+1. **Locate the s7-info script** on your system:
+   ```bash
+   locate s7-info.nse
+   ```
+   It is usually found at: `/usr/share/nmap/scripts/s7-info.nse`
+
+2. **Modify the portrule** to include port 1102. Edit the script (you'll need sudo):
+   ```bash
+   sudo nano /usr/share/nmap/scripts/s7-info.nse
+   ```
+   Find the `portrule` section near the top and change it to:
+   ```bash
+   portrule = shortport.port_or_service({102, 1102}, "iso-tsap", "tcp")
+   ```
+
+3. **Run the scan** against the target device with both ports:
+   ```bash
+   nmap --script s7-info -p 102,1102 $DEVICE_IP
+   ```
+
+4. **Find the flag** in the scan output. Look at the **Module Type** field in the s7-info results for port 1102.
 
 ### ✅ Conclusion
 Using Nmap's s7-info script, you can:
@@ -106,20 +119,13 @@ Using Nmap's s7-info script, you can:
 
 </details>
 
-<details>
-<summary>💡 Hint</summary>
 
-The nmap `s7-info` script is hardcoded for port 102. Since S7comm runs on a non-standard port here, you will need to modify the script's `portrule` to include the custom port before scanning.
+## 💡 Hints
 
-</details>
+After modifying the portrule, run: `nmap --script s7-info -p 102,1102 $DEVICE_IP` and look at the **Module Type** field in the output.
 
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-  Submit the flag found in the Module Type field:
+Submit the flag found in the Module Type field:
 
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(s7comm_analysis_complete)
-  </div>
-</details>
+**Flag:** `CybICS(s7comm_analysis_complete)`

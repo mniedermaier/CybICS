@@ -12,6 +12,8 @@ The CybICS IDS is a lightweight, purpose-built IDS designed for ICS environments
 
 Learn how intrusion detection systems work in ICS environments by interacting with the CybICS IDS and triggering real detection rules.
 
+The flag has the format `CybICS(flag)`.
+
 1. **Access the IDS Dashboard** at [http://localhost:8443](http://localhost:8443)
 2. Ensure the IDS is running (it auto-starts by default)
 3. **Trigger at least 3 different detection rules** using the attack machine or webshell
@@ -92,13 +94,6 @@ The CybICS IDS implements 9 detection rules:
 
 </details>
 
-<details>
-<summary>💡 Hint</summary>
-
-You need to trigger at least 3 different IDS rules. Try a port scan (nmap), Modbus writes (pymodbus), and S7 access (nmap s7-info script). After triggering alerts, check the flag endpoint at `/api/flag`.
-
-</details>
-
 ## 🔍 Defensive Thinking
 
 After completing the offensive tasks, consider:
@@ -107,3 +102,18 @@ After completing the offensive tasks, consider:
 - What additional rules would you add to improve detection?
 - How would you implement alerting (email, SMS, SIEM integration)?
 - What is the trade-off between detection sensitivity and false positives?
+
+
+## 💡 Hints
+
+You need to trigger at least 3 different IDS rules. Try a port scan (nmap), Modbus writes (pymodbus), and S7 access (nmap s7-info script). After triggering alerts, check the flag endpoint at `/api/flag`.
+
+## 🔍 Solution
+
+After triggering 3 or more detection rules (e.g., port scan, Modbus writes, S7 enumeration), retrieve the flag:
+
+```bash
+curl http://localhost:8443/api/flag
+```
+
+**Flag:** `CybICS(1ntrusi0n_d3tect3d)`

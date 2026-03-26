@@ -30,6 +30,8 @@ In the CybICS testbed, the attack machine (172.18.0.100) currently has unrestric
 ## 🎯 Task
 
 Block the attack machine (172.18.0.100) from accessing the following critical services:
+
+The flag has the format `CybICS(flag)`.
 1. **OpenPLC Web UI** (172.18.0.3:8080)
 2. **Modbus TCP** (172.18.0.3:502)
 3. **OPC-UA Server** (172.18.0.5:4840)
@@ -69,13 +71,6 @@ docker exec <attack_container> nc -z -w 3 172.18.0.5 4840
 ```
 
 Click **Verify Defense** on this challenge page to confirm.
-
-<details>
-<summary>💡 Hint</summary>
-
-You can apply iptables rules either on each target container (DROP traffic from 172.18.0.100) or on the attack machine itself (DROP outbound traffic to the targets). The simplest approach is to add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA containers.
-
-</details>
 
 ## ⚠️ Important Notes
 - Do not block legitimate traffic between authorized services (hwio, FUXA, etc.)
@@ -121,3 +116,25 @@ After completing this challenge, consider:
 - How would you implement the Purdue Model zones in this environment?
 - What are the challenges of implementing network segmentation in brownfield (existing) ICS environments?
 - How does micro-segmentation differ from traditional VLAN-based segmentation?
+
+
+## 💡 Hints
+
+You can apply iptables rules either on each target container (DROP traffic from 172.18.0.100) or on the attack machine itself (DROP outbound traffic to the targets). The simplest approach is to add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA containers.
+
+## 🔍 Solution
+
+1. Block the attacker on the OpenPLC container:
+   ```bash
+   docker exec -it <openplc_container> bash
+   iptables -A INPUT -s 172.18.0.100 -p tcp --dport 8080 -j DROP
+   iptables -A INPUT -s 172.18.0.100 -p tcp --dport 502 -j DROP
+   ```
+2. Block the attacker on the OPC-UA container:
+   ```bash
+   docker exec -it <opcua_container> bash
+   iptables -A INPUT -s 172.18.0.100 -p tcp --dport 4840 -j DROP
+   ```
+3. Click **Verify Defense** in the CTF interface to receive the flag.
+
+**Flag:** `CybICS(n3tw0rk_s3gm3nt3d)`

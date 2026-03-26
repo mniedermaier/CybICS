@@ -7,6 +7,8 @@ Default credentials are one of the most common vulnerabilities in Industrial Con
 
 This challenge requires you to change the default passwords on two critical systems in the CybICS testbed: the **OpenPLC runtime** and the **FUXA HMI**.
 
+The flag has the format `CybICS(flag)`.
+
 ## 🎯 Task 1: Harden OpenPLC Credentials
 
 The OpenPLC web interface runs on port **8080** and uses the default credentials:
@@ -29,15 +31,8 @@ The FUXA HMI runs on port **1881** and uses the default admin credentials:
 ### 📝 Steps
 1. Open a web browser and navigate to `http://<DEVICE_IP>:1881`
 2. Log in with the default admin credentials
-3. Navigate to the settings and change the admin password
+3. Open the **top-right menu** and navigate to the user settings to change the admin password
 4. Click **Verify Defense** on this challenge page to confirm
-
-<details>
-<summary>💡 Hint</summary>
-
-For OpenPLC, navigate to the web UI at port 8080, log in with `openplc`/`openplc`, then go to **Users** in the sidebar to find the password change option. For FUXA, access port 1881 and look for user settings in the top-right menu.
-
-</details>
 
 ## ⚠️ Important Notes
 - Remember your new passwords! If you forget them, you may need to restart the containers.
@@ -83,3 +78,18 @@ After completing this challenge, consider:
 - What are the risks of account lockout mechanisms in OT environments?
 - How would you manage credentials across dozens or hundreds of ICS devices?
 - What role does multi-factor authentication play in ICS environments?
+
+
+## 💡 Hints
+
+For OpenPLC, navigate to the web UI at port 8080, log in with `openplc`/`openplc`, then go to **Users** in the sidebar to find the password change option. For FUXA, access port 1881 and look for user settings in the top-right menu.
+
+## 🔍 Solution
+
+1. **OpenPLC** — Navigate to `http://<DEVICE_IP>:8080`, log in with the default credentials (`openplc`/`openplc`), go to **Settings** > **Users**, and change the password for the `openplc` user to something non-default.
+2. **FUXA** — Navigate to `http://<DEVICE_IP>:1881`, log in with the default credentials (`admin`/`123456`), open the top-right menu, navigate to user settings, and change the admin password.
+3. Click **Verify Defense** in the CTF interface for each task to receive the flag.
+
+**Flag (OpenPLC):** `CybICS(0penPLC_h4rd3n3d)`
+
+**Flag (FUXA):** `CybICS(FUXA_s3cur3d)`

@@ -10,6 +10,8 @@ This challenge requires you to ensure the CybICS IDS is fully operational and ca
 ## 🎯 Task
 
 Ensure the IDS meets all three criteria:
+
+The flag has the format `CybICS(flag)`.
 1. **Running** — The IDS service is operational
 2. **Capturing** — The IDS is actively monitoring network traffic
 3. **Detecting** — At least 3 different detection rules have been triggered
@@ -25,8 +27,10 @@ If the IDS is not running, start it from the dashboard or via the API:
 curl -X POST http://localhost:8443/api/start
 ```
 
+> **Important:** You must start the IDS **before** triggering any attacks. The IDS can only detect attacks that occur while it is actively capturing traffic. If you run attacks first and start the IDS afterward, those attacks will not be detected.
+
 #### Step 3: Trigger Detection Rules
-The IDS has 9 detection rules. You need to trigger at least 3 different ones. Some examples:
+The IDS has 9 detection rules. You need to trigger at least 3 different ones. Execute the following attacks from the **webshell or attack machine** (172.18.0.100). Some examples:
 
 **Port Scan** (Rule: `port_scan`):
 ```bash
@@ -50,13 +54,6 @@ client.close()
 
 #### Step 4: Verify Detection
 Check the IDS dashboard to confirm alerts have been generated from at least 3 different rules. Then click **Verify Defense** on this challenge page.
-
-<details>
-<summary>💡 Hint</summary>
-
-Start the IDS capture via `curl -X POST http://localhost:8443/api/start`, then trigger attacks from the webshell or attack machine. A quick port scan (`nmap -sS 172.18.0.3`), some Modbus writes, and an S7 access attempt will each trigger a different rule. Check the IDS dashboard to confirm 3+ rules have fired.
-
-</details>
 
 ## 🛡️ Security Framework References
 
@@ -97,3 +94,37 @@ After completing this challenge, consider:
 - How do you balance detection sensitivity with false positive rates?
 - What additional detection rules would you add for this environment?
 - How would you integrate IDS alerts with a SIEM for centralized monitoring?
+
+
+## 💡 Hints
+
+Start the IDS capture via `curl -X POST http://localhost:8443/api/start`, then trigger attacks from the webshell or attack machine. A quick port scan (`nmap -sS 172.18.0.3`), some Modbus writes, and an S7 access attempt will each trigger a different rule. Check the IDS dashboard to confirm 3+ rules have fired.
+
+## 🔍 Solution
+
+1. Start the IDS capture:
+   ```bash
+   curl -X POST http://localhost:8443/api/start
+   ```
+2. From the attack machine (172.18.0.100), trigger at least 3 different detection rules. For example:
+   ```bash
+   # Port scan (triggers port_scan rule)
+   nmap -sS 172.18.0.3
+
+   # S7comm enumeration (triggers s7_enumeration rule)
+   nmap --script s7-info -p 102 172.18.0.3
+
+   # Modbus unauthorized writes (triggers modbus_unauth_write rule)
+   python3 -c "
+   from pymodbus.client import ModbusTcpClient
+   client = ModbusTcpClient('172.18.0.3', port=502)
+   client.connect()
+   for i in range(15):
+       client.write_register(1124, 999)
+   client.close()
+   "
+   ```
+3. Verify that 3+ rules have fired on the IDS dashboard at `http://<DEVICE_IP>:8443`.
+4. Click **Verify Defense** in the CTF interface to receive the flag.
+
+**Flag:** `CybICS(1ds_tun3d)`

@@ -36,6 +36,8 @@ You need at least **5 alerts** from at least **3 different rule types**.
 
 ## 🎯 Task
 
+The flag has the format `CybICS(flag)`.
+
 ### Step 1: Check Investigation Readiness
 
 Query the forensics endpoint to see if enough data is available:
@@ -60,6 +62,8 @@ Key fields in the response:
 - `rules`: Count of alerts by detection rule name
 - `top_sources`: List of source IPs ranked by alert count
 - `total`: Total number of alerts
+
+> **Tip:** The `/api/summary` endpoint provides aggregated data that is particularly useful for answering the investigation questions. It contains pre-computed statistics (top sources, rule counts, severity breakdowns) so you may not need to parse raw alerts at all.
 
 #### Get Raw Alert Data
 ```bash
@@ -137,13 +141,6 @@ result = requests.post(f"{BASE}/api/forensics/submit", json={
 print(result)
 ```
 
-<details>
-<summary>💡 Hint</summary>
-
-Query `/api/summary` to get aggregated data — it contains `top_sources` (sorted by alert count), `rules` (unique rule names), and `severity` (counts per level). The three answers can all be derived from this single endpoint without parsing raw alerts.
-
-</details>
-
 ## 🛡️ Security Framework References
 
 <details>
@@ -182,3 +179,24 @@ After completing this challenge, consider:
 - What correlation rules would you create to identify multi-stage attacks?
 - How would you distinguish false positives from real attacks in ICS alert data?
 - What metrics would you track to measure IDS effectiveness over time?
+
+
+## 💡 Hints
+
+Query `/api/summary` to get aggregated data — it contains `top_sources` (sorted by alert count), `rules` (unique rule names), and `severity` (counts per level). The three answers can all be derived from this single endpoint without parsing raw alerts.
+
+## 🔍 Solution
+
+Submit correct answers to the 3 investigation questions via POST to `/api/forensics/submit`. The flag is returned in the response when all answers are correct:
+
+```bash
+curl -X POST http://localhost:8443/api/forensics/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "top_attacker": "<top source IP from /api/summary>",
+    "unique_rules": <number of distinct rules>,
+    "critical_count": <number of critical alerts>
+  }'
+```
+
+**Flag:** `CybICS(f0r3ns1c_4n4lyst)`

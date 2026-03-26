@@ -55,6 +55,14 @@ Check if these settings are correct, before executing the flooding script.
 ### 📚 Prerequisites
 A basic understanding of Modbus/TCP is required for this example.
 
+## 🎯 Task
+The flag has the format `CybICS(flag)`.
+
+1. Run the provided `flooding_hpt.py` script to flood Modbus registers on the PLC
+2. While the attack is running, open the **FUXA HMI** and observe how the physical process responds to the manipulated register values
+3. You should see the high pressure tank (HPT) register values being overwritten, causing the compressor (C) to remain enabled continuously, which drives the HPT toward a critical pressure value
+4. After observing the impact, retrieve the flag
+
 ## 🛡️ Security Framework References
 
 <details>
@@ -90,19 +98,14 @@ A basic understanding of Modbus/TCP is required for this example.
 
 </details>
 
-<details>
-<summary>💡 Hint</summary>
 
-Run the provided flooding script to overwrite Modbus registers on the PLC. While the attack is running, watch the FUXA HMI to observe how the physical process changes in response to the manipulated register values.
+## 💡 Hints
 
-</details>
+Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pressure readings.
 
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  ### 🚀 Running the Attack
+### 🚀 Running the Attack
   Execute the provided script to flood the sensor values of the high pressure tank (HPT):
   ```sh
   python3 flooding_hpt.py
@@ -132,8 +135,6 @@ Run the provided flooding script to overwrite Modbus registers on the PLC. While
   - Potential actions: reducing heat or shutting down components
 
   After completion, use the following flag:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(flood_attack_successful)
-  </div>
-</details>
+
+**Flag:** `CybICS(flood_attack_successful)`
 
