@@ -8,6 +8,21 @@ Security Operations Center (SOC) analysts regularly triage alerts from intrusion
 
 The CybICS IDS exposes a REST API that provides alert data, summary statistics, and aggregated metrics. Your task is to query these endpoints, analyze the data, and answer three investigation questions.
 
+## MITRE ATT&CK for ICS Alignment
+
+| Technique | ID | Relevance |
+|---|---|---|
+| Remote System Discovery | T0846 | Identifying reconnaissance patterns |
+| Unauthorized Command Message | T0855 | Detecting unauthorized Modbus writes |
+| Denial of Service | T0814 | Identifying flooding attacks |
+
+## MITRE D3FEND Alignment
+
+| Technique | ID | Description |
+|---|---|---|
+| Network Traffic Analysis | D3-NTA | Analyzing captured network alert data |
+| Alert Triage | D3-AT | Prioritizing and classifying security alerts |
+
 ## 📦 Prerequisites
 
 Before starting this challenge, you need alert data in the IDS. Complete the **IDS Challenge** first or trigger multiple different attacks to generate diverse alerts:

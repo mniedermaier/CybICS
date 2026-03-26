@@ -39,9 +39,9 @@ All training modules are mapped to industry-standard security frameworks to help
 | [Modbus Firewall](defense_firewall/README.md) | *Defensive* | D3FEND: Inbound Traffic Filtering, Network Traffic Filtering | D3-ITF, D3-NTF |
 | [Network Segmentation](defense_network/README.md) | *Defensive* | D3FEND: Network Isolation | D3-NI |
 | [IDS Monitoring](defense_ids/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA, D3-PMAD |
-| [IDS Challenge](ids_challenge/README.md) | Discovery, Impact | Remote System Discovery, Denial of Service, Unauthorized Command Message | T0846, T0836, T0855 |
-| [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Alert Triage | D3-NTA |
-| [IDS Evasion](ids_evasion/README.md) | Evasion, Impair Process Control | Exploitation of Remote Services, Unauthorized Command Message | T0866, T0855 |
+| [IDS Challenge](ids_challenge/README.md) | Discovery, Impair Process Control | Remote System Discovery, Denial of Service, Unauthorized Command Message | T0846, T0814, T0855 |
+| [IDS Evasion](ids_evasion/README.md) | Impair Process Control, Evasion | Unauthorized Command Message, Exploitation of Remote Services, Manipulation of Control | T0855, T0866, T0831 |
+| [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Alert Triage | D3-NTA, D3-AT |
 
 ## 📦 Prerequisites
 
