@@ -73,7 +73,8 @@ def get_container_status():
     except subprocess.TimeoutExpired:
         return {'error': 'Command timed out'}
     except Exception as e:
-        return {'error': str(e)}
+        logger.error(f"Error getting container status: {e}")
+        return {'error': 'Failed to get container status'}
 
 
 def restart_containers(container_names=None):
@@ -125,7 +126,8 @@ def restart_containers(container_names=None):
     except subprocess.TimeoutExpired:
         return {'error': 'Restart operation timed out'}
     except Exception as e:
-        return {'error': str(e)}
+        logger.error(f"Error restarting containers: {e}")
+        return {'error': 'Failed to restart containers'}
 
 
 def get_container_logs(container_name, lines=50):
@@ -154,7 +156,8 @@ def get_container_logs(container_name, lines=50):
     except subprocess.TimeoutExpired:
         return {'error': 'Command timed out'}
     except Exception as e:
-        return {'error': str(e)}
+        logger.error(f"Error getting container logs: {e}")
+        return {'error': 'Failed to get container logs'}
 
 
 def get_system_stats():
@@ -186,7 +189,8 @@ def get_system_stats():
     except subprocess.TimeoutExpired:
         return {'error': 'Command timed out'}
     except Exception as e:
-        return {'error': str(e)}
+        logger.error(f"Error getting system stats: {e}")
+        return {'error': 'Failed to get system statistics'}
 
 
 def execute_network_scan(target, scan_type='basic'):
@@ -227,7 +231,8 @@ def execute_network_scan(target, scan_type='basic'):
     except FileNotFoundError:
         return {'error': 'nmap not found - network scanning not available'}
     except Exception as e:
-        return {'error': str(e)}
+        logger.error(f"Error executing network scan: {e}")
+        return {'error': 'Failed to execute network scan'}
 
 
 def list_docker_images():
@@ -259,7 +264,8 @@ def list_docker_images():
     except subprocess.TimeoutExpired:
         return {'error': 'Command timed out'}
     except Exception as e:
-        return {'error': str(e)}
+        logger.error(f"Error listing Docker images: {e}")
+        return {'error': 'Failed to list Docker images'}
 
 
 # Tool definitions for the LLM
@@ -340,9 +346,11 @@ def execute_tool(tool_name, parameters=None):
             result = func()
         return result
     except TypeError as e:
-        return {'error': f'Invalid parameters for {tool_name}: {str(e)}'}
+        logger.error(f"Invalid parameters for {tool_name}: {e}")
+        return {'error': f'Invalid parameters for {tool_name}'}
     except Exception as e:
-        return {'error': f'Error executing {tool_name}: {str(e)}'}
+        logger.error(f"Error executing {tool_name}: {e}")
+        return {'error': f'Error executing {tool_name}'}
 
 
 def parse_tool_calls(response_text):
@@ -714,7 +722,7 @@ Answer:"""
 
     except Exception as e:
         logger.error(f"Error generating response: {e}")
-        return f"⚠️ **Error**: I'm having trouble connecting to the AI model.\n\n`{str(e)}`"
+        return "⚠️ **Error**: I'm having trouble connecting to the AI model. Please check the model configuration."
 
 
 @app.route('/health', methods=['GET'])
@@ -757,7 +765,7 @@ def detect_tool_intent(question):
             if container in question_lower:
                 # Check for line count
                 import re
-                lines_match = re.search(r'(\d+)\s*lines?', question_lower)
+                lines_match = re.search(r'(\d+)\s{0,5}lines?', question_lower[:200])
                 lines = int(lines_match.group(1)) if lines_match else 50
                 return (True, 'get_container_logs', {'container_name': container, 'lines': lines})
         return (False, None, {})
@@ -928,7 +936,7 @@ Provide a natural language markdown response summarizing the results:"""
 
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred while processing your message'}), 500
 
 
 @app.route('/api/info', methods=['GET'])
@@ -963,7 +971,7 @@ def info():
         })
     except Exception as e:
         logger.error(f"Error in info endpoint: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred while retrieving agent information'}), 500
 
 
 @app.route('/api/tools', methods=['GET'])
@@ -984,7 +992,7 @@ def list_tools():
         })
     except Exception as e:
         logger.error(f"Error listing tools: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred while listing tools'}), 500
 
 
 @app.route('/api/model', methods=['GET'])
@@ -1039,7 +1047,7 @@ def get_model():
         })
     except Exception as e:
         logger.error(f"Error getting model info: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred while retrieving model information'}), 500
 
 
 @app.route('/api/model', methods=['POST'])
@@ -1112,25 +1120,25 @@ def set_model():
                         logger.error(f"Model downloaded but failed to activate: {test_error}")
                         return jsonify({
                             'success': False,
-                            'error': f'Model downloaded but failed to activate: {str(test_error)}'
+                            'error': 'Model downloaded but failed to activate'
                         }), 500
 
                 except Exception as pull_error:
                     logger.error(f"Error pulling model {new_model}: {pull_error}")
                     return jsonify({
                         'success': False,
-                        'error': f'Failed to download model: {str(pull_error)}'
+                        'error': 'Failed to download the requested model'
                     }), 500
             else:
                 logger.error(f"Error setting model: {e}")
                 return jsonify({
                     'success': False,
-                    'error': str(e)
+                    'error': 'Failed to set the specified model'
                 }), 500
 
     except Exception as e:
         logger.error(f"Error in set_model endpoint: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred while setting the model'}), 500
 
 
 @app.route('/api/model/pull', methods=['POST'])
@@ -1157,12 +1165,12 @@ def pull_model():
             logger.error(f"Error pulling model {model_name}: {e}")
             return jsonify({
                 'success': False,
-                'error': str(e)
+                'error': 'Failed to download the specified model'
             }), 500
 
     except Exception as e:
         logger.error(f"Error in pull_model endpoint: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An internal error occurred while pulling the model'}), 500
 
 
 if __name__ == '__main__':

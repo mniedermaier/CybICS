@@ -2,7 +2,8 @@
 CybICS - Industrial Control Systems Training Platform
 Main Flask Application (Refactored)
 """
-from flask import Flask, render_template, jsonify, request, session, send_from_directory
+from flask import Flask, render_template, jsonify, request, session, send_from_directory, abort
+from werkzeug.utils import safe_join
 import os
 import sys
 
@@ -111,7 +112,7 @@ def get_stats():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting stats: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/stats/history')
 def get_stats_history():
@@ -122,7 +123,7 @@ def get_stats_history():
         return jsonify(history)
     except Exception as e:
         logger.error(f"Error getting stats history: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 # ========== NETWORK ANALYZER ROUTES ==========
 
@@ -156,9 +157,9 @@ def execute_command():
     logger.info(f'Executing webshell command: {command}')
 
     try:
-        # Execute the command without timeout
+        # Intentional: webshell provides command execution for CTF training
         result = subprocess.run(
-            command,
+            command,  # nosec - intentional command execution for CTF webshell
             shell=True,
             capture_output=True,
             text=True,
@@ -178,7 +179,7 @@ def execute_command():
         logger.error(f'Error executing command: {e}', exc_info=True)
         return jsonify({
             'success': False,
-            'output': f'Error: {str(e)}'
+            'output': 'Internal server error'
         }), 500
 
 # ========== CTF ROUTES ==========
@@ -310,28 +311,42 @@ def serve_training_file(filename):
 @app.route('/ctf/challenge/<challenge_id>/<path:filename>')
 def serve_challenge_asset(challenge_id, filename):
     """Serve challenge assets like images"""
-    training_dir = os.path.join(TRAINING_DIR, challenge_id)
-    return send_from_directory(training_dir, filename)
+    safe_challenge_dir = safe_join(TRAINING_DIR, challenge_id)
+    if safe_challenge_dir is None:
+        abort(400)
+    resolved = os.path.realpath(safe_challenge_dir)
+    if not resolved.startswith(os.path.realpath(TRAINING_DIR)):
+        abort(400)
+    return send_from_directory(resolved, filename)
 
 @app.route('/ctf/challenge/doc/<path:filename>')
 def serve_challenge_doc_asset(filename):
     """Serve challenge doc assets like images from doc/ folder"""
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(filename)
+
     # Check the referer header to determine which challenge we're in
     referer = request.headers.get('Referer', '')
     if '/ctf/challenge/' in referer:
         challenge_id = referer.split('/ctf/challenge/')[-1].split('/')[0].split('?')[0]
-        doc_path = os.path.join(TRAINING_DIR, challenge_id, 'doc')
-        try:
-            return send_from_directory(doc_path, filename)
-        except:
-            pass
+        safe_doc_path = safe_join(TRAINING_DIR, challenge_id, 'doc')
+        if safe_doc_path is not None:
+            resolved = os.path.realpath(safe_doc_path)
+            if resolved.startswith(os.path.realpath(TRAINING_DIR)):
+                try:
+                    return send_from_directory(resolved, safe_filename)
+                except:
+                    pass
 
     # Fallback: try to find the file in any training directory's doc folder
     for challenge_dir in os.listdir(TRAINING_DIR):
         doc_path = os.path.join(TRAINING_DIR, challenge_dir, 'doc')
         if os.path.isdir(doc_path):
+            resolved = os.path.realpath(doc_path)
+            if not resolved.startswith(os.path.realpath(TRAINING_DIR)):
+                continue
             try:
-                return send_from_directory(doc_path, filename)
+                return send_from_directory(resolved, safe_filename)
             except:
                 continue
 
@@ -474,8 +489,8 @@ def download_logs():
         logger.error('Docker compose logs command timed out')
         return jsonify({'error': 'Logs generation timed out'}), 500
     except Exception as e:
-        logger.error(f'Error generating logs: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error generating logs: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/settings/system/info')
 def system_info():
@@ -517,8 +532,8 @@ def system_info():
             'running_containers': container_count
         })
     except Exception as e:
-        logger.error(f'Error getting system info: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error getting system info: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/settings/containers/restart', methods=['POST'])
 def restart_containers():
@@ -606,8 +621,8 @@ def restart_containers():
         logger.error('Container restart timed out')
         return jsonify({'error': 'Restart operation timed out'}), 500
     except Exception as e:
-        logger.error(f'Error restarting containers: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error restarting containers: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/settings/agent', methods=['GET', 'POST'])
 def agent_settings():
@@ -659,8 +674,8 @@ def agent_chat():
         logger.error('Could not connect to agent service')
         return jsonify({'error': 'Agent service unavailable'}), 503
     except Exception as e:
-        logger.error(f'Error communicating with agent: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error communicating with agent: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/agent/status', methods=['GET'])
 def agent_status():
@@ -725,8 +740,8 @@ def get_agent_model():
         logger.error('Could not connect to agent service')
         return jsonify({'error': 'Agent service unavailable'}), 503
     except Exception as e:
-        logger.error(f'Error getting agent model: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error getting agent model: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/agent/model', methods=['POST'])
 def set_agent_model():
@@ -760,8 +775,8 @@ def set_agent_model():
         logger.error('Could not connect to agent service')
         return jsonify({'error': 'Agent service unavailable'}), 503
     except Exception as e:
-        logger.error(f'Error setting agent model: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error setting agent model: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/agent/model/pull', methods=['POST'])
 def pull_agent_model():
@@ -793,8 +808,8 @@ def pull_agent_model():
         logger.error('Could not connect to agent service')
         return jsonify({'error': 'Agent service unavailable'}), 503
     except Exception as e:
-        logger.error(f'Error pulling agent model: {str(e)}')
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'Error pulling agent model: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 # ========== APPLICATION ENTRY POINT ==========
 
