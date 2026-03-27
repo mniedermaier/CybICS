@@ -53,7 +53,7 @@ LOG_MODULE_REGISTER(cybics, LOG_LEVEL_INF);
 
 /* Global variables */
 uint8_t RxData[20] = {0};
-uint8_t TxData[20] = {'G','S','T',':',' ','0','0','0',' ','H','P','T',':',' ','0','0','0',0,0,0};
+uint8_t TxData[cybics_PressureData_size] = {0};  /* Serialized PressureData protobuf */
 uint8_t TxDataUID[14] = {0};  /* 12 hex chars + mode flag + null */
 char rpiIP[15] = {'U','N','K','N','O','W','N',0,0,0,0,0,0,0,0};
 uint8_t GSTpressure = 0;
@@ -728,8 +728,14 @@ void thread_physical(void *arg1, void *arg2, void *arg3)
 			GST_low = 0; GST_normal = 0; GST_full = 1;
 		}
 
-		/* Update TX Data */
-		snprintf((char*)TxData, sizeof(TxData), "GST: %03d HPT: %03d", GSTpressure, HPTpressure);
+		/* Initialize protobuf pressure data and serialize to TxData */
+		cybics_PressureData cybics_pressure_data = cybics_PressureData_init_default;
+		cybics_pressure_data.gst_pressure = GSTpressure;
+		cybics_pressure_data.hpt_pressure = HPTpressure;
+		pb_ostream_t stream = pb_ostream_from_buffer(TxData, sizeof(TxData));
+		if (!pb_encode(&stream, cybics_PressureData_fields, &cybics_pressure_data)) {
+			LOG_ERR("Failed to serialize pressure data");
+		}
 
 		HPTdelay++;
 		GSTdelay++;
