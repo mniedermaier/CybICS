@@ -4,4 +4,34 @@ services:
     image: cybics-openwrt-test
     stdin_open: true
     tty: true
-    
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      ext_net:
+        ipv4_address: 172.20.0.2
+      int_net:
+        ipv4_address: 172.21.0.2
+  test:
+    image: alpine
+    command: sleep infinity
+    networks:
+      ext_net:
+        ipv4_address: 172.20.0.3
+
+networks:
+  ext_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-ext
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+  int_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-int
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
