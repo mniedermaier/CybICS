@@ -1,0 +1,7 @@
+services:
+  openwrt:
+    build: .
+    image: cybics-openwrt-test
+    stdin_open: true
+    tty: true
+    
