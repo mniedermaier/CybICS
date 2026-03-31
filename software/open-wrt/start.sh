@@ -11,10 +11,12 @@ ip link set tap1 up
 
 exec qemu-system-x86_64 \
     -nographic \
-    -m 256M \
+    -m 128M \
     -drive file=openwrt.img,format=raw \
     -serial mon:stdio \
     -netdev tap,id=n0,ifname=tap0,script=no,downscript=no \
     -device e1000,netdev=n0 \
     -netdev tap,id=n1,ifname=tap1,script=no,downscript=no \
-    -device e1000,netdev=n1
+    -device e1000,netdev=n1 \
+    -netdev user,id=n2,hostfwd=tcp::2222-:22 \
+    -device e1000,netdev=n2
