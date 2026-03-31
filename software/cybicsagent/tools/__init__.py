@@ -4,7 +4,10 @@ import logging
 from tools.containers import get_container_status, restart_containers, get_container_logs
 from tools.system import get_system_stats, list_docker_images
 from tools.network import execute_network_scan
-from tools.ics import read_modbus_registers, read_opcua_nodes, check_ids_alerts
+from tools.ics import (read_modbus_registers, read_opcua_nodes, check_ids_alerts,
+                       get_process_state, get_ids_summary, get_ids_forensics_briefing)
+from tools.training import (get_ctf_progress, verify_defense_challenge,
+                            get_network_packets, get_capture_stats)
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +126,60 @@ AVAILABLE_TOOLS = {
                 'required': False,
             }
         },
+        'destructive': False,
+    },
+    'get_process_state': {
+        'function': get_process_state,
+        'description': 'Get the current physical process state from the HWIO simulation — shows real-time tank pressures, compressor, valve, and sensor states',
+        'parameters': {},
+        'destructive': False,
+    },
+    'get_ids_summary': {
+        'function': get_ids_summary,
+        'description': 'Get IDS alert summary with severity breakdown, top attackers, rule statistics, and timeline for forensic analysis',
+        'parameters': {},
+        'destructive': False,
+    },
+    'get_ids_forensics_briefing': {
+        'function': get_ids_forensics_briefing,
+        'description': 'Get the IDS forensics challenge briefing with investigation questions for the student to answer',
+        'parameters': {},
+        'destructive': False,
+    },
+    'get_ctf_progress': {
+        'function': get_ctf_progress,
+        'description': 'Get current CTF progress showing solved challenges, points earned, and completion stats per category',
+        'parameters': {},
+        'destructive': False,
+    },
+    'verify_defense_challenge': {
+        'function': verify_defense_challenge,
+        'description': 'Automatically verify if a defense challenge has been completed correctly (checks passwords, firewall rules, network segmentation, IDS tuning)',
+        'parameters': {
+            'challenge_id': {
+                'type': 'string',
+                'description': 'Defense challenge ID: "defense_openplc_password", "defense_fuxa_password", "defense_firewall", "defense_network_segmentation", or "defense_ids_tuning"',
+                'required': True,
+            }
+        },
+        'destructive': False,
+    },
+    'get_network_packets': {
+        'function': get_network_packets,
+        'description': 'Get recently captured network packets with protocol analysis — shows Modbus, S7comm, OPC-UA, and other ICS protocol traffic',
+        'parameters': {
+            'count': {
+                'type': 'integer',
+                'description': 'Number of recent packets to retrieve (default: 50)',
+                'required': False,
+            }
+        },
+        'destructive': False,
+    },
+    'get_capture_stats': {
+        'function': get_capture_stats,
+        'description': 'Get network capture statistics including packet counts and protocol breakdown',
+        'parameters': {},
         'destructive': False,
     },
 }

@@ -14,10 +14,22 @@ from session import session_manager
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    'You are the CybICS AI Assistant, an expert on Industrial Control Systems (ICS) '
-    'and SCADA cybersecurity. You help users understand and operate the CybICS training '
-    'platform. Answer questions clearly and concisely using markdown formatting. '
-    'When you use tools, explain what you found.'
+    'You are the CybICS AI Training Coach, an expert on Industrial Control Systems (ICS) '
+    'and SCADA cybersecurity. Your primary role is to help students learn ICS security '
+    'through the CybICS training platform.\n\n'
+    'When helping with training:\n'
+    '- Guide students step-by-step through exercises rather than giving away answers\n'
+    '- Use progressive hints: start vague, get more specific if they are stuck\n'
+    '- Explain the security concepts behind each exercise (MITRE ATT&CK for ICS)\n'
+    '- Use live system tools to demonstrate concepts with real data\n'
+    '- Check their CTF progress to suggest appropriate next challenges\n'
+    '- When they complete an attack, show the effect on the physical process\n'
+    '- For defense challenges, verify their work and explain what passed/failed\n\n'
+    'You have tools to read live Modbus registers, monitor tank pressures, '
+    'analyze network traffic, check IDS alerts, and track CTF progress. '
+    'Use these to make learning interactive and hands-on.\n\n'
+    'Answer clearly and concisely using markdown formatting. '
+    'When you use tools, explain what the results mean for the student\'s learning.'
 )
 
 
@@ -337,7 +349,14 @@ def detect_tool_intent(question):
             params['node_id'] = node_id
         return (True, 'read_opcua_nodes', params)
 
-    # IDS alerts
+    # IDS - forensics and summary (check before generic IDS alerts)
+    if any(word in question_lower for word in ['forensic', 'investigation', 'incident']):
+        return (True, 'get_ids_forensics_briefing', {})
+
+    if any(word in question_lower for word in ['ids summary', 'alert summary', 'attacker', 'top source']):
+        return (True, 'get_ids_summary', {})
+
+    # IDS alerts (generic)
     if any(word in question_lower for word in ['ids', 'intrusion', 'alert', 'detection']):
         count = 20
         count_match = re.search(r'(\d+)\s+alert', question_lower)
@@ -345,7 +364,58 @@ def detect_tool_intent(question):
             count = int(count_match.group(1))
         return (True, 'check_ids_alerts', {'count': count})
 
-    # --- Existing tools ---
+    # --- Training & CTF tools ---
+
+    # Process state / physical process monitoring
+    if any(word in question_lower for word in [
+        'pressure', 'tank', 'process state', 'compressor', 'valve',
+        'blowout', 'gst', 'hpt', 'physical process', 'hwio',
+    ]):
+        return (True, 'get_process_state', {})
+
+    # CTF progress
+    if any(word in question_lower for word in [
+        'progress', 'score', 'points', 'solved', 'ctf',
+        'challenge', 'what should i do next', 'what next',
+        'recommend', 'learning path',
+    ]):
+        return (True, 'get_ctf_progress', {})
+
+    # Defense verification
+    if any(word in question_lower for word in ['verify', 'check my']):
+        # Try to identify which defense challenge
+        defense_map = {
+            'openplc': 'defense_openplc_password',
+            'fuxa': 'defense_fuxa_password',
+            'firewall': 'defense_firewall',
+            'segmentation': 'defense_network_segmentation',
+            'ids tuning': 'defense_ids_tuning',
+            'ids monitoring': 'defense_ids_tuning',
+        }
+        for keyword, challenge_id in defense_map.items():
+            if keyword in question_lower:
+                return (True, 'verify_defense_challenge', {'challenge_id': challenge_id})
+
+        # Generic "verify my defense" — try password first as most common
+        if 'password' in question_lower:
+            return (True, 'verify_defense_challenge', {'challenge_id': 'defense_openplc_password'})
+        if 'defense' in question_lower or 'hardening' in question_lower:
+            return (True, 'verify_defense_challenge', {'challenge_id': 'defense_openplc_password'})
+
+    # Packet capture / network traffic analysis
+    if any(word in question_lower for word in [
+        'packet', 'capture', 'traffic', 'pcap', 'wireshark',
+        'sniff', 'captured',
+    ]):
+        if 'stat' in question_lower:
+            return (True, 'get_capture_stats', {})
+        count = 50
+        count_match = re.search(r'(\d+)\s+packet', question_lower)
+        if count_match:
+            count = int(count_match.group(1))
+        return (True, 'get_network_packets', {'count': count})
+
+    # --- Infrastructure tools ---
 
     # Container status
     if any(word in question_lower for word in ['status', 'running', 'list container', 'show container', 'which container']):
@@ -359,7 +429,7 @@ def detect_tool_intent(question):
         return (True, 'restart_containers', {})
 
     # System stats
-    if any(word in question_lower for word in ['cpu', 'memory', 'stats', 'resource', 'performance', 'usage']):
+    if any(word in question_lower for word in ['cpu', 'memory', 'resource', 'performance', 'usage']):
         return (True, 'get_system_stats', {})
 
     # Logs

@@ -1,17 +1,20 @@
 # CybICS AI Agent
 
-An intelligent AI assistant for the CybICS platform with native tool calling, ICS protocol access, and streaming responses.
+An intelligent AI training coach for the CybICS ICS security training platform. Guides students through exercises with live system interaction, CTF progress tracking, and hands-on demonstrations.
 
 ## Features
 
-- **Native Tool Calling**: Uses Ollama's built-in function calling for capable models (llama3, phi3, mistral)
-- **Keyword Fallback**: Reliable keyword-based tool dispatch for lightweight models (TinyLlama)
-- **RAG Knowledge Base**: Retrieval Augmented Generation with dynamically loaded CybICS documentation
+- **Interactive Training Coach**: Step-by-step guidance through ICS security exercises with progressive hints
+- **Live Process Monitoring**: Real-time tank pressures, compressor state, and blowout detection from HWIO
+- **CTF Progress Tracking**: Shows solved challenges, points, and recommends next exercises
+- **Defense Challenge Verification**: Auto-checks password hardening, firewall rules, network segmentation, IDS tuning
+- **Network Traffic Analysis**: Captures and analyzes Modbus, S7comm, OPC-UA protocol traffic
+- **IDS Forensics Assistant**: Alert summaries, forensics briefings, and investigation guidance
 - **ICS Protocol Tools**: Read Modbus registers, browse OPC-UA nodes, check IDS alerts
-- **Container Management**: Restart, monitor, and manage Docker containers
+- **Native Tool Calling**: Ollama function calling for capable models (llama3, phi3, mistral)
+- **Keyword Fallback**: Reliable keyword dispatch for lightweight models (TinyLlama)
 - **Streaming Responses**: Server-Sent Events (SSE) for token-by-token output
 - **Conversation History**: Session-based multi-turn conversations
-- **Destructive Action Confirmation**: Safety prompts before container restarts
 - **Local Execution**: Runs entirely within your infrastructure
 
 ## Architecture
@@ -29,7 +32,8 @@ cybicsagent/
     ├── containers.py   # Docker container management
     ├── system.py       # System stats & image listing
     ├── network.py      # nmap network scanning
-    ├── ics.py          # Modbus, OPC-UA, IDS tools
+    ├── ics.py          # Modbus, OPC-UA, IDS, process monitoring
+    ├── training.py     # CTF progress, defense verification, packet analysis
     └── formatters.py   # Tool result formatting
 ```
 
@@ -61,6 +65,17 @@ cybicsagent/
 | `read_modbus_registers` | Read holding/input/coil/discrete registers from OpenPLC |
 | `read_opcua_nodes` | Browse or read OPC-UA nodes from the OPC-UA server |
 | `check_ids_alerts` | Check IDS status and recent intrusion alerts |
+| `get_process_state` | Live physical process state (tank pressures, compressor, valves, sensors) |
+| `get_ids_summary` | Alert summary with severity breakdown, top attackers, rule stats |
+| `get_ids_forensics_briefing` | Forensics challenge briefing with investigation questions |
+
+### Training & CTF Tools
+| Tool | Description |
+|------|-------------|
+| `get_ctf_progress` | CTF progress: solved challenges, points, category breakdown |
+| `verify_defense_challenge` | Auto-verify defense challenges (passwords, firewall, segmentation, IDS) |
+| `get_network_packets` | Captured network packets with protocol analysis |
+| `get_capture_stats` | Network capture statistics and protocol breakdown |
 
 ## How Tool Dispatch Works
 
@@ -82,6 +97,12 @@ When using `tinyllama` or other models without tool calling support, the agent d
 | "modbus", "register" | `read_modbus_registers` |
 | "opcua", "opc-ua" | `read_opcua_nodes` |
 | "ids", "alert", "intrusion" | `check_ids_alerts` |
+| "pressure", "tank", "compressor", "blowout" | `get_process_state` |
+| "progress", "score", "ctf", "what next" | `get_ctf_progress` |
+| "verify", "check my" + defense keyword | `verify_defense_challenge` |
+| "packet", "capture", "traffic", "wireshark" | `get_network_packets` |
+| "forensic", "investigation", "incident" | `get_ids_forensics_briefing` |
+| "ids summary", "top attacker" | `get_ids_summary` |
 
 ## Streaming
 
@@ -172,6 +193,10 @@ curl -X POST http://localhost:5000/api/model -H 'Content-Type: application/json'
 | `OPCUA_HOST` | `172.18.0.5` | OPC-UA server host |
 | `IDS_HOST` | `172.18.0.1` | IDS server host (via gateway) |
 | `IDS_PORT` | `8443` | IDS server port |
+| `HWIO_HOST` | `172.18.0.2` | HWIO virtual simulation host |
+| `HWIO_PORT` | `8090` | HWIO virtual simulation port |
+| `LANDING_HOST` | `172.18.0.1` | Landing page host (for CTF/packet APIs) |
+| `LANDING_PORT` | `80` | Landing page port |
 
 ## Knowledge Base
 

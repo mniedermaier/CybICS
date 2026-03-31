@@ -27,6 +27,10 @@ IDS_HOST = os.getenv('IDS_HOST', '172.18.0.1')
 IDS_PORT = int(os.getenv('IDS_PORT', '8443'))
 MODBUS_PORT = 502
 OPCUA_PORT = 4840
+HWIO_HOST = os.getenv('HWIO_HOST', '172.18.0.2')
+HWIO_PORT = int(os.getenv('HWIO_PORT', '8090'))
+LANDING_HOST = os.getenv('LANDING_HOST', '172.18.0.1')
+LANDING_PORT = int(os.getenv('LANDING_PORT', '80'))
 
 # Models known to support native tool/function calling
 TOOL_CAPABLE_MODELS = [

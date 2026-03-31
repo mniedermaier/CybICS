@@ -175,6 +175,182 @@ def _format_ids_alerts(result):
         return formatted
 
 
+def _format_process_state(result):
+    if result.get('success'):
+        state = result.get('process_state', {})
+        warnings = result.get('warnings', [])
+        formatted = "**Physical Process State**\n\n"
+        formatted += "| Parameter | Value |\n"
+        formatted += "|-----------|-------|\n"
+        formatted += f"| Gas Storage Tank (GST) | `{state.get('gas_storage_tank_pressure', 0)}` bar |\n"
+        formatted += f"| High Pressure Tank (HPT) | `{state.get('high_pressure_tank_pressure', 0)}` bar |\n"
+        formatted += f"| Compressor | {state.get('compressor', 'OFF')} |\n"
+        formatted += f"| System Valve | {state.get('system_valve', 'CLOSED')} |\n"
+        formatted += f"| System Sensor | `{state.get('system_sensor', 0)}` |\n"
+        formatted += f"| Blowout Sensor | `{state.get('blowout_sensor', 0)}` |\n"
+        formatted += f"| Heartbeat | `{state.get('heartbeat', 0)}` |\n"
+        if warnings:
+            formatted += "\n**Warnings:**\n"
+            for w in warnings:
+                formatted += f"- {w}\n"
+        return formatted
+
+
+def _format_ids_summary(result):
+    if result.get('success'):
+        summary = result.get('summary', {})
+        rules = result.get('rule_stats', {})
+
+        formatted = "**IDS Alert Summary**\n\n"
+
+        # Severity breakdown
+        severity = summary.get('severity', {})
+        if severity:
+            formatted += "**By Severity:**\n"
+            for level, count in severity.items():
+                formatted += f"- {level}: {count}\n"
+            formatted += "\n"
+
+        # Top sources
+        top_sources = summary.get('top_sources', [])
+        if top_sources:
+            formatted += "**Top Attackers:**\n"
+            for src in top_sources[:5]:
+                ip = src.get('ip', src) if isinstance(src, dict) else src
+                cnt = src.get('count', '') if isinstance(src, dict) else ''
+                formatted += f"- `{ip}` ({cnt} alerts)\n" if cnt else f"- `{ip}`\n"
+            formatted += "\n"
+
+        # Rule stats
+        rule_list = rules.get('rules', [])
+        if rule_list:
+            formatted += "**Rule Statistics:**\n\n"
+            formatted += "| Rule | Hits | Last Seen |\n"
+            formatted += "|------|------|-----------|\n"
+            for rule in rule_list:
+                name = rule.get('name', rule.get('rule', 'unknown'))
+                hits = rule.get('hits', rule.get('count', 0))
+                last = rule.get('last_seen', '')
+                formatted += f"| {name} | {hits} | {last} |\n"
+
+        return formatted
+
+
+def _format_ids_forensics(result):
+    if result.get('success'):
+        forensics = result.get('forensics', {})
+        formatted = "**IDS Forensics Briefing**\n\n"
+        formatted += f"{forensics.get('scenario', '')}\n\n"
+
+        questions = forensics.get('questions', [])
+        if questions:
+            formatted += "**Investigation Questions:**\n\n"
+            for i, q in enumerate(questions, 1):
+                if isinstance(q, dict):
+                    formatted += f"{i}. {q.get('question', q.get('text', str(q)))}\n"
+                else:
+                    formatted += f"{i}. {q}\n"
+            formatted += "\n"
+
+        hint = forensics.get('hint', '')
+        if hint:
+            formatted += f"**Hint:** {hint}\n"
+        return formatted
+
+
+def _format_ctf_progress(result):
+    if result.get('success'):
+        progress = result.get('progress', {})
+        formatted = "**CTF Progress**\n\n"
+        formatted += f"- **Solved**: {progress.get('solved', 0)} / {progress.get('total', 0)} challenges\n"
+        formatted += f"- **Points**: {progress.get('total_points', 0)} / {progress.get('max_points', 0)}\n\n"
+
+        categories = progress.get('categories', {})
+        if categories:
+            formatted += "**By Category:**\n\n"
+            formatted += "| Category | Solved | Total |\n"
+            formatted += "|----------|--------|-------|\n"
+            for cat_name, cat_data in categories.items():
+                if isinstance(cat_data, dict):
+                    solved = cat_data.get('solved', 0)
+                    total = cat_data.get('total', 0)
+                    name = cat_data.get('name', cat_name)
+                    formatted += f"| {name} | {solved} | {total} |\n"
+
+        unsolved = progress.get('unsolved', [])
+        if unsolved:
+            formatted += "\n**Next Challenges:**\n"
+            for ch in unsolved[:5]:
+                if isinstance(ch, dict):
+                    formatted += f"- {ch.get('title', ch.get('id', ''))} ({ch.get('points', '')} pts)\n"
+
+        return formatted
+
+
+def _format_verify_defense(result):
+    if result.get('success'):
+        verification = result.get('verification', {})
+        challenge_id = result.get('challenge_id', '')
+        passed = verification.get('passed', verification.get('success', False))
+
+        if passed:
+            formatted = f"**Defense Challenge Verified: `{challenge_id}`**\n\n"
+            formatted += "Result: PASSED\n"
+            msg = verification.get('message', '')
+            if msg:
+                formatted += f"\n{msg}\n"
+        else:
+            formatted = f"**Defense Challenge: `{challenge_id}`**\n\n"
+            formatted += "Result: NOT YET PASSED\n"
+            msg = verification.get('message', verification.get('error', ''))
+            if msg:
+                formatted += f"\n{msg}\n"
+            details = verification.get('details', '')
+            if details:
+                formatted += f"\n**Details:** {details}\n"
+        return formatted
+
+
+def _format_network_packets(result):
+    if result.get('success'):
+        packets = result.get('packets', [])
+        protocols = result.get('protocol_summary', {})
+        total = result.get('total_packets', 0)
+        active = result.get('capture_active', False)
+
+        formatted = f"**Network Capture** ({'Active' if active else 'Inactive'})\n\n"
+        formatted += f"**Packets:** {total}\n\n"
+
+        if protocols:
+            formatted += "**Protocol Breakdown:**\n"
+            for proto, count in sorted(protocols.items(), key=lambda x: -x[1]):
+                formatted += f"- {proto}: {count}\n"
+            formatted += "\n"
+
+        if packets:
+            formatted += "**Recent Packets:**\n\n"
+            formatted += "| # | Protocol | Source | Destination | Info |\n"
+            formatted += "|---|----------|--------|-------------|------|\n"
+            for i, pkt in enumerate(packets[-20:], 1):
+                proto = pkt.get('protocol', '?')
+                src = pkt.get('src', pkt.get('source', ''))
+                dst = pkt.get('dst', pkt.get('destination', ''))
+                info = pkt.get('info', pkt.get('summary', ''))[:60]
+                formatted += f"| {i} | {proto} | `{src}` | `{dst}` | {info} |\n"
+        else:
+            formatted += "No packets captured. Start a capture first.\n"
+        return formatted
+
+
+def _format_capture_stats(result):
+    if result.get('success'):
+        stats = result.get('stats', {})
+        formatted = "**Capture Statistics**\n\n"
+        for key, value in stats.items():
+            formatted += f"- **{key}**: {value}\n"
+        return formatted
+
+
 # Formatter dispatch table
 _FORMATTERS = {
     'get_container_status': _format_container_status,
@@ -186,4 +362,11 @@ _FORMATTERS = {
     'read_modbus_registers': _format_modbus_registers,
     'read_opcua_nodes': _format_opcua_nodes,
     'check_ids_alerts': _format_ids_alerts,
+    'get_process_state': _format_process_state,
+    'get_ids_summary': _format_ids_summary,
+    'get_ids_forensics_briefing': _format_ids_forensics,
+    'get_ctf_progress': _format_ctf_progress,
+    'verify_defense_challenge': _format_verify_defense,
+    'get_network_packets': _format_network_packets,
+    'get_capture_stats': _format_capture_stats,
 }

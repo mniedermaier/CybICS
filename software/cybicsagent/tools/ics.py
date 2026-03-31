@@ -4,7 +4,8 @@ import logging
 
 import requests
 
-from config import OPENPLC_HOST, MODBUS_PORT, OPCUA_HOST, OPCUA_PORT, IDS_HOST, IDS_PORT
+from config import (OPENPLC_HOST, MODBUS_PORT, OPCUA_HOST, OPCUA_PORT,
+                    IDS_HOST, IDS_PORT, HWIO_HOST, HWIO_PORT)
 
 logger = logging.getLogger(__name__)
 
@@ -178,3 +179,99 @@ def check_ids_alerts(count=20):
     except Exception as e:
         logger.error(f"Error checking IDS alerts: {e}")
         return {'error': f'Failed to check IDS: {str(e)}'}
+
+
+def get_process_state():
+    """
+    Get the current physical process state from the HWIO virtual simulation.
+    Returns real-time values for gas storage tank pressure, high pressure tank,
+    compressor, valves, and sensor states.
+    """
+    hwio_url = f'http://{HWIO_HOST}:{HWIO_PORT}'
+    try:
+        resp = requests.get(f'{hwio_url}/api/state', timeout=5)
+        resp.raise_for_status()
+        state = resp.json()
+
+        # Add human-readable interpretations
+        gst = state.get('gst', 0)
+        hpt = state.get('hpt', 0)
+        bo_sen = state.get('boSen', 0)
+
+        warnings = []
+        if hpt > 200:
+            warnings.append('CRITICAL: HPT pressure dangerously high - blowout imminent!')
+        elif hpt > 150:
+            warnings.append('WARNING: HPT pressure elevated')
+        if bo_sen > 0:
+            warnings.append('ALERT: Blowout sensor triggered!')
+
+        return {
+            'success': True,
+            'host': f'{HWIO_HOST}:{HWIO_PORT}',
+            'process_state': {
+                'gas_storage_tank_pressure': gst,
+                'high_pressure_tank_pressure': hpt,
+                'system_sensor': state.get('sysSen', 0),
+                'blowout_sensor': bo_sen,
+                'compressor': 'ON' if state.get('compressor', 0) else 'OFF',
+                'system_valve': 'OPEN' if state.get('systemValve', 0) else 'CLOSED',
+                'gst_signal': state.get('gstSig', 0),
+                'heartbeat': state.get('heartbeat', 0),
+            },
+            'warnings': warnings,
+        }
+    except requests.ConnectionError:
+        return {'error': f'Could not connect to HWIO at {hwio_url} - is it running?'}
+    except requests.Timeout:
+        return {'error': 'HWIO request timed out'}
+    except Exception as e:
+        logger.error(f"Error getting process state: {e}")
+        return {'error': f'Failed to get process state: {str(e)}'}
+
+
+def get_ids_summary():
+    """
+    Get IDS alert summary statistics for forensic analysis.
+    Returns severity breakdown, top attackers, rule statistics, and timeline data.
+    """
+    ids_url = f'http://{IDS_HOST}:{IDS_PORT}'
+    try:
+        summary_resp = requests.get(f'{ids_url}/api/summary', timeout=5)
+        summary_resp.raise_for_status()
+        summary = summary_resp.json()
+
+        rules_resp = requests.get(f'{ids_url}/api/rules/stats', timeout=5)
+        rules_resp.raise_for_status()
+        rules = rules_resp.json()
+
+        return {
+            'success': True,
+            'summary': summary,
+            'rule_stats': rules,
+        }
+    except requests.ConnectionError:
+        return {'error': f'Could not connect to IDS at {ids_url} - is it running?'}
+    except Exception as e:
+        logger.error(f"Error getting IDS summary: {e}")
+        return {'error': f'Failed to get IDS summary: {str(e)}'}
+
+
+def get_ids_forensics_briefing():
+    """
+    Get the IDS forensics challenge briefing with investigation questions.
+    Use this to guide students through incident analysis.
+    """
+    ids_url = f'http://{IDS_HOST}:{IDS_PORT}'
+    try:
+        resp = requests.get(f'{ids_url}/api/forensics', timeout=5)
+        resp.raise_for_status()
+        return {
+            'success': True,
+            'forensics': resp.json(),
+        }
+    except requests.ConnectionError:
+        return {'error': f'Could not connect to IDS at {ids_url}'}
+    except Exception as e:
+        logger.error(f"Error getting forensics briefing: {e}")
+        return {'error': f'Failed to get forensics briefing: {str(e)}'}

@@ -220,6 +220,12 @@ def register_routes(app):
                 'status': 'ready',
                 'native_tool_calling': config.model_supports_tools(config.current_model),
                 'capabilities': [
+                    'Interactive Training Coach',
+                    'CTF Progress Tracking',
+                    'Defense Challenge Verification',
+                    'Live Process Monitoring',
+                    'Network Traffic Analysis',
+                    'IDS Forensics Assistant',
                     'Knowledge Base Q&A',
                     'Native Tool Calling',
                     'Keyword Tool Detection (fallback)',
