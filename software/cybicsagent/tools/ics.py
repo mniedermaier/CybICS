@@ -1,0 +1,180 @@
+"""CybICS AI Agent - ICS-specific tools (Modbus, OPC-UA, IDS)"""
+import asyncio
+import logging
+
+import requests
+
+from config import OPENPLC_HOST, MODBUS_PORT, OPCUA_HOST, OPCUA_PORT, IDS_HOST, IDS_PORT
+
+logger = logging.getLogger(__name__)
+
+
+def read_modbus_registers(register_type='holding', address=0, count=10):
+    """
+    Read Modbus registers from the OpenPLC controller.
+
+    Args:
+        register_type: Type of register to read - 'holding', 'input', 'coil', or 'discrete'.
+        address: Starting register address (default: 0).
+        count: Number of registers to read (default: 10).
+    """
+    try:
+        from pymodbus.client import ModbusTcpClient
+
+        client = ModbusTcpClient(OPENPLC_HOST, port=MODBUS_PORT, timeout=5)
+        if not client.connect():
+            return {'error': f'Could not connect to Modbus at {OPENPLC_HOST}:{MODBUS_PORT}'}
+
+        try:
+            if register_type == 'holding':
+                result = client.read_holding_registers(address, count)
+            elif register_type == 'input':
+                result = client.read_input_registers(address, count)
+            elif register_type == 'coil':
+                result = client.read_coils(address, count)
+            elif register_type == 'discrete':
+                result = client.read_discrete_inputs(address, count)
+            else:
+                return {'error': f'Unknown register type: {register_type}'}
+
+            if result.isError():
+                return {'error': f'Modbus read error: {result}'}
+
+            if register_type in ('coil', 'discrete'):
+                values = list(result.bits[:count])
+            else:
+                values = list(result.registers)
+
+            return {
+                'success': True,
+                'host': f'{OPENPLC_HOST}:{MODBUS_PORT}',
+                'register_type': register_type,
+                'start_address': address,
+                'count': count,
+                'values': values
+            }
+        finally:
+            client.close()
+
+    except ImportError:
+        return {'error': 'pymodbus not installed - Modbus tools unavailable'}
+    except Exception as e:
+        logger.error(f"Error reading Modbus registers: {e}")
+        return {'error': f'Failed to read Modbus registers: {str(e)}'}
+
+
+def read_opcua_nodes(node_id=None, action='browse'):
+    """
+    Browse or read OPC-UA nodes from the CybICS OPC-UA server.
+
+    Args:
+        node_id: OPC-UA node ID to browse or read (e.g., 'ns=2;i=2').
+            Defaults to the Objects folder if not specified.
+        action: 'browse' to list child nodes, or 'read' to read a node's value.
+    """
+    try:
+        from asyncua import Client as OpcuaClient
+
+        async def _opcua_operation():
+            client = OpcuaClient(f'opc.tcp://{OPCUA_HOST}:{OPCUA_PORT}')
+            try:
+                await client.connect()
+
+                if node_id:
+                    node = client.get_node(node_id)
+                else:
+                    node = client.nodes.objects
+
+                if action == 'browse':
+                    children = await node.get_children()
+                    nodes = []
+                    for child in children[:50]:  # limit results
+                        browse_name = await child.read_browse_name()
+                        node_class = await child.read_node_class()
+                        entry = {
+                            'node_id': child.nodeid.to_string(),
+                            'browse_name': browse_name.to_string(),
+                            'node_class': str(node_class),
+                        }
+                        # Try to read value for Variable nodes
+                        if 'Variable' in str(node_class):
+                            try:
+                                value = await child.read_value()
+                                entry['value'] = str(value)
+                            except Exception:
+                                entry['value'] = '<unreadable>'
+                        nodes.append(entry)
+
+                    return {
+                        'success': True,
+                        'host': f'{OPCUA_HOST}:{OPCUA_PORT}',
+                        'action': 'browse',
+                        'parent_node': node_id or 'Objects',
+                        'children': nodes
+                    }
+
+                elif action == 'read':
+                    if not node_id:
+                        return {'error': 'node_id is required for read action'}
+                    value = await node.read_value()
+                    browse_name = await node.read_browse_name()
+                    data_type = await node.read_data_type_as_variant_type()
+                    return {
+                        'success': True,
+                        'host': f'{OPCUA_HOST}:{OPCUA_PORT}',
+                        'action': 'read',
+                        'node_id': node_id,
+                        'browse_name': browse_name.to_string(),
+                        'value': str(value),
+                        'data_type': str(data_type)
+                    }
+                else:
+                    return {'error': f'Unknown action: {action}'}
+
+            finally:
+                await client.disconnect()
+
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(_opcua_operation())
+        finally:
+            loop.close()
+
+    except ImportError:
+        return {'error': 'asyncua not installed - OPC-UA tools unavailable'}
+    except Exception as e:
+        logger.error(f"Error with OPC-UA operation: {e}")
+        return {'error': f'Failed OPC-UA {action}: {str(e)}'}
+
+
+def check_ids_alerts(count=20):
+    """
+    Check recent IDS alerts and status from the CybICS intrusion detection system.
+
+    Args:
+        count: Number of recent alerts to retrieve (default: 20).
+    """
+    ids_url = f'http://{IDS_HOST}:{IDS_PORT}'
+    try:
+        status_resp = requests.get(f'{ids_url}/api/status', timeout=5)
+        status_resp.raise_for_status()
+        status = status_resp.json()
+
+        alerts_resp = requests.get(f'{ids_url}/api/alerts', timeout=5)
+        alerts_resp.raise_for_status()
+        alerts_data = alerts_resp.json()
+        alerts = alerts_data.get('alerts', [])[-count:]
+
+        return {
+            'success': True,
+            'ids_status': status,
+            'recent_alerts': alerts,
+            'total_alerts': alerts_data.get('total', len(alerts_data.get('alerts', [])))
+        }
+    except requests.ConnectionError:
+        return {'error': f'Could not connect to IDS at {ids_url} - is it running?'}
+    except requests.Timeout:
+        return {'error': 'IDS request timed out'}
+    except Exception as e:
+        logger.error(f"Error checking IDS alerts: {e}")
+        return {'error': f'Failed to check IDS: {str(e)}'}

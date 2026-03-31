@@ -2692,14 +2692,23 @@
             }
         }
 
-        function sendMessage() {
+        // Session ID for conversation history
+        let chatSessionId = sessionStorage.getItem('cybics_session_id');
+        if (!chatSessionId) {
+            chatSessionId = crypto.randomUUID();
+            sessionStorage.setItem('cybics_session_id', chatSessionId);
+        }
+
+        function sendMessage(overrideMessage) {
             const input = document.getElementById('chatInput');
-            const message = input.value.trim();
+            const message = overrideMessage || input.value.trim();
 
             if (!message) return;
 
-            // Add user message to chat
-            addMessageToChat('user', message);
+            // Don't show __confirm__ as a user message
+            if (message !== '__confirm__') {
+                addMessageToChat('user', message);
+            }
 
             // Clear input
             input.value = '';
@@ -2707,39 +2716,184 @@
             // Show typing indicator
             showTyping();
 
-            // Create AbortController with 10 minute timeout for AI responses
+            // Try streaming first, fall back to non-streaming
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 600000);
 
-            // Send to agent
-            fetch('/api/agent/chat', {
+            fetch('/api/agent/chat/stream', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: message }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message, session_id: chatSessionId }),
                 signal: controller.signal
             })
             .then(response => {
                 clearTimeout(timeoutId);
-                return response.json();
+                if (!response.ok || !response.headers.get('content-type')?.includes('text/event-stream')) {
+                    // Fall back to non-streaming
+                    return sendMessageNonStreaming(message);
+                }
+                return handleStreamResponse(response);
             })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    hideTyping();
+                    addMessageToChat('agent', 'Sorry, the request took too long. Please try again.');
+                } else {
+                    // Fall back to non-streaming on network error
+                    sendMessageNonStreaming(message);
+                }
+            });
+        }
+
+        function handleStreamResponse(response) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let streamingDiv = null;
+            let accumulatedContent = '';
+            let buffer = '';
+
+            hideTyping();
+
+            function processLine(line) {
+                if (!line.startsWith('data: ')) return;
+                try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.type === 'session' && data.session_id) {
+                        chatSessionId = data.session_id;
+                        sessionStorage.setItem('cybics_session_id', chatSessionId);
+                    } else if (data.type === 'tool') {
+                        // Show tool execution indicator
+                        if (!streamingDiv) {
+                            streamingDiv = createStreamingMessage();
+                        }
+                        accumulatedContent += `*Using tool: ${data.tool}...*\n\n`;
+                        updateStreamingMessage(streamingDiv, accumulatedContent);
+                    } else if (data.type === 'token') {
+                        if (!streamingDiv) {
+                            streamingDiv = createStreamingMessage();
+                            accumulatedContent = '';  // Clear tool indicators for clean response
+                        }
+                        accumulatedContent += data.content;
+                        updateStreamingMessage(streamingDiv, accumulatedContent);
+                    } else if (data.type === 'content') {
+                        if (!streamingDiv) {
+                            streamingDiv = createStreamingMessage();
+                        }
+                        accumulatedContent = data.content;
+                        updateStreamingMessage(streamingDiv, accumulatedContent);
+                    } else if (data.type === 'done') {
+                        if (data.confirmation_required) {
+                            showConfirmationButtons(streamingDiv, data.pending_action);
+                        }
+                        saveChatHistory();
+                    }
+                } catch (e) {
+                    // Skip malformed JSON
+                }
+            }
+
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        // Process any remaining buffer
+                        if (buffer.trim()) {
+                            processLine(buffer.trim());
+                        }
+                        saveChatHistory();
+                        return;
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (trimmed) processLine(trimmed);
+                    }
+
+                    read();
+                }).catch(() => {
+                    saveChatHistory();
+                });
+            }
+
+            read();
+        }
+
+        function createStreamingMessage() {
+            const messages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message agent-message';
+            messageDiv.innerHTML = `
+                <span class="message-avatar">🤖</span>
+                <span class="message-text"></span>
+            `;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+            return messageDiv;
+        }
+
+        function updateStreamingMessage(div, content) {
+            const textSpan = div.querySelector('.message-text');
+            textSpan.innerHTML = marked.parse(content);
+            const messages = document.getElementById('chatMessages');
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function showConfirmationButtons(div, pendingAction) {
+            const textSpan = div.querySelector('.message-text');
+            const btnContainer = document.createElement('div');
+            btnContainer.style.cssText = 'margin-top: 10px; display: flex; gap: 8px;';
+            btnContainer.innerHTML = `
+                <button onclick="confirmAction(this)" style="padding: 4px 16px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Yes</button>
+                <button onclick="cancelAction(this)" style="padding: 4px 16px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">No</button>
+            `;
+            textSpan.appendChild(btnContainer);
+        }
+
+        function confirmAction(btn) {
+            const container = btn.parentElement;
+            container.innerHTML = '<em>Confirmed, executing...</em>';
+            sendMessage('__confirm__');
+        }
+
+        function cancelAction(btn) {
+            const container = btn.parentElement;
+            container.innerHTML = '<em>Action cancelled.</em>';
+        }
+
+        function sendMessageNonStreaming(message) {
+            hideTyping();
+            showTyping();
+
+            fetch('/api/agent/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message, session_id: chatSessionId }),
+            })
+            .then(response => response.json())
             .then(data => {
                 hideTyping();
+                if (data.session_id) {
+                    chatSessionId = data.session_id;
+                    sessionStorage.setItem('cybics_session_id', chatSessionId);
+                }
                 if (data.error) {
                     addMessageToChat('agent', `Error: ${data.error}`);
+                } else if (data.confirmation_required) {
+                    const div = createStreamingMessage();
+                    updateStreamingMessage(div, data.response);
+                    showConfirmationButtons(div, data.pending_action);
                 } else {
                     addMessageToChat('agent', data.response);
                 }
             })
             .catch(error => {
-                clearTimeout(timeoutId);
                 hideTyping();
-                if (error.name === 'AbortError') {
-                    addMessageToChat('agent', 'Sorry, the request took too long. The AI agent may be busy processing your question. Please try again.');
-                } else {
-                    addMessageToChat('agent', `Sorry, I encountered an error: ${error.message}`);
-                }
+                addMessageToChat('agent', `Sorry, I encountered an error: ${error.message}`);
             });
         }
 
@@ -2869,8 +3023,10 @@
                 return;
             }
 
-            // Clear session storage
+            // Clear session storage and reset session
             sessionStorage.removeItem('cybics_chat_history');
+            chatSessionId = crypto.randomUUID();
+            sessionStorage.setItem('cybics_session_id', chatSessionId);
 
             // Clear messages and reset to welcome message
             const messagesContainer = document.getElementById('chatMessages');

@@ -650,15 +650,20 @@ def agent_chat():
     try:
         data = request.get_json()
         message = data.get('message', '')
+        session_id = data.get('session_id')
 
         if not message:
             return jsonify({'error': 'No message provided'}), 400
 
-        # Forward to agent service
+        # Forward to agent service with session_id
         agent_url = 'http://172.18.0.11:5000/api/chat'
+        payload = {'message': message}
+        if session_id:
+            payload['session_id'] = session_id
+
         response = requests.post(
             agent_url,
-            json={'message': message},
+            json=payload,
             timeout=600
         )
 
@@ -675,6 +680,59 @@ def agent_chat():
         return jsonify({'error': 'Agent service unavailable'}), 503
     except Exception as e:
         logger.error(f'Error communicating with agent: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/agent/chat/stream', methods=['POST'])
+def agent_chat_stream():
+    """Proxy streaming chat to the AI agent via SSE"""
+    import requests as req_lib
+    from flask import Response
+
+    if not session.get('agent_enabled', True):
+        return jsonify({'error': 'Agent is disabled'}), 403
+
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        session_id = data.get('session_id')
+
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+
+        agent_url = 'http://172.18.0.11:5000/api/chat/stream'
+        payload = {'message': message}
+        if session_id:
+            payload['session_id'] = session_id
+
+        upstream = req_lib.post(
+            agent_url,
+            json=payload,
+            stream=True,
+            timeout=600
+        )
+
+        if upstream.status_code != 200:
+            return jsonify({'error': 'Agent service error'}), upstream.status_code
+
+        def generate():
+            for chunk in upstream.iter_content(chunk_size=None):
+                if chunk:
+                    yield chunk
+
+        return Response(
+            generate(),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+            }
+        )
+
+    except req_lib.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service for streaming')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error in stream proxy: {str(e)}', exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/agent/status', methods=['GET'])

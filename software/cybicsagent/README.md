@@ -1,284 +1,200 @@
 # CybICS AI Agent
 
-An intelligent AI assistant for the CybICS platform with system control capabilities, providing both information and hands-on support.
+An intelligent AI assistant for the CybICS platform with native tool calling, ICS protocol access, and streaming responses.
 
 ## Features
 
-- **Lightweight LLM**: Uses TinyLlama (600MB) for fast, efficient responses
-- **RAG-based**: Retrieval Augmented Generation with CybICS knowledge base
-- **Function Calling**: Can execute system operations and control CybICS infrastructure
+- **Native Tool Calling**: Uses Ollama's built-in function calling for capable models (llama3, phi3, mistral)
+- **Keyword Fallback**: Reliable keyword-based tool dispatch for lightweight models (TinyLlama)
+- **RAG Knowledge Base**: Retrieval Augmented Generation with dynamically loaded CybICS documentation
+- **ICS Protocol Tools**: Read Modbus registers, browse OPC-UA nodes, check IDS alerts
 - **Container Management**: Restart, monitor, and manage Docker containers
-- **System Monitoring**: Real-time stats and resource usage
-- **Network Analysis**: Built-in nmap scanning capabilities
+- **Streaming Responses**: Server-Sent Events (SSE) for token-by-token output
+- **Conversation History**: Session-based multi-turn conversations
+- **Destructive Action Confirmation**: Safety prompts before container restarts
 - **Local Execution**: Runs entirely within your infrastructure
-- **Context-Aware**: Understands CybICS components, training modules, and troubleshooting
 
 ## Architecture
 
-- **Frontend**: Chat widget integrated into landing page
-- **Backend**: Flask API with ChromaDB vector database
-- **LLM**: Ollama with TinyLlama model
-- **Embeddings**: all-MiniLM-L6-v2 for semantic search
+```
+cybicsagent/
+├── app.py              # Flask app entry point
+├── config.py           # Configuration & model capabilities
+├── agent.py            # Dual-mode dispatch (native + keyword)
+├── rag.py              # ChromaDB knowledge base
+├── session.py          # Conversation session manager
+├── routes.py           # Flask route handlers
+└── tools/
+    ├── __init__.py     # Tool registry & schema generator
+    ├── containers.py   # Docker container management
+    ├── system.py       # System stats & image listing
+    ├── network.py      # nmap network scanning
+    ├── ics.py          # Modbus, OPC-UA, IDS tools
+    └── formatters.py   # Tool result formatting
+```
+
+**Stack**: Flask, ChromaDB, Ollama, sentence-transformers, pymodbus, asyncua
 
 ## Available Tools
 
-The agent can execute the following system operations:
-
 ### Container Management
-- **`get_container_status`**: Get status of all running Docker containers
-- **`restart_containers`**: Restart one or all containers
-- **`get_container_logs`**: View recent logs from a specific container
+| Tool | Description |
+|------|-------------|
+| `get_container_status` | List all running Docker containers |
+| `restart_containers` | Restart one or all containers (requires confirmation) |
+| `get_container_logs` | View recent logs from a container |
 
 ### System Monitoring
-- **`get_system_stats`**: Real-time CPU, memory, and network stats for all containers
+| Tool | Description |
+|------|-------------|
+| `get_system_stats` | CPU, memory, network stats for all containers |
+| `list_docker_images` | List available Docker images |
 
 ### Network Operations
-- **`execute_network_scan`**: Run nmap scans (basic/port/service/vuln)
+| Tool | Description |
+|------|-------------|
+| `execute_network_scan` | Run nmap scans (basic/port/service/vuln) |
 
-### Docker Management
-- **`list_docker_images`**: List all available Docker images
+### ICS Protocol Tools
+| Tool | Description |
+|------|-------------|
+| `read_modbus_registers` | Read holding/input/coil/discrete registers from OpenPLC |
+| `read_opcua_nodes` | Browse or read OPC-UA nodes from the OPC-UA server |
+| `check_ids_alerts` | Check IDS status and recent intrusion alerts |
 
-## How It Works
+## How Tool Dispatch Works
 
-The agent uses **intelligent keyword detection** to automatically trigger tools, making it reliable even with smaller models:
+The agent uses a **dual-mode** approach:
 
-### Automatic Tool Detection
+### Native Tool Calling (capable models)
+When using models like `llama3.2:3b`, `phi3:mini`, or `mistral:7b`, the agent passes tool schemas directly to Ollama's API. The LLM decides when to call tools and what parameters to use.
 
-The agent detects intent from natural language questions:
+### Keyword Fallback (small models)
+When using `tinyllama` or other models without tool calling support, the agent detects intent from keywords in the user's question and dispatches tools automatically.
 
-| User Says | Tool Triggered | Example |
-|-----------|----------------|---------|
-| "status", "running", "list containers" | `get_container_status` | "Show me container status" |
-| "restart [container]" | `restart_containers` | "Restart the OpenPLC container" |
-| "cpu", "memory", "stats", "performance" | `get_system_stats` | "What's the CPU usage?" |
-| "logs [container]" | `get_container_logs` | "Show logs from landing" |
-| "scan", "nmap", "network" | `execute_network_scan` | "Scan the network" |
-| "image", "docker image" | `list_docker_images` | "List Docker images" |
+| User Says | Tool Triggered |
+|-----------|---------------|
+| "status", "running", "list containers" | `get_container_status` |
+| "restart openplc" | `restart_containers` |
+| "cpu", "memory", "stats" | `get_system_stats` |
+| "logs from landing" | `get_container_logs` |
+| "scan", "nmap" | `execute_network_scan` |
+| "modbus", "register" | `read_modbus_registers` |
+| "opcua", "opc-ua" | `read_opcua_nodes` |
+| "ids", "alert", "intrusion" | `check_ids_alerts` |
 
-### Example Conversations
+## Streaming
 
-**Question:** "Can you show me the status of all containers?"
-- ✅ Detects keywords: "status", "containers"
-- ✅ Executes: `get_container_status`
-- ✅ Returns formatted table with container info
+The agent supports Server-Sent Events (SSE) for streaming responses token-by-token:
 
-**Question:** "Restart the OpenPLC container"
-- ✅ Detects keywords: "restart", "openplc"
-- ✅ Executes: `restart_containers(container_names="openplc")`
-- ✅ Confirms restart was successful
+- **Endpoint**: `POST /api/chat/stream`
+- **Format**: `text/event-stream` with JSON events
+- **Event types**: `session`, `tool`, `token`, `content`, `done`
+- **Fallback**: The frontend automatically falls back to non-streaming on error
 
-**Question:** "Show me the last 100 lines of logs from the landing container"
-- ✅ Detects keywords: "logs", "landing", "100"
-- ✅ Executes: `get_container_logs(container_name="landing", lines=100)`
-- ✅ Returns formatted log output
+## Conversation History
 
-**Question:** "Scan the CybICS network for devices"
-- ✅ Detects keywords: "scan", "network"
-- ✅ Executes: `execute_network_scan(target="172.18.0.0/24", scan_type="basic")`
-- ✅ Returns scan results
+Sessions are maintained in-memory with automatic cleanup:
 
-This approach ensures reliable tool execution regardless of model size!
+- **Session ID**: Generated client-side (UUID), sent with each request
+- **Max sessions**: 50 (oldest evicted automatically)
+- **History limit**: 6 messages for TinyLlama, 20 for larger models
+- **Multi-turn**: Supports contextual follow-ups ("restart the one that was failing")
 
 ## API Endpoints
 
-### `GET /health`
-Health check endpoint
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check |
+| `POST` | `/api/chat` | Send message (non-streaming) |
+| `POST` | `/api/chat/stream` | Send message (SSE streaming) |
+| `GET` | `/api/info` | Agent info & capabilities |
+| `GET` | `/api/tools` | List available tools |
+| `GET` | `/api/model` | Current model info |
+| `POST` | `/api/model` | Change model |
+| `POST` | `/api/model/pull` | Download a model |
 
-### `POST /api/chat`
-Send a message to the agent (now with tool calling support)
+### Chat Request
 ```json
 {
-  "message": "Restart all containers"
+  "message": "Show me the Modbus registers",
+  "session_id": "optional-uuid"
 }
 ```
 
-Response (with tools):
+### Chat Response
 ```json
 {
-  "response": "I've successfully restarted all 6 containers...",
+  "response": "Here are the current Modbus holding registers...",
   "sources": 0,
-  "tools_used": ["restart_containers"],
-  "tool_results": [...]
+  "tools_used": ["read_modbus_registers"],
+  "tool_results": [...],
+  "session_id": "uuid"
 }
 ```
 
-Response (without tools):
+### Confirmation Response
 ```json
 {
-  "response": "You can access the OpenPLC interface...",
-  "sources": 2
+  "response": "This action requires confirmation: **Restart container: openplc**",
+  "confirmation_required": true,
+  "pending_action": {"tool": "restart_containers", "parameters": {"container_names": "openplc"}},
+  "session_id": "uuid"
 }
 ```
-
-### `GET /api/info`
-Get agent information and status (includes capabilities and tool count)
-
-### `GET /api/tools`
-List all available tools with descriptions and parameters
-
-## Environment Variables
-
-- `OLLAMA_MODEL`: Model to use (default: tinyllama)
-- `OLLAMA_HOST`: Ollama server URL (default: http://localhost:11434)
 
 ## Supported Models
 
-The agent works with various Ollama models. Larger models provide better responses:
+| Model | Size | Quality | Tool Calling | Notes |
+|-------|------|---------|-------------|-------|
+| tinyllama | 600MB | 2/5 | Keyword only | Fast, low resource |
+| phi3:mini | 2.3GB | 4/5 | Native | **Recommended** |
+| llama3.2:3b | 2GB | 4/5 | Native | Great balance |
+| mistral:7b | 4.1GB | 5/5 | Native | High quality |
+| llama3.1:8b | 4.7GB | 5/5 | Native | Best quality |
 
-- **`tinyllama`** (600MB) - Ultra-lightweight, fast responses, basic capability
-- **`phi3:mini`** (2.3GB) - **Recommended** - Good balance of size and quality
-- **`llama3.2:3b`** (2GB) - Excellent quality, still lightweight
-- **`mistral:7b`** (4.1GB) - High quality responses, requires more resources
-- **`llama3.1:8b`** (4.7GB) - Best quality, most resource intensive
+Change models via the Settings UI or:
+```bash
+# Environment variable
+OLLAMA_MODEL=phi3:mini
 
-To change the model, you can:
-
-**Option 1: Via Settings UI (Recommended)**
-1. Open CybICS landing page
-2. Click Settings (⚙️)
-3. Go to AI Assistant section
-4. Select model from dropdown
-5. Wait for download to complete (if needed)
-
-**Option 2: Via Environment Variable**
-Set `OLLAMA_MODEL` in docker-compose.yml:
-
-```yaml
-environment:
-  - OLLAMA_MODEL=phi3:mini  # Change this line
+# API
+curl -X POST http://localhost:5000/api/model -H 'Content-Type: application/json' -d '{"model": "phi3:mini"}'
 ```
 
-**Download Times**: First-time model downloads can take:
-- **tinyllama** (600MB): ~2-5 minutes
-- **phi3:mini** (2.3GB): ~5-15 minutes
-- **llama3.2:3b** (2GB): ~5-15 minutes
-- **mistral:7b** (4.1GB): ~10-30 minutes
-- **llama3.1:8b** (4.7GB): ~10-30 minutes
+## Environment Variables
 
-Times vary based on your internet connection speed. The system will wait up to 30 minutes for downloads to complete.
-
-### Model Comparison
-
-| Model | Size | Quality | Speed | Tool Calling |
-|-------|------|---------|-------|--------------|
-| tinyllama | 600MB | ⭐⭐ | ⚡⚡⚡ | Basic |
-| phi3:mini | 2.3GB | ⭐⭐⭐⭐ | ⚡⚡ | Good |
-| llama3.2:3b | 2GB | ⭐⭐⭐⭐ | ⚡⚡ | Excellent |
-| mistral:7b | 4.1GB | ⭐⭐⭐⭐⭐ | ⚡ | Excellent |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OLLAMA_MODEL` | `tinyllama` | Default LLM model |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
+| `OPENPLC_HOST` | `172.18.0.3` | OpenPLC Modbus host |
+| `OPCUA_HOST` | `172.18.0.5` | OPC-UA server host |
+| `IDS_HOST` | `172.18.0.1` | IDS server host (via gateway) |
+| `IDS_PORT` | `8443` | IDS server port |
 
 ## Knowledge Base
 
-The agent dynamically loads documentation from mounted volumes at startup:
+Dynamically loads documentation from mounted volumes at startup:
 
-**Sources:**
-- `/knowledge/training/` - All training module READMEs (dynamically loaded)
+- `/knowledge/training/` - Training module READMEs
 - `/knowledge/README.md` - Main CybICS README
 - `/knowledge/doc/` - Additional documentation
 
-**What it knows:**
-- CybICS architecture and components
-- Services and ports
-- All training modules with detailed instructions
-- CTF challenges and solutions
-- Common troubleshooting steps
-- Security testing procedures
-- Protocol details (Modbus, OPC UA, S7)
+Documents are split into 2000-character chunks and indexed with all-MiniLM-L6-v2 embeddings in ChromaDB.
 
-**Dynamic Loading:**
-- Knowledge base is rebuilt fresh every time the container starts
-- No static embedded content - always uses latest documentation
-- Automatically discovers all `.md` files in mounted volumes
-- Splits large documents into 2000-character chunks for better retrieval
-- Preserves source file paths and metadata
+## Adding New Tools
 
-## Usage
-
-The agent appears as a chat widget in the bottom-left corner of the landing page.
-Click to expand and ask questions about CybICS.
-
-Can be enabled/disabled via Settings panel.
-
-## Development
-
-### Adding New Knowledge
-1. Add or modify markdown files in `training/`, `doc/`, or root README
-2. Restart the cybicsagent container: `docker compose restart cybicsagent`
-3. Knowledge base will be rebuilt automatically with new content
-
-No code changes needed - the agent scans all mounted documentation!
-
-### Adding New Tools
-To add new capabilities:
-1. Add a function in `app.py` (see existing tools as examples)
-2. Register it in `AVAILABLE_TOOLS` dictionary with description and parameters
-3. Rebuild the container
-
-Example tool:
-```python
-def my_new_tool(param1, param2="default"):
-    """Tool description"""
-    try:
-        # Your implementation
-        return {'success': True, 'result': 'data'}
-    except Exception as e:
-        return {'error': str(e)}
-
-# Register in AVAILABLE_TOOLS
-AVAILABLE_TOOLS['my_new_tool'] = {
-    'function': my_new_tool,
-    'description': 'What this tool does',
-    'parameters': {
-        'param1': {'type': 'string', 'description': 'First param', 'required': True},
-        'param2': {'type': 'string', 'description': 'Optional param', 'optional': True}
-    }
-}
-```
-
-### Testing Locally
-```bash
-docker build -t cybicsagent .
-docker run -p 5000:5000 -p 11434:11434 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  cybicsagent
-```
-
-**Note**: The Docker socket mount is required for container management tools to work.
-
-## Performance
-
-- Initial model load: ~30 seconds
-- Response time (Q&A): 2-5 seconds depending on question complexity
-- Response time (with tools): 5-15 seconds depending on tool execution
-- Memory usage: ~1.5GB RAM
-- CPU: Works on CPU-only systems (GPU optional)
+1. Create a function in the appropriate `tools/` module
+2. Register it in `tools/__init__.py` `AVAILABLE_TOOLS` dict
+3. Add a formatter in `tools/formatters.py`
+4. Add keyword patterns in `agent.py` `detect_tool_intent()` (for small model fallback)
+5. Rebuild the container
 
 ## Security Considerations
 
-The agent has access to Docker socket and can execute system operations. Ensure:
-- Only trusted users have access to the agent
-- Network isolation is properly configured
-- The agent is not exposed to untrusted networks
-- Container capabilities (NET_ADMIN, NET_RAW) are required for network scanning
-
-## Version History
-
-### v2.1.0 (Current)
-- **Intelligent keyword-based tool detection** - works reliably with any model size
-- Simplified prompts for better compatibility with small models
-- Improved markdown formatting in responses
-- Better tool result formatting
-- Enhanced error messages
-- Model size recommendations and comparison table
-
-### v2.0.0
-- Added function calling capabilities
-- Container management tools (status, restart, logs)
-- System monitoring and stats
-- Network scanning with nmap
-- Docker image management
-- Enhanced tool execution framework
-
-### v1.0.0
-- Initial release with RAG-based Q&A
-- Dynamic knowledge base loading
-- Basic chat functionality
+- Docker socket access required for container management
+- Destructive actions (restart) require user confirmation
+- ICS tools are read-only (no write operations)
+- NET_ADMIN and NET_RAW capabilities required for nmap
+- Only expose to trusted users on isolated networks

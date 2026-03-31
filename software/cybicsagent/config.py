@@ -1,0 +1,63 @@
+"""CybICS AI Agent - Configuration"""
+import os
+
+# Ollama settings
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'tinyllama')
+OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+
+# Knowledge base
+COLLECTION_NAME = "cybics_knowledge"
+CHUNK_MAX_CHARS = 2000
+RAG_RESULTS = 3
+
+# Global mutable state
+current_model = OLLAMA_MODEL
+
+# Known CybICS container names (for keyword-based tool dispatch)
+CYBICS_CONTAINERS = [
+    'openplc', 'fuxa', 'hwio', 'opcua', 's7com',
+    'landing', 'cybicsagent', 'engineeringws', 'attack',
+    'ids', 'stm32',
+]
+
+# CybICS network addresses
+OPENPLC_HOST = os.getenv('OPENPLC_HOST', '172.18.0.3')
+OPCUA_HOST = os.getenv('OPCUA_HOST', '172.18.0.5')
+IDS_HOST = os.getenv('IDS_HOST', '172.18.0.1')
+IDS_PORT = int(os.getenv('IDS_PORT', '8443'))
+MODBUS_PORT = 502
+OPCUA_PORT = 4840
+
+# Models known to support native tool/function calling
+TOOL_CAPABLE_MODELS = [
+    'llama3', 'llama3.1', 'llama3.2', 'llama3.3',
+    'mistral', 'mixtral',
+    'phi3', 'phi4',
+    'qwen', 'qwen2', 'qwen2.5', 'qwen3',
+    'command-r',
+    'nemotron',
+    'granite3',
+    'deepseek-r1',
+]
+
+# Session limits
+MAX_SESSIONS = 50
+MAX_HISTORY_LARGE_MODEL = 20
+MAX_HISTORY_SMALL_MODEL = 6
+
+# Models considered "small" (limited context window)
+SMALL_MODELS = ['tinyllama']
+
+
+def model_supports_tools(model_name: str) -> bool:
+    """Check if a model supports native Ollama tool calling."""
+    name = model_name.lower().split(':')[0]
+    return any(name.startswith(prefix) for prefix in TOOL_CAPABLE_MODELS)
+
+
+def get_max_history(model_name: str) -> int:
+    """Get max conversation history length for a model."""
+    name = model_name.lower().split(':')[0]
+    if any(name.startswith(s) for s in SMALL_MODELS):
+        return MAX_HISTORY_SMALL_MODEL
+    return MAX_HISTORY_LARGE_MODEL
