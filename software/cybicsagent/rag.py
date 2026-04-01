@@ -1,5 +1,6 @@
 """CybICS AI Agent - RAG knowledge base (ChromaDB + sentence-transformers)"""
 import os
+import re
 import logging
 
 import chromadb
@@ -79,16 +80,29 @@ def query_knowledge_base(question, n_results=None, max_distance=1.2):
             # Filter out low-relevance results
             if distances:
                 filtered = [
-                    doc for doc, dist in zip(docs, distances)
+                    _clean_context(doc) for doc, dist in zip(docs, distances)
                     if dist <= max_distance
                 ]
                 return filtered
 
-            return docs
+            return [_clean_context(doc) for doc in docs]
         return []
     except Exception as e:
         logger.error(f"Error querying knowledge base: {e}")
         return []
+
+
+def _clean_context(text):
+    """Strip markdown links with file paths from RAG context.
+
+    Converts [link text](some/path.md) to just 'link text' so the model
+    doesn't copy broken file-path URLs into its responses.
+    """
+    # [text](path/to/file.md) → text
+    text = re.sub(r'\[([^\]]+)\]\([^)]*\.md[^)]*\)', r'\1', text)
+    # [text](relative/path) → text  (no http/https)
+    text = re.sub(r'\[([^\]]+)\]\((?!https?://)([^)]+)\)', r'\1', text)
+    return text
 
 
 def get_collection():

@@ -29,7 +29,12 @@ SYSTEM_PROMPT = (
     'analyze network traffic, check IDS alerts, and track CTF progress. '
     'Use these to make learning interactive and hands-on.\n\n'
     'Answer clearly and concisely using markdown formatting. '
-    'When you use tools, explain what the results mean for the student\'s learning.'
+    'When you use tools, explain what the results mean for the student\'s learning.\n\n'
+    'IMPORTANT RULES:\n'
+    '- NEVER include URLs or hyperlinks in your responses. No markdown links.\n'
+    '- Refer to training modules by name only (e.g. "the PLC programming module").\n'
+    '- Do NOT invent or hallucinate URLs. There are no web links to provide.\n'
+    '- If the student wants more info on a module, tell them to ask you about it.'
 )
 
 
@@ -57,8 +62,9 @@ def process_chat(question, session_id=None):
     else:
         result = _keyword_tool_dispatch(question, sid, model)
 
-    # Add assistant response to history
+    # Clean up and add assistant response to history
     if 'response' in result:
+        result['response'] = _clean_response(result['response'])
         session_manager.add_message(sid, 'assistant', result['response'])
 
     result['session_id'] = sid
@@ -297,6 +303,19 @@ def _handle_confirmation(session_id, model):
         'tools_used': [tool_name],
         'tool_results': [{'tool': tool_name, 'parameters': parameters, 'result': result}],
     }
+
+
+def _clean_response(text):
+    """Strip hallucinated links from model responses.
+
+    Converts [text](url) markdown links to just the text, and removes
+    bare URLs. This prevents broken/fake links in the chat UI.
+    """
+    # [text](url) → **text**
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'**\1**', text)
+    # Bare URLs
+    text = re.sub(r'https?://\S+', '', text)
+    return text
 
 
 def _describe_action(tool_name, parameters):
