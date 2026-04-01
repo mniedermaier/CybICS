@@ -4,3 +4,14 @@ uci set network.wan.ipaddr='172.20.0.2'
 uci set network.wan.netmask='255.255.255.0'
 uci set network.wan.gateway='172.20.0.1'
 uci commit network
+
+# eth2 (QEMU user-netdev) konfigurieren
+uci set network.qemu=interface
+uci set network.qemu.ifname='eth2'
+uci set network.qemu.proto='dhcp'
+uci commit network
+
+uci add_list firewall.@zone[0].network='qemu'
+uci commit firewall
+
+(echo "password"; echo "password") | passwd root
