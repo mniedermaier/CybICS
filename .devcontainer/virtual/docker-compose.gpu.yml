@@ -1,0 +1,10 @@
+# GPU override — automatically included by start.sh when an NVIDIA GPU is detected
+services:
+  cybicsagent:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

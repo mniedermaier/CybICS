@@ -80,6 +80,13 @@ else
     DOCKER_COMPOSE="docker-compose"
 fi
 
+# Auto-detect NVIDIA GPU and set COMPOSE_FILE to include GPU override
+if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null \
+    && docker info 2>/dev/null | grep -qi nvidia; then
+    print_message "NVIDIA GPU detected — enabling GPU acceleration for AI agent" "$GREEN"
+    export COMPOSE_FILE="docker-compose.yml:docker-compose.gpu.yml"
+fi
+
 # Function to check if Docker is running
 check_docker() {
     if ! docker info > /dev/null 2>&1; then

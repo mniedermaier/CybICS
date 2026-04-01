@@ -3,7 +3,7 @@ CybICS AI Agent - Intelligent assistant for the CybICS ICS training platform.
 
 Features:
 - Native Ollama tool calling (llama3, phi3, mistral, etc.)
-- Keyword-based tool fallback (TinyLlama and other small models)
+- Keyword-based tool fallback for models without native tool support
 - RAG knowledge base (ChromaDB + sentence-transformers)
 - Conversation history with session management
 - Streaming responses via SSE
@@ -33,14 +33,12 @@ CORS(app)
 # Register all route handlers
 register_routes(app)
 
+# Initialize knowledge base (runs on import so gunicorn workers pick it up)
+logger.info("Starting CybICS AI Agent v3.0.0...")
+logger.info(f"Using Ollama model: {config.OLLAMA_MODEL}")
+logger.info(f"Ollama host: {config.OLLAMA_HOST}")
+logger.info(f"Native tool calling: {config.model_supports_tools(config.OLLAMA_MODEL)}")
+initialize_knowledge_base()
+
 if __name__ == '__main__':
-    logger.info("Starting CybICS AI Agent v3.0.0...")
-    logger.info(f"Using Ollama model: {config.OLLAMA_MODEL}")
-    logger.info(f"Ollama host: {config.OLLAMA_HOST}")
-    logger.info(f"Native tool calling: {config.model_supports_tools(config.OLLAMA_MODEL)}")
-
-    # Initialize knowledge base
-    initialize_knowledge_base()
-
-    # Start Flask app
     app.run(host='0.0.0.0', port=5000, debug=False)

@@ -50,8 +50,15 @@ def initialize_knowledge_base():
         logger.warning("No knowledge base documents found - check if volumes are mounted correctly")
 
 
-def query_knowledge_base(question, n_results=None):
-    """Query the knowledge base for relevant context."""
+def query_knowledge_base(question, n_results=None, max_distance=1.2):
+    """Query the knowledge base for relevant context.
+
+    Args:
+        question: The query string.
+        n_results: Number of results to return.
+        max_distance: Maximum distance threshold. Results further than this
+                      are considered irrelevant and filtered out.
+    """
     if not collection:
         return []
 
@@ -61,11 +68,23 @@ def query_knowledge_base(question, n_results=None):
     try:
         results = collection.query(
             query_texts=[question],
-            n_results=n_results
+            n_results=n_results,
+            include=['documents', 'distances']
         )
 
         if results and results['documents']:
-            return results['documents'][0]
+            docs = results['documents'][0]
+            distances = results['distances'][0] if results.get('distances') else []
+
+            # Filter out low-relevance results
+            if distances:
+                filtered = [
+                    doc for doc, dist in zip(docs, distances)
+                    if dist <= max_distance
+                ]
+                return filtered
+
+            return docs
         return []
     except Exception as e:
         logger.error(f"Error querying knowledge base: {e}")
@@ -87,7 +106,13 @@ def _load_markdown_files(base_path='/knowledge'):
     file_count = 0
     training_modules = set()
 
+    # Directories to skip (virtual envs, package managers, build artifacts)
+    skip_dirs = {'.venv', 'venv', 'node_modules', 'site-packages', '__pycache__', '.git'}
+
     for root, dirs, files in os.walk(base_path):
+        # Prune ignored directories in-place so os.walk won't descend into them
+        dirs[:] = [d for d in dirs if d not in skip_dirs]
+
         for filename in files:
             if filename.endswith('.md') or filename.endswith('.MD'):
                 filepath = os.path.join(root, filename)

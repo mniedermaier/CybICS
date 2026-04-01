@@ -3,7 +3,7 @@ flask-cors==6.0.0
 requests==2.33.0
 numpy<2.0.0
 sentence-transformers==2.3.1
-chromadb==0.4.22
+chromadb>=0.6.0
 ollama>=0.4.0
 gunicorn==22.0.0
 pymodbus>=3.5.0

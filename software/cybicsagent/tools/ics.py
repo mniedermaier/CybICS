@@ -19,6 +19,16 @@ def read_modbus_registers(register_type='holding', address=0, count=10):
         address: Starting register address (default: 0).
         count: Number of registers to read (default: 10).
     """
+    # Validate parameters
+    address = int(address)
+    count = int(count)
+    if not 0 <= address <= 65535:
+        return {'error': f'Invalid address {address}: must be 0-65535'}
+    if not 1 <= count <= 125:
+        return {'error': f'Invalid count {count}: must be 1-125'}
+    if register_type not in ('holding', 'input', 'coil', 'discrete'):
+        return {'error': f'Invalid register type: {register_type}'}
+
     try:
         from pymodbus.client import ModbusTcpClient
 
@@ -35,8 +45,6 @@ def read_modbus_registers(register_type='holding', address=0, count=10):
                 result = client.read_coils(address, count)
             elif register_type == 'discrete':
                 result = client.read_discrete_inputs(address, count)
-            else:
-                return {'error': f'Unknown register type: {register_type}'}
 
             if result.isError():
                 return {'error': f'Modbus read error: {result}'}
@@ -88,8 +96,9 @@ def read_opcua_nodes(node_id=None, action='browse'):
 
                 if action == 'browse':
                     children = await node.get_children()
+                    total_children = len(children)
                     nodes = []
-                    for child in children[:50]:  # limit results
+                    for child in children[:50]:
                         browse_name = await child.read_browse_name()
                         node_class = await child.read_node_class()
                         entry = {
@@ -106,13 +115,18 @@ def read_opcua_nodes(node_id=None, action='browse'):
                                 entry['value'] = '<unreadable>'
                         nodes.append(entry)
 
-                    return {
+                    result = {
                         'success': True,
                         'host': f'{OPCUA_HOST}:{OPCUA_PORT}',
                         'action': 'browse',
                         'parent_node': node_id or 'Objects',
-                        'children': nodes
+                        'children': nodes,
+                        'total_children': total_children,
                     }
+                    if total_children > 50:
+                        result['truncated'] = True
+                        result['message'] = f'Showing 50 of {total_children} children'
+                    return result
 
                 elif action == 'read':
                     if not node_id:
@@ -135,11 +149,15 @@ def read_opcua_nodes(node_id=None, action='browse'):
             finally:
                 await client.disconnect()
 
+        # Create a fresh event loop for this thread to avoid conflicts
+        # with other threads under gunicorn
         loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(_opcua_operation())
         finally:
             loop.close()
+            asyncio.set_event_loop(None)
 
     except ImportError:
         return {'error': 'asyncua not installed - OPC-UA tools unavailable'}

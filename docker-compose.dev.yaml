@@ -1,4 +1,4 @@
-# Minimal dev setup - landing page only (for UI testing)
+# Dev setup - landing page + AI agent (for local testing)
 services:
   landing:
     build:
@@ -12,3 +12,34 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+
+  cybicsagent:
+    build:
+      context: software/cybicsagent
+    restart: "no"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./doc:/knowledge/doc:ro
+      - ./training:/knowledge/training:ro
+      - ./README.md:/knowledge/README.md:ro
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_MODEL=phi3:mini
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.11
+
+networks:
+  br-cybics:
+    name: br-cybics
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-cybics
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/24
+          gateway: 172.18.0.1
+
+volumes:
+  ollama_models:

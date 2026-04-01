@@ -1629,6 +1629,7 @@
     </style>
     <!-- Markdown parser for agent responses -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <script>
         // Configure marked for safe rendering
         marked.setOptions({
@@ -1637,6 +1638,11 @@
             headerIds: false,
             mangle: false
         });
+
+        // Sanitize markdown output to prevent XSS from tool results
+        function safeMarkdown(content) {
+            return DOMPurify.sanitize(safeMarkdown(content));
+        }
     </script>
 </head>
 <body>
@@ -2470,8 +2476,13 @@
 
         function loadAvailableModels() {
             fetch('/api/agent/model')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('Agent service unavailable');
+                    return response.json();
+                })
                 .then(data => {
+                    if (data.error) throw new Error(data.error);
+
                     const select = document.getElementById('agentModelSelect');
                     const modelInfo = document.getElementById('modelInfo');
 
@@ -2838,7 +2849,7 @@
 
         function updateStreamingMessage(div, content) {
             const textSpan = div.querySelector('.message-text');
-            textSpan.innerHTML = marked.parse(content);
+            textSpan.innerHTML = safeMarkdown(content);
             const messages = document.getElementById('chatMessages');
             messages.scrollTop = messages.scrollHeight;
         }
@@ -2856,12 +2867,15 @@
 
         function confirmAction(btn) {
             const container = btn.parentElement;
+            // Disable both buttons immediately to prevent double-click
+            container.querySelectorAll('button').forEach(b => b.disabled = true);
             container.innerHTML = '<em>Confirmed, executing...</em>';
             sendMessage('__confirm__');
         }
 
         function cancelAction(btn) {
             const container = btn.parentElement;
+            container.querySelectorAll('button').forEach(b => b.disabled = true);
             container.innerHTML = '<em>Action cancelled.</em>';
         }
 
@@ -2906,7 +2920,7 @@
 
             // Render markdown for agent messages, escape HTML for user messages
             const messageContent = sender === 'agent'
-                ? marked.parse(message)
+                ? safeMarkdown(message)
                 : escapeHtml(message);
 
             messageDiv.innerHTML = `
@@ -2952,7 +2966,7 @@
 
                     // Render markdown for agent messages, escape HTML for user messages
                     const messageContent = msg.sender === 'agent'
-                        ? marked.parse(msg.message)
+                        ? safeMarkdown(msg.message)
                         : escapeHtml(msg.message);
 
                     messageDiv.innerHTML = `

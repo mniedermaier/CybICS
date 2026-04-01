@@ -38,7 +38,7 @@ def process_chat(question, session_id=None):
     Process a chat message. Returns a response dict.
 
     Uses native Ollama tool calling for capable models,
-    falls back to keyword-based dispatch for small models like TinyLlama.
+    falls back to keyword-based dispatch for models without native tool calling.
     """
     model = config.current_model
     session = session_manager.get_or_create(session_id)
@@ -225,17 +225,28 @@ def _keyword_tool_dispatch(question, session_id, model):
 
 def _generate_rag_response(question, context, model):
     """Generate a response using RAG context."""
-    context_str = "\n\n".join(context) if context else "No specific context available."
+    if not context:
+        return (
+            "I don't have specific information about that in my knowledge base. "
+            "Here's what I can help you with:\n\n"
+            "- **Training exercises**: Ask about scanning, Modbus, OPC-UA, password attacks, "
+            "MITM, fuzzing, IDS, and more\n"
+            "- **Live system tools**: Container status, network scans, Modbus registers, "
+            "OPC-UA nodes, IDS alerts, process state\n"
+            "- **CTF progress**: Ask \"what's my progress?\" or \"what should I do next?\"\n"
+            "- **Defense challenges**: Ask me to verify your firewall, password, or IDS configurations\n\n"
+            "Try asking something specific about the CybICS testbed or a training exercise!"
+        )
+
+    context_str = "\n\n".join(context)
 
     prompt = (
-        f"Context from CybICS documentation:\n{context_str}\n\n"
-        f"User Question: {question}\n\n"
-        f"Instructions:\n"
-        f"- Answer based on the context provided\n"
-        f"- Use markdown formatting: **bold**, `code`, bullet points, tables\n"
-        f"- Be clear and concise\n"
-        f"- If you don't know, say so\n\n"
-        f"Answer:"
+        f"Answer the question using ONLY the context below. "
+        f"Do NOT make up information. If the context does not contain the answer, "
+        f"say you don't have that information.\n\n"
+        f"---\nContext:\n{context_str}\n---\n\n"
+        f"Question: {question}\n\n"
+        f"Answer (use markdown, be concise):"
     )
 
     try:
@@ -421,12 +432,12 @@ def detect_tool_intent(question):
     if any(word in question_lower for word in ['status', 'running', 'list container', 'show container', 'which container']):
         return (True, 'get_container_status', {})
 
-    # Restart containers
+    # Restart containers (must specify which one)
     if 'restart' in question_lower:
         for container in config.CYBICS_CONTAINERS:
             if container in question_lower:
                 return (True, 'restart_containers', {'container_names': container})
-        return (True, 'restart_containers', {})
+        # Don't allow restarting without a specific container name
 
     # System stats
     if any(word in question_lower for word in ['cpu', 'memory', 'resource', 'performance', 'usage']):

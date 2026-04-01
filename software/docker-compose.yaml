@@ -92,6 +92,24 @@ services:
       br-cybics:
         ipv4_address: 172.18.0.7
 
+  cybicsagent:
+    image: localhost:5000/cybics-cybicsagent:latest
+    restart: always
+    depends_on:
+    - openplc
+    - landing
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../doc:/knowledge/doc:ro
+      - ../training:/knowledge/training:ro
+      - ../README.md:/knowledge/README.md:ro
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_MODEL=phi3:mini
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.11
+
 networks:
   br-cybics:
     name: br-cybics
@@ -106,3 +124,4 @@ networks:
 
 volumes:
   fuxa_data:
+  ollama_models:

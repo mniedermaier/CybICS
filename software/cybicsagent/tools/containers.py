@@ -45,21 +45,26 @@ def restart_containers(container_names=None):
 
     Args:
         container_names: Name or list of names of containers to restart.
-            If not provided, restarts all running containers.
+            Must specify which container(s) to restart.
     """
+    from config import CYBICS_CONTAINERS
+
     try:
-        if container_names:
-            containers = container_names if isinstance(container_names, list) else [container_names]
-        else:
-            ps_result = subprocess.run(
-                ['docker', 'ps', '--format', '{{.Names}}'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if ps_result.returncode != 0:
-                return {'error': f'Failed to list containers: {ps_result.stderr}'}
-            containers = [c for c in ps_result.stdout.strip().split('\n') if c]
+        if not container_names:
+            return {
+                'error': 'Must specify which container to restart. '
+                         f'Available: {", ".join(CYBICS_CONTAINERS)}'
+            }
+
+        containers = container_names if isinstance(container_names, list) else [container_names]
+
+        # Only allow restarting known CybICS containers
+        invalid = [c for c in containers if not any(allowed in c for allowed in CYBICS_CONTAINERS)]
+        if invalid:
+            return {
+                'error': f'Unknown container(s): {", ".join(invalid)}. '
+                         f'Allowed: {", ".join(CYBICS_CONTAINERS)}'
+            }
 
         if not containers:
             return {'error': 'No containers found to restart'}

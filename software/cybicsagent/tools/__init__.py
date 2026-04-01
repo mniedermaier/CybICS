@@ -21,12 +21,12 @@ AVAILABLE_TOOLS = {
     },
     'restart_containers': {
         'function': restart_containers,
-        'description': 'Restart one or more Docker containers. Can restart all containers or specific ones.',
+        'description': 'Restart a specific CybICS Docker container by name (e.g. "openplc", "fuxa", "landing")',
         'parameters': {
             'container_names': {
                 'type': 'string',
-                'description': 'Name of container to restart (e.g. "openplc", "fuxa"). Leave empty to restart all.',
-                'required': False,
+                'description': 'Name of the CybICS container to restart (e.g. "openplc", "fuxa", "landing")',
+                'required': True,
             }
         },
         'destructive': True,
@@ -201,10 +201,10 @@ def execute_tool(tool_name, parameters=None):
         return result
     except TypeError as e:
         logger.error(f"Invalid parameters for {tool_name}: {e}")
-        return {'error': f'Invalid parameters for {tool_name}'}
+        return {'error': f'Invalid parameters for {tool_name}: {e}'}
     except Exception as e:
-        logger.error(f"Error executing {tool_name}: {e}")
-        return {'error': f'Error executing {tool_name}'}
+        logger.error(f"Error executing {tool_name}: {type(e).__name__}: {e}")
+        return {'error': f'{tool_name} failed: {e}'}
 
 
 def get_ollama_tool_schemas():

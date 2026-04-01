@@ -2,7 +2,7 @@
 import os
 
 # Ollama settings
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'tinyllama')
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'phi3:mini')
 OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
 
 # Knowledge base
@@ -50,7 +50,7 @@ MAX_HISTORY_LARGE_MODEL = 20
 MAX_HISTORY_SMALL_MODEL = 6
 
 # Models considered "small" (limited context window)
-SMALL_MODELS = ['tinyllama']
+SMALL_MODELS = []
 
 
 def model_supports_tools(model_name: str) -> bool:

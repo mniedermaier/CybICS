@@ -83,18 +83,89 @@ def register_routes(app):
 
             # For native tool calling models, let them decide
             if config.model_supports_tools(model) and not should_use_tool:
-                # Try native tool calling first (non-streaming), then stream the summary
-                from agent import _native_tool_dispatch
-                result = _native_tool_dispatch(question, sid, model)
-                if result.get('tools_used'):
-                    def native_tool_gen():
+                from agent import SYSTEM_PROMPT
+                from rag import query_knowledge_base as rag_query
+
+                # First call: let the model decide if it wants tools (non-streaming)
+                history = session_manager.get_messages(sid, model)
+                messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
+                messages.extend(history)
+
+                context = rag_query(question)
+                if context:
+                    context_str = "\n\n".join(context)
+                    messages[-1] = {
+                        'role': 'user',
+                        'content': f"Context from CybICS documentation:\n{context_str}\n\nUser question: {question}"
+                    }
+
+                tool_schemas = get_ollama_tool_schemas()
+
+                try:
+                    response = ollama.chat(model=model, messages=messages, tools=tool_schemas)
+                except Exception as e:
+                    logger.error(f"Native tool call error in stream: {e}")
+                    response = None
+
+                if response and response.message.tool_calls:
+                    tools_used = []
+                    tool_results_list = []
+
+                    for tool_call in response.message.tool_calls:
+                        tn = tool_call.function.name
+                        ta = tool_call.function.arguments or {}
+                        logger.info(f"Native stream tool call: {tn}({ta})")
+
+                        tool_info_check = AVAILABLE_TOOLS.get(tn, {})
+                        if tool_info_check.get('destructive'):
+                            session_manager.set_pending_action(sid, tn, ta)
+                            from agent import _describe_action
+                            desc = _describe_action(tn, ta)
+                            def confirm_native_gen():
+                                yield f"data: {json.dumps({'type': 'session', 'session_id': sid})}\n\n"
+                                msg = f"This action requires confirmation:\n\n**{desc}**\n\nAre you sure you want to proceed?"
+                                yield f"data: {json.dumps({'type': 'content', 'content': msg})}\n\n"
+                                yield f"data: {json.dumps({'type': 'done', 'confirmation_required': True, 'pending_action': {'tool': tn, 'parameters': ta}})}\n\n"
+                            return Response(confirm_native_gen(), mimetype='text/event-stream',
+                                            headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+                        result = execute_tool(tn, ta)
+                        tools_used.append(tn)
+                        tool_results_list.append({'tool': tn, 'parameters': ta, 'result': result})
+
+                    # Build messages for streaming summary
+                    messages.append(response.message)
+                    for tr in tool_results_list:
+                        formatted = format_tool_result_for_llm(tr['tool'], tr['result'])
+                        messages.append({'role': 'tool', 'content': formatted})
+
+                    def native_tool_stream_gen():
                         yield f"data: {json.dumps({'type': 'session', 'session_id': sid})}\n\n"
-                        for tn in result.get('tools_used', []):
+                        for tn in tools_used:
                             yield f"data: {json.dumps({'type': 'tool', 'tool': tn})}\n\n"
-                        yield f"data: {json.dumps({'type': 'content', 'content': result['response']})}\n\n"
-                        session_manager.add_message(sid, 'assistant', result['response'])
-                        yield f"data: {json.dumps({'type': 'done', 'tools_used': result.get('tools_used', [])})}\n\n"
-                    return Response(native_tool_gen(), mimetype='text/event-stream',
+
+                        full_response = []
+                        try:
+                            stream = ollama.chat(model=model, messages=messages, stream=True)
+                            for chunk in stream:
+                                token = chunk.message.content
+                                if token:
+                                    full_response.append(token)
+                                    yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+                        except Exception as e:
+                            logger.error(f"Native tool stream error: {e}")
+                            fallback = "\n\n".join(
+                                format_tool_result_for_llm(tr['tool'], tr['result'])
+                                for tr in tool_results_list
+                            )
+                            full_response.append(fallback)
+                            yield f"data: {json.dumps({'type': 'content', 'content': fallback})}\n\n"
+
+                        response_text = ''.join(full_response)
+                        session_manager.add_message(sid, 'assistant', response_text)
+                        yield f"data: {json.dumps({'type': 'done', 'tools_used': tools_used})}\n\n"
+
+                    return Response(native_tool_stream_gen(), mimetype='text/event-stream',
                                     headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
             if should_use_tool:
@@ -281,12 +352,6 @@ def register_routes(app):
                 'available_models': models,
                 'native_tool_calling': config.model_supports_tools(config.current_model),
                 'recommended_models': [
-                    {
-                        'name': 'tinyllama',
-                        'size': '600MB',
-                        'quality': 2,
-                        'description': 'Ultra-lightweight, fast responses (keyword tool dispatch)',
-                    },
                     {
                         'name': 'phi3:mini',
                         'size': '2.3GB',
