@@ -16,6 +16,7 @@ env:
     cybics-engineeringws:software:software/engineeringWS/Dockerfile
     cybicsagent:software/cybicsagent:software/cybicsagent/Dockerfile
     cybics-ids:software/ids:software/ids/Dockerfile
+    cybics-nginx-proxy:software/nginx-proxy:software/nginx-proxy/Dockerfile
 
 jobs:
   # ==== Build amd64 natively on x86 runner ====

@@ -51,7 +51,7 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --mode <mode>    - Specify startup mode (default: full)"
-    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing)"
+    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing, TLS Proxy)"
     echo "                     full      - All services including AI Agent, Engineering WS, Attack Machine"
     echo "                     withoutai - All services except AI Agent"
     echo "  --version <tag>  - Specify Docker image version tag (default: latest)"

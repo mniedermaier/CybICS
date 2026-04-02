@@ -81,6 +81,19 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  nginx-proxy:
+    image: localhost:5000/cybics-nginx-proxy:latest
+    restart: always
+    mem_limit: 32m
+    ports:
+      - 443:443
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+
   stm32:
     image: localhost:5000/cybics-stm32:latest
     privileged: true
@@ -106,3 +119,4 @@ networks:
 
 volumes:
   fuxa_data:
+  nginx-certs:
