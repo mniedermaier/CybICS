@@ -212,6 +212,7 @@ display_services() {
     print_message "CybICS virtual environment started successfully!" "$GREEN"
     print_message "\nAvailable services:" "$YELLOW"
     print_message "Landing page: http://localhost:80" "$GREEN"
+    print_message "Landing page (TLS): https://localhost:443" "$GREEN"
     print_message "OpenPLC: http://localhost:8080" "$GREEN"
     print_message "FUXA: http://localhost:1881" "$GREEN"
     print_message "HWIO: http://localhost:8090" "$GREEN"
