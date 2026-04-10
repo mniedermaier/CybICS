@@ -20,6 +20,7 @@ docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-opcua:lates
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-s7com:latest --push ./s7com
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-fuxa:latest --push ./FUXA
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-stm32:latest --push ./stm32
+docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-update-server:latest --push ./update-server
 # Build landing service from root context
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-landing:latest --push -f ./landing/Dockerfile ..
 
