@@ -152,12 +152,11 @@
           "lifecycle": {
             "enabled": true,
             "display_name": "IDS Environment",
+            "compose_profile": "ids",
             "start": {
-              "compose_services": ["ids"],
               "script": null
             },
             "stop": {
-              "compose_services": ["ids"],
               "script": null
             },
             "healthcheck": {
@@ -178,12 +177,11 @@
           "lifecycle": {
             "enabled": true,
             "display_name": "IDS Environment",
+            "compose_profile": "ids",
             "start": {
-              "compose_services": ["ids"],
               "script": null
             },
             "stop": {
-              "compose_services": ["ids"],
               "script": null
             },
             "healthcheck": {
