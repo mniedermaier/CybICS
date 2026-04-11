@@ -13,7 +13,7 @@ services:
     networks:
       ext_net:
         ipv4_address: 172.20.0.2
-      int_net:
+      virt-cybics:
         ipv4_address: 172.21.0.2
   test:
     image: alpine
@@ -30,7 +30,7 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/24
-  int_net:
+  virt-cybics:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.name: br-int
