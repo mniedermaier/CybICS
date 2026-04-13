@@ -19,7 +19,7 @@
 
 ---
 
-## What is CybICS?
+## What is CybICS? ZERRRRRVUS
 
 CybICS (Cybersecurity for Industrial Control Systems) is an open-source training platform designed to help cybersecurity professionals, students, and researchers understand the unique challenges of securing industrial control systems (ICS) and SCADA environments.
 

@@ -1,0 +1,8 @@
+name: "CybICS CodeQL Configuration"
+
+paths-ignore:
+  # Third-party: OpenPLC v3 (upstream project, not our code)
+  - software/OpenPLC/OpenPLC_v3
+  # Virtual environments
+  - "**/.venv"
+  - "**/node_modules"

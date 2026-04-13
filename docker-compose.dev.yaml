@@ -1,0 +1,14 @@
+# Minimal dev setup - landing page only (for UI testing)
+services:
+  landing:
+    build:
+      context: .
+      dockerfile: software/landing/Dockerfile
+    restart: "no"
+    mem_limit: 128m
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

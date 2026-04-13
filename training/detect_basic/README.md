@@ -1,93 +1,132 @@
-# 🔍 Detection Training - Basic
+# 🔍 Detect Port Scan
 
-> **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-PMAD - Protocol Metadata Anomaly Detection](https://d3fend.mitre.org/technique/d3f:ProtocolMetadataAnomalyDetection/)
+> **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-CAA - Connection Attempt Analysis](https://d3fend.mitre.org/technique/d3f:ConnectionAttemptAnalysis/)
 
 ## 📋 Overview
-In this training, we focus on how to detect network scanning activities using PCAP (Packet Capture) data.
-PCAP files capture the raw network traffic data and are valuable for the security operation center (SOC) or forensic analysis of network communications.
 
-## 🎯 Network Scanning Techniques
-Attackers use different types of network scanning techniques to map out the network and gather intelligence.
-Common techniques include:
+Network scanning is typically the **earliest indicator** of an attack — adversaries must discover targets before they can exploit them. In this challenge you will perform a port scan against the ICS network, then verify that the CybICS IDS detected your scan and find the flag hidden in the IDS rule statistics.
 
-### 1. 🎯 Ping Sweep
-- Attackers send ICMP Echo Requests to multiple IP addresses
-- Used to determine which hosts are online
+This teaches the full detection loop: **attacker action → network packets → IDS rule → observable alert → flag**.
 
-### 2. 🔍 Port Scanning
-Tools like Nmap are used to scan for open ports on target systems. Common scan types include:
-- **SYN scan (Half-Open Scan)**: Sends SYN packets to check if a port is open
-- **TCP Connect Scan**: Establishes a full TCP connection with the target port
-- **UDP Scan**: Tests for open UDP ports, commonly used on industrial protocols like Modbus (port 502)
-- **Service Detection**: Queries services running on open ports to determine their versions (e.g., OPC UA on port 4840)
+### Detection Rule: `port_scan`
 
-### 3. 🛠️ Application Layer Scanning
-- Attackers scan for specific application protocols
-- Targets industrial control protocols like Modbus, DNP3, or OPC UA
-- Helps identify system roles and functions
+The IDS triggers the `port_scan` rule when it observes **5 or more unique destination ports** probed by a single source IP within a **10-second sliding window**.
 
-## ⚠️ Importance of Detection
-Detecting and mitigating network scanning on industrial systems is a critical first step in preventing cyberattacks.
-By capturing and analyzing network traffic through PCAP files, security teams can:
-- Identify early signs of an attack
-- Take appropriate action before an adversary gains deeper access
-- Protect critical infrastructure
+## 🎯 Task
 
-## 🎯 Training Questions
-1. Which ports do the attacker scan?
-2. Which ports are open, and which are closed?
+Perform a port scan, observe the IDS detection, and retrieve the flag from the IDS API.
+
+The flag has the format `CybICS(flag)`.
+
+---
+
+### Phase 1: Launch the Scan
+
+Run the provided reconnaissance script against the OpenPLC target:
+
+```bash
+python3 recon.py 172.18.0.3
+```
+
+This scans 6 industrial ports: **80** (HTTP), **102** (S7comm), **502** (Modbus), **4840** (OPC UA), **20000** (DNP3), **44818** (EtherNet/IP).
+
+Alternatively, use nmap directly:
+
+```bash
+nmap -sV 172.18.0.3
+```
+
+Note the output — which ports are **open** and which are **closed**?
+
+### Phase 2: Verify IDS Detection
+
+Your scan triggered the IDS. Open the IDS dashboard at [http://localhost:8443](http://localhost:8443) and check the **Alerts** tab. You should see a `port_scan` alert with your source IP.
+
+Query the IDS API to confirm:
+
+```bash
+curl -s http://localhost:8443/api/rules/stats | python3 -m json.tool
+```
+
+Look for the `port_scan` entry — if `count` is greater than 0, the rule has fired and the **flag is revealed** in the response.
+
+You can also query just the port_scan rule:
+
+```bash
+curl -s http://localhost:8443/api/rules/stats | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+ps = data.get('port_scan', {})
+print(f'Count: {ps.get(\"count\", 0)}')
+print(f'Flag:  {ps.get(\"flag\", \"Not yet — trigger the rule first\")}')
+"
+```
+
+### Phase 3: Understand the Detection
+
+Answer these questions to solidify your understanding:
+
+1. **How many ports did you scan?** (Check the recon.py output)
+2. **What is the IDS threshold for port_scan?** (5 ports in 10 seconds)
+3. **Did your scan exceed the threshold?** (6 ports > 5 threshold → YES)
+4. **What source IP appears in the alert?** (Your machine's IP on the 172.18.0.0/24 network)
+
+This demonstrates the detection pipeline:
+```
+Your scan (6 ports) → IDS sees SYN packets → 6 > 5 threshold → port_scan rule fires → Alert + Flag
+```
 
 ## 🛡️ Security Framework References
 
 <details>
-  <summary>Click to expand</summary>
+<summary>Click to expand</summary>
 
-### MITRE ATT&CK for ICS - Detected Techniques
-
-This training focuses on **detecting** the following adversary techniques:
+### MITRE ATT&CK for ICS — Detected Techniques
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Scanning to identify ICS devices |
 | Discovery | Network Connection Enumeration | [T0840](https://attack.mitre.org/techniques/T0840/) | Enumerating network connections and topology |
 
-**Why this matters:** Detection is the first step in incident response. Network scanning is typically the earliest indicator of an attack—adversaries must discover targets before they can exploit them. By learning to identify scanning patterns in PCAP data, you develop the foundational skills for security monitoring in ICS environments.
-
-### MITRE D3FEND - Defensive Techniques (Primary Focus)
+### MITRE D3FEND — Defensive Techniques
 
 | Technique | ID | Description |
 |-----------|-----|-------------|
 | Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Analyzing network traffic to detect malicious patterns |
-| Protocol Metadata Anomaly Detection | [D3-PMAD](https://d3fend.mitre.org/technique/d3f:ProtocolMetadataAnomalyDetection/) | Detecting anomalies in protocol behavior |
 | Connection Attempt Analysis | [D3-CAA](https://d3fend.mitre.org/technique/d3f:ConnectionAttemptAnalysis/) | Identifying scanning through connection patterns |
-| Packet Analysis | [D3-PA](https://d3fend.mitre.org/technique/d3f:PacketAnalysis/) | Deep inspection of packets for malicious indicators |
-
-**Detection indicators to look for:**
-- High volume of SYN packets from single source
-- Sequential port scanning patterns
-- Connection attempts to multiple ICS ports (102, 502, 4840, 20000, 44818)
-- Unusual source IPs contacting control system networks
 
 ### NIST SP 800-82r3 Reference
 
 | Control Family | Controls | Relevance |
 |----------------|----------|-----------|
-| **System and Information Integrity (SI)** | SI-4 | System monitoring—the core control for detection capabilities |
-| **Audit and Accountability (AU)** | AU-3, AU-6, AU-12 | Audit record content, review, and generation |
-| **Incident Response (IR)** | IR-4, IR-5, IR-6 | Incident handling, monitoring, and reporting |
+| **System and Information Integrity (SI)** | SI-4 | System monitoring — the core control for detection |
+| **Audit and Accountability (AU)** | AU-3, AU-6 | Audit record content and review |
 
-**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 emphasizes the importance of continuous monitoring (SI-4) in OT environments. Unlike IT systems where signature-based detection dominates, OT environments benefit from anomaly detection because "normal" traffic patterns are more predictable. AU-6 (Audit Review, Analysis, and Reporting) recommends regular review of captured traffic—this training teaches you what to look for during that review. IR-4 (Incident Handling) capabilities depend on first having the detection skills practiced here.
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.7 emphasizes continuous monitoring (SI-4) in OT environments. Unlike IT systems where signature-based detection dominates, OT environments benefit from anomaly detection because "normal" traffic patterns are more predictable — a port scan stands out clearly.
 
 </details>
+
+## 🔍 Defensive Thinking
+
+After completing this challenge, consider:
+- What if the attacker scanned only 4 ports (below the threshold)? Would the IDS detect it?
+- How would you detect slow scans (1 port every 30 seconds)?
+- What other protocols besides TCP could be used for reconnaissance?
+- How does the IDS distinguish a legitimate service check from a malicious scan?
+
+
+## 💡 Hints
+
+Run the scan, then query `http://localhost:8443/api/rules/stats`. Look at the `port_scan` entry — when `count > 0`, a `flag` field appears in the JSON response with the CTF flag.
 
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+Run a port scan against the target, then query the IDS rule statistics API:
 
-  After completion, use the following flag:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(basic_detection_complete)
-  </div>
+```bash
+curl -s http://localhost:8443/api/rules/stats
+```
 
-</details>
+Look for the `flag` field in the `port_scan` entry when `count > 0`.
+
+**Flag:** `CybICS(sc4n_d3tect3d)`

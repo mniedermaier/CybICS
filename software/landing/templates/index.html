@@ -1831,7 +1831,7 @@
                     title="CTF Training"
                     allow="fullscreen"
                     allowfullscreen="true"
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                   sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation"
                 ></iframe>
             </div>
 
@@ -2095,9 +2095,53 @@
                 const ctfIframe = document.getElementById("ctf-iframe");
                 if (ctfIframe) {
                     ctfIframe.src = event.data.url;
+                    // Push to browser history so back/forward works
+                    const hash = '#ctf' + (event.data.url !== '/ctf' ? ':' + event.data.url : '');
+                    history.pushState({ view: 'ctf', ctfUrl: event.data.url }, '', hash);
                 }
             }
         });
+
+        // Push state when switching top-level views (called from button onclick)
+        const _origUpdateView = updateView;
+        updateView = function(view, skipHistory) {
+            _origUpdateView(view);
+            if (!skipHistory) {
+                history.pushState({ view: view }, '', '#' + view);
+            }
+        };
+
+        // Restore state on back/forward
+        window.addEventListener('popstate', (event) => {
+            if (event.state) {
+                const view = event.state.view || 'all';
+                _origUpdateView(view);
+                if (view === 'ctf' && event.state.ctfUrl) {
+                    const ctfIframe = document.getElementById("ctf-iframe");
+                    if (ctfIframe) ctfIframe.src = event.state.ctfUrl;
+                }
+            } else {
+                // No state — go to home
+                _origUpdateView('all');
+            }
+        });
+
+        // On initial load, restore from hash
+        (function() {
+            const hash = location.hash.slice(1);
+            if (hash) {
+                if (hash.startsWith('ctf:')) {
+                    _origUpdateView('ctf');
+                    const ctfUrl = hash.slice(4);
+                    const ctfIframe = document.getElementById("ctf-iframe");
+                    if (ctfIframe && ctfUrl) ctfIframe.src = ctfUrl;
+                    history.replaceState({ view: 'ctf', ctfUrl: ctfUrl }, '', location.hash);
+                } else {
+                    _origUpdateView(hash);
+                    history.replaceState({ view: hash }, '', location.hash);
+                }
+            }
+        })();
     </script>
 
     <!-- Settings Modal -->
