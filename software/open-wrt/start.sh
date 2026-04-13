@@ -3,31 +3,17 @@
 ip tuntap add dev tap0 mode tap
 ip tuntap add dev tap1 mode tap
 
-# Container-namespace Bridges erstellen (OS-unabhängig, kein Host-Bridge-Zugriff nötig)
-ip link add br-ext type bridge
-ip link add br-int type bridge
+# Bridges nur auf Linux verfügbar
+if ip link show br-ext > /dev/null 2>&1; then
+    ip link set tap0 master br-ext
+    ip link set tap1 master br-int
+    echo "TAP bridging enabled"
+else
+    echo "Warning: br-ext/br-int not available (macOS Docker Desktop), TAP bridging disabled"
+fi
 
-# IPs der Docker-Interfaces entfernen (Bridge übernimmt L2-Forwarding)
-ip addr flush dev eth0
-ip addr flush dev eth1
-
-# Docker-Interfaces an Bridges binden
-ip link set eth0 master br-ext
-ip link set eth1 master br-int
-
-# QEMU-TAP-Devices an Bridges binden
-ip link set tap0 master br-ext
-ip link set tap1 master br-int
-
-# Alle Interfaces hochbringen
-ip link set br-ext up
-ip link set br-int up
-ip link set eth0 up
-ip link set eth1 up
 ip link set tap0 up
 ip link set tap1 up
-
-echo "TAP bridging enabled (container namespace)"
 
 ARCH=$(uname -m)
 
