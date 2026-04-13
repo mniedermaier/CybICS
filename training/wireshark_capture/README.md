@@ -91,10 +91,32 @@ ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | su
 
 ![Wireshark Capture](doc/wireshark.png)
 
-## 🎯 Find the Flag
+## 🎯 Task
+Capture and analyze network traffic to find the flag hidden in Modbus register write operations.
+
 The flag has the format `CybICS(flag)`.
 
-**💡 Hint**: The flag is written to registers over modbus.
+### Steps
+1. Set up SSH key authentication and start a remote packet capture using tcpdump
+2. Let the capture run for 30-60 seconds to collect Modbus traffic
+3. Open the capture file in Wireshark
+4. Filter for Modbus write operations (function codes 06 and 16)
+5. Inspect the register data in write packets for ASCII-encoded flag content
+
+### Where to Look: Modbus Write Operations
+In ICS traffic captures, **Modbus write operations** are particularly interesting because they carry process data being sent to devices — values written to registers and coils that control physical processes. When analyzing a Modbus traffic capture, you should focus on **write** function codes rather than read operations:
+
+- **Function Code 06**: Write Single Register
+- **Function Code 16**: Write Multiple Registers
+- **Function Code 05**: Write Single Coil
+- **Function Code 15**: Write Multiple Coils
+
+In Wireshark, you can filter for Modbus write operations using a display filter such as:
+```
+modbus.func_code == 6 || modbus.func_code == 16
+```
+
+Examine the **data values** being written to registers — in a CTF context, flag data is typically embedded in these write operations. Look at the register values for ASCII-encoded text that matches the flag format `CybICS(flag)`.
 
 ## 🛡️ Security Framework References
 
@@ -129,14 +151,13 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
+
+## 💡 Hints
+
+Filter for `modbus.func_code == 6 || modbus.func_code == 16` (Write Single Register and Write Multiple Registers) and inspect the register data values for ASCII text.
+
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(m0dbu$)
-  </div>
+**Flag:** `CybICS(m0dbu$)`
 
   ![Flag Modbus](doc/modbus.png)
-</details>

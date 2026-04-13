@@ -33,6 +33,12 @@ CTF_ALERT_THRESHOLD = 3  # minimum alerts needed for detection challenge
 FORENSICS_MIN_ALERTS = 5  # minimum alerts for forensics challenge
 FORENSICS_MIN_RULES = 3  # minimum distinct rule types for forensics
 
+# Per-rule CTF flags — revealed when the specific rule has been triggered
+CTF_RULE_FLAGS = {
+    "port_scan": "CybICS(sc4n_d3tect3d)",
+    "modbus_flood": "CybICS(m0dbus_fl00d_d3tect3d)",
+}
+
 
 # ========== API ROUTES ==========
 
@@ -152,11 +158,15 @@ def rules_stats():
     result = {}
     for rule, s in stats.items():
         top = sorted(s["sources"].items(), key=lambda x: x[1], reverse=True)[:5]
-        result[rule] = {
+        entry = {
             "count": s["count"],
             "last_seen": s["last_seen"],
             "top_sources": [{"ip": ip, "count": c} for ip, c in top],
         }
+        # Reveal CTF flag if the rule has been triggered
+        if s["count"] > 0 and rule in CTF_RULE_FLAGS:
+            entry["flag"] = CTF_RULE_FLAGS[rule]
+        result[rule] = entry
 
     return jsonify(result)
 

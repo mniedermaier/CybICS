@@ -25,11 +25,17 @@ Try to control the process manually as an operator via the FUXA HMI.
 
 ![FUXA system view](doc/fuxa.png)
 
-## 🎯 Find the Flag
+## 🎯 Task
 The flag has the format `CybICS(flag)`.
-To get the flag, the blowout needs to be triggered.
 
-**💡 Hint**: The flag appears on the FUXA HMI, when the blowout was triggered.
+Your objective is to trigger the blowout on the system. The physical process works as follows:
+
+- The **System Valve (SV)** controls whether compressed air can flow out of the High Pressure Tank (HPT).
+- The **Compressor (C)** pumps air into the system, increasing pressure.
+- If the System Valve is **closed** while the **Compressor is running**, pressure in the High Pressure Tank (HPT) will rise continuously because the air has no path to escape.
+- When the pressure exceeds a critical threshold, the **Blowout (BO)** safety event is triggered.
+
+Using the manual control mode on the FUXA HMI, manipulate the valves and compressor to create the unsafe overpressure condition that causes the blowout.
 
 ## 🛡️ Security Framework References
 
@@ -62,20 +68,19 @@ To get the flag, the blowout needs to be triggered.
 
 </details>
 
+
+## 💡 Hints
+
+The flag appears on the FUXA HMI when the blowout is triggered.
+
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  After login on the FUXA dashboard switch to the "System" view.
+After login on the FUXA dashboard switch to the "System" view.
   By closing the "System Valve" (SV) and enabling the Compressor (C),
   the pressure is rising.
   After a certain time, the pressure in the High Pressure Tank (HPT)
   gets a critical level and the Blowout (BO) will be opened.
 
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(Bl0w0ut)
-  </div>
+**Flag:** `CybICS(Bl0w0ut)`
 
   ![Flag OpenPLC Password](doc/flag.png)
-</details>

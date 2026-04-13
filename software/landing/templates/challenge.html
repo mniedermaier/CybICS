@@ -4,767 +4,882 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - {{ challenge.title }}</title>
+    <!-- Syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <style>
+        /* ===== Base ===== */
+        * { box-sizing: border-box; }
         body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
             background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            line-height: 1.6;
         }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #404040;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #ff6b00;
-        }
+        a { color: #ff6b00; }
+        a:hover { text-decoration: none; }
 
-        .challenge-container {
-            background-color: #2d2d2d;
-            border: 1px solid #404040;
-            border-radius: 0.5rem;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #404040; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff6b00; }
 
-        .flag-input {
-            background-color: #404040;
-            border: 1px solid #606060;
-            border-radius: 0.375rem;
-            color: #ffffff;
-            padding: 0.75rem;
-            width: 100%;
-            font-family: monospace;
-        }
-
-        .flag-input:focus {
-            outline: none;
-            border-color: #ff6b00;
-        }
-
-        .submit-button {
-            background-color: #ff6b00;
-            color: #1a1a1a;
-            border: none;
-            border-radius: 0.375rem;
+        /* ===== Header ===== */
+        header {
+            background: #2d2d2d;
+            border-bottom: 1px solid #404040;
             padding: 0.75rem 1.5rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
+        header h1 { font-size: 1.25rem; margin: 0; color: #fff; }
+        .header-left { display: flex; align-items: center; gap: 1rem; }
+        .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
-        .submit-button:hover {
-            background-color: #e55d00;
-        }
-
-        .submit-button:disabled {
-            background-color: #606060;
-            cursor: not-allowed;
-        }
-
-        .back-button {
-            background-color: #404040;
+        .back-btn {
             color: #ff6b00;
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
             border: 1px solid #ff6b00;
             border-radius: 0.25rem;
-            padding: 0.5rem 1rem;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.2s;
+            transition: all 0.15s;
+            white-space: nowrap;
         }
-
-        .back-button:hover {
-            background-color: #ff6b00;
-            color: #1a1a1a;
-        }
+        .back-btn:hover { background: #ff6b00; color: #1a1a1a; }
 
         .badge {
             display: inline-block;
-            padding: 0.25rem 0.5rem;
+            padding: 0.2rem 0.5rem;
             border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: bold;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-points { background: #ff6b00; color: #1a1a1a; }
+        .badge-solved { background: #22c55e; color: #fff; }
+        .badge-easy { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .badge-medium { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .badge-hard { background: rgba(239,68,68,0.15); color: #f87171; }
+        .badge-tag-recon { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .badge-tag-exploit { background: rgba(239,68,68,0.15); color: #f87171; }
+        .badge-tag-analysis { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .badge-tag-evasion { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .badge-tag-defense { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .badge-tag-hardware { background: rgba(236,72,153,0.15); color: #f472b6; }
+
+        /* ===== Layout: Sidebar + Content ===== */
+        .page-layout {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            gap: 2rem;
         }
 
-        .badge-points {
-            background-color: #ff6b00;
-            color: #1a1a1a;
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 4rem;
+            max-height: calc(100vh - 5rem);
+            overflow-y: auto;
+            padding-right: 0.5rem;
         }
-
-        .badge-solved {
-            background-color: #22c55e;
-            color: #ffffff;
+        .sidebar-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #888;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
         }
-
-        .hint-box {
-            background-color: #404040;
-            border-left: 4px solid #ff6b00;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 0 0.375rem 0.375rem 0;
-        }
-
-        .message {
-            padding: 1rem;
-            border-radius: 0.375rem;
-            margin: 1rem 0;
-        }
-
-        .message.success {
-            background-color: #1a4d2e;
-            border: 1px solid #22c55e;
-            color: #22c55e;
-        }
-
-        .message.error {
-            background-color: #4d1a1a;
-            border: 1px solid #ef4444;
-            color: #ef4444;
-        }
-
-        /* Code block styling */
-        .training-content pre {
-            background-color: #1a1a1a;
-            border: 1px solid #404040;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            overflow-x: auto;
-            margin: 1rem 0;
-        }
-
-        .training-content code {
-            background-color: #404040;
-            color: #ff6b00;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        .training-content pre code {
-            background-color: transparent;
-            color: #ffffff;
+        .toc-list {
+            list-style: none;
             padding: 0;
-            border-radius: 0;
+            margin: 0;
+        }
+        .toc-list li { margin-bottom: 2px; }
+        .toc-link {
+            display: block;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            color: #999;
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            border-radius: 0 0.25rem 0.25rem 0;
+            transition: all 0.15s;
+            line-height: 1.4;
+        }
+        .toc-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .toc-link.active {
+            color: #ff6b00;
+            border-left-color: #ff6b00;
+            background: rgba(255,107,0,0.08);
+        }
+        .sidebar-divider {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 1rem 0;
+        }
+        .sidebar-action {
+            display: block;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #ff6b00;
+            background: rgba(255,107,0,0.08);
+            border: 1px solid rgba(255,107,0,0.2);
+            border-radius: 0.375rem;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .sidebar-action:hover { background: rgba(255,107,0,0.15); }
+
+        /* --- Main content area --- */
+        .main-content {
+            flex: 1;
+            min-width: 0;
         }
 
-        /* Details/Summary styling */
-        .training-content details {
-            background-color: #404040;
-            border: 1px solid #606060;
-            border-radius: 0.375rem;
-            margin: 1rem 0;
+        /* ===== Training Content Sections ===== */
+        .training-content { color: #e0e0e0; }
+
+        /* Section wrappers generated by JS */
+        .tc-section {
+            background: #2d2d2d;
+            border: 1px solid #383838;
+            border-radius: 0.5rem;
+            margin-bottom: 1.25rem;
             overflow: hidden;
         }
-
-        .training-content summary {
-            background-color: #505050;
-            padding: 1rem;
+        .tc-section-header {
+            padding: 1rem 1.25rem;
             cursor: pointer;
-            border-bottom: 1px solid #606060;
-            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            user-select: none;
+            transition: background 0.15s;
         }
-
-        .training-content details[open] summary {
-            border-bottom: 1px solid #606060;
+        .tc-section-header:hover { background: rgba(255,255,255,0.03); }
+        .tc-section-arrow {
+            font-size: 0.65rem;
+            color: #888;
+            transition: transform 0.2s;
+            flex-shrink: 0;
         }
-
-        .training-content details > *:not(summary) {
-            padding: 1rem;
-        }
-
-        /* Training content styling */
-        .training-content h1, .training-content h2, .training-content h3, 
-        .training-content h4, .training-content h5, .training-content h6 {
+        .tc-section.open .tc-section-arrow { transform: rotate(90deg); }
+        .tc-section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
             color: #ff6b00;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: bold;
+            margin: 0;
         }
-
-        .training-content h1 { font-size: 1.875rem; }
-        .training-content h2 { font-size: 1.5rem; }
-        .training-content h3 { font-size: 1.25rem; }
-        .training-content h4 { font-size: 1.125rem; }
-
-        .training-content p {
-            margin-bottom: 1rem;
-            line-height: 1.6;
+        .tc-section-body {
+            padding: 0 1.25rem 1.25rem;
+            display: none;
         }
+        .tc-section.open .tc-section-body { display: block; }
 
-        .training-content ul, .training-content ol {
-            margin-bottom: 1rem;
-            padding-left: 1.5rem;
-        }
+        /* Section type accents */
+        .tc-section[data-type="task"] { border-left: 3px solid #3b82f6; }
+        .tc-section[data-type="task"] .tc-section-title { color: #60a5fa; }
+        .tc-section[data-type="hint"] { border-left: 3px solid #f59e0b; }
+        .tc-section[data-type="hint"] .tc-section-title { color: #fbbf24; }
+        .tc-section[data-type="solution"] { border-left: 3px solid #ef4444; }
+        .tc-section[data-type="solution"] .tc-section-title { color: #f87171; }
+        .tc-section[data-type="security"] { border-left: 3px solid #8b5cf6; }
+        .tc-section[data-type="security"] .tc-section-title { color: #a78bfa; }
+        .tc-section[data-type="overview"] { border-left: 3px solid #22c55e; }
+        .tc-section[data-type="overview"] .tc-section-title { color: #4ade80; }
 
-        .training-content li {
-            margin-bottom: 0.5rem;
-        }
+        /* ===== Training content typography ===== */
+        .training-content h1 { font-size: 1.5rem; color: #ff6b00; margin: 1.5rem 0 0.75rem; }
+        .training-content h2 { font-size: 1.25rem; color: #ff6b00; margin: 1.25rem 0 0.75rem; display: none; }
+        .training-content h3 { font-size: 1.1rem; color: #ccc; margin: 1rem 0 0.5rem; font-weight: 600; }
+        .training-content h4 { font-size: 1rem; color: #bbb; margin: 1rem 0 0.5rem; }
+        .training-content p { margin-bottom: 0.75rem; line-height: 1.7; }
+        .training-content ul, .training-content ol { margin-bottom: 0.75rem; padding-left: 1.5rem; }
+        .training-content li { margin-bottom: 0.4rem; }
+        .training-content strong { color: #fff; }
+        .training-content hr { border: none; border-top: 1px solid #383838; margin: 1.5rem 0; }
 
+        /* Inline code */
         .training-content code {
-            background-color: #1a1a1a;
-            color: #22c55e;
-            padding: 0.125rem 0.25rem;
+            background: #2a2a2a;
+            color: #ff6b00;
+            padding: 0.15rem 0.4rem;
             border-radius: 0.25rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85em;
+            border: 1px solid #383838;
         }
 
+        /* Code blocks */
+        .training-content .code-block-wrapper {
+            position: relative;
+            margin: 0.75rem 0;
+        }
         .training-content pre {
-            background-color: #1a1a1a;
-            border: 1px solid #404040;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin: 1rem 0;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 0 0 0.5rem 0.5rem;
+            padding: 1rem 1.25rem;
+            margin: 0;
             overflow-x: auto;
+            line-height: 1.5;
         }
-
+        .training-content .code-block-wrapper pre {
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
         .training-content pre code {
-            background-color: transparent;
+            background: transparent;
+            color: inherit;
             padding: 0;
-            color: #22c55e;
+            border: none;
+            font-size: 0.85rem;
+        }
+        /* Language label bar */
+        .code-lang-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-bottom: none;
+            border-radius: 0.5rem 0.5rem 0 0;
+            padding: 0.3rem 0.75rem;
+        }
+        .code-lang-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            font-family: -apple-system, sans-serif;
+        }
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #888;
+            border-radius: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: -apple-system, sans-serif;
+        }
+        .copy-btn:hover { border-color: #ff6b00; color: #ff6b00; }
+        .copy-btn.copied { border-color: #22c55e; color: #22c55e; }
+
+        /* Standalone pre (no wrapper yet) */
+        .training-content > pre,
+        .training-content .tc-section-body > pre {
+            border-radius: 0.5rem;
         }
 
-        .training-content blockquote {
-            border-left: 4px solid #ff6b00;
-            padding-left: 1rem;
-            margin: 1rem 0;
-            font-style: italic;
+        /* Details/Summary inside sections */
+        .training-content details {
+            background: #353535;
+            border: 1px solid #444;
+            border-radius: 0.375rem;
+            margin: 0.75rem 0;
+            overflow: hidden;
         }
+        .training-content summary {
+            background: #3a3a3a;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #ccc;
+            font-size: 0.95rem;
+            transition: background 0.15s;
+        }
+        .training-content summary:hover { background: #404040; }
+        .training-content details[open] summary { border-bottom: 1px solid #444; }
+        .training-content details > *:not(summary) { padding: 0.75rem 1rem; }
 
+        /* Tables */
         .training-content table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1rem 0;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
         }
-
-        .training-content th, .training-content td {
-            border: 1px solid #404040;
-            padding: 0.5rem;
-            text-align: left;
-        }
-
         .training-content th {
-            background-color: #404040;
-            font-weight: bold;
+            background: #353535;
+            font-weight: 600;
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #444;
+            color: #ccc;
+        }
+        .training-content td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #383838;
+        }
+        .training-content tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+
+        /* Blockquotes */
+        .training-content blockquote {
+            border-left: 3px solid #ff6b00;
+            margin: 0.75rem 0;
+            padding: 0.5rem 1rem;
+            background: rgba(255,107,0,0.05);
+            border-radius: 0 0.25rem 0.25rem 0;
+            font-style: italic;
+            color: #bbb;
         }
 
-        .training-content a {
-            color: #ff6b00;
-            text-decoration: underline;
-        }
-
-        .training-content a:hover {
-            text-decoration: none;
-        }
-
+        /* Images */
         .training-content img {
             max-width: 100%;
             height: auto;
             display: block;
-            margin: 1rem auto;
+            margin: 0.75rem auto;
             border-radius: 0.375rem;
-            border: 1px solid #404040;
+            border: 1px solid #383838;
         }
+        .training-content figure { max-width: 100%; margin: 0.75rem 0; }
+        .training-content figcaption { text-align: center; font-size: 0.8rem; color: #888; font-style: italic; }
 
-        .training-content figure {
-            max-width: 100%;
-            margin: 1rem 0;
+        /* Links */
+        .training-content a { color: #ff6b00; text-decoration: underline; }
+        .training-content a:hover { text-decoration: none; }
+
+        /* ===== Flag Submission Box ===== */
+        .submit-box {
+            background: #2d2d2d;
+            border: 1px solid #383838;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1.25rem;
         }
-
-        .training-content figure img {
-            max-width: 100%;
-            height: auto;
-            margin: 0 auto 0.5rem;
+        .submit-box h2 {
+            font-size: 1.1rem;
+            margin: 0 0 1rem;
+            color: #fff;
         }
-
-        .training-content figcaption {
-            text-align: center;
-            font-size: 0.875rem;
-            color: #999;
-            font-style: italic;
-        }
-
-        /* Success Animation Styles */
-        .success-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .flag-input {
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 0.375rem;
+            color: #fff;
+            padding: 0.65rem 0.75rem;
             width: 100%;
-            height: 100%;
-            background: rgba(26, 26, 26, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.9rem;
+            transition: border-color 0.15s;
+        }
+        .flag-input:focus { outline: none; border-color: #ff6b00; }
+        .flag-hint {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+        .flag-hint code {
+            color: #ff6b00;
+            background: #2a2a2a;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+        }
+        .submit-btn {
+            background: #ff6b00;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.65rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-top: 0.75rem;
+        }
+        .submit-btn:hover { background: #e55d00; }
+        .submit-btn:disabled { background: #555; cursor: not-allowed; color: #999; }
+        .verify-btn {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.65rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .verify-btn:hover { background: #2563eb; }
+        .verify-btn:disabled { background: #555; cursor: not-allowed; color: #999; }
+        .verify-spinner {
+            display: inline-block;
+            width: 0.9rem; height: 0.9rem;
+            border: 2px solid #555;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.4rem;
+            vertical-align: middle;
         }
 
-        .success-animation.show {
-            opacity: 1;
-            visibility: visible;
+        .msg {
+            padding: 0.65rem 0.75rem;
+            border-radius: 0.375rem;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
         }
+        .msg-ok { background: rgba(34,197,94,0.1); border: 1px solid #22c55e; color: #4ade80; }
+        .msg-err { background: rgba(239,68,68,0.1); border: 1px solid #ef4444; color: #f87171; }
 
-        .success-content {
+        .verify-check {
+            padding: 0.4rem 0.65rem;
+            margin: 0.2rem 0;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        .verify-check.passed { background: rgba(34,197,94,0.1); border-left: 3px solid #22c55e; }
+        .verify-check.failed { background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; }
+
+        /* ===== Success Animation ===== */
+        .success-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(26,26,26,0.92);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .success-overlay.show { opacity: 1; visibility: visible; }
+        .success-inner {
             text-align: center;
             transform: scale(0.5);
-            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transition: transform 0.5s cubic-bezier(0.68,-0.55,0.265,1.55);
         }
-
-        .success-animation.show .success-content {
-            transform: scale(1);
-        }
-
-        .success-icon {
-            font-size: 6rem;
-            color: #22c55e;
-            margin-bottom: 1rem;
-            animation: bounce 1s infinite;
-        }
-
-        .success-text {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #ff6b00;
-            margin-bottom: 0.5rem;
-        }
-
-        .success-points {
-            font-size: 1.5rem;
-            color: #22c55e;
-            margin-bottom: 2rem;
-        }
-
-        .fireworks {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
+        .success-overlay.show .success-inner { transform: scale(1); }
+        .success-icon { font-size: 5rem; animation: bounce 1s infinite; }
+        .success-text { font-size: 1.75rem; font-weight: 700; color: #ff6b00; margin: 0.5rem 0; }
+        .success-pts { font-size: 1.25rem; color: #4ade80; margin-bottom: 1rem; }
+        .fireworks { position: absolute; width: 100%; height: 100%; pointer-events: none; }
         .firework {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: #ff6b00;
-            border-radius: 50%;
+            position: absolute; width: 4px; height: 4px; border-radius: 50%;
             animation: firework 1s ease-out forwards;
         }
-
         .firework:nth-child(2n) { background: #22c55e; }
         .firework:nth-child(3n) { background: #3b82f6; }
         .firework:nth-child(4n) { background: #f59e0b; }
         .firework:nth-child(5n) { background: #ef4444; }
-
-        @keyframes bounce {
-            0%, 20%, 60%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-30px); }
-            80% { transform: translateY(-15px); }
-        }
-
-        @keyframes firework {
-            0% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(var(--dy)) translateX(var(--dx)) scale(0);
-            }
-        }
-
         .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #ff6b00;
+            position: absolute; width: 8px; height: 8px;
             animation: confetti 3s ease-out forwards;
         }
-
         .confetti:nth-child(2n) { background: #22c55e; }
         .confetti:nth-child(3n) { background: #3b82f6; }
         .confetti:nth-child(4n) { background: #f59e0b; }
 
+        @keyframes bounce {
+            0%,20%,60%,100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            80% { transform: translateY(-10px); }
+        }
+        @keyframes firework {
+            0% { opacity:1; transform: translateY(0) scale(1); }
+            100% { opacity:0; transform: translateY(var(--dy)) translateX(var(--dx)) scale(0); }
+        }
         @keyframes confetti {
-            0% {
-                opacity: 1;
-                transform: translateY(-100vh) rotate(0deg);
+            0% { opacity:1; transform: translateY(-100vh) rotate(0); }
+            100% { opacity:0; transform: translateY(100vh) rotate(720deg); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 900px) {
+            .page-layout { flex-direction: column; padding: 1rem; gap: 0; }
+            .sidebar {
+                position: relative;
+                top: 0;
+                width: 100%;
+                max-height: none;
+                border-bottom: 1px solid #333;
+                padding-bottom: 1rem;
+                margin-bottom: 1rem;
             }
-            100% {
-                opacity: 0;
-                transform: translateY(100vh) rotate(720deg);
-            }
-        }
-
-        /* Utility classes */
-        header {
-            background-color: #2d2d2d;
-            color: #ff6b00;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        h1 {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        h2 {
-            font-size: 1.25rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-
-        h3 {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1280px;
-        }
-
-        .mx-auto {
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .max-w-4xl {
-            max-width: 896px;
-        }
-
-        .px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-
-        .py-8 {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-
-        .p-4 {
-            padding: 1rem;
-        }
-
-        .mb-2 {
-            margin-bottom: 0.5rem;
-        }
-
-        .mb-4 {
-            margin-bottom: 1rem;
-        }
-
-        .mb-6 {
-            margin-bottom: 1.5rem;
-        }
-
-        .flex {
-            display: flex;
-        }
-
-        .items-center {
-            align-items: center;
-        }
-
-        .justify-between {
-            justify-content: space-between;
-        }
-
-        .gap-2 {
-            gap: 0.5rem;
-        }
-
-        .gap-4 {
-            gap: 1rem;
-        }
-
-        .text-2xl {
-            font-size: 1.5rem;
-        }
-
-        .text-xl {
-            font-size: 1.25rem;
-        }
-
-        .font-bold {
-            font-weight: bold;
-        }
-
-        .font-semibold {
-            font-weight: 600;
-        }
-
-        .text-gray-300 {
-            color: #d1d5db;
-        }
-
-        .leading-relaxed {
-            line-height: 1.625;
-        }
-
-        .w-full {
-            width: 100%;
-        }
-
-        .mt-4 {
-            margin-top: 1rem;
-        }
-
-        .text-center {
-            text-align: center;
+            .toc-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+            .toc-link { border-left: none; border-bottom: 2px solid transparent; padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+            .toc-link.active { border-left: none; border-bottom-color: #ff6b00; }
+            header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header>
-        <div class="flex items-center gap-4">
-            <a href="/ctf" class="back-button" target="_top">← Back to CTF</a>
-            <h1 class="text-2xl font-bold">{{ challenge.title }}</h1>
+        <div class="header-left">
+            <a href="/ctf" class="back-btn" onclick="event.preventDefault(); window.parent.postMessage({type:'navigate',url:'/ctf'},'*');">&#8592; Back</a>
+            <h1>{{ challenge.title }}</h1>
         </div>
-        
-        <div class="flex items-center gap-2">
+        <div class="header-right">
+            {% if challenge.get('tag') %}
+            <span class="badge badge-tag-{{ challenge.tag }}">{{ challenge.tag }}</span>
+            {% endif %}
+            {% if challenge.points <= 150 %}
+            <span class="badge badge-easy">Easy</span>
+            {% elif challenge.points <= 250 %}
+            <span class="badge badge-medium">Medium</span>
+            {% else %}
+            <span class="badge badge-hard">Hard</span>
+            {% endif %}
             <span class="badge badge-points">{{ challenge.points }} pts</span>
             {% if solved %}
-            <span class="badge badge-solved">✓ Solved</span>
+            <span class="badge badge-solved">&#10003; Solved</span>
             {% endif %}
         </div>
     </header>
 
-    <!-- Main container -->
-    <main class="container mx-auto px-4 py-8 max-w-4xl">
-        <!-- Challenge Info -->
-        <div class="challenge-container">
-            <div class="mb-4">
-                <span class="text-[#ff6b00] font-semibold">Category:</span> {{ category.name }}
-            </div>
-            
-            <h2 class="text-xl font-bold mb-4">Challenge Description</h2>
-            <p class="text-gray-300 mb-6 leading-relaxed">{{ challenge.description }}</p>
-            
-            {% if challenge.hint %}
-            <div class="hint-box">
-                <h3 class="font-semibold text-[#ff6b00] mb-2">💡 Hint</h3>
-                <p class="text-gray-300">{{ challenge.hint }}</p>
-            </div>
-            {% endif %}
-        </div>
+    <!-- Page layout -->
+    <div class="page-layout">
+        <!-- Sidebar TOC -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-title">Contents</div>
+            <ul class="toc-list" id="toc-list">
+                <!-- Populated by JS -->
+            </ul>
+            <hr class="sidebar-divider">
+            <a href="#submit-section" class="sidebar-action" onclick="event.preventDefault(); document.getElementById('submit-section').scrollIntoView({behavior:'smooth'});">
+                {% if challenge_type == 'defense' %}Verify Defense{% else %}Submit Flag{% endif %} &#8595;
+            </a>
+        </nav>
 
-        <!-- Training Content -->
-        {% if training_content %}
-        <div class="challenge-container">
-            <h2 class="text-xl font-bold mb-4">📚 Training Material</h2>
-            <div class="training-content text-gray-300 leading-relaxed">
+        <!-- Main content -->
+        <div class="main-content">
+            {% if training_content %}
+            <div class="training-content" id="training-content">
                 {{ training_content | safe }}
             </div>
-        </div>
-        {% endif %}
-
-        <!-- Flag Submission -->
-        <div class="challenge-container">
-            <h2 class="text-xl font-bold mb-4">Submit Flag</h2>
-            
-            {% if solved %}
-            <div class="message success">
-                <strong>🎉 Challenge Completed!</strong><br>
-                You have already solved this challenge and earned {{ challenge.points }} points.
-            </div>
             {% else %}
-            <div class="mb-4">
-                <label for="flag-input" class="block text-sm font-medium mb-2">Enter the flag (format: CybICS(...))</label>
-                <input type="text" 
-                       id="flag-input" 
-                       class="flag-input" 
-                       placeholder="CybICS(flag_here)"
-                       autocomplete="off">
+            <div class="tc-section open" data-type="overview">
+                <div class="tc-section-body" style="display:block; padding-top:1.25rem;">
+                    <p>{{ challenge.description }}</p>
+                </div>
             </div>
-            
-            <button id="submit-button" class="submit-button">
-                Submit Flag
-            </button>
-            
-            <div id="message-container"></div>
             {% endif %}
-        </div>
 
-        <!-- Additional Resources or Files (if needed) -->
-        <div class="challenge-container">
-            <h2 class="text-xl font-bold mb-4">Resources</h2>
-            <p class="text-gray-300">
-                Use the CybICS system tools and your knowledge to solve this challenge. 
-                You may need to analyze logs, network traffic, or system configurations depending on the challenge type.
-            </p>
-            <div class="mt-4">
-                <a href="/" class="back-button" target="_top">Access System Tools →</a>
+            <!-- Flag Submission -->
+            <div class="submit-box" id="submit-section">
+                {% if solved %}
+                <h2>{% if challenge_type == 'defense' %}Defense Verified{% else %}Challenge Completed{% endif %}</h2>
+                <div class="msg msg-ok">
+                    <strong>&#127881; Challenge Completed!</strong> You earned {{ challenge.points }} points.
+                </div>
+                {% elif challenge_type == 'defense' %}
+                <h2>&#128737; Verify Defense</h2>
+                <p style="color:#999; font-size:0.9rem; margin-bottom:0.75rem;">Complete the defensive actions above, then verify your work.</p>
+                <button id="verify-button" class="verify-btn">&#128737; Verify Defense</button>
+                <div id="verify-results"></div>
+                <div id="message-container"></div>
+                {% else %}
+                <h2>Submit Flag</h2>
+                <input type="text" id="flag-input" class="flag-input" placeholder="CybICS(flag_here)" autocomplete="off">
+                <div class="flag-hint">Format: <code>CybICS(...)</code></div>
+                <button id="submit-button" class="submit-btn">Submit Flag</button>
+                <div id="message-container"></div>
+                {% endif %}
             </div>
-        </div>
-    </main>
-
-    <!-- Success Animation Modal -->
-    <div id="success-animation" class="success-animation">
-        <div class="fireworks" id="fireworks"></div>
-        <div class="success-content">
-            <div class="success-icon">🎉</div>
-            <div class="success-text">Challenge Completed!</div>
-            <div class="success-points" id="success-points">+{{ challenge.points }} points</div>
-            <div style="color: #ffffff;">Redirecting to CTF page...</div>
         </div>
     </div>
 
+    <!-- Success Animation -->
+    <div id="success-animation" class="success-overlay">
+        <div class="fireworks" id="fireworks"></div>
+        <div class="success-inner">
+            <div class="success-icon">&#127881;</div>
+            <div class="success-text">Challenge Completed!</div>
+            <div class="success-pts">+{{ challenge.points }} points</div>
+            <div style="color:#999; font-size:0.9rem;">Redirecting...</div>
+        </div>
+    </div>
+
+    <!-- highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
-        const challengeId = '{{ challenge.id }}';
-        const flagInput = document.getElementById('flag-input');
-        const submitButton = document.getElementById('submit-button');
-        const messageContainer = document.getElementById('message-container');
+    document.addEventListener('DOMContentLoaded', function() {
+        const content = document.getElementById('training-content');
+        if (!content) return;
 
-        function showMessage(message, isSuccess) {
-            messageContainer.innerHTML = `
-                <div class="message ${isSuccess ? 'success' : 'error'}">
-                    ${message}
-                </div>
-            `;
-        }
+        // ===== 1. Split content into sections by H2 headings =====
+        const children = Array.from(content.childNodes);
+        const sections = [];
+        let currentSection = null;
 
-        function showSuccessAnimation() {
-            const animation = document.getElementById('success-animation');
-            const fireworksContainer = document.getElementById('fireworks');
-            
-            // Show the animation
-            animation.classList.add('show');
-            
-            // Create fireworks
-            createFireworks(fireworksContainer);
-            
-            // Create confetti
-            createConfetti();
-        }
-
-        function createFireworks(container) {
-            for (let i = 0; i < 15; i++) {
-                setTimeout(() => {
-                    const firework = document.createElement('div');
-                    firework.className = 'firework';
-                    
-                    // Random position
-                    const x = Math.random() * window.innerWidth;
-                    const y = Math.random() * window.innerHeight;
-                    
-                    // Random direction and distance
-                    const dx = (Math.random() - 0.5) * 400;
-                    const dy = (Math.random() - 0.5) * 400;
-                    
-                    firework.style.left = x + 'px';
-                    firework.style.top = y + 'px';
-                    firework.style.setProperty('--dx', dx + 'px');
-                    firework.style.setProperty('--dy', dy + 'px');
-                    
-                    container.appendChild(firework);
-                    
-                    // Remove after animation
-                    setTimeout(() => {
-                        firework.remove();
-                    }, 1000);
-                }, i * 100);
+        children.forEach(node => {
+            if (node.nodeType === 1 && node.tagName === 'H2') {
+                if (currentSection) sections.push(currentSection);
+                currentSection = { heading: node.textContent.trim(), nodes: [node] };
+            } else if (node.nodeType === 1 && node.tagName === 'H1') {
+                // Skip H1 (title), add to current or create preamble
+                if (!currentSection) currentSection = { heading: '', nodes: [] };
+                // Don't add H1 to sections — it's redundant with the header
+            } else {
+                if (!currentSection) currentSection = { heading: '', nodes: [] };
+                currentSection.nodes.push(node);
             }
+        });
+        if (currentSection) sections.push(currentSection);
+
+        // Detect section type from heading text
+        function detectType(heading) {
+            const h = heading.toLowerCase();
+            if (h.includes('task')) return 'task';
+            if (h.includes('hint')) return 'hint';
+            if (h.includes('solution') || h.includes('flag:')) return 'solution';
+            if (h.includes('security framework') || h.includes('mitre') || h.includes('nist')) return 'security';
+            if (h.includes('overview') || h.includes('introduction')) return 'overview';
+            return '';
         }
 
-        function createConfetti() {
-            for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    
-                    // Random horizontal position
-                    confetti.style.left = Math.random() * window.innerWidth + 'px';
-                    confetti.style.animationDelay = Math.random() * 2 + 's';
-                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
-                    
-                    document.body.appendChild(confetti);
-                    
-                    // Remove after animation
-                    setTimeout(() => {
-                        confetti.remove();
-                    }, 5000);
-                }, i * 50);
-            }
+        // Determine which sections open by default
+        function shouldBeOpen(type, heading) {
+            if (type === 'task' || type === 'overview') return true;
+            if (type === 'hint' || type === 'solution' || type === 'security') return false;
+            // Default: open for content sections
+            return true;
         }
 
-        function submitFlag() {
-            const flag = flagInput.value.trim();
-            
-            if (!flag) {
-                showMessage('Please enter a flag', false);
+        // Build section cards
+        content.innerHTML = '';
+        const tocList = document.getElementById('toc-list');
+        const sectionEls = [];
+
+        sections.forEach((sec, i) => {
+            if (!sec.heading && sec.nodes.length === 0) return;
+
+            // If no heading, it's preamble — just append directly
+            if (!sec.heading) {
+                sec.nodes.forEach(n => content.appendChild(n));
                 return;
             }
 
-            submitButton.disabled = true;
-            submitButton.textContent = 'Submitting...';
+            const type = detectType(sec.heading);
+            const id = 'section-' + i;
+            const isOpen = shouldBeOpen(type, sec.heading);
 
-            fetch('/ctf/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    challenge_id: challengeId,
-                    flag: flag
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                showMessage(data.message, data.success);
-                
-                if (data.success) {
-                    flagInput.disabled = true;
-                    submitButton.textContent = 'Solved! ✓';
-                    showSuccessAnimation();
-                    setTimeout(() => {
-                        window.top.location.href = '/ctf';
-                    }, 4000);
-                } else {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Flag';
-                    flagInput.focus();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('An error occurred. Please try again.', false);
-                submitButton.disabled = false;
-                submitButton.textContent = 'Submit Flag';
+            // Create section card
+            const card = document.createElement('div');
+            card.className = 'tc-section' + (isOpen ? ' open' : '');
+            card.id = id;
+            if (type) card.dataset.type = type;
+
+            const header = document.createElement('div');
+            header.className = 'tc-section-header';
+            header.innerHTML = '<span class="tc-section-arrow">&#9654;</span><h2 class="tc-section-title" style="display:block !important;">' + sec.heading + '</h2>';
+            header.addEventListener('click', () => {
+                card.classList.toggle('open');
             });
-        }
 
-        if (submitButton) {
-            submitButton.addEventListener('click', submitFlag);
-        }
+            const body = document.createElement('div');
+            body.className = 'tc-section-body';
+            sec.nodes.forEach(n => { if (n.tagName !== 'H2') body.appendChild(n); });
 
-        if (flagInput) {
-            flagInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    submitFlag();
+            // Unwrap inner <details> for sections that already collapse via the card
+            // This prevents the double-expand problem
+            if (type === 'hint' || type === 'security' || type === 'solution') {
+                body.querySelectorAll(':scope > details, :scope > p > details').forEach(det => {
+                    // Move the inner content out, remove the details/summary wrapper
+                    const frag = document.createDocumentFragment();
+                    Array.from(det.children).forEach(child => {
+                        if (child.tagName !== 'SUMMARY') frag.appendChild(child);
+                    });
+                    det.replaceWith(frag);
+                });
+            }
+
+            card.appendChild(header);
+            card.appendChild(body);
+            content.appendChild(card);
+            sectionEls.push(card);
+
+            // Add to TOC
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.className = 'toc-link';
+            a.href = '#' + id;
+            // Clean emoji prefixes for shorter TOC labels
+            a.textContent = sec.heading.replace(/^[\u{1F300}-\u{1FFFE}\s]+/u, '').trim() || sec.heading;
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                card.classList.add('open');
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            li.appendChild(a);
+            tocList.appendChild(li);
+        });
+
+        // ===== 2. Scrollspy =====
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(l => l.classList.remove('active'));
+                    const link = document.querySelector('.toc-link[href="#' + entry.target.id + '"]');
+                    if (link) link.classList.add('active');
                 }
             });
+        }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+
+        sectionEls.forEach(el => observer.observe(el));
+
+        // ===== 3. Syntax highlighting + copy buttons + language labels =====
+        content.querySelectorAll('pre code').forEach(block => {
+            // Detect language
+            let lang = '';
+            block.classList.forEach(cls => {
+                if (cls.startsWith('language-')) lang = cls.replace('language-', '');
+            });
+
+            // Apply highlight.js
+            if (lang) {
+                block.classList.add('hljs');
+                try { hljs.highlightElement(block); } catch(e) {}
+            }
+
+            // Wrap pre in wrapper div
+            const pre = block.parentElement;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
+            pre.parentNode.insertBefore(wrapper, pre);
+
+            // Language bar with copy button
+            const bar = document.createElement('div');
+            bar.className = 'code-lang-bar';
+            bar.innerHTML = '<span class="code-lang-label">' + (lang || 'code') + '</span>';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(block.textContent).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
+                });
+            });
+            bar.appendChild(copyBtn);
+            wrapper.appendChild(bar);
+            wrapper.appendChild(pre);
+        });
+
+        // Also handle bare pre blocks (no language)
+        content.querySelectorAll('pre').forEach(pre => {
+            if (pre.parentElement.classList.contains('code-block-wrapper')) return;
+            const code = pre.querySelector('code');
+            if (!code) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
+            pre.parentNode.insertBefore(wrapper, pre);
+
+            const bar = document.createElement('div');
+            bar.className = 'code-lang-bar';
+            bar.innerHTML = '<span class="code-lang-label">code</span>';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(code.textContent).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
+                });
+            });
+            bar.appendChild(copyBtn);
+            wrapper.appendChild(bar);
+            wrapper.appendChild(pre);
+        });
+    });
+
+    // ===== Flag submission / Defense verification =====
+    const challengeId = '{{ challenge.id }}';
+    const challengeType = '{{ challenge_type }}';
+    const flagInput = document.getElementById('flag-input');
+    const submitButton = document.getElementById('submit-button');
+    const verifyButton = document.getElementById('verify-button');
+    const messageContainer = document.getElementById('message-container');
+
+    function showMsg(text, ok) {
+        if (!messageContainer) return;
+        messageContainer.innerHTML = '<div class="msg ' + (ok ? 'msg-ok' : 'msg-err') + '">' + text + '</div>';
+    }
+
+    function showSuccess() {
+        const el = document.getElementById('success-animation');
+        const fw = document.getElementById('fireworks');
+        el.classList.add('show');
+        for (let i = 0; i < 15; i++) {
+            setTimeout(() => {
+                const f = document.createElement('div');
+                f.className = 'firework';
+                f.style.left = Math.random()*innerWidth+'px';
+                f.style.top = Math.random()*innerHeight+'px';
+                f.style.background = '#ff6b00';
+                f.style.setProperty('--dx', (Math.random()-0.5)*400+'px');
+                f.style.setProperty('--dy', (Math.random()-0.5)*400+'px');
+                fw.appendChild(f);
+                setTimeout(() => f.remove(), 1000);
+            }, i*100);
         }
+        for (let i = 0; i < 40; i++) {
+            setTimeout(() => {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random()*innerWidth+'px';
+                c.style.background = '#ff6b00';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 4000);
+            }, i*50);
+        }
+    }
+
+    function submitFlag() {
+        const flag = flagInput.value.trim();
+        if (!flag) { showMsg('Please enter a flag', false); return; }
+        if (!/^CybICS\(.*\)$/.test(flag)) { showMsg('Format: <code>CybICS(...)</code>', false); return; }
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+        fetch('/ctf/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({challenge_id:challengeId, flag:flag}) })
+        .then(r => r.json()).then(d => {
+            showMsg(d.message, d.success);
+            if (d.success) { flagInput.disabled = true; submitButton.textContent = 'Solved!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
+            else { submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; flagInput.focus(); }
+        }).catch(() => { showMsg('Error. Try again.', false); submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; });
+    }
+
+    function verifyDefense() {
+        const results = document.getElementById('verify-results');
+        verifyButton.disabled = true;
+        verifyButton.innerHTML = '<span class="verify-spinner"></span> Verifying...';
+        results.innerHTML = '';
+        fetch('/ctf/verify/' + challengeId, { method:'POST', headers:{'Content-Type':'application/json'} })
+        .then(r => r.json()).then(d => {
+            if (d.checks && d.checks.length) {
+                let h = '';
+                d.checks.forEach(c => { h += '<div class="verify-check ' + (c.passed?'passed':'failed') + '">' + (c.passed?'&#9989;':'&#10060;') + ' <strong>' + c.name + '</strong>: ' + c.detail + '</div>'; });
+                results.innerHTML = h;
+            }
+            if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '&#9989; Verified!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
+            else { showMsg(d.message, false); verifyButton.disabled = false; verifyButton.innerHTML = '&#128737; Verify Defense'; }
+        }).catch(() => { showMsg('Error. Try again.', false); verifyButton.disabled = false; verifyButton.innerHTML = '&#128737; Verify Defense'; });
+    }
+
+    if (submitButton) { submitButton.addEventListener('click', submitFlag); }
+    if (verifyButton) { verifyButton.addEventListener('click', verifyDefense); }
+    if (flagInput) { flagInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitFlag(); }); }
     </script>
 </body>
 </html>

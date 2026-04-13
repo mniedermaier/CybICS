@@ -311,7 +311,7 @@ class Detector:
             }
         self.evasion_active = True
         self.evasion_start_time = time.time()
-        self.evasion_start_alert_count = self.stats["alerts_total"]
+        self.evasion_start_alert_id = self._alert_id
         self.evasion_modbus_writes = 0
         logger.info("Evasion challenge started")
         return {
@@ -329,7 +329,9 @@ class Detector:
             }
 
         elapsed = time.time() - self.evasion_start_time
-        new_alerts = self.stats["alerts_total"] - self.evasion_start_alert_count
+        # Count only attacker-relevant alerts (exclude background arp_spoof noise)
+        evasion_alerts = self.get_alerts(since_id=self.evasion_start_alert_id)
+        new_alerts = sum(1 for a in evasion_alerts if a.get("rule") != "arp_spoof")
 
         if elapsed > self.evasion_timeout:
             self.evasion_active = False
