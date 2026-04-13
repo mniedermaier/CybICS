@@ -18,6 +18,7 @@ from utils.logger import logger
 from modules.stats_collector import StatsCollector
 from modules.network_capture import NetworkCapture
 from modules.ctf_manager import CTFManager
+from modules.challenge_lifecycle import ChallengeLifecycleManager
 from modules.network_routes import register_network_routes
 
 # Initialize Flask application
@@ -42,9 +43,11 @@ logger.info('='*60)
 stats_collector = StatsCollector()
 network_capture = NetworkCapture()
 ctf_manager = CTFManager()
+lifecycle_manager = ChallengeLifecycleManager(ctf_manager)
 
 # Start background collection
-stats_collector.start()
+if os.environ.get('CYBICS_DISABLE_BACKGROUND_THREADS', '').lower() not in ('1', 'true', 'yes'):
+    stats_collector.start()
 
 # ========== UTILITY FUNCTIONS ==========
 
@@ -249,6 +252,24 @@ def verify_defense(challenge_id):
 
     return jsonify(result)
 
+@app.route('/api/ctf/challenge/<challenge_id>/status')
+def challenge_status(challenge_id):
+    """Get lifecycle status for a challenge"""
+    result, status_code = lifecycle_manager.get_status(challenge_id)
+    return jsonify(result), status_code
+
+@app.route('/api/ctf/challenge/<challenge_id>/start', methods=['POST'])
+def start_challenge_environment(challenge_id):
+    """Start lifecycle resources for a challenge"""
+    result, status_code = lifecycle_manager.start_challenge(challenge_id)
+    return jsonify(result), status_code
+
+@app.route('/api/ctf/challenge/<challenge_id>/stop', methods=['POST'])
+def stop_challenge_environment(challenge_id):
+    """Stop lifecycle resources for a challenge"""
+    result, status_code = lifecycle_manager.stop_challenge(challenge_id)
+    return jsonify(result), status_code
+
 @app.route('/ctf/submit', methods=['POST'])
 def submit_flag():
     """Submit a CTF flag for validation"""
@@ -273,6 +294,21 @@ def submit_flag():
             'total_points': session['total_points']
         }
         ctf_manager.save_progress(progress)
+
+        challenge, _ = ctf_manager.get_challenge(challenge_id)
+        lifecycle_config = challenge.get('lifecycle', {}) if challenge else {}
+        if lifecycle_config.get('enabled'):
+            stop_result, stop_status_code = lifecycle_manager.stop_challenge(
+                challenge_id,
+                suppress_inactive_error=True
+            )
+            result['environment_stopped'] = stop_result.get('environment_stopped', False)
+            if stop_status_code >= 400 or not stop_result.get('success', False):
+                result['cleanup_error'] = stop_result.get('message')
+            elif stop_result.get('environment_stopped'):
+                result['cleanup_message'] = stop_result.get('message')
+        else:
+            result['environment_stopped'] = False
 
     return jsonify(result)
 

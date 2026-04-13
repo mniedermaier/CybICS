@@ -16,8 +16,19 @@
             margin: 0;
             line-height: 1.6;
         }
-        a { color: #ff6b00; }
-        a:hover { text-decoration: none; }
+
+        body.has-floating-lifecycle {
+            padding-bottom: 14rem;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b00;
+        }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1a1a1a; }
@@ -211,6 +222,208 @@
         .training-content li { margin-bottom: 0.4rem; }
         .training-content strong { color: #fff; }
         .training-content hr { border: none; border-top: 1px solid #383838; margin: 1.5rem 0; }
+
+        .message.info {
+            background-color: #1f2937;
+            border: 1px solid #3b82f6;
+            color: #bfdbfe;
+        }
+
+        .floating-lifecycle-shell {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 120;
+            padding: 1rem;
+            pointer-events: none;
+        }
+
+        .floating-lifecycle-bar {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(36, 36, 36, 0.96), rgba(24, 24, 24, 0.98));
+            border: 1px solid #404040;
+            border-radius: 1rem;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
+            pointer-events: auto;
+            overflow: hidden;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .floating-lifecycle-bar.stopped,
+        .floating-lifecycle-bar.failed {
+            border-color: rgba(255, 107, 0, 0.65);
+            box-shadow: 0 -12px 44px rgba(255, 107, 0, 0.14);
+        }
+
+        .floating-lifecycle-bar.failed {
+            border-color: rgba(239, 68, 68, 0.75);
+            box-shadow: 0 -12px 44px rgba(239, 68, 68, 0.16);
+        }
+
+        .floating-lifecycle-bar.running {
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
+        .floating-lifecycle-inner {
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .floating-lifecycle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .floating-lifecycle-title {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .floating-lifecycle-title h2 {
+            margin: 0;
+        }
+
+        .floating-lifecycle-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #ff9a52;
+        }
+
+        .floating-lifecycle-description {
+            color: #d1d5db;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .floating-lifecycle-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .floating-lifecycle-toggle {
+            background: transparent;
+            border: 1px solid #606060;
+            color: #d1d5db;
+            border-radius: 999px;
+            padding: 0.45rem 0.8rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .floating-lifecycle-toggle:hover {
+            border-color: #ff6b00;
+            color: #ff6b00;
+        }
+
+        .floating-lifecycle-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .floating-lifecycle-bar.compact .floating-lifecycle-content {
+            display: none;
+        }
+
+        .floating-lifecycle-warning {
+            background-color: rgba(255, 107, 0, 0.1);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            color: #ffd7bd;
+            border-radius: 0.75rem;
+            padding: 0.9rem 1rem;
+            line-height: 1.5;
+        }
+
+        .floating-lifecycle-bar.running .floating-lifecycle-warning {
+            display: none;
+        }
+
+        .lifecycle-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .secondary-button {
+            background-color: transparent;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.375rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .secondary-button:hover {
+            background-color: #ff6b00;
+            color: #1a1a1a;
+        }
+
+        .secondary-button:disabled {
+            border-color: #606060;
+            color: #606060;
+            cursor: not-allowed;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .status-pill.running {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .status-pill.starting,
+        .status-pill.stopping {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .status-pill.failed {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .status-pill.stopped,
+        .status-pill.unsupported {
+            background-color: rgba(107, 114, 128, 0.2);
+            color: #d1d5db;
+        }
+
+        /* Code block styling */
+        .training-content pre {
+            background-color: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
 
         /* Inline code */
         .training-content code {
@@ -515,9 +728,57 @@
             .toc-link.active { border-left: none; border-bottom-color: #ff6b00; }
             header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
         }
+
+
+        @media (max-width: 900px) {
+            body.has-floating-lifecycle {
+                padding-bottom: 18rem;
+            }
+
+            .floating-lifecycle-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .floating-lifecycle-meta {
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body.has-floating-lifecycle {
+                padding-bottom: 20rem;
+            }
+
+            .floating-lifecycle-shell {
+                padding: 0.75rem;
+            }
+
+            .floating-lifecycle-inner {
+                padding: 0.9rem;
+            }
+
+            .lifecycle-actions {
+                flex-direction: column;
+            }
+
+            .submit-button,
+            .secondary-button {
+                width: 100%;
+            }
+
+            .floating-lifecycle-meta {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .floating-lifecycle-toggle {
+                width: 100%;
+            }
+        }
     </style>
 </head>
-<body>
+<body{% if challenge.lifecycle and challenge.lifecycle.enabled %} class="has-floating-lifecycle"{% endif %}>
     <!-- Header -->
     <header>
         <div class="header-left">
@@ -604,6 +865,40 @@
             <div style="color:#999; font-size:0.9rem;">Redirecting...</div>
         </div>
     </div>
+
+    {% if challenge.lifecycle and challenge.lifecycle.enabled %}
+    <div class="floating-lifecycle-shell">
+        <div id="floating-lifecycle-bar" class="floating-lifecycle-bar stopped">
+            <div class="floating-lifecycle-inner">
+                <div class="floating-lifecycle-header">
+                    <div class="floating-lifecycle-title">
+                        <span class="floating-lifecycle-eyebrow">Required Setup</span>
+                        <h2 class="text-xl font-bold">{{ challenge.lifecycle.display_name or 'Challenge Environment' }}</h2>
+                        <p id="floating-lifecycle-description" class="floating-lifecycle-description">
+                            Start the challenge environment before searching for the flag. After a correct flag submission, the environment will be stopped automatically.
+                        </p>
+                    </div>
+                    <div class="floating-lifecycle-meta">
+                        <span id="lifecycle-status-pill" class="status-pill stopped">Stopped</span>
+                        <button id="lifecycle-toggle-button" class="floating-lifecycle-toggle" type="button" aria-expanded="true">
+                            Collapse Details
+                        </button>
+                    </div>
+                </div>
+                <div id="floating-lifecycle-content" class="floating-lifecycle-content">
+                    <div id="floating-lifecycle-warning" class="floating-lifecycle-warning">
+                        Start the challenge environment before you begin searching for the flag. Otherwise the required challenge services may not be available yet.
+                    </div>
+                    <div class="lifecycle-actions">
+                        <button id="start-environment-button" class="submit-button">Start Challenge Environment</button>
+                        <button id="stop-environment-button" class="secondary-button">Stop Challenge Environment</button>
+                    </div>
+                    <div id="lifecycle-message-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- highlight.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -807,17 +1102,156 @@
     // ===== Flag submission / Defense verification =====
     const challengeId = '{{ challenge.id }}';
     const challengeType = '{{ challenge_type }}';
-    const flagInput = document.getElementById('flag-input');
+    const challengeLifecycle = {{ (challenge.lifecycle if challenge.lifecycle else none) | tojson }};
+        const flagInput = document.getElementById('flag-input');
     const submitButton = document.getElementById('submit-button');
     const verifyButton = document.getElementById('verify-button');
     const messageContainer = document.getElementById('message-container');
+        const floatingLifecycleBar = document.getElementById('floating-lifecycle-bar');
+        const floatingLifecycleDescription = document.getElementById('floating-lifecycle-description');
+        const floatingLifecycleWarning = document.getElementById('floating-lifecycle-warning');
+        const lifecycleToggleButton = document.getElementById('lifecycle-toggle-button');
+        const lifecycleMessageContainer = document.getElementById('lifecycle-message-container');
+        const lifecycleStatusPill = document.getElementById('lifecycle-status-pill');
+        const startEnvironmentButton = document.getElementById('start-environment-button');
+        const stopEnvironmentButton = document.getElementById('stop-environment-button');
+        let lifecycleExpanded = true;
+        let lifecycleStatus = 'stopped';
 
     function showMsg(text, ok) {
         if (!messageContainer) return;
         messageContainer.innerHTML = '<div class="msg ' + (ok ? 'msg-ok' : 'msg-err') + '">' + text + '</div>';
     }
 
-    function showSuccess() {
+    function showLifecycleMessage(message, level = 'info') {
+            if (!lifecycleMessageContainer) {
+                return;
+            }
+
+            lifecycleMessageContainer.innerHTML = `
+                <div class="message ${level}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function updateLifecycleLayout() {
+            if (!floatingLifecycleBar || !challengeLifecycle || !challengeLifecycle.enabled) {
+                return;
+            }
+
+            const shouldForceExpanded = lifecycleStatus === 'stopped'
+                || lifecycleStatus === 'failed'
+                || lifecycleStatus === 'starting'
+                || lifecycleStatus === 'stopping';
+
+            const isExpanded = shouldForceExpanded || lifecycleExpanded;
+            floatingLifecycleBar.classList.toggle('compact', !isExpanded);
+
+            if (lifecycleToggleButton) {
+                lifecycleToggleButton.style.display = lifecycleStatus === 'running' ? 'inline-flex' : 'none';
+                lifecycleToggleButton.textContent = isExpanded ? 'Collapse Details' : 'Show Details';
+                lifecycleToggleButton.setAttribute('aria-expanded', String(isExpanded));
+            }
+
+            if (floatingLifecycleDescription) {
+                if (lifecycleStatus === 'running') {
+                    floatingLifecycleDescription.textContent = 'Challenge environment is running. Keep it visible here or expand for controls and recent status messages.';
+                } else if (lifecycleStatus === 'failed') {
+                    floatingLifecycleDescription.textContent = 'Challenge environment failed to start or stop correctly. Review the error below before continuing.';
+                } else if (lifecycleStatus === 'starting' || lifecycleStatus === 'stopping') {
+                    floatingLifecycleDescription.textContent = 'Challenge environment state is changing. Wait until the setup has completed before proceeding.';
+                } else {
+                    floatingLifecycleDescription.textContent = 'Start the challenge environment before searching for the flag. After a correct flag submission, the environment will be stopped automatically.';
+                }
+            }
+
+            if (floatingLifecycleWarning) {
+                floatingLifecycleWarning.style.display = lifecycleStatus === 'running' ? 'none' : 'block';
+            }
+        }
+
+        function setLifecycleStatus(status, message) {
+            if (!lifecycleStatusPill) {
+                return;
+            }
+
+            const normalizedStatus = status || 'stopped';
+            lifecycleStatus = normalizedStatus;
+            lifecycleStatusPill.className = `status-pill ${normalizedStatus}`;
+            lifecycleStatusPill.textContent = normalizedStatus;
+
+            if (floatingLifecycleBar) {
+                floatingLifecycleBar.className = `floating-lifecycle-bar ${normalizedStatus}`;
+            }
+
+            if (startEnvironmentButton) {
+                startEnvironmentButton.disabled = normalizedStatus === 'starting' || normalizedStatus === 'running';
+                startEnvironmentButton.textContent = normalizedStatus === 'starting'
+                    ? 'Starting...'
+                    : 'Start Challenge Environment';
+            }
+
+            if (stopEnvironmentButton) {
+                stopEnvironmentButton.disabled = normalizedStatus === 'stopping' || normalizedStatus === 'stopped';
+                stopEnvironmentButton.textContent = normalizedStatus === 'stopping'
+                    ? 'Stopping...'
+                    : 'Stop Challenge Environment';
+            }
+
+            if (message) {
+                const level = normalizedStatus === 'failed' ? 'error' : 'info';
+                showLifecycleMessage(message, level);
+            }
+
+            if (normalizedStatus === 'running') {
+                lifecycleExpanded = false;
+            } else {
+                lifecycleExpanded = true;
+            }
+
+            updateLifecycleLayout();
+        }
+
+        async function loadLifecycleStatus() {
+            if (!challengeLifecycle || !challengeLifecycle.enabled) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/ctf/challenge/${challengeId}/status`);
+                const data = await response.json();
+                setLifecycleStatus(data.status, data.last_error || data.message);
+            } catch (error) {
+                console.error('Lifecycle status error:', error);
+                setLifecycleStatus('failed', 'Failed to load challenge environment status.');
+            }
+        }
+
+        async function changeLifecycleState(action) {
+            if (!challengeLifecycle || !challengeLifecycle.enabled) {
+                return;
+            }
+
+            const optimisticStatus = action === 'start' ? 'starting' : 'stopping';
+            setLifecycleStatus(optimisticStatus);
+
+            try {
+                const response = await fetch(`/api/ctf/challenge/${challengeId}/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                setLifecycleStatus(data.status, data.last_error || data.message);
+            } catch (error) {
+                console.error(`Lifecycle ${action} error:`, error);
+                setLifecycleStatus('failed', `Failed to ${action} challenge environment.`);
+            }
+        }
+
+        function showSuccess() {
         const el = document.getElementById('success-animation');
         const fw = document.getElementById('fireworks');
         el.classList.add('show');
@@ -854,10 +1288,35 @@
         submitButton.textContent = 'Submitting...';
         fetch('/ctf/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({challenge_id:challengeId, flag:flag}) })
         .then(r => r.json()).then(d => {
-            showMsg(d.message, d.success);
-            if (d.success) { flagInput.disabled = true; submitButton.textContent = 'Solved!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
-            else { submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; flagInput.focus(); }
-        }).catch(() => { showMsg('Error. Try again.', false); submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; });
+            let message = d.message;
+            if (d.cleanup_message) {
+                message += `<br>${d.cleanup_message}`;
+            } else if (d.cleanup_error) {
+                message += `<br>Cleanup warning: ${d.cleanup_error}`;
+            }
+
+            showMsg(message, d.success);
+            if (d.success) {
+                flagInput.disabled = true;
+                submitButton.textContent = 'Solved!';
+                if (challengeLifecycle && challengeLifecycle.enabled) {
+                    setLifecycleStatus(
+                        d.environment_stopped ? 'stopped' : 'failed',
+                        d.cleanup_error || d.cleanup_message || 'Challenge solved. Environment stop triggered automatically.'
+                    );
+                }
+                showSuccess();
+                setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000);
+            } else {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Flag';
+                flagInput.focus();
+            }
+        }).catch(() => {
+            showMsg('Error. Try again.', false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit Flag';
+        });
     }
 
     function verifyDefense() {
@@ -879,7 +1338,25 @@
 
     if (submitButton) { submitButton.addEventListener('click', submitFlag); }
     if (verifyButton) { verifyButton.addEventListener('click', verifyDefense); }
+    if (startEnvironmentButton) {
+        startEnvironmentButton.addEventListener('click', function() {
+            changeLifecycleState('start');
+        });
+    }
+    if (stopEnvironmentButton) {
+        stopEnvironmentButton.addEventListener('click', function() {
+            changeLifecycleState('stop');
+        });
+    }
+    if (lifecycleToggleButton) {
+        lifecycleToggleButton.addEventListener('click', function() {
+            lifecycleExpanded = !lifecycleExpanded;
+            updateLifecycleLayout();
+        });
+    }
     if (flagInput) { flagInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitFlag(); }); }
+    loadLifecycleStatus();
+    updateLifecycleLayout();
     </script>
 </body>
 </html>
