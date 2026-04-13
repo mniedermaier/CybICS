@@ -1,0 +1,28 @@
+services:
+  router:
+    image: cybics-openwrt-router:${CYBICS_VERSION:-latest}
+    build:
+      context: .
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      ext_net:
+        ipv4_address: 172.19.0.2
+      virt-cybics:
+        ipv4_address: 172.18.0.254
+
+networks:
+  ext_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: cybics-ext-net
+    ipam:
+      config:
+        - subnet: 172.19.0.0/24
+  virt-cybics:
+    external: true
+    name: virtual_virt-cybics

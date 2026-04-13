@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# 1. OpenWrt Default-Müll rigoros killen!
+uci delete network.lan
+uci delete network.wan
+uci delete network.wan6
+
+# 2. WAN sauber neu aufbauen (eth0)
+uci set network.wan=interface
+uci set network.wan.device='eth0'
+uci set network.wan.proto='static'
+uci set network.wan.ipaddr='172.19.0.2'
+uci set network.wan.netmask='255.255.255.0'
+
+# 3. LAN sauber neu aufbauen (eth1)
+uci set network.lan=interface
+uci set network.lan.device='eth1'
+uci set network.lan.proto='static'
+uci set network.lan.ipaddr='172.18.0.254'
+uci set network.lan.netmask='255.255.255.0'
+
+# 4. QEMU SSH-Interface (eth2)
+uci set network.qemu=interface
+uci set network.qemu.device='eth2'
+uci set network.qemu.proto='dhcp'
+
+uci commit network
+
+# Firewall für SSH und Durchleitung öffnen
+uci add_list firewall.@zone[0].network='qemu'
+uci set firewall.@zone[0].input='ACCEPT'
+uci set firewall.@zone[0].forward='ACCEPT'
+uci set firewall.@zone[1].input='ACCEPT'
+uci set firewall.@zone[1].forward='ACCEPT'
+uci commit firewall
+
+(echo "password"; echo "password") | passwd root
