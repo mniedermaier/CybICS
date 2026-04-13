@@ -111,18 +111,38 @@ Look for:
 ## 🔄 Phase 3: Update Mechanism Analysis
 
 ### 🔍 Task
-Understand how updates work.
+Deep dive into the update server behavior after you discover its host.
+
+- Interact with the server directly
+- Map reachable web/API paths
+- Reconstruct the firmware download flow end-to-end
+
+### 🎯 Goal
+Build a clear model of how a device asks for, receives, and validates firmware from the update server.
 
 ### 🎯 Questions to answer
-- Where is firmware downloaded from?
-- How is version checked?
-- Is integrity verified?
+- Which endpoint starts the update check?
+- Which request fields influence version selection?
+- Which endpoint returns metadata vs. the binary itself?
+- What headers, status codes, and content types are used?
+- Is there any signature/hash/integrity mechanism in the exchange?
 
 ### 💡 Hint
-Check:
-- URLs
-- Headers
-- Version numbers
+After identifying the update host, do endpoint discovery instead of guessing paths manually.
+
+Use a content-discovery wordlist (for example from SecLists):
+`https://github.com/danielmiessler/SecLists/tree/master/Discovery/Web-Content`
+
+Start with focused fuzzing and inspect interesting responses:
+```bash
+export UPDATE_HOST="http://<update-server-ip-or-name>"
+ffuf -u "$UPDATE_HOST/FUZZ" -w /path/to/SecLists/Discovery/Web-Content/combined.txt -e .json -v
+```
+
+Prioritize findings that look like:
+- API schemas or interactive docs
+- Version/check/update routes
+- Download endpoints returning `application/octet-stream` or similar
 
 ---
 
