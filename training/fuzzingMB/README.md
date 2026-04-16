@@ -27,6 +27,18 @@ There are different approaches to network fuzzing:
 - **📖 Protocol Complexity** – Some protocols require deep understanding
 - **⚖️ Legal and Ethical Considerations** – Unauthorized fuzzing can violate laws
 
+## 🎯 Task
+The target for this exercise is the **OpenPLC Modbus service running on port 502**. Your goal is to run the Modbus fuzzer against the PLC's Modbus port to test how the device handles malformed or unexpected Modbus/TCP messages. After completing the fuzzing exercise, you will receive the flag.
+
+The flag has the format `CybICS(flag)`.
+
+### Steps
+1. Clone the Modbus fuzzer repository
+2. Install Python dependencies with pip
+3. Run the fuzzer against the OpenPLC Modbus service on port 502
+4. Select a fuzzing mode from the menu and let the fuzzer run to completion
+5. Retrieve the flag after completing the fuzzing exercise
+
 ## 🚀 Using the Modbus Fuzzer
 
 ### 🔧 Setup Steps
@@ -115,14 +127,13 @@ Grab a coffee ☕☕☕☕ while the fuzzer runs
 
 </details>
 
+
+## 💡 Hints
+
+Run the fuzzer with `python3 modbus_fuzzer.py`, enter the target IP and port 502 when prompted, then select option 1 from the interactive menu to fuzz all function codes.
+
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
+After completion, use the following flag:
 
-  After completion, use the following flag:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(modbus_fuzzing_complete)
-  </div>
-
-</details>
+**Flag:** `CybICS(modbus_fuzzing_complete)`

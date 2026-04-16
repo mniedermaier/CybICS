@@ -29,12 +29,27 @@ This guide covers how to connect to the CybICS micro controller using UART (Univ
 3. Common picocom commands:
    - `Ctrl+A Ctrl+X`: Exit picocom
 
-## 🎯 Find the Flag
+## 🎯 Task
 The flag has the format `CybICS(flag)`.
 
-**💡 Hint**: The flag appears after successful login on the UART.
+### Steps
+1. Connect to the CybICS Raspberry Pi via SSH
+2. Install picocom if not already available
+3. Connect to the UART interface using picocom at 115200 baud on /dev/serial0
+4. Observe the login prompt on the UART console
+5. Run the brute-force script to discover the 3-character lowercase password
+6. Log in with the discovered password to retrieve the flag
 
-**🔑 Password Hint**: The password is 3 characters long and contains only out of lowercase letters.
+The flag appears after a successful login on the UART console. When you connect via picocom, you will be presented with a login prompt that requires a password.
+
+### Password Constraints
+- The password is **3 characters long**
+- It contains **only lowercase letters** (a-z)
+
+This means there are only 26^3 = 17,576 possible combinations, making brute-forcing a viable approach.
+
+### Brute-Force Approach
+Given the small keyspace, you can automate the login attempts using the provided `bruteforce_login.py` script, which systematically tries all lowercase 3-character combinations over the serial connection. At approximately 1-2 passwords per second, expect the process to take up to a few hours in the worst case.
 
 ## 🛡️ Security Framework References
 
@@ -71,12 +86,14 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
+
+## 💡 Hints
+
+Run `python3 bruteforce_login.py /dev/serial0 3 3` to brute-force the 3-character lowercase password over the UART serial connection.
+
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  Run the script:
+Run the script:
   ```bash
   python3 bruteforce_login.py /dev/serial0 3 3
   ```
@@ -97,7 +114,4 @@ The flag has the format `CybICS(flag)`.
    2025-06-05 14:27:33 - INFO - Disconnected
   ```
 
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(U#RT)
-  </div>
-</details>
+**Flag:** `CybICS(U#RT)`

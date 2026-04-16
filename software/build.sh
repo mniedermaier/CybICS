@@ -58,5 +58,7 @@ build_image "cybics-fuxa" "./FUXA"
 build_image "cybics-stm32" "./stm32"
 # Build landing service from root context
 build_image "cybics-landing" ".." "./landing/Dockerfile"
+build_image "cybics-nginx-proxy" "./nginx-proxy"
+build_image "cybics-ids" "./ids"
 
 # Note: Builder automatically switches back to default on EXIT via trap

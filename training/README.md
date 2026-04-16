@@ -35,6 +35,23 @@ All training modules are mapped to industry-standard security frameworks to help
 | [UART Training](uart_basic/README.md) | Initial Access | Default Credentials, External Remote Services | T0812, T0822 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
 | [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
+| [Credential Hardening](defense_password/README.md) | *Defensive* | D3FEND: Strong Password Policy, Credential Rotation | D3-SPP |
+| [Modbus Firewall](defense_firewall/README.md) | *Defensive* | D3FEND: Inbound Traffic Filtering, Network Traffic Filtering | D3-ITF, D3-NTF |
+| [Network Segmentation](defense_network/README.md) | *Defensive* | D3FEND: Network Isolation | D3-NI |
+| [IDS Monitoring](defense_ids/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA, D3-PMAD |
+| [IDS Challenge](ids_challenge/README.md) | Discovery, Impair Process Control | Remote System Discovery, Denial of Service, Unauthorized Command Message | T0846, T0814, T0855 |
+| [IDS Evasion](ids_evasion/README.md) | Impair Process Control, Evasion | Unauthorized Command Message, Exploitation of Remote Services, Manipulation of Control | T0855, T0866, T0831 |
+| [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Alert Triage | D3-NTA, D3-AT |
+
+## 📦 Prerequisites
+
+Install the Python dependencies for all training modules:
+
+```bash
+pip install -r training/requirements.txt
+```
+
+Alternatively, each training module has its own `requirements.txt` if you only want dependencies for a specific exercise.
 
 ## 📚 Training Modules
 
@@ -58,6 +75,17 @@ All training modules are mapped to industry-standard security frameworks to help
 11. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
 12. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
 13. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+
+### 🔍 IDS Challenges
+14. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+15. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+16. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+
+### 🛡️ Defense & Hardening
+17. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+18. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+19. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+20. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

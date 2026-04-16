@@ -17,7 +17,36 @@ To maximize security, network scans should be conducted periodically and after a
 - 🔐 Use a VPN or secure network when scanning remote devices
 
 ## 🛠️ Using Nmap
-To identify open ports and services within the CybICS testbed you can use nmap. Your goal is to perform service version detection to discover the flag hidden in a service banner.
+To identify open ports and services within the CybICS testbed you can use nmap. Nmap (Network Mapper) is an open-source tool for network discovery and security auditing.
+
+### Service Version Detection with `-sV`
+One of nmap's most powerful features is **service version detection**, enabled with the `-sV` flag. When you run `nmap -sV <target>`, nmap doesn't just check which ports are open — it actively probes each open port and analyzes the responses to determine:
+- What **service** is running (HTTP, Modbus, SSH, etc.)
+- The **version** of that service
+- The **service banner** — a text string the service returns to identify itself
+
+The basic syntax is:
+```bash
+nmap -sV $DEVICE_IP
+```
+
+### Flags Hidden in Service Banners
+In ICS environments, services expose identification information through **banners** and **headers**. For example, an HTTP server includes a `Server` header in its responses that identifies the web server software. These banners can reveal detailed system information — and in a CTF context, flags can be embedded in these service banners and HTTP headers.
+
+When performing service version detection, pay close attention to any unusual or non-standard version strings in the scan results, as these may contain valuable information.
+
+## 🎯 Task
+Your goal is to perform service version detection against the CybICS testbed using nmap's `-sV` flag and discover the flag hidden in a service banner.
+
+### Steps
+1. Run nmap with the `-sV` flag against the target device to perform service version detection:
+   ```bash
+   nmap -sV $DEVICE_IP
+   ```
+2. Examine the scan output and look at the service banners and version strings reported for each open port.
+3. Look for the flag embedded in an HTTP service banner or header. Pay close attention to any unusual or non-standard version strings.
+
+The flag has the format `CybICS(flag)`.
 
 ## 🛡️ Security Framework References
 
@@ -53,12 +82,14 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
 
 </details>
 
+
+## 💡 Hints
+
+Pay attention to the HTTP server banner on port 80.
+
 ## 🔍 Solution
 
-<details>
-  <summary><span style="color:orange;font-weight: 900">Click to expand</span></summary>
-
-  Execute the following nmap command to perform service version detection:
+Execute the following nmap command to perform service version detection:
   ```sh
   nmap -sV $DEVICE_IP
   ```
@@ -91,7 +122,7 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
   This is the flag! The `-sV` flag triggers nmap to perform service version detection by connecting to the HTTP service and reading the Server header, which has been configured to contain the CTF flag.
 
   ### 🔎 Port Analysis
-  - **80/tcp**: HTTP service - Landing page with flag in Server header 🚩
+  - **80/tcp**: HTTP service - Landing page with flag in Server header
   - **102/tcp**: S7 Communication (S7comm) - Siemens PLC communication protocol
   - **502/tcp**: Modbus TCP - Industrial device communication
   - **1881/tcp**: HTTP (Node.js Express) - Web application interface
@@ -102,7 +133,5 @@ To identify open ports and services within the CybICS testbed you can use nmap. 
 
 
   Submit the flag found in the service banner:
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(scanning_d0ne)
-  </div>
-</details>
+
+**Flag:** `CybICS(scanning_d0ne)`

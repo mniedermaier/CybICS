@@ -51,7 +51,7 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --mode <mode>    - Specify startup mode (default: full)"
-    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing)"
+    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing, TLS Proxy)"
     echo "                     full      - All services including AI Agent, Engineering WS, Attack Machine"
     echo "                     withoutai - All services except AI Agent"
     echo "  --version <tag>  - Specify Docker image version tag (default: latest)"
@@ -212,6 +212,7 @@ display_services() {
     print_message "CybICS virtual environment started successfully!" "$GREEN"
     print_message "\nAvailable services:" "$YELLOW"
     print_message "Landing page: http://localhost:80" "$GREEN"
+    print_message "Landing page (TLS): https://localhost:443" "$GREEN"
     print_message "OpenPLC: http://localhost:8080" "$GREEN"
     print_message "FUXA: http://localhost:1881" "$GREEN"
     print_message "HWIO: http://localhost:8090" "$GREEN"
@@ -238,7 +239,14 @@ start_environment() {
         exit 1
     }
 
-    # Capture both stdout and stderr
+    # Pull images first with visible progress
+    print_message "Pulling Docker images (this may take a while on first run)..." "$YELLOW"
+    if ! $DOCKER_COMPOSE pull; then
+        print_message "Warning: Some images could not be pulled. Continuing with available images..." "$YELLOW"
+    fi
+
+    # Start containers (capture output for error handling)
+    print_message "Starting containers..." "$YELLOW"
     local output
     output=$($DOCKER_COMPOSE up -d 2>&1)
     local exit_code=$?

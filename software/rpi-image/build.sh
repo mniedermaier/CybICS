@@ -117,6 +117,8 @@ CONTAINERS=(
     "cybics-fuxa"
     "cybics-landing"
     "cybics-stm32"
+    "cybics-nginx-proxy"
+    "cybics-ids"
 )
 
 # Step 1: Build ARM64 containers (unless skipped)

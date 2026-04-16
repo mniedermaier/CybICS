@@ -161,6 +161,37 @@ services:
       - ai
       - full
 
+  nginx-proxy:
+    image: mniedermaier1337/cybics-nginx-proxy:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/nginx-proxy
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 443:443
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+
+  ids:
+    image: mniedermaier1337/cybics-ids:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/ids
+      dockerfile: Dockerfile
+    restart: always
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - openplc
+
+volumes:
+  nginx-certs:
+
 networks:
   virt-cybics:
     driver: bridge
