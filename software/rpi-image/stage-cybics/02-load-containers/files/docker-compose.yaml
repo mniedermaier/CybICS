@@ -94,6 +94,30 @@ services:
       br-cybics:
         ipv4_address: 172.18.0.7
 
+  nginx-proxy:
+    image: cybics-nginx-proxy:latest
+    restart: always
+    mem_limit: 32m
+    ports:
+      - 443:443
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+
+  ids:
+    image: cybics-ids:latest
+    restart: always
+    mem_limit: 32m
+    depends_on:
+    - openplc
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+
 networks:
   br-cybics:
     name: br-cybics
@@ -108,3 +132,4 @@ networks:
 
 volumes:
   fuxa_data:
+  nginx-certs:
