@@ -42,6 +42,9 @@ def initialize_knowledge_base():
     so collection is initialized once per worker (not shared between workers).
     This is fine - each worker gets its own ChromaDB client and collection.
     The lock ensures thread-safety within a single worker process.
+    
+    The sentence transformer model is downloaded on first use (lazy loading)
+    to avoid long startup times and large Docker images.
     """
     global collection
 
@@ -53,7 +56,7 @@ def initialize_knowledge_base():
         if collection is not None:
             return
 
-        logger.info("Creating fresh knowledge base from mounted volumes...")
+        logger.info("Initializing knowledge base (sentence transformer will download on first use)...")
 
         try:
             chroma_client.delete_collection(name=COLLECTION_NAME)

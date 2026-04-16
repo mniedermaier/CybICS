@@ -53,8 +53,14 @@ MAX_SESSIONS = 50
 MAX_HISTORY_LARGE_MODEL = 20
 MAX_HISTORY_SMALL_MODEL = 6
 
-# Models considered "small" (limited context window)
-SMALL_MODELS = []
+# Models considered "small" (limited context window or low VRAM)
+# These use a reduced history limit to save memory
+SMALL_MODELS = [
+    'tinyllama',
+    'phi3:mini',
+    'llama3.2:3b',
+    'qwen2.5:3b',
+]
 
 
 def current_model() -> str:

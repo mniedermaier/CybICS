@@ -168,11 +168,11 @@ Sessions are maintained in-memory with automatic cleanup:
 
 | Model | Size | Quality | Tool Calling | Notes |
 |-------|------|---------|-------------|-------|
-| tinyllama | 600MB | 2/5 | Keyword only | Fast, low resource |
-| phi3:mini | 2.3GB | 4/5 | Native | **Recommended** |
+| phi3:mini | 2.3GB | 4/5 | Native | **Default / Recommended** |
 | llama3.2:3b | 2GB | 4/5 | Native | Great balance |
 | mistral:7b | 4.1GB | 5/5 | Native | High quality |
 | llama3.1:8b | 4.7GB | 5/5 | Native | Best quality |
+| tinyllama | 600MB | 2/5 | Keyword only | Legacy, low resource |
 
 Change models via the Settings UI or:
 ```bash
@@ -187,7 +187,7 @@ curl -X POST http://localhost:5000/api/model -H 'Content-Type: application/json'
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OLLAMA_MODEL` | `tinyllama` | Default LLM model |
+| `OLLAMA_MODEL` | `phi3:mini` | Default LLM model |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `OPENPLC_HOST` | `172.18.0.3` | OpenPLC Modbus host |
 | `OPCUA_HOST` | `172.18.0.5` | OPC-UA server host |
@@ -200,13 +200,13 @@ curl -X POST http://localhost:5000/api/model -H 'Content-Type: application/json'
 
 ## Knowledge Base
 
-Dynamically loads documentation from mounted volumes at startup:
+Dynamically loads documentation from mounted volumes **on first use** (lazy loading for faster startup):
 
 - `/knowledge/training/` - Training module READMEs
 - `/knowledge/README.md` - Main CybICS README
 - `/knowledge/doc/` - Additional documentation
 
-Documents are split into 2000-character chunks and indexed with all-MiniLM-L6-v2 embeddings in ChromaDB.
+Documents are split into 2000-character chunks and indexed with all-MiniLM-L6-v2 embeddings in ChromaDB. The embedding model (~400MB) is downloaded automatically from HuggingFace on first use.
 
 ## Adding New Tools
 
