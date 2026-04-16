@@ -1,5 +1,6 @@
 """CybICS AI Agent - Tool registry and execution"""
 import logging
+import threading
 
 from tools.containers import get_container_status, restart_containers, get_container_logs
 from tools.system import get_system_stats, list_docker_images
@@ -207,31 +208,55 @@ def execute_tool(tool_name, parameters=None):
         return {'error': f'{tool_name} failed: {e}'}
 
 
-def get_ollama_tool_schemas():
-    """Convert AVAILABLE_TOOLS to Ollama-native tool call format."""
-    schemas = []
-    for name, tool_info in AVAILABLE_TOOLS.items():
-        properties = {}
-        required = []
-        for param_name, param_info in tool_info['parameters'].items():
-            prop = {
-                'type': param_info['type'],
-                'description': param_info['description'],
-            }
-            properties[param_name] = prop
-            if param_info.get('required'):
-                required.append(param_name)
+# Thread-safe cache for tool schemas
+_schemas_cache = None
+_cache_lock = threading.Lock()
 
-        schemas.append({
-            'type': 'function',
-            'function': {
-                'name': name,
-                'description': tool_info['description'],
-                'parameters': {
-                    'type': 'object',
-                    'properties': properties,
-                    'required': required,
+
+def get_ollama_tool_schemas():
+    """Convert AVAILABLE_TOOLS to Ollama-native tool call format. Thread-safe cached."""
+    global _schemas_cache
+    
+    # Double-checked locking for thread-safe caching
+    if _schemas_cache is not None:
+        return _schemas_cache
+    
+    with _cache_lock:
+        if _schemas_cache is not None:
+            return _schemas_cache
+        
+        schemas = []
+        for name, tool_info in AVAILABLE_TOOLS.items():
+            properties = {}
+            required = []
+            for param_name, param_info in tool_info['parameters'].items():
+                prop = {
+                    'type': param_info['type'],
+                    'description': param_info['description'],
                 }
-            }
-        })
-    return schemas
+                properties[param_name] = prop
+                if param_info.get('required'):
+                    required.append(param_name)
+
+            schemas.append({
+                'type': 'function',
+                'function': {
+                    'name': name,
+                    'description': tool_info['description'],
+                    'parameters': {
+                        'type': 'object',
+                        'properties': properties,
+                        'required': required,
+                    }
+                }
+            })
+        
+        _schemas_cache = schemas
+        return _schemas_cache
+
+
+def clear_tool_schemas_cache():
+    """Clear the tool schemas cache. Useful for testing or dynamic tool registration."""
+    global _schemas_cache
+    with _cache_lock:
+        _schemas_cache = None

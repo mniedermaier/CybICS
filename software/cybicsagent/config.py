@@ -1,5 +1,6 @@
 """CybICS AI Agent - Configuration"""
 import os
+import threading
 
 # Ollama settings
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'phi3:mini')
@@ -10,8 +11,11 @@ COLLECTION_NAME = "cybics_knowledge"
 CHUNK_MAX_CHARS = 2000
 RAG_RESULTS = 3
 
-# Global mutable state
-current_model = OLLAMA_MODEL
+# Thread-local storage for mutable state
+_local = threading.local()
+
+# Default model (immutable)
+DEFAULT_MODEL = OLLAMA_MODEL
 
 # Known CybICS container names (for keyword-based tool dispatch)
 CYBICS_CONTAINERS = [
@@ -53,14 +57,30 @@ MAX_HISTORY_SMALL_MODEL = 6
 SMALL_MODELS = []
 
 
-def model_supports_tools(model_name: str) -> bool:
+def current_model() -> str:
+    """Get the current model for this thread. Thread-safe."""
+    if not hasattr(_local, 'model'):
+        _local.model = DEFAULT_MODEL
+    return _local.model
+
+
+def set_current_model(model: str):
+    """Set the current model for this thread. Thread-safe."""
+    _local.model = model
+
+
+def model_supports_tools(model_name: str = None) -> bool:
     """Check if a model supports native Ollama tool calling."""
+    if model_name is None:
+        model_name = current_model()
     name = model_name.lower().split(':')[0]
     return any(name.startswith(prefix) for prefix in TOOL_CAPABLE_MODELS)
 
 
-def get_max_history(model_name: str) -> int:
+def get_max_history(model_name: str = None) -> int:
     """Get max conversation history length for a model."""
+    if model_name is None:
+        model_name = current_model()
     name = model_name.lower().split(':')[0]
     if any(name.startswith(s) for s in SMALL_MODELS):
         return MAX_HISTORY_SMALL_MODEL

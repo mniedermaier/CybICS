@@ -33,12 +33,12 @@ CORS(app)
 # Register all route handlers
 register_routes(app)
 
-# Initialize knowledge base (runs on import so gunicorn workers pick it up)
+# Initialize knowledge base (lazy - first request will trigger it)
 logger.info("Starting CybICS AI Agent v3.0.0...")
 logger.info(f"Using Ollama model: {config.OLLAMA_MODEL}")
 logger.info(f"Ollama host: {config.OLLAMA_HOST}")
 logger.info(f"Native tool calling: {config.model_supports_tools(config.OLLAMA_MODEL)}")
-initialize_knowledge_base()
+logger.info("Note: Knowledge base will be initialized on first use (lazy loading)")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

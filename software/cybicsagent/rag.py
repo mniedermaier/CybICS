@@ -2,6 +2,7 @@
 import os
 import re
 import logging
+import threading
 
 import chromadb
 from chromadb.utils import embedding_functions
@@ -12,43 +13,71 @@ logger = logging.getLogger(__name__)
 
 # Initialize ChromaDB
 chroma_client = chromadb.Client()
-sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
 
 # Global collection reference
 collection = None
+# Use RLock (reentrant) to allow nested lock acquisition within same thread
+_init_lock = threading.RLock()
+
+# Lazy initialization of embedding function (thread-safe via lock)
+_sentence_transformer_ef = None
+
+
+def _get_embedding_function():
+    """Lazy initialize sentence transformer embedding function with thread safety."""
+    global _sentence_transformer_ef
+    if _sentence_transformer_ef is None:
+        with _init_lock:
+            if _sentence_transformer_ef is None:
+                _sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+                    model_name="all-MiniLM-L6-v2"
+                )
+    return _sentence_transformer_ef
 
 
 def initialize_knowledge_base():
-    """Initialize the knowledge base with CybICS documentation."""
+    """Initialize the knowledge base with CybICS documentation. Thread-safe.
+    
+    Note: With gunicorn prefork, each worker process has its own memory space,
+    so collection is initialized once per worker (not shared between workers).
+    This is fine - each worker gets its own ChromaDB client and collection.
+    The lock ensures thread-safety within a single worker process.
+    """
     global collection
 
-    logger.info("Creating fresh knowledge base from mounted volumes...")
+    # Double-checked locking pattern for thread-safe lazy initialization
+    if collection is not None:
+        return
 
-    try:
-        chroma_client.delete_collection(name=COLLECTION_NAME)
-        logger.info("Deleted existing knowledge base")
-    except Exception:
-        pass
+    with _init_lock:
+        if collection is not None:
+            return
 
-    collection = chroma_client.create_collection(
-        name=COLLECTION_NAME,
-        embedding_function=sentence_transformer_ef
-    )
+        logger.info("Creating fresh knowledge base from mounted volumes...")
 
-    knowledge_base = _load_markdown_files('/knowledge')
+        try:
+            chroma_client.delete_collection(name=COLLECTION_NAME)
+            logger.info("Deleted existing knowledge base")
+        except Exception:
+            pass
 
-    if knowledge_base:
-        logger.info(f"Adding {len(knowledge_base)} documents to vector database...")
-        collection.add(
-            documents=[doc['content'] for doc in knowledge_base],
-            ids=[doc['id'] for doc in knowledge_base],
-            metadatas=[doc['metadata'] for doc in knowledge_base]
+        collection = chroma_client.create_collection(
+            name=COLLECTION_NAME,
+            embedding_function=_get_embedding_function()
         )
-        logger.info(f"Knowledge base initialized with {len(knowledge_base)} document chunks")
-    else:
-        logger.warning("No knowledge base documents found - check if volumes are mounted correctly")
+
+        knowledge_base = _load_markdown_files('/knowledge')
+
+        if knowledge_base:
+            logger.info(f"Adding {len(knowledge_base)} documents to vector database...")
+            collection.add(
+                documents=[doc['content'] for doc in knowledge_base],
+                ids=[doc['id'] for doc in knowledge_base],
+                metadatas=[doc['metadata'] for doc in knowledge_base]
+            )
+            logger.info(f"Knowledge base initialized with {len(knowledge_base)} document chunks")
+        else:
+            logger.warning("No knowledge base documents found - check if volumes are mounted correctly")
 
 
 def query_knowledge_base(question, n_results=None, max_distance=1.2):

@@ -1,6 +1,7 @@
 """CybICS AI Agent - ICS-specific tools (Modbus, OPC-UA, IDS)"""
 import asyncio
 import logging
+import os
 
 import requests
 
@@ -8,6 +9,9 @@ from config import (OPENPLC_HOST, MODBUS_PORT, OPCUA_HOST, OPCUA_PORT,
                     IDS_HOST, IDS_PORT, HWIO_HOST, HWIO_PORT)
 
 logger = logging.getLogger(__name__)
+
+# OPC-UA browse configuration
+OPCUA_MAX_CHILDREN = int(os.getenv('OPCUA_MAX_CHILDREN', '50'))
 
 
 def read_modbus_registers(register_type='holding', address=0, count=10):
@@ -98,7 +102,7 @@ def read_opcua_nodes(node_id=None, action='browse'):
                     children = await node.get_children()
                     total_children = len(children)
                     nodes = []
-                    for child in children[:50]:
+                    for child in children[:OPCUA_MAX_CHILDREN]:
                         browse_name = await child.read_browse_name()
                         node_class = await child.read_node_class()
                         entry = {
@@ -123,9 +127,9 @@ def read_opcua_nodes(node_id=None, action='browse'):
                         'children': nodes,
                         'total_children': total_children,
                     }
-                    if total_children > 50:
+                    if total_children > OPCUA_MAX_CHILDREN:
                         result['truncated'] = True
-                        result['message'] = f'Showing 50 of {total_children} children'
+                        result['message'] = f'Showing {OPCUA_MAX_CHILDREN} of {total_children} children'
                     return result
 
                 elif action == 'read':
@@ -149,15 +153,19 @@ def read_opcua_nodes(node_id=None, action='browse'):
             finally:
                 await client.disconnect()
 
-        # Create a fresh event loop for this thread to avoid conflicts
-        # with other threads under gunicorn
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Use asyncio.run() which handles loop creation/cleanup properly.
+        # Falls back to manual loop management if already in an event loop.
         try:
-            return loop.run_until_complete(_opcua_operation())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
+            return asyncio.run(_opcua_operation())
+        except RuntimeError:
+            # "RuntimeError: This event loop is already running" - we're in a thread with a loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(_opcua_operation())
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
 
     except ImportError:
         return {'error': 'asyncua not installed - OPC-UA tools unavailable'}

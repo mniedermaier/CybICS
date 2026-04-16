@@ -2,11 +2,11 @@
 import json
 import logging
 
-from flask import request, jsonify, Response
+from flask import request, jsonify, Response, url_for
 import ollama
 
 import config
-from tools import AVAILABLE_TOOLS, execute_tool
+from tools import AVAILABLE_TOOLS, execute_tool, get_ollama_tool_schemas
 from tools.formatters import format_tool_for_markdown, format_tool_result_for_llm
 from rag import get_collection
 from agent import process_chat, SYSTEM_PROMPT
@@ -15,16 +15,436 @@ from session import session_manager
 logger = logging.getLogger(__name__)
 
 
+# OpenAPI specification (generated dynamically)
+def _get_openapi_spec():
+    """Generate OpenAPI 3.0 specification for the CybICS AI Agent API."""
+    schemes = get_ollama_tool_schemas()
+    
+    # Build tool schemas for OpenAPI
+    tool_components = {}
+    for schema in schemes:
+        tool_name = schema['function']['name']
+        tool_components[tool_name] = {
+            'type': 'object',
+            'properties': schema['function']['parameters']['properties'],
+            'required': schema['function']['parameters'].get('required', []),
+            'description': schema['function']['description']
+        }
+    
+    # Build paths
+    paths = {
+        '/': {
+            'get': {
+                'tags': ['Info'],
+                'summary': 'API root',
+                'description': 'Returns basic API information and links to documentation',
+                'responses': {
+                    '200': {
+                        'description': 'API info',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'message': {'type': 'string', 'example': 'CybICS AI Agent API'},
+                                        'version': {'type': 'string', 'example': '3.0.0'},
+                                        'docs': {'type': 'string', 'format': 'uri'},
+                                        'health': {'type': 'string', 'format': 'uri'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/docs': {
+            'get': {
+                'tags': ['Info'],
+                'summary': 'OpenAPI specification',
+                'description': 'Returns the complete OpenAPI 3.0 specification for this API',
+                'responses': {
+                    '200': {
+                        'description': 'OpenAPI specification in JSON format',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'openapi': {'type': 'string', 'example': '3.0.0'},
+                                        'info': {'type': 'object'},
+                                        'paths': {'type': 'object'},
+                                        'components': {'type': 'object'}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '500': {'description': 'Failed to generate specification'}
+                }
+            }
+        },
+        '/health': {
+            'get': {
+                'tags': ['Health'],
+                'summary': 'Health check endpoint',
+                'description': 'Returns the health status of the AI agent service',
+                'responses': {
+                    '200': {
+                        'description': 'Service is healthy',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'status': {'type': 'string', 'example': 'healthy'},
+                                        'model': {'type': 'string', 'example': 'phi3:mini'},
+                                        'knowledge_base_docs': {'type': 'integer', 'example': 42}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/chat': {
+            'post': {
+                'tags': ['Chat'],
+                'summary': 'Process a chat message',
+                'description': 'Send a chat message and receive an AI response with optional tool execution',
+                'requestBody': {
+                    'required': True,
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'required': ['message'],
+                                'properties': {
+                                    'message': {'type': 'string', 'description': 'The user message or question'},
+                                    'session_id': {'type': 'string', 'description': 'Optional session ID for conversation history'}
+                                }
+                            }
+                        }
+                    }
+                },
+                'responses': {
+                    '200': {
+                        'description': 'Chat response',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'response': {'type': 'string', 'description': 'The AI response text'},
+                                        'session_id': {'type': 'string', 'description': 'The session ID'},
+                                        'sources': {'type': 'integer', 'description': 'Number of RAG sources used'},
+                                        'tools_used': {'type': 'array', 'items': {'type': 'string'}},
+                                        'tool_results': {'type': 'array', 'items': {'type': 'object'}},
+                                        'confirmation_required': {'type': 'boolean'}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': {'description': 'No message provided'}
+                }
+            }
+        },
+        '/api/chat/stream': {
+            'post': {
+                'tags': ['Chat'],
+                'summary': 'Stream chat response via SSE',
+                'description': 'Returns a Server-Sent Events stream for real-time chat responses',
+                'requestBody': {
+                    'required': True,
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'required': ['message'],
+                                'properties': {
+                                    'message': {'type': 'string', 'description': 'The user message or question'},
+                                    'session_id': {'type': 'string', 'description': 'Optional session ID for conversation history'}
+                                }
+                            }
+                        }
+                    }
+                },
+                'responses': {
+                    '200': {
+                        'description': 'SSE stream',
+                        'content': {
+                            'text/event-stream': {
+                                'schema': {
+                                    'type': 'string',
+                                    'format': 'binary'
+                                }
+                            }
+                        }
+                    },
+                    '400': {'description': 'No message provided'},
+                    '503': {'description': 'Agent service unavailable'}
+                }
+            }
+        },
+        '/api/info': {
+            'get': {
+                'tags': ['Info'],
+                'summary': 'Get agent information',
+                'description': 'Returns detailed information about the AI agent',
+                'responses': {
+                    '200': {
+                        'description': 'Agent info',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'name': {'type': 'string', 'example': 'CybICS AI Agent'},
+                                        'version': {'type': 'string', 'example': '3.0.0'},
+                                        'model': {'type': 'string'},
+                                        'default_model': {'type': 'string'},
+                                        'available_models': {'type': 'array', 'items': {'type': 'string'}},
+                                        'knowledge_base_docs': {'type': 'integer'},
+                                        'available_tools': {'type': 'integer'},
+                                        'status': {'type': 'string'},
+                                        'native_tool_calling': {'type': 'boolean'},
+                                        'capabilities': {'type': 'array', 'items': {'type': 'string'}}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/tools': {
+            'get': {
+                'tags': ['Tools'],
+                'summary': 'List all available tools',
+                'description': 'Returns a list of all available ICS tools',
+                'responses': {
+                    '200': {
+                        'description': 'List of tools',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'tools': {
+                                            'type': 'array',
+                                            'items': {
+                                                'type': 'object',
+                                                'properties': {
+                                                    'name': {'type': 'string'},
+                                                    'description': {'type': 'string'},
+                                                    'parameters': {'type': 'object'},
+                                                    'destructive': {'type': 'boolean'}
+                                                }
+                                            }
+                                        },
+                                        'total': {'type': 'integer'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '/api/model': {
+            'get': {
+                'tags': ['Model'],
+                'summary': 'Get current model information',
+                'description': 'Returns information about the current and available models',
+                'responses': {
+                    '200': {
+                        'description': 'Model info',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'current_model': {'type': 'string'},
+                                        'default_model': {'type': 'string'},
+                                        'available_models': {'type': 'array', 'items': {'type': 'string'}},
+                                        'native_tool_calling': {'type': 'boolean'},
+                                        'recommended_models': {
+                                            'type': 'array',
+                                            'items': {
+                                                'type': 'object',
+                                                'properties': {
+                                                    'name': {'type': 'string'},
+                                                    'size': {'type': 'string'},
+                                                    'quality': {'type': 'integer'},
+                                                    'description': {'type': 'string'},
+                                                    'recommended': {'type': 'boolean'}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            'post': {
+                'tags': ['Model'],
+                'summary': 'Change the current model',
+                'description': 'Switch to a different Ollama model',
+                'requestBody': {
+                    'required': True,
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'required': ['model'],
+                                'properties': {
+                                    'model': {'type': 'string', 'description': 'Name of the model to use'}
+                                }
+                            }
+                        }
+                    }
+                },
+                'responses': {
+                    '200': {
+                        'description': 'Model changed successfully',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'success': {'type': 'boolean'},
+                                        'model': {'type': 'string'},
+                                        'native_tool_calling': {'type': 'boolean'},
+                                        'message': {'type': 'string'},
+                                        'downloaded': {'type': 'boolean'}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': {'description': 'No model specified'},
+                    '500': {'description': 'Failed to set model'}
+                }
+            }
+        },
+        '/api/model/pull': {
+            'post': {
+                'tags': ['Model'],
+                'summary': 'Download a model',
+                'description': 'Download a new Ollama model',
+                'requestBody': {
+                    'required': True,
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'required': ['model'],
+                                'properties': {
+                                    'model': {'type': 'string', 'description': 'Name of the model to download'}
+                                }
+                            }
+                        }
+                    }
+                },
+                'responses': {
+                    '200': {
+                        'description': 'Model downloaded',
+                        'content': {
+                            'application/json': {
+                                'schema': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'success': {'type': 'boolean'},
+                                        'message': {'type': 'string'},
+                                        'model': {'type': 'string'}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': {'description': 'No model specified'},
+                    '500': {'description': 'Failed to download model'}
+                }
+            }
+        }
+    }
+    
+    return {
+        'openapi': '3.0.0',
+        'info': {
+            'title': 'CybICS AI Agent API',
+            'description': (
+                'The CybICS AI Agent provides an intelligent assistant for the CybICS ICS training platform. '
+                'It supports native Ollama tool calling, keyword-based tool dispatch, RAG knowledge base, '
+                'conversation history, and streaming responses. The agent includes ICS-specific tools for '
+                'interacting with Modbus, OPC-UA, IDS, and the physical process simulation.'
+            ),
+            'version': '3.0.0',
+            'contact': {
+                'name': 'CybICS Team',
+                'url': 'https://github.com/CybICS/CybICS'
+            }
+        },
+        'servers': [
+            {'url': 'http://localhost:5000', 'description': 'Local development'},
+            {'url': 'http://172.18.0.11:5000', 'description': 'Docker network'}
+        ],
+        'tags': [
+            {'name': 'Health', 'description': 'Health check endpoints'},
+            {'name': 'Chat', 'description': 'Chat and conversation endpoints'},
+            {'name': 'Info', 'description': 'Agent information'},
+            {'name': 'Tools', 'description': 'Available ICS tools'},
+            {'name': 'Model', 'description': 'Model management'}
+        ],
+        'paths': paths,
+        'components': {
+            'schemas': tool_components
+        }
+    }
+
+
 def register_routes(app):
     """Register all route handlers on the Flask app."""
+
+    @app.route('/')
+    def index():
+        """Redirect to OpenAPI documentation"""
+        return jsonify({
+            'message': 'CybICS AI Agent API',
+            'version': '3.0.0',
+            'docs': url_for('openapi_spec', _external=True),
+            'health': url_for('health', _external=True)
+        })
+
+    @app.route('/api/docs', methods=['GET'])
+    def openapi_spec():
+        """Serve OpenAPI 3.0 specification for API documentation"""
+        try:
+            spec = _get_openapi_spec()
+            return jsonify(spec)
+        except Exception as e:
+            logger.error(f"Error generating OpenAPI spec: {e}")
+            return jsonify({'error': 'Failed to generate OpenAPI specification'}), 500
 
     @app.route('/health', methods=['GET'])
     def health():
         """Health check endpoint"""
+        from rag import initialize_knowledge_base, get_collection, _init_lock
         coll = get_collection()
+        # Lazy initialization on first request (thread-safe)
+        if coll is None:
+            with _init_lock:
+                coll = get_collection()
+                if coll is None:
+                    initialize_knowledge_base()
+                    coll = get_collection()
         return jsonify({
             'status': 'healthy',
-            'model': config.current_model,
+            'model': config.current_model(),
             'knowledge_base_docs': coll.count() if coll else 0
         })
 
@@ -60,7 +480,7 @@ def register_routes(app):
                 return jsonify({'error': 'No message provided'}), 400
 
             logger.info(f"Stream request: {question}")
-            model = config.current_model
+            model = config.current_model()
 
             session = session_manager.get_or_create(session_id)
             sid = session['id']
@@ -280,16 +700,17 @@ def register_routes(app):
                 pass
 
             coll = get_collection()
+            current = config.current_model()
             return jsonify({
                 'name': 'CybICS AI Agent',
                 'version': '3.0.0',
-                'model': config.current_model,
+                'model': current,
                 'default_model': config.OLLAMA_MODEL,
                 'available_models': models,
                 'knowledge_base_docs': coll.count() if coll else 0,
                 'available_tools': len(AVAILABLE_TOOLS),
                 'status': 'ready',
-                'native_tool_calling': config.model_supports_tools(config.current_model),
+                'native_tool_calling': config.model_supports_tools(current),
                 'capabilities': [
                     'Interactive Training Coach',
                     'CTF Progress Tracking',
@@ -346,11 +767,12 @@ def register_routes(app):
             except Exception as e:
                 logger.error(f"Error listing models: {e}")
 
+            current = config.current_model()
             return jsonify({
-                'current_model': config.current_model,
+                'current_model': current,
                 'default_model': config.OLLAMA_MODEL,
                 'available_models': models,
-                'native_tool_calling': config.model_supports_tools(config.current_model),
+                'native_tool_calling': config.model_supports_tools(current),
                 'recommended_models': [
                     {
                         'name': 'phi3:mini',
@@ -393,7 +815,8 @@ def register_routes(app):
             if not new_model:
                 return jsonify({'error': 'No model specified'}), 400
 
-            logger.info(f"Changing model from {config.current_model} to {new_model}")
+            current_before = config.current_model()
+            logger.info(f"Changing model from {current_before} to {new_model}")
 
             try:
                 ollama.chat(
@@ -401,12 +824,12 @@ def register_routes(app):
                     messages=[{'role': 'user', 'content': 'test'}]
                 )
 
-                config.current_model = new_model
+                config.set_current_model(new_model)
                 logger.info(f"Successfully changed model to {new_model}")
 
                 return jsonify({
                     'success': True,
-                    'model': config.current_model,
+                    'model': config.current_model(),
                     'native_tool_calling': config.model_supports_tools(new_model),
                     'message': f'Model changed to {new_model}'
                 })
@@ -426,12 +849,12 @@ def register_routes(app):
                                 model=new_model,
                                 messages=[{'role': 'user', 'content': 'test'}]
                             )
-                            config.current_model = new_model
+                            config.set_current_model(new_model)
                             logger.info(f"Successfully changed model to {new_model}")
 
                             return jsonify({
                                 'success': True,
-                                'model': config.current_model,
+                                'model': config.current_model(),
                                 'native_tool_calling': config.model_supports_tools(new_model),
                                 'message': f'Model {new_model} downloaded and activated successfully',
                                 'downloaded': True

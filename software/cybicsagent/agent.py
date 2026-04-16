@@ -45,7 +45,7 @@ def process_chat(question, session_id=None):
     Uses native Ollama tool calling for capable models,
     falls back to keyword-based dispatch for models without native tool calling.
     """
-    model = config.current_model
+    model = config.current_model()
     session = session_manager.get_or_create(session_id)
     sid = session['id']
 
