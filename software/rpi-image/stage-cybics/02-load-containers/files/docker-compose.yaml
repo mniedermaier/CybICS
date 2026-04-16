@@ -1,5 +1,3 @@
-# CybICS Docker Compose for Pi-Gen Image
-# Uses local image names (loaded from tarballs on first boot)
 services:
   hwio:
     image: cybics-hwio-raspberry:latest
