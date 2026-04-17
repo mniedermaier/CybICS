@@ -11,6 +11,9 @@ services:
     mem_limit: 48m
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+    devices:
+      - "/dev/i2c-1:/dev/i2c-1"
+      - "/dev/gpiochip0:/dev/gpiochip0"
     networks:
       br-cybics:
         ipv4_address: 172.18.0.2

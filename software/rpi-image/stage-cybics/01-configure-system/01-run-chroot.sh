@@ -14,10 +14,16 @@ systemctl enable zramswap
 # Configure APT to avoid interactive prompts
 echo 'Dpkg::Options {"--force-confdef";"--force-confold";};' > /etc/apt/apt.conf.d/local-config
 
-# Enable I2C
+# Enable I2C and load kernel modules
 if command -v raspi-config &> /dev/null; then
     raspi-config nonint do_i2c 0
 fi
+
+# Ensure I2C kernel modules are loaded
+cat > /etc/modules-load.d/i2c.conf << 'EOF'
+i2c-dev
+i2c_bcm2835
+EOF
 
 # Enable UART (hardware serial, disable console)
 if command -v raspi-config &> /dev/null; then
@@ -35,3 +41,10 @@ fi
 
 # Enable NetworkManager
 systemctl enable NetworkManager
+
+# Configure dhcpcd to not manage wlan0 (let NetworkManager handle it)
+# This prevents conflicts between dhcpcd and NetworkManager for WiFi
+cat > /etc/dhcpcd.conf << 'EOF'
+# Don't manage wlan0 - NetworkManager handles it
+denyinterfaces wlan0
+EOF

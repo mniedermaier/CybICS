@@ -28,8 +28,8 @@ systemctl enable cybics-first-boot.service
 cat > /etc/systemd/system/cybics.service << 'EOF'
 [Unit]
 Description=CybICS Docker Containers
-After=docker.service cybics-first-boot.service network-online.target
-Requires=docker.service
+After=docker.service cybics-first-boot.service NetworkManager.service NetworkManager-wait-online.service
+Requires=docker.service NetworkManager.service NetworkManager-wait-online.service
 Wants=network-online.target
 
 [Service]
