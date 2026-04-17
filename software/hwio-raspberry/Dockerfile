@@ -4,11 +4,14 @@ RUN apk add --no-cache \
     networkmanager \
     networkmanager-cli \
     build-base \
-    linux-headers \
-    libffi-dev
+    python3-dev \
+    libffi-dev \
+    i2c-tools \
+    py3-pip
 
 WORKDIR /CybICS
 COPY requirements.txt ./
+# Install Python packages - RPi.GPIO and smbus-cffi need compilation
 RUN pip install --no-cache-dir -r requirements.txt
 COPY hardwareIO.py ./
 

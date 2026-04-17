@@ -9,6 +9,9 @@ services:
     mem_limit: 48m
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+    devices:
+      - "/dev/i2c-1:/dev/i2c-1"
+      - "/dev/gpiochip0:/dev/gpiochip0"
     networks:
       br-cybics:
         ipv4_address: 172.18.0.2
@@ -104,19 +107,6 @@ services:
     networks:
       br-cybics:
         ipv4_address: 172.18.0.7
-
-  nginx-proxy:
-    image: localhost:5000/cybics-nginx-proxy:latest
-    restart: always
-    mem_limit: 32m
-    ports:
-      - 443:443
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - landing
-    volumes:
-      - nginx-certs:/etc/nginx/certs
 
   ids:
     image: localhost:5000/cybics-ids:latest
