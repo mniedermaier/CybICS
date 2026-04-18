@@ -105,7 +105,11 @@ services:
       context: ../..
       dockerfile: software/landing/Dockerfile
     restart: always
-    network_mode: host
+    ports:
+      - "80:80"
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.20
     cap_add:
       - NET_ADMIN
       - NET_RAW

@@ -257,6 +257,32 @@
           "training_content": "training/defense_ids/README.md"
         }
       ]
+    },
+    "reverse_engineering": {
+      "name": "🔍 Reverse Engineering",
+      "description": "Recover credentials from compiled ICS maintenance utilities",
+      "challenges": [
+        {
+          "id": "plc_auth",
+          "title": "PLC Maintenance Auth Tool",
+          "description": "Reverse engineer a vendor maintenance binary to recover the operator password",
+          "points": 150,
+          "tag": "re",
+          "flag": "CybICS(x0r_1s_n0t_encrypti0n_4_PLC)",
+          "hint": "The password is XOR-encoded with a single constant key. Check byte arrays in the binary.",
+          "training_content": "training/reverse_engineering/challenge1/README.md"
+        },
+        {
+          "id": "hmi_validator",
+          "title": "HMI Safety Override Tool",
+          "description": "Derive a valid 16-char authorization code from the validation algorithm",
+          "points": 200,
+          "tag": "re",
+          "flag": "CybICS(HMI_byp4ss_PLC_s4f3ty_1nt3rl0ck)",
+          "hint": "Each byte is XORed with a rolling 4-byte key then offset by its index. Invert both operations.",
+          "training_content": "training/reverse_engineering/challenge2/README.md"
+        }
+      ]
     }
   }
 }
