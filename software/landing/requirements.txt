@@ -6,4 +6,4 @@ requests-unixsocket==0.4.1
 netifaces2==0.0.22
 scapy==2.7.0rc1
 pymodbus==3.5.4
-python-dotenv==1.0.0
+python-dotenv==1.2.2
