@@ -189,12 +189,11 @@ services:
       - UPDATE_SERVER_URL=${UPDATE_SERVER_URL:-http://update.cybics:8080}
       - OPENOCD_HOST=stm32
       - OPENOCD_TELNET_PORT=4444
-    profiles:
-      - firmware-server
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.8
     profiles:
+      - firmware-server
       - hardware
 
   update-server:
