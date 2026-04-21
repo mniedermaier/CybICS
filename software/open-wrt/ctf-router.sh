@@ -73,6 +73,12 @@ do_start() {
     done
     echo " ok"
 
+    # tcpdump installieren
+    echo -n "Installing tcpdump on router..."
+    sleep 20  # warten bis uci-defaults durch sind
+    SSH_CMD="sshpass -p password ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 root@127.0.0.1"
+    $SSH_CMD "opkg update && opkg install tcpdump" >/dev/null 2>&1 && echo " ok" || echo " failed (install manually: opkg update && opkg install tcpdump)"
+
     echo ""
     echo "CTF router challenge running."
     echo ""
@@ -97,6 +103,8 @@ do_start() {
 do_stop() {
     echo "Stopping CTF router challenge..."
 
+    ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[127.0.0.1]:2222" 2>/dev/null || true
+    
     ATTACK=$(find_container "$ATTACK_CONTAINER")
     if [ -n "$ATTACK" ]; then
         container_in_network "$ATTACK" "$EXT_NET" \
