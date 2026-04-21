@@ -2,7 +2,9 @@ services:
   openwrt:
     ports:
         - "2222:2222"
-    build: ../../../../Downloads
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: cybics-openwrt-test
     stdin_open: true
     tty: true

@@ -4,6 +4,7 @@ Challenge lifecycle orchestration for CTF environments.
 import json
 import os
 import re
+import shlex
 import socket
 import subprocess
 import time
@@ -14,10 +15,10 @@ import requests
 
 from utils.config import (
     ACTIVE_CHALLENGE_FILE,
-    CHALLENGE_SCRIPTS_DIR,
     COMPOSE_DIR,
     COMPOSE_FILE,
     REPO_ROOT,
+    SCRIPTS_DIR,
 )
 from utils.logger import logger
 
@@ -29,7 +30,7 @@ class ChallengeLifecycleManager:
         self.ctf_manager = ctf_manager
         self.compose_dir = COMPOSE_DIR
         self.compose_file = COMPOSE_FILE
-        self.scripts_dir = CHALLENGE_SCRIPTS_DIR
+        self.scripts_dir = SCRIPTS_DIR
         self.state_file = ACTIVE_CHALLENGE_FILE
         self.compose_command = self._detect_compose_command()
         self.allowed_profiles = self._load_allowed_profiles()
@@ -187,16 +188,48 @@ class ChallengeLifecycleManager:
         if profile not in self.allowed_profiles:
             raise ValueError(f"Unknown compose profile: {profile}")
 
-    def _resolve_script(self, script_name):
-        if not script_name:
+    def _resolve_script(self, script_command):
+        if not script_command:
             return None
 
+        script_parts = shlex.split(script_command)
+        if not script_parts:
+            return None
+
+        script_name = script_parts[0]
         script_path = os.path.normpath(os.path.join(self.scripts_dir, script_name))
         if os.path.commonpath([self.scripts_dir, script_path]) != self.scripts_dir:
-            raise ValueError("Script path must stay within the challenge scripts directory")
+            raise ValueError("Script path must stay within the scripts directory")
         if not os.path.exists(script_path):
             raise ValueError(f"Lifecycle script does not exist: {script_name}")
-        return script_path
+        return script_path, script_parts[1:]
+
+    def _get_script_runner(self, script_path):
+        """Respect the script shebang instead of forcing /bin/sh for every script."""
+        try:
+            with open(script_path, "r", encoding="utf-8") as script_file:
+                first_line = script_file.readline().strip()
+        except OSError as exc:
+            raise RuntimeError(f"Could not read lifecycle script: {exc}") from exc
+
+        if not first_line.startswith("#!"):
+            return ["/bin/sh"]
+
+        runner = shlex.split(first_line[2:].strip())
+        if not runner:
+            return ["/bin/sh"]
+
+        if os.path.basename(runner[0]) == "env" and len(runner) > 1:
+            return runner
+
+        if os.path.exists(runner[0]):
+            return runner
+
+        resolved_binary = shutil.which(runner[0])
+        if resolved_binary:
+            return [resolved_binary, *runner[1:]]
+
+        raise RuntimeError(f"Lifecycle script interpreter not found: {' '.join(runner)}")
 
     def _run_compose(self, args):
         if not self.compose_command:
@@ -217,10 +250,12 @@ class ChallengeLifecycleManager:
             raise RuntimeError(stderr or "docker compose command failed")
         return result
 
-    def _run_script(self, script_name, challenge_id, phase):
-        script_path = self._resolve_script(script_name)
-        if not script_path:
+    def _run_script(self, script_command, challenge_id, phase):
+        resolved_script = self._resolve_script(script_command)
+        if not resolved_script:
             return
+        script_path, script_args = resolved_script
+        script_runner = self._get_script_runner(script_path)
 
         env = os.environ.copy()
         env["CYBICS_CHALLENGE_ID"] = challenge_id
@@ -228,7 +263,7 @@ class ChallengeLifecycleManager:
 
         logger.info(f"Running lifecycle script {script_path} for {challenge_id} ({phase})")
         result = subprocess.run(
-            ["/bin/sh", script_path],
+            [*script_runner, script_path, *script_args],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -238,7 +273,7 @@ class ChallengeLifecycleManager:
         )
         if result.returncode != 0:
             stderr = (result.stderr or result.stdout).strip()
-            raise RuntimeError(stderr or f"Lifecycle script failed: {script_name}")
+            raise RuntimeError(stderr or f"Lifecycle script failed: {os.path.basename(script_path)}")
 
     def _is_healthcheck_ready(self, healthcheck):
         if not healthcheck:
@@ -386,6 +421,7 @@ class ChallengeLifecycleManager:
                 "enabled": True,
                 "status": "running",
                 "message": "Challenge environment started successfully.",
+                "last_error": None,
                 "display_name": lifecycle.get("display_name"),
             }, 200
         except Exception as exc:
@@ -398,6 +434,7 @@ class ChallengeLifecycleManager:
                 "enabled": True,
                 "status": "failed",
                 "message": f"Failed to start challenge environment: {exc}",
+                "last_error": str(exc),
                 "display_name": lifecycle.get("display_name"),
             }, 500
 
@@ -450,6 +487,7 @@ class ChallengeLifecycleManager:
                 "status": "stopped",
                 "environment_stopped": True,
                 "message": "Challenge environment stopped successfully.",
+                "last_error": None,
                 "display_name": lifecycle.get("display_name"),
             }, 200
         except Exception as exc:
@@ -463,5 +501,6 @@ class ChallengeLifecycleManager:
                 "status": "failed",
                 "environment_stopped": False,
                 "message": f"Failed to stop challenge environment: {exc}",
+                "last_error": str(exc),
                 "display_name": lifecycle.get("display_name"),
             }, 500

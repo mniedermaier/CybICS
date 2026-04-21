@@ -5,6 +5,7 @@ RUN apk add --no-cache \
     linux-headers \
     libffi-dev \
     libpcap-dev \
+    bash \
     tcpdump \
     nmap \
     iproute2 \
@@ -16,11 +17,11 @@ RUN apk add --no-cache \
     netcat-openbsd \
     docker-cli \
     docker-cli-compose
-    
+
 WORKDIR /CybICS
 
 # Create directories first
-RUN mkdir -p training pics data scripts
+RUN mkdir -p training pics data scripts/challenges scripts/open-wrt
 
 # Copy files (assuming root build context)
 COPY software/landing/requirements.txt ./
@@ -29,6 +30,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY software/landing/app.py ./
 COPY software/landing/ctf_config.json ./
 COPY software/landing/pics/ pics/
+COPY software/landing/scripts/ scripts/
+COPY software/open-wrt/Dockerfile scripts/open-wrt/
+COPY software/open-wrt/99-wan-config scripts/open-wrt/
+COPY software/open-wrt/*.sh scripts/open-wrt/
+COPY software/open-wrt/docker-compose.yml scripts/open-wrt/
+RUN chmod +x scripts/open-wrt/*.sh
 COPY software/landing/templates/ templates/
 COPY software/landing/static/ static/
 COPY software/landing/utils/ utils/

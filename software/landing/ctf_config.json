@@ -180,8 +180,8 @@
               "script": null
             },
             "healthcheck": {
-              "type": "http",
-              "target": "http://${CYBICS_HEALTHCHECK_HOST:-127.0.0.1}:8443/health",
+              "type": "tcp",
+              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:8443",
               "timeout_seconds": 30
             }
           }
@@ -206,8 +206,8 @@
               "script": null
             },
             "healthcheck": {
-              "type": "http",
-              "target": "http://${CYBICS_HEALTHCHECK_HOST:-127.0.0.1}:8443/health",
+              "type": "tcp",
+              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:8443",
               "timeout_seconds": 30
             }
           }
@@ -229,7 +229,23 @@
           "points": 400,
           "flag": "CybICS(malicious_firmware_injected)",
           "hint": "Analyze firmware updates and manipulate them",
-          "training_content": "training/time-travelers-update/README.md"
+          "training_content": "training/time-travelers-update/README.md",
+          "lifecycle": {
+            "enabled": true,
+            "display_name": "OpenWRT Firmware Update Environment",
+            "compose_profile": null,
+            "start": {
+              "script": "open-wrt/ctf-router.sh start"
+            },
+            "stop": {
+              "script": "open-wrt/ctf-router.sh stop"
+            },
+            "healthcheck": {
+              "type": "tcp",
+              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:2222",
+              "timeout_seconds": 30
+            }
+          }
         }
       ]
     },

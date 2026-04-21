@@ -229,6 +229,10 @@
             color: #bfdbfe;
         }
 
+        .message {
+            white-space: pre-wrap;
+        }
+
         .floating-lifecycle-shell {
             position: fixed;
             left: 0;
@@ -359,15 +363,25 @@
             flex-wrap: wrap;
         }
 
+        .lifecycle-actions .submit-btn,
+        .lifecycle-actions .secondary-button {
+            border-radius: 0.375rem;
+            padding: 0.65rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            margin-top: 0;
+        }
+
+        .lifecycle-actions .submit-btn {
+            border: none;
+        }
+
         .secondary-button {
             background-color: transparent;
             color: #ff6b00;
             border: 1px solid #ff6b00;
-            border-radius: 0.375rem;
-            padding: 0.75rem 1.5rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
         }
 
         .secondary-button:hover {
@@ -762,7 +776,7 @@
                 flex-direction: column;
             }
 
-            .submit-button,
+            .submit-btn,
             .secondary-button {
                 width: 100%;
             }
@@ -890,7 +904,7 @@
                         Start the challenge environment before you begin searching for the flag. Otherwise the required challenge services may not be available yet.
                     </div>
                     <div class="lifecycle-actions">
-                        <button id="start-environment-button" class="submit-button">Start Challenge Environment</button>
+                        <button id="start-environment-button" class="submit-btn">Start Challenge Environment</button>
                         <button id="stop-environment-button" class="secondary-button">Stop Challenge Environment</button>
                     </div>
                     <div id="lifecycle-message-container"></div>
@@ -1128,11 +1142,19 @@
                 return;
             }
 
-            lifecycleMessageContainer.innerHTML = `
-                <div class="message ${level}">
-                    ${message}
-                </div>
-            `;
+            lifecycleMessageContainer.textContent = '';
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${level}`;
+            messageElement.textContent = message;
+            lifecycleMessageContainer.appendChild(messageElement);
+        }
+
+        function clearLifecycleMessage() {
+            if (!lifecycleMessageContainer) {
+                return;
+            }
+
+            lifecycleMessageContainer.textContent = '';
         }
 
         function updateLifecycleLayout() {
@@ -1202,6 +1224,8 @@
             if (message) {
                 const level = normalizedStatus === 'failed' ? 'error' : 'info';
                 showLifecycleMessage(message, level);
+            } else {
+                clearLifecycleMessage();
             }
 
             if (normalizedStatus === 'running') {
@@ -1221,7 +1245,10 @@
             try {
                 const response = await fetch(`/api/ctf/challenge/${challengeId}/status`);
                 const data = await response.json();
-                setLifecycleStatus(data.status, data.last_error || data.message);
+                const lifecycleMessage = data.status === 'failed'
+                    ? (data.last_error || data.message)
+                    : data.message;
+                setLifecycleStatus(data.status, lifecycleMessage);
             } catch (error) {
                 console.error('Lifecycle status error:', error);
                 setLifecycleStatus('failed', 'Failed to load challenge environment status.');
@@ -1234,7 +1261,10 @@
             }
 
             const optimisticStatus = action === 'start' ? 'starting' : 'stopping';
-            setLifecycleStatus(optimisticStatus);
+            const optimisticMessage = action === 'start'
+                ? 'Starting challenge environment...'
+                : 'Stopping challenge environment...';
+            setLifecycleStatus(optimisticStatus, optimisticMessage);
 
             try {
                 const response = await fetch(`/api/ctf/challenge/${challengeId}/${action}`, {
@@ -1244,7 +1274,10 @@
                     }
                 });
                 const data = await response.json();
-                setLifecycleStatus(data.status, data.last_error || data.message);
+                const lifecycleMessage = data.status === 'failed'
+                    ? (data.last_error || data.message)
+                    : data.message;
+                setLifecycleStatus(data.status, lifecycleMessage);
             } catch (error) {
                 console.error(`Lifecycle ${action} error:`, error);
                 setLifecycleStatus('failed', `Failed to ${action} challenge environment.`);
