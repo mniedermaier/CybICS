@@ -4,6 +4,7 @@ FROM debian:12-slim
 RUN apt-get update && apt-get install -y \
     openocd \
     binutils \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /CybICS
@@ -14,8 +15,9 @@ COPY build/zephyr/zephyr.elf ./CybICS.elf
 
 # Copy OpenOCD configuration and flash script
 COPY openocd_rpi.cfg ./
+COPY openocd_virtual_server.py ./
 COPY flash_if_needed.sh ./
-RUN chmod +x /CybICS/flash_if_needed.sh
+RUN chmod +x /CybICS/flash_if_needed.sh /CybICS/openocd_virtual_server.py
 
 # Expose OpenOCD ports
 EXPOSE 3333 4444

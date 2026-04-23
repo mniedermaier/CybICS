@@ -109,7 +109,7 @@ def flash_via_openocd(firmware_path: str, host: str, port: int) -> bool:
             logger.debug("OpenOCD output: %s", output.decode(errors="replace"))
 
             if b"** Programming Finished **" in output or b"verified" in output.lower():
-                logger.info("Flashing completed successfully")
+                logger.info("Flashing completed successfully. CybICS(asdf)")
                 return True
 
             logger.error(
