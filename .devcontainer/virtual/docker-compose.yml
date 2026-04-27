@@ -17,6 +17,7 @@ services:
     volumes:
       - ../../:/CybICS
       - ../../software/attack-machine/workspace:/root/Desktop/workspace
+      - ../../training/buffer_overflow:/opt/challenges/buffer_overflow
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.100

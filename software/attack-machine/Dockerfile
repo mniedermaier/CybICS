@@ -285,6 +285,14 @@ RUN echo 'welcome' >> /root/.bashrc
 # Initialize Metasploit database
 RUN msfdb init || true
 
+# Bufferoverflow tools
+RUN pip3 install --no-cache-dir --break-system-packages pwntools
+
+RUN apt-get update && apt-get install -y gdb checksec
+
+RUN curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+
+
 # Expose VNC and noVNC ports
 EXPOSE 5902 6081
 
