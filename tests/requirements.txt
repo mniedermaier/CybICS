@@ -5,3 +5,4 @@ pymodbus==3.11.3
 asyncua==1.1.8
 requests==2.33.0
 python-dotenv==1.0.1
+pyyaml>=6.0

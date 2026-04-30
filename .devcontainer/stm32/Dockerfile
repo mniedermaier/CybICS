@@ -36,6 +36,9 @@ RUN apt-get update && apt-get install -y \
     openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Allow root to use west extension commands in this workspace.
+RUN git config --system --add safe.directory '*'
+
 # Create user
 RUN addgroup --gid 1000 docker \
     && adduser --uid 1000 --ingroup docker --home /home/docker --disabled-password --gecos "" docker \

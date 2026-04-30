@@ -7,10 +7,31 @@
 
 ELF_FILE="/CybICS/CybICS.elf"
 BIN_FILE="/CybICS/CybICS.bin"
-OPENOCD_CFG="/CybICS/openocd_rpi.cfg"
+OPENOCD_MODE="${OPENOCD_MODE:-rpi}"
+OPENOCD_CFG_RPI="/CybICS/openocd_rpi.cfg"
 FLASH_BASE="0x08000000"
+VIRTUAL_FLASH_DIR="/opt/cybics/firmware"
+VIRTUAL_CURRENT_FW="${VIRTUAL_FLASH_DIR}/current.bin"
 
 echo "=== CybICS Firmware Flash Check ==="
+echo "OpenOCD mode: ${OPENOCD_MODE}"
+
+if [ "${OPENOCD_MODE}" = "virtual" ]; then
+    mkdir -p "${VIRTUAL_FLASH_DIR}"
+
+    if [ ! -f "${VIRTUAL_CURRENT_FW}" ]; then
+        echo "Initializing virtual flash with base firmware"
+        cp "${BIN_FILE}" "${VIRTUAL_CURRENT_FW}"
+    elif cmp -s "${BIN_FILE}" "${VIRTUAL_CURRENT_FW}"; then
+        echo "Skipping base firmware load, virtual flash is up to date"
+    else
+        echo "Updating virtual flash with base firmware"
+        cp "${BIN_FILE}" "${VIRTUAL_CURRENT_FW}"
+    fi
+
+    echo "Starting virtual OpenOCD-compatible telnet server..."
+    exec python3 /CybICS/openocd_virtual_server.py
+fi
 
 # Parse ELF LOAD segments to get actual programmed regions
 # Filter only flash segments (0x08xxxxxx)
@@ -48,7 +69,7 @@ else
         BIN_EXTRACT="/tmp/bin_seg${SEGMENT_NUM}.bin"
 
         # Dump this segment from flash
-        DUMP_OUTPUT=$(openocd -f "$OPENOCD_CFG" -c "
+        DUMP_OUTPUT=$(openocd -f "$OPENOCD_CFG_RPI" -c "
 init
 halt
 dump_image $FLASH_DUMP $VADDR $SIZE_DEC
@@ -85,7 +106,7 @@ if [ "$NEEDS_FLASH" = "no" ]; then
 else
     echo "Flashing firmware..."
     # Use BIN file with explicit erase to ensure padding bytes are written as 0xFF
-    if ! openocd -f "$OPENOCD_CFG" -c "program $BIN_FILE verify reset exit $FLASH_BASE"; then
+    if ! openocd -f "$OPENOCD_CFG_RPI" -c "program $BIN_FILE verify reset exit $FLASH_BASE"; then
         echo "ERROR: Flashing failed!"
         exit 1
     fi
@@ -94,4 +115,4 @@ else
 fi
 
 echo "Starting OpenOCD GDB server..."
-exec openocd -f "$OPENOCD_CFG"
+exec openocd -f "$OPENOCD_CFG_RPI"

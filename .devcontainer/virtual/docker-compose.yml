@@ -5,7 +5,7 @@ services:
       context: ../../software/attack-machine
       dockerfile: Dockerfile
     hostname: attack-machine
-    restart: always
+    restart: "no"
     stdin_open: true
     tty: true
     cap_add:
@@ -33,7 +33,7 @@ services:
     build:
       context: ../../software/OpenPLC
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     privileged: true
     ports:
       - 8080:8080
@@ -48,7 +48,7 @@ services:
     build:
       context: ../../software/opcua
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     ports:
       - 4840:4840
     depends_on:
@@ -62,7 +62,7 @@ services:
     build:
       context: ../../software/s7com
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     ports:
       - 1102:1102
     depends_on:
@@ -76,7 +76,7 @@ services:
     build:
       context: ../../software/FUXA
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     ports:
       - 1881:1881
     depends_on:
@@ -90,7 +90,7 @@ services:
     build:
       context: ../../software/hwio-virtual
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     ports:
       - 8090:8090
     depends_on:
@@ -107,6 +107,7 @@ services:
     restart: always
     ports:
       - 80:80
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -120,7 +121,7 @@ services:
     build:
       context: ../../software
       dockerfile: engineeringWS/Dockerfile
-    restart: always
+    restart: "no"
     ports:
       - 6080:6080
       - 5901:5901
@@ -138,7 +139,7 @@ services:
     build:
       context: ../../software/cybicsagent
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     ports:
       - 5001:5000
       - 11434:11434
@@ -167,7 +168,7 @@ services:
     build:
       context: ../../software/ids
       dockerfile: Dockerfile
-    restart: always
+    restart: "no"
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -178,6 +179,67 @@ services:
       - ids
       - full
 
+  firmware-updater:
+    image: mniedermaier1337/cybics-firmware-updater:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/firmware-updater
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      - stm32
+    volumes:
+      - firmware_data:/opt/cybics/firmware
+      - firmware_keys:/opt/cybics/keys
+    environment:
+      - UPDATE_SERVER_URL=${UPDATE_SERVER_URL:-http://update.cybics:8080}
+      - OPENOCD_HOST=stm32
+      - OPENOCD_TELNET_PORT=4444
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.8
+    profiles:
+      - firmware-server
+      - hardware
+
+  update-server:
+    image: mniedermaier1337/cybics-update-server:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/update-server
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - FIRMWARE_VERSION=${FIRMWARE_VERSION:-1.2.1}
+      - FIRMWARE_MAC=${FIRMWARE_MAC:-extended-mac}
+      - FIRMWARE_PATH=/opt/cybics/update-server/firmware/firmware.bin
+    volumes:
+      - firmware_data:/opt/cybics/update-server/firmware
+    profiles:
+      - firmware-server
+    ports:
+      - 6689:6689
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.9
+
+  stm32:
+    image: mniedermaier1337/cybics-stm32:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/stm32
+      dockerfile: Dockerfile
+    restart: "no"
+    ports:
+      - 3333:3333
+      - 4444:4444
+    volumes:
+      - firmware_data:/opt/cybics/firmware
+    environment:
+      - OPENOCD_MODE=${OPENOCD_MODE:-virtual}
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.7
+    profiles:
+      - hardware
+
 networks:
   virt-cybics:
     driver: bridge
@@ -186,3 +248,7 @@ networks:
       config:
         - subnet: 172.18.0.0/24
           gateway: 172.18.0.1
+
+volumes:
+  firmware_data:
+  firmware_keys:

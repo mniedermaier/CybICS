@@ -12,4 +12,5 @@ services:
       # Mount stm32 source into pre-baked Zephyr workspace
       - $CYBICS_ROOT/software/stm32:/home/docker/zephyrproject/app
       - ~/.ssh:/home/docker/.ssh/
-    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
+    # Run as root to avoid bind-mount write failures on hosts with user namespace remapping.
+    user: root
