@@ -30,7 +30,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY software/landing/app.py ./
 COPY software/landing/ctf_config.json ./
 COPY software/landing/pics/ pics/
-COPY software/landing/scripts/ scripts/
 COPY software/open-wrt/Dockerfile scripts/open-wrt/
 COPY software/open-wrt/99-wan-config scripts/open-wrt/
 COPY software/open-wrt/*.sh scripts/open-wrt/
