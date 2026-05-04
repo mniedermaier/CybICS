@@ -111,7 +111,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     volumes:
-      - ${XDG_RUNTIME_DIR}/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     depends_on:
     - openplc
 
