@@ -36,7 +36,7 @@ cleanup_router_state() {
     fi
 
     (cd "$ROUTER_DIR" && docker compose down --remove-orphans --timeout 5 >/dev/null 2>&1) || true
-    docker rm -f "$ROUTER_CONTAINER" open-wrt-test-1 >/dev/null 2>&1 || true
+    docker rm -f "$ROUTER_CONTAINER" >/dev/null 2>&1 || true
     docker network rm "$EXT_NET" >/dev/null 2>&1 || true
 }
 
@@ -121,7 +121,7 @@ do_stop() {
     echo "Stopping CTF router challenge..."
 
     ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[127.0.0.1]:2222" 2>/dev/null || true
-    
+
     ATTACK=$(find_container "$ATTACK_CONTAINER")
     if [ -n "$ATTACK" ]; then
         container_in_network "$ATTACK" "$EXT_NET" \
@@ -129,7 +129,7 @@ do_stop() {
     fi
 
     (cd "$ROUTER_DIR" && docker compose down --remove-orphans --timeout 5 >/dev/null 2>&1) || true
-    docker rm -f "$ROUTER_CONTAINER" open-wrt-test-1 >/dev/null 2>&1 || true
+    docker rm -f "$ROUTER_CONTAINER" >/dev/null 2>&1 || true
 
     docker network ls --format '{{.Name}}' | grep -q "^${EXT_NET}$" \
         && docker network rm "$EXT_NET" 2>/dev/null
