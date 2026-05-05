@@ -358,6 +358,14 @@ class ChallengeLifecycleManager:
                 "display_name": lifecycle.get("display_name"),
             }, 200
 
+        if state.get("status") == "starting" and lifecycle.get("healthcheck"):
+            try:
+                if self._is_healthcheck_ready(lifecycle.get("healthcheck")):
+                    state = self._build_state_payload(challenge_id, lifecycle, "running")
+                    self._save_state(state)
+            except Exception:
+                pass
+
         if state.get("status") == "running":
             try:
                 self._wait_for_healthcheck(lifecycle.get("healthcheck"))
