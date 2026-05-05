@@ -25,6 +25,21 @@ container_in_network() {
     docker inspect "$1" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' 2>/dev/null | grep -q "$2"
 }
 
+cleanup_router_state() {
+    # Remove leftovers from failed starts. Stale Docker network IDs on an
+    # existing container can otherwise make the next `compose up` fail.
+    local attack
+    attack=$(find_container "$ATTACK_CONTAINER")
+
+    if [ -n "$attack" ]; then
+        docker network disconnect "$EXT_NET" "$attack" 2>/dev/null || true
+    fi
+
+    (cd "$ROUTER_DIR" && docker compose down --remove-orphans --timeout 5 >/dev/null 2>&1) || true
+    docker rm -f "$ROUTER_CONTAINER" open-wrt-test-1 >/dev/null 2>&1 || true
+    docker network rm "$EXT_NET" >/dev/null 2>&1 || true
+}
+
 # --- START ---
 do_start() {
     echo "Starting CTF router challenge..."
@@ -34,6 +49,8 @@ do_start() {
         echo "ERROR: $INT_NET not found. Start CybICS first."
         exit 1
     fi
+
+    cleanup_router_state
 
     ATTACK=$(find_container "$ATTACK_CONTAINER")
     [ -n "$ATTACK" ] && echo "Found attack machine: $ATTACK"
@@ -45,7 +62,7 @@ do_start() {
     fi
 
     # Router hochfahren
-    (cd "$ROUTER_DIR" && docker compose up -d --build)
+    (cd "$ROUTER_DIR" && docker compose up -d --build --remove-orphans)
     sleep 3
     if ! docker ps --format '{{.Names}}' | grep -q "$ROUTER_CONTAINER"; then
         echo "ERROR: router container not running"
@@ -111,9 +128,8 @@ do_stop() {
             && docker network disconnect "$EXT_NET" "$ATTACK" 2>/dev/null
     fi
 
-    if docker ps --format '{{.Names}}' | grep -q "$ROUTER_CONTAINER"; then
-        (cd "$ROUTER_DIR" && docker compose down --timeout 5)
-    fi
+    (cd "$ROUTER_DIR" && docker compose down --remove-orphans --timeout 5 >/dev/null 2>&1) || true
+    docker rm -f "$ROUTER_CONTAINER" open-wrt-test-1 >/dev/null 2>&1 || true
 
     docker network ls --format '{{.Name}}' | grep -q "^${EXT_NET}$" \
         && docker network rm "$EXT_NET" 2>/dev/null
