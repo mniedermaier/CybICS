@@ -1131,6 +1131,19 @@
         const stopEnvironmentButton = document.getElementById('stop-environment-button');
         let lifecycleExpanded = true;
         let lifecycleStatus = 'stopped';
+        let lifecycleStatusPollTimer = null;
+        const lifecycleStatusLabels = {
+            stopped: 'Stopped',
+            starting: 'Starting',
+            running: 'Started',
+            stopping: 'Stopping',
+            failed: 'Failed',
+            unsupported: 'Unsupported'
+        };
+        const lifecycleStatusAliases = {
+            started: 'running'
+        };
+        const lifecycleTransitionStatuses = new Set(['starting', 'stopping']);
 
     function showMsg(text, ok) {
         if (!messageContainer) return;
@@ -1155,6 +1168,36 @@
             }
 
             lifecycleMessageContainer.textContent = '';
+        }
+
+        function normalizeLifecycleStatus(status) {
+            const normalizedStatus = status || 'stopped';
+            return lifecycleStatusAliases[normalizedStatus] || normalizedStatus;
+        }
+
+        function getLifecycleStatusLabel(status) {
+            return lifecycleStatusLabels[status] || status;
+        }
+
+        function clearLifecycleStatusPoll() {
+            if (!lifecycleStatusPollTimer) {
+                return;
+            }
+
+            clearTimeout(lifecycleStatusPollTimer);
+            lifecycleStatusPollTimer = null;
+        }
+
+        function scheduleLifecycleStatusPoll(delayMs = 2000) {
+            if (!challengeLifecycle || !challengeLifecycle.enabled) {
+                return;
+            }
+
+            clearLifecycleStatusPoll();
+            lifecycleStatusPollTimer = setTimeout(() => {
+                lifecycleStatusPollTimer = null;
+                loadLifecycleStatus();
+            }, delayMs);
         }
 
         function updateLifecycleLayout() {
@@ -1198,10 +1241,10 @@
                 return;
             }
 
-            const normalizedStatus = status || 'stopped';
+            const normalizedStatus = normalizeLifecycleStatus(status);
             lifecycleStatus = normalizedStatus;
             lifecycleStatusPill.className = `status-pill ${normalizedStatus}`;
-            lifecycleStatusPill.textContent = normalizedStatus;
+            lifecycleStatusPill.textContent = getLifecycleStatusLabel(normalizedStatus);
 
             if (floatingLifecycleBar) {
                 floatingLifecycleBar.className = `floating-lifecycle-bar ${normalizedStatus}`;
@@ -1235,6 +1278,12 @@
             }
 
             updateLifecycleLayout();
+
+            if (lifecycleTransitionStatuses.has(normalizedStatus)) {
+                scheduleLifecycleStatusPoll();
+            } else {
+                clearLifecycleStatusPoll();
+            }
         }
 
         async function loadLifecycleStatus() {
