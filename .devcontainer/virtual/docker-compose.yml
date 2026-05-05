@@ -107,12 +107,11 @@ services:
     restart: always
     ports:
       - 80:80
-    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${XDG_RUNTIME_DIR:-/var/run}/docker.sock:/var/run/docker.sock
     depends_on:
     - openplc
 
