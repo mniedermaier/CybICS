@@ -5,6 +5,9 @@
 .git/
 .gitignore
 
+# Ignore local build artifacts (built inside Docker via multi-stage build)
+build/
+
 # Ignore editor files
 .vscode/
 *.swp
