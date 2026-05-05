@@ -22,6 +22,7 @@ jobs:
   build-amd64:
     name: Build amd64 images
     runs-on: ubuntu-latest
+    if: ${{ github.repository == 'mniedermaier/CybICS' }}
     steps:
       - name: Free up disk space
         run: |
@@ -83,6 +84,7 @@ jobs:
   build-arm64:
     name: Build arm64 images
     runs-on: ubuntu-24.04-arm
+    if: ${{ github.repository == 'mniedermaier/CybICS' }}
     steps:
       - name: Free up disk space
         run: |
@@ -145,6 +147,7 @@ jobs:
     name: Create multi-arch manifests
     runs-on: ubuntu-latest
     needs: [build-amd64, build-arm64]
+    if: ${{ github.repository == 'mniedermaier/CybICS' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
