@@ -284,7 +284,7 @@ class ChallengeLifecycleManager:
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=300,
             check=False,
             env=env,
         )
