@@ -115,6 +115,8 @@ services:
     networks:
       br-cybics:
         ipv4_address: 172.18.0.8
+    profiles:
+      - firmware-update-environment
 
   update-server:
     image: localhost:5000/cybics-update-server:latest
@@ -130,6 +132,8 @@ services:
     networks:
       br-cybics:
         ipv4_address: 172.18.0.9
+    profiles:
+      - firmware-update-environment
 
 networks:
   br-cybics:
