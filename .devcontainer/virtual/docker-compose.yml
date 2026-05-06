@@ -112,6 +112,30 @@ services:
       - NET_RAW
     volumes:
       - ${XDG_RUNTIME_DIR:-/var/run}/docker.sock:/var/run/docker.sock
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../../software/landing/app.py
+          target: /CybICS/app.py
+        - action: sync+restart
+          path: ../../software/landing/ctf_config.json
+          target: /CybICS/ctf_config.json
+        - action: sync+restart
+          path: ../../software/landing/modules
+          target: /CybICS/modules
+        - action: sync+restart
+          path: ../../software/landing/templates
+          target: /CybICS/templates
+        - action: sync
+          path: ../../software/landing/static
+          target: /CybICS/static
+        - action: sync
+          path: ../../software/landing/utils
+          target: /CybICS/utils
+        - action: rebuild
+          path: ../../software/landing/requirements.txt
+        - action: rebuild
+          path: ../../software/landing/Dockerfile
     depends_on:
     - openplc
 
