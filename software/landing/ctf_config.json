@@ -173,6 +173,7 @@
             "enabled": true,
             "display_name": "IDS Environment",
             "compose_profile": "ids",
+            "compose_services": ["ids"],
             "start": {
               "script": null
             },
@@ -199,6 +200,7 @@
             "enabled": true,
             "display_name": "IDS Environment",
             "compose_profile": "ids",
+            "compose_services": ["ids"],
             "start": {
               "script": null
             },
@@ -233,7 +235,8 @@
           "lifecycle": {
             "enabled": true,
             "display_name": "OpenWRT Firmware Update Environment",
-            "compose_profile": null,
+            "compose_profile": "firmware-update-environment",
+            "compose_services": ["firmware-updater", "update-server", "stm32"],
             "start": {
               "script": "open-wrt/ctf-router.sh start"
             },

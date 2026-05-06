@@ -188,6 +188,23 @@ class ChallengeLifecycleManager:
         if profile not in self.allowed_profiles:
             raise ValueError(f"Unknown compose profile: {profile}")
 
+    def _get_compose_services(self, lifecycle):
+        services = lifecycle.get("compose_services") or []
+        if not isinstance(services, list):
+            raise ValueError("compose_services must be a list")
+
+        validated_services = []
+        service_pattern = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+        for service in services:
+            if not isinstance(service, str) or not service_pattern.match(service):
+                raise ValueError(f"Invalid compose service name: {service}")
+            validated_services.append(service)
+
+        if lifecycle.get("compose_profile") and not validated_services:
+            raise ValueError("compose_services must be set when compose_profile is used")
+
+        return validated_services
+
     def _resolve_script(self, script_command):
         if not script_command:
             return None
@@ -410,6 +427,7 @@ class ChallengeLifecycleManager:
                     raise RuntimeError(stop_result.get("message", "Failed to stop previously active challenge"))
 
             compose_profile = lifecycle.get("compose_profile")
+            compose_services = self._get_compose_services(lifecycle)
             start_config = lifecycle.get("start") or {}
             self._validate_profile(compose_profile)
             self._resolve_script(start_config.get("script"))
@@ -417,7 +435,8 @@ class ChallengeLifecycleManager:
             self._save_state(self._build_state_payload(challenge_id, lifecycle, "starting"))
 
             if compose_profile:
-                self._run_compose(["--profile", compose_profile, "up", "-d"])
+                self._run_compose(["--profile", compose_profile, "rm", "-f", "-s", *compose_services])
+                self._run_compose(["--profile", compose_profile, "up", "-d", *compose_services])
             self._run_script(start_config.get("script"), challenge_id, "start")
             self._wait_for_healthcheck(lifecycle.get("healthcheck"))
 
@@ -477,6 +496,7 @@ class ChallengeLifecycleManager:
 
         try:
             compose_profile = lifecycle.get("compose_profile")
+            compose_services = self._get_compose_services(lifecycle)
             stop_config = lifecycle.get("stop") or {}
             self._validate_profile(compose_profile)
             self._resolve_script(stop_config.get("script"))
@@ -485,7 +505,7 @@ class ChallengeLifecycleManager:
 
             self._run_script(stop_config.get("script"), challenge_id, "stop")
             if compose_profile:
-                self._run_compose(["--profile", compose_profile, "stop"])
+                self._run_compose(["--profile", compose_profile, "stop", *compose_services])
 
             self._clear_state()
             return {
