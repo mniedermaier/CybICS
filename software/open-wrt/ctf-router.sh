@@ -81,20 +81,27 @@ do_start() {
             || docker network connect --ip "$ATTACK_EXT_IP" "$EXT_NET" "$ATTACK"
     fi
 
-    # Warten bis SSH antwortet
+    # Warten bis SSH antwortet. Sobald SSH erreichbar ist, ist der Lifecycle
+    # aus Sicht der Landing UI gestartet; optionale Tools installiert der User
+    # bei Bedarf spaeter manuell.
     echo -n "Waiting for router SSH"
+    SSH_READY=false
     for _ in $(seq 1 24); do
-        nc -z -w2 127.0.0.1 2222 2>/dev/null && break
+        if nc -z -w2 127.0.0.1 2222 2>/dev/null; then
+            SSH_READY=true
+            break
+        fi
         echo -n "."
         sleep 5
     done
-    echo " ok"
 
-    # tcpdump installieren
-    echo -n "Installing tcpdump on router..."
-    sleep 20  # warten bis uci-defaults durch sind
-    SSH_CMD="sshpass -p password ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 root@127.0.0.1"
-    $SSH_CMD "opkg update && opkg install tcpdump" >/dev/null 2>&1 && echo " ok" || echo " failed (install manually: opkg update && opkg install tcpdump)"
+    if [ "$SSH_READY" != true ]; then
+        echo " failed"
+        echo "ERROR: router SSH did not become reachable on localhost:2222"
+        exit 1
+    fi
+
+    echo " ok"
 
     echo ""
     echo "CTF router challenge running."
