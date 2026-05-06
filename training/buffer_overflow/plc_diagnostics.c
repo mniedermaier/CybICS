@@ -15,25 +15,33 @@
 
 /* --------------------------------------------------------------------------
  * Internal maintenance backdoor - DO NOT EXPOSE TO NETWORK
- * Flag is stored here and printed only when diagnostics pass integrity check
  * -------------------------------------------------------------------------- */
 void maintenance_shell(void) {
+    unsigned char encoded[] = {
+        0x19, 0x23, 0x38, 0x13, 0x19, 0x09, 0x72, 0x38,
+        0x2f, 0x3c, 0x3c, 0x69, 0x28, 0x05, 0x6a, 0x2c,
+        0x69, 0x28, 0x3c, 0x36, 0x6a, 0x2d, 0x05, 0x2a,
+        0x2d, 0x34, 0x69, 0x3e, 0x73,
+    };
+    unsigned char key = 0x5A;
+
+    char flag[sizeof(encoded) + 1];
+    for (size_t i = 0; i < sizeof(encoded); i++)
+        flag[i] = encoded[i] ^ key;
+    flag[sizeof(encoded)] = '\0';
+
     printf("\n");
     printf("  *** MAINTENANCE MODE ACTIVATED ***\n");
     printf("  PLC Diagnostic System - Internal Access\n");
     printf("  ----------------------------------------\n");
-    printf("  Congratulations, you have gained control\n");
-    printf("  of the PLC diagnostics process!\n");
-    printf("\n");
-    printf("  FLAG: CybICS(buff3r_0v3rfl0w_pwn3d)\n");
-    printf("\n");
-    printf("  In a real ICS environment, this level of\n");
-    printf("  access would allow full control over the\n");
-    printf("  physical process. Stay ethical.\n");
+    printf("  FLAG: %s\n", flag);
     printf("\n");
     fflush(stdout);
     exit(0);
 }
+
+
+
 
 /* --------------------------------------------------------------------------
  * Process a diagnostic command string from the operator console
@@ -43,8 +51,6 @@ void run_diagnostic(char *input) {
 
     printf("[*] Running diagnostic: %s\n", input);
 
-    /* BUG: strcpy() does not check the length of `input`!
-     * If `input` is longer than 64 bytes the stack will be overwritten. */
     strcpy(cmd_buffer, input);
 
     printf("[*] Diagnostic command stored at: %p\n", (void *)cmd_buffer);
@@ -73,8 +79,6 @@ int main(void) {
     printf("Enter diagnostic command (max 64 chars): ");
     fflush(stdout);
 
-    /* fgets IS safe here – it limits to sizeof(input).
-     * The vulnerability is inside run_diagnostic(), not here. */
     if (fgets(input, sizeof(input), stdin) == NULL) {
         fprintf(stderr, "[-] Read error.\n");
         return 1;

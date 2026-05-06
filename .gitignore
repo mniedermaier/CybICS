@@ -154,3 +154,7 @@ software/landing/data/*.json
 !software/landing/data/.gitkeep
 software/landing/app.py.backup
 software/landing/app.py.old
+
+# buffer overflow challenge
+training/buffer_overflow/plc_diagnostics
+training/buffer_overflow/.gdb_history
