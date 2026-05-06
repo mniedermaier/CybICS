@@ -7,15 +7,40 @@ set -uo pipefail
 
 # --- Config ---
 ROUTER_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROUTER_CONTAINER="open-wrt-openwrt-1"
-INT_NET="virtual_virt-cybics"
-EXT_NET="ext_ctf"
+ROUTER_CONTAINER="${ROUTER_CONTAINER:-open-wrt-openwrt-1}"
+INT_NET="${INT_NET:-virtual_virt-cybics}"
+EXT_NET="${EXT_NET:-ext_ctf}"
 EXT_SUBNET="172.22.0.0/24"
 EXT_GATEWAY="172.22.0.1"
 ROUTER_INT_IP="172.18.0.50"
 ROUTER_EXT_IP="172.22.0.2"
 ATTACK_EXT_IP="172.22.0.100"
-ATTACK_CONTAINER="attack-machine"
+ATTACK_CONTAINER="${ATTACK_CONTAINER:-attack-machine}"
+
+check_router_ssh() {
+    if command -v nc >/dev/null 2>&1; then
+        nc -z -w2 127.0.0.1 2222 >/dev/null 2>&1
+        return $?
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - <<'PY'
+import socket
+import sys
+
+try:
+    with socket.create_connection(("127.0.0.1", 2222), timeout=2):
+        pass
+except OSError:
+    sys.exit(1)
+
+sys.exit(0)
+PY
+        return $?
+    fi
+
+    docker port "$ROUTER_CONTAINER" 2222/tcp >/dev/null 2>&1
+}
 
 find_container() {
     docker ps --format '{{.Names}}' | grep -i "$1" | head -1
@@ -148,6 +173,32 @@ do_stop() {
     echo "Stopped. Back to normal."
 }
 
+# --- HEALTH ---
+do_health() {
+    if ! docker ps --format '{{.Names}}' | grep -q "$ROUTER_CONTAINER"; then
+        echo "router container not running"
+        exit 1
+    fi
+
+    if ! container_in_network "$ROUTER_CONTAINER" "$INT_NET"; then
+        echo "router not attached to $INT_NET"
+        exit 1
+    fi
+
+    if ! container_in_network "$ROUTER_CONTAINER" "$EXT_NET"; then
+        echo "router not attached to $EXT_NET"
+        exit 1
+    fi
+
+    # if ! check_router_ssh; then
+    #    echo "router SSH not reachable on localhost:2222"
+    #    exit 1
+    # fi
+
+    echo "router healthy"
+    exit 0
+}
+
 # --- STATUS ---
 do_status() {
     echo "CTF Router Challenge status:"
@@ -183,6 +234,7 @@ do_status() {
 case "${1:-}" in
     start)  do_start ;;
     stop)   do_stop ;;
+    health) do_health ;;
     status) do_status ;;
-    *)      echo "Usage: $0 {start|stop|status}"; exit 1 ;;
+    *)      echo "Usage: $0 {start|stop|status|health}"; exit 1 ;;
 esac
