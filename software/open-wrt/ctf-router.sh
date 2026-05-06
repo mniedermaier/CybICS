@@ -81,27 +81,31 @@ do_start() {
             || docker network connect --ip "$ATTACK_EXT_IP" "$EXT_NET" "$ATTACK"
     fi
 
-    # Warten bis SSH antwortet. Sobald SSH erreichbar ist, ist der Lifecycle
-    # aus Sicht der Landing UI gestartet; optionale Tools installiert der User
-    # bei Bedarf spaeter manuell.
-    echo -n "Waiting for router SSH"
-    SSH_READY=false
-    for _ in $(seq 1 24); do
-        if nc -z -w2 127.0.0.1 2222 2>/dev/null; then
-            SSH_READY=true
-            break
+    # Im Landing-Lifecycle übernimmt der Healthcheck die Readiness-Prüfung.
+    # Dort darf dieses Script nicht blockieren, sonst schlägt der Start trotz
+    # korrekt hochfahrender Umgebung fälschlich mit einem Timeout fehl.
+    if [ -n "${CYBICS_LIFECYCLE_PHASE:-}" ]; then
+        echo "Skipping router SSH wait because lifecycle healthcheck handles readiness."
+    else
+        echo -n "Waiting for router SSH"
+        SSH_READY=false
+        for _ in $(seq 1 24); do
+            if nc -z -w2 127.0.0.1 2222 2>/dev/null; then
+                SSH_READY=true
+                break
+            fi
+            echo -n "."
+            sleep 5
+        done
+
+        if [ "$SSH_READY" != true ]; then
+            echo " failed"
+            echo "ERROR: router SSH did not become reachable on localhost:2222"
+            exit 1
         fi
-        echo -n "."
-        sleep 5
-    done
 
-    if [ "$SSH_READY" != true ]; then
-        echo " failed"
-        echo "ERROR: router SSH did not become reachable on localhost:2222"
-        exit 1
+        echo " ok"
     fi
-
-    echo " ok"
 
     echo ""
     echo "CTF router challenge running."
