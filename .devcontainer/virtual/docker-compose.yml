@@ -221,8 +221,7 @@ services:
       virt-cybics:
         ipv4_address: 172.18.0.8
     profiles:
-      - firmware-server
-      - hardware
+      - firmware-update-environment
 
   update-server:
     image: mniedermaier1337/cybics-update-server:${CYBICS_VERSION:-latest}
@@ -237,7 +236,7 @@ services:
     volumes:
       - firmware_data:/opt/cybics/update-server/firmware
     profiles:
-      - firmware-server
+      - firmware-update-environment
     ports:
       - 6689:6689
     networks:
@@ -261,7 +260,7 @@ services:
       virt-cybics:
         ipv4_address: 172.18.0.7
     profiles:
-      - hardware
+      - firmware-update-environment
 
 networks:
   virt-cybics:
