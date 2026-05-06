@@ -110,7 +110,13 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    environment:
+      - CYBICS_COMPOSE_DIR=/workspace/.devcontainer/virtual
+      - CYBICS_COMPOSE_FILE=/workspace/.devcontainer/virtual/docker-compose.yml
+      - CYBICS_REPO_ROOT=/workspace
+      - CYBICS_HEALTHCHECK_HOST=host.docker.internal
     volumes:
+      - ../../:/workspace
       - ${XDG_RUNTIME_DIR:-/var/run}/docker.sock:/var/run/docker.sock
     develop:
       watch:
