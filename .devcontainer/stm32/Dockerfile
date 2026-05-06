@@ -71,8 +71,14 @@ RUN west init -l app && \
 # Install Python requirements using west (recommended method)
 RUN west packages pip --install
 
-# Install Zephyr SDK using west (only ARM toolchain)
-RUN west sdk install -t arm-zephyr-eabi
+# Install Zephyr SDK toolchain only.
+# Host tools are already provided via apt packages above.
+ENV ZEPHYR_SDK_VERSION=0.17.4
+ENV ZEPHYR_SDK_INSTALL_DIR=/home/docker/zephyr-sdk-${ZEPHYR_SDK_VERSION}
+RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz -O /tmp/zephyr-sdk.tar.xz && \
+    tar -xf /tmp/zephyr-sdk.tar.xz -C /home/docker && \
+    ${ZEPHYR_SDK_INSTALL_DIR}/setup.sh -t arm-zephyr-eabi && \
+    rm -f /tmp/zephyr-sdk.tar.xz
 
 # Switch back to root for fixuid setup
 USER root

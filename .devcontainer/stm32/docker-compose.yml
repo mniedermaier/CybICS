@@ -1,6 +1,7 @@
 services:
   dev:
     container_name: cybics-stm32
+    platform: linux/amd64
     image: cybics-stm32-dev
     build:
       context: ../..

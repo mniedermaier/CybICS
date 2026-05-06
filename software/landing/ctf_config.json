@@ -182,7 +182,7 @@
             "healthcheck": {
               "type": "tcp",
               "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:8443",
-              "timeout_seconds": 30
+              "timeout_seconds": 60
             }
           }
         },
