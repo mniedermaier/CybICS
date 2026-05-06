@@ -310,6 +310,49 @@ class ChallengeLifecycleManager:
             with socket.create_connection((host, int(port)), timeout=2):
                 return True
 
+        if check_type == "command":
+            command = healthcheck.get("command")
+            if not command:
+                raise ValueError("Command healthcheck requires a script command")
+
+            env = os.environ.copy()
+            env["CYBICS_LIFECYCLE_PHASE"] = "healthcheck"
+
+            resolved_script = None
+            try:
+                resolved_script = self._resolve_script(command)
+            except (AttributeError, ValueError):
+                resolved_script = None
+
+            if resolved_script:
+                script_path, script_args = resolved_script
+                script_runner = self._get_script_runner(script_path)
+                run_args = {
+                    "args": [*script_runner, script_path, *script_args],
+                    "shell": False,
+                }
+            else:
+                run_args = {
+                    # Healthcheck commands are configured by trusted challenge config.
+                    "args": command,
+                    "shell": True,
+                }
+
+            result = subprocess.run(  # nosec B602
+                run_args["args"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+                env=env,
+                shell=run_args["shell"],
+            )
+            if result.returncode != 0:
+                error_output = (result.stderr or result.stdout).strip()
+                raise RuntimeError(error_output or "Command healthcheck failed")
+            return True
+
         raise ValueError(f"Unsupported healthcheck type: {check_type}")
 
     def _wait_for_healthcheck(self, healthcheck):

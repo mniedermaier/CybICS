@@ -244,8 +244,8 @@
               "script": "open-wrt/ctf-router.sh stop"
             },
             "healthcheck": {
-              "type": "tcp",
-              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:2222",
+              "type": "command",
+              "command": "open-wrt/ctf-router.sh health",
               "timeout_seconds": 30
             }
           }
