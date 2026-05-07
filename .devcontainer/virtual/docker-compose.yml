@@ -113,10 +113,10 @@ services:
     environment:
       - CYBICS_COMPOSE_DIR=/workspace/.devcontainer/virtual
       - CYBICS_COMPOSE_FILE=/workspace/.devcontainer/virtual/docker-compose.yml
-      - CYBICS_REPO_ROOT=/workspace
+      - CYBICS_REPO_ROOT=/CybICS
       - CYBICS_HEALTHCHECK_HOST=host.docker.internal
     volumes:
-      - ../../:/workspace
+      - ../../.devcontainer:/workspace/.devcontainer:ro
       - ${XDG_RUNTIME_DIR:-/var/run}/docker.sock:/var/run/docker.sock
     develop:
       watch:
