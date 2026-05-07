@@ -120,6 +120,7 @@ List all available tools with descriptions and parameters
 
 - `OLLAMA_MODEL`: Model to use (default: tinyllama)
 - `OLLAMA_HOST`: Ollama server URL (default: http://localhost:11434)
+- `FORCE_MODEL_PULL`: Set to `true` to force a model pull at startup (default: false)
 
 ## Supported Models
 
@@ -155,7 +156,7 @@ environment:
 - **mistral:7b** (4.1GB): ~10-30 minutes
 - **llama3.1:8b** (4.7GB): ~10-30 minutes
 
-Times vary based on your internet connection speed. The system will wait up to 30 minutes for downloads to complete.
+Times vary based on your internet connection speed. On startup, the container now pulls a model only when it is missing locally (or when `FORCE_MODEL_PULL=true`).
 
 ### Model Comparison
 
