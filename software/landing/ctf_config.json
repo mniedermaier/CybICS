@@ -159,6 +159,7 @@
           "title": "Malicious Firmware Update",
           "description": "Exploit insecure firmware update mechanism",
           "points": 500,
+          "tag": "exploit",
           "flag": "CybICS(malicious_firmware_injected)",
           "hint": "Analyze firmware updates and manipulate them",
           "training_content": "training/time-travelers-update/README.md",
