@@ -110,8 +110,38 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    environment:
+      - CYBICS_COMPOSE_DIR=/workspace/.devcontainer/virtual
+      - CYBICS_COMPOSE_FILE=/workspace/.devcontainer/virtual/docker-compose.yml
+      - CYBICS_REPO_ROOT=/CybICS
+      - CYBICS_HEALTHCHECK_HOST=host.docker.internal
     volumes:
+      - ../../.devcontainer:/workspace/.devcontainer:ro
       - ${XDG_RUNTIME_DIR:-/var/run}/docker.sock:/var/run/docker.sock
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../../software/landing/app.py
+          target: /CybICS/app.py
+        - action: sync+restart
+          path: ../../software/landing/ctf_config.json
+          target: /CybICS/ctf_config.json
+        - action: sync+restart
+          path: ../../software/landing/modules
+          target: /CybICS/modules
+        - action: sync+restart
+          path: ../../software/landing/templates
+          target: /CybICS/templates
+        - action: sync
+          path: ../../software/landing/static
+          target: /CybICS/static
+        - action: sync
+          path: ../../software/landing/utils
+          target: /CybICS/utils
+        - action: rebuild
+          path: ../../software/landing/requirements.txt
+        - action: rebuild
+          path: ../../software/landing/Dockerfile
     depends_on:
     - openplc
 
@@ -197,8 +227,7 @@ services:
       virt-cybics:
         ipv4_address: 172.18.0.8
     profiles:
-      - firmware-server
-      - hardware
+      - firmware-update-environment
 
   update-server:
     image: mniedermaier1337/cybics-update-server:${CYBICS_VERSION:-latest}
@@ -213,7 +242,7 @@ services:
     volumes:
       - firmware_data:/opt/cybics/update-server/firmware
     profiles:
-      - firmware-server
+      - firmware-update-environment
     ports:
       - 6689:6689
     networks:
@@ -237,7 +266,7 @@ services:
       virt-cybics:
         ipv4_address: 172.18.0.7
     profiles:
-      - hardware
+      - firmware-update-environment
 
 networks:
   virt-cybics:

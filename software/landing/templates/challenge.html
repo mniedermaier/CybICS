@@ -230,7 +230,51 @@
         }
 
         .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
             white-space: pre-wrap;
+            border-radius: 0.75rem;
+            padding: 0.8rem 1rem;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            border: 1px solid transparent;
+            animation: msgFadeIn 0.2s ease;
+        }
+
+        @keyframes msgFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .message .msg-icon {
+            flex-shrink: 0;
+            font-size: 1.05rem;
+            margin-top: 0.05rem;
+        }
+
+        .message.info {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.35);
+            color: #bfdbfe;
+        }
+
+        .message.success {
+            background-color: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.35);
+            color: #bbf7d0;
+        }
+
+        .message.warning {
+            background-color: rgba(255, 107, 0, 0.1);
+            border-color: rgba(255, 107, 0, 0.3);
+            color: #ffd7bd;
+        }
+
+        .message.error {
+            background-color: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fecaca;
         }
 
         .floating-lifecycle-shell {

@@ -14,4 +14,4 @@ uci commit network
 uci add_list firewall.@zone[0].network='qemu'
 uci commit firewall
 
-(echo "password"; echo "password") | passwd root
+(echo "2003"; echo "2003") | passwd root

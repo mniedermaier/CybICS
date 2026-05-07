@@ -5,13 +5,10 @@ import json
 import os
 import re
 import shlex
-import socket
 import subprocess
 import time
 import shutil
 from datetime import datetime, timezone
-
-import requests
 
 from utils.config import (
     ACTIVE_CHALLENGE_FILE,
@@ -188,6 +185,23 @@ class ChallengeLifecycleManager:
         if profile not in self.allowed_profiles:
             raise ValueError(f"Unknown compose profile: {profile}")
 
+    def _get_compose_services(self, lifecycle):
+        services = lifecycle.get("compose_services") or []
+        if not isinstance(services, list):
+            raise ValueError("compose_services must be a list")
+
+        validated_services = []
+        service_pattern = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+        for service in services:
+            if not isinstance(service, str) or not service_pattern.match(service):
+                raise ValueError(f"Invalid compose service name: {service}")
+            validated_services.append(service)
+
+        if lifecycle.get("compose_profile") and not validated_services:
+            raise ValueError("compose_services must be set when compose_profile is used")
+
+        return validated_services
+
     def _resolve_script(self, script_command):
         if not script_command:
             return None
@@ -282,16 +296,48 @@ class ChallengeLifecycleManager:
         check_type = healthcheck.get("type")
         target = self._expand_target(healthcheck.get("target", ""))
 
-        if check_type == "http":
-            response = requests.get(target, timeout=2)
-            return response.ok
+        if check_type == "command":
+            command = healthcheck.get("command")
+            if not command:
+                raise ValueError("Command healthcheck requires a script command")
 
-        if check_type == "tcp":
-            if ":" not in target:
-                raise ValueError("TCP healthcheck target must be host:port")
-            host, port = target.rsplit(":", 1)
-            with socket.create_connection((host, int(port)), timeout=2):
-                return True
+            env = os.environ.copy()
+            env["CYBICS_LIFECYCLE_PHASE"] = "healthcheck"
+
+            resolved_script = None
+            try:
+                resolved_script = self._resolve_script(command)
+            except (AttributeError, ValueError):
+                resolved_script = None
+
+            if resolved_script:
+                script_path, script_args = resolved_script
+                script_runner = self._get_script_runner(script_path)
+                run_args = {
+                    "args": [*script_runner, script_path, *script_args],
+                    "shell": False,
+                }
+            else:
+                run_args = {
+                    # Healthcheck commands are configured by trusted challenge config.
+                    "args": command,
+                    "shell": True,
+                }
+
+            result = subprocess.run(  # nosec B602
+                run_args["args"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+                env=env,
+                shell=run_args["shell"],
+            )
+            if result.returncode != 0:
+                error_output = (result.stderr or result.stdout).strip()
+                raise RuntimeError(error_output or "Command healthcheck failed")
+            return True
 
         raise ValueError(f"Unsupported healthcheck type: {check_type}")
 
@@ -410,6 +456,7 @@ class ChallengeLifecycleManager:
                     raise RuntimeError(stop_result.get("message", "Failed to stop previously active challenge"))
 
             compose_profile = lifecycle.get("compose_profile")
+            compose_services = self._get_compose_services(lifecycle)
             start_config = lifecycle.get("start") or {}
             self._validate_profile(compose_profile)
             self._resolve_script(start_config.get("script"))
@@ -417,7 +464,8 @@ class ChallengeLifecycleManager:
             self._save_state(self._build_state_payload(challenge_id, lifecycle, "starting"))
 
             if compose_profile:
-                self._run_compose(["--profile", compose_profile, "up", "-d"])
+                self._run_compose(["--profile", compose_profile, "rm", "-f", "-s", *compose_services])
+                self._run_compose(["--profile", compose_profile, "up", "-d", *compose_services])
             self._run_script(start_config.get("script"), challenge_id, "start")
             self._wait_for_healthcheck(lifecycle.get("healthcheck"))
 
@@ -477,6 +525,7 @@ class ChallengeLifecycleManager:
 
         try:
             compose_profile = lifecycle.get("compose_profile")
+            compose_services = self._get_compose_services(lifecycle)
             stop_config = lifecycle.get("stop") or {}
             self._validate_profile(compose_profile)
             self._resolve_script(stop_config.get("script"))
@@ -485,7 +534,7 @@ class ChallengeLifecycleManager:
 
             self._run_script(stop_config.get("script"), challenge_id, "stop")
             if compose_profile:
-                self._run_compose(["--profile", compose_profile, "stop"])
+                self._run_compose(["--profile", compose_profile, "stop", *compose_services])
 
             self._clear_state()
             return {

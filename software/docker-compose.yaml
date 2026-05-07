@@ -78,8 +78,13 @@ services:
       - NET_ADMIN
       - NET_RAW
     network_mode: host
+    environment:
+      - CYBICS_COMPOSE_DIR=/CybICS
+      - CYBICS_COMPOSE_FILE=/CybICS/docker-compose.yaml
+      - CYBICS_HEALTHCHECK_HOST=127.0.0.1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yaml:/CybICS/docker-compose.yaml:ro
 
   stm32:
     image: localhost:5000/cybics-stm32:latest
@@ -96,7 +101,7 @@ services:
 
   firmware-updater:
     image: localhost:5000/cybics-firmware-updater:latest
-    restart: always
+    restart: unless-stopped
     mem_limit: 64m
     depends_on:
       - stm32
@@ -110,6 +115,25 @@ services:
     networks:
       br-cybics:
         ipv4_address: 172.18.0.8
+    profiles:
+      - firmware-update-environment
+
+  update-server:
+    image: localhost:5000/cybics-update-server:latest
+    restart: unless-stopped
+    environment:
+      - FIRMWARE_VERSION=${FIRMWARE_VERSION:-1.2.1}
+      - FIRMWARE_MAC=${FIRMWARE_MAC:-extended-mac}
+      - FIRMWARE_PATH=/opt/cybics/update-server/firmware/firmware.bin
+    volumes:
+      - firmware_data:/opt/cybics/update-server/firmware
+    ports:
+      - "6689:6689"
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.9
+    profiles:
+      - firmware-update-environment
 
 networks:
   br-cybics:

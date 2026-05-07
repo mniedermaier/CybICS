@@ -153,6 +153,33 @@
           "flag": "CybICS(m0dbus_fl00d_d3tect3d)",
           "hint": "Run the override script, then query /api/rules/stats — the flag appears when the modbus_flood rule fires",
           "training_content": "training/detect_overwrite/README.md"
+        },
+        {
+          "id": "firmware_update",
+          "title": "Malicious Firmware Update",
+          "description": "Exploit insecure firmware update mechanism",
+          "points": 500,
+          "tag": "exploit",
+          "flag": "CybICS(malicious_firmware_injected)",
+          "hint": "Analyze firmware updates and manipulate them",
+          "training_content": "training/time-travelers-update/README.md",
+          "lifecycle": {
+            "enabled": true,
+            "display_name": "OpenWRT Firmware Update Environment",
+            "compose_profile": "firmware-update-environment",
+            "compose_services": ["firmware-updater", "update-server", "stm32"],
+            "start": {
+              "script": "open-wrt/ctf-router.sh start"
+            },
+            "stop": {
+              "script": "open-wrt/ctf-router.sh stop"
+            },
+            "healthcheck": {
+              "type": "command",
+              "command": "open-wrt/ctf-router.sh health",
+              "timeout_seconds": 30
+            }
+          }
         }
       ]
     },
@@ -168,23 +195,7 @@
           "tag": "exploit",
           "flag": "CybICS(1ntrusi0n_d3tect3d)",
           "hint": "Perform multiple different attacks and check the IDS flag endpoint",
-          "training_content": "training/ids_challenge/README.md",
-          "lifecycle": {
-            "enabled": true,
-            "display_name": "IDS Environment",
-            "compose_profile": "ids",
-            "start": {
-              "script": null
-            },
-            "stop": {
-              "script": null
-            },
-            "healthcheck": {
-              "type": "tcp",
-              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:8443",
-              "timeout_seconds": 60
-            }
-          }
+          "training_content": "training/ids_challenge/README.md"
         },
         {
           "id": "ids_forensics",
@@ -199,6 +210,7 @@
             "enabled": true,
             "display_name": "IDS Environment",
             "compose_profile": "ids",
+            "compose_services": ["ids"],
             "start": {
               "script": null
             },
@@ -221,31 +233,6 @@
           "flag": "CybICS(st34lth_0p3r4t0r)",
           "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
           "training_content": "training/ids_evasion/README.md"
-        },
-        {
-          "id": "firmware_update",
-          "title": "Malicious Firmware Update",
-          "description": "Exploit insecure firmware update mechanism",
-          "points": 400,
-          "flag": "CybICS(malicious_firmware_injected)",
-          "hint": "Analyze firmware updates and manipulate them",
-          "training_content": "training/time-travelers-update/README.md",
-          "lifecycle": {
-            "enabled": true,
-            "display_name": "OpenWRT Firmware Update Environment",
-            "compose_profile": null,
-            "start": {
-              "script": "open-wrt/ctf-router.sh start"
-            },
-            "stop": {
-              "script": "open-wrt/ctf-router.sh stop"
-            },
-            "healthcheck": {
-              "type": "tcp",
-              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:2222",
-              "timeout_seconds": 30
-            }
-          }
         }
       ]
     },
