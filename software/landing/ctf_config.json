@@ -153,6 +153,32 @@
           "flag": "CybICS(m0dbus_fl00d_d3tect3d)",
           "hint": "Run the override script, then query /api/rules/stats — the flag appears when the modbus_flood rule fires",
           "training_content": "training/detect_overwrite/README.md"
+        },
+        {
+          "id": "firmware_update",
+          "title": "Malicious Firmware Update",
+          "description": "Exploit insecure firmware update mechanism",
+          "points": 500,
+          "flag": "CybICS(malicious_firmware_injected)",
+          "hint": "Analyze firmware updates and manipulate them",
+          "training_content": "training/time-travelers-update/README.md",
+          "lifecycle": {
+            "enabled": true,
+            "display_name": "OpenWRT Firmware Update Environment",
+            "compose_profile": "firmware-update-environment",
+            "compose_services": ["firmware-updater", "update-server", "stm32"],
+            "start": {
+              "script": "open-wrt/ctf-router.sh start"
+            },
+            "stop": {
+              "script": "open-wrt/ctf-router.sh stop"
+            },
+            "healthcheck": {
+              "type": "command",
+              "command": "open-wrt/ctf-router.sh health",
+              "timeout_seconds": 30
+            }
+          }
         }
       ]
     },
@@ -206,32 +232,6 @@
           "flag": "CybICS(st34lth_0p3r4t0r)",
           "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
           "training_content": "training/ids_evasion/README.md"
-        },
-        {
-          "id": "firmware_update",
-          "title": "Malicious Firmware Update",
-          "description": "Exploit insecure firmware update mechanism",
-          "points": 500,
-          "flag": "CybICS(malicious_firmware_injected)",
-          "hint": "Analyze firmware updates and manipulate them",
-          "training_content": "training/time-travelers-update/README.md",
-          "lifecycle": {
-            "enabled": true,
-            "display_name": "OpenWRT Firmware Update Environment",
-            "compose_profile": "firmware-update-environment",
-            "compose_services": ["firmware-updater", "update-server", "stm32"],
-            "start": {
-              "script": "open-wrt/ctf-router.sh start"
-            },
-            "stop": {
-              "script": "open-wrt/ctf-router.sh stop"
-            },
-            "healthcheck": {
-              "type": "command",
-              "command": "open-wrt/ctf-router.sh health",
-              "timeout_seconds": 30
-            }
-          }
         }
       ]
     },
