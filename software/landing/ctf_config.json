@@ -228,7 +228,7 @@
           "id": "firmware_update",
           "title": "Malicious Firmware Update",
           "description": "Exploit insecure firmware update mechanism",
-          "points": 400,
+          "points": 500,
           "flag": "CybICS(malicious_firmware_injected)",
           "hint": "Analyze firmware updates and manipulate them",
           "training_content": "training/time-travelers-update/README.md",
