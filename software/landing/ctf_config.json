@@ -168,24 +168,7 @@
           "tag": "exploit",
           "flag": "CybICS(1ntrusi0n_d3tect3d)",
           "hint": "Perform multiple different attacks and check the IDS flag endpoint",
-          "training_content": "training/ids_challenge/README.md",
-          "lifecycle": {
-            "enabled": true,
-            "display_name": "IDS Environment",
-            "compose_profile": "ids",
-            "compose_services": ["ids"],
-            "start": {
-              "script": null
-            },
-            "stop": {
-              "script": null
-            },
-            "healthcheck": {
-              "type": "tcp",
-              "target": "${CYBICS_HEALTHCHECK_HOST:-host.docker.internal}:8443",
-              "timeout_seconds": 60
-            }
-          }
+          "training_content": "training/ids_challenge/README.md"
         },
         {
           "id": "ids_forensics",
