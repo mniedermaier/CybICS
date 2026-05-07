@@ -5,13 +5,10 @@ import json
 import os
 import re
 import shlex
-import socket
 import subprocess
 import time
 import shutil
 from datetime import datetime, timezone
-
-import requests
 
 from utils.config import (
     ACTIVE_CHALLENGE_FILE,
@@ -298,17 +295,6 @@ class ChallengeLifecycleManager:
 
         check_type = healthcheck.get("type")
         target = self._expand_target(healthcheck.get("target", ""))
-
-        if check_type == "http":
-            response = requests.get(target, timeout=2)
-            return response.ok
-
-        if check_type == "tcp":
-            if ":" not in target:
-                raise ValueError("TCP healthcheck target must be host:port")
-            host, port = target.rsplit(":", 1)
-            with socket.create_connection((host, int(port)), timeout=2):
-                return True
 
         if check_type == "command":
             command = healthcheck.get("command")
