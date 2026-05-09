@@ -219,6 +219,30 @@ def challenge_detail(challenge_id):
                          solved=challenge_id in session['solved_challenges'],
                          challenge_type=challenge.get('type', 'offensive'))
 
+@app.route('/ctf/download/<challenge_id>')
+def challenge_download(challenge_id):
+    """Serve a downloadable file for a challenge"""
+    import os as _os
+    from flask import send_file as _send_file
+    print("DOWNLOAD-HEADERS:", dict(request.headers))
+    challenge, _ = ctf_manager.get_challenge(challenge_id)
+    if not challenge or 'download' not in challenge:
+        return "File not found", 404
+    filename = challenge['download']
+    file_path = _os.path.abspath(_os.path.join(
+        _os.path.dirname(__file__), 'training', challenge_id, filename
+    ))
+    if not _os.path.isfile(file_path):
+        return f"File '{filename}' not found on server {file_path}", 404
+    return _send_file(
+        file_path,
+        as_attachment=True,
+        download_name=filename,
+        conditional=False
+    )
+    response = _send_file(file_path, as_attachment=True, download_name=filename)
+    return response
+
 @app.route('/ctf/verify/<challenge_id>', methods=['POST'])
 def verify_defense(challenge_id):
     """Verify a defense challenge and auto-submit flag on success"""

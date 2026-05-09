@@ -163,6 +163,17 @@
           "flag": "CybICS(buff3r_0v3rfl0w_pwn3d)",
           "hint": "Compile the binary with make, then use GDB + pwndbg: cyclic to find the offset, nm to find the target function address, and python3 + struct.pack to craft the payload.",
           "training_content": "training/buffer_overflow/README.md"
+        },
+        {
+          "id": "flash_dump",
+          "title": "Flash Dump Analysis",
+          "description": "A flash memory dump from an industrial controller was obtained via its debug port. The firmware is encrypted — but the device boots without user input. Analyse the dump, reverse-engineer the unlock binary, and decrypt the firmware partition.",
+          "points": 400,
+          "tag": "reverse-engineering",
+          "flag": "CybICS(fl4sh_dump_4nalyz3d)",
+          "hint": "Start with binwalk to find what's in the dump. Then look for an EXT filesystem — it contains a binary that reveals where the key is stored.",
+          "training_content": "training/flash_dump/README.md",
+          "download": "flash_dump.bin"
         }
       ]
     },

@@ -36,6 +36,9 @@ COPY software/landing/modules/ modules/
 # Copy training content from root
 COPY training/ training/
 
+# Decompress pre-built flash dump challenge files
+RUN gunzip -k /CybICS/training/flash_dump/flash_dump.bin.gz
+
 # Copy attack scripts to /usr/local/bin for easy access
 COPY training/flood_overwrite/flooding_hpt.py /usr/local/bin/flooding_hpt.py
 RUN chmod +x /usr/local/bin/flooding_hpt.py
