@@ -244,9 +244,6 @@ start_environment() {
         print_message "Warning: Some images could not be pulled. Continuing with available images..." "$YELLOW"
     fi
 
-    # Build dockerfiles
-    $DOCKER_COMPOSE build
-
     # Start containers (capture output for error handling)
     print_message "Starting containers..." "$YELLOW"
     local output
