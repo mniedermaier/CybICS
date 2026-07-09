@@ -11,9 +11,10 @@
         }
 
         body {
+            /* Static gradient — the former `gradientShift` animation repainted the
+               whole viewport every frame (major idle CPU cost) for no real benefit. */
             background: linear-gradient(-45deg, #0a0a0f, #1a1a2e, #16213e, #0f3460);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            background-size: cover;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -41,7 +42,8 @@
                 radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.08) 0%, transparent 50%),
                 radial-gradient(circle at 40% 20%, rgba(255, 69, 0, 0.05) 0%, transparent 50%);
-            animation: float 20s ease-in-out infinite;
+            /* Static overlay — dropped the perpetual `float` animation on this
+               full-screen fixed layer to stop continuous compositing. */
             pointer-events: none;
             z-index: 1;
         }
@@ -138,11 +140,9 @@
             font-weight: 700;
             letter-spacing: 1px;
             display: inline-block;
-            overflow: hidden;
             white-space: nowrap;
-            border-right: 3px solid #ff6b00;
-            width: 0;
-            animation: typing 8s steps(17) infinite, blink-caret 0.75s step-end infinite;
+            /* Static title. The former `typing` animation animated `width`, forcing
+               a full document layout on every frame, forever. */
         }
 
         @keyframes typing {
@@ -263,8 +263,10 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            /* Gentle transform-only float (compositor-cheap). Dropped the animated
+               drop-shadow filter, which repainted a blurred shadow every frame. */
             animation: float 3s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px rgba(255, 107, 0, 0.5));
+            text-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
         }
 
         .service-box-content {
@@ -506,13 +508,15 @@
 
         main {
             height: 100vh;
-            padding-top: 70px;
+            /* Offset by the real (possibly wrapped) fixed-header height, kept in
+               sync by JS. Falls back to 70px before/without JS. */
+            padding-top: var(--header-h, 70px);
             overflow-x: hidden;
             box-sizing: border-box;
         }
 
         .services-container {
-            height: calc(100vh - 70px);
+            height: calc(100vh - var(--header-h, 70px));
             display: flex;
             flex-wrap: wrap;
             max-width: 100%;
@@ -656,12 +660,15 @@
                 padding: 0.5rem 0.75rem;
             }
 
+            /* padding-top / height come from the JS-measured --header-h var so
+               they track the wrapped header height instead of a fixed guess.
+               The values below are only a no-JS fallback for this breakpoint. */
             main {
-                padding-top: 130px;
+                padding-top: var(--header-h, 130px);
             }
 
             .services-container {
-                height: calc(100vh - 130px);
+                height: calc(100vh - var(--header-h, 130px));
             }
 
             .header-logo {
@@ -680,6 +687,48 @@
 
             .nav-group-label {
                 font-size: 0.65rem;
+            }
+        }
+
+        /* Desktop widths (e.g. 1280x854 and up): keep the whole nav on a SINGLE
+           row to save vertical space, by dropping the group labels and tightening
+           the logo, gaps, separators and button padding instead of wrapping.
+           (The default styling wraps to two rows on typical monitor widths.) */
+        @media (min-width: 1001px) {
+            header {
+                padding: 0.4rem 0.75rem;
+                gap: 0.5rem;
+            }
+
+            .header-logo {
+                height: 26px;
+            }
+
+            nav {
+                flex-wrap: nowrap;
+                gap: 0.3rem;
+                min-width: 0;
+            }
+
+            .nav-group {
+                gap: 0.3rem;
+            }
+
+            /* Group labels (Core / Virtual Only / Tools) are the cheapest thing to
+               cut and free ~145px, which is what makes a single row fit. */
+            .nav-group-label {
+                display: none;
+            }
+
+            .nav-button {
+                padding: 0.4rem 0.55rem;
+                font-size: 0.8rem;
+                white-space: nowrap;
+            }
+
+            .nav-separator {
+                margin: 0 0.15rem;
+                height: 22px;
             }
         }
 
@@ -1827,7 +1876,7 @@
                 <iframe
                     id="ctf-iframe"
                     class="service-iframe"
-                    src="/ctf"
+                    data-src="/ctf"
                     title="CTF Training"
                     allow="fullscreen"
                     allowfullscreen="true"
@@ -1840,7 +1889,7 @@
                 <iframe
                     id="stats-iframe"
                     class="service-iframe"
-                    src="/stats"
+                    data-src="/stats"
                     title="System Stats"
                     allow="fullscreen"
                     allowfullscreen="true"
@@ -1853,7 +1902,7 @@
                 <iframe
                     id="network-iframe"
                     class="service-iframe"
-                    src="/network"
+                    data-src="/network"
                     title="Network Analyzer"
                     allow="fullscreen"
                     allowfullscreen="true"
@@ -1866,7 +1915,7 @@
                 <iframe
                     id="webshell-iframe"
                     class="service-iframe"
-                    src="/webshell"
+                    data-src="/webshell"
                     title="WebShell"
                     allow="fullscreen"
                     allowfullscreen="true"
@@ -1883,6 +1932,24 @@
     </button>
 
     <script>
+        // Keep --header-h in sync with the fixed header's real height so the
+        // content below it (including embedded iframes like Sharky) is never
+        // hidden when the nav wraps to multiple rows on narrow screens.
+        function syncHeaderHeight() {
+            const header = document.querySelector('header');
+            if (!header) return;
+            document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
+        }
+        window.addEventListener('DOMContentLoaded', syncHeaderHeight);
+        window.addEventListener('load', syncHeaderHeight);
+        window.addEventListener('resize', syncHeaderHeight);
+        if (window.ResizeObserver) {
+            window.addEventListener('DOMContentLoaded', function() {
+                const header = document.querySelector('header');
+                if (header) new ResizeObserver(syncHeaderHeight).observe(header);
+            });
+        }
+
         // Store service IDs in a JavaScript array
         const serviceIds = [{% for service_id in services.keys() %}'{{ service_id }}',{% endfor %}];
         // Additional view IDs for CTF and Tools
@@ -1906,58 +1973,84 @@
             'webshell': { path: '/webshell' }
         };
 
-        // Set iframe src dynamically using current hostname
-        document.addEventListener('DOMContentLoaded', function() {
-            const hostname = window.location.hostname;
-            document.querySelectorAll('.service-iframe').forEach(iframe => {
-                const port = iframe.getAttribute('data-port');
-                const serviceId = iframe.getAttribute('data-service');
-                const path = iframe.getAttribute('data-path') || '';
-                const url = `http://${hostname}:${port}${path}`;
+        // ---- Lazy iframe loading ----------------------------------------------
+        // Every service used to be embedded and kept running at once (two live VNC
+        // sessions, FUXA, a terminal, charts, ...), even while hidden — pegging the
+        // client CPU. Now an iframe only loads when its view is opened, and is
+        // unloaded (src blanked) when you leave it, so at most one runs at a time.
 
-                // Set the URL in the error message
-                document.getElementById(`${serviceId}-url`).textContent = url;
+        // Resolve an iframe's target URL from data-src (local paths) or data-port/path.
+        function iframeUrl(iframe) {
+            const ds = iframe.getAttribute('data-src');
+            if (ds) return ds;
+            const port = iframe.getAttribute('data-port');
+            if (!port) return null;
+            const path = iframe.getAttribute('data-path') || '';
+            return `http://${window.location.hostname}:${port}${path}`;
+        }
 
-                // Set up error detection
-                let errorShown = false;
-                let checkStarted = false;
+        function showIframeError(iframe) {
+            const serviceId = iframe.getAttribute('data-service');
+            const errorDiv = serviceId && document.getElementById(`${serviceId}-error`);
+            if (errorDiv) {
+                iframe.classList.add('hidden');
+                errorDiv.classList.add('visible');
+            }
+        }
 
-                function showError() {
-                    if (!errorShown) {
-                        errorShown = true;
-                        iframe.classList.add('hidden');
-                        document.getElementById(`${serviceId}-error`).classList.add('visible');
-                    }
-                }
+        // Load a view's iframe if it isn't already loaded.
+        function loadViewIframe(view) {
+            const iframe = document.getElementById(`${view}-iframe`);
+            if (!iframe) return;
+            const cur = iframe.getAttribute('src');
+            if (cur && cur !== 'about:blank') return; // already loaded
 
-                // Use fetch to check if service is available before loading iframe
+            // Prefer the last URL we had (preserves e.g. CTF challenge navigation).
+            const url = iframe.getAttribute('data-last-src') || iframeUrl(iframe);
+            if (!url) return;
+
+            const serviceId = iframe.getAttribute('data-service');
+            if (serviceId) {
+                // External service: probe availability, show error panel if down.
+                iframe.classList.remove('hidden');
+                const errorDiv = document.getElementById(`${serviceId}-error`);
+                if (errorDiv) errorDiv.classList.remove('visible');
                 fetch(url, { mode: 'no-cors', cache: 'no-cache' })
                     .then(() => {
-                        // Service appears to be available, load the iframe
                         iframe.src = url;
-                        checkStarted = true;
-
-                        // Still check after a timeout in case the page doesn't load
                         setTimeout(function() {
                             try {
-                                // Try to access iframe document
-                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                                if (!iframeDoc || iframeDoc.readyState !== 'complete') {
-                                    showError();
-                                }
-                            } catch (e) {
-                                // Cross-origin means page loaded successfully
-                            }
+                                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!doc || doc.readyState !== 'complete') showIframeError(iframe);
+                            } catch (e) { /* cross-origin => loaded fine */ }
                         }, 5000);
                     })
-                    .catch(() => {
-                        // Service is not available
-                        showError();
-                    });
+                    .catch(() => showIframeError(iframe));
+            } else {
+                // Same-origin local page (ctf/stats/network/webshell): just load it.
+                iframe.src = url;
+            }
+        }
 
-                iframe.addEventListener('error', function() {
-                    showError();
-                });
+        // Unload a view's iframe to stop its background CPU usage.
+        function unloadViewIframe(view) {
+            const iframe = document.getElementById(`${view}-iframe`);
+            if (!iframe) return;
+            const cur = iframe.getAttribute('src');
+            if (cur && cur !== 'about:blank') {
+                iframe.setAttribute('data-last-src', cur); // remember for restore
+            }
+            iframe.src = 'about:blank';
+        }
+
+        // Populate the error-panel URL labels (does not load anything).
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.service-iframe').forEach(iframe => {
+                const serviceId = iframe.getAttribute('data-service');
+                if (!serviceId) return;
+                const urlEl = document.getElementById(`${serviceId}-url`);
+                if (urlEl) urlEl.textContent = iframeUrl(iframe);
+                iframe.addEventListener('error', function() { showIframeError(iframe); });
             });
         });
 
@@ -2066,24 +2159,27 @@
             const homeScreen = document.getElementById('home-screen');
 
             if (view === 'all') {
-                // Show home screen
+                // Show home screen; unload every service iframe so nothing runs.
                 homeScreen.classList.remove('hidden');
                 allViewIds.forEach(viewId => {
                     const card = document.getElementById(`${viewId}-card`);
                     if (card) card.classList.add('hidden');
+                    unloadViewIframe(viewId);
                 });
             } else {
-                // Show individual view
+                // Show individual view: load only the active iframe, unload the rest.
                 homeScreen.classList.add('hidden');
                 allViewIds.forEach(viewId => {
                     const card = document.getElementById(`${viewId}-card`);
-                    if (card) {
-                        if (view === viewId) {
+                    if (view === viewId) {
+                        if (card) {
                             card.classList.remove('hidden');
                             card.classList.add('full-width');
-                        } else {
-                            card.classList.add('hidden');
                         }
+                        loadViewIframe(viewId);
+                    } else {
+                        if (card) card.classList.add('hidden');
+                        unloadViewIframe(viewId);
                     }
                 });
             }
