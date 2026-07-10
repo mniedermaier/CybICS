@@ -381,153 +381,189 @@
             font-size: 0.9rem;
         }
 
-        .nav-button {
-            background: linear-gradient(135deg, rgba(64, 64, 64, 0.8), rgba(40, 40, 50, 0.9));
-            color: #ff6b00;
-            border: 2px solid rgba(255, 107, 0, 0.4);
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            font-weight: 500;
-            font-size: 0.9rem;
-            position: relative;
-            overflow: hidden;
-            text-decoration: none;
-            display: inline-block;
+        /* ---- Vertical left sidebar -------------------------------------------- */
+        :root {
+            --sidebar-w: 232px;
+            --sidebar-w-collapsed: 64px;
         }
 
-        .nav-button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 107, 0, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .nav-button:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .nav-button:hover {
-            background: linear-gradient(135deg, #ff6b00, #ff8c42);
-            color: #1a1a1a;
-            border-color: #ff6b00;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4);
-        }
-
-        .nav-button.active {
-            background: linear-gradient(135deg, #ff6b00, #ff8c42);
-            color: #1a1a1a;
-            border-color: #ff6b00;
-            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4);
-        }
-
-        header {
-            background: rgba(20, 20, 30, 0.95);
-            backdrop-filter: blur(10px);
-            color: #ff6b00;
-            padding: 0.5rem 1rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+        .sidebar {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
+            bottom: 0;
+            width: var(--sidebar-w);
             z-index: 50;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            border-bottom: 1px solid rgba(255, 107, 0, 0.2);
-            min-height: 60px;
-            height: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            padding: 0.75rem 0.6rem;
+            background: rgba(18, 19, 26, 0.97);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
+            overflow-x: hidden;
+            overflow-y: auto;
+            transition: width 0.18s ease;
         }
 
-        .settings-btn {
-            background: rgba(255, 107, 0, 0.1);
-            border: 1px solid rgba(255, 107, 0, 0.3);
-            color: #ff6b00;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.3s;
+        .sidebar-brand {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.5rem;
+            padding: 0.25rem 0.35rem 0.6rem;
+            margin-bottom: 0.35rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            min-height: 44px;
         }
 
-        .settings-btn:hover {
-            background: rgba(255, 107, 0, 0.2);
+        .header-logo {
+            height: 30px;
+            width: auto;
+            max-width: 100%;
         }
 
-        .settings-icon {
-            display: inline-block;
-            transition: transform 0.3s;
+        nav {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.1rem;
+            flex: 1;
+        }
+
+        .nav-section-label {
+            color: #7a8090;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.7rem 0.7rem 0.25rem;
+        }
+
+        .nav-button {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.55rem 0.7rem;
+            background: transparent;
+            border: none;
+            border-radius: 0.5rem;
+            color: #c7ccd6;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: left;
+            text-decoration: none;
+            white-space: nowrap;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+        }
+
+        .nav-button.active {
+            background: rgba(255, 107, 0, 0.12);
+            color: #ff6b00;
+        }
+
+        .nav-button.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            border-radius: 0 2px 2px 0;
+            background: #ff6b00;
+        }
+
+        /* Settings pinned to the bottom of the sidebar */
+        .settings-btn {
+            margin-top: auto;
         }
 
         .settings-btn:hover .settings-icon {
             transform: rotate(45deg);
         }
 
-        nav {
+        .settings-icon {
+            transition: transform 0.3s ease;
+        }
+
+        /* Collapse toggle in the brand row */
+        .nav-toggle {
             display: flex;
-            flex: 1;
-            gap: 0.75rem;
             align-items: center;
-            justify-content: flex-end;
-            flex-wrap: wrap;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            border-radius: 0.4rem;
+            color: #9aa0ad;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
         }
 
-        .nav-group {
-            display: flex;
-            gap: 0.35rem;
-            align-items: center;
+        .nav-toggle:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
         }
 
-        .nav-group-label {
-            color: #999;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            margin-right: 0.2rem;
-            font-weight: bold;
+        /* ---- Collapsed icon rail (manual toggle or narrow screens) ------------ */
+        body.nav-collapsed {
+            --sidebar-w: var(--sidebar-w-collapsed);
         }
 
-        .nav-separator {
-            width: 1px;
-            height: 25px;
-            background-color: #606060;
-            margin: 0 0.25rem;
+        body.nav-collapsed .nav-label,
+        body.nav-collapsed .nav-section-label,
+        body.nav-collapsed .header-logo {
+            display: none;
         }
 
+        body.nav-collapsed .nav-button {
+            justify-content: center;
+            gap: 0;
+            padding: 0.55rem 0;
+        }
+
+        body.nav-collapsed .sidebar-brand {
+            justify-content: center;
+        }
+
+        /* ---- Content area offset by the sidebar ------------------------------- */
         main {
             height: 100vh;
-            /* Offset by the real (possibly wrapped) fixed-header height, kept in
-               sync by JS. Falls back to 70px before/without JS. */
-            padding-top: var(--header-h, 70px);
+            padding-left: var(--sidebar-w);
             overflow-x: hidden;
             box-sizing: border-box;
+            transition: padding-left 0.18s ease;
         }
 
         .services-container {
-            height: calc(100vh - var(--header-h, 70px));
+            height: 100vh;
             display: flex;
             flex-wrap: wrap;
             max-width: 100%;
             overflow-x: hidden;
             overflow-y: auto;
             box-sizing: border-box;
-        }
-
-        .header-logo {
-            height: 40px;
-            width: auto;
         }
 
         /* Staggered animation for service boxes */
@@ -601,134 +637,27 @@
             opacity: 1;
         }
 
-        /* Responsive adjustments for narrow screens */
-        @media (max-width: 1400px) {
-            header {
-                padding: 0.75rem 1rem;
+        /* Narrow screens: auto-collapse the sidebar to a slim icon-only rail so
+           embedded service views keep their width. Mirrors body.nav-collapsed. */
+        @media (max-width: 1024px) {
+            :root {
+                --sidebar-w: var(--sidebar-w-collapsed);
             }
 
+            .nav-label,
+            .nav-section-label,
             .header-logo {
-                height: 35px;
-            }
-
-            nav {
-                gap: 1rem;
-            }
-
-            .nav-group {
-                gap: 0.4rem;
-            }
-
-            .nav-button {
-                padding: 0.5rem 0.8rem;
-                font-size: 0.85rem;
-            }
-
-            .nav-group-label {
-                font-size: 0.7rem;
-            }
-        }
-
-        @media (max-width: 1200px) {
-            header {
-                padding: 0.5rem 0.75rem;
-            }
-
-            .header-logo {
-                height: 32px;
-            }
-
-            nav {
-                gap: 0.75rem;
-            }
-
-            .nav-button {
-                padding: 0.4rem 0.6rem;
-                font-size: 0.8rem;
-            }
-
-            .nav-separator {
-                height: 25px;
-            }
-        }
-
-        @media (max-width: 1000px) {
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-                padding: 0.5rem 0.75rem;
-            }
-
-            /* padding-top / height come from the JS-measured --header-h var so
-               they track the wrapped header height instead of a fixed guess.
-               The values below are only a no-JS fallback for this breakpoint. */
-            main {
-                padding-top: var(--header-h, 130px);
-            }
-
-            .services-container {
-                height: calc(100vh - var(--header-h, 130px));
-            }
-
-            .header-logo {
-                height: 28px;
-            }
-
-            nav {
-                width: 100%;
-                gap: 0.5rem;
-            }
-
-            .nav-button {
-                padding: 0.4rem 0.5rem;
-                font-size: 0.75rem;
-            }
-
-            .nav-group-label {
-                font-size: 0.65rem;
-            }
-        }
-
-        /* Desktop widths (e.g. 1280x854 and up): keep the whole nav on a SINGLE
-           row to save vertical space, by dropping the group labels and tightening
-           the logo, gaps, separators and button padding instead of wrapping.
-           (The default styling wraps to two rows on typical monitor widths.) */
-        @media (min-width: 1001px) {
-            header {
-                padding: 0.4rem 0.75rem;
-                gap: 0.5rem;
-            }
-
-            .header-logo {
-                height: 26px;
-            }
-
-            nav {
-                flex-wrap: nowrap;
-                gap: 0.3rem;
-                min-width: 0;
-            }
-
-            .nav-group {
-                gap: 0.3rem;
-            }
-
-            /* Group labels (Core / Virtual Only / Tools) are the cheapest thing to
-               cut and free ~145px, which is what makes a single row fit. */
-            .nav-group-label {
                 display: none;
             }
 
             .nav-button {
-                padding: 0.4rem 0.55rem;
-                font-size: 0.8rem;
-                white-space: nowrap;
+                justify-content: center;
+                gap: 0;
+                padding: 0.55rem 0;
             }
 
-            .nav-separator {
-                margin: 0 0.15rem;
-                height: 22px;
+            .sidebar-brand {
+                justify-content: center;
             }
         }
 
@@ -958,10 +887,14 @@
             color: #333;
         }
 
-        body.light-mode header {
-            background: rgba(255, 255, 255, 0.95);
-            color: #ff6b00;
-            border-bottom: 1px solid rgba(255, 107, 0, 0.3);
+        body.light-mode .sidebar {
+            background: rgba(250, 250, 252, 0.97);
+            border-right: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+        }
+
+        body.light-mode .sidebar-brand {
+            border-bottom-color: rgba(0, 0, 0, 0.08);
         }
 
         body.light-mode .service-card {
@@ -979,17 +912,31 @@
         }
 
         body.light-mode .nav-button {
-            background: rgba(255, 107, 0, 0.1);
-            color: #ff6b00;
-            border-color: rgba(255, 107, 0, 0.3);
+            background: transparent;
+            color: #4b5563;
         }
 
         body.light-mode .nav-button:hover {
-            background: rgba(255, 107, 0, 0.2);
+            background: rgba(0, 0, 0, 0.05);
+            color: #111827;
         }
 
         body.light-mode .nav-button.active {
-            background: rgba(255, 107, 0, 0.3);
+            background: rgba(255, 107, 0, 0.12);
+            color: #ff6b00;
+        }
+
+        body.light-mode .nav-section-label {
+            color: #9199a6;
+        }
+
+        body.light-mode .nav-toggle {
+            color: #6b7280;
+        }
+
+        body.light-mode .nav-toggle:hover {
+            background: rgba(0, 0, 0, 0.06);
+            color: #111827;
         }
 
         body.light-mode .settings-content {
@@ -1082,14 +1029,6 @@
 
         body.light-mode .system-info-value {
             color: #333;
-        }
-
-        body.light-mode .nav-group-label {
-            color: #666;
-        }
-
-        body.light-mode .nav-separator {
-            background-color: #d0d0d0;
         }
 
         body.light-mode .home-header h2 {
@@ -1689,60 +1628,121 @@
     </script>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <img src="/pics/CybICS_logo.png" alt="CybICS" class="header-logo">
+    <!-- Restore the saved sidebar collapse state before paint (avoids flash). -->
+    <script>
+        try {
+            if (localStorage.getItem('cybics-nav-collapsed') === '1') {
+                document.body.classList.add('nav-collapsed');
+            }
+        } catch (e) {}
+    </script>
+
+    <!-- Inline line-icon sprite (Lucide-style, currentColor). Hidden. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>
+        </symbol>
+        <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="0.5"/>
+            <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>
+        </symbol>
+        <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 13l4-4"/><path d="M3.5 16a9 9 0 1 1 17 0"/><circle cx="12" cy="13" r="1"/>
+        </symbol>
+        <symbol id="i-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 2v6M15 2v6"/><path d="M7 8h10v3a5 5 0 0 1-10 0z"/><path d="M12 16v6"/>
+        </symbol>
+        <symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="4" width="19" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>
+        </symbol>
+        <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.6"/>
+        </symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="m9 12 2 2 4-4"/>
+        </symbol>
+        <symbol id="i-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 20V10M12 20V4M18 20v-7"/>
+        </symbol>
+        <symbol id="i-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/>
+            <path d="M10.3 6.9 6.5 16.6M13.7 6.9l3.8 9.7M7.5 19h9"/>
+        </symbol>
+        <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="m7 9 3 3-3 3M13 15h4"/>
+        </symbol>
+        <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 21V4"/><path d="M5 4h11l-2 3.5L16 11H5"/>
+        </symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>
+        </symbol>
+        <symbol id="i-panel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16"/>
+        </symbol>
+    </svg>
+
+    <!-- Sidebar -->
+    <header class="sidebar">
+        <div class="sidebar-brand">
+            <img src="/pics/CybICS_logo.png" alt="CybICS" class="header-logo">
+            <button class="nav-toggle" onclick="toggleSidebar()" title="Collapse menu" aria-label="Collapse menu">
+                <svg class="nav-icon"><use href="#i-panel"/></svg>
+            </button>
+        </div>
 
         <!-- Navigation menu -->
         <nav>
-            <!-- Home Button -->
-            <button id="all-btn" class="nav-button active" onclick="updateView('all')">🏠 Home</button>
+            <!-- Home -->
+            <button id="all-btn" class="nav-button active" onclick="updateView('all')" title="Home">
+                <svg class="nav-icon"><use href="#i-home"/></svg><span class="nav-label">Home</span>
+            </button>
 
-            <div class="nav-separator"></div>
+            {% set nav_icons = {'openplc':'cpu','fuxa':'gauge','vhardware':'plug','engineeringws':'monitor','attackmachine':'target','ids':'shield'} %}
 
-            <!-- Core Group -->
-            <div class="nav-group">
-                <span class="nav-group-label">Core</span>
-                {% for service_id, service in services.items() %}
-                {% if not service.virtual_only %}
-                <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')">{{ service.name }}</button>
-                {% endif %}
-                {% endfor %}
-            </div>
+            <!-- Core -->
+            <div class="nav-section-label">Core</div>
+            {% for service_id, service in services.items() %}
+            {% if not service.virtual_only %}
+            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')" title="{{ service.name }}">
+                <svg class="nav-icon"><use href="#i-{{ nav_icons.get(service_id, 'cpu') }}"/></svg><span class="nav-label">{{ service.name }}</span>
+            </button>
+            {% endif %}
+            {% endfor %}
 
-            <div class="nav-separator"></div>
+            <!-- Virtual Only -->
+            <div class="nav-section-label">Virtual</div>
+            {% for service_id, service in services.items() %}
+            {% if service.virtual_only %}
+            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')" title="{{ service.name }}">
+                <svg class="nav-icon"><use href="#i-{{ nav_icons.get(service_id, 'cpu') }}"/></svg><span class="nav-label">{{ service.name }}</span>
+            </button>
+            {% endif %}
+            {% endfor %}
 
-            <!-- Virtual Only Group -->
-            <div class="nav-group">
-                <span class="nav-group-label">Virtual Only</span>
-                {% for service_id, service in services.items() %}
-                {% if service.virtual_only %}
-                <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')">{{ service.name }}</button>
-                {% endif %}
-                {% endfor %}
-            </div>
+            <!-- Tools -->
+            <div class="nav-section-label">Tools</div>
+            <button id="stats-btn" class="nav-button" onclick="updateView('stats')" title="System Stats">
+                <svg class="nav-icon"><use href="#i-activity"/></svg><span class="nav-label">System Stats</span>
+            </button>
+            <button id="network-btn" class="nav-button" onclick="updateView('network')" title="Sharky">
+                <svg class="nav-icon"><use href="#i-network"/></svg><span class="nav-label">Sharky</span>
+            </button>
+            <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')" title="WebShell">
+                <svg class="nav-icon"><use href="#i-terminal"/></svg><span class="nav-label">WebShell</span>
+            </button>
 
-            <div class="nav-separator"></div>
+            <!-- Training -->
+            <div class="nav-section-label">Training</div>
+            <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')" title="CTF Training">
+                <svg class="nav-icon"><use href="#i-flag"/></svg><span class="nav-label">CTF Training</span>
+            </button>
 
-            <!-- Tools Group -->
-            <div class="nav-group">
-                <span class="nav-group-label">Tools</span>
-                <button id="stats-btn" class="nav-button" onclick="updateView('stats')">📊 System Stats</button>
-                <button id="network-btn" class="nav-button" onclick="updateView('network')">🦈 Sharky</button>
-                <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')">⌨️ WebShell</button>
-            </div>
-
-            <div class="nav-separator"></div>
-
-            <!-- CTF Training (no label) -->
-            <div class="nav-group">
-                <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')">🏆 CTF Training</button>
-            </div>
-
-            <div class="nav-separator"></div>
-
-            <!-- Settings -->
-            <button class="settings-btn" onclick="openSettings()" title="Settings"><span class="settings-icon">⚙️</span></button>
+            <!-- Settings (pinned to bottom) -->
+            <button class="nav-button settings-btn" onclick="openSettings()" title="Settings">
+                <svg class="nav-icon settings-icon"><use href="#i-settings"/></svg><span class="nav-label">Settings</span>
+            </button>
         </nav>
     </header>
 
@@ -1932,22 +1932,10 @@
     </button>
 
     <script>
-        // Keep --header-h in sync with the fixed header's real height so the
-        // content below it (including embedded iframes like Sharky) is never
-        // hidden when the nav wraps to multiple rows on narrow screens.
-        function syncHeaderHeight() {
-            const header = document.querySelector('header');
-            if (!header) return;
-            document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
-        }
-        window.addEventListener('DOMContentLoaded', syncHeaderHeight);
-        window.addEventListener('load', syncHeaderHeight);
-        window.addEventListener('resize', syncHeaderHeight);
-        if (window.ResizeObserver) {
-            window.addEventListener('DOMContentLoaded', function() {
-                const header = document.querySelector('header');
-                if (header) new ResizeObserver(syncHeaderHeight).observe(header);
-            });
+        // Collapse/expand the sidebar (manual toggle) and remember the choice.
+        function toggleSidebar() {
+            const collapsed = document.body.classList.toggle('nav-collapsed');
+            try { localStorage.setItem('cybics-nav-collapsed', collapsed ? '1' : '0'); } catch (e) {}
         }
 
         // Store service IDs in a JavaScript array
