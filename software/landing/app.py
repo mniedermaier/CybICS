@@ -88,7 +88,8 @@ def serve_pics(filename):
 def main_page():
     """Main dashboard page"""
     logger.info('Rendering main dashboard')
-    return render_template('index.html', services=SERVICES)
+    return render_template('index.html', services=SERVICES, access_info=ACCESS_INFO, purdue_levels=PURDUE_LEVELS,
+                           github_url='https://github.com/mniedermaier/CybICS')
 
 @app.route('/api/services')
 def get_services():
