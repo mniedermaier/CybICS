@@ -171,7 +171,7 @@ ACCESS_INFO = [
         'virtual_only': True,
     },
     {
-        'system': 'Physical Device (hardware mode)',
+        'system': 'Physical Device',
         'url': None,
         'ip': '10.0.0.1',
         'ports': '3333 (SWD), Wi-Fi AP: cybics-XXXXXX',
@@ -179,6 +179,7 @@ ACCESS_INFO = [
         'password': '1234567890 (Wi-Fi)',
         'note': 'Raspberry Pi + STM32 lab hardware',
         'virtual_only': False,
+        'hardware_only': True,
     },
 ]
 
@@ -206,7 +207,6 @@ PURDUE_LEVELS = [
         'level': 'Level 3 / DMZ - Operations & Monitoring',
         'zone': 'dmz',
         'systems': [
-            {'name': 'Landing Page', 'ip': 'host'},
             {'name': 'IDS', 'ip': 'host'},
             {'name': 'Engineering Workstation', 'ip': '172.18.0.10'},
         ],

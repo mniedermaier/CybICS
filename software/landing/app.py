@@ -88,8 +88,17 @@ def serve_pics(filename):
 def main_page():
     """Main dashboard page"""
     logger.info('Rendering main dashboard')
+    current_progress = get_current_progress()
+    first_challenge_id = None
+    for category in ctf_manager.challenges.values():
+        if category.get('challenges'):
+            first_challenge_id = category['challenges'][0]['id']
+            break
+    first_challenge_solved = first_challenge_id in current_progress['solved_challenges']
     return render_template('index.html', services=SERVICES, access_info=ACCESS_INFO, purdue_levels=PURDUE_LEVELS,
-                           github_url='https://github.com/mniedermaier/CybICS')
+                           github_url='https://github.com/mniedermaier/CybICS',
+                           first_challenge_id=first_challenge_id,
+                           first_challenge_solved=first_challenge_solved)
 
 @app.route('/api/services')
 def get_services():
@@ -283,6 +292,7 @@ def ctf_progress():
     initialize_session()
     current_progress = get_current_progress()
     stats = ctf_manager.get_progress_stats(current_progress)
+    stats['solved_challenge_ids'] = current_progress['solved_challenges']
     return jsonify(stats)
 
 @app.route('/ctf/reset', methods=['POST'])

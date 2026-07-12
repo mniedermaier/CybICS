@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Network Analyzer - CybICS</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         * {
@@ -878,6 +879,46 @@
                 overflow: visible;
             }
         }
+        /* Dashboard theme bridge */
+        html.light-mode, html.light-mode body { background: #f3f5f8 !important; color: #172033 !important; }
+        html.light-mode header, html.light-mode .toolbar, html.light-mode .view-tabs, html.light-mode .panel, html.light-mode .modal-content, html.light-mode .legend { background-color: #ffffff !important; color: #172033 !important; border-color: #d8dde6; }
+        html.light-mode .toolbar button, html.light-mode .toolbar input, html.light-mode .toolbar select, html.light-mode .nav-button, html.light-mode .filter-input, html.light-mode .column-toggle { background-color: #eef1f5 !important; color: #172033 !important; border-color: #b7bfcc; }
+        html.light-mode .toolbar button.active, html.light-mode .nav-button:hover { background-color: #d45a00 !important; color: #ffffff !important; }
+        html.light-mode label, html.light-mode .toolbar label, html.light-mode [style*="#cccccc"], html.light-mode [style*="#ffffff"] { color: #394355 !important; }
+        html.light-mode h1, html.light-mode h2, html.light-mode h3, html.light-mode h4, html.light-mode .section-title { color: #b34700; }
+        html.light-mode table, html.light-mode th, html.light-mode td { color: #172033; border-color: #d8dde6; }
+        html.light-mode tbody tr:hover { background-color: #eef1f5 !important; }
+        html.light-mode [style*="background-color: #1a1a1a"] { background-color: #f7f8fa !important; }
+        html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
+        html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
+        /* Complete light surfaces */
+        html.light-mode .main-container, html.light-mode .statistics-container, html.light-mode .view-content, html.light-mode .graph-container { background: #f3f5f8; }
+        html.light-mode .tab-button { color: #596273; }
+        html.light-mode .tab-button:hover { background: #eef1f5; color: #172033; }
+        html.light-mode .tab-button.active { background: #f7f8fa; color: #b34700; }
+        html.light-mode #graphCanvas { background-color: #e7ebf1 !important; }
+        html.light-mode .graph-controls button { background-color: #ffffff; color: #b34700; }
+        html.light-mode .graph-legend, html.light-mode .stat-card, html.light-mode .column-settings, html.light-mode .search-box { background-color: #ffffff !important; border-color: #d8dde6; }
+        html.light-mode .stat-card h3, html.light-mode .legend-title { color: #b34700; border-color: #d8dde6; }
+        html.light-mode .stat-row { border-color: #e1e5eb; }
+        html.light-mode .stat-label, html.light-mode .status-bar, html.light-mode .no-data { color: #596273; }
+        html.light-mode .stat-value { color: #172033; }
+        html.light-mode .endpoint-table th, html.light-mode thead { background-color: #eef1f5 !important; color: #b34700; }
+        html.light-mode .endpoint-table td, html.light-mode td { border-color: #e1e5eb; color: #172033; }
+        html.light-mode tbody tr.selected { background-color: #dfe6ef !important; }
+        html.light-mode .packet-list, html.light-mode .packet-details, html.light-mode .hex-dump { background-color: #f7f8fa !important; }
+        html.light-mode .packet-details .layer { background-color: #ffffff !important; border-color: #d45a00; }
+        html.light-mode .packet-details .field { color: #394355; }
+        html.light-mode .details-tabs { background-color: #ffffff !important; border-color: #d8dde6; }
+        html.light-mode .details-tab { color: #596273; }
+        html.light-mode .details-tab:hover { color: #172033; background-color: #eef1f5; }
+        html.light-mode .details-tab.active { color: #b34700; background-color: #f7f8fa; }
+        html.light-mode .toolbar-divider { border-color: #b7bfcc; }
+        html.light-mode .modal { background-color: rgba(15, 23, 42, 0.35); }
+        html.light-mode .modal-header { border-color: #d8dde6; }
+        html.light-mode .search-box input, html.light-mode .search-box button { background-color: #eef1f5; color: #172033; border-color: #b7bfcc; }
+        html.light-mode [style*="#2d2d2d"], html.light-mode [style*="#353535"], html.light-mode [style*="#404040"] { background-color: #ffffff !important; }
+        html.light-mode [style*="#1a1a1a"] { background-color: #f7f8fa !important; }
     </style>
 </head>
 <body>
@@ -1286,6 +1327,14 @@
     </div>
 
     <script>
+
+        function applyDashboardTheme(theme) {
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
+        }
+        fetch('/api/settings/theme').then(function (response) { return response.json(); }).then(function (data) { applyDashboardTheme(data.theme || 'dark'); }).catch(function () {});
+        window.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'theme') applyDashboardTheme(event.data.theme);
+        });
         let capturing = false;
         let packets = [];
         let displayedPackets = [];

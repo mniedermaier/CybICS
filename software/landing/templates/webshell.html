@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - WebShell</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         body {
@@ -223,6 +224,22 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* Dashboard theme bridge */
+        html.light-mode, html.light-mode body { background: #f3f5f8 !important; color: #172033 !important; }
+        html.light-mode header, html.light-mode .input-container, html.light-mode .info-banner, html.light-mode .quick-command-btn { background-color: #ffffff !important; color: #172033 !important; border-color: #d8dde6; }
+        html.light-mode .terminal-output { background-color: #ffffff !important; border-color: #b7bfcc; box-shadow: inset 0 0 0 1px #eef1f5; }
+        html.light-mode .terminal-output-text { color: #394355; }
+        html.light-mode .terminal-command { color: #7c3f00; }
+        html.light-mode .terminal-input { background-color: #f7f8fa !important; color: #172033 !important; border-color: #b7bfcc; }
+        html.light-mode .terminal-prompt { color: #15803d; }
+        html.light-mode .terminal-error { color: #dc2626; }
+        html.light-mode .info-banner { color: #394355; }
+        html.light-mode .quick-command-btn { color: #b34700; }
+        html.light-mode .quick-command-btn:hover, html.light-mode .clear-button:hover { background-color: #eef1f5; }
+        html.light-mode .clear-button { background-color: #eef1f5; color: #394355; border-color: #b7bfcc; }
+        html.light-mode h1, html.light-mode .info-banner strong { color: #b34700; }
+        html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
+        html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
     </style>
 </head>
 <body>
@@ -274,6 +291,14 @@
     </div>
 
     <script>
+        function applyDashboardTheme(theme) {
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
+        }
+        fetch('/api/settings/theme').then(function (response) { return response.json(); }).then(function (data) { applyDashboardTheme(data.theme || 'dark'); }).catch(function () {});
+        window.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'theme') applyDashboardTheme(event.data.theme);
+        });
+
         const terminalOutput = document.getElementById('terminal-output');
         const commandInput = document.getElementById('command-input');
         const executeBtn = document.getElementById('execute-btn');

@@ -6,17 +6,84 @@
     <title>CybICS - Industrial Control Systems</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
+        /* Self-hosted so the lab renders correctly with no internet access
+           (offline/air-gapped classroom use). */
+        @font-face {
+            font-family: 'InterVariable';
+            src: url('/static/fonts/InterVariable.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'InterVariable';
+            src: url('/static/fonts/InterVariable-Italic.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: italic;
+            font-display: swap;
+        }
+
         * {
             box-sizing: border-box;
         }
 
+        /* ---- Design tokens ------------------------------------------------------
+           Semantic color scale. Dark is the default (no class); `body.light-mode`
+           (applied by the theme JS) overrides the same names so every surface and
+           text color flows from one place and stays contrast-consistent. */
+        :root {
+            /* Page + elevated surfaces — a cohesive dark slate, not blue-navy. */
+            --bg: #1a1a1a;
+            --bg-glow: #1a1a1a;
+            --surface: #232323;
+            --surface-2: #2d2d2d;
+            --surface-inset: #2d2d2d;
+            --border: rgba(255, 255, 255, 0.09);
+            --border-strong: rgba(255, 255, 255, 0.14);
+            --border-accent: rgba(255, 107, 0, 0.38);
+
+            /* Text — all AA (>=4.5:1) on --surface / --bg. */
+            --text: #f3f5f8;
+            --heading: #f6f8fb;
+            --text-muted: #c4cad5;
+            --text-subtle: #99a1ae;
+
+            /* Brand accent. */
+            --accent: #ff6b00;
+            --accent-2: #ff8c42;
+            --accent-3: #ffa500;
+            --accent-hover: #ff8c42;
+            --accent-soft: rgba(255, 107, 0, 0.14);
+            --accent-softer: rgba(255, 107, 0, 0.08);
+            --accent-line: rgba(255, 107, 0, 0.32);
+            --on-accent: #1a1206;
+
+            /* Neutral elevation shadow (no orange glow). */
+            --shadow-card: 0 8px 28px rgba(0, 0, 0, 0.4);
+            --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+            /* Technical/HMI readout face — used sparingly for data, tags, and
+               system-status text to evoke a real control-room instrument rather
+               than a generic SaaS dashboard. Pure fallback stack, no network font. */
+            --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
+            /* Signal colors — the warm/cool duality real HMIs use for
+               status vs. alert. Same hex in both themes; only ever used as small
+               dots/borders, never as text color, so theme contrast isn't a concern. */
+            --signal-ok: #3ddc71;
+            --signal-info: #4da6ff;
+            --signal-danger: #ff4d4d;
+        }
+
         body {
-            /* Static gradient — the former `gradientShift` animation repainted the
-               whole viewport every frame (major idle CPU cost) for no real benefit. */
-            background: linear-gradient(-45deg, #0a0a0f, #1a1a2e, #16213e, #0f3460);
-            background-size: cover;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Calm, near-solid slate with one subtle top glow. Replaced the 4-stop
+               navy gradient + orange radials that competed with content and lowered
+               effective contrast. Static (no animation) to keep idle CPU at zero. */
+            background: var(--bg);
+            background-attachment: fixed;
+            color: var(--text);
+            font-family: 'InterVariable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
             overflow-x: hidden;
@@ -38,12 +105,13 @@
             left: 0;
             width: 100%;
             height: 100%;
+            /* A faint P&ID/blueprint grid plus a single warm wash in one corner —
+               reads as a schematic/control-room backdrop rather than decoration.
+               Static (no animation), one paint, negligible cost. */
             background-image:
-                radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(255, 69, 0, 0.05) 0%, transparent 50%);
-            /* Static overlay — dropped the perpetual `float` animation on this
-               full-screen fixed layer to stop continuous compositing. */
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 64px),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 64px),
+                radial-gradient(900px 600px at 85% -5%, rgba(255, 107, 0, 0.05), transparent 60%);
             pointer-events: none;
             z-index: 1;
         }
@@ -61,30 +129,30 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #1a1a1a;
+            background: var(--surface-inset);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #404040;
+            background: var(--border-strong);
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #ff6b00;
+            background: var(--accent);
         }
 
         .service-card {
             display: flex;
             flex-direction: column;
-            background: rgba(45, 45, 45, 0.8);
+            background: var(--surface);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 107, 0, 0.2);
-            border-radius: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.6rem;
             overflow: hidden;
             min-width: 300px;
             max-width: calc(50vw - 24px);
             flex: 1;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: var(--shadow-card);
             position: relative;
             z-index: 2;
             margin: 0.5rem;
@@ -132,13 +200,10 @@
 
         .home-header h2 {
             font-size: 1.8rem;
-            background: linear-gradient(135deg, #ff6b00, #ff8c42, #ffa500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--heading);
             margin-bottom: 0.25rem;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 0.3px;
             display: inline-block;
             white-space: nowrap;
             /* Static title. The former `typing` animation animated `width`, forcing
@@ -158,9 +223,9 @@
         }
 
         .home-header p {
-            color: #bbb;
+            color: var(--text-muted);
             font-size: 1rem;
-            font-weight: 300;
+            font-weight: 400;
         }
 
         .service-section {
@@ -179,16 +244,26 @@
             }
         }
 
+        /* Step tag above each home-screen section — a real sequence (orient,
+           then pick a training path), styled like an HMI readout label. */
+        .section-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent-2);
+            margin-bottom: 0.4rem;
+        }
+
         .section-title {
             font-size: 1.6rem;
-            background: linear-gradient(90deg, #ff6b00, #ffa500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--heading);
             margin-bottom: 0.75rem;
             padding-bottom: 0.75rem;
-            border-bottom: 2px solid rgba(255, 107, 0, 0.3);
-            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+            letter-spacing: 0.2px;
             position: relative;
         }
 
@@ -203,11 +278,10 @@
         }
 
         .section-description {
-            color: #aaa;
+            color: var(--text-muted);
             font-size: 1rem;
             margin-bottom: 1rem;
-            font-style: italic;
-            font-weight: 300;
+            font-weight: 400;
         }
 
         .service-grid {
@@ -219,16 +293,16 @@
         }
 
         .service-box {
-            background: linear-gradient(135deg, rgba(45, 45, 45, 0.9), rgba(30, 30, 40, 0.95));
+            background: var(--surface);
             backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 107, 0, 0.3);
-            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
             padding: 2rem;
             cursor: pointer;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-card);
             display: flex;
             gap: 1.25rem;
             align-items: flex-start;
@@ -251,9 +325,9 @@
         }
 
         .service-box:hover {
-            border-color: #ff6b00;
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 12px 40px rgba(255, 107, 0, 0.4), 0 0 20px rgba(255, 107, 0, 0.2);
+            border-color: var(--border-accent);
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-pop);
         }
 
         .service-box-icon {
@@ -293,17 +367,14 @@
         .service-box-name {
             font-size: 1.4rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #ff6b00, #ffa500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--heading);
             margin-bottom: 0;
             position: relative;
             z-index: 1;
         }
 
         .service-box-description {
-            color: #ddd;
+            color: var(--text-muted);
             font-size: 1rem;
             line-height: 1.6;
             position: relative;
@@ -324,8 +395,8 @@
         }
 
         .service-header {
-            background-color: #404040;
-            color: #ff6b00;
+            background-color: var(--surface-2);
+            color: var(--accent);
             padding: 0.5rem;
             display: flex;
             justify-content: space-between;
@@ -342,7 +413,7 @@
             width: 100%;
             height: 100%;
             border: none;
-            background-color: #2d2d2d;
+            background-color: var(--surface-inset);
         }
 
         .service-error {
@@ -353,7 +424,7 @@
             align-items: center;
             padding: 2rem;
             text-align: center;
-            background-color: #2d2d2d;
+            background-color: var(--surface);
         }
 
         .service-error.visible {
@@ -365,19 +436,52 @@
         }
 
         .error-icon {
-            font-size: 4rem;
             margin-bottom: 1rem;
-            opacity: 0.5;
+            color: var(--accent);
+        }
+
+        .error-icon svg {
+            width: 3rem;
+            height: 3rem;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .error-refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--accent-soft);
+            border: 1px solid var(--border-accent);
+            border-radius: 0.5rem;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .error-refresh-btn:hover {
+            background: var(--accent);
+            color: var(--on-accent);
+            transform: translateY(-1px);
+        }
+
+        .error-refresh-btn:hover .nav-icon {
+            color: var(--on-accent);
         }
 
         .error-message {
-            color: #ff6b00;
+            color: var(--accent);
             font-size: 1.2rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
         }
 
         .error-details {
-            color: #999;
+            color: var(--text-subtle);
             font-size: 0.9rem;
         }
 
@@ -385,25 +489,96 @@
         .hero-banner {
             text-align: center;
             margin-bottom: 2rem;
+            padding: 2rem 1.5rem 1.75rem;
+            position: relative;
             animation: fadeInDown 0.8s ease-out;
         }
 
+        /* Corner-bracket frame — a viewfinder/oscilloscope motif borrowed from
+           real HMI displays. The single signature flourish on the page; every
+           other surface stays plain so this doesn't get lost in noise. */
+        .hero-banner::before,
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border-accent);
+        }
+
+        .hero-banner::before {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .hero-banner::after {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+        }
+
+        /* System-status readout — a small, static (no blink) boot-line above the
+           title, the way a real HMI panel opens on a status summary. */
+        .hero-status {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            margin-bottom: 0.9rem;
+            padding: 0.3rem 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            max-width: calc(100vw - 3rem);
+        }
+
+        .hero-status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--signal-ok);
+            flex-shrink: 0;
+        }
+
+        .hero-status-sep {
+            color: var(--border-strong);
+        }
+
         .hero-banner h1 {
-            font-size: 2.1rem;
+            font-size: 2.3rem;
             background: linear-gradient(135deg, #ff6b00, #ff8c42, #ffa500);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin: 0 0 0.4rem;
-            font-weight: 700;
-            letter-spacing: 1px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .hero-logo {
+            height: 2.4rem;
+            vertical-align: -0.5rem;
+            margin-left: 0.5rem;
         }
 
         .hero-banner p {
-            color: #bbb;
+            color: var(--text-muted);
             font-size: 1.05rem;
-            font-weight: 300;
+            font-weight: 400;
             margin: 0 0 1.25rem;
+            max-width: 640px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .hero-actions {
@@ -440,13 +615,14 @@
         }
 
         .hero-btn-secondary {
-            background: rgba(255, 107, 0, 0.12);
-            color: #ffffff;
-            border: 1px solid rgba(255, 107, 0, 0.4);
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border-strong);
         }
 
         .hero-btn-secondary:hover {
-            background: rgba(255, 107, 0, 0.22);
+            background: var(--accent-soft);
+            border-color: var(--border-accent);
             transform: translateY(-2px);
         }
 
@@ -458,14 +634,31 @@
             flex-shrink: 0;
         }
 
+        .hero-btn-icon {
+            padding: 0.65rem;
+        }
+
+        /* Shown only while dark / light mode is active, respectively. */
+        .if-light {
+            display: none;
+        }
+
+        body.light-mode .if-light {
+            display: inline;
+        }
+
+        body.light-mode .if-dark {
+            display: none;
+        }
+
         /* ---- Home screen: info boxes ------------------------------------------- */
         .info-box {
-            background: linear-gradient(135deg, rgba(45, 45, 45, 0.85), rgba(30, 30, 40, 0.9));
+            background: var(--surface);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 107, 0, 0.25);
-            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
             padding: 1.5rem;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -477,19 +670,19 @@
             gap: 0.6rem;
             font-size: 1.1rem;
             font-weight: 700;
-            color: #ff8c42;
+            color: var(--heading);
         }
 
         .info-box-title svg {
             width: 22px;
             height: 22px;
-            stroke: #ff6b00;
+            stroke: var(--accent);
             fill: none;
             flex-shrink: 0;
         }
 
         .info-box p {
-            color: #ddd;
+            color: var(--text-muted);
             font-size: 0.95rem;
             line-height: 1.6;
             margin: 0;
@@ -498,17 +691,25 @@
         .info-box ul {
             margin: 0;
             padding-left: 1.1rem;
-            color: #ddd;
+            color: var(--text-muted);
             font-size: 0.95rem;
             line-height: 1.6;
         }
 
         .info-box strong {
-            color: #fff;
+            color: var(--text);
         }
 
         body.light-mode .hero-banner p {
-            color: #555;
+            color: var(--text-muted);
+        }
+
+        /* Keep the one gradient brand moment, but with darker stops so it stays
+           legible (AA for large text) on the light background. */
+        body.light-mode .hero-banner h1 {
+            background: linear-gradient(135deg, #d45a00, #b34700);
+            -webkit-background-clip: text;
+            background-clip: text;
         }
 
         body.light-mode .info-box {
@@ -532,14 +733,15 @@
         /* ---- Home screen: generic badge ---------------------------------------- */
         .badge {
             display: inline-block;
-            background-color: rgba(255, 107, 0, 0.18);
-            color: #ff8c42;
-            border: 1px solid rgba(255, 107, 0, 0.4);
+            background-color: var(--accent-soft);
+            color: var(--accent-2);
+            border: 1px solid var(--border-accent);
             padding: 0.1rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.68rem;
+            border-radius: 0.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
             margin-left: 0.5rem;
             vertical-align: middle;
             white-space: nowrap;
@@ -550,18 +752,18 @@
             color: #b45400;
         }
 
-        /* ---- Home screen: systems access table ---------------------------------- */
+        /* ---- Systems access table (in modal) ---------------------------------------
+           Monospace throughout — this is effectively a terminal-style credentials
+           readout (hosts, logins, ports), so the data face fits better than Inter. */
         .access-table-wrapper {
             overflow-x: auto;
-            border: 1px solid rgba(255, 107, 0, 0.25);
-            border-radius: 0.75rem;
-            background: rgba(30, 30, 40, 0.6);
         }
 
         .access-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.88rem;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
             white-space: nowrap;
         }
 
@@ -573,7 +775,7 @@
         }
 
         .access-table th {
-            color: #ff8c42;
+            color: var(--accent-2);
             font-weight: 700;
             font-size: 0.78rem;
             text-transform: uppercase;
@@ -581,7 +783,7 @@
         }
 
         .access-table td {
-            color: #ddd;
+            color: var(--text-muted);
         }
 
         .access-table tbody tr:last-child td {
@@ -593,7 +795,7 @@
         }
 
         .access-table a {
-            color: #ff8c42;
+            color: var(--accent-2);
             text-decoration: none;
         }
 
@@ -602,14 +804,10 @@
         }
 
         .access-caption {
-            color: #999;
+            color: var(--text-subtle);
             font-size: 0.82rem;
             font-style: italic;
             margin-top: 0.6rem;
-        }
-
-        body.light-mode .access-table-wrapper {
-            background: rgba(255, 255, 255, 0.85);
         }
 
         body.light-mode .access-table td {
@@ -636,36 +834,106 @@
             display: flex;
             align-items: flex-start;
             gap: 0.75rem;
-            background: linear-gradient(135deg, rgba(45, 45, 45, 0.85), rgba(30, 30, 40, 0.9));
-            border: 1px solid rgba(255, 107, 0, 0.25);
-            border-radius: 0.65rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
             padding: 0.85rem 1rem;
             cursor: pointer;
             transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
         }
 
         .learning-card:hover {
-            border-color: #ff6b00;
+            border-color: var(--border-accent);
             transform: translateY(-3px);
-            box-shadow: 0 6px 18px rgba(255, 107, 0, 0.25);
+            box-shadow: var(--shadow-card);
         }
 
         .learning-card-disabled {
             cursor: default;
-            opacity: 0.6;
+            opacity: 0.55;
         }
 
         .learning-card-disabled:hover {
             transform: none;
-            border-color: rgba(255, 107, 0, 0.25);
+            border-color: var(--border);
             box-shadow: none;
+        }
+
+        /* Highlighted "start here" onboarding CTA — same grid sizing as the Theory Path /
+           CTF Challenges cards next to it (no full-width span), same color treatment as
+           .hero-btn-primary. That button's 135deg corner-to-corner gradient only reads as
+           solid orange because the button is small; front-load the light stop into a
+           narrow highlight so this wider card stays saturated edge to edge too. */
+        .learning-card-cta {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b00 35%, #ff6b00 100%);
+            border: none;
+            box-shadow: 0 4px 16px rgba(255, 107, 0, 0.35);
+        }
+
+        .learning-card-cta:hover {
+            border-color: transparent;
+            transform: translateY(-3px);
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c42 35%, #ff8c42 100%);
+            box-shadow: 0 6px 22px rgba(255, 107, 0, 0.5);
+        }
+
+        .learning-card-cta .learning-card-icon {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .learning-card-cta .learning-card-icon svg {
+            stroke: #ffffff;
+        }
+
+        .learning-card-cta .learning-card-title,
+        .learning-card-cta .learning-card-desc {
+            color: #ffffff;
+        }
+
+        .learning-card-cta .badge {
+            background-color: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Once the guided intro has been completed, fold the CTA back into a normal card —
+           color/border/shadow only, sizing already matches the other cards. */
+        .learning-card-cta.onboarding-done {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: none;
+        }
+
+        .learning-card-cta.onboarding-done:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-card);
+        }
+
+        .learning-card-cta.onboarding-done .learning-card-icon {
+            background: var(--accent-soft);
+        }
+
+        .learning-card-cta.onboarding-done .learning-card-icon svg {
+            stroke: var(--accent);
+        }
+
+        .learning-card-cta.onboarding-done .learning-card-title {
+            color: var(--heading);
+        }
+
+        .learning-card-cta.onboarding-done .learning-card-desc {
+            color: var(--text-muted);
+        }
+
+        .learning-card-cta.onboarding-done .badge {
+            display: none;
         }
 
         .learning-card-icon {
             width: 36px;
             height: 36px;
             border-radius: 0.5rem;
-            background: rgba(255, 107, 0, 0.12);
+            background: var(--accent-soft);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -675,7 +943,7 @@
         .learning-card-icon svg {
             width: 19px;
             height: 19px;
-            stroke: #ff8c42;
+            stroke: var(--accent);
             fill: none;
         }
 
@@ -687,7 +955,7 @@
         .learning-card-title {
             font-size: 0.98rem;
             font-weight: 700;
-            color: #fff;
+            color: var(--heading);
             display: flex;
             align-items: center;
             margin-bottom: 0.2rem;
@@ -695,7 +963,7 @@
 
         .learning-card-desc {
             font-size: 0.83rem;
-            color: #ccc;
+            color: var(--text-muted);
             line-height: 1.45;
             margin: 0;
         }
@@ -712,12 +980,33 @@
             color: #444;
         }
 
+        body.light-mode .learning-card-cta {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b00 35%, #ff6b00 100%);
+        }
+
+        body.light-mode .learning-card-cta .learning-card-title,
+        body.light-mode .learning-card-cta .learning-card-desc {
+            color: #ffffff;
+        }
+
+        body.light-mode .learning-card-cta.onboarding-done {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 245, 245, 0.95));
+        }
+
+        body.light-mode .learning-card-cta.onboarding-done .learning-card-title {
+            color: #111;
+        }
+
+        body.light-mode .learning-card-cta.onboarding-done .learning-card-desc {
+            color: #444;
+        }
+
         /* ---- Home screen: network topology diagram ------------------------------ */
         .topology-wrapper {
             overflow-x: auto;
-            border: 1px solid rgba(255, 107, 0, 0.25);
-            border-radius: 0.75rem;
-            background: rgba(20, 20, 28, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--surface-inset);
             padding: 0.75rem;
         }
 
@@ -766,6 +1055,30 @@
             fill: #aaaaaa;
             font-size: 11px;
             font-family: 'Courier New', monospace;
+        }
+
+        /* Shared network backbone: a vertical trunk with a horizontal drop
+           from each system, showing every system on one common network. */
+        .topo-trunk {
+            stroke: rgba(255, 107, 0, 0.45);
+            stroke-width: 2;
+        }
+
+        .topo-link {
+            stroke: rgba(255, 107, 0, 0.4);
+            stroke-width: 1.5;
+        }
+
+        .topo-junction {
+            fill: #ff6b00;
+        }
+
+        body.light-mode .topo-trunk {
+            stroke: rgba(255, 107, 0, 0.55);
+        }
+
+        body.light-mode .topo-link {
+            stroke: rgba(255, 107, 0, 0.5);
         }
 
         body.light-mode .topology-wrapper {
@@ -834,12 +1147,12 @@
             z-index: 502;
             width: 320px;
             max-width: calc(100vw - 24px);
-            background: linear-gradient(135deg, rgba(45, 45, 45, 0.98), rgba(30, 30, 40, 0.98));
-            border: 1px solid rgba(255, 107, 0, 0.4);
-            border-radius: 0.75rem;
+            background: var(--surface);
+            border: 1px solid var(--border-accent);
+            border-radius: 0.5rem;
             padding: 1.1rem 1.25rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            color: #fff;
+            box-shadow: var(--shadow-pop);
+            color: var(--text);
         }
 
         body.tour-active .tour-tooltip {
@@ -848,22 +1161,40 @@
 
         .tour-tooltip h4 {
             margin: 0 0 0.4rem;
-            color: #ff8c42;
+            color: var(--accent-2);
             font-size: 1rem;
         }
 
         .tour-tooltip p {
-            margin: 0 0 0.9rem;
-            color: #ddd;
+            margin: 0;
+            color: var(--text-muted);
             font-size: 0.9rem;
             line-height: 1.5;
         }
 
-        .tour-tooltip-footer {
-            display: flex;
+        /* Fixed control bar, top-center — stays put while the highlight/tooltip
+           move around the page from step to step. */
+        .tour-navbar {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 503;
             align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
+            gap: 0.9rem;
+            background: var(--surface);
+            border: 1px solid var(--border-accent);
+            border-radius: 0.6rem;
+            padding: 0.55rem 0.9rem;
+            box-shadow: var(--shadow-pop);
+            max-width: calc(100vw - 24px);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        body.tour-active .tour-navbar {
+            display: flex;
         }
 
         .tour-dots {
@@ -928,13 +1259,21 @@
             color: #111;
         }
 
+        body.light-mode .tour-tooltip h4 {
+            color: #b45400;
+        }
+
         body.light-mode .tour-tooltip p {
-            color: #333;
+            color: var(--text);
         }
 
         body.light-mode .tour-btn-prev {
             background: rgba(0, 0, 0, 0.06);
             color: #333;
+        }
+
+        body.light-mode .tour-navbar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 245, 245, 0.98));
         }
 
         /* ---- Vertical left sidebar -------------------------------------------- */
@@ -954,9 +1293,9 @@
             flex-direction: column;
             gap: 0.15rem;
             padding: 0.75rem 0.6rem;
-            background: rgba(18, 19, 26, 0.97);
+            background: var(--surface-2);
             backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.07);
+            border-right: 1px solid var(--border);
             box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
             overflow-x: hidden;
             overflow-y: auto;
@@ -989,11 +1328,12 @@
         }
 
         .nav-section-label {
-            color: #7a8090;
+            color: var(--text-subtle);
+            font-family: var(--font-mono);
             font-size: 0.62rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
             padding: 0.7rem 0.7rem 0.25rem;
         }
 
@@ -1006,7 +1346,7 @@
             background: transparent;
             border: none;
             border-radius: 0.5rem;
-            color: #c7ccd6;
+            color: var(--text-muted);
             font-family: inherit;
             font-size: 0.9rem;
             font-weight: 500;
@@ -1028,12 +1368,13 @@
 
         .nav-button:hover {
             background: rgba(255, 255, 255, 0.06);
-            color: #ffffff;
+            color: var(--text);
         }
 
         .nav-button.active {
-            background: rgba(255, 107, 0, 0.12);
-            color: #ff6b00;
+            background: var(--accent-soft);
+            color: var(--text);
+            font-weight: 600;
         }
 
         .nav-button.active::before {
@@ -1072,14 +1413,14 @@
             background: transparent;
             border: none;
             border-radius: 0.4rem;
-            color: #9aa0ad;
+            color: var(--text-subtle);
             cursor: pointer;
             transition: background 0.15s ease, color 0.15s ease;
         }
 
         .nav-toggle:hover {
             background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
+            color: var(--text);
         }
 
         /* ---- Collapsed icon rail (manual toggle or narrow screens) ------------ */
@@ -1236,16 +1577,154 @@
         }
 
         .settings-content {
-            background: rgba(30, 30, 40, 0.98);
-            border: 2px solid rgba(255, 107, 0, 0.3);
-            border-radius: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 0.6rem;
             padding: 2rem;
             max-width: 600px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
             position: relative;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--shadow-pop);
+        }
+
+        /* ---- Physical Process / Network Topology / Systems Access dropdown panels ---
+           Anchored directly under their trigger button (position set via JS) and
+           unfurl downward from that button, rather than a page-covering modal. */
+        .process-modal-content {
+            text-align: left;
+        }
+
+        .dropdown-panel {
+            position: fixed;
+            z-index: 1000;
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-pop);
+            padding: 1.5rem 2rem;
+            max-height: 70vh;
+            overflow-y: auto;
+            width: min(90vw, 700px);
+            transform-origin: top center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px) scaleY(0.92);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+            pointer-events: none;
+        }
+
+        .dropdown-panel.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scaleY(1);
+            pointer-events: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        #networkTopologyModal {
+            width: min(92vw, 860px);
+        }
+
+        .process-modal-body h3 {
+            color: var(--accent-2);
+            font-size: 1.05rem;
+            margin: 1.5rem 0 0.5rem;
+        }
+
+        .process-modal-body h3:first-child {
+            margin-top: 0;
+        }
+
+        .process-modal-body p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+            margin: 0 0 0.75rem;
+        }
+
+        .process-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            margin: 0.5rem 0 0.9rem;
+        }
+
+        .process-table th,
+        .process-table td {
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .process-table th {
+            color: var(--accent-2);
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .process-table td {
+            color: var(--text-muted);
+        }
+
+        .process-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .process-note {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            background: var(--accent-softer);
+            border-left: 3px solid var(--accent-line);
+            padding: 0.6rem 0.85rem;
+            border-radius: 0.35rem;
+        }
+
+        .process-note-danger {
+            background: rgba(255, 69, 58, 0.1);
+            border-left-color: rgba(255, 69, 58, 0.5);
+            color: #ffb4ac;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .dot-red { background: var(--signal-danger); }
+        .dot-green { background: var(--signal-ok); }
+        .dot-blue { background: var(--signal-info); }
+
+        body.light-mode .process-modal-body h3 {
+            color: #b45400;
+        }
+
+        body.light-mode .process-modal-body p {
+            color: var(--text);
+        }
+
+        body.light-mode .process-table td {
+            color: #333;
+        }
+
+        body.light-mode .process-table th {
+            color: #b45400;
+        }
+
+        body.light-mode .process-note {
+            color: #555;
+        }
+
+        body.light-mode .process-note-danger {
+            color: #7a1f14;
         }
 
         .settings-header {
@@ -1291,15 +1770,15 @@
         }
 
         .setting-item {
-            background: rgba(45, 45, 55, 0.6);
+            background: var(--surface-2);
             padding: 1rem;
             border-radius: 0.5rem;
             margin-bottom: 1rem;
-            border: 1px solid rgba(255, 107, 0, 0.1);
+            border: 1px solid var(--border);
         }
 
         .setting-label {
-            color: #ccc;
+            color: var(--text-muted);
             margin-bottom: 0.5rem;
             display: block;
             font-weight: 500;
@@ -1419,28 +1898,45 @@
         }
 
         .system-info-label {
-            color: #999;
+            color: var(--text-subtle);
             font-weight: 500;
         }
 
         .system-info-value {
-            color: #fff;
+            color: var(--text);
         }
 
-        /* Light Mode Styles */
+        /* ---- Light Mode: override the tokens; everything themed via var() flips
+           automatically. Only element-specific tweaks live below. ------------- */
         body.light-mode {
-            background: linear-gradient(-45deg, #f5f5f5, #e8e8e8, #d5d5d5, #ffffff);
+            --bg: #eef0f4;
+            --bg-glow: #ffffff;
+            --surface: #ffffff;
+            --surface-2: #f5f6f8;
+            --surface-inset: #f0f1f4;
+            --border: rgba(15, 23, 42, 0.12);
+            --border-strong: rgba(15, 23, 42, 0.18);
+            --border-accent: rgba(255, 107, 0, 0.4);
+
+            --text: #1a1d24;
+            --heading: #14171d;
+            --text-muted: #4b5563;
+            --text-subtle: #6b7280;
+
+            --accent-soft: rgba(255, 107, 0, 0.12);
+            --accent-softer: rgba(255, 107, 0, 0.07);
+            --accent-line: rgba(255, 107, 0, 0.4);
+            --on-accent: #ffffff;
+
+            --shadow-card: 0 8px 24px rgba(15, 23, 42, 0.08);
+            --shadow-pop: 0 16px 44px rgba(15, 23, 42, 0.16);
         }
 
         body.light-mode::before {
             background-image:
-                radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.04) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(255, 69, 0, 0.03) 0%, transparent 50%);
-        }
-
-        body.light-mode {
-            color: #333;
+                repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.05) 0 1px, transparent 1px 64px),
+                repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.05) 0 1px, transparent 1px 64px),
+                radial-gradient(900px 600px at 85% -5%, rgba(255, 107, 0, 0.04), transparent 60%);
         }
 
         body.light-mode .sidebar {
@@ -1478,8 +1974,8 @@
         }
 
         body.light-mode .nav-button.active {
-            background: rgba(255, 107, 0, 0.12);
-            color: #ff6b00;
+            background: var(--accent-soft);
+            color: var(--text);
         }
 
         body.light-mode .nav-section-label {
@@ -1496,6 +1992,11 @@
         }
 
         body.light-mode .settings-content {
+            background: rgba(255, 255, 255, 0.98);
+            color: #333;
+        }
+
+        body.light-mode .dropdown-panel {
             background: rgba(255, 255, 255, 0.98);
             color: #333;
         }
@@ -1535,11 +2036,11 @@
         }
 
         body.light-mode .settings-header h2 {
-            color: #ff6b00;
+            color: #b45400;
         }
 
         body.light-mode .settings-section h3 {
-            color: #ff6b00;
+            color: #b45400;
         }
 
         body.light-mode .theme-option {
@@ -1588,19 +2089,19 @@
         }
 
         body.light-mode .home-header h2 {
-            color: #ff6b00;
+            color: var(--heading);
         }
 
         body.light-mode .home-header p {
-            color: #666;
+            color: var(--text-muted);
         }
 
         body.light-mode .section-title {
-            color: #ff6b00;
+            color: var(--heading);
         }
 
         body.light-mode .section-description {
-            color: #666;
+            color: var(--text-muted);
         }
 
         body.light-mode .service-preview h3 {
@@ -2248,6 +2749,24 @@
             <path d="M3 5a1 1 0 0 1 1-1h4a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H4a1 1 0 0 1-1-1z"/>
             <path d="M21 5a1 1 0 0 0-1-1h-4a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h5a1 1 0 0 0 1-1z"/>
         </symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 3v2M12 19v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M3 12h2M19 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/>
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+        </symbol>
+        <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="15" r="4"/>
+            <path d="M11 12 20 3M16.5 6.5 19 9M13.5 9.5 15.5 11.5"/>
+        </symbol>
+        <symbol id="i-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+            <path d="M12 9v4M12 17h.01"/>
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v4h-4"/>
+        </symbol>
     </svg>
 
     <!-- Sidebar -->
@@ -2322,20 +2841,39 @@
                 <div class="home-screen">
                     <!-- Greeting banner -->
                     <div class="hero-banner">
-                        <h1>Welcome to CybICS</h1>
+                        <div class="hero-status">
+                            <span class="hero-status-dot"></span>
+                            <span>Lab online</span>
+                            <span class="hero-status-sep">&middot;</span>
+                            <span>{{ services|length }} systems</span>
+                            <span class="hero-status-sep">&middot;</span>
+                            <span>IEC 62443</span>
+                        </div>
+                        <h1>Welcome to <img src="/pics/CybICS_logo.png" alt="CybICS" class="hero-logo"></h1>
                         <p>Understanding industrial Cybersecurity — a hands-on training lab for ICS/OT security, from PLC basics to full attack &amp; defense scenarios.</p>
                         <div class="hero-actions">
                             <a class="hero-btn hero-btn-primary" href="{{ github_url }}" target="_blank" rel="noopener">
-                                <svg><use href="#i-github"/></svg> View on GitHub
+                                <svg><use href="#i-github"/></svg> GitHub
                             </a>
-                            <button class="hero-btn hero-btn-secondary" onclick="startTour()">
-                                <svg><use href="#i-compass"/></svg> Take the tour
+                            <button class="hero-btn hero-btn-secondary" id="physical-process-btn" onclick="togglePhysicalProcess()">
+                                <svg><use href="#i-gauge"/></svg> Physical Process
+                            </button>
+                            <button class="hero-btn hero-btn-secondary" id="network-topology-btn" onclick="toggleNetworkTopology()">
+                                <svg><use href="#i-network"/></svg> Network Topology
+                            </button>
+                            <button class="hero-btn hero-btn-secondary" id="systems-access-btn" onclick="toggleSystemsAccess()">
+                                <svg><use href="#i-key"/></svg> Systems Access
+                            </button>
+                            <button class="hero-btn hero-btn-secondary hero-btn-icon" onclick="toggleTheme()" title="Toggle light / dark theme" aria-label="Toggle light / dark theme">
+                                <svg class="if-dark"><use href="#i-sun"/></svg>
+                                <svg class="if-light"><use href="#i-moon"/></svg>
                             </button>
                         </div>
                     </div>
 
                     <!-- About: Purpose / Physical & Virtual / Audience -->
-                    <div class="service-section">
+                    <div class="service-section" id="about-cybics-section">
+                        <div class="section-eyebrow">Step 01 &middot; Orientation</div>
                         <div class="section-title">About CybICS</div>
                         <div class="section-description">What this lab is, how it's deployed, and who it's for</div>
                         <div class="service-grid">
@@ -2353,48 +2891,25 @@
                             </div>
                             <div class="info-box">
                                 <div class="info-box-title"><svg><use href="#i-shield"/></svg>Who it's for</div>
-                                <p>Aligned with IEC 62443 roles, built primarily for the <strong>Operator</strong> role — and open to anyone curious about ICS/OT cybersecurity, from students to seasoned defenders.</p>
+                                <p>Open to anyone curious about ICS/OT cybersecurity, from students to seasoned defenders. Aligned with IEC 62443, you investigate cybersecurity from an <strong>Operator</strong>'s perspective.</p>
                                 <p><strong>Goal:</strong> hands-on cybersecurity knowledge, not just theory.</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Systems access -->
-                    <div class="service-section" id="access-info-section">
-                        <div class="section-title">Systems access</div>
-                        <div class="section-description">Login data, addresses, and ports for every system in the lab</div>
-                        <div class="access-table-wrapper">
-                            <table class="access-table">
-                                <thead>
-                                    <tr>
-                                        <th>System</th>
-                                        <th>Address</th>
-                                        <th>IP</th>
-                                        <th>Ports</th>
-                                        <th>Login</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in access_info %}
-                                    <tr>
-                                        <td>{{ row.system }}{% if row.virtual_only %}<span class="badge">VIRTUAL</span>{% endif %}</td>
-                                        <td>{% if row.url %}<a href="{{ row.url }}" target="_blank" rel="noopener">{{ row.url }}</a>{% else %}—{% endif %}</td>
-                                        <td>{{ row.ip }}</td>
-                                        <td>{{ row.ports }}</td>
-                                        <td>{% if row.username %}{{ row.username }} / {{ row.password }}{% elif row.password %}{{ row.password }}{% else %}—{% endif %}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="access-caption">These are the lab's default credentials — intentionally weak for training purposes. Never reuse them outside CybICS.</div>
-                    </div>
-
                     <!-- Learning Path -->
                     <div class="service-section" id="learning-path-section">
+                        <div class="section-eyebrow">Step 02 &middot; Training path</div>
                         <div class="section-title">Learning path</div>
                         <div class="section-description">Two ways to build your ICS/OT security skills</div>
                         <div class="learning-grid">
+                            <div class="learning-card learning-card-cta{% if first_challenge_solved %} onboarding-done{% endif %}" id="first-lab-cta" onclick="startOnboarding()">
+                                <div class="learning-card-icon"><svg><use href="#i-compass"/></svg></div>
+                                <div class="learning-card-body">
+                                    <div class="learning-card-title">Start your first lab<span class="badge">15 MIN</span></div>
+                                    <p class="learning-card-desc">Launch a guided 15-minute introduction to CybICS.</p>
+                                </div>
+                            </div>
                             <div class="learning-card learning-card-disabled">
                                 <div class="learning-card-icon"><svg><use href="#i-book"/></svg></div>
                                 <div class="learning-card-body">
@@ -2412,36 +2927,6 @@
                         </div>
                     </div>
 
-                    <!-- Network topology -->
-                    <div class="service-section">
-                        <div class="section-title">Network topology</div>
-                        <div class="section-description">CybICS systems mapped to the ISA-95 / Purdue model</div>
-                        {% set level_h = 90 %}
-                        {% set gap = 16 %}
-                        {% set total = purdue_levels|length %}
-                        <div class="topology-wrapper">
-                            <svg class="topology-svg" viewBox="0 0 820 {{ total * (level_h + gap) + gap }}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Network topology diagram aligned to the ISA-95 Purdue model">
-                                {% for lvl in purdue_levels %}
-                                {% set y = (total - loop.index) * (level_h + gap) + gap %}
-                                {% set n = lvl.systems|length %}
-                                {% set spacing = 800 / n %}
-                                {% set box_w = [spacing - 16, 240]|min %}
-                                <g class="topo-level topo-zone-{{ lvl.zone }}">
-                                    <rect x="10" y="{{ y }}" width="800" height="{{ level_h }}" rx="10" class="topo-band"/>
-                                    <text x="26" y="{{ y + 20 }}" class="topo-level-label">{{ lvl.level }}</text>
-                                    {% for sys in lvl.systems %}
-                                    {% set bx = 10 + loop.index0 * spacing + (spacing - box_w) / 2 %}
-                                    <g transform="translate({{ bx }}, {{ y + 32 }})">
-                                        <rect width="{{ box_w }}" height="46" rx="8" class="topo-node"/>
-                                        <text x="10" y="19" class="topo-node-name">{{ sys.name }}</text>
-                                        <text x="10" y="36" class="topo-node-ip">{{ sys.ip }}</text>
-                                    </g>
-                                    {% endfor %}
-                                </g>
-                                {% endfor %}
-                            </svg>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -2460,14 +2945,14 @@
                     {% if service.path %}data-path="{{ service.path }}"{% endif %}
                 ></iframe>
                 <div id="{{ service_id }}-error" class="service-error">
-                    <div class="error-icon">⚠️</div>
+                    <div class="error-icon"><svg><use href="#i-alert-triangle"/></svg></div>
                     <div class="error-message">Service Unavailable</div>
                     <div class="error-details">{{ service.name }} is not responding</div>
                     <div class="error-details" style="margin-top: 1rem;">
                         <span id="{{ service_id }}-url"></span>
                     </div>
-                    <button onclick="refreshService('{{ service_id }}')" class="nav-button" style="margin-top: 1rem;">
-                        🔄 Refresh
+                    <button onclick="refreshService('{{ service_id }}')" class="error-refresh-btn" style="margin-top: 1rem;">
+                        <svg class="nav-icon"><use href="#i-refresh"/></svg> Refresh
                     </button>
                 </div>
             </div>
@@ -2549,6 +3034,9 @@
         // Track current view
         let currentView = 'all';
 
+        // First CTF challenge, used to jump straight into it after the onboarding tour
+        const firstChallengeId = {{ first_challenge_id|tojson }};
+
         // Service configurations for URL building
         const serviceConfigs = {
             {% for service_id, service in services.items() %}
@@ -2599,15 +3087,19 @@
             const url = iframe.getAttribute('data-last-src') || iframeUrl(iframe);
             if (!url) return;
 
+            const themedUrl = new URL(url, window.location.href);
+            themedUrl.searchParams.set("theme", document.body.classList.contains("light-mode") ? "light" : "dark");
+
             const serviceId = iframe.getAttribute('data-service');
             if (serviceId) {
                 // External service: probe availability, show error panel if down.
                 iframe.classList.remove('hidden');
                 const errorDiv = document.getElementById(`${serviceId}-error`);
                 if (errorDiv) errorDiv.classList.remove('visible');
-                fetch(url, { mode: 'no-cors', cache: 'no-cache' })
+                const requestUrl = (serviceId === 'engineeringws' || serviceId === 'attackmachine') ? url : themedUrl.href;
+                fetch(requestUrl, { mode: 'no-cors', cache: 'no-cache' })
                     .then(() => {
-                        iframe.src = url;
+                        iframe.src = requestUrl;
                         setTimeout(function() {
                             try {
                                 const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -2618,7 +3110,7 @@
                     .catch(() => showIframeError(iframe));
             } else {
                 // Same-origin local page (ctf/stats/network/webshell): just load it.
-                iframe.src = url;
+                iframe.src = themedUrl.href;
             }
         }
 
@@ -2637,10 +3129,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.service-iframe').forEach(iframe => {
                 const serviceId = iframe.getAttribute('data-service');
-                if (!serviceId) return;
                 const urlEl = document.getElementById(`${serviceId}-url`);
                 if (urlEl) urlEl.textContent = iframeUrl(iframe);
                 iframe.addEventListener('error', function() { showIframeError(iframe); });
+                iframe.addEventListener('load', function () {
+                    const theme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+                    if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'theme', theme: theme }, '*');
+                });
             });
         });
 
@@ -2784,6 +3279,9 @@
                     // Push to browser history so back/forward works
                     const hash = '#ctf' + (event.data.url !== '/ctf' ? ':' + event.data.url : '');
                     history.pushState({ view: 'ctf', ctfUrl: event.data.url }, '', hash);
+                    // Landing back on the challenge list happens right after a solve
+                    // redirects there, so this is the natural point to re-check progress.
+                    if (event.data.url === '/ctf') refreshOnboardingCta();
                 }
             }
         });
@@ -2830,19 +3328,65 @@
         })();
 
         // ---- Guided tour ----------------------------------------------------
+        // Core / Virtual system steps are generated from the same service config
+        // that renders the sidebar, so the tour can't drift out of sync with it.
+        const coreSystemSteps = [
+            {% for service_id, service in services.items() %}
+            {% if not service.virtual_only %}
+            { selector: '#{{ service_id }}-btn', title: {{ service.name|tojson }}, text: {{ service.description|tojson }} },
+            {% endif %}
+            {% endfor %}
+        ];
+        const virtualSystemSteps = [
+            {% for service_id, service in services.items() %}
+            {% if service.virtual_only %}
+            { selector: '#{{ service_id }}-btn', title: {{ service.name|tojson }}, text: {{ service.description|tojson }} },
+            {% endif %}
+            {% endfor %}
+        ];
+        const toolsSteps = [
+            {
+                selector: '#stats-btn',
+                title: 'System Stats',
+                text: 'Live CPU, memory, and per-container resource usage for every system in the lab.'
+            },
+            {
+                selector: '#network-btn',
+                title: 'Sharky',
+                text: 'Capture and inspect live network traffic across the lab\'s industrial network, packet by packet.'
+            },
+            {
+                selector: '#webshell-btn',
+                title: 'WebShell',
+                text: 'A browser-based terminal with direct access to recon and exploitation tools inside the lab network.'
+            }
+        ];
         const tourSteps = [
             {
                 selector: '.sidebar',
                 title: 'Left menu bar',
-                text: 'Every system in the lab — OpenPLC, FUXA, IDS, and more — opens right here in the sidebar, without leaving this page.'
+                text: 'Every system in the lab opens right here in the sidebar, without leaving this page. Let\'s walk through what\'s in it.'
             },
+            ...coreSystemSteps,
+            ...virtualSystemSteps,
+            ...toolsSteps,
             {
                 selector: '.hero-btn-primary',
                 title: 'GitHub repository',
                 text: 'Full source code, setup docs, and training material for CybICS live on GitHub.'
             },
             {
-                selector: '#access-info-section',
+                selector: '#physical-process-btn',
+                title: 'Physical Process',
+                text: 'See the live gas-pressure process the lab\'s PLC controls — tank pressures, safety thresholds, and the blowout valve interlock.'
+            },
+            {
+                selector: '#network-topology-btn',
+                title: 'Network Topology',
+                text: 'Every lab system mapped to the ISA-95 / Purdue model, wired to a shared network backbone.'
+            },
+            {
+                selector: '#systems-access-btn',
                 title: 'Systems access',
                 text: 'Addresses, ports, and default login credentials for every system in the lab, all in one place.'
             },
@@ -2852,8 +3396,20 @@
                 text: 'Start with the CTF challenges to learn ICS/OT security hands-on by capturing flags across reconnaissance, exploitation, and defense.'
             }
         ];
+        // "Start your first lab" onboarding: a brief CybICS primer, then the regular
+        // tour, then a hand-off into the first CTF challenge.
+        const onboardingSteps = [
+            {
+                selector: '#about-cybics-section',
+                title: 'What is CybICS?',
+                text: 'An open-source, hands-on training lab for ICS/OT security — from PLC basics to full attack & defense scenarios, aligned with IEC 62443.'
+            }
+        ].concat(tourSteps);
+
         let tourIndex = 0;
         let tourEls = null;
+        let activeTourSteps = tourSteps;
+        let tourCompleteCallback = null;
 
         function ensureTourDom() {
             if (tourEls) return tourEls;
@@ -2865,18 +3421,21 @@
             tooltip.className = 'tour-tooltip';
             tooltip.innerHTML =
                 '<h4 id="tour-title"></h4>' +
-                '<p id="tour-text"></p>' +
-                '<div class="tour-tooltip-footer">' +
+                '<p id="tour-text"></p>';
+            const navbar = document.createElement('div');
+            navbar.className = 'tour-navbar';
+            navbar.innerHTML =
                 '<div class="tour-dots" id="tour-dots"></div>' +
                 '<div class="tour-btns">' +
                 '<button class="tour-btn tour-btn-skip" onclick="endTour()">Skip</button>' +
                 '<button class="tour-btn tour-btn-prev" id="tour-prev-btn" onclick="tourPrev()">Prev</button>' +
                 '<button class="tour-btn tour-btn-next" id="tour-next-btn" onclick="tourNext()">Next</button>' +
-                '</div></div>';
+                '</div>';
             document.body.appendChild(backdrop);
             document.body.appendChild(highlight);
             document.body.appendChild(tooltip);
-            tourEls = { backdrop: backdrop, highlight: highlight, tooltip: tooltip };
+            document.body.appendChild(navbar);
+            tourEls = { backdrop: backdrop, highlight: highlight, tooltip: tooltip, navbar: navbar };
             return tourEls;
         }
 
@@ -2884,7 +3443,9 @@
             if (e.key === 'Escape') endTour();
         }
 
-        function startTour() {
+        function startTour(steps, onComplete) {
+            activeTourSteps = steps || tourSteps;
+            tourCompleteCallback = onComplete || null;
             tourIndex = 0;
             ensureTourDom();
             document.body.classList.add('tour-active');
@@ -2897,15 +3458,17 @@
             document.body.classList.remove('tour-active');
             document.removeEventListener('keydown', tourKeyHandler);
             window.removeEventListener('resize', renderTourStep);
-            try { localStorage.setItem('cybics-tour-seen', '1'); } catch (e) {}
+            tourCompleteCallback = null;
         }
 
         function tourNext() {
-            if (tourIndex < tourSteps.length - 1) {
+            if (tourIndex < activeTourSteps.length - 1) {
                 tourIndex++;
                 renderTourStep();
             } else {
+                const onComplete = tourCompleteCallback;
                 endTour();
+                if (onComplete) onComplete();
             }
         }
 
@@ -2917,7 +3480,7 @@
         }
 
         function renderTourStep() {
-            const step = tourSteps[tourIndex];
+            const step = activeTourSteps[tourIndex];
             const els = ensureTourDom();
             const target = document.querySelector(step.selector);
             if (target) target.scrollIntoView({ block: 'center', inline: 'nearest' });
@@ -2932,29 +3495,54 @@
 
             els.tooltip.querySelector('#tour-title').textContent = step.title;
             els.tooltip.querySelector('#tour-text').textContent = step.text;
-            const dotsEl = els.tooltip.querySelector('#tour-dots');
-            dotsEl.innerHTML = tourSteps.map(function(_, i) {
+            const dotsEl = els.navbar.querySelector('#tour-dots');
+            dotsEl.innerHTML = activeTourSteps.map(function(_, i) {
                 return '<span class="tour-dot' + (i === tourIndex ? ' active' : '') + '"></span>';
             }).join('');
-            els.tooltip.querySelector('#tour-prev-btn').style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
-            els.tooltip.querySelector('#tour-next-btn').textContent = tourIndex === tourSteps.length - 1 ? 'Done' : 'Next';
+            els.navbar.querySelector('#tour-prev-btn').style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
+            els.navbar.querySelector('#tour-next-btn').textContent = tourIndex === activeTourSteps.length - 1 ? 'Done' : 'Next';
 
             const ttWidth = 320;
             let top = rect.bottom + pad * 2;
-            if (top + 170 > window.innerHeight) top = Math.max(pad, rect.top - pad * 2 - 170);
+            if (top + 130 > window.innerHeight) top = Math.max(pad, rect.top - pad * 2 - 130);
+            // Keep the tooltip clear of the fixed top-center nav bar.
+            top = Math.max(top, 68);
             let left = Math.min(Math.max(rect.left, 12), window.innerWidth - ttWidth - 12);
             els.tooltip.style.top = top + 'px';
             els.tooltip.style.left = left + 'px';
         }
 
-        // Auto-offer the tour once for new visitors.
-        try {
-            if (!localStorage.getItem('cybics-tour-seen')) {
-                setTimeout(function() {
-                    if (!document.body.classList.contains('tour-active')) startTour();
-                }, 1200);
-            }
-        } catch (e) {}
+        // ---- "Start your first lab" onboarding CTA --------------------------
+        // The CTA is highlighted until the first CTF challenge is actually solved
+        // (server-side progress), not just once the tour has been viewed.
+
+        function goToFirstChallenge() {
+            const ctfIframe = document.getElementById('ctf-iframe');
+            const url = firstChallengeId ? '/ctf/challenge/' + firstChallengeId : '/ctf';
+            if (ctfIframe) ctfIframe.setAttribute('data-last-src', url);
+            updateView('ctf', true);
+            const hash = '#ctf' + (url !== '/ctf' ? ':' + url : '');
+            history.pushState({ view: 'ctf', ctfUrl: url }, '', hash);
+        }
+
+        function startOnboarding() {
+            startTour(onboardingSteps, goToFirstChallenge);
+        }
+
+        // Re-check whether the first challenge has been solved and update the CTA's
+        // highlight accordingly. Called whenever the CTF iframe navigates back to the
+        // challenge list, which is what happens right after a successful flag submit.
+        function refreshOnboardingCta() {
+            const cta = document.getElementById('first-lab-cta');
+            if (!cta || !firstChallengeId) return;
+            fetch('/ctf/progress')
+                .then(r => r.json())
+                .then(data => {
+                    const solved = (data.solved_challenge_ids || []).includes(firstChallengeId);
+                    cta.classList.toggle('onboarding-done', solved);
+                })
+                .catch(() => {});
+        }
     </script>
 
     <!-- Settings Modal -->
@@ -2963,22 +3551,6 @@
             <div class="settings-header">
                 <h2>⚙️ Settings</h2>
                 <button class="close-btn" onclick="closeSettings()">✕</button>
-            </div>
-
-            <!-- Appearance Section -->
-            <div class="settings-section">
-                <h3>🎨 Appearance</h3>
-                <div class="setting-item">
-                    <span class="setting-label">Theme</span>
-                    <div class="theme-toggle">
-                        <div class="theme-option" data-theme="dark" onclick="setTheme('dark')">
-                            🌙 Dark Mode
-                        </div>
-                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
-                            ☀️ Light Mode
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- AI Agent Section -->
@@ -3053,13 +3625,140 @@
         </div>
     </div>
 
+    <!-- Physical Process Modal -->
+    <div id="physicalProcessModal" class="dropdown-panel process-modal-content">
+            <div class="settings-header">
+                <h2>Physical Process</h2>
+                <button class="close-btn" onclick="closePhysicalProcess()">✕</button>
+            </div>
+            <div class="process-modal-body">
+                <p>CybICS simulates a gas pressure control system commonly found in industrial environments. This simple yet realistic process provides an excellent foundation for learning ICS cybersecurity concepts.</p>
+
+                <h3>System overview</h3>
+                <p>The system maintains gas pressure in a High Pressure Tank (HPT) using gas from a Gas Storage Tank (GST). A PLC controls a compressor that transfers gas between tanks while monitoring pressure levels and safety conditions.</p>
+
+                <h3>Gas Storage Tank (GST)</h3>
+                <p>Buffer tank for the external gas supply. The PLC maintains GST pressure between 60–240 bar.</p>
+                <table class="process-table">
+                    <thead>
+                        <tr><th>Pressure (bar)</th><th>Status</th><th>Indicator</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>&lt; 50</td><td>Low</td><td><span class="dot dot-red"></span>Red</td></tr>
+                        <tr><td>50 – 149</td><td>Normal</td><td><span class="dot dot-green"></span>Green</td></tr>
+                        <tr><td>150+</td><td>Full</td><td><span class="dot dot-blue"></span>Blue</td></tr>
+                    </tbody>
+                </table>
+                <p class="process-note"><strong>Control loop:</strong> below 60 bar the PLC starts filling from the external supply until GST reaches 240 bar; filling is prevented when GST is too low, to protect the compressor.</p>
+
+                <h3>High Pressure Tank (HPT)</h3>
+                <p>Main buffer tank providing pressure to the system. Target range: 60–90 bar.</p>
+                <table class="process-table">
+                    <thead>
+                        <tr><th>Pressure (bar)</th><th>Status</th><th>Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>0</td><td>Empty</td><td>System offline</td></tr>
+                        <tr><td>1 – 49</td><td>Low</td><td>Below operating range</td></tr>
+                        <tr><td>50 – 99</td><td>Normal</td><td>Safe operating range</td></tr>
+                        <tr><td>100 – 149</td><td>High</td><td>Above target, but safe</td></tr>
+                        <tr><td>150+</td><td>Critical</td><td>Dangerous overpressure</td></tr>
+                    </tbody>
+                </table>
+                <p class="process-note"><strong>Control loop:</strong> the compressor starts when HPT drops below 60 bar (and GST is above 50 bar), and stops once HPT reaches 90 bar. It is disabled entirely if GST falls below 50 bar, as a safety interlock.</p>
+
+                <h3>System operation</h3>
+                <p>The system operates normally while HPT stays between 50–100 bar. Below 50 bar there isn't enough pressure to run; above 100 bar the system is at risk of damage.</p>
+
+                <h3>Safety: blowout valve (BO)</h3>
+                <p>A mechanical safety valve — not PLC-controlled — prevents catastrophic failure: it opens above 220 bar to vent toxic gas to atmosphere, and closes again once HPT drops below 200 bar.</p>
+                <p class="process-note process-note-danger"><strong>Security implication:</strong> triggering the blowout releases toxic gas.</p>
+            </div>
+    </div>
+
+    <!-- Network Topology Modal -->
+    <div id="networkTopologyModal" class="dropdown-panel process-modal-content">
+            <div class="settings-header">
+                <h2>Network Topology</h2>
+                <button class="close-btn" onclick="closeNetworkTopology()">✕</button>
+            </div>
+            <div class="process-modal-body">
+                <p>CybICS systems mapped to the ISA-95 / Purdue model.</p>
+                {% set level_h = 90 %}
+                {% set gap = 16 %}
+                {% set total = purdue_levels|length %}
+                <div class="topology-wrapper">
+                    {% set diagram_h = total * (level_h + gap) + gap %}
+                    <svg class="topology-svg" viewBox="0 0 820 {{ diagram_h }}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Network topology diagram aligned to the ISA-95 Purdue model, with every system linked to a shared network backbone">
+                        <!-- Shared network backbone, drawn first so system boxes sit on top of it -->
+                        <line x1="410" y1="0" x2="410" y2="{{ diagram_h }}" class="topo-trunk"/>
+                        {% for lvl in purdue_levels %}
+                        {% set y = (total - loop.index) * (level_h + gap) + gap %}
+                        {% set n = lvl.systems|length %}
+                        {% set spacing = 800 / n %}
+                        {% set box_w = [spacing - 16, 240]|min %}
+                        <g class="topo-level topo-zone-{{ lvl.zone }}">
+                            <rect x="10" y="{{ y }}" width="800" height="{{ level_h }}" rx="10" class="topo-band"/>
+                            <text x="26" y="{{ y + 20 }}" class="topo-level-label">{{ lvl.level }}</text>
+                            {% for sys in lvl.systems %}
+                            {% set bx = 10 + loop.index0 * spacing + (spacing - box_w) / 2 %}
+                            {% set node_cy = y + 32 + 23 %}
+                            <line x1="{{ bx + box_w / 2 }}" y1="{{ node_cy }}" x2="410" y2="{{ node_cy }}" class="topo-link"/>
+                            <circle cx="410" cy="{{ node_cy }}" r="3" class="topo-junction"/>
+                            {% endfor %}
+                            {% for sys in lvl.systems %}
+                            {% set bx = 10 + loop.index0 * spacing + (spacing - box_w) / 2 %}
+                            <g transform="translate({{ bx }}, {{ y + 32 }})">
+                                <rect width="{{ box_w }}" height="46" rx="8" class="topo-node"/>
+                                <text x="10" y="19" class="topo-node-name">{{ sys.name }}</text>
+                                <text x="10" y="36" class="topo-node-ip">{{ sys.ip }}</text>
+                            </g>
+                            {% endfor %}
+                        </g>
+                        {% endfor %}
+                    </svg>
+                </div>
+            </div>
+    </div>
+
+    <!-- Systems Access Modal -->
+    <div id="systemsAccessModal" class="dropdown-panel process-modal-content">
+            <div class="settings-header">
+                <h2>Systems Access</h2>
+                <button class="close-btn" onclick="closeSystemsAccess()">✕</button>
+            </div>
+            <div class="process-modal-body">
+                <p>Login data for every system in the lab.</p>
+                <div class="access-table-wrapper">
+                    <table class="access-table">
+                        <thead>
+                            <tr>
+                                <th>System</th>
+                                <th>Login</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in access_info %}
+                            {% if row.username or row.password %}
+                            <tr>
+                                <td>{{ row.system }}{% if row.virtual_only %}<span class="badge">VIRTUAL</span>{% elif row.hardware_only %}<span class="badge">HARDWARE</span>{% endif %}</td>
+                                <td>{% if row.username %}{{ row.username }} / {{ row.password }}{% else %}{{ row.password }}{% endif %}</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="access-caption">These are the lab's default credentials — intentionally weak for training purposes. Never reuse them outside CybICS.</p>
+            </div>
+    </div>
+
     <!-- Settings JavaScript -->
     <script>
         // Settings functionality
         function openSettings() {
             document.getElementById('settingsModal').classList.add('active');
             loadSystemInfo();
-            loadThemePreference();
             loadAgentPreference();
             loadAvailableModels();
         }
@@ -3075,20 +3774,106 @@
             }
         });
 
-        // Theme Management
-        function setTheme(theme) {
-            // Update UI
-            document.querySelectorAll('.theme-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
+        // Physical Process / Network Topology / Systems Access dropdown panels.
+        // Each panel is anchored directly under its trigger button and unfurls
+        // downward from there, rather than covering the page as a modal.
+        const dropdownConfigs = [
+            { id: 'physicalProcessModal', btnSelector: '#physical-process-btn' },
+            { id: 'networkTopologyModal', btnSelector: '#network-topology-btn' },
+            { id: 'systemsAccessModal', btnSelector: '#systems-access-btn' }
+        ];
 
-            // Apply theme
+        function positionDropdown(panel, btn) {
+            const rect = btn.getBoundingClientRect();
+            const width = panel.getBoundingClientRect().width;
+            let left = Math.min(rect.left, window.innerWidth - width - 12);
+            left = Math.max(left, 12);
+            panel.style.top = (rect.bottom + 10) + 'px';
+            panel.style.left = left + 'px';
+        }
+
+        function closeAllDropdowns() {
+            dropdownConfigs.forEach(cfg => {
+                document.getElementById(cfg.id).classList.remove('active');
+            });
+        }
+
+        function toggleDropdown(id, btnSelector) {
+            const panel = document.getElementById(id);
+            const wasOpen = panel.classList.contains('active');
+            closeAllDropdowns();
+            if (!wasOpen) {
+                positionDropdown(panel, document.querySelector(btnSelector));
+                panel.classList.add('active');
+            }
+        }
+
+        function togglePhysicalProcess() {
+            toggleDropdown('physicalProcessModal', '#physical-process-btn');
+        }
+
+        function closePhysicalProcess() {
+            document.getElementById('physicalProcessModal').classList.remove('active');
+        }
+
+        function toggleNetworkTopology() {
+            toggleDropdown('networkTopologyModal', '#network-topology-btn');
+        }
+
+        function closeNetworkTopology() {
+            document.getElementById('networkTopologyModal').classList.remove('active');
+        }
+
+        function toggleSystemsAccess() {
+            toggleDropdown('systemsAccessModal', '#systems-access-btn');
+        }
+
+        function closeSystemsAccess() {
+            document.getElementById('systemsAccessModal').classList.remove('active');
+        }
+
+        // Click anywhere outside an open panel (and outside its own trigger
+        // button) closes it.
+        document.addEventListener('click', function(e) {
+            dropdownConfigs.forEach(cfg => {
+                const panel = document.getElementById(cfg.id);
+                if (!panel.classList.contains('active')) return;
+                const btn = document.querySelector(cfg.btnSelector);
+                if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
+                panel.classList.remove('active');
+            });
+        });
+
+        // Keep an open panel anchored under its button on viewport resize.
+        window.addEventListener('resize', function() {
+            dropdownConfigs.forEach(cfg => {
+                const panel = document.getElementById(cfg.id);
+                if (!panel.classList.contains('active')) return;
+                const btn = document.querySelector(cfg.btnSelector);
+                if (btn) positionDropdown(panel, btn);
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeAllDropdowns();
+        });
+
+        // Theme Management
+        function applyTheme(theme) {
             if (theme === 'light') {
                 document.body.classList.add('light-mode');
             } else {
                 document.body.classList.remove('light-mode');
             }
+
+            // Keep embedded service pages in sync with the dashboard theme.
+            document.querySelectorAll('.service-iframe').forEach(function (iframe) {
+                if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'theme', theme: theme }, '*');
+            });
+        }
+
+        function setTheme(theme) {
+            applyTheme(theme);
 
             // Save to server
             fetch('/api/settings/theme', {
@@ -3107,20 +3892,16 @@
             });
         }
 
+        function toggleTheme() {
+            const current = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+            setTheme(current === 'light' ? 'dark' : 'light');
+        }
+
         function loadThemePreference() {
             fetch('/api/settings/theme')
                 .then(response => response.json())
                 .then(data => {
-                    const theme = data.theme || 'dark';
-                    // Apply theme without saving again
-                    document.querySelectorAll('.theme-option').forEach(opt => {
-                        opt.classList.remove('active');
-                    });
-                    document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
-
-                    if (theme === 'light') {
-                        document.body.classList.add('light-mode');
-                    }
+                    applyTheme(data.theme || 'dark');
                 })
                 .catch(error => {
                     console.error('Error loading theme:', error);
