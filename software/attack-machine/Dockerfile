@@ -123,6 +123,11 @@ exec startxfce4' > /root/.vnc/xstartup \
 # Create XFCE config directory and backgrounds directory
 RUN mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml /usr/share/backgrounds
 
+# Install the persisted XFCE panel layout captured from the attack machine
+COPY xfce4-panel.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+COPY xsettings.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+COPY xfwm4.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
+
 # Copy attack machine background
 COPY attack-background.png /usr/share/backgrounds/attack-background.png
 
