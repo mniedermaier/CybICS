@@ -269,6 +269,7 @@
                 autocomplete="off"
             >
             <button class="execute-button" id="execute-btn" onclick="executeCommand()">Execute</button>
+            <button class="clear-button" id="stop-btn" onclick="stopCommand()" disabled>Stop</button>
             <button class="clear-button" onclick="clearTerminal()">Clear</button>
         </div>
     </div>
@@ -277,11 +278,36 @@
         const terminalOutput = document.getElementById('terminal-output');
         const commandInput = document.getElementById('command-input');
         const executeBtn = document.getElementById('execute-btn');
+        const stopBtn = document.getElementById('stop-btn');
         let commandHistory = [];
         let historyIndex = -1;
 
-        // Focus input on load
-        commandInput.focus();
+        // Commands run as server-side background jobs; the terminal log and the
+        // active job are mirrored to sessionStorage so a running scan survives
+        // navigating away from this page and coming back within the same tab.
+        const LOG_KEY = 'cybics_webshell_log';
+        const ACTIVE_KEY = 'cybics_webshell_active';
+        const POLL_MS = 1000;
+        let pollTimer = null;
+
+        function persistLog() {
+            try { sessionStorage.setItem(LOG_KEY, terminalOutput.innerHTML); } catch (e) {}
+        }
+        function restoreLog() {
+            try {
+                const saved = sessionStorage.getItem(LOG_KEY);
+                if (saved !== null) terminalOutput.innerHTML = saved;
+            } catch (e) {}
+        }
+        function setActiveJob(job) {
+            try { sessionStorage.setItem(ACTIVE_KEY, JSON.stringify(job)); } catch (e) {}
+        }
+        function clearActiveJob() {
+            try { sessionStorage.removeItem(ACTIVE_KEY); } catch (e) {}
+        }
+        function getActiveJob() {
+            try { return JSON.parse(sessionStorage.getItem(ACTIVE_KEY) || 'null'); } catch (e) { return null; }
+        }
 
         // Handle Enter key
         commandInput.addEventListener('keydown', function(e) {
@@ -319,6 +345,7 @@
             line.innerHTML = content;
             terminalOutput.appendChild(line);
             terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            persistLog();
         }
 
         function clearTerminal() {
@@ -327,11 +354,44 @@
                     <span class="terminal-output-text">Terminal cleared.</span>
                 </div>
             `;
+            persistLog();
+        }
+
+        // Create the streaming output element for a job. Tagged with data-job so
+        // it can be found again after the log is restored from sessionStorage.
+        function createOutputElement(jobId) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            const span = document.createElement('span');
+            span.className = 'terminal-output-text';
+            span.setAttribute('data-job', jobId);
+            line.appendChild(span);
+            terminalOutput.appendChild(line);
+            return span;
+        }
+
+        function appendChunk(outEl, text) {
+            outEl.textContent += text;
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            persistLog();
+        }
+
+        function setRunning(running) {
+            executeBtn.disabled = running;
+            stopBtn.disabled = !running;
+            executeBtn.innerHTML = running ? 'Running<span class="loading"></span>' : 'Execute';
+        }
+
+        function finishRun() {
+            if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+            clearActiveJob();
+            setRunning(false);
+            commandInput.focus();
         }
 
         async function executeCommand() {
             const command = commandInput.value.trim();
-            if (!command) {
+            if (!command || executeBtn.disabled) {
                 return;
             }
 
@@ -342,42 +402,85 @@
             // Display command
             addTerminalLine(`<span class="terminal-prompt">root@cybics:~$</span> <span class="terminal-command">${escapeHtml(command)}</span>`);
 
-            // Clear input and disable button
             commandInput.value = '';
-            executeBtn.disabled = true;
-            executeBtn.innerHTML = 'Executing<span class="loading"></span>';
+            setRunning(true);
 
             try {
                 const response = await fetch('/api/webshell/execute', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ command: command })
                 });
-
                 const data = await response.json();
 
-                if (data.success) {
-                    const output = data.output || '(no output)';
-                    addTerminalLine(`<span class="terminal-output-text">${escapeHtml(output)}</span>`);
-                    if (data.exit_code !== 0) {
-                        addTerminalLine(`<span class="terminal-error">Exit code: ${data.exit_code}</span>`);
-                    }
-                } else {
-                    addTerminalLine(`<span class="terminal-error">Error: ${escapeHtml(data.output)}</span>`);
+                if (!data.success || !data.job_id) {
+                    addTerminalLine(`<span class="terminal-error">Error: ${escapeHtml(data.output || 'could not start command')}</span>`);
+                    addTerminalLine('<span class="terminal-output-text">---</span>');
+                    finishRun();
+                    return;
                 }
+
+                const outEl = createOutputElement(data.job_id);
+                setActiveJob({ job_id: data.job_id, offset: 0 });
+                persistLog();
+                pollJob(data.job_id, outEl, 0);
             } catch (error) {
                 addTerminalLine(`<span class="terminal-error">Request failed: ${escapeHtml(error.message)}</span>`);
+                addTerminalLine('<span class="terminal-output-text">---</span>');
+                finishRun();
+            }
+        }
+
+        // Poll a background job for incremental output until it finishes.
+        async function pollJob(jobId, outEl, offset) {
+            let data;
+            try {
+                const r = await fetch(`/api/webshell/jobs/${jobId}?offset=${offset}`);
+                if (r.status === 404) {
+                    appendChunk(outEl, '\n[job is no longer available]\n');
+                    addTerminalLine('<span class="terminal-output-text">---</span>');
+                    finishRun();
+                    return;
+                }
+                data = await r.json();
+            } catch (error) {
+                // Transient error (e.g. mid-navigation); retry shortly.
+                pollTimer = setTimeout(() => pollJob(jobId, outEl, offset), POLL_MS);
+                return;
             }
 
-            // Re-enable button
-            executeBtn.disabled = false;
-            executeBtn.textContent = 'Execute';
-            commandInput.focus();
+            if (data.chunk) appendChunk(outEl, data.chunk);
+            offset = data.offset;
+            setActiveJob({ job_id: jobId, offset: offset });
 
-            // Add separator
-            addTerminalLine('<span class="terminal-output-text">---</span>');
+            if (data.running) {
+                pollTimer = setTimeout(() => pollJob(jobId, outEl, offset), POLL_MS);
+            } else {
+                if (data.exit_code !== 0 && data.exit_code !== null) {
+                    addTerminalLine(`<span class="terminal-error">Exit code: ${data.exit_code}</span>`);
+                }
+                addTerminalLine('<span class="terminal-output-text">---</span>');
+                finishRun();
+            }
+        }
+
+        async function stopCommand() {
+            const active = getActiveJob();
+            if (!active || !active.job_id) return;
+            stopBtn.disabled = true;
+            try {
+                await fetch(`/api/webshell/jobs/${active.job_id}/kill`, { method: 'POST' });
+            } catch (e) {}
+        }
+
+        // Reattach to an in-progress job after the page (re)loads.
+        function resumeActiveJob() {
+            const active = getActiveJob();
+            if (!active || !active.job_id) return;
+            let outEl = terminalOutput.querySelector(`[data-job="${active.job_id}"]`);
+            if (!outEl) outEl = createOutputElement(active.job_id);
+            setRunning(true);
+            pollJob(active.job_id, outEl, active.offset || 0);
         }
 
         function escapeHtml(text) {
@@ -391,6 +494,11 @@
             terminalOutput.scrollTop = terminalOutput.scrollHeight;
         });
         observer.observe(terminalOutput, { childList: true, subtree: true });
+
+        // Restore previous session output and reattach to any running job.
+        restoreLog();
+        resumeActiveJob();
+        commandInput.focus();
     </script>
 </body>
 </html>
