@@ -58,14 +58,12 @@ jobs:
     - name: Install test dependencies
       run: pip install --no-cache-dir -r tests/requirements.txt
 
-    - name: Test connections
-      run: pytest tests/test_connections.py --verbose
-
-    - name: Test OPC UA authentication
-      run: pytest tests/test_opcua_auth.py --verbose
-
-    - name: Test training
-      run: pytest tests/test_training.py --verbose
+    # Run the whole suite rather than naming files one by one: a test file
+    # that is not listed here is silently never executed, which is how
+    # tests/test_plant_model_parity.py would have been added without ever
+    # running in CI.
+    - name: Run test suite
+      run: pytest tests/ --verbose
 
     - name: Stop containers
       if: always()

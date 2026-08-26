@@ -36,9 +36,15 @@ services:
     restart: always
     privileged: true
     ports:
+      # Same protocol surface as the physical deployment: Modbus/TCP, S7comm,
+      # the web IDE, DNP3 and EtherNet/IP.  All five are enabled in the
+      # runtime's settings, so publishing only three made the virtual testbed
+      # reachable differently from the board.
       - 8080:8080
       - 502:502
       - 102:102
+      - 20000:20000
+      - 44818:44818
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.3
