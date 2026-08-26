@@ -18,6 +18,15 @@ env:
   dir: "hardware/pcb/"
   config: "hardware/pcb/kibot.yaml"
 
+concurrency:
+  # One run per workflow per ref.  Pull request runs are cancelled when a new
+  # commit is pushed; runs on main are not -- every commit there should still
+  # be built.  GitHub keeps at most one running plus one pending run per group,
+  # so a burst of merges no longer piles up dozens of concurrent jobs (which
+  # is how runs started failing at startup).
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
 # checks
   ERC:
