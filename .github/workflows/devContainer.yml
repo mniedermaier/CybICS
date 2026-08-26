@@ -13,6 +13,11 @@ jobs:
     name: Run devcontainer test raspberry on Ubuntu 22.04
     runs-on: ubuntu-22.04
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for fork PRs, which cannot read repository secrets at all.
+      DOCKERHUB_RO_USERNAME: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -23,11 +28,18 @@ jobs:
           sudo docker system prune -af
           df -h
 
-      - name: Login to Docker Hub
+      - name: Login to Docker Hub (read-only)
+        # These jobs only PULL images, so they use a read-only token. The
+        # push-capable DOCKERHUB_TOKEN stays exclusively in pushDockerRepos.yml
+        # and is never present in a job that executes pull request code.
+        # Authenticating raises the pull rate limit from 100/6h (anonymous) to
+        # 200/h. Fork PRs cannot read secrets, so the guard lets them fall back
+        # to anonymous pulls instead of failing the job.
+        if: env.DOCKERHUB_RO_USERNAME != ''
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
         uses: actions/checkout@v6
@@ -57,6 +69,11 @@ jobs:
     name: Run devcontainer test raspberry on Ubuntu 24.04
     runs-on: ubuntu-24.04
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for fork PRs, which cannot read repository secrets at all.
+      DOCKERHUB_RO_USERNAME: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -67,11 +84,18 @@ jobs:
           sudo docker system prune -af
           df -h
 
-      - name: Login to Docker Hub
+      - name: Login to Docker Hub (read-only)
+        # These jobs only PULL images, so they use a read-only token. The
+        # push-capable DOCKERHUB_TOKEN stays exclusively in pushDockerRepos.yml
+        # and is never present in a job that executes pull request code.
+        # Authenticating raises the pull rate limit from 100/6h (anonymous) to
+        # 200/h. Fork PRs cannot read secrets, so the guard lets them fall back
+        # to anonymous pulls instead of failing the job.
+        if: env.DOCKERHUB_RO_USERNAME != ''
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
         uses: actions/checkout@v6
@@ -104,6 +128,11 @@ jobs:
     name: Run devcontainer test stm32
     runs-on: ubuntu-latest
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for fork PRs, which cannot read repository secrets at all.
+      DOCKERHUB_RO_USERNAME: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -114,11 +143,18 @@ jobs:
           sudo docker system prune -af
           df -h
 
-      - name: Login to Docker Hub
+      - name: Login to Docker Hub (read-only)
+        # These jobs only PULL images, so they use a read-only token. The
+        # push-capable DOCKERHUB_TOKEN stays exclusively in pushDockerRepos.yml
+        # and is never present in a job that executes pull request code.
+        # Authenticating raises the pull rate limit from 100/6h (anonymous) to
+        # 200/h. Fork PRs cannot read secrets, so the guard lets them fall back
+        # to anonymous pulls instead of failing the job.
+        if: env.DOCKERHUB_RO_USERNAME != ''
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
         uses: actions/checkout@v6
@@ -139,6 +175,11 @@ jobs:
     name: Run devcontainer test virtual
     runs-on: ubuntu-latest
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for fork PRs, which cannot read repository secrets at all.
+      DOCKERHUB_RO_USERNAME: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -149,11 +190,18 @@ jobs:
           sudo docker system prune -af
           df -h
 
-      - name: Login to Docker Hub
+      - name: Login to Docker Hub (read-only)
+        # These jobs only PULL images, so they use a read-only token. The
+        # push-capable DOCKERHUB_TOKEN stays exclusively in pushDockerRepos.yml
+        # and is never present in a job that executes pull request code.
+        # Authenticating raises the pull rate limit from 100/6h (anonymous) to
+        # 200/h. Fork PRs cannot read secrets, so the guard lets them fall back
+        # to anonymous pulls instead of failing the job.
+        if: env.DOCKERHUB_RO_USERNAME != ''
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
         uses: actions/checkout@v6
