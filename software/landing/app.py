@@ -144,43 +144,173 @@ def webshell_page():
     logger.info('Rendering webshell page')
     return render_template('webshell.html')
 
+# ---------- WebShell background job registry ----------
+# Commands run as tracked background jobs so long-running scans (e.g. a full
+# `nmap -sV`) survive the user navigating away from the webshell page and back.
+# The page starts a job, then polls for incremental output by job id.
+import threading  # noqa: E402
+import uuid  # noqa: E402
+import time  # noqa: E402
+import signal  # noqa: E402
+import subprocess  # noqa: E402
+
+_WEBSHELL_JOB_TTL = 30 * 60          # keep finished jobs 30 min for late reattach
+_WEBSHELL_MAX_JOBS = 40              # cap registry size
+_WEBSHELL_MAX_OUTPUT = 512 * 1024    # cap captured output per job (bytes) -> ~0.5MB
+
+_webshell_jobs = {}
+_webshell_jobs_lock = threading.Lock()
+
+
+class WebShellJob:
+    """A single background command execution with incrementally captured output."""
+
+    def __init__(self, command):
+        self.id = uuid.uuid4().hex[:12]
+        self.command = command
+        self.output = ''
+        self.truncated = False
+        self.running = True
+        self.exit_code = None
+        self.proc = None
+        self.started_at = time.time()
+        self.finished_at = None
+        self.lock = threading.Lock()
+
+    def append(self, text):
+        with self.lock:
+            if self.truncated:
+                return
+            room = _WEBSHELL_MAX_OUTPUT - len(self.output)
+            if len(text) > room:
+                self.output += text[:room] + '\n[output truncated]\n'
+                self.truncated = True
+            else:
+                self.output += text
+
+
+def _run_webshell_job(job):
+    """Run the job's command, streaming combined stdout/stderr into its buffer."""
+    try:
+        # Intentional: webshell provides command execution for CTF training.
+        # start_new_session lets us signal the whole process group on kill.
+        proc = subprocess.Popen(
+            job.command,  # nosec - intentional command execution for CTF webshell
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            cwd=os.path.expanduser('~'),
+            start_new_session=True,
+        )
+        job.proc = proc
+        for line in iter(proc.stdout.readline, ''):
+            job.append(line)
+        proc.stdout.close()
+        proc.wait()
+        exit_code = proc.returncode
+    except Exception as e:
+        logger.error(f'Error running webshell job: {e}', exc_info=True)
+        job.append(f'\n[error] {e}\n')
+        exit_code = -1
+    finally:
+        with job.lock:
+            job.exit_code = exit_code
+            job.running = False
+            job.finished_at = time.time()
+
+
+def _prune_webshell_jobs():
+    """Drop expired finished jobs and cap the registry size."""
+    now = time.time()
+    with _webshell_jobs_lock:
+        for jid in [j.id for j in _webshell_jobs.values()
+                    if not j.running and j.finished_at
+                    and now - j.finished_at > _WEBSHELL_JOB_TTL]:
+            _webshell_jobs.pop(jid, None)
+        if len(_webshell_jobs) > _WEBSHELL_MAX_JOBS:
+            finished = sorted(
+                [j for j in _webshell_jobs.values() if not j.running],
+                key=lambda j: j.finished_at or 0)
+            for j in finished[:len(_webshell_jobs) - _WEBSHELL_MAX_JOBS]:
+                _webshell_jobs.pop(j.id, None)
+
+
 @app.route('/api/webshell/execute', methods=['POST'])
 def execute_command():
-    """Execute a shell command and return the output"""
-    import subprocess
-    data = request.get_json()
-    command = data.get('command', '').strip()
+    """Start a shell command as a background job and return its job id."""
+    data = request.get_json(silent=True) or {}
+    command = (data.get('command') or '').strip()
 
     if not command:
         return jsonify({'success': False, 'output': 'No command provided'}), 400
 
-    logger.info(f'Executing webshell command: {command}')
+    logger.info(f'Starting webshell command: {command}')
+    _prune_webshell_jobs()
 
-    try:
-        # Intentional: webshell provides command execution for CTF training
-        result = subprocess.run(
-            command,  # nosec - intentional command execution for CTF webshell
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=os.path.expanduser('~')
-        )
+    job = WebShellJob(command)
+    with _webshell_jobs_lock:
+        _webshell_jobs[job.id] = job
+    threading.Thread(target=_run_webshell_job, args=(job,), daemon=True).start()
 
-        output = result.stdout
-        if result.stderr:
-            output += '\n' + result.stderr
+    return jsonify({'success': True, 'job_id': job.id, 'command': command})
 
+
+@app.route('/api/webshell/jobs', methods=['GET'])
+def list_webshell_jobs():
+    """List known jobs so a returning page can reattach to a running scan."""
+    _prune_webshell_jobs()
+    with _webshell_jobs_lock:
+        jobs = sorted(_webshell_jobs.values(), key=lambda j: j.started_at)
+        payload = [{
+            'job_id': j.id,
+            'command': j.command,
+            'running': j.running,
+            'exit_code': j.exit_code,
+            'started_at': j.started_at,
+        } for j in jobs]
+    return jsonify({'success': True, 'jobs': payload})
+
+
+@app.route('/api/webshell/jobs/<job_id>', methods=['GET'])
+def get_webshell_job(job_id):
+    """Return incremental output for a job from the given byte offset."""
+    offset = request.args.get('offset', default=0, type=int) or 0
+    with _webshell_jobs_lock:
+        job = _webshell_jobs.get(job_id)
+    if job is None:
+        return jsonify({'success': False, 'error': 'unknown job'}), 404
+
+    with job.lock:
+        if offset < 0 or offset > len(job.output):
+            offset = 0
+        chunk = job.output[offset:]
         return jsonify({
             'success': True,
-            'output': output,
-            'exit_code': result.returncode
+            'job_id': job.id,
+            'command': job.command,
+            'chunk': chunk,
+            'offset': offset + len(chunk),
+            'running': job.running,
+            'exit_code': job.exit_code,
         })
-    except Exception as e:
-        logger.error(f'Error executing command: {e}', exc_info=True)
-        return jsonify({
-            'success': False,
-            'output': 'Internal server error'
-        }), 500
+
+
+@app.route('/api/webshell/jobs/<job_id>/kill', methods=['POST'])
+def kill_webshell_job(job_id):
+    """Terminate a running job's process group."""
+    with _webshell_jobs_lock:
+        job = _webshell_jobs.get(job_id)
+    if job is None:
+        return jsonify({'success': False, 'error': 'unknown job'}), 404
+
+    if job.running and job.proc is not None:
+        try:
+            os.killpg(os.getpgid(job.proc.pid), signal.SIGTERM)
+        except Exception as e:
+            logger.warning(f'Failed to kill webshell job {job_id}: {e}')
+    return jsonify({'success': True})
 
 # ========== CTF ROUTES ==========
 
