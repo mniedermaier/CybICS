@@ -144,19 +144,48 @@ def physical_process_thread():
           if consecutive_failures % 100 == 0:
             logging.error(f"Physical process: Failed to reconnect - {str(reconnect_error)}")
 
-    # Physical simulation logic
+    # Physical simulation logic.
+    #
+    # This mirrors thread_physical() in software/stm32/src/main.c, which is the
+    # reference implementation: it is what runs on the board in the physical
+    # deployment.  Keep the two in step -- the rates, the guards and the order
+    # of the updates all matter, because an attack that defeats the control
+    # logic ends differently if they drift apart.
     if delay > 50:
       delay = 0
       timer = timer + 1
-      if gstSig > 0:
-        gst = gst+random.randint(0, 5)
+
+      # Compressor moves gas GST -> HPT.  It only does so while the GST still
+      # holds enough pressure to push against, and it cannot fill the HPT past
+      # the sensor range.  When the compressor is off, the downstream process
+      # consumes from the HPT instead -- but only while the system valve is
+      # open, and never below empty.
       if compressor > 0:
-        gst = gst-2
-        hpt = hpt+1
-      if systemValve > 0:
-        hpt = hpt-random.randint(0, 1)
-      if boSen > 0:
-        hpt=hpt-random.randint(0, 5)
+        if hpt < 255 and gst >= 50:
+          gst = gst - 2
+          hpt = hpt + 1
+      else:
+        use = random.randint(0, 2)
+        if systemValve > 0 and (hpt - use) >= 0:
+          hpt = hpt - use
+
+      # Refill the GST from the external supply.
+      if gstSig > 0 and gst < 251:
+        gst = gst + random.randint(0, 3)
+
+      # Mechanical blowout valve: opens above 220 bar and stays open until the
+      # tank falls back below 200.  The condition is evaluated here, right
+      # before venting, so the order within a tick matches the firmware.  It
+      # vents more slowly than the compressor fills, so a compressor stuck on
+      # drives the tank to a state the relief valve cannot recover -- which is
+      # the point of the exercise.
+      if hpt > 220 or (boSen > 0 and hpt > 200):
+        boSen = 1
+        vent = random.randint(0, 1)
+        if (hpt - vent) >= 0:
+          hpt = hpt - vent
+      else:
+        boSen = 0
     delay = delay+1
 
     # System operational if HPT > 50 and HPT < 100 and systemValve true
