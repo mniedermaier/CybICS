@@ -120,6 +120,24 @@ services:
     depends_on:
     - openplc
 
+  # Bridge-published reverse proxy that makes the host-networked landing page
+  # reachable from other systems on a port >8000 (bypasses the host firewall,
+  # which blocks the host-networked :80 while allowing Docker-published ports).
+  landing-proxy:
+    image: nginx:1.27-alpine
+    restart: always
+    ports:
+      - 8082:80
+    extra_hosts:
+      - "hostnet:host-gateway"
+    volumes:
+      - ./landing-proxy.nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - landing
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.12
+
   engineeringws:
     image: mniedermaier1337/cybics-engineeringws:${CYBICS_VERSION:-latest}
     build:

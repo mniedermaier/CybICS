@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.title or 'CybICS - CTF Training' }}</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -147,6 +148,23 @@
         .tag-defense { background: rgba(34,197,94,0.15); color: #4ade80; }
         .tag-hardware { background: rgba(236,72,153,0.15); color: #f472b6; }
 
+        /* Shared dashboard theme */
+        :root { --ctf-bg: #1a1a1a; --ctf-surface: #232323; --ctf-surface-2: #2d2d2d; --ctf-surface-3: #282828; --ctf-border: #333; --ctf-row-hover: #333; --ctf-text: #e5e5e5; --ctf-muted: #777; }
+        html.light-mode, html.light-mode body { --ctf-bg: #f3f5f8; --ctf-surface: #ffffff; --ctf-surface-2: #ffffff; --ctf-surface-3: #f7f8fa; --ctf-border: #d8dde6; --ctf-row-hover: #eef1f5; --ctf-text: #172033; --ctf-muted: #5b6472; background-color: var(--ctf-bg) !important; color: var(--ctf-text) !important; }
+        html.light-mode header { background-color: var(--ctf-surface-2) !important; border-bottom-color: #d45a00; }
+        html.light-mode .category-tile { background: var(--ctf-surface); border-color: var(--ctf-border); box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08); }
+        html.light-mode .category-header { background: var(--ctf-surface-3); border-bottom-color: var(--ctf-border); }
+        html.light-mode .category-title, html.light-mode .stat-value, html.light-mode header h1 { color: #b34700; }
+        html.light-mode .stat-label, html.light-mode .category-progress, html.light-mode .challenge-desc { color: var(--ctf-muted); }
+        html.light-mode .challenge-name { color: var(--ctf-text); }
+        html.light-mode .challenge-row:hover { background: var(--ctf-row-hover); }
+        html.light-mode .challenge-row.solved .challenge-name { color: #687386; }
+        html.light-mode .progress-bar-mini, html.light-mode .category-progress-bar { background: #d9dee7; }
+        html.light-mode .reset-btn { border-color: #b7bfcc; color: #596273; }
+        html.light-mode .reset-btn:hover { border-color: #dc2626; color: #dc2626; }
+        html.light-mode .challenge-status.unsolved { border-color: #9aa4b2; color: #9aa4b2; }
+        html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
+        html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
     </style>
 </head>
 <body>
@@ -234,6 +252,20 @@
     </main>
 
     <script>
+        function applyTheme(theme) {
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
+        }
+
+        fetch('/api/settings/theme')
+            .then(response => response.json())
+            .then(data => applyTheme(data.theme || 'dark'))
+            .catch(() => applyTheme('dark'));
+
+        window.addEventListener('message', function(event) {
+            if (event.source === window.parent && event.data && event.data.type === 'theme') {
+                applyTheme(event.data.theme);
+            }
+        });
         function resetProgress() {
             if (confirm('Are you sure you want to reset all CTF progress? This action cannot be undone.')) {
                 fetch('/ctf/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' } })

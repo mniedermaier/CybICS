@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS IDS - Intrusion Detection System</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <style>
         :root {
             --bg: #1a1a1a;
@@ -910,6 +911,26 @@
             .header { padding: 0 1rem; }
             .main { padding: 0.75rem 1rem; }
         }
+        /* Dashboard theme bridge */
+        html.light-mode, html.light-mode body {
+            --bg: #f3f5f8; --surface: #ffffff; --surface-alt: #f7f8fa;
+            --border: #d8dde6; --border-light: #b7bfcc;
+            --text: #172033; --text-secondary: #394355; --text-muted: #5b6472; --text-dim: #7a8494;
+            --orange: #b34700; --orange-hover: #d45a00;
+            background: var(--bg); color: var(--text);
+        }
+        html.light-mode .header { background: rgba(255,255,255,.96); }
+        html.light-mode .header-nav .active-tab { color: #fff; }
+        html.light-mode .stat-card, html.light-mode .panel, html.light-mode .table-container, html.light-mode .challenge-card, html.light-mode .rule-card {
+            background: var(--surface); border-color: var(--border);
+        }
+        html.light-mode .btn { background: var(--surface-alt); color: var(--text); border-color: var(--border-light); }
+        html.light-mode .btn:hover, html.light-mode .header-nav a:hover, html.light-mode .header-nav button:hover { background: #eef1f5; color: var(--text); }
+        html.light-mode .main, html.light-mode .tab-content, html.light-mode th, html.light-mode td { color: var(--text); }
+        html.light-mode input, html.light-mode select, html.light-mode textarea { background: #fff; color: var(--text); border-color: var(--border-light); }
+        html.light-mode * { scrollbar-color: var(--border-light) var(--bg); }
+        html.light-mode *::-webkit-scrollbar-track { background: var(--bg); }
+        html.light-mode *::-webkit-scrollbar-thumb { background: var(--border-light); }
     </style>
 </head>
 <body>
@@ -1229,6 +1250,13 @@
     </div>
 
     <script>
+
+        function applyDashboardTheme(theme) {
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
+        }
+        window.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'theme') applyDashboardTheme(event.data.theme);
+        });
     /* ===== STATE ===== */
     let idsActive = false;
     let lastAlertId = 0;
