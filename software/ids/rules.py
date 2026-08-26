@@ -38,7 +38,12 @@ KNOWN_SERVICES = {
     "172.18.0.100": "attack-machine",
 }
 
-# Modbus function codes considered dangerous (write operations)
+# Modbus function codes considered dangerous (write operations).
+# Note that the flood and unauthorised-write rules below only ever look at
+# these codes, so a *read* flood raises nothing regardless of its rate.  That
+# is deliberate -- reads are normal polling traffic here -- but it means the
+# detection modules must not be described as catching Modbus flooding in
+# general.
 MODBUS_WRITE_FUNCTIONS = {0x05, 0x06, 0x0F, 0x10}
 MODBUS_DIAGNOSTIC = {0x08, 0x2B}
 
@@ -46,6 +51,11 @@ MODBUS_DIAGNOSTIC = {0x08, 0x2B}
 _MODBUS_WRITERS = frozenset(("hwio", "fuxa", "openplc"))
 # Services allowed to do Modbus writes without triggering unauth rule
 _MODBUS_AUTH_WRITERS = frozenset(("hwio", "fuxa"))
+# Services that legitimately originate OPC-UA sessions.  Deliberately narrower
+# than KNOWN_SERVICES: the bundled attack machine is a known service too, and
+# exempting all of KNOWN_SERVICES meant OPC-UA activity from the attack box
+# never raised an alert -- the one host the exercise expects to be detected.
+_OPCUA_CLIENTS = frozenset(("hwio", "fuxa", "openplc", "opcua"))
 
 # Packet tuple indices (matches _parse_raw_packet output)
 _SRC_IP = 0
@@ -338,7 +348,7 @@ class RuleEngine:
     def _check_opcua(self, pkt, src_ip, alerts):
         if len(pkt[_PAYLOAD]) < 8:
             return
-        if src_ip not in KNOWN_SERVICES:
+        if KNOWN_SERVICES.get(src_ip) not in _OPCUA_CLIENTS:
             now = time.time()
             if self._should_alert("opcua_access", src_ip, now):
                 alerts.append({
