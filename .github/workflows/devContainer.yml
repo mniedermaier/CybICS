@@ -42,7 +42,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: false
           submodules: recursive
@@ -98,7 +98,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: false
           submodules: recursive
@@ -157,7 +157,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: false
           submodules: recursive
@@ -204,7 +204,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: false
           submodules: recursive

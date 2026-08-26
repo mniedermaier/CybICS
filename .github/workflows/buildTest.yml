@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install dependencies
       run: |
@@ -31,13 +31,13 @@ jobs:
     - name: Install Zephyr SDK (ARM toolchain only)
       run: |
         cd ~
-        wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz
-        tar xf zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz
-        cd zephyr-sdk-${ZEPHYR_SDK_VERSION}
-        wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz
+        wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz"
+        tar xf "zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz"
+        cd "zephyr-sdk-${ZEPHYR_SDK_VERSION}"
+        wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz"
         tar xf toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz
         ./setup.sh -t arm-zephyr-eabi -h -c
-        echo "ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-${ZEPHYR_SDK_VERSION}" >> $GITHUB_ENV
+        echo "ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-${ZEPHYR_SDK_VERSION}" >> "$GITHUB_ENV"
 
     - name: Initialize Zephyr workspace (using project manifest)
       run: |
