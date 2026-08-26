@@ -13,6 +13,11 @@ jobs:
     name: Run devcontainer test raspberry on Ubuntu 22.04
     runs-on: ubuntu-22.04
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for Dependabot and fork PRs, which cannot read repository secrets.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -24,6 +29,10 @@ jobs:
           df -h
 
       - name: Login to Docker Hub
+        # Skipped when no credentials are available (Dependabot / fork PRs).
+        # The images pulled here are public, so anonymous pulls still work;
+        # authentication only raises the Docker Hub rate limit.
+        if: env.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -57,6 +66,11 @@ jobs:
     name: Run devcontainer test raspberry on Ubuntu 24.04
     runs-on: ubuntu-24.04
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for Dependabot and fork PRs, which cannot read repository secrets.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -68,6 +82,10 @@ jobs:
           df -h
 
       - name: Login to Docker Hub
+        # Skipped when no credentials are available (Dependabot / fork PRs).
+        # The images pulled here are public, so anonymous pulls still work;
+        # authentication only raises the Docker Hub rate limit.
+        if: env.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -104,6 +122,11 @@ jobs:
     name: Run devcontainer test stm32
     runs-on: ubuntu-latest
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for Dependabot and fork PRs, which cannot read repository secrets.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -115,6 +138,10 @@ jobs:
           df -h
 
       - name: Login to Docker Hub
+        # Skipped when no credentials are available (Dependabot / fork PRs).
+        # The images pulled here are public, so anonymous pulls still work;
+        # authentication only raises the Docker Hub rate limit.
+        if: env.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -139,6 +166,11 @@ jobs:
     name: Run devcontainer test virtual
     runs-on: ubuntu-latest
 
+    env:
+      # Exposed so the login step below can detect whether credentials exist.
+      # Empty for Dependabot and fork PRs, which cannot read repository secrets.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
     steps:
       - name: Free up disk space
         run: |
@@ -150,6 +182,10 @@ jobs:
           df -h
 
       - name: Login to Docker Hub
+        # Skipped when no credentials are available (Dependabot / fork PRs).
+        # The images pulled here are public, so anonymous pulls still work;
+        # authentication only raises the Docker Hub rate limit.
+        if: env.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
