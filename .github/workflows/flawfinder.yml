@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: flawfinder_scan
-      uses: david-a-wheeler/flawfinder@2.0.19
+      uses: david-a-wheeler/flawfinder@2.0.20
       with:
         arguments: '--sarif ./software'
         output: 'flawfinder_results.sarif'
     - name: Upload analysis results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: ${{github.workspace}}/flawfinder_results.sarif
