@@ -25,15 +25,21 @@ SERVER_IP = os.getenv("TEST_SERVER_IP", "127.0.0.1")
 CONNECTION_TIMEOUT = 20
 READ_TIMEOUT = 10
 
-MODBUS_SERVER_PORT = 502
-OPCUA_SERVER_PORT = 4840
+def _port(name, default):
+    """Port of a service, overridable so the suite can run against a stack that
+    had to publish elsewhere -- a busy host port, or a real device."""
+    return int(os.getenv(f"TEST_{name}_PORT", default))
+
+
+MODBUS_SERVER_PORT = _port("MODBUS", 502)
+OPCUA_SERVER_PORT = _port("OPCUA", 4840)
 # Port 102 is OpenPLC's own S7/ISO-TSAP surface, 1102 is the separate s7com
 # service. test_connections scans 102, so keep that name pointing there.
-S7_SERVER_PORT = 102
-S7COM_PORT = 1102
-OPENPLC_PORT = 8080
-FUXA_PORT = 1881
-HWIO_PORT = 8090
+S7_SERVER_PORT = _port("S7", 102)
+S7COM_PORT = _port("S7COM", 1102)
+OPENPLC_PORT = _port("OPENPLC", 8080)
+FUXA_PORT = _port("FUXA", 1881)
+HWIO_PORT = _port("HWIO", 8090)
 
 OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
 

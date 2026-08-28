@@ -17,7 +17,7 @@ import requests
 from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
-from conftest import SERVER_IP, CONNECTION_TIMEOUT, modbus_call
+from conftest import SERVER_IP, CONNECTION_TIMEOUT, OPENPLC_PORT, FUXA_PORT, modbus_call
 from dotenv import load_dotenv
 
 # Test Configuration
@@ -29,8 +29,6 @@ MODBUS_PORT = 502
 HPT_REGISTER = 1126  # High Pressure Tank register address
 
 # Web service ports
-OPENPLC_PORT = 8080
-FUXA_PORT = 1881
 
 
 # ===============================================================================
