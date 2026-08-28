@@ -60,8 +60,11 @@ jobs:
       run: docker-compose -f "docker-compose.yml" up -d --build
       working-directory: ./.devcontainer/virtual
 
-    - name: Wait for services
-      run: sleep 120s
+    # No fixed sleep: the suite's own readiness gate (tests/conftest.py) polls
+    # every required port and fails with the exact list of services that never
+    # came up. A short settle gives the containers a chance to bind first.
+    - name: Let containers settle
+      run: sleep 15s
       shell: bash
 
     - name: Install test dependencies

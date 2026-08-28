@@ -20,20 +20,25 @@ import os
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
-from conftest import modbus_call
+from conftest import SERVER_IP, MODBUS_SERVER_PORT, OPCUA_SERVER_PORT, S7_SERVER_PORT, CONNECTION_TIMEOUT, READ_TIMEOUT, OPCUA_SERVER_URL, modbus_call
 from asyncua import Client, ua
+
+# Every test in this module talks to the running stack. Wait for it once and
+# fail with the exact list of missing services, instead of letting each test
+# discover the outage on its own and skip.
+pytestmark = pytest.mark.usefixtures("stack_ready")
 
 # Test Configuration Constants
 # Allow SERVER_IP to be overridden via environment variable for remote testing
-SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')  # Target server IP address for testing
-MODBUS_SERVER_PORT = 502           # Standard Modbus TCP port
-OPCUA_SERVER_PORT = 4840           # Standard OPC-UA port
-S7_SERVER_PORT = 102               # Standard Siemens S7 port
-CONNECTION_TIMEOUT = 20            # Connection timeout in seconds (increased for CI)
-READ_TIMEOUT = 10                  # Read operation timeout in seconds
+
+
+
+
+
+
 
 # OPC-UA Authentication Configuration
-OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
+
 USERNAME = "user1"                 # Default test username
 PASSWORD = "test"                  # Default test password
 
@@ -202,7 +207,7 @@ def test_write_single_register(modbus_client):
             error_msg = str(write_result)
             # Some Modbus servers may not support writes or close connection on write
             if "Connection unexpectedly closed" in error_msg or "Connection" in error_msg:
-                pytest.skip(f"Modbus server does not support write operations or closed connection: {error_msg}")
+                pytest.fail(f"Modbus write rejected by the server: {error_msg}")
             else:
                 pytest.fail(f"Modbus write error at register {register_address}: {write_result}")
 
@@ -234,7 +239,7 @@ def test_write_single_register(modbus_client):
     except ModbusException as e:
         pytest.fail(f"Modbus protocol exception during write operation: {e}")
     except ConnectionException as e:
-        pytest.skip(f"Connection issue during write operation - server may not support writes: {e}")
+        pytest.fail(f"Modbus connection failed during write: {e}")
 
 # ===============================================================================
 # OPC-UA Protocol Tests
@@ -278,15 +283,15 @@ async def test_opcua_server_running():
         )
 
     except ConnectionError as e:
-        pytest.skip(f"Failed to establish OPC-UA connection to {OPCUA_SERVER_URL}: {e}")
+        pytest.fail(f"OPC-UA connection to {OPCUA_SERVER_URL} failed: {e}")
     except TimeoutError as e:
-        pytest.skip(f"OPC-UA server connection timeout - server may need more time to initialize: {e}")
+        pytest.fail(f"OPC-UA connection timed out: {e}")
     except ua.UaError as e:
-        pytest.skip(f"OPC-UA protocol error: {e}")
+        pytest.fail(f"OPC-UA protocol error: {e}")
     except Exception as e:
         # Check if it's a timeout-related error
         if "timeout" in str(e).lower() or "TimeoutError" in str(type(e).__name__):
-            pytest.skip(f"OPC-UA server timeout - may need more initialization time: {e}")
+            pytest.fail(f"OPC-UA server timed out: {e}")
         pytest.fail(f"Unexpected error during OPC-UA test: {e}")
     finally:
         try:
@@ -345,7 +350,7 @@ def test_nmap_s7_info():
     
     # Handle nmap execution errors
     if stdout is None:
-        pytest.skip(f"Nmap execution failed: {stderr}")
+        pytest.fail(f"Nmap execution failed: {stderr}")
     
     # Nmap should execute successfully (return code 0 or 1 are acceptable)
     # Return code 1 typically means "no hosts up" but scan completed
@@ -367,7 +372,7 @@ def test_nmap_s7_info():
         )
     else:
         # Port closed/filtered - this might be expected in some test environments
-        pytest.skip(f"S7 service not accessible on port {S7_SERVER_PORT} - may not be configured")
+        pytest.fail(f"S7 service not reachable on port {S7_SERVER_PORT} although OpenPLC is part of the stack")
 
 
 # ===============================================================================
@@ -401,13 +406,14 @@ class TestWebServiceSecurity:
                 ]
                 
                 found_headers = [h for h in security_headers if h in headers]
-                
-                # This is informational - industrial systems may not have all headers
-                if not found_headers:
-                    pytest.skip(f"No security headers found in {url} - common in industrial systems")
-                
+
+                # Purely informational: this platform deliberately ships an
+                # unhardened HTTP surface, so the absence of these headers is
+                # the expected state and not a result worth skipping over.
+                print(f"security headers on {url}: {found_headers or 'none'}")
+
         except requests.exceptions.RequestException:
-            pytest.skip(f"Could not connect to {url} for header analysis")
+            pytest.fail(f"Could not connect to {url}")
 
 
 class TestModbusExtended:
@@ -423,7 +429,7 @@ class TestModbusExtended:
         )
         
         if not client.connect():
-            pytest.skip("Could not establish Modbus connection for extended tests")
+            pytest.fail("Could not establish Modbus connection")
         
         yield client
         
@@ -487,7 +493,7 @@ class TestModbusExtended:
             )
             
             if result.isError():
-                pytest.skip(f"Coils not available at address {coil_address}: {result}")
+                pytest.fail(f"Coil read failed at address {coil_address}: {result}")
             
             assert len(result.bits) >= coil_count, (
                 f"Expected at least {coil_count} coil bits, got {len(result.bits)}"
@@ -500,7 +506,7 @@ class TestModbusExtended:
                 )
                 
         except ModbusException as e:
-            pytest.skip(f"Coil reading not supported or failed: {e}")
+            pytest.fail(f"Coil read failed: {e}")
 
     def test_read_input_registers(self, connected_modbus_client):
         """
@@ -523,7 +529,7 @@ class TestModbusExtended:
             )
             
             if result.isError():
-                pytest.skip(f"Input registers not available at address {input_address}: {result}")
+                pytest.fail(f"Input register read failed at address {input_address}: {result}")
             
             assert len(result.registers) == input_count, (
                 f"Expected {input_count} input registers, got {len(result.registers)}"
@@ -539,7 +545,7 @@ class TestModbusExtended:
                 )
                 
         except ModbusException as e:
-            pytest.skip(f"Input register reading not supported: {e}")
+            pytest.fail(f"Input register read failed: {e}")
 
 
 class TestOpcuaExtended:
@@ -575,12 +581,12 @@ class TestOpcuaExtended:
             assert len(objects_children) >= 0, "Objects node accessible"
 
         except TimeoutError as e:
-            pytest.skip(f"OPC-UA server connection timeout - server may need more time to initialize: {e}")
+            pytest.fail(f"OPC-UA connection timed out: {e}")
         except ua.UaError as e:
-            pytest.skip(f"OPC-UA browsing not supported or failed: {e}")
+            pytest.fail(f"OPC-UA browsing failed: {e}")
         except Exception as e:  # pylint: disable=broad-except
             if "timeout" in str(e).lower() or "TimeoutError" in str(type(e).__name__):
-                pytest.skip(f"OPC-UA server timeout - may need more initialization time: {e}")
+                pytest.fail(f"OPC-UA server timed out: {e}")
             pytest.fail(f"Unexpected error during OPC-UA browsing: {e}")
         finally:
             try:
@@ -617,12 +623,12 @@ class TestOpcuaExtended:
             )
 
         except TimeoutError as e:
-            pytest.skip(f"OPC-UA server connection timeout - server may need more time to initialize: {e}")
+            pytest.fail(f"OPC-UA connection timed out: {e}")
         except ua.UaError as e:
-            pytest.skip(f"Server time reading not supported: {e}")
+            pytest.fail(f"Reading the OPC-UA server time failed: {e}")
         except Exception as e:  # pylint: disable=broad-except
             if "timeout" in str(e).lower() or "TimeoutError" in str(type(e).__name__):
-                pytest.skip(f"OPC-UA server timeout - may need more initialization time: {e}")
+                pytest.fail(f"OPC-UA server timed out: {e}")
             pytest.fail(f"Unexpected error reading server time: {e}")
         finally:
             try:
@@ -688,10 +694,10 @@ class TestOpcuaExtended:
                 pytest.fail(f"Authentication failed for user '{username}': {e}")
             pytest.fail(f"OPC-UA status code error: {e}")
         except TimeoutError as e:
-            pytest.skip(f"OPC-UA server connection timeout: {e}")
+            pytest.fail(f"OPC-UA connection timed out: {e}")
         except Exception as e:  # pylint: disable=broad-except
             if "timeout" in str(e).lower() or "TimeoutError" in str(type(e).__name__):
-                pytest.skip(f"OPC-UA server timeout: {e}")
+                pytest.fail(f"OPC-UA server timed out: {e}")
             pytest.fail(f"Unexpected error during OPC-UA traffic verification: {e}")
         finally:
             try:

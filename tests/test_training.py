@@ -17,15 +17,15 @@ import requests
 from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
-from conftest import modbus_call
+from conftest import SERVER_IP, CONNECTION_TIMEOUT, modbus_call
 from dotenv import load_dotenv
 
 # Test Configuration
 # Allow SERVER_IP to be overridden via environment variable for remote testing
 # Default to localhost for consistency and isolation
-SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')
+
 MODBUS_PORT = 502
-CONNECTION_TIMEOUT = 10
+
 HPT_REGISTER = 1126  # High Pressure Tank register address
 
 # Web service ports
@@ -37,6 +37,9 @@ FUXA_PORT = 1881
 # Flood & Overwrite Training Tests
 # ===============================================================================
 
+# These talk to the running stack; the file-existence tests further down do
+# not, so the gate sits on the classes rather than the whole module.
+@pytest.mark.usefixtures("stack_ready")
 class TestFloodOverwrite:
     """
     Tests for the Flood & Overwrite training exercise.
@@ -148,7 +151,7 @@ class TestFloodOverwrite:
             if write_result.isError():
                 error_msg = str(write_result)
                 if "Connection unexpectedly closed" in error_msg or "Connection" in error_msg:
-                    pytest.skip(f"Server closed connection on write - may not support writes: {error_msg}")
+                    pytest.fail(f"Modbus write rejected by the server: {error_msg}")
                 else:
                     pytest.fail(f"Error writing to HPT register: {write_result}")
 
@@ -157,7 +160,7 @@ class TestFloodOverwrite:
             # is continuously updating this register based on the simulation
 
         except ConnectionException as e:
-            pytest.skip(f"Connection issue during write test: {e}")
+            pytest.fail(f"Modbus connection failed during the write test: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during write test: {e}")
 
@@ -250,7 +253,7 @@ class TestFloodOverwrite:
             print(f"  Success rate: {write_count/(write_count+failed_writes)*100:.1f}%")
 
         except ConnectionException as e:
-            pytest.skip(f"Connection issue during flood simulation: {e}")
+            pytest.fail(f"Modbus connection failed during the flood simulation: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during flood simulation: {e}")
 
@@ -282,7 +285,7 @@ class TestFloodOverwrite:
                 )
 
                 if write_result.isError():
-                    pytest.skip(f"Write operations not supported: {write_result}")
+                    pytest.fail(f"Modbus write rejected by the server: {write_result}")
 
                 successful_writes += 1
 
@@ -295,7 +298,7 @@ class TestFloodOverwrite:
             )
 
         except ConnectionException as e:
-            pytest.skip(f"Connection issue during write test: {e}")
+            pytest.fail(f"Modbus connection failed during the write test: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during write test: {e}")
 
@@ -304,6 +307,9 @@ class TestFloodOverwrite:
 # Password Attack Training Tests
 # ===============================================================================
 
+# These talk to the running stack; the file-existence tests further down do
+# not, so the gate sits on the classes rather than the whole module.
+@pytest.mark.usefixtures("stack_ready")
 class TestPasswordAttack:
     """
     Tests for the Password Attack training exercise.
