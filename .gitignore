@@ -166,3 +166,7 @@ software/rpi-image/pi-gen/stage*/SKIP_IMAGES
 software/rpi-image/stage-cybics/02-load-containers/containers/
 *.img
 *.img.xz
+
+# Python virtualenvs must not be committed
+.venv/
+**/.venv/

@@ -25,7 +25,7 @@ EOF
 systemctl enable cybics-first-boot.service
 
 # Create CybICS container startup service
-cat > /etc/systemd/system/cybics.service << 'EOF'
+cat > /etc/systemd/system/cybics.service << EOF
 [Unit]
 Description=CybICS Docker Containers
 After=docker.service cybics-first-boot.service NetworkManager.service NetworkManager-wait-online.service
@@ -35,7 +35,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/pi/CybICS
+WorkingDirectory=/home/${FIRST_USER_NAME}/CybICS
 ExecStart=/usr/bin/docker compose up -d --remove-orphans
 ExecStop=/usr/bin/docker compose down
 TimeoutStartSec=300
