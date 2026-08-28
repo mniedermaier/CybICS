@@ -22,5 +22,6 @@ docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-fuxa:latest
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-stm32:latest --push ./stm32
 # Build landing service from root context
 docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-landing:latest --push -f ./landing/Dockerfile ..
+docker buildx build --platform linux/arm64 -t 172.17.0.1:5050/cybics-nginx-proxy:latest --push ./nginx-proxy
 
 # Note: Builder automatically switches back to default on EXIT via trap

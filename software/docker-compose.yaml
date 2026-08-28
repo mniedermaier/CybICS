@@ -81,6 +81,31 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
+  # that reaches the host-networked landing service from other machines even
+  # behind a host firewall, 443 adds HTTPS.
+  nginx-proxy:
+    image: localhost:5000/cybics-nginx-proxy:latest
+    restart: always
+    mem_limit: 32m
+    ports:
+      - 8082:80
+      - 443:443
+      # One TLS port per embedded service (service port + 10000): an http://
+      # iframe inside the https:// dashboard is mixed content and gets blocked.
+      - 11881:11881
+      - 16080:16080
+      - 16081:16081
+      - 18080:18080
+      - 18090:18090
+      - 18443:18443
+    extra_hosts:
+      - "hostnet:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+
   stm32:
     image: localhost:5000/cybics-stm32:latest
     privileged: true
@@ -106,3 +131,4 @@ networks:
 
 volumes:
   fuxa_data:
+  nginx-certs:

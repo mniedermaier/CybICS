@@ -123,21 +123,6 @@ services:
   # Bridge-published reverse proxy that makes the host-networked landing page
   # reachable from other systems on a port >8000 (bypasses the host firewall,
   # which blocks the host-networked :80 while allowing Docker-published ports).
-  landing-proxy:
-    image: nginx:1.27-alpine
-    restart: always
-    ports:
-      - 8082:80
-    extra_hosts:
-      - "hostnet:host-gateway"
-    volumes:
-      - ./landing-proxy.nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - landing
-    networks:
-      virt-cybics:
-        ipv4_address: 172.18.0.12
-
   engineeringws:
     image: mniedermaier1337/cybics-engineeringws:${CYBICS_VERSION:-latest}
     build:
@@ -185,6 +170,36 @@ services:
       - ai
       - full
 
+  # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
+  # that reaches the host-networked landing service from other machines even
+  # behind a host firewall, 443 adds HTTPS. These were two containers before.
+  nginx-proxy:
+    image: mniedermaier1337/cybics-nginx-proxy:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/nginx-proxy
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8082:80
+      - 443:443
+      # One TLS port per embedded service (service port + 10000): an http://
+      # iframe inside the https:// dashboard is mixed content and gets blocked.
+      - 11881:11881
+      - 16080:16080
+      - 16081:16081
+      - 18080:18080
+      - 18090:18090
+      - 18443:18443
+    extra_hosts:
+      - "hostnet:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.12
+
   ids:
     image: mniedermaier1337/cybics-ids:${CYBICS_VERSION:-latest}
     build:
@@ -197,6 +212,9 @@ services:
     network_mode: host
     depends_on:
       - openplc
+
+volumes:
+  nginx-certs:
 
 networks:
   virt-cybics:

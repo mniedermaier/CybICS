@@ -20,10 +20,19 @@ CTF_CONFIG_FILE = os.path.join(BASE_DIR, 'ctf_config.json')
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # Service Configurations
+# 'tls_port' is the port the nginx-proxy sidecar serves the same service on over
+# HTTPS.  It is always port + 10000.  The dashboard needs it because the service
+# views are embedded as iframes: an http:// iframe inside an https:// page is
+# active mixed content and browsers block it, so when the dashboard itself is
+# served over TLS the iframes have to point at the TLS ports.  Path-based
+# proxying under one origin is not an option here -- these services emit
+# absolute paths (NiceGUI serves /static/..., the IDS page links href="/",
+# noVNC loads websockify absolutely) and none of them support a base path.
 SERVICES = {
     'openplc': {
         'name': 'OpenPLC',
         'port': 8080,
+        'tls_port': 18080,
         'virtual_only': False,
         'icon': '⚙️',
         'description': 'PLC runtime environment. Program and control industrial automation processes using IEC 61131-3 standards.'
@@ -31,6 +40,7 @@ SERVICES = {
     'fuxa': {
         'name': 'FUXA',
         'port': 1881,
+        'tls_port': 11881,
         'virtual_only': False,
         'icon': '📊',
         'description': 'Human-Machine Interface (HMI). Monitor and control your industrial processes with a visual dashboard.'
@@ -38,6 +48,7 @@ SERVICES = {
     'vhardware': {
         'name': 'Virtual Hardware',
         'port': 8090,
+        'tls_port': 18090,
         'virtual_only': True,
         'icon': '🔌',
         'description': 'Simulated hardware interface. Test PLC programs without physical hardware in the virtual environment.'
@@ -45,6 +56,7 @@ SERVICES = {
     'engineeringws': {
         'name': 'EngWS',
         'port': 6080,
+        'tls_port': 16080,
         'virtual_only': True,
         'path': '/vnc.html?autoconnect=true&resize=scale',
         'icon': '💻',
@@ -53,6 +65,7 @@ SERVICES = {
     'attackmachine': {
         'name': 'Attack Box',
         'port': 6081,
+        'tls_port': 16081,
         'virtual_only': True,
         'path': '/vnc.html?autoconnect=true&resize=scale',
         'icon': '🎯',
@@ -61,6 +74,7 @@ SERVICES = {
     'ids': {
         'name': 'IDS',
         'port': 8443,
+        'tls_port': 18443,
         'virtual_only': False,
         'icon': '🛡️',
         'description': 'Intrusion Detection System. Monitor network traffic for attacks against industrial protocols.'

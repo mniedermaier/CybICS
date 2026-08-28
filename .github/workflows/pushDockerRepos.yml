@@ -16,6 +16,7 @@ env:
     cybics-engineeringws:software:software/engineeringWS/Dockerfile
     cybicsagent:software/cybicsagent:software/cybicsagent/Dockerfile
     cybics-ids:software/ids:software/ids/Dockerfile
+    cybics-nginx-proxy:software/nginx-proxy:software/nginx-proxy/Dockerfile
 
 concurrency:
   # One run per workflow per ref.  Pull request runs are cancelled when a new
