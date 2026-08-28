@@ -36,9 +36,15 @@ services:
     restart: always
     privileged: true
     ports:
+      # Same protocol surface as the physical deployment: Modbus/TCP, S7comm,
+      # the web IDE, DNP3 and EtherNet/IP.  All five are enabled in the
+      # runtime's settings, so publishing only three made the virtual testbed
+      # reachable differently from the board.
       - 8080:8080
       - 502:502
       - 102:102
+      - 20000:20000
+      - 44818:44818
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.3
@@ -114,6 +120,9 @@ services:
     depends_on:
     - openplc
 
+  # Bridge-published reverse proxy that makes the host-networked landing page
+  # reachable from other systems on a port >8000 (bypasses the host firewall,
+  # which blocks the host-networked :80 while allowing Docker-published ports).
   engineeringws:
     image: mniedermaier1337/cybics-engineeringws:${CYBICS_VERSION:-latest}
     build:
@@ -161,6 +170,9 @@ services:
       - ai
       - full
 
+  # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
+  # that reaches the host-networked landing service from other machines even
+  # behind a host firewall, 443 adds HTTPS. These were two containers before.
   nginx-proxy:
     image: mniedermaier1337/cybics-nginx-proxy:${CYBICS_VERSION:-latest}
     build:
@@ -168,13 +180,17 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
+      - 8082:80
       - 443:443
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "hostnet:host-gateway"
     depends_on:
       - landing
     volumes:
       - nginx-certs:/etc/nginx/certs
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.12
 
   ids:
     image: mniedermaier1337/cybics-ids:${CYBICS_VERSION:-latest}

@@ -81,14 +81,18 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
+  # that reaches the host-networked landing service from other machines even
+  # behind a host firewall, 443 adds HTTPS.
   nginx-proxy:
     image: localhost:5000/cybics-nginx-proxy:latest
     restart: always
     mem_limit: 32m
     ports:
+      - 8082:80
       - 443:443
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "hostnet:host-gateway"
     depends_on:
       - landing
     volumes:

@@ -515,6 +515,29 @@
             .toc-link.active { border-left: none; border-bottom-color: #ff6b00; }
             header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
         }
+        /* Shared dashboard light theme */
+        body.light-mode { background: #f3f5f8 !important; color: #172033 !important; }
+        body.light-mode header { background: #ffffff !important; border-bottom-color: #d45a00; }
+        body.light-mode header h1, body.light-mode .training-content h1, body.light-mode .training-content h2, body.light-mode .success-text { color: #b34700; }
+        body.light-mode .back-btn { color: #b34700; border-color: #d45a00; }
+        body.light-mode .back-btn:hover { background: #d45a00; color: #fff; }
+        body.light-mode .page-layout { background: transparent; }
+        body.light-mode .sidebar, body.light-mode .tc-section, body.light-mode .training-content pre, body.light-mode .code-block-wrapper, body.light-mode .flag-form, body.light-mode .verify-section { background: #ffffff !important; border-color: #d8dde6; }
+        body.light-mode .sidebar-title, body.light-mode .training-content h3, body.light-mode .training-content h4 { color: #394355; }
+        body.light-mode .toc-link, body.light-mode .training-content, body.light-mode .training-content p, body.light-mode .training-content li { color: #394355; }
+        body.light-mode .toc-link:hover, body.light-mode .tc-section-header:hover { background: #eef1f5; }
+        body.light-mode .tc-section-header { background: #f7f8fa; border-bottom-color: #d8dde6; }
+        body.light-mode .tc-section-title { color: #b34700 !important; }
+        body.light-mode .training-content strong { color: #172033; }
+        body.light-mode .training-content code, body.light-mode .inline-code { background: #eef1f5; color: #7c3f00; }
+        body.light-mode .training-content blockquote { background: #f7f8fa; border-left-color: #d45a00; color: #4b5565; }
+        body.light-mode .training-content th { background: #eef1f5; color: #394355; }
+        body.light-mode .training-content td { border-color: #d8dde6; }
+        body.light-mode .flag-input { background: #ffffff; color: #172033; border-color: #b7bfcc; }
+        body.light-mode .copy-btn, body.light-mode .sidebar-action { background: #f7f8fa; color: #596273; border-color: #b7bfcc; }
+        body.light-mode .copy-btn:hover, body.light-mode .sidebar-action:hover { background: #eef1f5; }
+        body.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
+        body.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
     </style>
 </head>
 <body>
@@ -608,6 +631,13 @@
     <!-- highlight.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
+    function applyTheme(theme) {
+        document.body.classList.toggle('light-mode', theme === 'light');
+    }
+    fetch('/api/settings/theme').then(r => r.json()).then(data => applyTheme(data.theme || 'dark')).catch(() => {});
+    window.addEventListener('message', function(event) {
+        if (event.source === window.parent && event.data && event.data.type === 'theme') applyTheme(event.data.theme);
+    });
     document.addEventListener('DOMContentLoaded', function() {
         const content = document.getElementById('training-content');
         if (!content) return;

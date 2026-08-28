@@ -2,10 +2,14 @@ FROM nginx:alpine
 
 RUN apk add --no-cache openssl
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Full configuration, not a conf.d snippet: the file declares its own
+# events/stream/http blocks because the proxy serves both a raw TCP listener
+# and an HTTPS listener.
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 443
+# 80 is published as 8082 (plain, TCP passthrough), 443 is HTTPS.
+EXPOSE 80 443
 
 ENTRYPOINT ["/entrypoint.sh"]
