@@ -20,6 +20,7 @@ import os
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
+from conftest import modbus_call
 from asyncua import Client, ua
 
 # Test Configuration Constants
@@ -134,15 +135,15 @@ def test_read_holding_register(modbus_client):
     Args:
         modbus_client: Modbus TCP client fixture
     """
-    # Ensure connection is established
-    if not modbus_client.is_socket_open():
-        assert modbus_client.connect(), "Failed to connect to Modbus server"
-    
+    assert modbus_client.connect(), "Failed to connect to Modbus server"
+
     register_address = 1  # Test register address
     register_count = 1
-    
+
     try:
-        result = modbus_client.read_holding_registers(
+        result = modbus_call(
+            modbus_client,
+            modbus_client.read_holding_registers,
             address=register_address,
             count=register_count,
             device_id=1  # Default device ID
@@ -177,9 +178,7 @@ def test_write_single_register(modbus_client):
     Args:
         modbus_client: Modbus TCP client fixture
     """
-    # Ensure connection is established
-    if not modbus_client.is_socket_open():
-        assert modbus_client.connect(), "Failed to connect to Modbus server"
+    assert modbus_client.connect(), "Failed to connect to Modbus server"
 
     register_address = 1
     test_value = 123
@@ -187,7 +186,9 @@ def test_write_single_register(modbus_client):
 
     try:
         # Perform write operation
-        write_result = modbus_client.write_register(
+        write_result = modbus_call(
+            modbus_client,
+            modbus_client.write_register,
             address=register_address,
             value=test_value,
             device_id=slave_id
@@ -208,13 +209,13 @@ def test_write_single_register(modbus_client):
         # Small delay to ensure write is processed
         time.sleep(0.5)
 
-        # Reconnect if needed (some servers close after write)
-        if not modbus_client.is_socket_open():
-            if not modbus_client.connect():
-                pytest.skip("Connection closed after write - server may not support write operations")
-
-        # Verify write by reading back the value
-        read_result = modbus_client.read_holding_registers(
+        # Verify write by reading back the value.  modbus_call reconnects if
+        # the server closed the connection after the write, which it does; a
+        # plain is_socket_open() check cannot see that and used to let the read
+        # blow up instead.
+        read_result = modbus_call(
+            modbus_client,
+            modbus_client.read_holding_registers,
             address=register_address,
             count=1,
             device_id=slave_id
