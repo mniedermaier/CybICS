@@ -26,6 +26,24 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Architecture of the image inside an OCI tarball produced by
+# "docker buildx build --output type=docker".
+tarball_arch() {
+    python3 - "$1" <<'PYEOF' 2>/dev/null
+import json, sys, tarfile
+
+with tarfile.open(sys.argv[1]) as tf:
+    def read(name):
+        return json.load(tf.extractfile(name))
+
+    index = read("index.json")
+    digest = index["manifests"][0]["digest"].split(":")[1]
+    manifest = read(f"blobs/sha256/{digest}")
+    config_digest = manifest["config"]["digest"].split(":")[1]
+    print(read(f"blobs/sha256/{config_digest}").get("architecture", ""))
+PYEOF
+}
+
 print_step() {
     echo -e "${GREEN}==>${NC} $1"
 }
@@ -152,19 +170,39 @@ fi
 # Step 2: Verify container tarballs exist
 print_step "Verifying container tarballs..."
 
+# The architecture is checked, not just the presence of the file. The image
+# built on 2026-04-17 shipped cybics-openplc, cybics-landing and cybics-ids as
+# linux/amd64 while the other six were arm64 -- three x86 containers baked into
+# a Raspberry Pi image, which cannot start on the board. Nothing noticed for
+# four months, because "the tarball exists" was the whole check.
 MISSING=0
+WRONG_ARCH=0
 for container in "${CONTAINERS[@]}"; do
     TARBALL="$TARBALL_DIR/${container}.tar"
-    if [ -f "$TARBALL" ]; then
-        echo "  Found: ${container}.tar ($(du -h "$TARBALL" | cut -f1))"
-    else
+    if [ ! -f "$TARBALL" ]; then
         print_warning "Missing: ${container}.tar"
         MISSING=$((MISSING + 1))
+        continue
+    fi
+
+    ARCH="$(tarball_arch "$TARBALL")"
+    if [ "$ARCH" = "arm64" ]; then
+        echo "  Found: ${container}.tar ($(du -h "$TARBALL" | cut -f1), $ARCH)"
+    else
+        print_error "Wrong architecture: ${container}.tar is '${ARCH:-unreadable}', expected arm64"
+        WRONG_ARCH=$((WRONG_ARCH + 1))
     fi
 done
 
 if [ "$MISSING" -gt 0 ] && [ "$SKIP_CONTAINERS" = false ]; then
     print_error "Some container tarballs are missing. Build may have failed."
+    exit 1
+fi
+
+if [ "$WRONG_ARCH" -gt 0 ]; then
+    print_error "$WRONG_ARCH container(s) are not arm64. They would not run on the Pi."
+    echo "Rebuild without --skip-containers, and check that buildx is using the"
+    echo "docker-container driver: docker buildx inspect --bootstrap"
     exit 1
 fi
 
