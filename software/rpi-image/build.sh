@@ -175,6 +175,12 @@ done
 touch "$PIGEN_DIR/stage4/SKIP_IMAGES"
 touch "$PIGEN_DIR/stage5/SKIP_IMAGES"
 
+# stage2 still has to run -- it is the base our stage builds on -- but its
+# image must not be exported.  It carries EXPORT_IMAGE, so pi-gen would build
+# and xz-compress a plain Lite image that is then overwritten in deploy/ by
+# ours.  Measured at 9 minutes of pure waste per build.
+touch "$PIGEN_DIR/stage2/SKIP_IMAGES"
+
 # Step 5: Run pi-gen build
 print_step "Building Raspberry Pi image (this will take a while)..."
 cd "$PIGEN_DIR"
