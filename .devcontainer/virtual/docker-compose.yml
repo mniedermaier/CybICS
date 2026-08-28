@@ -182,6 +182,14 @@ services:
     ports:
       - 8082:80
       - 443:443
+      # One TLS port per embedded service (service port + 10000): an http://
+      # iframe inside the https:// dashboard is mixed content and gets blocked.
+      - 11881:11881
+      - 16080:16080
+      - 16081:16081
+      - 18080:18080
+      - 18090:18090
+      - 18443:18443
     extra_hosts:
       - "hostnet:host-gateway"
     depends_on:
