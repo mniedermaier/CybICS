@@ -80,6 +80,15 @@ if [ ! -d "$PIGEN_DIR" ]; then
     exit 1
 fi
 
+# OpenPLC_v3 is a submodule too, and its absence is not obvious: the Dockerfile
+# COPYs the empty directory happily and only fails minutes later, deep in the
+# OpenPLC build, with "./install.sh: not found".
+if [ ! -f "$SOFTWARE_DIR/OpenPLC/OpenPLC_v3/install.sh" ]; then
+    print_error "OpenPLC_v3 submodule not checked out at $SOFTWARE_DIR/OpenPLC/OpenPLC_v3"
+    echo "Run: git submodule update --init --recursive"
+    exit 1
+fi
+
 # The container build runs the stm32 devcontainer through docker compose, which
 # needs the generated .env and .dev.env. Without them compose aborts with
 # "env file .dev.env not found" and the build dies before the first container,
