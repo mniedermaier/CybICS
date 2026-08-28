@@ -80,6 +80,17 @@ if [ ! -d "$PIGEN_DIR" ]; then
     exit 1
 fi
 
+# The container build runs the stm32 devcontainer through docker compose, which
+# needs the generated .env and .dev.env. Without them compose aborts with
+# "env file .dev.env not found" and the build dies before the first container,
+# so generate them here instead of relying on the caller having done it.
+if [ -x "$GIT_ROOT/.devcontainer/prepare-env.sh" ]; then
+    print_step "Preparing environment files..."
+    (cd "$GIT_ROOT" && ./.devcontainer/prepare-env.sh)
+else
+    print_warning "prepare-env.sh not found - docker compose may fail on missing .env"
+fi
+
 # Ensure local Docker registry is running (needed for ARM64 cross-builds)
 REGISTRY="172.17.0.1:5050"
 REGISTRY_NAME="pigen-registry"
