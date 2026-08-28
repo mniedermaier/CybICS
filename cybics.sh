@@ -214,6 +214,7 @@ display_services() {
     print_message "Landing page: http://localhost:80" "$GREEN"
     print_message "Landing page (remote access): http://<host-ip>:8082" "$GREEN"
     print_message "Landing page (TLS): https://localhost:443" "$GREEN"
+    print_message "  (self-signed certificate; embedded service views are proxied on their service port + 10000)" "$YELLOW"
     print_message "OpenPLC: http://localhost:8080" "$GREEN"
     print_message "FUXA: http://localhost:1881" "$GREEN"
     print_message "HWIO: http://localhost:8090" "$GREEN"

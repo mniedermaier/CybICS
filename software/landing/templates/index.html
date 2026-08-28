@@ -2941,6 +2941,7 @@
                     allowfullscreen="true"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                     data-port="{{ service.port }}"
+                    data-tls-port="{{ service.tls_port }}"
                     data-service="{{ service_id }}"
                     {% if service.path %}data-path="{{ service.path }}"{% endif %}
                 ></iframe>
@@ -3042,6 +3043,7 @@
             {% for service_id, service in services.items() %}
             '{{ service_id }}': {
                 port: {{ service.port }},
+                tlsPort: {{ service.tls_port }},
                 path: '{{ service.path if service.path else "" }}'
             },
             {% endfor %}
@@ -3050,6 +3052,20 @@
             'network': { path: '/network' },
             'webshell': { path: '/webshell' }
         };
+
+        // Build a service URL that matches the scheme the dashboard is served
+        // with.  Over plain HTTP the services are reached directly; over HTTPS
+        // they have to go through the nginx-proxy sidecar, because an http://
+        // iframe inside an https:// page is active mixed content and browsers
+        // block it.  The sidecar serves each service on port + 10000.
+        function serviceOrigin(port, tlsPort) {
+            if (!port) return null;
+            const host = window.location.hostname;
+            if (window.location.protocol === 'https:') {
+                return `https://${host}:${tlsPort || (Number(port) + 10000)}`;
+            }
+            return `http://${host}:${port}`;
+        }
 
         // ---- Lazy iframe loading ----------------------------------------------
         // Every service used to be embedded and kept running at once (two live VNC
@@ -3064,7 +3080,7 @@
             const port = iframe.getAttribute('data-port');
             if (!port) return null;
             const path = iframe.getAttribute('data-path') || '';
-            return `http://${window.location.hostname}:${port}${path}`;
+            return serviceOrigin(port, iframe.getAttribute('data-tls-port')) + path;
         }
 
         function showIframeError(iframe) {
@@ -3148,8 +3164,7 @@
             const errorDiv = document.getElementById(errorId);
             const port = iframe.getAttribute('data-port');
             const path = iframe.getAttribute('data-path') || '';
-            const hostname = window.location.hostname;
-            const url = `http://${hostname}:${port}${path}`;
+            const url = serviceOrigin(port, iframe.getAttribute('data-tls-port')) + path;
 
             // Hide error temporarily
             errorDiv.classList.remove('visible');
@@ -3198,15 +3213,13 @@
             let url;
             if (config.path && config.port) {
                 // For services with both path and port (e.g., VNC services)
-                const hostname = window.location.hostname;
-                url = `http://${hostname}:${config.port}${config.path}`;
+                url = serviceOrigin(config.port, config.tlsPort) + config.path;
             } else if (config.path) {
                 // For local paths without ports (CTF, Tools)
                 url = config.path;
             } else if (config.port) {
                 // For services with just ports
-                const hostname = window.location.hostname;
-                url = `http://${hostname}:${config.port}`;
+                url = serviceOrigin(config.port, config.tlsPort);
             }
 
             if (url) {
