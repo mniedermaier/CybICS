@@ -68,8 +68,30 @@ RUN west init -l app && \
 # Install Python requirements using west (recommended method)
 RUN west packages pip --install
 
-# Install Zephyr SDK using west (only ARM toolchain)
-RUN west sdk install -t arm-zephyr-eabi
+# Install the Zephyr SDK (ARM toolchain only).
+#
+# Fetched straight from the release URL instead of via 'west sdk install',
+# which queries the GitHub API unauthenticated.  Anonymous API calls are capped
+# at 60/hour per IP, and on shared CI runners that budget is regularly spent by
+# unrelated jobs: 17 of the last 100 nightly devContainer runs failed right
+# here with HTTP 403 "API rate limit exceeded", independently of our own
+# activity.  Release asset downloads do not count against that budget.
+#
+# The version is read from the Zephyr tree so it follows software/stm32/west.yml
+# rather than drifting; .github/workflows/buildTest.yml installs the same SDK
+# the same way.
+RUN set -eu; \
+    SDK_VERSION="$(cat /home/docker/zephyrproject/zephyr/SDK_VERSION)"; \
+    BASE="https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}"; \
+    cd /home/docker; \
+    wget -q "${BASE}/zephyr-sdk-${SDK_VERSION}_linux-x86_64_minimal.tar.xz"; \
+    tar xf "zephyr-sdk-${SDK_VERSION}_linux-x86_64_minimal.tar.xz"; \
+    rm "zephyr-sdk-${SDK_VERSION}_linux-x86_64_minimal.tar.xz"; \
+    cd "zephyr-sdk-${SDK_VERSION}"; \
+    wget -q "${BASE}/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz"; \
+    tar xf toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz; \
+    rm toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz; \
+    ./setup.sh -t arm-zephyr-eabi -h -c
 
 # Switch back to root for fixuid setup
 USER root

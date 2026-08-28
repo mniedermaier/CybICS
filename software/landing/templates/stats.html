@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - System Statistics</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="/static/js/chart.umd.min.js"></script>
     <style>
@@ -358,6 +359,19 @@
         .items-center {
             align-items: center;
         }
+        /* Dashboard theme bridge */
+        html.light-mode, html.light-mode body { background: #f3f5f8 !important; color: #172033 !important; }
+        html.light-mode header, html.light-mode .stat-card, html.light-mode .container-card { background: #ffffff !important; border-color: #d8dde6; }
+        html.light-mode .stat-item, html.light-mode [class*="bg-[#1a1a1a]"] { background: #eef1f5 !important; }
+        html.light-mode [class*="bg-[#2d2d2d]"], html.light-mode canvas { background: #ffffff !important; }
+        html.light-mode .stat-label, html.light-mode h3, html.light-mode nav .text-sm, html.light-mode .text-gray-400, html.light-mode [class*="text-gray-400"] { color: #5b6472 !important; }
+        html.light-mode .stat-value, html.light-mode .container-name, html.light-mode h2, html.light-mode header { color: #b34700 !important; }
+        html.light-mode [class*="text-white"] { color: #172033 !important; }
+        html.light-mode .nav-button { background: #f7f8fa; color: #b34700; border-color: #d45a00; }
+        html.light-mode .nav-button:hover { background: #d45a00; color: #ffffff; }
+        html.light-mode .progress-bar { background: #d9dee7; }
+        html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
+        html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
     </style>
 </head>
 <body>
@@ -570,6 +584,16 @@
     </main>
 
     <script>
+
+
+        function applyDashboardTheme(theme) {
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
+        }
+
+        fetch('/api/settings/theme').then(function (response) { return response.json(); }).then(function (data) { applyDashboardTheme(data.theme || 'dark'); }).catch(function () {});
+        window.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'theme') applyDashboardTheme(event.data.theme);
+        });
         let updateInterval;
         let cpuChart, memoryChart, diskChart, networkChart;
 

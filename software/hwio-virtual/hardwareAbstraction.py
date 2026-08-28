@@ -144,19 +144,48 @@ def physical_process_thread():
           if consecutive_failures % 100 == 0:
             logging.error(f"Physical process: Failed to reconnect - {str(reconnect_error)}")
 
-    # Physical simulation logic
+    # Physical simulation logic.
+    #
+    # This mirrors thread_physical() in software/stm32/src/main.c, which is the
+    # reference implementation: it is what runs on the board in the physical
+    # deployment.  Keep the two in step -- the rates, the guards and the order
+    # of the updates all matter, because an attack that defeats the control
+    # logic ends differently if they drift apart.
     if delay > 50:
       delay = 0
       timer = timer + 1
-      if gstSig > 0:
-        gst = gst+random.randint(0, 5)
+
+      # Compressor moves gas GST -> HPT.  It only does so while the GST still
+      # holds enough pressure to push against, and it cannot fill the HPT past
+      # the sensor range.  When the compressor is off, the downstream process
+      # consumes from the HPT instead -- but only while the system valve is
+      # open, and never below empty.
       if compressor > 0:
-        gst = gst-2
-        hpt = hpt+1
-      if systemValve > 0:
-        hpt = hpt-random.randint(0, 1)
-      if boSen > 0:
-        hpt=hpt-random.randint(0, 5)
+        if hpt < 255 and gst >= 50:
+          gst = gst - 2
+          hpt = hpt + 1
+      else:
+        use = random.randint(0, 2)
+        if systemValve > 0 and (hpt - use) >= 0:
+          hpt = hpt - use
+
+      # Refill the GST from the external supply.
+      if gstSig > 0 and gst < 251:
+        gst = gst + random.randint(0, 3)
+
+      # Mechanical blowout valve: opens above 220 bar and stays open until the
+      # tank falls back below 200.  The condition is evaluated here, right
+      # before venting, so the order within a tick matches the firmware.  It
+      # vents more slowly than the compressor fills, so a compressor stuck on
+      # drives the tank to a state the relief valve cannot recover -- which is
+      # the point of the exercise.
+      if hpt > 220 or (boSen > 0 and hpt > 200):
+        boSen = 1
+        vent = random.randint(0, 1)
+        if (hpt - vent) >= 0:
+          hpt = hpt - vent
+      else:
+        boSen = 0
     delay = delay+1
 
     # System operational if HPT > 50 and HPT < 100 and systemValve true
@@ -242,6 +271,8 @@ def api_state():
 @ui.page('/')
 def index_page():
   global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
+
+  ui.add_head_html("""<script>(function(){if(new URLSearchParams(location.search).get(\"theme\")==\"light\")document.documentElement.classList.add(\"light-mode\");})();</script>""")
 
   # Create container for the content
   with ui.element('div').style('text-align: center; min-width: 1024px; width: 1200px; margin: 0 auto;'):
@@ -441,6 +472,31 @@ def index_page():
 
   # Three.js 3D Visualization - Clean implementation
   ui.add_body_html('''
+    <style>
+      html.light-mode body, html.light-mode .nicegui-content { background: #f3f5f8 !important; color: #172033 !important; }
+      html.light-mode .q-page, html.light-mode .q-card, html.light-mode .q-tab-panels, html.light-mode .q-panel { background: #ffffff !important; color: #172033 !important; }
+      html.light-mode .q-card[style*="background-color: red"] { background-color: red !important; }
+      html.light-mode .q-card[style*="background-color: green"] { background-color: green !important; }
+      html.light-mode .q-card[style*="background-color: blue"] { background-color: blue !important; }
+      html.light-mode .q-card[style*="background-color: white"] { background-color: white !important; }
+      html.light-mode .q-card[style*="background-color: orange"] { background-color: orange !important; }
+      html.light-mode .q-card[style*="background-color: grey"] { background-color: #9ca3af !important; }
+      html.light-mode .q-tabs { background: #ffffff !important; }
+      html.light-mode .q-tab { color: #596273 !important; }
+      html.light-mode .q-tab--active, html.light-mode .q-tab:hover { color: #b34700 !important; }
+      html.light-mode .q-card .q-label, html.light-mode .q-card span, html.light-mode .q-card div { color: #172033; }
+      html.light-mode .q-table, html.light-mode .q-table thead, html.light-mode .q-table tbody { background: #ffffff !important; color: #172033 !important; }
+      html.light-mode .q-table th, html.light-mode .q-table td, html.light-mode .q-table tbody, html.light-mode .q-table tr, html.light-mode .q-td, html.light-mode .q-th { color: #172033 !important; background: #ffffff !important; }
+      html.light-mode .q-table__middle, html.light-mode .q-table__container { background: #ffffff !important; color: #172033 !important; }
+      html.light-mode .q-table th { color: #596273 !important; }
+      html.light-mode #container3d { background: #eef1f5 !important; }
+    </style>
+    <script>
+      window.addEventListener('message', function (event) {
+        if (!event.data || event.data.type !== 'theme') return;
+        document.documentElement.classList.toggle('light-mode', event.data.theme === 'light');
+      });
+    </script>
         <script src="/static/js/three.min.js"></script>
         <script src="/static/js/OrbitControls.js"></script>
         <script>
@@ -464,6 +520,7 @@ def index_page():
 
             // Create scene with stunning gradient background
             const scene = new THREE.Scene();
+            const lightTheme = document.documentElement.classList.contains('light-mode');
 
             // Create enhanced CybICS background with radial gradients
             const bgCanvas = document.createElement('canvas');
@@ -508,8 +565,14 @@ def index_page():
             }
 
             const bgTexture = new THREE.CanvasTexture(bgCanvas);
-            scene.background = bgTexture;
-            scene.fog = new THREE.FogExp2(0x0f1520, 0.010);
+            scene.background = lightTheme ? new THREE.Color(0xf3f5f8) : bgTexture;
+            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : 0x0f1520, 0.010);
+            window.addEventListener('message', function (event) {
+              if (!event.data || event.data.type !== 'theme') return;
+              const isLight = event.data.theme === 'light';
+              scene.background = isLight ? new THREE.Color(0xf3f5f8) : bgTexture;
+              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : 0x0f1520, 0.010);
+            });
 
             // Create camera
             const camera = new THREE.PerspectiveCamera(
