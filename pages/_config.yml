@@ -7,7 +7,7 @@ baseurl: "/CybICS"
 url: "https://mniedermaier.github.io/CybICS"
 
 # Theme settings
-remote_theme: longpdo/neumorphism
+remote_theme: longpdo/neumorphism@1b59a4a860c1f4e0d9cab1a73780b595ae26e866
 
 # Landing page
 username: CybICS
