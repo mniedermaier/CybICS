@@ -353,7 +353,7 @@ def detect_tool_intent(question):
             address = int(addr_match.group(1))
 
         count = 10
-        count_match = re.search(r'(\d+)\s+register', question_lower)
+        count_match = re.search(r'(\d+)\s{0,5}register', question_lower[:200])
         if count_match:
             count = int(count_match.group(1))
 
@@ -389,7 +389,7 @@ def detect_tool_intent(question):
     # IDS alerts (generic)
     if any(word in question_lower for word in ['ids', 'intrusion', 'alert', 'detection']):
         count = 20
-        count_match = re.search(r'(\d+)\s+alert', question_lower)
+        count_match = re.search(r'(\d+)\s{0,5}alert', question_lower[:200])
         if count_match:
             count = int(count_match.group(1))
         return (True, 'check_ids_alerts', {'count': count})
@@ -440,7 +440,7 @@ def detect_tool_intent(question):
         if 'stat' in question_lower:
             return (True, 'get_capture_stats', {})
         count = 50
-        count_match = re.search(r'(\d+)\s+packet', question_lower)
+        count_match = re.search(r'(\d+)\s{0,5}packet', question_lower[:200])
         if count_match:
             count = int(count_match.group(1))
         return (True, 'get_network_packets', {'count': count})

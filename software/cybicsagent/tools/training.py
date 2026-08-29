@@ -30,7 +30,7 @@ def get_ctf_progress():
         return {'error': 'Could not connect to landing page - is it running?'}
     except Exception as e:
         logger.error(f"Error getting CTF progress: {e}")
-        return {'error': f'Failed to get CTF progress: {str(e)}'}
+        return {'error': 'Failed to get CTF progress'}
 
 
 def verify_defense_challenge(challenge_id):
@@ -61,7 +61,7 @@ def verify_defense_challenge(challenge_id):
         return {'error': 'Could not connect to landing page for verification'}
     except Exception as e:
         logger.error(f"Error verifying defense challenge: {e}")
-        return {'error': f'Failed to verify challenge: {str(e)}'}
+        return {'error': 'Failed to verify challenge'}
 
 
 def get_network_packets(count=50):
@@ -100,7 +100,7 @@ def get_network_packets(count=50):
         return {'error': 'Could not connect to landing page for packet data'}
     except Exception as e:
         logger.error(f"Error getting network packets: {e}")
-        return {'error': f'Failed to get network packets: {str(e)}'}
+        return {'error': 'Failed to get network packets'}
 
 
 def get_capture_stats():
@@ -119,4 +119,4 @@ def get_capture_stats():
         return {'error': 'Could not connect to landing page'}
     except Exception as e:
         logger.error(f"Error getting capture stats: {e}")
-        return {'error': f'Failed to get capture stats: {str(e)}'}
+        return {'error': 'Failed to get capture stats'}

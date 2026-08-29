@@ -202,10 +202,10 @@ def execute_tool(tool_name, parameters=None):
         return result
     except TypeError as e:
         logger.error(f"Invalid parameters for {tool_name}: {e}")
-        return {'error': f'Invalid parameters for {tool_name}: {e}'}
+        return {'error': f'Invalid parameters for {tool_name}'}
     except Exception as e:
         logger.error(f"Error executing {tool_name}: {type(e).__name__}: {e}")
-        return {'error': f'{tool_name} failed: {e}'}
+        return {'error': f'{tool_name} failed'}
 
 
 # Thread-safe cache for tool schemas

@@ -73,7 +73,7 @@ def read_modbus_registers(register_type='holding', address=0, count=10):
         return {'error': 'pymodbus not installed - Modbus tools unavailable'}
     except Exception as e:
         logger.error(f"Error reading Modbus registers: {e}")
-        return {'error': f'Failed to read Modbus registers: {str(e)}'}
+        return {'error': 'Failed to read Modbus registers'}
 
 
 def read_opcua_nodes(node_id=None, action='browse'):
@@ -171,7 +171,7 @@ def read_opcua_nodes(node_id=None, action='browse'):
         return {'error': 'asyncua not installed - OPC-UA tools unavailable'}
     except Exception as e:
         logger.error(f"Error with OPC-UA operation: {e}")
-        return {'error': f'Failed OPC-UA {action}: {str(e)}'}
+        return {'error': f'Failed OPC-UA {action}'}
 
 
 def check_ids_alerts(count=20):
@@ -204,7 +204,7 @@ def check_ids_alerts(count=20):
         return {'error': 'IDS request timed out'}
     except Exception as e:
         logger.error(f"Error checking IDS alerts: {e}")
-        return {'error': f'Failed to check IDS: {str(e)}'}
+        return {'error': 'Failed to check IDS'}
 
 
 def get_process_state():
@@ -253,7 +253,7 @@ def get_process_state():
         return {'error': 'HWIO request timed out'}
     except Exception as e:
         logger.error(f"Error getting process state: {e}")
-        return {'error': f'Failed to get process state: {str(e)}'}
+        return {'error': 'Failed to get process state'}
 
 
 def get_ids_summary():
@@ -280,7 +280,7 @@ def get_ids_summary():
         return {'error': f'Could not connect to IDS at {ids_url} - is it running?'}
     except Exception as e:
         logger.error(f"Error getting IDS summary: {e}")
-        return {'error': f'Failed to get IDS summary: {str(e)}'}
+        return {'error': 'Failed to get IDS summary'}
 
 
 def get_ids_forensics_briefing():
@@ -300,4 +300,4 @@ def get_ids_forensics_briefing():
         return {'error': f'Could not connect to IDS at {ids_url}'}
     except Exception as e:
         logger.error(f"Error getting forensics briefing: {e}")
-        return {'error': f'Failed to get forensics briefing: {str(e)}'}
+        return {'error': 'Failed to get forensics briefing'}
