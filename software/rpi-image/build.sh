@@ -1,0 +1,271 @@
+#!/bin/bash
+#
+# CybICS Raspberry Pi Image Builder
+#
+# This script builds a complete 64-bit Raspberry Pi image with all CybICS
+# containers pre-loaded. The resulting image is ready to use on first boot.
+#
+# Requirements:
+# - Docker with buildx support
+# - ~20GB free disk space
+# - Internet connection for initial build
+#
+# Usage: ./build.sh [--skip-containers]
+#
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOFTWARE_DIR="$(dirname "$SCRIPT_DIR")"
+GIT_ROOT="$(dirname "$SOFTWARE_DIR")"
+PIGEN_DIR="$SCRIPT_DIR/pi-gen"
+DEPLOY_DIR="$SCRIPT_DIR/deploy"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Architecture of the image inside an OCI tarball produced by
+# "docker buildx build --output type=docker".
+tarball_arch() {
+    python3 - "$1" <<'PYEOF' 2>/dev/null
+import json, sys, tarfile
+
+with tarfile.open(sys.argv[1]) as tf:
+    def read(name):
+        return json.load(tf.extractfile(name))
+
+    index = read("index.json")
+    digest = index["manifests"][0]["digest"].split(":")[1]
+    manifest = read(f"blobs/sha256/{digest}")
+    config_digest = manifest["config"]["digest"].split(":")[1]
+    print(read(f"blobs/sha256/{config_digest}").get("architecture", ""))
+PYEOF
+}
+
+print_step() {
+    echo -e "${GREEN}==>${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}Warning:${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}Error:${NC} $1"
+}
+
+# Parse arguments
+SKIP_CONTAINERS=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --skip-containers)
+            SKIP_CONTAINERS=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--skip-containers]"
+            echo ""
+            echo "Options:"
+            echo "  --skip-containers  Skip building ARM64 containers (use existing)"
+            echo "  -h, --help         Show this help message"
+            exit 0
+            ;;
+        *)
+            print_error "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Check prerequisites
+print_step "Checking prerequisites..."
+
+if ! command -v docker &> /dev/null; then
+    print_error "Docker is not installed. Please install Docker first."
+    exit 1
+fi
+
+if ! docker buildx version &> /dev/null; then
+    print_error "Docker buildx is not available. Please update Docker."
+    exit 1
+fi
+
+if [ ! -d "$PIGEN_DIR" ]; then
+    print_error "Pi-gen submodule not found at $PIGEN_DIR"
+    echo "Run: git submodule update --init --recursive"
+    exit 1
+fi
+
+# OpenPLC_v3 is a submodule too, and its absence is not obvious: the Dockerfile
+# COPYs the empty directory happily and only fails minutes later, deep in the
+# OpenPLC build, with "./install.sh: not found".
+if [ ! -f "$SOFTWARE_DIR/OpenPLC/OpenPLC_v3/install.sh" ]; then
+    print_error "OpenPLC_v3 submodule not checked out at $SOFTWARE_DIR/OpenPLC/OpenPLC_v3"
+    echo "Run: git submodule update --init --recursive"
+    exit 1
+fi
+
+# The container build runs the stm32 devcontainer through docker compose, which
+# needs the generated .env and .dev.env. Without them compose aborts with
+# "env file .dev.env not found" and the build dies before the first container,
+# so generate them here instead of relying on the caller having done it.
+if [ -x "$GIT_ROOT/.devcontainer/prepare-env.sh" ]; then
+    print_step "Preparing environment files..."
+    (cd "$GIT_ROOT" && ./.devcontainer/prepare-env.sh)
+else
+    print_warning "prepare-env.sh not found - docker compose may fail on missing .env"
+fi
+
+# Ensure local Docker registry is running (needed for ARM64 cross-builds)
+REGISTRY="172.17.0.1:5050"
+REGISTRY_NAME="pigen-registry"
+
+if ! curl -s "http://${REGISTRY}/v2/" &>/dev/null; then
+    print_step "Starting local Docker registry..."
+    docker rm -f "$REGISTRY_NAME" 2>/dev/null || true
+    docker run -d -p 5050:5000 --restart=always --name "$REGISTRY_NAME" registry:2
+    # Wait for registry to be ready
+    for i in {1..10}; do
+        if curl -s "http://${REGISTRY}/v2/" &>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+    if ! curl -s "http://${REGISTRY}/v2/" &>/dev/null; then
+        print_error "Failed to start local Docker registry"
+        exit 1
+    fi
+fi
+
+# Create work directories
+print_step "Creating work directories..."
+mkdir -p "$PIGEN_DIR/work/stage-cybics/containers"
+mkdir -p "$DEPLOY_DIR"
+
+# Container tarball output directory
+TARBALL_DIR="$PIGEN_DIR/work/stage-cybics/containers"
+
+CONTAINERS=(
+    "cybics-hwio-raspberry"
+    "cybics-openplc"
+    "cybics-opcua"
+    "cybics-s7com"
+    "cybics-fuxa"
+    "cybics-landing"
+    "cybics-stm32"
+    "cybics-nginx-proxy"
+    "cybics-ids"
+)
+
+# Step 1: Build ARM64 containers (unless skipped)
+if [ "$SKIP_CONTAINERS" = false ]; then
+    print_step "Building ARM64 Docker containers and exporting tarballs..."
+    TARBALL_DIR="$TARBALL_DIR" "$SOFTWARE_DIR/build.sh"
+else
+    print_warning "Skipping container build (--skip-containers)"
+fi
+
+# Step 2: Verify container tarballs exist
+print_step "Verifying container tarballs..."
+
+# The architecture is checked, not just the presence of the file. The image
+# built on 2026-04-17 shipped cybics-openplc, cybics-landing and cybics-ids as
+# linux/amd64 while the other six were arm64 -- three x86 containers baked into
+# a Raspberry Pi image, which cannot start on the board. Nothing noticed for
+# four months, because "the tarball exists" was the whole check.
+MISSING=0
+WRONG_ARCH=0
+for container in "${CONTAINERS[@]}"; do
+    TARBALL="$TARBALL_DIR/${container}.tar"
+    if [ ! -f "$TARBALL" ]; then
+        print_warning "Missing: ${container}.tar"
+        MISSING=$((MISSING + 1))
+        continue
+    fi
+
+    ARCH="$(tarball_arch "$TARBALL")"
+    if [ "$ARCH" = "arm64" ]; then
+        echo "  Found: ${container}.tar ($(du -h "$TARBALL" | cut -f1), $ARCH)"
+    else
+        print_error "Wrong architecture: ${container}.tar is '${ARCH:-unreadable}', expected arm64"
+        WRONG_ARCH=$((WRONG_ARCH + 1))
+    fi
+done
+
+if [ "$MISSING" -gt 0 ] && [ "$SKIP_CONTAINERS" = false ]; then
+    print_error "Some container tarballs are missing. Build may have failed."
+    exit 1
+fi
+
+if [ "$WRONG_ARCH" -gt 0 ]; then
+    print_error "$WRONG_ARCH container(s) are not arm64. They would not run on the Pi."
+    echo "Rebuild without --skip-containers, and check that buildx is using the"
+    echo "docker-container driver: docker buildx inspect --bootstrap"
+    exit 1
+fi
+
+# Step 3: Copy configuration to pi-gen
+print_step "Setting up pi-gen configuration..."
+cp "$SCRIPT_DIR/config" "$PIGEN_DIR/config"
+
+# Remove old stage-cybics if it exists
+rm -rf "$PIGEN_DIR/stage-cybics"
+
+# Copy our custom stage
+cp -r "$SCRIPT_DIR/stage-cybics" "$PIGEN_DIR/"
+
+# Copy container tarballs INTO the stage directory (so they're available inside pi-gen Docker)
+print_step "Copying container tarballs to stage directory..."
+mkdir -p "$PIGEN_DIR/stage-cybics/02-load-containers/containers"
+cp "$TARBALL_DIR"/*.tar "$PIGEN_DIR/stage-cybics/02-load-containers/containers/"
+ls -lh "$PIGEN_DIR/stage-cybics/02-load-containers/containers/"
+
+# Make scripts executable
+find "$PIGEN_DIR/stage-cybics" -name "*.sh" -exec chmod +x {} \;
+
+# Step 4: Skip unused stages
+print_step "Configuring pi-gen stages..."
+for stage in stage3 stage4 stage5; do
+    touch "$PIGEN_DIR/$stage/SKIP"
+done
+touch "$PIGEN_DIR/stage4/SKIP_IMAGES"
+touch "$PIGEN_DIR/stage5/SKIP_IMAGES"
+
+# stage2 still has to run -- it is the base our stage builds on -- but its
+# image must not be exported.  It carries EXPORT_IMAGE, so pi-gen would build
+# and xz-compress a plain Lite image that is then overwritten in deploy/ by
+# ours.  Measured at 9 minutes of pure waste per build.
+touch "$PIGEN_DIR/stage2/SKIP_IMAGES"
+
+# Step 5: Run pi-gen build
+print_step "Building Raspberry Pi image (this will take a while)..."
+cd "$PIGEN_DIR"
+
+# Clean previous build artifacts if they exist
+if [ -d "work" ] && [ -d "work/stage-cybics" ]; then
+    # Keep our containers but clean other artifacts
+    print_step "Cleaning previous build (keeping containers)..."
+fi
+
+# Run the Docker-based build
+./build-docker.sh
+
+# Step 6: Copy output
+print_step "Copying build output..."
+if ls "$PIGEN_DIR/deploy/"*.img.xz 1> /dev/null 2>&1; then
+    cp "$PIGEN_DIR/deploy/"*.img.xz "$DEPLOY_DIR/"
+    echo ""
+    print_step "Build complete!"
+    echo ""
+    echo "Image files are available in: $DEPLOY_DIR/"
+    ls -lh "$DEPLOY_DIR/"*.img.xz 2>/dev/null || true
+    echo ""
+    echo "To flash to an SD card:"
+    echo "  xzcat software/rpi-image/deploy/CybICS-*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress"
+    echo ""
+else
+    print_error "No image files found in pi-gen/deploy/"
+    exit 1
+fi

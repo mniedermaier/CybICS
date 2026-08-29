@@ -1,0 +1,7 @@
+# CybICS ZRAM Swap Configuration
+# Compression algorithm (lz4 is fast with reasonable compression)
+ALGO=lz4
+# Fixed size in MB for zram swap
+SIZE=1024
+# Priority (higher = preferred over disk swap)
+PRIORITY=100

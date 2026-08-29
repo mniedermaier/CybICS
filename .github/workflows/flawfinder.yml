@@ -10,17 +10,26 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  # One run per workflow per ref.  Pull request runs are cancelled when a new
+  # commit is pushed; runs on main are not -- every commit there should still
+  # be built.  GitHub keeps at most one running plus one pending run per group,
+  # so a burst of merges no longer piles up dozens of concurrent jobs (which
+  # is how runs started failing at startup).
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   flawfinder:
     name: Flawfinder
     runs-on: ubuntu-latest
     steps:
     - name: flawfinder_scan
-      uses: david-a-wheeler/flawfinder@2.0.19
+      uses: david-a-wheeler/flawfinder@2.0.20
       with:
         arguments: '--sarif ./software'
         output: 'flawfinder_results.sarif'
     - name: Upload analysis results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: ${{github.workspace}}/flawfinder_results.sarif

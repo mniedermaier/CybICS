@@ -99,7 +99,7 @@ async def main():
     boSenvar = await myobj.add_variable(idx, "boSen", ua.UInt16(0))
     stopvar = await myobj.add_variable(idx, "STOP", ua.UInt16(0))
     manualvar = await myobj.add_variable(idx, "manual", ua.UInt16(0))
-    userflag = await myobj.add_variable(idx, "userFLAG", "CybICS(0PC-UA)")
+    userflag = await myobj.add_variable(idx, "userFLAG", "CybICS(OPC-UA)")
     obtain_flag = await myobj.add_variable(idx, "Set > 0 to obtain flag!", ua.UInt16(0))
     adminflag = await myobj.add_variable(idx, "adminFLAG", "")
     await server.nodes.objects.add_method(
@@ -127,7 +127,7 @@ async def main():
             await stopvar.write_value(ua.UInt16(stop.registers[0]))
             await manualvar.write_value(ua.UInt16(manual.registers[0]))
             if await obtain_flag.get_value() >  0:
-                await adminflag.write_value("CybICS(0PC-UA-$ADMIN)")
+                await adminflag.write_value("CybICS(OPC-UA-$ADMIN)")
             else: 
                 await adminflag.write_value("set the correct variable > 0")
             await asyncio.sleep(2)  # Reduced polling frequency to lower I/O

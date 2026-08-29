@@ -1,5 +1,7 @@
 # 📡 Network Traffic Analysis Guide
 
+> **MITRE ATT&CK for ICS:** `Collection` | [T0842 - Network Sniffing](https://attack.mitre.org/techniques/T0842/)
+
 ## 📋 Overview
 In the context of industrial security, network traffic analysis is crucial for safeguarding industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) networks.
 By monitoring and analyzing network traffic, security professionals can detect anomalies and unauthorized access attempts that may indicate a potential cyber attack or system breach.
@@ -89,17 +91,73 @@ ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | su
 
 ![Wireshark Capture](doc/wireshark.png)
 
-## 🎯 Find the Flag
+## 🎯 Task
+Capture and analyze network traffic to find the flag hidden in Modbus register write operations.
+
 The flag has the format `CybICS(flag)`.
 
-**💡 Hint**: The flag is written to registers over modbus.
+### Steps
+1. Set up SSH key authentication and start a remote packet capture using tcpdump
+2. Let the capture run for 30-60 seconds to collect Modbus traffic
+3. Open the capture file in Wireshark
+4. Filter for Modbus write operations (function codes 06 and 16)
+5. Inspect the register data in write packets for ASCII-encoded flag content
+
+### Where to Look: Modbus Write Operations
+In ICS traffic captures, **Modbus write operations** are particularly interesting because they carry process data being sent to devices — values written to registers and coils that control physical processes. When analyzing a Modbus traffic capture, you should focus on **write** function codes rather than read operations:
+
+- **Function Code 06**: Write Single Register
+- **Function Code 16**: Write Multiple Registers
+- **Function Code 05**: Write Single Coil
+- **Function Code 15**: Write Multiple Coils
+
+In Wireshark, you can filter for Modbus write operations using a display filter such as:
+```
+modbus.func_code == 6 || modbus.func_code == 16
+```
+
+Examine the **data values** being written to registers — in a CTF context, flag data is typically embedded in these write operations. Look at the register values for ASCII-encoded text that matches the flag format `CybICS(flag)`.
+
+## 🛡️ Security Framework References
 
 <details>
-  <summary><strong><span style="color:orange;font-weight: 900">🔍 Solution</span></strong></summary>
-  
-  <div style="color:orange;font-weight: 900">
-    🚩 Flag: CybICS(m0dbu$)
-  </div>
-  
-  ![Flag Modbus](doc/modbus.png)
+  <summary>Click to expand</summary>
+
+### MITRE ATT&CK for ICS
+
+| Tactic | Technique | ID | Description |
+|--------|-----------|-----|-------------|
+| Collection | Network Sniffing | [T0842](https://attack.mitre.org/techniques/T0842/) | Adversaries may sniff network traffic to capture information about the ICS environment |
+
+**Why this matters:** Industrial protocols like Modbus TCP transmit data in plaintext without authentication or encryption. An attacker with network access can passively capture all process data, operator commands, and system configurations. This training demonstrates why network visibility cuts both ways—defenders need traffic analysis capabilities, but so do attackers.
+
+### MITRE D3FEND - Defensive Countermeasures
+
+| Technique | ID | Description |
+|-----------|-----|-------------|
+| Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Using the same techniques defensively to detect anomalies |
+| Encrypted Tunnels | [D3-ET](https://d3fend.mitre.org/technique/d3f:EncryptedTunnels/) | Encrypting industrial protocol traffic to prevent sniffing |
+| Network Segmentation | [D3-NI](https://d3fend.mitre.org/technique/d3f:NetworkIsolation/) | Isolating OT networks to limit sniffing opportunities |
+
+### NIST SP 800-82r3 Reference
+
+| Control Family | Controls | Relevance |
+|----------------|----------|-----------|
+| **System and Communications Protection (SC)** | SC-8, SC-13 | Transmission confidentiality and cryptographic protection |
+| **Audit and Accountability (AU)** | AU-3, AU-6 | Audit record content and review for network anomalies |
+| **System and Information Integrity (SI)** | SI-4 | System monitoring including network traffic analysis |
+
+**Why NIST 800-82r3 matters here:** NIST 800-82r3 Section 6.2.10 explicitly addresses the lack of security in legacy industrial protocols. SC-8 (Transmission Confidentiality) recommends using encrypted tunnels or protocol wrappers where possible. When encryption isn't feasible, SI-4 (System Monitoring) becomes even more critical—you should be capturing and analyzing the same traffic that attackers would target, looking for anomalies that indicate compromise.
+
 </details>
+
+
+## 💡 Hints
+
+Filter for `modbus.func_code == 6 || modbus.func_code == 16` (Write Single Register and Write Multiple Registers) and inspect the register data values for ASCII text.
+
+## 🔍 Solution
+
+**Flag:** `CybICS(m0dbu$)`
+
+  ![Flag Modbus](doc/modbus.png)

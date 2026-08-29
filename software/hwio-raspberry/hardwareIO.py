@@ -210,6 +210,20 @@ def thread_network():
     except Exception as e:
       logging.error("Error in getting IP of wlan0 - " + str(e))
 
+    # The i2c thread fills dataID asynchronously, and on a fresh board that
+    # takes a while -- the stm32 container has to flash the firmware first.
+    # Until then dataID is empty, and indexing it raised IndexError straight out
+    # of this thread. Nothing caught it, so the thread died on its first pass
+    # and stayed dead: the SSID was never rewritten to cybics-<id> and
+    # AP/Station switching stopped for good, while the container kept running
+    # because its other threads were fine. On a pre-flashed board the ID is
+    # there immediately and the race is won, which is why this only bit freshly
+    # imaged devices.
+    if len(dataID) <= 12:
+      logging.info("Waiting for the STM32 ID over i2c before configuring WiFi")
+      time.sleep(1)
+      continue
+
     # Simple check, if correct dataID was received
     if dataID[12] in ['0', '1']:
       ssid = f"cybics-{id}"

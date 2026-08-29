@@ -88,7 +88,10 @@ exec startxfce4' > /root/.vnc/xstartup \
     && chmod +x /root/.vnc/xstartup
 
 # Create XFCE config directory and backgrounds directory
-RUN mkdir -p /root/.config/xfce4 /usr/share/backgrounds
+RUN mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml /usr/share/backgrounds
+
+# Install the persisted XFCE panel layout captured from the engineering workstation
+COPY engineeringWS/xfce4-panel.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
 
 # Copy CybICS background
 COPY engineeringWS/cybics-background.png /usr/share/backgrounds/cybics-background.png

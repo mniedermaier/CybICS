@@ -37,7 +37,7 @@ print_message() {
 
 # Function to show help message
 show_help() {
-    echo "Usage: $0 {start|stop|restart|status|logs|clean|compose} [--mode <mode>] [--version <tag>]"
+    echo "Usage: $0 {start|stop|restart|status|logs|update|clean|compose} [--mode <mode>] [--version <tag>]"
     echo ""
     echo "Commands:"
     echo "  start   - Start the CybICS virtual environment"
@@ -45,12 +45,13 @@ show_help() {
     echo "  restart - Restart the CybICS virtual environment"
     echo "  status  - Show status of all services"
     echo "  logs    - Show logs from all services"
+    echo "  update  - Pull latest Docker images for all services"
     echo "  clean   - Remove all CybICS containers, images, and volumes"
     echo "  compose - Directly interact with docker compose (e.g., $0 compose ps)"
     echo ""
     echo "Options:"
     echo "  --mode <mode>    - Specify startup mode (default: full)"
-    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing)"
+    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing, TLS Proxy)"
     echo "                     full      - All services including AI Agent, Engineering WS, Attack Machine"
     echo "                     withoutai - All services except AI Agent"
     echo "  --version <tag>  - Specify Docker image version tag (default: latest)"
@@ -77,6 +78,13 @@ if docker compose version &> /dev/null; then
     DOCKER_COMPOSE="docker compose"
 else
     DOCKER_COMPOSE="docker-compose"
+fi
+
+# Auto-detect NVIDIA GPU and set COMPOSE_FILE to include GPU override
+if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null \
+    && docker info 2>/dev/null | grep -qi nvidia; then
+    print_message "NVIDIA GPU detected — enabling GPU acceleration for AI agent" "$GREEN"
+    export COMPOSE_FILE="docker-compose.yml:docker-compose.gpu.yml"
 fi
 
 # Function to check if Docker is running
@@ -211,6 +219,9 @@ display_services() {
     print_message "CybICS virtual environment started successfully!" "$GREEN"
     print_message "\nAvailable services:" "$YELLOW"
     print_message "Landing page: http://localhost:80" "$GREEN"
+    print_message "Landing page (remote access): http://<host-ip>:8082" "$GREEN"
+    print_message "Landing page (TLS): https://localhost:443" "$GREEN"
+    print_message "  (self-signed certificate; embedded service views are proxied on their service port + 10000)" "$YELLOW"
     print_message "OpenPLC: http://localhost:8080" "$GREEN"
     print_message "FUXA: http://localhost:1881" "$GREEN"
     print_message "HWIO: http://localhost:8090" "$GREEN"
@@ -237,7 +248,14 @@ start_environment() {
         exit 1
     }
 
-    # Capture both stdout and stderr
+    # Pull images first with visible progress
+    print_message "Pulling Docker images (this may take a while on first run)..." "$YELLOW"
+    if ! $DOCKER_COMPOSE pull; then
+        print_message "Warning: Some images could not be pulled. Continuing with available images..." "$YELLOW"
+    fi
+
+    # Start containers (capture output for error handling)
+    print_message "Starting containers..." "$YELLOW"
     local output
     output=$($DOCKER_COMPOSE up -d 2>&1)
     local exit_code=$?
@@ -323,6 +341,24 @@ direct_compose() {
     $DOCKER_COMPOSE "$@"
 }
 
+# Function to update (pull latest images)
+update_images() {
+    print_message "Pulling latest CybICS Docker images..." "$YELLOW"
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
+    $DOCKER_COMPOSE pull
+    if [ $? -eq 0 ]; then
+        print_message "CybICS Docker images updated successfully!" "$GREEN"
+        print_message "\nTo apply updates, restart the environment with:" "$YELLOW"
+        print_message "  ./cybics.sh restart" "$BLUE"
+    else
+        print_message "Error: Failed to pull CybICS Docker images." "$RED"
+        exit 1
+    fi
+}
+
 # Main script
 print_banner
 check_docker
@@ -358,7 +394,7 @@ while [[ $# -gt 0 ]]; do
                 show_help
             fi
             ;;
-        start|stop|restart|status|logs|clean|compose)
+        start|stop|restart|status|logs|update|clean|compose)
             COMMAND="$1"
             shift
             # For 'compose' command, save remaining arguments
@@ -419,6 +455,9 @@ case "$COMMAND" in
         ;;
     "logs")
         show_logs
+        ;;
+    "update")
+        update_images
         ;;
     "clean")
         remove_containers

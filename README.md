@@ -14,6 +14,7 @@
 [![TruffleHog](https://github.com/mniedermaier/CybICS/actions/workflows/trufflehog.yaml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/trufflehog.yaml)
 [![devContainer](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml)
 [![pytest](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml)
+[![CodeQL](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml)
 </div>
 
 ---
@@ -189,6 +190,9 @@ Get CybICS running in under 5 minutes using the virtual environment!
 
 # Restart the environment
 ./cybics.sh restart
+
+# Update Docker images to latest version
+./cybics.sh update
 ```
 ---
 
