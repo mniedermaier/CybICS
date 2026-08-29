@@ -2,6 +2,11 @@ services:
   dev:
     container_name: cybics-stm32
     image: cybics-stm32-dev
+    # The Zephyr SDK this image installs is published for x86_64 only, so the
+    # container is pinned to amd64 and runs emulated on arm64 hosts. What it
+    # produces is Cortex-M firmware for the nucleo_g070rb, which is identical
+    # whichever architecture cross-compiled it.
+    platform: linux/amd64
     build:
       context: ../..
       dockerfile: .devcontainer/stm32/Dockerfile

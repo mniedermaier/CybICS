@@ -49,6 +49,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
           password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
+      # The runner is arm64, but the stm32 devcontainer is amd64-only.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: amd64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
