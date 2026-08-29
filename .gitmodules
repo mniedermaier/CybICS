@@ -5,3 +5,9 @@
 	path = software/rpi-image/pi-gen
 	url = https://github.com/RPi-Distro/pi-gen.git
 	branch = arm64
+	# The image build copies config and stage-cybics into the submodule and
+	# leaves work/ and deploy/ behind, so the parent repo reports the submodule
+	# as modified after every build. "dirty" hides that content churn while
+	# still reporting a changed submodule commit, which is the thing that
+	# actually needs reviewing.
+	ignore = dirty
