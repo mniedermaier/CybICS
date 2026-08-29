@@ -29,7 +29,8 @@ VIRTUAL = os.path.join(ROOT, "software", "hwio-virtual", "hardwareAbstraction.py
 def _read(path):
     if not os.path.exists(path):
         pytest.skip(f"{os.path.relpath(path, ROOT)} not present in this checkout")
-    return open(path, encoding="utf-8", errors="replace").read()
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        return fh.read()
 
 
 @pytest.fixture(scope="module")
