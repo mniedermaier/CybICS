@@ -12,3 +12,7 @@ install -m 644 files/NetworkManager.conf "${ROOTFS_DIR}/etc/NetworkManager/Netwo
 # WiFi AP configuration for NetworkManager
 install -d -m 755 "${ROOTFS_DIR}/etc/NetworkManager/system-connections"
 install -m 600 files/cybics-ap.nmconnection "${ROOTFS_DIR}/etc/NetworkManager/system-connections/"
+
+# Station mode profile. hardwareIO.py switches between this and the AP based on
+# the STM32 mode button; without it the switch has nothing to switch to.
+install -m 600 files/cybics-station.nmconnection "${ROOTFS_DIR}/etc/NetworkManager/system-connections/"
