@@ -1,0 +1,34 @@
+# Station mode: join an existing "cybics" network, as doc/README.md describes.
+#
+# The connection is deliberately NOT called "cybics" -- that id belongs to the
+# access point profile, and hardwareIO.py picks the station profile as "the
+# wifi connection that is not named cybics". Without this file there is no such
+# connection, so pressing the mode button only produced
+# "Cannot switch to Station mode: no Station connection detected" once a second.
+#
+# autoconnect is off: the STM32 mode button decides which profile is up, via
+# hardwareIO.py. NetworkManager must not race it on boot.
+#
+# To point the device at a different network, edit ssid and psk here before
+# flashing, or on a running device:
+#   sudo nmcli connection modify cybics-station wifi.ssid MyNetwork
+#   sudo nmcli connection modify cybics-station wifi-sec.psk MyPassword
+[connection]
+id=cybics-station
+type=wifi
+interface-name=wlan0
+autoconnect=false
+
+[wifi]
+mode=infrastructure
+ssid=cybics
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=1234567890
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto

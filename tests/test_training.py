@@ -17,25 +17,27 @@ import requests
 from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
+from conftest import SERVER_IP, CONNECTION_TIMEOUT, OPENPLC_PORT, FUXA_PORT, modbus_call
 from dotenv import load_dotenv
 
 # Test Configuration
 # Allow SERVER_IP to be overridden via environment variable for remote testing
 # Default to localhost for consistency and isolation
-SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')
+
 MODBUS_PORT = 502
-CONNECTION_TIMEOUT = 10
+
 HPT_REGISTER = 1126  # High Pressure Tank register address
 
 # Web service ports
-OPENPLC_PORT = 8080
-FUXA_PORT = 1881
 
 
 # ===============================================================================
 # Flood & Overwrite Training Tests
 # ===============================================================================
 
+# These talk to the running stack; the file-existence tests further down do
+# not, so the gate sits on the classes rather than the whole module.
+@pytest.mark.usefixtures("stack_ready")
 class TestFloodOverwrite:
     """
     Tests for the Flood & Overwrite training exercise.
@@ -85,11 +87,12 @@ class TestFloodOverwrite:
         Validates that register 1126 (HPT) is accessible for reading,
         which is necessary for the flood attack training scenario.
         """
-        if not modbus_client.is_socket_open():
-            assert modbus_client.connect(), "Failed to connect to Modbus server"
+        assert modbus_client.connect(), "Failed to connect to Modbus server"
 
         try:
-            result = modbus_client.read_holding_registers(
+            result = modbus_call(
+                modbus_client,
+                modbus_client.read_holding_registers,
                 address=HPT_REGISTER,
                 count=1,
                 device_id=1
@@ -117,14 +120,15 @@ class TestFloodOverwrite:
         Note: The HPT value may be overwritten by the PLC logic quickly,
         so we just verify the write succeeds, not persistence.
         """
-        if not modbus_client.is_socket_open():
-            assert modbus_client.connect(), "Failed to connect to Modbus server"
+        assert modbus_client.connect(), "Failed to connect to Modbus server"
 
         test_value = 50
 
         try:
             # Read original value
-            read_result = modbus_client.read_holding_registers(
+            read_result = modbus_call(
+                modbus_client,
+                modbus_client.read_holding_registers,
                 address=HPT_REGISTER,
                 count=1,
                 device_id=1
@@ -132,7 +136,9 @@ class TestFloodOverwrite:
             assert not read_result.isError(), f"Error reading HPT register: {read_result}"
 
             # Write test value - just verify write succeeds
-            write_result = modbus_client.write_register(
+            write_result = modbus_call(
+                modbus_client,
+                modbus_client.write_register,
                 address=HPT_REGISTER,
                 value=test_value,
                 device_id=1
@@ -143,7 +149,7 @@ class TestFloodOverwrite:
             if write_result.isError():
                 error_msg = str(write_result)
                 if "Connection unexpectedly closed" in error_msg or "Connection" in error_msg:
-                    pytest.skip(f"Server closed connection on write - may not support writes: {error_msg}")
+                    pytest.fail(f"Modbus write rejected by the server: {error_msg}")
                 else:
                     pytest.fail(f"Error writing to HPT register: {write_result}")
 
@@ -152,7 +158,7 @@ class TestFloodOverwrite:
             # is continuously updating this register based on the simulation
 
         except ConnectionException as e:
-            pytest.skip(f"Connection issue during write test: {e}")
+            pytest.fail(f"Modbus connection failed during the write test: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during write test: {e}")
 
@@ -168,8 +174,7 @@ class TestFloodOverwrite:
 
         Note: This is a brief test simulation (1 second), not a full attack.
         """
-        if not modbus_client.is_socket_open():
-            assert modbus_client.connect(), "Failed to connect to Modbus server"
+        assert modbus_client.connect(), "Failed to connect to Modbus server"
 
         flood_value = 10
         flood_duration = 1.0  # seconds
@@ -177,7 +182,9 @@ class TestFloodOverwrite:
 
         try:
             # Read original value to restore later
-            read_result = modbus_client.read_holding_registers(
+            read_result = modbus_call(
+                modbus_client,
+                modbus_client.read_holding_registers,
                 address=HPT_REGISTER,
                 count=1,
                 device_id=1
@@ -192,7 +199,9 @@ class TestFloodOverwrite:
 
             while (time.time() - start_time) < flood_duration:
                 try:
-                    result = modbus_client.write_register(
+                    result = modbus_call(
+                        modbus_client,
+                        modbus_client.write_register,
                         address=HPT_REGISTER,
                         value=flood_value,
                         device_id=1
@@ -242,7 +251,7 @@ class TestFloodOverwrite:
             print(f"  Success rate: {write_count/(write_count+failed_writes)*100:.1f}%")
 
         except ConnectionException as e:
-            pytest.skip(f"Connection issue during flood simulation: {e}")
+            pytest.fail(f"Modbus connection failed during the flood simulation: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during flood simulation: {e}")
 
@@ -257,8 +266,7 @@ class TestFloodOverwrite:
         updates this register. Instead, we verify that rapid successive writes
         are accepted by the server.
         """
-        if not modbus_client.is_socket_open():
-            assert modbus_client.connect(), "Failed to connect to Modbus server"
+        assert modbus_client.connect(), "Failed to connect to Modbus server"
 
         test_values = [10, 50, 100, 200]
         successful_writes = 0
@@ -266,14 +274,16 @@ class TestFloodOverwrite:
         try:
             for test_value in test_values:
                 # Write value
-                write_result = modbus_client.write_register(
+                write_result = modbus_call(
+                    modbus_client,
+                    modbus_client.write_register,
                     address=HPT_REGISTER,
                     value=test_value,
                     device_id=1
                 )
 
                 if write_result.isError():
-                    pytest.skip(f"Write operations not supported: {write_result}")
+                    pytest.fail(f"Modbus write rejected by the server: {write_result}")
 
                 successful_writes += 1
 
@@ -286,7 +296,7 @@ class TestFloodOverwrite:
             )
 
         except ConnectionException as e:
-            pytest.skip(f"Connection issue during write test: {e}")
+            pytest.fail(f"Modbus connection failed during the write test: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during write test: {e}")
 
@@ -295,6 +305,9 @@ class TestFloodOverwrite:
 # Password Attack Training Tests
 # ===============================================================================
 
+# These talk to the running stack; the file-existence tests further down do
+# not, so the gate sits on the classes rather than the whole module.
+@pytest.mark.usefixtures("stack_ready")
 class TestPasswordAttack:
     """
     Tests for the Password Attack training exercise.

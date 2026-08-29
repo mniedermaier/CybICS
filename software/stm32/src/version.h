@@ -8,10 +8,13 @@
 
 #include <zephyr/toolchain.h>
 
-/* Firmware version for display - update this for releases */
+/* Firmware version for display - update this for releases.
+ * The virtual plant mirrors this on its own display overlay, in
+ * software/hwio-virtual/hardwareAbstraction.py - keep the two in step.
+ */
 #define FIRMWARE_VERSION_MAJOR 1
 #define FIRMWARE_VERSION_MINOR 2
-#define FIRMWARE_VERSION_PATCH 0
+#define FIRMWARE_VERSION_PATCH 1
 
 /* Version as string for display (uses Zephyr's STRINGIFY macro) */
 #define FIRMWARE_VERSION_STRING "v" STRINGIFY(FIRMWARE_VERSION_MAJOR) "." \

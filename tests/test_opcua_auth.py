@@ -25,12 +25,18 @@ import os
 from pathlib import Path
 from asyncua import Client, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from conftest import SERVER_IP, OPCUA_SERVER_PORT, OPCUA_SERVER_URL, CONNECTION_TIMEOUT
+
+# Every test in this module talks to the running stack. Wait for it once and
+# fail with the exact list of missing services, instead of letting each test
+# discover the outage on its own and skip.
+pytestmark = pytest.mark.usefixtures("stack_ready")
 
 # Test Configuration Constants
-SERVER_IP = os.getenv('TEST_SERVER_IP', '127.0.0.1')
-OPCUA_SERVER_PORT = 4840
-OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
-CONNECTION_TIMEOUT = 20
+
+
+
+
 
 # Username/Password Authentication Configuration
 USERNAME = "user1"
@@ -135,10 +141,10 @@ async def test_opcua_username_password_auth():
     except ConnectionError as e:
         pytest.fail(f"Failed to establish OPC-UA connection to {OPCUA_SERVER_URL}: {e}")
     except TimeoutError as e:
-        pytest.skip(f"OPC-UA server connection timeout - server may need more time: {e}")
+        pytest.fail(f"OPC-UA connection timed out: {e}")
     except Exception as e:
         if "timeout" in str(e).lower():
-            pytest.skip(f"OPC-UA server timeout - may need more initialization time: {e}")
+            pytest.fail(f"OPC-UA server timed out: {e}")
         pytest.fail(f"Unexpected error during username/password authentication: {e}")
     finally:
         try:
@@ -227,11 +233,11 @@ async def test_opcua_invalid_credentials_rejected():
             error_message = str(e)
 
         except TimeoutError as e:
-            pytest.skip(f"Server timeout during invalid credentials test: {e}")
+            pytest.fail(f"OPC-UA server timed out during the invalid-credentials test: {e}")
 
         except Exception as e:
             if "timeout" in str(e).lower():
-                pytest.skip(f"Server timeout: {e}")
+                pytest.fail(f"OPC-UA server timed out: {e}")
             # Other exceptions might indicate auth failure
             auth_failed = True
             error_message = str(e)
@@ -322,7 +328,7 @@ async def test_opcua_anonymous_access_denied():
 
     except Exception as e:
         if "timeout" in str(e).lower():
-            pytest.skip(f"Server timeout: {e}")
+            pytest.fail(f"OPC-UA server timed out: {e}")
         # Other errors might indicate anonymous access is blocked
         print(f"✓ Anonymous connection blocked: {str(e)[:100]}")
 
@@ -502,12 +508,12 @@ async def test_opcua_certificate_auth():
     except ConnectionError as e:
         pytest.fail(f"Failed to establish secure OPC-UA connection: {e}")
     except TimeoutError as e:
-        pytest.skip(f"OPC-UA server connection timeout: {e}")
+        pytest.fail(f"OPC-UA connection timed out: {e}")
     except FileNotFoundError as e:
         pytest.skip(f"Certificate file not found: {e}")
     except Exception as e:
         if "timeout" in str(e).lower():
-            pytest.skip(f"OPC-UA server timeout: {e}")
+            pytest.fail(f"OPC-UA server timed out: {e}")
         pytest.fail(f"Unexpected error during certificate authentication: {e}")
     finally:
         try:

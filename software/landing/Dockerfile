@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     libpcap-dev \
     tcpdump \
     nmap \
+    nmap-scripts \
     iproute2 \
     iputils \
     net-tools \
