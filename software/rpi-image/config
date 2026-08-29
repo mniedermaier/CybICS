@@ -6,6 +6,13 @@ RELEASE="trixie"
 TARGET_HOSTNAME="cybics"
 FIRST_USER_NAME="pi"
 FIRST_USER_PASS="raspberry"
+# Keep the pi account instead of deactivating it until a first-boot wizard
+# renames it. pi-gen's default (0) ships an image with no usable account:
+# ssh answers "SSH may not work until a valid user has been set up", there is
+# no /home/pi, and cybics.service never starts a single container. This is an
+# appliance image for a training platform with published credentials, so the
+# rename wizard's purpose does not apply.
+DISABLE_FIRST_BOOT_USER_RENAME=1
 ENABLE_SSH="1"
 LOCALE_DEFAULT="en_US.UTF-8"
 KEYBOARD_KEYMAP="us"
