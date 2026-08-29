@@ -39,6 +39,37 @@ def get_container_status():
         return {'error': 'Failed to get container status'}
 
 
+def _resolve_cybics_container(name):
+    """
+    Map a requested name onto a real CybICS container.
+
+    Compose does not pin container_name, so the running containers are called
+    e.g. "software-openplc-1" while CYBICS_CONTAINERS holds the bare service
+    names. Matching on the compose service label rather than on substrings of
+    the container name keeps an unrelated container from passing the check by
+    merely embedding an allowed name.
+
+    Returns the real container name, or None if it is not a CybICS container.
+    """
+    from config import CYBICS_CONTAINERS
+
+    result = subprocess.run(
+        ['docker', 'ps', '--all', '--format',
+         '{{.Names}}\t{{.Label "com.docker.compose.service"}}'],
+        capture_output=True,
+        text=True,
+        timeout=10
+    )
+    if result.returncode != 0:
+        return None
+
+    for line in result.stdout.splitlines():
+        real_name, _, service = line.partition('\t')
+        if service in CYBICS_CONTAINERS and name in (real_name, service):
+            return real_name
+    return None
+
+
 def restart_containers(container_names=None):
     """
     Restart CybICS Docker containers.
@@ -56,16 +87,18 @@ def restart_containers(container_names=None):
                          f'Available: {", ".join(CYBICS_CONTAINERS)}'
             }
 
-        containers = container_names if isinstance(container_names, list) else [container_names]
+        requested = container_names if isinstance(container_names, list) else [container_names]
 
         # Only allow restarting known CybICS containers
-        invalid = [c for c in containers if not any(allowed in c for allowed in CYBICS_CONTAINERS)]
+        resolved = {c: _resolve_cybics_container(c) for c in requested}
+        invalid = [c for c, real in resolved.items() if real is None]
         if invalid:
             return {
                 'error': f'Unknown container(s): {", ".join(invalid)}. '
                          f'Allowed: {", ".join(CYBICS_CONTAINERS)}'
             }
 
+        containers = list(resolved.values())
         if not containers:
             return {'error': 'No containers found to restart'}
 
@@ -104,9 +137,18 @@ def get_container_logs(container_name, lines=50):
         container_name: Name of the container.
         lines: Number of log lines to retrieve (default: 50).
     """
+    from config import CYBICS_CONTAINERS
+
     try:
+        real_name = _resolve_cybics_container(container_name)
+        if real_name is None:
+            return {
+                'error': f'Unknown container: {container_name}. '
+                         f'Allowed: {", ".join(CYBICS_CONTAINERS)}'
+            }
+
         result = subprocess.run(
-            ['docker', 'logs', '--tail', str(lines), '--timestamps', container_name],
+            ['docker', 'logs', '--tail', str(lines), '--timestamps', real_name],
             capture_output=True,
             text=True,
             timeout=30
@@ -117,7 +159,7 @@ def get_container_logs(container_name, lines=50):
 
         return {
             'success': True,
-            'container': container_name,
+            'container': real_name,
             'logs': result.stdout
         }
     except subprocess.TimeoutExpired:
