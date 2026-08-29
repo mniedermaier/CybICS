@@ -329,7 +329,11 @@ def index_page():
             )
 
             # Overlay Display
-            DISPLAYoverlay1 = ui.label('CybICS v1.2.0').style(
+            # Reproduces the STM32's LCD, whose first line reads
+            # "CybICS <version>" from FIRMWARE_VERSION_STRING in
+            # software/stm32/src/version.h. That header is the source of
+            # truth; this copy has to be bumped alongside it.
+            DISPLAYoverlay1 = ui.label('CybICS v1.2.1').style(
               'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
               'background-color: transparent; font-size: 40px;'
               'display: block;'

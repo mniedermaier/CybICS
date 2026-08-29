@@ -1,0 +1,52 @@
+#!/bin/bash -e
+
+# Create first-boot service to load Docker images from tarballs
+# This service runs once on first boot, loads all images, then disables itself
+
+cat > /etc/systemd/system/cybics-first-boot.service << 'EOF'
+[Unit]
+Description=CybICS First Boot - Load Docker Images
+After=docker.service
+Requires=docker.service
+ConditionPathExists=/opt/cybics/images
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'for img in /opt/cybics/images/*.tar; do echo "Loading $img..."; docker load -i "$img"; done'
+ExecStartPost=/bin/rm -rf /opt/cybics/images
+ExecStartPost=/bin/systemctl disable cybics-first-boot.service
+RemainAfterExit=yes
+# Loading ~880MB of container tarballs took 8.5 of the previous 10 minutes on
+# a reasonably quick card - 90 seconds of headroom. A slower card, or a
+# larger stack, would run into the timeout, and the service would be killed
+# midway with the images half-loaded. This runs once on first boot, so a
+# generous ceiling costs nothing.
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable cybics-first-boot.service
+
+# Create CybICS container startup service
+cat > /etc/systemd/system/cybics.service << EOF
+[Unit]
+Description=CybICS Docker Containers
+After=docker.service cybics-first-boot.service NetworkManager.service NetworkManager-wait-online.service
+Requires=docker.service NetworkManager.service NetworkManager-wait-online.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/${FIRST_USER_NAME}/CybICS
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable cybics.service

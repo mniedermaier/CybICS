@@ -1,0 +1,7 @@
+# Reset the suffix inherited from stage2's EXPORT_IMAGE, which sets
+# IMG_SUFFIX="-lite".  pi-gen sources each stage's EXPORT_IMAGE in turn and
+# IMG_SUFFIX is exported, so leaving this file empty meant our image was named
+# "<date>-CybICS-lite" as well -- the same filename as the plain Lite export,
+# which it then silently overwrote in deploy/.  The image that shipped was the
+# right one only because stage-cybics happens to export last.
+IMG_SUFFIX=""
