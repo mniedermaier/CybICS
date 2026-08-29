@@ -16,7 +16,12 @@ ExecStart=/bin/bash -c 'for img in /opt/cybics/images/*.tar; do echo "Loading $i
 ExecStartPost=/bin/rm -rf /opt/cybics/images
 ExecStartPost=/bin/systemctl disable cybics-first-boot.service
 RemainAfterExit=yes
-TimeoutStartSec=600
+# Loading ~880MB of container tarballs took 8.5 of the previous 10 minutes on
+# a reasonably quick card - 90 seconds of headroom. A slower card, or a
+# larger stack, would run into the timeout, and the service would be killed
+# midway with the images half-loaded. This runs once on first boot, so a
+# generous ceiling costs nothing.
+TimeoutStartSec=1800
 
 [Install]
 WantedBy=multi-user.target
