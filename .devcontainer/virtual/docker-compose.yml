@@ -216,6 +216,7 @@ services:
 
 volumes:
   nginx-certs:
+  ollama_models:
 
 networks:
   virt-cybics:
@@ -226,6 +227,4 @@ networks:
         - subnet: 172.18.0.0/24
           gateway: 172.18.0.1
 
-volumes:
-  ollama_models:
 
