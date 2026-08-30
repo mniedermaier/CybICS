@@ -43,6 +43,11 @@ HWIO_PORT = _port("HWIO", 8090)
 
 OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
 
+# Only used by the readiness probe below; the tests carry their own copies
+# because test_opcua_auth deliberately varies them.
+OPCUA_USERNAME = os.getenv("TEST_OPCUA_USER", "user1")
+OPCUA_PASSWORD = os.getenv("TEST_OPCUA_PASSWORD", "test")
+
 # Services the suite needs, and how long to wait for each on start-up.  The
 # workflow starts the stack immediately before running the suite, so the first
 # test can otherwise race the containers.
@@ -80,6 +85,41 @@ def wait_for_port(host, port, timeout, interval=1.0):
     return False
 
 
+
+def opcua_accepts_sessions(timeout, interval=1.0):
+    """Poll until the OPC-UA server completes a session, not just a TCP accept.
+
+    wait_for_port is not enough here.  The server binds its listener before it
+    can serve a session, so a connect issued in that window runs into its own
+    timeout and the test fails with "connection timed out" even though the
+    stack is merely still starting.  Modbus has the same shape of problem one
+    layer down, which is what modbus_call below deals with.
+
+    Returns True once a session was established and cleanly closed.
+    """
+    import asyncio
+
+    from asyncua import Client
+
+    async def attempt():
+        client = Client(OPCUA_SERVER_URL)
+        client.set_user(OPCUA_USERNAME)
+        client.set_password(OPCUA_PASSWORD)
+        client.timeout = 5
+        await client.connect()
+        try:
+            return True
+        finally:
+            await client.disconnect()
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            return asyncio.run(attempt())
+        except Exception:
+            time.sleep(interval)
+    return False
+
 @pytest.fixture(scope="session")
 def stack_ready():
     """Wait for the whole stack once, and say plainly which parts never came up.
@@ -98,6 +138,13 @@ def stack_ready():
         remaining = max(1, deadline - time.monotonic())
         if not wait_for_port(SERVER_IP, port, remaining):
             missing.append(f"{name} ({SERVER_IP}:{port})")
+
+    # An open port 4840 does not mean the OPC-UA server will serve a session.
+    if not missing:
+        remaining = max(1, deadline - time.monotonic())
+        if not opcua_accepts_sessions(remaining):
+            missing.append(f"opcua session ({OPCUA_SERVER_URL})")
+
     if missing:
         pytest.fail(
             "Stack did not become ready within "
