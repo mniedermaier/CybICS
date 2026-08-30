@@ -15,15 +15,53 @@ permissions:
   contents: write
 
 jobs:
+  firmware:
+    name: Build STM32 firmware
+    # The Zephyr toolchain ships for x86_64 only and cannot be emulated: fixuid
+    # is a Go binary, and Go's lock-free stack dies under qemu-user on aarch64
+    # with "fatal error: lfstack.push". So the firmware is cross-compiled on an
+    # amd64 runner and handed to the arm64 job. west targets the nucleo_g070rb,
+    # a Cortex-M0+, so the output does not depend on the host architecture.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Create environment files
+        run: ./.devcontainer/prepare-env.sh
+
+      - name: Build the firmware
+        working-directory: software
+        run: |
+          docker compose -f ../.devcontainer/stm32/docker-compose.yml build
+          docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+
+      - name: Upload the firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: stm32-firmware
+          path: |
+            software/stm32/build/zephyr/zephyr.bin
+            software/stm32/build/zephyr/zephyr.elf
+          if-no-files-found: error
+          retention-days: 1
+
   build:
     name: Build SD card image
     # Native arm64. pi-gen and the nine containers then build without qemu,
     # which is the difference between roughly 40 minutes and several hours.
     runs-on: ubuntu-24.04-arm
+    needs: firmware
     timeout-minutes: 300
 
     env:
       DOCKERHUB_RO_USERNAME: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+      # The firmware comes from the job above; see software/build.sh.
+      SKIP_STM32_FIRMWARE: '1'
 
     steps:
       - name: Free up disk space
@@ -49,14 +87,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
           password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
 
-      # The runner is arm64, but the stm32 devcontainer is amd64-only.
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: amd64
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+
+      - name: Fetch the STM32 firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: stm32-firmware
+          path: software/stm32/build/zephyr
 
       - name: Build image
         run: ./build.sh

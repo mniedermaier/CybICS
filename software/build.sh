@@ -14,8 +14,24 @@ docker buildx ls | grep -q $name && docker buildx use $name
 docker buildx ls | grep -q $name || docker buildx create  --use --config config.toml --name $name
 docker buildx inspect --bootstrap
 
-docker compose -f ../.devcontainer/stm32/docker-compose.yml build
-docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+# The Zephyr toolchain in this devcontainer is published for x86_64 only, and
+# emulating it does not work: fixuid is a Go binary, and Go's lock-free stack
+# crashes under qemu-user on aarch64 ("fatal error: lfstack.push"). On arm64
+# hosts the firmware is therefore built elsewhere and dropped into
+# software/stm32/build, and this step is skipped.
+if [ "${SKIP_STM32_FIRMWARE:-0}" = "1" ]; then
+    for f in stm32/build/zephyr/zephyr.bin stm32/build/zephyr/zephyr.elf; do
+        if [ ! -f "$f" ]; then
+            echo "SKIP_STM32_FIRMWARE=1 but $f is missing." >&2
+            echo "Build it on an amd64 host first, or unset the variable." >&2
+            exit 1
+        fi
+    done
+    echo "Using the prebuilt STM32 firmware in software/stm32/build/zephyr."
+else
+    docker compose -f ../.devcontainer/stm32/docker-compose.yml build
+    docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+fi
 
 # Build function that handles both registry push and optional tarball export
 build_image() {
