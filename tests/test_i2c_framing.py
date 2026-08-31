@@ -28,6 +28,12 @@ PRESSURE_BUFFER = 13
 DEVICE_INFO_BUFFER = 15
 RX_DATA = 20
 
+# nanopb caps ip_addr at max_size:16 in cybics.options, and that count includes
+# the null terminator, so fifteen characters are usable and the encoded message
+# reaches seventeen bytes. The STM32 compares the length prefix against this, so
+# anything longer is dropped without a word.
+IP_ADDRESS_MAX_ENCODED = 17
+
 
 @pytest.fixture(scope="module")
 def pb():
@@ -130,10 +136,17 @@ def test_a_length_beyond_the_buffer_is_rejected(hwio, pb):
         hwio.unframe(wire, pb.PressureData(), ("gst_pressure", "hpt_pressure"))
 
 
-def test_the_longest_ip_still_fits_the_stm32_receive_buffer(pb):
-    """The Pi writes [register, length, payload] into RxData[20]. The longest
-    IPv4 is the tight case."""
-    payload = pb.IPAddress(ip_addr="255.255.255.255").SerializeToString()
+@pytest.mark.parametrize("ip", ["10.0.0.1", "192.168.1.100", "192.168.100.100", "255.255.255.255"])
+def test_the_longest_ip_survives_both_limits(pb, ip):
+    """Two separate ceilings, and the fifteen-character addresses used to fail
+    the first one: max_size was 15, which leaves fourteen characters once the
+    null terminator is counted, so the STM32 rejected 192.168.100.100 silently.
+    """
+    payload = pb.IPAddress(ip_addr=ip).SerializeToString()
+
+    assert len(payload) <= IP_ADDRESS_MAX_ENCODED, (
+        f"{ip} encodes to {len(payload)} bytes, past what the STM32 accepts")
+    # Plus the register byte and the length prefix, into RxData.
     assert 2 + len(payload) <= RX_DATA
 
 
