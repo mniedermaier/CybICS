@@ -590,9 +590,9 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			} else if ((HPTpressure > 50) && (HPTpressure < 100)) {
 				snprintf(displayText, sizeof(displayText), "%-16s", "SV closed");
 			} else if (HPTpressure > 100) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too high");
+				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure high");
 			} else if (HPTpressure <= 50) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure too low");
+				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure low");
 			}
 			lcd_set_cursor(&lcd, 1, 0);
 			lcd_print(&lcd, displayText);
