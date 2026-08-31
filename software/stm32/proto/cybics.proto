@@ -2,16 +2,25 @@ syntax = "proto3";
 
 package cybics;
 
+/*
+ * The scalar fields are marked optional so they carry explicit presence.
+ * Without it proto3 omits any field holding its default, so a reading of
+ * "both tanks at zero" encodes to nothing at all and is indistinguishable
+ * from a buffer the STM32 has not filled in yet, or from a truncated read.
+ * With presence the sender always emits the field and the receiver can tell
+ * a real zero from a missing value.
+ */
+
 /* Register 0x00: Pressure data from GST and HPT tanks */
 message PressureData {
-    uint32 gst_pressure = 1;  // Gas Storage Tank pressure (0-255)
-    uint32 hpt_pressure = 2;  // High Pressure Tank pressure (0-255)
+    optional uint32 gst_pressure = 1;  // Gas Storage Tank pressure (0-255)
+    optional uint32 hpt_pressure = 2;  // High Pressure Tank pressure (0-255)
 }
 
 /* Register 0x01: Device UID and WiFi configuration */
 message DeviceInfo {
-    bytes uid = 1;             // 6 bytes: STM32 unique ID (3 x 16-bit words)
-    uint32 wifi_mode = 2;      // 0 = STA, 1 = AP (station or access point)
+    bytes uid = 1;                     // 6 bytes: STM32 unique ID (3 x 16-bit words)
+    optional uint32 wifi_mode = 2;     // 0 = STA, 1 = AP (station or access point)
 }
 
 /* Optional: IP address from master (written to register 0x00) */

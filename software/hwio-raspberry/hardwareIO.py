@@ -53,18 +53,52 @@ data = [] # Data received over i2c from the STM32
 dataID = "" # dataID received over i2c from the STM32 (12 hex + mode)
 
 
-def unframe(data, message):
+def unframe(data, message, required=()):
   """Parse a length-prefixed protobuf out of an i2c read.
 
   data[0] carries the number of payload bytes the STM32 serialized. Slicing
   alone would quietly accept a nonsense prefix, because Python truncates the
   slice to what is there, so the length is checked before use.
+
+  The scalar fields carry explicit presence, which is what makes the rest of
+  the checking possible: a short read decodes cleanly into a message that is
+  simply missing its later fields, and without asking it would look like a
+  reading of zero. Naming the fields that have to be there turns that into an
+  error instead.
   """
   msg_len = data[0]
   if msg_len > len(data) - 1:
     raise ValueError(f"length prefix {msg_len} exceeds the {len(data) - 1} bytes read")
   message.ParseFromString(bytes(data[1:msg_len + 1]))
+  missing = [name for name in required if not message.HasField(name)]
+  if missing:
+    raise ValueError(f"message is missing {', '.join(missing)}")
   return msg_len
+
+# A single failed decode is a bus glitch and not worth shouting about. A run of
+# them is a protocol mismatch, and it matters because gst and hpt keep their
+# previous values and thread_openplc keeps writing those into Modbus registers
+# 1124 and 1126 regardless. Stale pressure reaching the PLC should not look the
+# same as a momentary hiccup, so a run gets logged as an error, once.
+DECODE_FAILURES_BEFORE_ERROR = 50
+decode_failures = {}
+
+
+def note_decode_failure(what, error):
+  count = decode_failures.get(what, 0) + 1
+  decode_failures[what] = count
+  if count == DECODE_FAILURES_BEFORE_ERROR:
+    logging.error(
+      f"{what} has failed to decode {count} times in a row - the values the PLC "
+      f"is being given are stale. Last error: {error}")
+  elif count < DECODE_FAILURES_BEFORE_ERROR:
+    logging.warning(f"Failed to decode {what}: {error}")
+
+
+def note_decode_success(what):
+  if decode_failures.pop(what, 0) >= DECODE_FAILURES_BEFORE_ERROR:
+    logging.info(f"{what} is decoding again")
+
 
 # thread for openplc communication
 def thread_openplc():
@@ -293,12 +327,13 @@ def thread_i2c():
 
       try:
         pressure_data = PressureData()
-        unframe(data, pressure_data)
+        unframe(data, pressure_data, ('gst_pressure', 'hpt_pressure'))
         gst = pressure_data.gst_pressure
         hpt = pressure_data.hpt_pressure
         logging.debug(f"Decoded protobuf - GST: {gst}, HPT: {hpt}")
+        note_decode_success("PressureData")
       except Exception as pb_error:
-        logging.warning(f"Failed to decode PressureData protobuf: {str(pb_error)}")
+        note_decode_failure("PressureData", pb_error)
 
       # Send IP address as protobuf IPAddress message with length prefix
       try:
@@ -319,15 +354,18 @@ def thread_i2c():
       msg_len = data[0]
       try:
         device_info = DeviceInfo()
-        unframe(data, device_info)
+        unframe(data, device_info, ('wifi_mode',))
         # Convert uid bytes to hex string
         uid_bytes = device_info.uid
+        if len(uid_bytes) != 6:
+          raise ValueError(f"uid is {len(uid_bytes)} bytes, expected 6")
         id = ''.join(f'{b:02x}' for b in uid_bytes)
         wifi_mode = device_info.wifi_mode
         dataID = id + str(wifi_mode)  # Keep compatibility: 12 hex chars + mode
         logging.debug(f"Decoded DeviceInfo - UID: {id}, WiFi mode: {wifi_mode}")
+        note_decode_success("DeviceInfo")
       except Exception as di_error:
-        logging.warning(f"Failed to decode DeviceInfo protobuf: {str(di_error)}")
+        note_decode_failure("DeviceInfo", di_error)
 
       time.sleep(0.02) # OpenPLC has a Cycle time of 50ms
 
