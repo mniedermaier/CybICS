@@ -9,6 +9,9 @@ services:
     mem_limit: 48m
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+    devices:
+      - "/dev/i2c-1:/dev/i2c-1"
+      - "/dev/gpiochip0:/dev/gpiochip0"
     networks:
       br-cybics:
         ipv4_address: 172.18.0.2
@@ -81,6 +84,31 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
+  # that reaches the host-networked landing service from other machines even
+  # behind a host firewall, 443 adds HTTPS.
+  nginx-proxy:
+    image: localhost:5000/cybics-nginx-proxy:latest
+    restart: always
+    mem_limit: 32m
+    ports:
+      - 8082:80
+      - 443:443
+      # One TLS port per embedded service (service port + 10000): an http://
+      # iframe inside the https:// dashboard is mixed content and gets blocked.
+      - 11881:11881
+      - 16080:16080
+      - 16081:16081
+      - 18080:18080
+      - 18090:18090
+      - 18443:18443
+    extra_hosts:
+      - "hostnet:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+
   stm32:
     image: localhost:5000/cybics-stm32:latest
     privileged: true
@@ -91,6 +119,34 @@ services:
     networks:
       br-cybics:
         ipv4_address: 172.18.0.7
+
+  cybicsagent:
+    image: localhost:5000/cybics-cybicsagent:latest
+    restart: always
+    depends_on:
+    - openplc
+    - landing
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../doc:/knowledge/doc:ro
+      - ../training:/knowledge/training:ro
+      - ../README.md:/knowledge/README.md:ro
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_MODEL=phi3:mini
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.11
+  ids:
+    image: localhost:5000/cybics-ids:latest
+    restart: always
+    mem_limit: 32m
+    depends_on:
+    - openplc
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
 
 networks:
   br-cybics:
@@ -106,3 +162,5 @@ networks:
 
 volumes:
   fuxa_data:
+  ollama_models:
+  nginx-certs:

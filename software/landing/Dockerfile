@@ -7,13 +7,15 @@ RUN apk add --no-cache \
     libpcap-dev \
     tcpdump \
     nmap \
+    nmap-scripts \
     iproute2 \
     iputils \
     net-tools \
     curl \
     wget \
     bind-tools \
-    netcat-openbsd
+    netcat-openbsd \
+    docker-cli
     
 WORKDIR /CybICS
 

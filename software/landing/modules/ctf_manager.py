@@ -3,6 +3,7 @@ CTF (Capture The Flag) management module
 """
 import json
 import os
+import importlib
 import markdown
 import re
 
@@ -94,7 +95,41 @@ class CTFManager:
             }
         else:
             logger.info(f"Incorrect flag submitted for {challenge_id}")
-            return {'success': False, 'message': 'Incorrect flag. Try again!'}
+            if not re.match(r'^CybICS\(.*\)$', submitted_flag.strip()):
+                return {'success': False, 'message': 'Incorrect format. Flags look like CybICS(...)'}
+            return {'success': False, 'message': 'Incorrect flag. The format is right, but the value is wrong.'}
+
+    def verify_defense(self, challenge_id):
+        """Run defense verification for a challenge.
+
+        Returns:
+            dict with keys: success, message, flag (if success), checks (list of check results)
+        """
+        challenge, _ = self.get_challenge(challenge_id)
+        if not challenge:
+            return {'success': False, 'message': 'Challenge not found', 'checks': []}
+
+        if challenge.get('type') != 'defense':
+            return {'success': False, 'message': 'Not a defense challenge', 'checks': []}
+
+        verify_module = challenge.get('verify_module')
+        if not verify_module:
+            return {'success': False, 'message': 'No verification module configured', 'checks': []}
+
+        try:
+            module = importlib.import_module(f'modules.defense_checks.{verify_module}')
+            result = module.verify()
+
+            if result.get('success'):
+                result['flag'] = challenge['flag']
+
+            return result
+        except ImportError as e:
+            logger.error(f"Could not load defense check module: {verify_module}: {e}")
+            return {'success': False, 'message': f'Verification module not found: {verify_module}', 'checks': []}
+        except Exception as e:
+            logger.error(f"Error running defense check {verify_module}: {e}", exc_info=True)
+            return {'success': False, 'message': f'Verification error: {str(e)}', 'checks': []}
 
     def reset_progress(self):
         """Reset all progress"""
@@ -117,6 +152,17 @@ class CTFManager:
             'progress_percentage': (solved_count / total_challenges * 100) if total_challenges > 0 else 0
         }
 
+    @staticmethod
+    def extract_hint_from_html(html):
+        """Extract the 💡 Hint <details> block from rendered HTML and return (hint_html, cleaned_html)."""
+        pattern = r'<details[^>]*>\s*<summary[^>]*>[^<]*💡\s*Hint[^<]*</summary>(.*?)</details>'
+        match = re.search(pattern, html, re.DOTALL | re.IGNORECASE)
+        if match:
+            hint_html = match.group(1).strip()
+            cleaned = html[:match.start()] + html[match.end():]
+            return hint_html, cleaned
+        return None, html
+
     def load_markdown_content(self, relative_path):
         """Load and convert markdown content to HTML"""
         if not relative_path:
@@ -132,6 +178,21 @@ class CTFManager:
                 markdown_content = re.sub(r'<details>', '<details markdown="1">', markdown_content)
                 markdown_content = re.sub(r'<summary>', '<summary markdown="1">', markdown_content)
                 markdown_content = re.sub(r'<div([^>]*)>', r'<div\1 markdown="1">', markdown_content)
+
+                # Dedent fenced code blocks so they render inside list items
+                def _dedent_fenced(m):
+                    indent = m.group(1)
+                    return '\n'.join(
+                        line[len(indent):] if line.startswith(indent) else line
+                        for line in m.group(0).split('\n')
+                    )
+
+                markdown_content = re.sub(
+                    r'^([ \t]+)(```\w*\n.*?\n[ \t]*```)',
+                    _dedent_fenced,
+                    markdown_content,
+                    flags=re.MULTILINE | re.DOTALL
+                )
 
                 # Convert markdown to HTML with extensions
                 html = markdown.markdown(markdown_content, extensions=[

@@ -1,0 +1,23 @@
+# Applies to builds whose context is software/, which is the hwio-raspberry
+# image: it needs hwio-raspberry/ and stm32/proto/cybics.proto and nothing else.
+#
+# Without this the context carries software/rpi-image/, which holds the pi-gen
+# checkout and the built SD card images once anyone has run a local image build.
+# That is tens of gigabytes sent to the daemon for a container that copies three
+# files.
+
+# pi-gen checkout and built images
+rpi-image/
+
+# Submodules and vendored trees no image with this context copies
+OpenPLC/
+FUXA/
+
+# Zephyr build output
+stm32/build/
+
+.git/
+.gitignore
+.devcontainer/
+**/__pycache__/
+**/*.pyc

@@ -1,0 +1,23 @@
+# Applies to builds whose context is the repository root, which is the landing
+# image. It copies software/landing/ and training/ only, so everything heavy
+# below is dead weight in the context.
+#
+# software/rpi-image/ alone reaches tens of gigabytes once a local SD card image
+# has been built, and all of it was being sent to the daemon on every build.
+
+# pi-gen checkout and built images
+software/rpi-image/
+
+# Submodules and vendored trees the landing image does not copy
+software/OpenPLC/
+software/FUXA/
+software/stm32/build/
+
+# Large trees unrelated to any image
+doc/
+hardware/
+
+.git/
+.devcontainer/
+**/__pycache__/
+**/*.pyc

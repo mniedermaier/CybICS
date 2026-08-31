@@ -3,23 +3,80 @@
 set -e
 cd "$(dirname "$0")"
 
+# Output directory for tarballs (can be set externally)
+TARBALL_DIR="${TARBALL_DIR:-}"
+
+# Ensure we always switch back to default builder, even on error/interrupt
+trap 'docker buildx use default' EXIT
+
 name=cybicsbuilder2
 docker buildx ls | grep -q $name && docker buildx use $name
 docker buildx ls | grep -q $name || docker buildx create  --use --config config.toml --name $name
 docker buildx inspect --bootstrap
 
-docker compose -f ../.devcontainer/stm32/docker-compose.yml build
-docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+# The Zephyr toolchain in this devcontainer is published for x86_64 only, and
+# emulating it does not work: fixuid is a Go binary, and Go's lock-free stack
+# crashes under qemu-user on aarch64 ("fatal error: lfstack.push"). On arm64
+# hosts the firmware is therefore built elsewhere and dropped into
+# software/stm32/build, and this step is skipped.
+if [ "${SKIP_STM32_FIRMWARE:-0}" = "1" ]; then
+    for f in stm32/build/zephyr/zephyr.bin stm32/build/zephyr/zephyr.elf; do
+        if [ ! -f "$f" ]; then
+            echo "SKIP_STM32_FIRMWARE=1 but $f is missing." >&2
+            echo "Build it on an amd64 host first, or unset the variable." >&2
+            exit 1
+        fi
+    done
+    echo "Using the prebuilt STM32 firmware in software/stm32/build/zephyr."
+else
+    docker compose -f ../.devcontainer/stm32/docker-compose.yml build
+    docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+fi
 
-# Build hwio-raspberry from parent context to access stm32/proto for protobuf generation
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-hwio-raspberry:latest --push -f ./hwio-raspberry/Dockerfile .
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-openplc:latest --push ./OpenPLC
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-opcua:latest --push ./opcua
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-s7com:latest --push ./s7com
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-fuxa:latest --push ./FUXA
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-stm32:latest --push ./stm32
+# Build function that handles both registry push and optional tarball export
+build_image() {
+    local name="$1"
+    local context="$2"
+    local dockerfile="${3:-}"
+
+    local registry_tag="172.17.0.1:5050/${name}:latest"
+    local local_tag="${name}:latest"
+
+    if [ -n "$TARBALL_DIR" ]; then
+        # Export directly to tarball with LOCAL name (for offline use on Pi)
+        echo "Building ${name} with tarball export..."
+        if [ -n "$dockerfile" ]; then
+            docker buildx build --platform linux/arm64 -t "$local_tag" --output "type=docker,dest=${TARBALL_DIR}/${name}.tar" -f "$dockerfile" "$context"
+        else
+            docker buildx build --platform linux/arm64 -t "$local_tag" --output "type=docker,dest=${TARBALL_DIR}/${name}.tar" "$context"
+        fi
+        # Also push to registry for caching (with registry tag)
+        if [ -n "$dockerfile" ]; then
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push -f "$dockerfile" "$context"
+        else
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push "$context"
+        fi
+    else
+        # Just push to registry
+        if [ -n "$dockerfile" ]; then
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push -f "$dockerfile" "$context"
+        else
+            docker buildx build --platform linux/arm64 -t "$registry_tag" --push "$context"
+        fi
+    fi
+}
+
+# Parent context so the Dockerfile can reach stm32/proto/cybics.proto and
+# generate the Python bindings; same shape as the landing build below.
+build_image "cybics-hwio-raspberry" "." "./hwio-raspberry/Dockerfile"
+build_image "cybics-openplc" "./OpenPLC"
+build_image "cybics-opcua" "./opcua"
+build_image "cybics-s7com" "./s7com"
+build_image "cybics-fuxa" "./FUXA"
+build_image "cybics-stm32" "./stm32"
 # Build landing service from root context
-docker buildx build --platform linux/arm64 -t 172.17.0.1:5000/cybics-landing:latest --push -f ./landing/Dockerfile ..
+build_image "cybics-landing" ".." "./landing/Dockerfile"
+build_image "cybics-nginx-proxy" "./nginx-proxy"
+build_image "cybics-ids" "./ids"
 
-# Switch back to default builder to avoid breaking devcontainers
-docker buildx use default
+# Note: Builder automatically switches back to default on EXIT via trap

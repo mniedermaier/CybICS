@@ -1,0 +1,17 @@
+docker.io
+# Debian's docker.io ships the daemon and CLI but no compose plugin, while
+# cybics.service runs "docker compose up -d". Without this the service dies
+# with exit 125 and docker's help text, and not one container ever starts.
+# (installRPI.sh does not hit this because it installs docker via
+# get.docker.com, which bundles the plugin.)
+docker-compose
+zram-tools
+tcpdump
+btop
+socat
+lsof
+picocom
+smemstat
+python3-serial
+network-manager
+i2c-tools

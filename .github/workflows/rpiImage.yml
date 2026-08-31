@@ -1,0 +1,208 @@
+name: Raspberry Pi image
+
+on:
+  push:
+    tags:
+      - 'v*'
+  # Lets the image be built and inspected without cutting a release.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  firmware:
+    name: Build STM32 firmware
+    # The Zephyr toolchain ships for x86_64 only and cannot be emulated: fixuid
+    # is a Go binary, and Go's lock-free stack dies under qemu-user on aarch64
+    # with "fatal error: lfstack.push". So the firmware is cross-compiled on an
+    # amd64 runner and handed to the arm64 job. west targets the nucleo_g070rb,
+    # a Cortex-M0+, so the output does not depend on the host architecture.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Create environment files
+        run: ./.devcontainer/prepare-env.sh
+
+      - name: Build the firmware
+        working-directory: software
+        run: |
+          docker compose -f ../.devcontainer/stm32/docker-compose.yml build
+          docker compose -f ../.devcontainer/stm32/docker-compose.yml run --rm dev scripts/build.sh
+
+      - name: Upload the firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: stm32-firmware
+          path: |
+            software/stm32/build/zephyr/zephyr.bin
+            software/stm32/build/zephyr/zephyr.elf
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    name: Build SD card image
+    # Native arm64. pi-gen and the nine containers then build without qemu,
+    # which is the difference between roughly 40 minutes and several hours.
+    runs-on: ubuntu-24.04-arm
+    needs: firmware
+    timeout-minutes: 300
+
+    env:
+      DOCKERHUB_RO_USERNAME: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+      # The firmware comes from the job above; see software/build.sh.
+      SKIP_STM32_FIRMWARE: '1'
+
+    steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          # pi-gen and OpenPLC_v3 are submodules; build.sh refuses to start
+          # without them, and the OpenPLC build fails much later if it does.
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Login to Docker Hub (read-only)
+        # Only raises the pull rate limit. Fork runs cannot read secrets, so
+        # they fall back to anonymous pulls rather than failing the job.
+        if: env.DOCKERHUB_RO_USERNAME != ''
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_RO_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_RO_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Fetch the STM32 firmware
+        uses: actions/download-artifact@v7
+        with:
+          name: stm32-firmware
+          path: software/stm32/build/zephyr
+
+      - name: Build image
+        run: ./build.sh
+        working-directory: software/rpi-image
+
+      - name: Verify the artefact
+        id: artefact
+        working-directory: software/rpi-image/deploy
+        run: |
+          set -euo pipefail
+          IMG="$(find . -maxdepth 1 -name '*.img.xz' -print -quit)"
+          if [ -z "$IMG" ]; then
+            echo "::error::build.sh produced no .img.xz"
+            exit 1
+          fi
+          BYTES="$(stat -c%s "$IMG")"
+          echo "Built $IMG ($((BYTES / 1024 / 1024)) MB)"
+
+          # GitHub caps a release asset at 2 GiB. The v1.2.0 asset was 1921 MB,
+          # so fail here with a clear message rather than at upload time.
+          if [ "$BYTES" -ge 2147483648 ]; then
+            echo "::error::Image is $((BYTES / 1024 / 1024)) MB, at or above GitHub's 2 GiB release asset limit"
+            exit 1
+          fi
+
+          {
+            echo "path=software/rpi-image/deploy/$(basename "$IMG")"
+            echo "name=$(basename "$IMG")"
+            echo "mb=$((BYTES / 1024 / 1024))"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload as workflow artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.artefact.outputs.name }}
+          path: ${{ steps.artefact.outputs.path }}
+          retention-days: 14
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          IMG: ${{ steps.artefact.outputs.path }}
+          IMG_NAME: ${{ steps.artefact.outputs.name }}
+          IMG_MB: ${{ steps.artefact.outputs.mb }}
+        run: |
+          set -euo pipefail
+          NOTES="$(mktemp)"
+          cat > "$NOTES" <<NOTE
+          ## Raspberry Pi SD card image
+
+          \`$IMG_NAME\` ($IMG_MB MB compressed, ~4.3 GB written)
+
+          64-bit Raspberry Pi OS with every CybICS container pre-loaded. Nothing
+          is downloaded on first boot.
+
+          ### Writing it to an SD card
+
+          Identify the card first — \`dd\` overwrites whatever you point it at,
+          and the wrong device destroys that disk:
+
+          \`\`\`
+          lsblk -dpno NAME,SIZE,MODEL
+          \`\`\`
+
+          Then, with the card unmounted and \`/dev/sdX\` replaced by the device
+          you just identified (the whole device, not a partition such as
+          \`/dev/sdX1\`):
+
+          \`\`\`
+          sudo umount /dev/sdX* 2>/dev/null; true
+          xzcat $IMG_NAME | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
+          sync && sudo eject /dev/sdX
+          \`\`\`
+
+          Writing takes a few minutes. Raspberry Pi Imager also accepts the
+          \`.img.xz\` directly under "Use custom" if you prefer a GUI.
+
+          ### First boot takes several minutes
+
+          On the first boot the device loads about 880 MB of container images
+          into Docker before anything starts. On a typical card that takes
+          **8 to 10 minutes**, and the web interface is unreachable until it
+          finishes. This happens once; later boots start in seconds.
+
+          Progress can be watched over SSH:
+
+          \`\`\`
+          ssh pi@10.0.0.1 'systemctl status cybics-first-boot'
+          \`\`\`
+
+          ### Connecting
+
+          The device brings up a WiFi access point. It is named \`cybics\` until
+          the STM32 reports its ID, then becomes \`cybics-<id>\`, so look for
+          both. Password \`1234567890\`, the device is \`10.0.0.1\`.
+
+          Login is \`pi\` / \`raspberry\`. **Change it** before putting the device
+          on any network you care about.
+          NOTE
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$IMG" --clobber
+            gh release view "$TAG" --json body -q .body > /tmp/existing || true
+            if [ ! -s /tmp/existing ]; then
+              gh release edit "$TAG" --notes-file "$NOTES"
+            fi
+          else
+            gh release create "$TAG" "$IMG" --title "$TAG" --notes-file "$NOTES"
+          fi

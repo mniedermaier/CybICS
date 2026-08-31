@@ -1,39 +1,56 @@
 services:
-  attack:
-    image: mniedermaier1337/cybicsattack:latest
+  attack-machine:
+    image: mniedermaier1337/cybics-attack-machine:${CYBICS_VERSION:-latest}
     build:
-      context: .
+      context: ../../software/attack-machine
       dockerfile: Dockerfile
-    env_file:
-      - ../../.dev.env
-      - ../../.env
+    hostname: attack-machine
+    restart: always
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      - 6081:6081
+      - 5902:5902
     volumes:
       - ../../:/CybICS
-      - ~/.ssh:/home/docker/.ssh/
-      - ~/.gitconfig:/home/docker/.gitconfig
-      - $DOCKER_ENV_DIR/.bash_history:/home/docker/.bash_history
-    user: ${HOST_UID:-1000}:${HOST_UID:-1000}
+      - ../../software/attack-machine/workspace:/root/Desktop/workspace
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.100
+    depends_on:
+      - openplc
+      - fuxa
+      - hwio
+    profiles:
+      - attack
+      - full
 
   openplc:
-    image: mniedermaier1337/cybicsopenplc:latest
+    image: mniedermaier1337/cybicsopenplc:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/OpenPLC
       dockerfile: Dockerfile
     restart: always
     privileged: true
     ports:
+      # Same protocol surface as the physical deployment: Modbus/TCP, S7comm,
+      # the web IDE, DNP3 and EtherNet/IP.  All five are enabled in the
+      # runtime's settings, so publishing only three made the virtual testbed
+      # reachable differently from the board.
       - 8080:8080
       - 502:502
       - 102:102
+      - 20000:20000
+      - 44818:44818
     networks:
       virt-cybics:
         ipv4_address: 172.18.0.3
 
   opcua:
-    image: mniedermaier1337/cybicsopcua:latest
+    image: mniedermaier1337/cybicsopcua:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/opcua
       dockerfile: Dockerfile
@@ -47,7 +64,7 @@ services:
         ipv4_address: 172.18.0.5
 
   s7com:
-    image: mniedermaier1337/cybicss7com:latest
+    image: mniedermaier1337/cybicss7com:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/s7com
       dockerfile: Dockerfile
@@ -61,7 +78,7 @@ services:
         ipv4_address: 172.18.0.6
 
   fuxa:
-    image: mniedermaier1337/cybicsfuxa:latest
+    image: mniedermaier1337/cybicsfuxa:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/FUXA
       dockerfile: Dockerfile
@@ -75,7 +92,7 @@ services:
         ipv4_address: 172.18.0.4
 
   hwio:
-    image: mniedermaier1337/cybicshwio:latest
+    image: mniedermaier1337/cybicshwio:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/hwio-virtual
       dockerfile: Dockerfile
@@ -89,7 +106,7 @@ services:
         ipv4_address: 172.18.0.2
 
   landing:
-    image: mniedermaier1337/landing:latest
+    image: mniedermaier1337/landing:${CYBICS_VERSION:-latest}
     build:
       context: ../..
       dockerfile: software/landing/Dockerfile
@@ -103,6 +120,104 @@ services:
     depends_on:
     - openplc
 
+  # Bridge-published reverse proxy that makes the host-networked landing page
+  # reachable from other systems on a port >8000 (bypasses the host firewall,
+  # which blocks the host-networked :80 while allowing Docker-published ports).
+  engineeringws:
+    image: mniedermaier1337/cybics-engineeringws:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software
+      dockerfile: engineeringWS/Dockerfile
+    restart: always
+    ports:
+      - 6080:6080
+      - 5901:5901
+    depends_on:
+    - openplc
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.10
+    profiles:
+      - engineering
+      - full
+
+  cybicsagent:
+    image: mniedermaier1337/cybicsagent:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/cybicsagent
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 5000:5000
+      - 11434:11434
+    environment:
+      # Recommended models: phi3:mini (balanced), llama3.2:3b (quality), mistral:7b (best)
+      # Model will be downloaded on first use if not already cached
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-phi3:mini}
+      - OLLAMA_HOST=http://localhost:11434
+    volumes:
+      - ../../training:/knowledge/training:ro
+      - ../../README.md:/knowledge/README.md:ro
+      - ../../doc:/knowledge/doc:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ollama_models:/root/.ollama
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.11
+    profiles:
+      - ai
+      - full
+
+  # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
+  # that reaches the host-networked landing service from other machines even
+  # behind a host firewall, 443 adds HTTPS. These were two containers before.
+  nginx-proxy:
+    image: mniedermaier1337/cybics-nginx-proxy:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/nginx-proxy
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8082:80
+      - 443:443
+      # One TLS port per embedded service (service port + 10000): an http://
+      # iframe inside the https:// dashboard is mixed content and gets blocked.
+      - 11881:11881
+      - 16080:16080
+      - 16081:16081
+      - 18080:18080
+      - 18090:18090
+      - 18443:18443
+    extra_hosts:
+      - "hostnet:host-gateway"
+    depends_on:
+      - landing
+    volumes:
+      - nginx-certs:/etc/nginx/certs
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.12
+
+  ids:
+    image: mniedermaier1337/cybics-ids:${CYBICS_VERSION:-latest}
+    build:
+      context: ../../software/ids
+      dockerfile: Dockerfile
+    restart: always
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - openplc
+
+volumes:
+  nginx-certs:
+  ollama_models:
+
 networks:
   virt-cybics:
     driver: bridge
@@ -111,4 +226,5 @@ networks:
       config:
         - subnet: 172.18.0.0/24
           gateway: 172.18.0.1
+
 

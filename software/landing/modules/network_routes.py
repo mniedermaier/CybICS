@@ -47,7 +47,7 @@ def register_network_routes(app, network_capture):
             return jsonify(interfaces_list)
         except Exception as e:
             logger.error(f"Error getting network interfaces: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
     @app.route('/api/network/start', methods=['POST'])
     def start_network_capture():
@@ -70,7 +70,7 @@ def register_network_routes(app, network_capture):
 
         except Exception as e:
             logger.error(f"Error starting network capture: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
     @app.route('/api/network/stop', methods=['POST'])
     def stop_network_capture():
@@ -82,7 +82,7 @@ def register_network_routes(app, network_capture):
             return jsonify({'success': True, 'message': 'Capture stopped', 'stats': stats})
         except Exception as e:
             logger.error(f"Error stopping network capture: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
     @app.route('/api/network/packets')
     def get_network_packets():
@@ -100,7 +100,7 @@ def register_network_routes(app, network_capture):
             return jsonify({'packets': packets_for_json})
         except Exception as e:
             logger.error(f"Error getting network packets: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
     @app.route('/api/network/clear', methods=['POST'])
     def clear_network_capture():
@@ -110,7 +110,7 @@ def register_network_routes(app, network_capture):
             return jsonify({'success': True, 'message': 'Packets cleared'})
         except Exception as e:
             logger.error(f"Error clearing network packets: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
     @app.route('/api/network/stats')
     def get_network_stats():
@@ -120,7 +120,7 @@ def register_network_routes(app, network_capture):
             return jsonify(stats)
         except Exception as e:
             logger.error(f"Error getting network stats: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
     @app.route('/api/network/export')
     def export_network_capture():
@@ -179,7 +179,7 @@ def register_network_routes(app, network_capture):
             )
         except Exception as e:
             logger.error(f"Error exporting network capture: {e}", exc_info=True)
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'An internal error occurred'}), 500
 
 def _reconstruct_packet_data(packet):
     """Reconstruct minimal packet data from parsed information"""

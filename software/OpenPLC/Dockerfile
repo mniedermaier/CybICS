@@ -4,7 +4,9 @@ COPY ./OpenPLC_v3/ /CybICS/OpenPLC_v3/
 WORKDIR /CybICS/OpenPLC_v3/
 RUN export GNUMAKEFLAGS=-j$(nproc --all) \
     && alias make='make -j$(nproc --all)' \
-    && ./install.sh docker
+    && ./install.sh docker \
+    && apt-get update && apt-get install -y --no-install-recommends iptables \
+    && rm -rf /var/lib/apt/lists/*
 
 # copy files after compile the main part to reduce re-compile time on changes on cybICS.st
 WORKDIR /CybICS/OpenPLC_v3/webserver

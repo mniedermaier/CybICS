@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Change to script directory (repository root)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || {
+    echo "Error: Failed to change to script directory"
+    exit 1
+}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -30,14 +37,25 @@ print_message() {
 
 # Function to show help message
 show_help() {
-    echo "Usage: $0 {start|stop|restart|status|logs|clean|compose}"
+    echo "Usage: $0 {start|stop|restart|status|logs|update|clean|compose} [--mode <mode>] [--version <tag>]"
+    echo ""
+    echo "Commands:"
     echo "  start   - Start the CybICS virtual environment"
     echo "  stop    - Stop the CybICS virtual environment"
     echo "  restart - Restart the CybICS virtual environment"
     echo "  status  - Show status of all services"
     echo "  logs    - Show logs from all services"
+    echo "  update  - Pull latest Docker images for all services"
     echo "  clean   - Remove all CybICS containers, images, and volumes"
     echo "  compose - Directly interact with docker compose (e.g., $0 compose ps)"
+    echo ""
+    echo "Options:"
+    echo "  --mode <mode>    - Specify startup mode (default: full)"
+    echo "                     minimal   - Core services only (OpenPLC, FUXA, HWIO, OPC UA, S7, Landing, TLS Proxy)"
+    echo "                     full      - All services including AI Agent, Engineering WS, Attack Machine"
+    echo "                     withoutai - All services except AI Agent"
+    echo "  --version <tag>  - Specify Docker image version tag (default: latest)"
+    echo "                     Examples: --version 1.0.0, --version abc1234, --version latest"
     exit 1
 }
 
@@ -60,6 +78,13 @@ if docker compose version &> /dev/null; then
     DOCKER_COMPOSE="docker compose"
 else
     DOCKER_COMPOSE="docker-compose"
+fi
+
+# Auto-detect NVIDIA GPU and set COMPOSE_FILE to include GPU override
+if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null \
+    && docker info 2>/dev/null | grep -qi nvidia; then
+    print_message "NVIDIA GPU detected — enabling GPU acceleration for AI agent" "$GREEN"
+    export COMPOSE_FILE="docker-compose.yml:docker-compose.gpu.yml"
 fi
 
 # Function to check if Docker is running
@@ -189,25 +214,54 @@ handle_network_overlap() {
     return 1
 }
 
+# Function to display available services based on mode
+display_services() {
+    print_message "CybICS virtual environment started successfully!" "$GREEN"
+    print_message "\nAvailable services:" "$YELLOW"
+    print_message "Landing page: http://localhost:80" "$GREEN"
+    print_message "Landing page (remote access): http://<host-ip>:8082" "$GREEN"
+    print_message "Landing page (TLS): https://localhost:443" "$GREEN"
+    print_message "  (self-signed certificate; embedded service views are proxied on their service port + 10000)" "$YELLOW"
+    print_message "OpenPLC: http://localhost:8080" "$GREEN"
+    print_message "FUXA: http://localhost:1881" "$GREEN"
+    print_message "HWIO: http://localhost:8090" "$GREEN"
+
+    # Display optional services based on mode
+    if [[ "$CYBICS_MODE" == "full" || "$CYBICS_MODE" == "withoutai" ]]; then
+        print_message "Engineering Workstation (VNC): http://localhost:6080/vnc.html" "$GREEN"
+        print_message "Attack Machine (VNC): http://localhost:6081/vnc.html" "$GREEN"
+    fi
+
+    print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
+    print_message "S7 Communication: localhost:102" "$GREEN"
+
+    if [[ "$CYBICS_MODE" == "full" ]]; then
+        print_message "CybICS AI Agent: Available via Landing Page" "$GREEN"
+    fi
+}
+
 # Function to start the environment
 start_environment() {
     print_message "Starting CybICS virtual environment..." "$YELLOW"
-    cd .devcontainer/virtual
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
 
-    # Capture both stdout and stderr
+    # Pull images first with visible progress
+    print_message "Pulling Docker images (this may take a while on first run)..." "$YELLOW"
+    if ! $DOCKER_COMPOSE pull; then
+        print_message "Warning: Some images could not be pulled. Continuing with available images..." "$YELLOW"
+    fi
+
+    # Start containers (capture output for error handling)
+    print_message "Starting containers..." "$YELLOW"
     local output
     output=$($DOCKER_COMPOSE up -d 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
-        print_message "CybICS virtual environment started successfully!" "$GREEN"
-        print_message "\nAvailable services:" "$YELLOW"
-        print_message "Landing page: http://localhost:80" "$GREEN"
-        print_message "OpenPLC: http://localhost:8080" "$GREEN"
-        print_message "FUXA: http://localhost:1881" "$GREEN"
-        print_message "HWIO: http://localhost:8090" "$GREEN"
-        print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
-        print_message "S7 Communication: localhost:102" "$GREEN"
+        display_services
     else
         echo "$output"
 
@@ -216,14 +270,7 @@ start_environment() {
             print_message "\nRetrying startup..." "$YELLOW"
             $DOCKER_COMPOSE up -d
             if [ $? -eq 0 ]; then
-                print_message "CybICS virtual environment started successfully!" "$GREEN"
-                print_message "\nAvailable services:" "$YELLOW"
-                print_message "Landing page: http://localhost:80" "$GREEN"
-                print_message "OpenPLC: http://localhost:8080" "$GREEN"
-                print_message "FUXA: http://localhost:1881" "$GREEN"
-                print_message "HWIO: http://localhost:8090" "$GREEN"
-                print_message "OPC UA: opc.tcp://localhost:4840" "$GREEN"
-                print_message "S7 Communication: localhost:102" "$GREEN"
+                display_services
                 return
             fi
         fi
@@ -236,7 +283,10 @@ start_environment() {
 # Function to stop the environment
 stop_environment() {
     print_message "Stopping CybICS virtual environment..." "$YELLOW"
-    cd .devcontainer/virtual
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
     $DOCKER_COMPOSE down
     if [ $? -eq 0 ]; then
         print_message "CybICS virtual environment stopped successfully!" "$GREEN"
@@ -249,21 +299,30 @@ stop_environment() {
 # Function to show status
 show_status() {
     print_message "Checking CybICS virtual environment status..." "$YELLOW"
-    cd .devcontainer/virtual
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
     $DOCKER_COMPOSE ps
 }
 
 # Function to show logs
 show_logs() {
     print_message "Showing logs for CybICS virtual environment..." "$YELLOW"
-    cd .devcontainer/virtual
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
     $DOCKER_COMPOSE logs -f
 }
 
 # Function to remove all CybICS containers
 remove_containers() {
     print_message "Removing all CybICS containers..." "$YELLOW"
-    cd .devcontainer/virtual
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
     $DOCKER_COMPOSE down --rmi all --volumes --remove-orphans
     if [ $? -eq 0 ]; then
         print_message "All CybICS containers, images, and volumes removed successfully!" "$GREEN"
@@ -275,8 +334,29 @@ remove_containers() {
 
 # Function to directly interact with docker compose
 direct_compose() {
-    cd .devcontainer/virtual
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
     $DOCKER_COMPOSE "$@"
+}
+
+# Function to update (pull latest images)
+update_images() {
+    print_message "Pulling latest CybICS Docker images..." "$YELLOW"
+    cd "$SCRIPT_DIR/.devcontainer/virtual" || {
+        print_message "Error: Cannot access .devcontainer/virtual directory" "$RED"
+        exit 1
+    }
+    $DOCKER_COMPOSE pull
+    if [ $? -eq 0 ]; then
+        print_message "CybICS Docker images updated successfully!" "$GREEN"
+        print_message "\nTo apply updates, restart the environment with:" "$YELLOW"
+        print_message "  ./cybics.sh restart" "$BLUE"
+    else
+        print_message "Error: Failed to pull CybICS Docker images." "$RED"
+        exit 1
+    fi
 }
 
 # Main script
@@ -285,7 +365,81 @@ check_docker
 ensure_env_files
 print_message "Using Docker Compose command: $DOCKER_COMPOSE" "$YELLOW"
 
-case "$1" in
+# Parse arguments for version and mode options
+CYBICS_VERSION="latest"
+CYBICS_MODE="full"
+COMMAND=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                CYBICS_VERSION="$2"
+                shift 2
+            else
+                print_message "Error: --version requires a tag argument" "$RED"
+                show_help
+            fi
+            ;;
+        --mode)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                CYBICS_MODE="$2"
+                if [[ "$CYBICS_MODE" != "minimal" && "$CYBICS_MODE" != "full" && "$CYBICS_MODE" != "withoutai" ]]; then
+                    print_message "Error: Invalid mode '$CYBICS_MODE'. Must be: minimal, full, or withoutai" "$RED"
+                    show_help
+                fi
+                shift 2
+            else
+                print_message "Error: --mode requires an argument" "$RED"
+                show_help
+            fi
+            ;;
+        start|stop|restart|status|logs|update|clean|compose)
+            COMMAND="$1"
+            shift
+            # For 'compose' command, save remaining arguments
+            if [[ "$COMMAND" == "compose" ]]; then
+                COMPOSE_ARGS="$@"
+                break
+            fi
+            ;;
+        *)
+            if [[ -z "$COMMAND" ]]; then
+                show_help
+            else
+                # Unknown option after command
+                print_message "Error: Unknown option: $1" "$RED"
+                show_help
+            fi
+            ;;
+    esac
+done
+
+# Export version for docker-compose
+export CYBICS_VERSION
+
+# Set COMPOSE_PROFILES based on mode
+case "$CYBICS_MODE" in
+    "minimal")
+        export COMPOSE_PROFILES=""
+        ;;
+    "full")
+        export COMPOSE_PROFILES="full,attack,engineering,ai"
+        ;;
+    "withoutai")
+        export COMPOSE_PROFILES="attack,engineering"
+        ;;
+esac
+
+if [[ "$CYBICS_VERSION" != "latest" ]]; then
+    print_message "Using Docker image version: $CYBICS_VERSION" "$BLUE"
+fi
+
+if [[ "$CYBICS_MODE" != "full" ]]; then
+    print_message "Using startup mode: $CYBICS_MODE" "$BLUE"
+fi
+
+case "$COMMAND" in
     "start")
         start_environment
         ;;
@@ -302,12 +456,14 @@ case "$1" in
     "logs")
         show_logs
         ;;
+    "update")
+        update_images
+        ;;
     "clean")
         remove_containers
         ;;
     "compose")
-        shift  # Remove the 'compose' argument
-        direct_compose "$@"
+        direct_compose $COMPOSE_ARGS
         ;;
     *)
         show_help

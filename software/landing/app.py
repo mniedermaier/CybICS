@@ -2,7 +2,8 @@
 CybICS - Industrial Control Systems Training Platform
 Main Flask Application (Refactored)
 """
-from flask import Flask, render_template, jsonify, request, session, send_from_directory
+from flask import Flask, render_template, jsonify, request, session, send_from_directory, abort
+from werkzeug.utils import safe_join
 import os
 import sys
 
@@ -75,11 +76,29 @@ def favicon():
         mimetype='image/x-icon'
     )
 
+@app.route('/pics/<path:filename>')
+def serve_pics(filename):
+    """Serve images from pics folder"""
+    return send_from_directory(
+        os.path.join(app.root_path, 'pics'),
+        filename
+    )
+
 @app.route('/')
 def main_page():
     """Main dashboard page"""
     logger.info('Rendering main dashboard')
-    return render_template('index.html', services=SERVICES)
+    current_progress = get_current_progress()
+    first_challenge_id = None
+    for category in ctf_manager.challenges.values():
+        if category.get('challenges'):
+            first_challenge_id = category['challenges'][0]['id']
+            break
+    first_challenge_solved = first_challenge_id in current_progress['solved_challenges']
+    return render_template('index.html', services=SERVICES, access_info=ACCESS_INFO, purdue_levels=PURDUE_LEVELS,
+                           github_url='https://github.com/mniedermaier/CybICS',
+                           first_challenge_id=first_challenge_id,
+                           first_challenge_solved=first_challenge_solved)
 
 @app.route('/api/services')
 def get_services():
@@ -103,7 +122,7 @@ def get_stats():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting stats: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/stats/history')
 def get_stats_history():
@@ -114,7 +133,7 @@ def get_stats_history():
         return jsonify(history)
     except Exception as e:
         logger.error(f"Error getting stats history: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 # ========== NETWORK ANALYZER ROUTES ==========
 
@@ -135,43 +154,173 @@ def webshell_page():
     logger.info('Rendering webshell page')
     return render_template('webshell.html')
 
+# ---------- WebShell background job registry ----------
+# Commands run as tracked background jobs so long-running scans (e.g. a full
+# `nmap -sV`) survive the user navigating away from the webshell page and back.
+# The page starts a job, then polls for incremental output by job id.
+import threading  # noqa: E402
+import uuid  # noqa: E402
+import time  # noqa: E402
+import signal  # noqa: E402
+import subprocess  # noqa: E402
+
+_WEBSHELL_JOB_TTL = 30 * 60          # keep finished jobs 30 min for late reattach
+_WEBSHELL_MAX_JOBS = 40              # cap registry size
+_WEBSHELL_MAX_OUTPUT = 512 * 1024    # cap captured output per job (bytes) -> ~0.5MB
+
+_webshell_jobs = {}
+_webshell_jobs_lock = threading.Lock()
+
+
+class WebShellJob:
+    """A single background command execution with incrementally captured output."""
+
+    def __init__(self, command):
+        self.id = uuid.uuid4().hex[:12]
+        self.command = command
+        self.output = ''
+        self.truncated = False
+        self.running = True
+        self.exit_code = None
+        self.proc = None
+        self.started_at = time.time()
+        self.finished_at = None
+        self.lock = threading.Lock()
+
+    def append(self, text):
+        with self.lock:
+            if self.truncated:
+                return
+            room = _WEBSHELL_MAX_OUTPUT - len(self.output)
+            if len(text) > room:
+                self.output += text[:room] + '\n[output truncated]\n'
+                self.truncated = True
+            else:
+                self.output += text
+
+
+def _run_webshell_job(job):
+    """Run the job's command, streaming combined stdout/stderr into its buffer."""
+    try:
+        # Intentional: webshell provides command execution for CTF training.
+        # start_new_session lets us signal the whole process group on kill.
+        proc = subprocess.Popen(
+            job.command,  # nosec - intentional command execution for CTF webshell
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            cwd=os.path.expanduser('~'),
+            start_new_session=True,
+        )
+        job.proc = proc
+        for line in iter(proc.stdout.readline, ''):
+            job.append(line)
+        proc.stdout.close()
+        proc.wait()
+        exit_code = proc.returncode
+    except Exception as e:
+        logger.error(f'Error running webshell job: {e}', exc_info=True)
+        job.append(f'\n[error] {e}\n')
+        exit_code = -1
+    finally:
+        with job.lock:
+            job.exit_code = exit_code
+            job.running = False
+            job.finished_at = time.time()
+
+
+def _prune_webshell_jobs():
+    """Drop expired finished jobs and cap the registry size."""
+    now = time.time()
+    with _webshell_jobs_lock:
+        for jid in [j.id for j in _webshell_jobs.values()
+                    if not j.running and j.finished_at
+                    and now - j.finished_at > _WEBSHELL_JOB_TTL]:
+            _webshell_jobs.pop(jid, None)
+        if len(_webshell_jobs) > _WEBSHELL_MAX_JOBS:
+            finished = sorted(
+                [j for j in _webshell_jobs.values() if not j.running],
+                key=lambda j: j.finished_at or 0)
+            for j in finished[:len(_webshell_jobs) - _WEBSHELL_MAX_JOBS]:
+                _webshell_jobs.pop(j.id, None)
+
+
 @app.route('/api/webshell/execute', methods=['POST'])
 def execute_command():
-    """Execute a shell command and return the output"""
-    import subprocess
-    data = request.get_json()
-    command = data.get('command', '').strip()
+    """Start a shell command as a background job and return its job id."""
+    data = request.get_json(silent=True) or {}
+    command = (data.get('command') or '').strip()
 
     if not command:
         return jsonify({'success': False, 'output': 'No command provided'}), 400
 
-    logger.info(f'Executing webshell command: {command}')
+    logger.info(f'Starting webshell command: {command}')
+    _prune_webshell_jobs()
 
-    try:
-        # Execute the command without timeout
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=os.path.expanduser('~')
-        )
+    job = WebShellJob(command)
+    with _webshell_jobs_lock:
+        _webshell_jobs[job.id] = job
+    threading.Thread(target=_run_webshell_job, args=(job,), daemon=True).start()
 
-        output = result.stdout
-        if result.stderr:
-            output += '\n' + result.stderr
+    return jsonify({'success': True, 'job_id': job.id, 'command': command})
 
+
+@app.route('/api/webshell/jobs', methods=['GET'])
+def list_webshell_jobs():
+    """List known jobs so a returning page can reattach to a running scan."""
+    _prune_webshell_jobs()
+    with _webshell_jobs_lock:
+        jobs = sorted(_webshell_jobs.values(), key=lambda j: j.started_at)
+        payload = [{
+            'job_id': j.id,
+            'command': j.command,
+            'running': j.running,
+            'exit_code': j.exit_code,
+            'started_at': j.started_at,
+        } for j in jobs]
+    return jsonify({'success': True, 'jobs': payload})
+
+
+@app.route('/api/webshell/jobs/<job_id>', methods=['GET'])
+def get_webshell_job(job_id):
+    """Return incremental output for a job from the given byte offset."""
+    offset = request.args.get('offset', default=0, type=int) or 0
+    with _webshell_jobs_lock:
+        job = _webshell_jobs.get(job_id)
+    if job is None:
+        return jsonify({'success': False, 'error': 'unknown job'}), 404
+
+    with job.lock:
+        if offset < 0 or offset > len(job.output):
+            offset = 0
+        chunk = job.output[offset:]
         return jsonify({
             'success': True,
-            'output': output,
-            'exit_code': result.returncode
+            'job_id': job.id,
+            'command': job.command,
+            'chunk': chunk,
+            'offset': offset + len(chunk),
+            'running': job.running,
+            'exit_code': job.exit_code,
         })
-    except Exception as e:
-        logger.error(f'Error executing command: {e}', exc_info=True)
-        return jsonify({
-            'success': False,
-            'output': f'Error: {str(e)}'
-        }), 500
+
+
+@app.route('/api/webshell/jobs/<job_id>/kill', methods=['POST'])
+def kill_webshell_job(job_id):
+    """Terminate a running job's process group."""
+    with _webshell_jobs_lock:
+        job = _webshell_jobs.get(job_id)
+    if job is None:
+        return jsonify({'success': False, 'error': 'unknown job'}), 404
+
+    if job.running and job.proc is not None:
+        try:
+            os.killpg(os.getpgid(job.proc.pid), signal.SIGTERM)
+        except Exception as e:
+            logger.warning(f'Failed to kill webshell job {job_id}: {e}')
+    return jsonify({'success': True})
 
 # ========== CTF ROUTES ==========
 
@@ -198,7 +347,7 @@ def challenge_detail(challenge_id):
         logger.warning(f'Challenge not found: {challenge_id}')
         return "Challenge not found", 404
 
-    # Load training content if available
+    # Load training content
     training_content = ""
     if 'training_content' in challenge:
         training_content = ctf_manager.load_markdown_content(challenge['training_content'])
@@ -207,7 +356,38 @@ def challenge_detail(challenge_id):
                          challenge=challenge,
                          category=category,
                          training_content=training_content,
-                         solved=challenge_id in session['solved_challenges'])
+                         solved=challenge_id in session['solved_challenges'],
+                         challenge_type=challenge.get('type', 'offensive'))
+
+@app.route('/ctf/verify/<challenge_id>', methods=['POST'])
+def verify_defense(challenge_id):
+    """Verify a defense challenge and auto-submit flag on success"""
+    initialize_session()
+
+    current_progress = get_current_progress()
+
+    # Check if already solved
+    if challenge_id in current_progress.get('solved_challenges', []):
+        return jsonify({'success': True, 'message': 'Challenge already solved!', 'checks': []})
+
+    # Run verification
+    result = ctf_manager.verify_defense(challenge_id)
+
+    # If verification passed, auto-submit the flag
+    if result.get('success') and result.get('flag'):
+        submit_result = ctf_manager.submit_flag(challenge_id, result['flag'], current_progress)
+        if submit_result['success']:
+            session['solved_challenges'].append(challenge_id)
+            session['total_points'] += submit_result['points']
+            session.modified = True
+            ctf_manager.save_progress({
+                'solved_challenges': session['solved_challenges'],
+                'total_points': session['total_points']
+            })
+            result['points'] = submit_result['points']
+            result['message'] = f"{result['message']} You earned {submit_result['points']} points!"
+
+    return jsonify(result)
 
 @app.route('/ctf/submit', methods=['POST'])
 def submit_flag():
@@ -242,6 +422,7 @@ def ctf_progress():
     initialize_session()
     current_progress = get_current_progress()
     stats = ctf_manager.get_progress_stats(current_progress)
+    stats['solved_challenge_ids'] = current_progress['solved_challenges']
     return jsonify(stats)
 
 @app.route('/ctf/reset', methods=['POST'])
@@ -271,33 +452,563 @@ def serve_training_file(filename):
 @app.route('/ctf/challenge/<challenge_id>/<path:filename>')
 def serve_challenge_asset(challenge_id, filename):
     """Serve challenge assets like images"""
-    training_dir = os.path.join(TRAINING_DIR, challenge_id)
-    return send_from_directory(training_dir, filename)
+    safe_challenge_dir = safe_join(TRAINING_DIR, challenge_id)
+    if safe_challenge_dir is None:
+        abort(400)
+    resolved = os.path.realpath(safe_challenge_dir)
+    if not resolved.startswith(os.path.realpath(TRAINING_DIR)):
+        abort(400)
+    return send_from_directory(resolved, filename)
 
 @app.route('/ctf/challenge/doc/<path:filename>')
 def serve_challenge_doc_asset(filename):
     """Serve challenge doc assets like images from doc/ folder"""
+    # Sanitize filename to prevent directory traversal
+    safe_filename = os.path.basename(filename)
+
     # Check the referer header to determine which challenge we're in
     referer = request.headers.get('Referer', '')
     if '/ctf/challenge/' in referer:
         challenge_id = referer.split('/ctf/challenge/')[-1].split('/')[0].split('?')[0]
-        doc_path = os.path.join(TRAINING_DIR, challenge_id, 'doc')
-        try:
-            return send_from_directory(doc_path, filename)
-        except:
-            pass
+        safe_doc_path = safe_join(TRAINING_DIR, challenge_id, 'doc')
+        if safe_doc_path is not None:
+            resolved = os.path.realpath(safe_doc_path)
+            if resolved.startswith(os.path.realpath(TRAINING_DIR)):
+                try:
+                    return send_from_directory(resolved, safe_filename)
+                except:
+                    pass
 
     # Fallback: try to find the file in any training directory's doc folder
     for challenge_dir in os.listdir(TRAINING_DIR):
         doc_path = os.path.join(TRAINING_DIR, challenge_dir, 'doc')
         if os.path.isdir(doc_path):
+            resolved = os.path.realpath(doc_path)
+            if not resolved.startswith(os.path.realpath(TRAINING_DIR)):
+                continue
             try:
-                return send_from_directory(doc_path, filename)
+                return send_from_directory(resolved, safe_filename)
             except:
                 continue
 
     logger.warning(f'Doc asset not found: {filename}')
     return "File not found", 404
+
+# ========== SETTINGS ROUTES ==========
+
+@app.route('/api/settings/theme', methods=['GET', 'POST'])
+def theme_settings():
+    """Get or set theme preference"""
+    if request.method == 'POST':
+        data = request.get_json()
+        theme = data.get('theme', 'dark')
+        session['theme'] = theme
+        session.modified = True
+        logger.info(f'Theme changed to: {theme}')
+        return jsonify({'success': True, 'theme': theme})
+    else:
+        theme = session.get('theme', 'dark')
+        return jsonify({'theme': theme})
+
+@app.route('/api/settings/logs/download')
+def download_logs():
+    """Download docker logs from all CybICS containers"""
+    import subprocess
+    import tempfile
+    from datetime import datetime
+    import socket
+
+    try:
+        logger.info('Generating docker logs')
+
+        # Get current container's hostname (which is the container ID)
+        hostname = socket.gethostname()
+        logger.info(f'Current container hostname: {hostname}')
+
+        # Get the docker-compose project name from our own container
+        inspect_result = subprocess.run(
+            ['docker', 'inspect', '--format', '{{index .Config.Labels "com.docker.compose.project"}}', hostname],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        project_name = inspect_result.stdout.strip()
+        if not project_name or inspect_result.returncode != 0:
+            logger.warning(f'Could not detect compose project name, using hostname: {hostname}')
+            # Fallback: try to detect from container name patterns
+            project_name = None
+
+        # Get list of all CybICS containers using docker-compose label
+        if project_name:
+            logger.info(f'Using docker-compose project: {project_name}')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--filter', f'label=com.docker.compose.project={project_name}', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+        else:
+            logger.info('Using all containers as fallback')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+        if ps_result.returncode != 0:
+            logger.error(f'Failed to list containers: {ps_result.stderr}')
+            return jsonify({'error': 'Failed to list containers'}), 500
+
+        containers = [c for c in ps_result.stdout.strip().split('\n') if c]
+
+        if not containers:
+            logger.warning('No containers found')
+            return jsonify({'error': 'No containers found'}), 404
+
+        logger.info(f'Found {len(containers)} containers: {containers}')
+
+        # Get container versions
+        container_versions = {}
+        for container in containers:
+            version_result = subprocess.run(
+                ['docker', 'inspect', '--format', '{{.Config.Image}}', container],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if version_result.returncode == 0:
+                container_versions[container] = version_result.stdout.strip()
+            else:
+                container_versions[container] = 'unknown'
+
+        # Collect logs from all containers
+        all_logs = []
+        for container in containers:
+            logs_result = subprocess.run(
+                ['docker', 'logs', '--timestamps', container],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            all_logs.append(f"{'='*80}\nContainer: {container}\n{'='*80}\n{logs_result.stdout}")
+            if logs_result.stderr:
+                all_logs.append(f"\nSTDERR:\n{logs_result.stderr}")
+            all_logs.append(f"\n\n")
+
+        # Create a temporary file with logs
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'cybics_logs_{timestamp}.txt'
+
+        # Write logs to temporary file
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            f.write(f"CybICS Docker Logs\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Containers: {len(containers)}\n")
+            f.write("="*80 + "\n\n")
+
+            # Write container versions
+            f.write("CONTAINER VERSIONS\n")
+            f.write("="*80 + "\n")
+            for container, version in sorted(container_versions.items()):
+                f.write(f"{container}: {version}\n")
+            f.write("="*80 + "\n\n")
+
+            f.write('\n'.join(all_logs))
+            temp_path = f.name
+
+        # Send file
+        from flask import send_file
+        return send_file(
+            temp_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/plain'
+        )
+    except subprocess.TimeoutExpired:
+        logger.error('Docker compose logs command timed out')
+        return jsonify({'error': 'Logs generation timed out'}), 500
+    except Exception as e:
+        logger.error(f'Error generating logs: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/settings/system/info')
+def system_info():
+    """Get system information for settings panel"""
+    import subprocess
+    import platform
+
+    try:
+        # Get docker version
+        docker_version = subprocess.run(
+            ['docker', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        ).stdout.strip()
+
+        # Get docker compose version
+        compose_version = subprocess.run(
+            ['docker', 'compose', 'version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        ).stdout.strip()
+
+        # Get running containers count
+        containers_result = subprocess.run(
+            ['docker', 'ps', '-q'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        container_count = len([line for line in containers_result.stdout.strip().split('\n') if line])
+
+        return jsonify({
+            'platform': platform.system(),
+            'python_version': platform.python_version(),
+            'docker_version': docker_version,
+            'compose_version': compose_version,
+            'running_containers': container_count
+        })
+    except Exception as e:
+        logger.error(f'Error getting system info: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/settings/containers/restart', methods=['POST'])
+def restart_containers():
+    """Restart all CybICS docker containers"""
+    import subprocess
+    import socket
+
+    try:
+        logger.info('Restarting CybICS docker containers')
+
+        # Get current container's hostname (which is the container ID)
+        hostname = socket.gethostname()
+        logger.info(f'Current container hostname: {hostname}')
+
+        # Get the docker-compose project name from our own container
+        inspect_result = subprocess.run(
+            ['docker', 'inspect', '--format', '{{index .Config.Labels "com.docker.compose.project"}}', hostname],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        project_name = inspect_result.stdout.strip()
+        if not project_name or inspect_result.returncode != 0:
+            logger.warning(f'Could not detect compose project name')
+            project_name = None
+
+        # Get list of all CybICS containers using docker-compose label
+        if project_name:
+            logger.info(f'Using docker-compose project: {project_name}')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--filter', f'label=com.docker.compose.project={project_name}', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+        else:
+            logger.info('Using all containers as fallback')
+            ps_result = subprocess.run(
+                ['docker', 'ps', '--format', '{{.Names}}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+        if ps_result.returncode != 0:
+            logger.error(f'Failed to list containers: {ps_result.stderr}')
+            return jsonify({'error': 'Failed to list containers'}), 500
+
+        containers = [c for c in ps_result.stdout.strip().split('\n') if c]
+
+        if not containers:
+            logger.warning('No containers found')
+            return jsonify({'error': 'No containers found'}), 404
+
+        logger.info(f'Restarting {len(containers)} containers: {containers}')
+
+        # Restart each container
+        failed_containers = []
+        for container in containers:
+            result = subprocess.run(
+                ['docker', 'restart', container],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            if result.returncode != 0:
+                logger.error(f'Failed to restart {container}: {result.stderr}')
+                failed_containers.append(container)
+
+        if failed_containers:
+            logger.error(f'Failed to restart some containers: {failed_containers}')
+            return jsonify({
+                'success': False,
+                'error': f'Failed to restart: {", ".join(failed_containers)}'
+            }), 500
+
+        logger.info('All containers restarted successfully')
+        return jsonify({
+            'success': True,
+            'message': f'Successfully restarted {len(containers)} containers'
+        })
+
+    except subprocess.TimeoutExpired:
+        logger.error('Container restart timed out')
+        return jsonify({'error': 'Restart operation timed out'}), 500
+    except Exception as e:
+        logger.error(f'Error restarting containers: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/settings/agent', methods=['GET', 'POST'])
+def agent_settings():
+    """Get or set agent enabled preference"""
+    if request.method == 'POST':
+        data = request.get_json()
+        enabled = data.get('enabled', True)
+        session['agent_enabled'] = enabled
+        session.modified = True
+        logger.info(f'Agent {"enabled" if enabled else "disabled"}')
+        return jsonify({'success': True, 'enabled': enabled})
+    else:
+        enabled = session.get('agent_enabled', True)
+        return jsonify({'enabled': enabled})
+
+@app.route('/api/agent/chat', methods=['POST'])
+def agent_chat():
+    """Proxy chat messages to the AI agent"""
+    import requests
+
+    # Check if agent is enabled
+    if not session.get('agent_enabled', True):
+        return jsonify({'error': 'Agent is disabled'}), 403
+
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        session_id = data.get('session_id')
+
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+
+        # Forward to agent service with session_id
+        agent_url = 'http://172.18.0.11:5000/api/chat'
+        payload = {'message': message}
+        if session_id:
+            payload['session_id'] = session_id
+
+        response = requests.post(
+            agent_url,
+            json=payload,
+            timeout=600
+        )
+
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Agent service error'}), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent request timed out')
+        return jsonify({'error': 'Request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error communicating with agent: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/agent/chat/stream', methods=['POST'])
+def agent_chat_stream():
+    """Proxy streaming chat to the AI agent via SSE"""
+    import requests as req_lib
+    from flask import Response
+
+    if not session.get('agent_enabled', True):
+        return jsonify({'error': 'Agent is disabled'}), 403
+
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        session_id = data.get('session_id')
+
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+
+        agent_url = 'http://172.18.0.11:5000/api/chat/stream'
+        payload = {'message': message}
+        if session_id:
+            payload['session_id'] = session_id
+
+        upstream = req_lib.post(
+            agent_url,
+            json=payload,
+            stream=True,
+            timeout=600
+        )
+
+        if upstream.status_code != 200:
+            return jsonify({'error': 'Agent service error'}), upstream.status_code
+
+        def generate():
+            for chunk in upstream.iter_content(chunk_size=None):
+                if chunk:
+                    yield chunk
+
+        return Response(
+            generate(),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+            }
+        )
+
+    except req_lib.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service for streaming')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error in stream proxy: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/agent/status', methods=['GET'])
+def agent_status():
+    """Check if agent is available and enabled"""
+    import requests
+
+    enabled = session.get('agent_enabled', True)
+
+    if not enabled:
+        return jsonify({
+            'available': False,
+            'enabled': False,
+            'message': 'Agent is disabled in settings'
+        })
+
+    try:
+        # Check if agent service is responding
+        agent_url = 'http://172.18.0.11:5000/health'
+        response = requests.get(agent_url, timeout=5)
+
+        if response.status_code == 200:
+            agent_info = response.json()
+            return jsonify({
+                'available': True,
+                'enabled': True,
+                'status': agent_info.get('status', 'unknown'),
+                'model': agent_info.get('model', 'unknown')
+            })
+        else:
+            return jsonify({
+                'available': False,
+                'enabled': True,
+                'message': 'Agent service not responding'
+            })
+
+    except Exception as e:
+        logger.error(f'Error checking agent status: {str(e)}')
+        return jsonify({
+            'available': False,
+            'enabled': True,
+            'message': 'Agent service unavailable'
+        })
+
+@app.route('/api/agent/model', methods=['GET'])
+def get_agent_model():
+    """Get current agent model and available models"""
+    import requests
+
+    try:
+        agent_url = 'http://172.18.0.11:5000/api/model'
+        response = requests.get(agent_url, timeout=5)
+
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Failed to get model info'}), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent model request timed out')
+        return jsonify({'error': 'Request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error getting agent model: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/agent/model', methods=['POST'])
+def set_agent_model():
+    """Change the agent model"""
+    import requests
+
+    try:
+        data = request.get_json()
+        model = data.get('model', '')
+
+        if not model:
+            return jsonify({'error': 'No model specified'}), 400
+
+        logger.info(f'Changing agent model to: {model}')
+
+        agent_url = 'http://172.18.0.11:5000/api/model'
+        # Use 30 minute timeout to allow for large model downloads (up to 4.7GB)
+        # On slower connections, downloads can take 15-30+ minutes
+        response = requests.post(
+            agent_url,
+            json={'model': model},
+            timeout=1800  # 30 minutes
+        )
+
+        return jsonify(response.json()), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent model change request timed out')
+        return jsonify({'error': 'Request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error setting agent model: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/agent/model/pull', methods=['POST'])
+def pull_agent_model():
+    """Download a new agent model"""
+    import requests
+
+    try:
+        data = request.get_json()
+        model = data.get('model', '')
+
+        if not model:
+            return jsonify({'error': 'No model specified'}), 400
+
+        logger.info(f'Pulling agent model: {model}')
+
+        agent_url = 'http://172.18.0.11:5000/api/model/pull'
+        response = requests.post(
+            agent_url,
+            json={'model': model},
+            timeout=1800  # 30 minutes for model download
+        )
+
+        return jsonify(response.json()), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error('Agent model pull request timed out')
+        return jsonify({'error': 'Download timed out (>30 minutes). Please check your internet connection.'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error('Could not connect to agent service')
+        return jsonify({'error': 'Agent service unavailable'}), 503
+    except Exception as e:
+        logger.error(f'Error pulling agent model: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 # ========== APPLICATION ENTRY POINT ==========
 

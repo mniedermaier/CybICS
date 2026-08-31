@@ -2,6 +2,14 @@
 
 set -e
 
+# Ensure default Docker builder is selected (required for devcontainers)
+# cybicsbuilder2 is a docker-container builder used for cross-platform builds,
+# but it doesn't have access to locally built images which breaks devcontainer UID updates
+if ! docker buildx ls 2>/dev/null | grep -q '^default\*'; then
+    echo "Switching to default Docker builder for devcontainer compatibility..."
+    docker buildx use default
+fi
+
 DOCKER_ENV_DIR="$(pwd)/.docker.env"
 mkdir -p "$DOCKER_ENV_DIR"
 
@@ -20,9 +28,14 @@ HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 DOCKER_ENV_DIR="$DOCKER_ENV_DIR"
 CYBICS_ROOT="$(pwd)"
+COMPOSE_PROFILES=full,attack,engineering,ai
 EOT
 
 touch "$DOCKER_ENV_DIR"/.bash_history # persist bash history
-cp .env .devcontainer/raspberry       # to also have some env values available in the docker-compose file
-cp .env .devcontainer/stm32           # to also have some env values available in the docker-compose file
-cp .env .devcontainer/virtual         # to also have some env values available in the docker-compose file
+
+# Only copy .env if content differs (avoids VS Code "configuration changed" prompts)
+for dir in raspberry stm32 virtual; do
+  if ! cmp -s .env ".devcontainer/$dir/.env" 2>/dev/null; then
+    cp .env ".devcontainer/$dir/.env"
+  fi
+done

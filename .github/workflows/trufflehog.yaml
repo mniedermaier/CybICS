@@ -6,12 +6,21 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  # One run per workflow per ref.  Pull request runs are cancelled when a new
+  # commit is pushed; runs on main are not -- every commit there should still
+  # be built.  GitHub keeps at most one running plus one pending run per group,
+  # so a burst of merges no longer piles up dozens of concurrent jobs (which
+  # is how runs started failing at startup).
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Secret Scanning

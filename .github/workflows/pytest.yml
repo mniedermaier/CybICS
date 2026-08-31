@@ -8,22 +8,40 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+concurrency:
+  # One run per workflow per ref.  Pull request runs are cancelled when a new
+  # commit is pushed; runs on main are not -- every commit there should still
+  # be built.  GitHub keeps at most one running plus one pending run per group,
+  # so a burst of merges no longer piles up dozens of concurrent jobs (which
+  # is how runs started failing at startup).
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
+    - name: Free up disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo docker system prune -af
+        df -h
+
     - name: Install nmap
       run: sudo apt-get install -y nmap
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
@@ -42,21 +60,22 @@ jobs:
       run: docker-compose -f "docker-compose.yml" up -d --build
       working-directory: ./.devcontainer/virtual
 
-    - name: Wait for services
-      run: sleep 120s
+    # No fixed sleep: the suite's own readiness gate (tests/conftest.py) polls
+    # every required port and fails with the exact list of services that never
+    # came up. A short settle gives the containers a chance to bind first.
+    - name: Let containers settle
+      run: sleep 15s
       shell: bash
 
     - name: Install test dependencies
       run: pip install --no-cache-dir -r tests/requirements.txt
 
-    - name: Test connections
-      run: pytest tests/test_connections.py --verbose
-
-    - name: Test OPC UA authentication
-      run: pytest tests/test_opcua_auth.py --verbose
-
-    - name: Test training
-      run: pytest tests/test_training.py --verbose
+    # Run the whole suite rather than naming files one by one: a test file
+    # that is not listed here is silently never executed, which is how
+    # tests/test_plant_model_parity.py would have been added without ever
+    # running in CI.
+    - name: Run test suite
+      run: pytest tests/ --verbose
 
     - name: Stop containers
       if: always()
