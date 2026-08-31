@@ -52,6 +52,20 @@ data = [] # Data received over i2c from the STM32
 # the device into station mode before the STM32 has said anything.
 dataID = "" # dataID received over i2c from the STM32 (12 hex + mode)
 
+
+def unframe(data, message):
+  """Parse a length-prefixed protobuf out of an i2c read.
+
+  data[0] carries the number of payload bytes the STM32 serialized. Slicing
+  alone would quietly accept a nonsense prefix, because Python truncates the
+  slice to what is there, so the length is checked before use.
+  """
+  msg_len = data[0]
+  if msg_len > len(data) - 1:
+    raise ValueError(f"length prefix {msg_len} exceeds the {len(data) - 1} bytes read")
+  message.ParseFromString(bytes(data[1:msg_len + 1]))
+  return msg_len
+
 # thread for openplc communication
 def thread_openplc():
   attempts = 0
@@ -279,9 +293,7 @@ def thread_i2c():
 
       try:
         pressure_data = PressureData()
-        # Parse only the actual message bytes (skip length prefix)
-        byte_data = bytes(data[1:msg_len+1])
-        pressure_data.ParseFromString(byte_data)
+        unframe(data, pressure_data)
         gst = pressure_data.gst_pressure
         hpt = pressure_data.hpt_pressure
         logging.debug(f"Decoded protobuf - GST: {gst}, HPT: {hpt}")
@@ -307,8 +319,7 @@ def thread_i2c():
       msg_len = data[0]
       try:
         device_info = DeviceInfo()
-        byte_data = bytes(data[1:msg_len+1])
-        device_info.ParseFromString(byte_data)
+        unframe(data, device_info)
         # Convert uid bytes to hex string
         uid_bytes = device_info.uid
         id = ''.join(f'{b:02x}' for b in uid_bytes)

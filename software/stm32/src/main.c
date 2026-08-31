@@ -107,12 +107,10 @@ static int i2c_write_received(struct i2c_target_config *config, uint8_t val)
 	 * For read_i2c_block_data(addr, reg, len): first byte is register
 	 * For write_i2c_block_data(addr, reg, data): first byte is register, rest is data
 	 *
-	 * RxData layout after write_i2c_block_data(0x20, 0x00, ['I','P',':'] + IP):
+	 * RxData layout after write_i2c_block_data(0x20, 0x00, [len] + IPAddress):
 	 *   RxData[0] = 0x00 (register)
-	 *   RxData[1] = 'I'
-	 *   RxData[2] = 'P'
-	 *   RxData[3] = ':'
-	 *   RxData[4...] = IP address
+	 *   RxData[1] = length of the serialized IPAddress message
+	 *   RxData[2...] = the message itself
 	 */
 	if (i2c_rx_index < sizeof(RxData)) {
 		RxData[i2c_rx_index] = val;
