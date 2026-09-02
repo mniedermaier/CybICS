@@ -15,6 +15,7 @@
 [![devContainer](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml)
 [![pytest](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml)
 [![CodeQL](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mniedermaier)
 </div>
 
 ---
