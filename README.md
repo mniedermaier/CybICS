@@ -15,6 +15,7 @@
 [![devContainer](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml)
 [![pytest](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml)
 [![CodeQL](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mniedermaier)
 </div>
 
 ---
@@ -339,10 +340,15 @@ We welcome contributions from the community! Here's how you can help:
 1. Fork the repository
 2. Clone your fork: `git clone --recursive https://github.com/YOUR_USERNAME/CybICS.git`
 3. Create a branch: `git checkout -b feature/your-feature-name`
-4. Make changes and test thoroughly
-5. Commit: `git commit -m "Description of changes"`
-6. Push: `git push origin feature/your-feature-name`
-7. Open a Pull Request
+4. Make your changes
+5. Start the stack and run the full test suite: `./cybics.sh start && pytest tests/`
+6. Commit using [Conventional Commits](https://www.conventionalcommits.org/): `git commit -m "feat(landing): describe the change"`
+7. Push: `git push origin feature/your-feature-name`
+8. Open a Pull Request describing the cause, the fix and what you verified
+
+Everything in git and on GitHub is written in English. The full set of
+conventions, including the places that must be changed together, is in
+[CLAUDE.md](CLAUDE.md). It is written for AI assistants but applies to everyone.
 
 ---
 
