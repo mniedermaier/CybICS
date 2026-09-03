@@ -36,8 +36,24 @@ For automated flashing via Raspberry Pi GPIO:
 ```bash
 cd software/stm32
 ./build-docker.sh
-docker run --privileged -p 3333:3333 localhost:5050/cybics-stm32:latest
+docker run --privileged -p 127.0.0.1:3333:3333 localhost:5050/cybics-stm32:latest
 ```
+
+**Debugging the device from a workstation**
+
+The container keeps OpenOCD running as a GDB server on port 3333, but the port
+is bound to the Pi's loopback interface only. OpenOCD halts the core on any
+incoming connection and nothing resumes it when the client leaves, so an
+exposed port let a plain `nmap -sV` stop the physical process (#162). Forward
+the port over SSH and point GDB at the local end:
+
+```bash
+ssh -L 3333:127.0.0.1:3333 pi@10.0.0.1
+```
+
+The `Attach with External RPi` and `Debug with External RPi` configurations in
+`.vscode/launch.json` already target `localhost:3333`. Close the GDB session
+cleanly, or run `monitor resume` before detaching, so the core keeps running.
 
 **SWD Connections (Raspberry Pi → STM32):**
 - GPIO 25 → SWCLK

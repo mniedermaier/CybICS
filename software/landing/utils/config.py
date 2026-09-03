@@ -188,7 +188,7 @@ ACCESS_INFO = [
         'system': 'Physical Device',
         'url': None,
         'ip': '10.0.0.1',
-        'ports': '3333 (SWD), Wi-Fi AP: cybics-XXXXXX',
+        'ports': '3333 (SWD/GDB, loopback only), Wi-Fi AP: cybics-XXXXXX',
         'username': None,
         'password': '1234567890 (Wi-Fi)',
         'note': 'Raspberry Pi + STM32 lab hardware',

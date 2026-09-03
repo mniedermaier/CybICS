@@ -114,8 +114,13 @@ services:
     privileged: true
     restart: always
     mem_limit: 32m
+    # OpenOCD's GDB server halts the core on any incoming connection, and
+    # nothing resumes it when the client disconnects. A service scan against
+    # the device therefore stopped the physical process (#162). Only the Pi
+    # itself may reach the port; debug from a workstation through an SSH
+    # tunnel, see software/stm32/README.md.
     ports:
-      - 3333:3333
+      - 127.0.0.1:3333:3333
     networks:
       br-cybics:
         ipv4_address: 172.18.0.7
