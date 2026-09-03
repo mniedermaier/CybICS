@@ -93,7 +93,7 @@ The flag has the format `CybICS(flag)`.
 2. Enable IP forwarding on the attack machine
 3. Run ARP spoofing to poison the ARP caches of both the PLC and HMI
 4. Start the provided mitm.py Modbus proxy script
-5. Observe the intercepted Modbus traffic and find the flag
+5. With the ARP man-in-the-middle running, click **Verify** on the challenge page. It confirms the IDS saw the ARP poisoning between FUXA and the PLC and reveals the flag.
 
 ## 🛡️ Security Framework References
 
@@ -137,6 +137,4 @@ Use `arpspoof -i eth0 -t <FUXA_IP> <OpenPLC_IP>` in one terminal and `arpspoof -
 
 ## 🔍 Solution
 
-After completion, use the following flag:
-
-**Flag:** `CybICS(mitm_attack_successful)`
+Run the arpspoof man-in-the-middle between FUXA and the PLC (the `arpspoof` steps above), then click **Verify** on the challenge page. The flag is revealed once the ARP poisoning has been observed on the wire.
