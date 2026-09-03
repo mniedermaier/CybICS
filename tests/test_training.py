@@ -612,7 +612,9 @@ def test_flood_attack_readme_exists():
     # Verify README contains expected sections
     content = readme_path.read_text()
     assert 'Flood' in content or 'flood' in content, "README missing flood attack content"
-    assert 'CybICS(flood_attack_successful)' in content, "README missing flag information"
+    # The flood flag is earned by performing the attack and clicking Verify, not
+    # quoted in the README, so check the README documents that flow.
+    assert 'Verify' in content, "README missing the verification step for the flag"
 
 
 def test_dev_env_file_exists():
