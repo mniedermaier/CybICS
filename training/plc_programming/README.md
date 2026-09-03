@@ -86,16 +86,16 @@ Upload the program to the OpenPLC via the web interface on port 8080.
 Do not forget to delete the previous CybICS ST code.
 
 ## 🎯 Task
-The flag has the format `CybICS(flag)`.
+Your objective is to modify the PLC program, compile it, upload it to the OpenPLC runtime, and make the controller run **your** program.
 
-Your objective is to modify the PLC program, compile it, upload it to the OpenPLC runtime, and then find the flag hidden in the OpenPLC system.
+This mirrors the real attacker workflow of downloading modified logic to a controller (MITRE ATT&CK for ICS T0843, Program Download). You earn the flag by actually doing it: the challenge page checks that OpenPLC is running a program you compiled, not the one shipped with the lab.
 
 ### 📝 Steps
-1. Open the CybICS project in OpenPLC Editor (using either the Engineering Workstation or a local installation as described above)
-2. Review the program logic and make a modification to the PLC program
-3. Compile the modified program and upload it to the OpenPLC runtime via the web interface on port 8080
-4. Once your modified program is uploaded and running, explore the OpenPLC web interface to find the flag
-5. Check the **Users** page in the OpenPLC web interface — the flag is hidden in the user account information, specifically in the **email field**
+1. Open the CybICS project in OpenPLC Editor (using either the Engineering Workstation or a local installation as described above).
+2. Review the program logic and make a modification, for example add a comment or a new rung. What you change does not matter; the point is to compile and download your own program.
+3. In OpenPLC Editor, compile the project.
+4. Open the OpenPLC web interface on port 8080, go to **Programs**, upload your compiled `.st` file, then **Launch** it so the dashboard shows it as *Running*.
+5. Back on the challenge page, click **Verify**. It confirms the controller is running your program and reveals the flag.
 
 ## 🛡️ Security Framework References
 
@@ -134,11 +134,16 @@ Your objective is to modify the PLC program, compile it, upload it to the OpenPL
 
 ## 💡 Hints
 
-Navigate to the Users page in the OpenPLC web interface at `http://<IP>:8080/users` and click on the default `openplc` user to view their full profile details.
+If Verify says the lab program is still running, your upload did not become the
+active program. In the OpenPLC web UI under **Programs**, select your uploaded
+file and **Launch** it, then confirm the dashboard shows *Status: Running* with
+your program before verifying again. Do this challenge before hardening the
+OpenPLC password, since the check signs in with the default credentials to read
+the controller state.
 
 ## 🔍 Solution
 
-After completion, use the following flag:
-
-**Flag:** `CybICS(ladder_logic_modified)`
+Modify the CybICS program in the editor, compile it, upload and launch it via
+the OpenPLC web UI on port 8080, then click **Verify** on the challenge page.
+The flag is revealed once the controller is running your program.
 
