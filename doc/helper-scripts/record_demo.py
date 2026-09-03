@@ -1,538 +1,426 @@
 #!/usr/bin/env python3
 """
-CybICS Demo Recorder
-Launches OBS + Chrome, records the demo automatically, then saves the video.
+CybICS demo recorder.
 
-Requires a .env file in the same directory with:
-    OBS_PASSWORD=your_obs_websocket_password
-    OBS_PORT=4455
+Drives the landing page of a running virtual stack through every view and
+records a walkthrough of roughly two minutes as an H.264 MP4.
+
+Nothing on the desktop is involved: the script starts its own Xvfb display,
+opens Chromium on it in kiosk mode, and captures the display with ffmpeg at
+30 fps. It needs the stack from './cybics.sh start' in full mode, plus Xvfb,
+ffmpeg and Playwright with its Chromium (pip install playwright && playwright
+install chromium).
+
+    python3 record_demo.py [--out ~/Videos/cybics-demo/cybics-demo.mp4]
 """
 
-import os
-import subprocess
-import socket
-import struct
-import time
+import argparse
+import datetime
 import json
-import tempfile
+import os
 import shutil
+import subprocess
+import time
 from pathlib import Path
-from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
-import obsws_python as obs
 
-# Load environment variables from .env file
-load_dotenv(Path(__file__).parent / ".env")
+from playwright.sync_api import sync_playwright
 
 LANDING_URL = "http://localhost:80"
-OUTPUT_DIR = os.path.expanduser("~/Videos/cybics-demo")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-WIDTH = 1920
-HEIGHT = 1080
-
-OBS_PASSWORD = os.environ["OBS_PASSWORD"]
-OBS_PORT = int(os.environ.get("OBS_PORT", "4455"))
-
+WIDTH, HEIGHT = 1920, 1080
+FPS = 30
 ENGWS_CONTAINER = "virtual-engineeringws-1"
+DISPLAY = ":99"
 
 
-def nav_click(page, view_name, wait=3000):
-    btn = page.query_selector(f"#{view_name}-btn")
-    if btn:
-        box = btn.bounding_box()
-        if box:
-            page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            page.wait_for_timeout(300)
-            btn.click()
-            page.wait_for_timeout(wait)
+# ---------------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------------
+
+def view(page, name, wait=3000):
+    """Switch the landing page to a view, the same way the sidebar does."""
+    page.evaluate(f"updateView('{name}')")
+    page.wait_for_timeout(wait)
+    skip = page.query_selector(".tour-btn-skip")
+    if skip and skip.is_visible():
+        skip.click()
 
 
-def hover_el(page, selector, pause=600):
-    el = page.query_selector(selector)
-    if el:
-        box = el.bounding_box()
-        if box:
-            page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-            page.wait_for_timeout(pause)
-
-
-def iframe_page(page, iframe_id):
-    el = page.query_selector(f"#{iframe_id}")
-    if el:
-        return el.content_frame()
-    return None
-
-
-def engws_dblclick(screen_x, screen_y):
-    """Double-click inside the Engineering WS via XTEST fake_input."""
-    result = subprocess.run(
-        ["docker", "exec", ENGWS_CONTAINER, "python3", "-c", f"""
-import time
-from Xlib import X, display
-from Xlib.ext import xtest
-
-d = display.Display(':1')
-xtest.fake_input(d, X.MotionNotify, x={screen_x}, y={screen_y})
-d.sync()
-time.sleep(0.1)
-for _ in range(2):
-    xtest.fake_input(d, X.ButtonPress, detail=1)
-    d.sync()
-    time.sleep(0.03)
-    xtest.fake_input(d, X.ButtonRelease, detail=1)
-    d.sync()
-    time.sleep(0.08)
-d.sync()
-print('Double-clicked at', {screen_x}, {screen_y})
-"""],
-        capture_output=True, text=True, timeout=10,
-    )
-    print(f"    engws_dblclick: {result.stdout.strip()}")
-    if result.stderr.strip():
-        print(f"    engws_dblclick stderr: {result.stderr.strip()[:200]}")
-
-
-def generate_ids_data():
-    """Trigger IDS alerts so the dashboard has real data."""
-    import requests
-    PLC_IP = "172.18.0.3"
-    IDS_URL = "http://localhost:8443"
-
+def frame_of(page, iframe_id, timeout=8000):
+    """The iframe's frame once its document is in. Not 'networkidle': the
+    virtual hardware page keeps a websocket open and would only time out."""
+    page.wait_for_selector(f"#{iframe_id}", timeout=timeout)
+    frame = page.query_selector(f"#{iframe_id}").content_frame()
     try:
-        r = requests.get(f"{IDS_URL}/api/status", timeout=3)
-        data = r.json()
-        if data["stats"]["alerts_total"] > 0:
-            print(f"    IDS already has {data['stats']['alerts_total']} alerts")
-            return
+        frame.wait_for_load_state("domcontentloaded", timeout=timeout)
     except Exception:
-        print("    Warning: cannot reach IDS")
-        return
+        pass
+    return frame
 
-    print("    Triggering port scan...")
-    for port in [22, 80, 102, 443, 502, 1881, 8080, 8443]:
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.5)
-            s.connect((PLC_IP, port))
-            s.close()
-        except Exception:
-            pass
 
+def scroll(frame_or_page, steps, dy=350, pause=1400):
+    for _ in range(steps):
+        frame_or_page.evaluate(f"window.scrollBy({{top: {dy}, behavior: 'smooth'}})")
+        time.sleep(pause / 1000)
+
+
+def click_text(frame, text, wait=2500):
+    el = frame.query_selector(f"text={text}")
+    if el and el.is_visible():
+        el.click()
+        time.sleep(wait / 1000)
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# The walkthrough
+# ---------------------------------------------------------------------------
+
+def walkthrough(page, mark):
+    # 1. Home: the orientation sections, then the physical process and the
+    #    network topology overlays. The page is already loaded when the
+    #    capture starts.
+    mark("Landing page", "One hub for every service of the lab, virtual or on the real hardware")
+    page.wait_for_timeout(3000)
+    scroll(page, 4, dy=450, pause=1800)
+    page.evaluate("window.scrollTo({top: 0, behavior: 'smooth'})")
+    page.wait_for_timeout(1500)
+    for toggle, title, text in (
+            ("togglePhysicalProcess", "Physical process", "Gas storage tank, compressor and high-pressure tank, controlled by the PLC"),
+            ("toggleNetworkTopology", "Network topology", "Every system of the lab with its address and role")):
+        mark(title, text)
+        page.evaluate(f"{toggle}()")
+        page.wait_for_timeout(4500)
+        page.evaluate(f"{toggle}()")
+        page.wait_for_timeout(800)
+
+    # 2. CTF training: the challenge overview, then one challenge with its flag.
+    mark("CTF training", "Challenges from reconnaissance to attack and defense, each with a flag")
+    view(page, "ctf", 3000)
+    ctf = frame_of(page, "ctf-iframe")
+    scroll(ctf, 5, dy=400, pause=1600)
     time.sleep(1)
-    print("    Triggering Modbus writes...")
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(3)
-        s.connect((PLC_IP, 502))
-        for i in range(12):
-            pkt = struct.pack(">HHHBBHH", 1, 0, 6, 1, 0x06, 1124, 100 + i)
-            s.send(pkt)
-            s.recv(256)
-            time.sleep(0.1)
-        s.close()
-    except Exception:
-        pass
-
-    time.sleep(1)
-    print("    Triggering S7 access...")
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(2)
-        s.connect((PLC_IP, 102))
-        cotp_cr = bytes([
-            0x03, 0x00, 0x00, 0x16, 0x11, 0xE0, 0x00, 0x00,
-            0x00, 0x01, 0x00, 0xC0, 0x01, 0x0A, 0xC1, 0x02,
-            0x01, 0x00, 0xC2, 0x02, 0x01, 0x02,
-        ])
-        s.send(cotp_cr)
-        try:
-            s.recv(256)
-        except Exception:
-            pass
-        s.close()
-    except Exception:
-        pass
-
-    time.sleep(2)
-    try:
-        r = requests.get(f"{IDS_URL}/api/status", timeout=3)
-        data = r.json()
-        print(f"    IDS now has {data['stats']['alerts_total']} alerts")
-    except Exception:
-        pass
-
-
-def run_demo():
-    # Generate IDS data before starting
-    print("[0] Generating IDS test data...")
-    generate_ids_data()
-
-    # Launch Chrome with remote debugging (separate profile to avoid conflicts)
-    print("\nLaunching Chrome with remote debugging...")
-    import tempfile
-    import json
-    chrome_profile = tempfile.mkdtemp(prefix="cybics-chrome-")
-
-    # Write preferences to disable password manager entirely
-    default_dir = os.path.join(chrome_profile, "Default")
-    os.makedirs(default_dir, exist_ok=True)
-    prefs = {
-        "credentials_enable_service": False,
-        "credentials_enable_autosignin": False,
-        "password_manager_enabled": False,
-        "profile": {
-            "password_manager_leak_detection": False,
-            "default_content_setting_values": {
-                "notifications": 2,
-            },
-        },
-        "safebrowsing": {
-            "enabled": False,
-        },
-    }
-    with open(os.path.join(default_dir, "Preferences"), "w") as f:
-        json.dump(prefs, f)
-
-    chrome = subprocess.Popen(
-        ["google-chrome", "--remote-debugging-port=9222",
-         f"--user-data-dir={chrome_profile}",
-         "--start-fullscreen", f"--window-size={WIDTH},{HEIGHT}",
-         "--no-first-run", "--no-default-browser-check",
-         "--disable-features=PasswordLeakDetection,PasswordCheck,PasswordManagerOnboarding,SafeBrowsing",
-         "--password-store=basic",
-         "--disable-notifications",
-         "--disable-component-update",
-         "about:blank"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-    )
-    time.sleep(4)
-
-    # Launch OBS minimized
-    print("Launching OBS...")
-    obs_proc = subprocess.Popen(
-        ["obs", "--minimize-to-tray", "--disable-shutdown-check"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-    )
-    time.sleep(5)
-
-    # Connect to OBS websocket and start recording
-    print("Connecting to OBS WebSocket...")
-    ws = obs.ReqClient(host="localhost", port=OBS_PORT, password=OBS_PASSWORD)
-    ws.set_record_directory(OUTPUT_DIR)
-    print("Starting OBS recording...")
-    ws.start_record()
-    time.sleep(2)
-
-    with sync_playwright() as p:
-        browser = p.chromium.connect_over_cdp("http://localhost:9222")
-        context = browser.contexts[0]
-        page = context.pages[0]
-
-        # Hide the mouse cursor via CSS
-        page.add_style_tag(content="* { cursor: none !important; }")
-
-        # ===== 1. LANDING PAGE =====
-        print("[1] Landing page...")
-        page.goto(LANDING_URL, wait_until="networkidle")
-        page.add_style_tag(content="* { cursor: none !important; }")
-        page.wait_for_timeout(3000)
-
-        for name in ["openplc", "fuxa", "ids", "vhardware", "engineeringws", "attackmachine"]:
-            sel = f".service-box[onclick=\"updateView('{name}')\"]"
-            hover_el(page, sel, 400)
-        page.wait_for_timeout(1000)
-
-        # ===== 2. CTF Training =====
-        print("[2] CTF Training...")
-        nav_click(page, "ctf", 3000)
-        page.wait_for_timeout(1500)
-
-        page.mouse.move(WIDTH // 2, HEIGHT // 2)
+    mark("IDS evasion challenge", "Read the task, do it on the lab, submit the flag")
+    page.evaluate("document.getElementById('ctf-iframe').src = '/ctf/challenge/ids_evasion'")
+    page.wait_for_timeout(3000)
+    ctf = frame_of(page, "ctf-iframe")
+    scroll(ctf, 3, dy=400, pause=1800)
+    flag_input = ctf.query_selector('input[type="text"]')
+    if flag_input:
+        flag_input.click()
+        page.keyboard.type("CybICS(st34lth_0p3r4t0r)", delay=40)
         page.wait_for_timeout(500)
-        ctf_frame = iframe_page(page, "ctf-iframe")
-        if ctf_frame:
-            # Scroll through challenge overview to show all categories
-            for _ in range(5):
-                ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
-                page.wait_for_timeout(1500)
-            page.wait_for_timeout(1000)
-
-            # Click on the last challenge card (IDS Evasion)
-            # The onclick navigates window.top, so we navigate the iframe src directly
-            print("    Opening 'IDS Evasion' challenge (last card)...")
-            cards = ctf_frame.query_selector_all(".challenge-card")
-            if cards:
-                last_card = cards[-1]
-                # Scroll it into view first
-                last_card.scroll_into_view_if_needed()
-                page.wait_for_timeout(1000)
-
-                # Navigate iframe to the challenge page directly
-                page.evaluate("""() => {
-                    document.getElementById('ctf-iframe').src = '/ctf/challenge/ids_evasion';
-                }""")
-                page.wait_for_timeout(3000)
-
-                ctf_frame = iframe_page(page, "ctf-iframe")
-                if ctf_frame:
-                    try:
-                        ctf_frame.wait_for_load_state("networkidle", timeout=5000)
-                    except Exception:
-                        pass
-                    page.wait_for_timeout(1000)
-
-                    # Scroll down to see the challenge content
-                    ctf_frame.evaluate("window.scrollBy({top: 300, behavior: 'smooth'})")
-                    page.wait_for_timeout(2000)
-                    ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
-                    page.wait_for_timeout(2000)
-
-                    # Scroll down to flag submission area
-                    ctf_frame.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
-                    page.wait_for_timeout(2000)
-
-                    # Type the flag and submit
-                    print("    Submitting flag...")
-                    flag_input = ctf_frame.query_selector('input[type="text"]')
-                    if flag_input:
-                        flag_input.click()
-                        page.wait_for_timeout(300)
-                        page.keyboard.type("CybICS(st34lth_0p3r4t0r)", delay=40)
-                        page.wait_for_timeout(500)
-
-                        submit_btn = ctf_frame.query_selector('button:has-text("Submit")')
-                        if submit_btn:
-                            submit_btn.click()
-                            page.wait_for_timeout(5000)
-
-        # ===== 3. Virtual Hardware - 2D =====
-        print("[3] Virtual Hardware - 2D...")
-        nav_click(page, "vhardware", 4000)
-
-        frame = iframe_page(page, "vhardware-iframe")
-        if frame:
-            try:
-                frame.wait_for_load_state("networkidle", timeout=15000)
-            except Exception:
-                pass
-            try:
-                frame.wait_for_function(
-                    "() => document.querySelectorAll('img').length >= 2 && "
-                    "[...document.querySelectorAll('img')].every(i => i.complete && i.naturalWidth > 0)",
-                    timeout=15000,
-                )
-            except Exception:
-                pass
-            page.wait_for_timeout(3000)
-
-            # ===== 3D View =====
-            print("[4] Virtual Hardware - 3D...")
-            tab_3d = frame.query_selector("text=3D Visualization")
-            if tab_3d:
-                tab_3d.click()
-                page.wait_for_timeout(5000)
-
-                # Slow rotation
-                page.mouse.move(WIDTH // 2, HEIGHT // 2)
-                page.wait_for_timeout(500)
-                page.mouse.down()
-                for i in range(40):
-                    page.mouse.move(WIDTH // 2 + i * 8, HEIGHT // 2 + i * 2)
-                    page.wait_for_timeout(80)
-                page.mouse.up()
-                page.wait_for_timeout(2000)
-
-        # ===== 5. OpenPLC =====
-        print("[5] OpenPLC...")
-        nav_click(page, "openplc", 2000)
-
-        frame = iframe_page(page, "openplc-iframe")
-        if frame:
-            try:
-                frame.wait_for_load_state("networkidle", timeout=10000)
-            except Exception:
-                pass
-            page.wait_for_timeout(1000)
-
-            user_el = frame.query_selector('input[name="username"]')
-            if user_el:
-                user_el.click()
-                page.wait_for_timeout(150)
-                page.keyboard.type("openplc", delay=50)
-                page.wait_for_timeout(200)
-
-            pass_el = frame.query_selector('input[name="password"]')
-            if pass_el:
-                pass_el.click()
-                page.wait_for_timeout(150)
-                page.keyboard.type("openplc", delay=50)
-                page.wait_for_timeout(200)
-
-            login_btn = frame.query_selector('button:has-text("LOGIN"), button:has-text("Login")')
-            if login_btn:
-                login_btn.click()
-                page.wait_for_timeout(3000)
-            page.wait_for_timeout(2000)
-
-            programs = frame.query_selector("text=Programs") or frame.query_selector("a[href*='program']")
-            if programs:
-                programs.click()
-                page.wait_for_timeout(2500)
-
-            monitoring = frame.query_selector("text=Monitoring") or frame.query_selector("a[href*='monitor']")
-            if monitoring:
-                monitoring.click()
-                page.wait_for_timeout(2500)
-
-        # ===== 6. FUXA HMI =====
-        print("[6] FUXA HMI...")
-        nav_click(page, "fuxa", 2000)
-
-        frame = iframe_page(page, "fuxa-iframe")
-        if frame:
-            try:
-                frame.wait_for_load_state("networkidle", timeout=10000)
-            except Exception:
-                pass
-            page.wait_for_timeout(1000)
-
-            # Login directly without waiting
-            try:
-                all_inputs = frame.query_selector_all('input')
-                visible_text = [i for i in all_inputs if i.is_visible() and i.get_attribute("type") == "text"]
-                visible_pass = [i for i in all_inputs if i.is_visible() and i.get_attribute("type") == "password"]
-
-                if visible_text and visible_pass:
-                    visible_text[-1].click()
-                    page.keyboard.type("admin", delay=30)
-                    visible_pass[-1].click()
-                    page.keyboard.type("123456", delay=30)
-                    page.wait_for_timeout(200)
-
-                    ok_btn = frame.query_selector('button:has-text("OK")')
-                    if ok_btn and ok_btn.is_visible():
-                        ok_btn.click()
-                        page.wait_for_timeout(3000)
-            except Exception as e:
-                print(f"    FUXA login error: {e}")
-
-            page.wait_for_timeout(3000)
-
-            try:
-                pressure = frame.query_selector('button:has-text("Pressure")')
-                if pressure and pressure.is_visible():
-                    pressure.click()
-                    page.wait_for_timeout(2500)
-
-                system = frame.query_selector('button:has-text("System")')
-                if system and system.is_visible():
-                    system.click()
-                    page.wait_for_timeout(2500)
-            except Exception as e:
-                print(f"    FUXA nav error: {e}")
-
-        # ===== 7. IDS Dashboard =====
-        print("[7] IDS Dashboard - Overview...")
-        nav_click(page, "ids", 3000)
-
-        frame = iframe_page(page, "ids-iframe")
-        if frame:
-            try:
-                frame.wait_for_load_state("networkidle", timeout=10000)
-            except Exception:
-                pass
+        submit = ctf.query_selector('button:has-text("Submit")')
+        if submit:
+            submit.click()
             page.wait_for_timeout(4000)
 
-            for sel in ["#s-packets", "#s-total", "#s-critical"]:
-                el = frame.query_selector(sel)
-                if el:
-                    box = el.bounding_box()
-                    if box:
-                        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-                        page.wait_for_timeout(600)
-            page.wait_for_timeout(2000)
+    # 3. Virtual hardware: the board, then the 3D view with a slow rotation.
+    mark("Virtual hardware", "The CybICS board simulated in software, same process model as the STM32")
+    view(page, "vhardware", 5000)
+    hw = frame_of(page, "vhardware-iframe")
+    mark("3D view", "The physical process as a scene, live values from the PLC")
+    if click_text(hw, "3D Visualization", 5000):
+        box = page.query_selector("#vhardware-iframe").bounding_box()
+        cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        # WebGL renders in software on the virtual display, so every mouse
+        # move costs about a second there; few, large steps keep this short.
+        page.mouse.move(cx, cy)
+        page.mouse.down()
+        for i in range(1, 13):
+            page.mouse.move(cx + i * 28, cy + i * 6)
+            page.wait_for_timeout(80)
+        page.mouse.up()
+        page.wait_for_timeout(2500)
+        click_text(hw, "Classic View", 2500)
 
-            print("[8] IDS - Alerts tab...")
-            alerts_btn = frame.query_selector('button[data-tab="alerts"]')
-            if alerts_btn:
-                alerts_btn.click()
-                page.wait_for_timeout(5000)
+    # 4. OpenPLC: log in, dashboard, programs, live monitoring.
+    mark("OpenPLC", "The controller, running the IEC 61131-3 program of the plant")
+    view(page, "openplc", 3000)
+    plc = frame_of(page, "openplc-iframe")
+    if plc.query_selector('input[name="username"]'):
+        plc.click('input[name="username"]')
+        page.keyboard.type("openplc", delay=50)
+        plc.click('input[name="password"]')
+        page.keyboard.type("openplc", delay=50)
+        plc.click('button:has-text("LOGIN"), button:has-text("Login"), input[type=submit]')
+        page.wait_for_timeout(3500)
+        plc = frame_of(page, "openplc-iframe")
+    click_text(plc, "Programs", 2500)
+    plc = frame_of(page, "openplc-iframe")
+    mark("Live monitoring", "Inputs, outputs and variables of the running program")
+    click_text(plc, "Monitoring", 4000)
 
-            print("[9] IDS - Rules tab...")
-            rules_btn = frame.query_selector('button[data-tab="rules"]')
-            if rules_btn:
-                rules_btn.click()
-                page.wait_for_timeout(5000)
+    # 5. FUXA: log in, pressure overview, system view.
+    mark("FUXA HMI", "The operator view: pressures, valves, compressor state, trends")
+    view(page, "fuxa", 5000)
+    fuxa = frame_of(page, "fuxa-iframe")
+    for _ in range(20):
+        inputs = [i for i in fuxa.query_selector_all("input") if i.is_visible()]
+        text = [i for i in inputs if i.get_attribute("type") in ("text", None)]
+        pw = [i for i in inputs if i.get_attribute("type") == "password"]
+        if text and pw:
+            text[-1].click()
+            page.keyboard.type("admin", delay=40)
+            pw[-1].click()
+            page.keyboard.type("123456", delay=40)
+            ok = fuxa.query_selector('button:has-text("OK")')
+            if ok:
+                ok.click()
+            for _ in range(16):
+                page.wait_for_timeout(500)
+                if not any(i.is_visible() for i in fuxa.query_selector_all('input[type="password"]')):
+                    break
+            page.wait_for_timeout(2500)
+            break
+        page.wait_for_timeout(500)
+    click_text(fuxa, "Pressure", 4000)
+    click_text(fuxa, "System", 3500)
 
-            print("[10] IDS - Challenges tab...")
-            challenges_btn = frame.query_selector('button[data-tab="challenges"]')
-            if challenges_btn:
-                challenges_btn.click()
-                page.wait_for_timeout(5000)
-
-        # ===== 11. Engineering Workstation =====
-        print("[11] Engineering Workstation...")
-        nav_click(page, "engineeringws", 4000)
-
-        frame = iframe_page(page, "engineeringws-iframe")
-        if frame:
-            try:
-                frame.wait_for_load_state("networkidle", timeout=15000)
-            except Exception:
-                pass
+    # 6. IDS: overview, alerts, rules, challenges.
+    mark("Intrusion detection", "Alerts, detection rules mapped to MITRE ATT&CK for ICS, defense challenges")
+    view(page, "ids", 3500)
+    ids = frame_of(page, "ids-iframe")
+    for tab in ("alerts", "rules", "challenges"):
+        btn = ids.query_selector(f'button[data-tab="{tab}"]')
+        if btn:
+            btn.click()
             page.wait_for_timeout(3000)
 
-            subprocess.run(
-                ["docker", "exec", ENGWS_CONTAINER, "pkill", "-f", "openplc-editor"],
-                capture_output=True, timeout=5,
-            )
-            page.wait_for_timeout(1000)
-            print("    Opening CybICS project in OpenPLC Editor...")
-            subprocess.Popen(
-                ["docker", "exec", ENGWS_CONTAINER, "bash", "-c",
-                 "DISPLAY=:1 /usr/local/bin/openplc-editor /root/Desktop/CybICS/ &"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            page.wait_for_timeout(15000)
-
-            print("    Double-clicking CybICS in project tree...")
-            engws_dblclick(100, 190)
-            page.wait_for_timeout(3000)
-            engws_dblclick(100, 190)
-            page.wait_for_timeout(5000)
-
-        # ===== 12. Attack Box =====
-        print("[12] Attack Box...")
-        nav_click(page, "attackmachine", 4000)
-        page.wait_for_timeout(4000)
-
-        # ===== BACK TO HOME =====
-        print("[13] Back to home...")
-        nav_click(page, "all", 3000)
+    # 7. Engineering workstation with the OpenPLC Editor opened.
+    subprocess.run(["docker", "exec", ENGWS_CONTAINER, "pkill", "-f", "Beremiz.py"],
+                   capture_output=True, timeout=10)
+    subprocess.Popen(["docker", "exec", "-d", ENGWS_CONTAINER, "sh", "-c",
+                      "DISPLAY=:1 /usr/local/bin/openplc-editor /root/Desktop/CybICS >/dev/null 2>&1"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    mark("Engineering workstation", "OpenPLC Editor with the Structured Text program of the plant")
+    view(page, "engineeringws", 12000)
+    # The desktop arrives through noVNC, and the canvas forwards mouse events
+    # to the X display in the container. Double-click the ST program in the
+    # editor's project tree; its position is in framebuffer coordinates of the
+    # 1920x1080 desktop, mapped onto the scaled canvas.
+    ews = frame_of(page, "engineeringws-iframe")
+    canvas = ews.query_selector("canvas")
+    box = canvas.bounding_box() if canvas else None
+    if box:
+        def fb(x, y):
+            return box["x"] + x * box["width"] / 1920, box["y"] + y * box["height"] / 1080
+        page.mouse.move(*fb(110, 171))
+        page.wait_for_timeout(600)
+        page.mouse.dblclick(*fb(110, 171), delay=60)
+        page.wait_for_timeout(5000)
+        page.mouse.move(*fb(900, 550))
+        for _ in range(6):
+            page.mouse.wheel(0, 120)
+            page.wait_for_timeout(900)
         page.wait_for_timeout(2000)
 
-        print("\nDemo complete!")
-        browser.close()
+    # 8. Attack machine, then back home.
+    mark("Attack machine", "Kali Linux with ICS tooling, the place to run the training modules from")
+    view(page, "attackmachine", 6000)
+    mark("", "")
+    view(page, "all", 3000)
 
-    # Stop OBS recording
-    time.sleep(1)
-    print("Stopping OBS recording...")
-    result = ws.stop_record()
-    output_path = result.output_path
-    print(f"Video saved: {output_path}")
-    ws.disconnect()
 
-    # Close OBS and Chrome
-    time.sleep(2)
-    obs_proc.terminate()
-    chrome.terminate()
-    chrome.wait(timeout=5)
-    shutil.rmtree(chrome_profile, ignore_errors=True)
+# ---------------------------------------------------------------------------
+# Title card
+# ---------------------------------------------------------------------------
 
-    if os.path.exists(output_path):
-        size_mb = os.path.getsize(output_path) / 1024 / 1024
-        print(f"Size: {size_mb:.1f} MB")
+LOGO = Path(__file__).resolve().parent.parent / "pics" / "CybICS_logo.png"
+INTRO_SECONDS = 3.5
+CROSSFADE = 0.8
+
+
+def add_intro(recording, out):
+    """Put the logo on the landing page's background for a few seconds, then
+    cross-fade into the recording. Re-encodes once with the same settings."""
+    intro = out.with_suffix(".intro.mp4")
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error",
+         "-loop", "1", "-t", str(INTRO_SECONDS), "-i", str(LOGO),
+         "-f", "lavfi", "-t", str(INTRO_SECONDS), "-i", f"color=c=0x1a1a1a:s={WIDTH}x{HEIGHT}:r={FPS}",
+         "-filter_complex",
+         "[0]scale=900:-1:flags=lanczos[logo];[1][logo]overlay=(W-w)/2:(H-h)/2,"
+         "fade=t=in:st=0:d=0.7,format=yuv420p",
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", str(intro)], check=True)
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(intro), "-i", str(recording),
+         "-filter_complex",
+         f"[0:v][1:v]xfade=transition=fade:duration={CROSSFADE}:offset={INTRO_SECONDS - CROSSFADE},format=yuv420p",
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart", str(out)],
+        check=True)
+    intro.unlink()
+    recording.unlink()
+
+
+FONT_BOLD = "/usr/share/fonts/opentype/inter/Inter-Bold.otf"
+FONT = "/usr/share/fonts/opentype/inter/Inter-Regular.otf"
+ACCENT = "#ff6b00"
+CAPTION_MAX = 9.0
+OUTRO_SECONDS = 4.0
+REPO_URL = "github.com/mniedermaier/CybICS"
+
+
+def _esc(text):
+    return text.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
+
+
+def add_captions(video, marks, offset):
+    """Burn a lower-third per section: orange title, one line of text, fading
+    in and out. marks are (seconds since capture start, title, text); offset is
+    what the title card adds in front."""
+    chains = []
+    for i, (t, title, text) in enumerate(marks):
+        if not title:
+            continue
+        start = t + offset + 1.0          # the view needs a moment to switch
+        nxt = marks[i + 1][0] + offset if i + 1 < len(marks) else start + CAPTION_MAX
+        end = min(nxt - 0.4, start + CAPTION_MAX)
+        if end - start < 1.5:
+            continue
+        alpha = f"if(lt(t,{start:.2f}+0.4),(t-{start:.2f})/0.4,if(gt(t,{end:.2f}-0.4),({end:.2f}-t)/0.4,1))"
+        enable = f"between(t,{start:.2f},{end:.2f})"
+        common = f"x=300:y=h-210:enable='{enable}':alpha='{alpha}'"
+        # An invisible two-line drawtext provides the box, sized by the longer
+        # line; the title and the text are drawn on top of it separately so
+        # they can differ in font and colour while sharing one fade.
+        chains.append(f"drawtext=fontfile={FONT}:text='{_esc(title)}\n{_esc(text)}':fontsize=30:fontcolor=white@0"
+                      f":box=1:boxcolor=black@0.62:boxborderw=24:line_spacing=34:{common}")
+        chains.append(f"drawtext=fontfile={FONT_BOLD}:text='{_esc(title)}':fontsize=40:fontcolor={ACCENT}"
+                      f":{common.replace('y=h-210', 'y=h-214')}")
+        chains.append(f"drawtext=fontfile={FONT}:text='{_esc(text)}':fontsize=30:fontcolor=white"
+                      f":{common.replace('y=h-210', 'y=h-210+64')}")
+    if not chains:
+        return
+    script = video.with_suffix(".captions.txt")
+    script.write_text(",\n".join(chains))
+    plain = video.with_suffix(".plain.mp4")
+    video.rename(plain)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(plain), "-filter_script:v", str(script),
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart", str(video)],
+                   check=True)
+    plain.unlink(); script.unlink()
+
+
+def add_outro(video):
+    """Logo and repository address on the same background, cross-faded in."""
+    outro = video.with_suffix(".outro.mp4")
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error",
+         "-loop", "1", "-t", str(OUTRO_SECONDS), "-i", str(LOGO),
+         "-f", "lavfi", "-t", str(OUTRO_SECONDS), "-i", f"color=c=0x1a1a1a:s={WIDTH}x{HEIGHT}:r={FPS}",
+         "-filter_complex",
+         f"[0]scale=900:-1:flags=lanczos[logo];[1][logo]overlay=(W-w)/2:(H-h)/2-60,"
+         f"drawtext=fontfile={FONT}:text='{_esc(REPO_URL)}':fontsize=40:fontcolor=white@0.85:x=(w-tw)/2:y=h/2+110,"
+         f"fade=t=out:st={OUTRO_SECONDS - 0.8}:d=0.8,format=yuv420p",
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", str(outro)], check=True)
+    body = video.with_suffix(".body.mp4")
+    video.rename(body)
+    length = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                            "-of", "csv=p=0", str(body)]))
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(body), "-i", str(outro), "-filter_complex",
+         f"[0:v][1:v]xfade=transition=fade:duration={CROSSFADE}:offset={length - CROSSFADE:.3f},format=yuv420p",
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart", str(video)], check=True)
+    body.unlink(); outro.unlink()
+
+
+def add_music(out, music):
+    """Mux an audio track under the finished video; the picture is not re-encoded."""
+    silent = out.with_suffix(".silent.mp4")
+    out.rename(silent)
+    length = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                            "-of", "csv=p=0", str(silent)]))
+    # The picture decides the length: pad the audio if it is shorter, and fade
+    # it out over the last four seconds either way.
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(silent), "-i", str(music),
+         "-filter_complex", f"[1:a]apad,atrim=0:{length:.3f},afade=t=out:st={length - 4:.3f}:d=4[a]",
+         "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
+         str(out)], check=True)
+    silent.unlink()
+
+
+# ---------------------------------------------------------------------------
+# Display, browser, recorder
+# ---------------------------------------------------------------------------
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
+    default = Path.home() / "Videos" / "cybics-demo" / f"cybics-demo-{datetime.date.today()}.mp4"
+    ap.add_argument("--out", type=Path, default=default)
+    ap.add_argument("--music", type=Path, default=None,
+                    help="audio file to put under the video, see compose_cue.py")
+    ap.add_argument("--keep-raw", action="store_true",
+                    help="keep the raw capture and the section marks next to the output")
+    ap.add_argument("--remux", action="store_true",
+                    help="do not record; put --music under the existing --out video")
+    args = ap.parse_args()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    if args.remux:
+        add_music(args.out, args.music)
+        print(f"Wrote {args.out}")
+        return
+    recording = args.out.with_suffix(".raw.mp4")
+
+    # Kiosk and fullscreen flags do nothing without a window manager, so the
+    # tab strip and address bar stay. The display is made taller than the page
+    # and ffmpeg grabs only the page area below them.
+    xvfb = subprocess.Popen(["Xvfb", DISPLAY, "-screen", "0", f"{WIDTH}x{HEIGHT + 200}x24", "-nolisten", "tcp"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(1.5)
+    # Chromium picks Wayland over X11 whenever WAYLAND_DISPLAY is set, and would
+    # then open on the real desktop instead of the virtual display.
+    env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "XDG_SESSION_TYPE")}
+    env["DISPLAY"] = DISPLAY
+    ffmpeg = None
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=False, env=env,
+                args=["--ozone-platform=x11", "--window-position=0,0", f"--window-size={WIDTH},{HEIGHT + 200}",
+                      "--no-first-run", "--password-store=basic",
+                      "--disable-features=PasswordLeakDetection,PasswordManagerOnboarding"])
+            context = browser.new_context(viewport={"width": WIDTH, "height": HEIGHT},
+                                          ignore_https_errors=True)
+            page = context.new_page()
+            page.goto(LANDING_URL, wait_until="networkidle")
+            time.sleep(1)
+            chrome = page.evaluate("window.outerHeight - window.innerHeight")
+
+            ffmpeg = subprocess.Popen(
+                ["ffmpeg", "-y", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0",
+                 "-framerate", str(FPS), "-video_size", f"{WIDTH}x{HEIGHT}", "-i", f"{DISPLAY}+0,{chrome}",
+                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+                 "-movflags", "+faststart", str(recording)])
+            started = time.time()
+            marks = []
+
+            def mark(title, text):
+                marks.append((time.time() - started, title, text))
+
+            try:
+                walkthrough(page, mark)
+            finally:
+                time.sleep(1)
+                ffmpeg.terminate()
+                ffmpeg.wait(timeout=30)
+                print(f"Recorded {time.time() - started:.0f} s")
+            browser.close()
+        args.out.with_suffix(".marks.json").write_text(json.dumps(marks, indent=1))
+        if args.keep_raw:
+            shutil.copy(recording, args.out.with_suffix(".raw.mp4.keep"))
+        add_intro(recording, args.out)
+        add_captions(args.out, marks, INTRO_SECONDS - CROSSFADE)
+        add_outro(args.out)
+        if args.music:
+            add_music(args.out, args.music)
+        print(f"Wrote {args.out}")
+    finally:
+        if ffmpeg and ffmpeg.poll() is None:
+            ffmpeg.kill()
+        xvfb.terminate()
 
 
 if __name__ == "__main__":
-    run_demo()
+    main()
