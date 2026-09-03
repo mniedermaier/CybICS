@@ -232,6 +232,17 @@ def add_intro(recording, out):
     recording.unlink()
 
 
+def add_music(out, music):
+    """Mux an audio track under the finished video; the picture is not re-encoded."""
+    silent = out.with_suffix(".silent.mp4")
+    out.rename(silent)
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(silent), "-i", str(music),
+         "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
+         "-shortest", str(out)], check=True)
+    silent.unlink()
+
+
 # ---------------------------------------------------------------------------
 # Display, browser, recorder
 # ---------------------------------------------------------------------------
@@ -240,6 +251,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     default = Path.home() / "Videos" / "cybics-demo" / f"cybics-demo-{datetime.date.today()}.mp4"
     ap.add_argument("--out", type=Path, default=default)
+    ap.add_argument("--music", type=Path, default=None,
+                    help="audio file to put under the video, see compose_cue.py")
     args = ap.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     recording = args.out.with_suffix(".raw.mp4")
@@ -284,6 +297,8 @@ def main():
                 print(f"Recorded {time.time() - started:.0f} s")
             browser.close()
         add_intro(recording, args.out)
+        if args.music:
+            add_music(args.out, args.music)
         print(f"Wrote {args.out}")
     finally:
         if ffmpeg and ffmpeg.poll() is None:
