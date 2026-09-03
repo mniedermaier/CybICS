@@ -50,6 +50,8 @@ services:
         ipv4_address: 172.18.0.3
 
   opcua:
+    cap_add:
+      - NET_ADMIN
     image: mniedermaier1337/cybicsopcua:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/opcua
