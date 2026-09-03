@@ -53,8 +53,19 @@ LOG_MODULE_REGISTER(cybics, LOG_LEVEL_INF);
 
 /* Global variables */
 uint8_t RxData[20] = {0};
-uint8_t TxData[1 + cybics_PressureData_size] = {0};  /* Length byte + serialized PressureData protobuf */
-uint8_t TxDataUID[1 + cybics_DeviceInfo_size] = {0};  /* Length byte + serialized DeviceInfo protobuf */
+/*
+ * Two buffers each, because the i2c callbacks read these one byte at a time
+ * across a whole transaction while a thread rewrites them - thread_physical
+ * every 10 ms, and the display thread whenever the WiFi button is pressed.
+ * Writing in place let a transaction pick up the old length and then part of a
+ * new payload. The producer fills the buffer that is not in use and then flips
+ * the index, a single byte write, and the callbacks latch the buffer once when
+ * the transaction starts. Each transaction therefore sees one snapshot.
+ */
+static uint8_t TxData[2][1 + cybics_PressureData_size] = {{0}};
+static uint8_t TxDataUID[2][1 + cybics_DeviceInfo_size] = {{0}};
+static volatile uint8_t TxDataActive = 0;
+static volatile uint8_t TxDataUIDActive = 0;
 uint8_t device_uid[6] = {0};  /* Raw 6-byte UID */
 uint8_t wifi_mode = 0;  /* 0 = STA, 1 = AP */
 char uid_hex[13] = {0};  /* 12 hex chars + null for display */
@@ -92,6 +103,9 @@ static const struct device *i2c_dev;
 static uint8_t i2c_rx_index = 0;
 static uint8_t i2c_tx_index = 0;
 static volatile bool i2c_first_message_received = false;
+/* Latched at read_requested so one transaction never straddles a buffer flip. */
+static const uint8_t *i2c_tx_buf = NULL;
+static uint8_t i2c_tx_len = 0;
 
 /* I2C slave callbacks */
 static int i2c_write_requested(struct i2c_target_config *config)
@@ -133,10 +147,19 @@ static int i2c_read_requested(struct i2c_target_config *config, uint8_t *val)
 
 	if (RxData[0] == 0x00) {
 		/* Register 0x00: TxData (length-prefixed PressureData protobuf) */
-		*val = TxData[i2c_tx_index++];
+		i2c_tx_buf = TxData[TxDataActive];
+		i2c_tx_len = sizeof(TxData[0]);
 	} else if (RxData[0] == 0x01) {
 		/* Register 0x01: TxDataUID (length-prefixed DeviceInfo protobuf) */
-		*val = TxDataUID[i2c_tx_index++];
+		i2c_tx_buf = TxDataUID[TxDataUIDActive];
+		i2c_tx_len = sizeof(TxDataUID[0]);
+	} else {
+		i2c_tx_buf = NULL;
+		i2c_tx_len = 0;
+	}
+
+	if (i2c_tx_buf != NULL) {
+		*val = i2c_tx_buf[i2c_tx_index++];
 	} else {
 		*val = 0;
 	}
@@ -145,19 +168,8 @@ static int i2c_read_requested(struct i2c_target_config *config, uint8_t *val)
 
 static int i2c_read_processed(struct i2c_target_config *config, uint8_t *val)
 {
-	if (RxData[0] == 0x00) {
-		if (i2c_tx_index < sizeof(TxData)) {
-			*val = TxData[i2c_tx_index++];
-		} else {
-			*val = 0;
-		}
-	} else if (RxData[0] == 0x01) {
-		/* Send length-prefixed DeviceInfo protobuf */
-		if (i2c_tx_index < sizeof(TxDataUID)) {
-			*val = TxDataUID[i2c_tx_index++];
-		} else {
-			*val = 0;
-		}
+	if (i2c_tx_buf != NULL && i2c_tx_index < i2c_tx_len) {
+		*val = i2c_tx_buf[i2c_tx_index++];
 	} else {
 		*val = 0;
 	}
@@ -195,13 +207,17 @@ static void encode_device_info(void)
 	cybics_DeviceInfo device_info = cybics_DeviceInfo_init_default;
 	device_info.uid.size = sizeof(device_uid);
 	memcpy(device_info.uid.bytes, device_uid, sizeof(device_uid));
+	device_info.has_wifi_mode = true;
 	device_info.wifi_mode = wifi_mode;
 
-	pb_ostream_t stream = pb_ostream_from_buffer(&TxDataUID[1], sizeof(TxDataUID) - 1);
+	uint8_t next = TxDataUIDActive ^ 1;
+	pb_ostream_t stream = pb_ostream_from_buffer(&TxDataUID[next][1], sizeof(TxDataUID[next]) - 1);
 	if (!pb_encode(&stream, cybics_DeviceInfo_fields, &device_info)) {
 		LOG_ERR("Failed to serialize DeviceInfo");
+		return;  /* leave the buffer in use alone rather than publishing a stub */
 	}
-	TxDataUID[0] = (uint8_t)stream.bytes_written;
+	TxDataUID[next][0] = (uint8_t)stream.bytes_written;
+	TxDataUIDActive = next;
 }
 
 /* Semaphore to signal initialization is complete */
@@ -754,13 +770,20 @@ void thread_physical(void *arg1, void *arg2, void *arg3)
 
 		/* Initialize protobuf pressure data and serialize to TxData[1:] with length prefix */
 		cybics_PressureData cybics_pressure_data = cybics_PressureData_init_default;
+		/* Set the presence flags so a genuine zero is still put on the wire. */
+		cybics_pressure_data.has_gst_pressure = true;
 		cybics_pressure_data.gst_pressure = GSTpressure;
+		cybics_pressure_data.has_hpt_pressure = true;
 		cybics_pressure_data.hpt_pressure = HPTpressure;
-		pb_ostream_t stream = pb_ostream_from_buffer(&TxData[1], sizeof(TxData) - 1);
-		if (!pb_encode(&stream, cybics_PressureData_fields, &cybics_pressure_data)) {
+		uint8_t next = TxDataActive ^ 1;
+		pb_ostream_t stream = pb_ostream_from_buffer(&TxData[next][1], sizeof(TxData[next]) - 1);
+		if (pb_encode(&stream, cybics_PressureData_fields, &cybics_pressure_data)) {
+			TxData[next][0] = (uint8_t)stream.bytes_written;  /* Length prefix */
+			TxDataActive = next;
+		} else {
+			/* Keep serving the last good reading rather than publishing a stub. */
 			LOG_ERR("Failed to serialize pressure data");
 		}
-		TxData[0] = (uint8_t)stream.bytes_written;  /* Length prefix */
 
 		HPTdelay++;
 		GSTdelay++;

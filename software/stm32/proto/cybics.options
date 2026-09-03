@@ -1,2 +1,6 @@
 cybics.DeviceInfo.uid max_size:6
-cybics.IPAddress.ip_addr max_size:15
+# max_size counts the null terminator, so 16 gives the 15 characters the
+# longest IPv4 address needs. At 15 the STM32 rejected any address of
+# exactly 15 characters, silently, because the encoded message came to 17
+# bytes and the length check compares against cybics_IPAddress_size.
+cybics.IPAddress.ip_addr max_size:16
