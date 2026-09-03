@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Orchestral cue for the CybICS demo video, about 176 s in D minor at 100 BPM.
+Orchestral cue for the CybICS demo video, about 180 s in D minor at 100 BPM.
 
 Writes a General MIDI file whose sections follow the walkthrough recorded by
 record_demo.py: a drone and cymbal swell under the logo, a string ostinato for
@@ -10,17 +10,27 @@ engineering workstation and attack machine, and a final chord.
 
 Render and master it with FluidSynth and ffmpeg, both in the Ubuntu repos:
 
-    python3 compose_cue.py cue.mid
+    python3 record_demo.py --out demo.mp4 --keep-raw
+    python3 compose_cue.py cue.mid --marks demo.marks.json --length <video length>
     fluidsynth -ni -q -r 44100 -g 0.7 -F cue_raw.wav /usr/share/sounds/sf2/FluidR3_GM.sf2 cue.mid
     ffmpeg -i cue_raw.wav -af "acompressor=threshold=-18dB:ratio=3:attack=10:release=200,\
-alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=out:st=172:d=4" -t 176 -ar 44100 cue.wav
+alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11" -t 180 -ar 44100 cue.wav
+
+record_demo.py pads the track to the picture and fades it out with the outro card.
     python3 record_demo.py --music cue.wav
 
 Needs the mido package.
 """
-import random, sys
+import argparse, json, random
 import mido
 from mido import Message, MidiFile, MidiTrack, MetaMessage
+
+ap = argparse.ArgumentParser()
+ap.add_argument("out")
+ap.add_argument("--marks", help="<video>.marks.json from record_demo.py; aligns the sections to the recording")
+ap.add_argument("--intro", type=float, default=2.7, help="seconds the title card adds before the capture")
+ap.add_argument("--length", type=float, default=180)
+args = ap.parse_args()
 
 random.seed(7)
 BPM = 100
@@ -28,7 +38,7 @@ TPB = 480                       # ticks per beat
 BEAT = TPB
 BAR = 4 * BEAT
 SEC = BPM / 60 * TPB            # ticks per second
-TOTAL_SEC = 176
+TOTAL_SEC = args.length
 
 mid = MidiFile(ticks_per_beat=TPB)
 
@@ -80,8 +90,13 @@ prog_b = ["Dm", "Bb", "Gm", "A"]
 
 def sec(s): return s * SEC
 
-# Section boundaries (seconds), matching the video
+# Section boundaries in seconds. Defaults match a typical recording; with
+# --marks they come from the recording itself.
 T_LOGO, T_HOME, T_CTF, T_PLC, T_ENG, T_END = 0, 3.5, 35, 70, 120, 165
+if args.marks:
+    at = {title: t + args.intro for t, title, _ in json.load(open(args.marks)) if title}
+    T_CTF, T_PLC, T_ENG = at["CTF training"], at["OpenPLC"], at["Engineering workstation"]
+    T_END = at["Attack machine"] + 5
 
 # --- 0. logo: drone, cymbal swell, timpani hit at the cut ------------------
 note(pad, 0, sec(4), D-12, 60); note(pad, 0, sec(4), A-12, 55)
@@ -158,13 +173,13 @@ for b in range(bars):
 t_end = start + bars * BAR
 for p in CH["Dm"]:
     note(brass, t_end, sec(3), p + 12, 115); note(horns, t_end, sec(4), p, 110)
-    note(pad, t_end, sec(8), p, 90); note(choir, t_end, sec(8), p + 12, 90); note(strings_hi, t_end, sec(6), p + 24, 100)
-note(strings_lo, t_end, sec(8), D-24, 110); note(bass, t_end, sec(4), D-36, 110)
+    note(pad, t_end, sec(14), p, 90); note(choir, t_end, sec(14), p + 12, 90); note(strings_hi, t_end, sec(10), p + 24, 100)
+note(strings_lo, t_end, sec(14), D-24, 110); note(bass, t_end, sec(5), D-36, 110)
 for i in range(16): note(timpani, t_end - BEAT + i*BEAT/8, BEAT/8, D-24, 70 + i*3)
 note(timpani, t_end, sec(3), D-24, 127)
 drums.events.append((int(t_end), Message("note_on", note=49, velocity=127, channel=9, time=0)))
 drums.events.append((int(t_end + sec(2)), Message("note_on", note=52, velocity=90, channel=9, time=0)))
 
 finish()
-mid.save(sys.argv[1])
+mid.save(args.out)
 print(f"bars={bars} end at {t_end/SEC:.1f}s, length {mid.length:.1f}s")
