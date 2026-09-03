@@ -66,7 +66,9 @@ build_image() {
     fi
 }
 
-build_image "cybics-hwio-raspberry" "./hwio-raspberry"
+# Parent context so the Dockerfile can reach stm32/proto/cybics.proto and
+# generate the Python bindings; same shape as the landing build below.
+build_image "cybics-hwio-raspberry" "." "./hwio-raspberry/Dockerfile"
 build_image "cybics-openplc" "./OpenPLC"
 build_image "cybics-opcua" "./opcua"
 build_image "cybics-s7com" "./s7com"
