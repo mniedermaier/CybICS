@@ -33,12 +33,18 @@ RUN apt-get update && apt-get install -y \
     nikto \
     sqlmap \
     dirb \
+    ffuf \
     curl \
     wget \
+    # Man-in-the-middle
+    dsniff \
+    ettercap-graphical \
     # Password cracking
     hydra \
     john \
     hashcat \
+    # Bundled wordlists (rockyou etc.) so nothing is downloaded at runtime
+    wordlists \
     # Exploitation frameworks
     metasploit-framework \
     # Programming and scripting
@@ -72,6 +78,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     pymodbus \
     python-snap7 \
     opcua \
+    opcua-client \
     requests \
     pycryptodome \
     paramiko \
@@ -90,6 +97,17 @@ RUN git clone https://github.com/enddo/smod.git && \
     cd smod && \
     pip3 install --no-cache-dir --break-system-packages -r requirements.txt || \
     echo "SMOD installation skipped (repository unavailable)"
+
+# Modbus TCP fuzzer used by the fuzzingMB challenge, cloned at build time so the
+# lab needs no internet when the challenge is run
+RUN git clone https://github.com/s-e-knudsen/Modbus_network_fuzzer.git && \
+    cd Modbus_network_fuzzer && \
+    pip3 install --no-cache-dir --break-system-packages -r requirements.txt || \
+    echo "Modbus fuzzer installation skipped (repository unavailable)"
+
+# Unpack the rockyou wordlist so the password challenges can point straight at it
+RUN [ -f /usr/share/wordlists/rockyou.txt.gz ] && \
+    gunzip -k /usr/share/wordlists/rockyou.txt.gz || true
 
 # S7comm tools for Siemens PLCs
 RUN git clone https://github.com/klsecservices/s7scan.git || \
@@ -270,11 +288,13 @@ echo "Available Tools:"\n\
 echo "  Network Scanning: nmap, masscan"\n\
 echo "  Protocol Analysis: wireshark, tshark"\n\
 echo "  ICS Frameworks: ISF (/opt/isf), SMOD (/opt/smod)"\n\
-echo "  Modbus Tools: pymodbus, PLCinject (/opt/PLCinject)"\n\
+echo "  Modbus Tools: pymodbus, PLCinject (/opt/PLCinject), fuzzer (/opt/Modbus_network_fuzzer)"\n\
 echo "  S7 Tools: snap7, s7scan (/opt/s7scan)"\n\
+echo "  MITM: arpspoof (dsniff), ettercap"\n\
+echo "  OPC-UA: opcua-client"\n\
 echo "  Exploitation: metasploit-framework"\n\
-echo "  Web Testing: nikto, sqlmap, dirb"\n\
-echo "  Password Attacks: hydra, john, hashcat"\n\
+echo "  Web Testing: nikto, sqlmap, dirb, ffuf"\n\
+echo "  Password Attacks: hydra, john, hashcat (wordlists in /usr/share/wordlists)"\n\
 echo ""\n\
 echo "Quick Start:"\n\
 echo "  - Read hints:   cat ~/Desktop/TARGETS.txt"\n\
