@@ -9,7 +9,11 @@ Two things live here that the suite previously lacked:
 """
 import os
 import socket
+import sys
+import tempfile
 import time
+import warnings
+from pathlib import Path
 
 import pytest
 from pymodbus.exceptions import ConnectionException, ModbusException
@@ -188,3 +192,30 @@ def modbus_call(client, operation, *args, **kwargs):
                 "Modbus server closed the connection and refused a reconnect"
             )
         return operation(*args, **kwargs)
+
+# --------------------------------------------------------------------------
+# Protobuf bindings
+# --------------------------------------------------------------------------
+
+# hwio-raspberry imports cybics_pb2, which is generated from
+# software/stm32/proto/cybics.proto during the container build rather than
+# committed. Generate it here too, before any test module imports hardwareIO,
+# so the framing can be tested without a container or a Raspberry Pi. Doing it
+# the same way the Dockerfile does also means a broken .proto fails here first.
+_PROTO = Path(__file__).resolve().parent.parent / "software" / "stm32" / "proto" / "cybics.proto"
+_PB_DIR = Path(tempfile.mkdtemp(prefix="cybics-pb-"))
+
+try:
+    from grpc_tools import protoc as _protoc
+
+    if _protoc.main(["protoc", f"-I{_PROTO.parent}", f"--python_out={_PB_DIR}", str(_PROTO)]) == 0:
+        sys.path.insert(0, str(_PB_DIR))
+    else:
+        warnings.warn(f"protoc failed on {_PROTO}; protobuf tests will skip")
+except ImportError:
+    warnings.warn("grpcio-tools is not installed; protobuf tests will skip")
+
+
+def protobuf_available():
+    """Whether the generated bindings could be produced, for skipif."""
+    return (_PB_DIR / "cybics_pb2.py").exists()
