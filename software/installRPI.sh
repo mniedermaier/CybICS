@@ -218,6 +218,18 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Keep NetworkManager off Docker's interfaces
+###
+echo -ne "${GREEN}# Keep NetworkManager off Docker's interfaces ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    sudo install -d -m 755 /etc/NetworkManager/conf.d
+    printf '[keyfile]\nunmanaged-devices=interface-name:veth*;interface-name:br-*;interface-name:docker0\n' \
+        | sudo tee /etc/NetworkManager/conf.d/10-docker-unmanaged.conf > /dev/null
+    sudo nmcli general reload
+EOF
+
+###
 ### Enable I2C
 ###
 echo -ne "${GREEN}# Enable I2C on the RPi ... \n${ENDCOLOR}"
