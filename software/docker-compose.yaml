@@ -17,6 +17,8 @@ services:
         ipv4_address: 172.18.0.2
 
   opcua:
+    cap_add:
+      - NET_ADMIN
     image: localhost:5000/cybics-opcua:latest
     depends_on:
     - openplc

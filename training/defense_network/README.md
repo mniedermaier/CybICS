@@ -47,9 +47,9 @@ Apply iptables rules on each **target container** to drop inbound traffic from t
    ```
 
 2. Access the OPC-UA container and block the attacker:
+   The OPC-UA container is Alpine-based and has no `bash`, so run iptables directly:
    ```bash
-   docker exec -it <opcua_container> bash
-   iptables -A INPUT -s 172.18.0.100 -j DROP
+   docker exec <opcua_container> iptables -A INPUT -s 172.18.0.100 -j DROP
    ```
 
 3. Verify the rules are applied on each container:
@@ -119,8 +119,7 @@ Add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA c
    ```
 2. Block the attacker on the OPC-UA container:
    ```bash
-   docker exec -it <opcua_container> bash
-   iptables -A INPUT -s 172.18.0.100 -p tcp --dport 4840 -j DROP
+   docker exec <opcua_container> iptables -A INPUT -s 172.18.0.100 -p tcp --dport 4840 -j DROP
    ```
 3. Click **Verify Defense** in the CTF interface to receive the flag.
 
