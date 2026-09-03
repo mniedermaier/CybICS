@@ -177,6 +177,39 @@ def thread_openplc():
   # Should never be reached
   client.close() # Disconnect device
 
+
+# The AP profile, and the station profile the image ships as a starting point.
+AP_CONNECTION = 'cybics'
+SHIPPED_STATION_CONNECTION = 'cybics-station'
+
+
+def detect_station_connection():
+  """Pick the WiFi profile to use for station mode, or None if there is none.
+
+  Anything that is not the AP qualifies, which covers the naming a stock
+  Raspberry Pi OS uses ('preconfigured', 'netplan-*', ...). A profile the user
+  created wins over the one the image ships, because cybics-station is only a
+  placeholder with ssid=cybics in it; whoever added their own network meant to
+  use it.
+
+  Re-run on every pass rather than once at startup: the documented way to
+  configure the station network is to add or edit a profile on a running
+  device, and a one-shot lookup would not see it until the container restarts.
+  """
+  shipped = None
+  try:
+    for conn in nmcli.connection():
+      if conn.conn_type != 'wifi' or conn.name == AP_CONNECTION:
+        continue
+      if conn.name == SHIPPED_STATION_CONNECTION:
+        shipped = conn.name
+        continue
+      return conn.name
+  except Exception as e:
+    logging.error(f"Error detecting Station mode connection: {str(e)}")
+    return None
+  return shipped
+
 # thread for network connection
 def thread_network():
   global dataID
@@ -195,24 +228,12 @@ def thread_network():
   except Exception as e:
     logging.error("Error getting current connection... " + str(e))
 
-  # Detect the Station mode connection (any WiFi connection that isn't 'cybics')
-  # This handles different naming conventions (e.g., 'preconfigured', 'netplan-*', etc.)
+  # Looked up again on every pass; see detect_station_connection.
   station_connection = None
-  try:
-    for conn in nmcli.connection():
-      # Find a WiFi connection that isn't the 'cybics' AP
-      if conn.conn_type == 'wifi' and conn.name != 'cybics':
-        station_connection = conn.name
-        logging.info(f"Detected Station mode connection: {station_connection}")
-        break
-    if station_connection is None:
-      logging.warning("No Station mode WiFi connection found (only 'cybics' AP exists)")
-  except Exception as e:
-    logging.error(f"Error detecting Station mode connection: {str(e)}")
 
   current_ssid = None
   try:
-    current_ssid = nmcli.connection.show('cybics')["802-11-wireless.ssid"]
+    current_ssid = nmcli.connection.show(AP_CONNECTION)["802-11-wireless.ssid"]
     logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
   except Exception as e:
     logging.error("No current connection " + str(e))
@@ -229,6 +250,15 @@ def thread_network():
 
     except Exception as e:
       logging.error("Error in getting IP of wlan0 - " + str(e))
+
+    previous_station = station_connection
+    station_connection = detect_station_connection()
+    if station_connection != previous_station:
+      if station_connection is None:
+        logging.warning(
+          f"No Station mode WiFi profile found; only the {AP_CONNECTION} AP exists")
+      else:
+        logging.info(f"Using {station_connection} for Station mode")
 
     # The i2c thread fills dataID asynchronously, and on a fresh board that
     # takes a while -- the stm32 container has to flash the firmware first.
@@ -250,13 +280,13 @@ def thread_network():
       if current_ssid is None or current_ssid != ssid:
         try:
           logging.info(f"Configure ssid {ssid}")
-          nmcli.connection.modify('cybics', {'wifi.ssid': ssid})
+          nmcli.connection.modify(AP_CONNECTION, {'wifi.ssid': ssid})
           current_ssid = ssid
         except Exception as e:
           logging.error("Configure ssid failed - " + str(e))
           time.sleep(1)
 
-    connection = 'cybics' if dataID[12] == '1' else station_connection
+    connection = AP_CONNECTION if dataID[12] == '1' else station_connection
     if connection and current_connection != connection:
       try:
         logging.info(f"Enable connection {connection}")
