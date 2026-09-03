@@ -56,17 +56,21 @@ RUN python3 -m venv .venv
 ENV PATH=/home/docker/zephyrproject/.venv/bin:$PATH
 ENV VIRTUAL_ENV=/home/docker/zephyrproject/.venv
 
+# PyPI/git reads on CI runners time out intermittently; give pip a real retry
+# budget and retry the network-bound steps so a transient timeout is not fatal.
+ENV PIP_DEFAULT_TIMEOUT=120 PIP_RETRIES=5
+
 # Install west and pre-pin packages in virtual environment
 RUN pip install --upgrade pip setuptools wheel && \
     pip install west
 
 # Initialize workspace using manifest (downloads only required modules)
 RUN west init -l app && \
-    west update --narrow -o=--depth=1 && \
+    for i in 1 2 3; do west update --narrow -o=--depth=1 && break || { echo "west update retry $i"; sleep 15; }; done && \
     west zephyr-export
 
-# Install Python requirements using west (recommended method)
-RUN west packages pip --install
+# Install Python requirements using west (recommended method), with retries
+RUN for i in 1 2 3; do west packages pip --install && break || { echo "west packages pip retry $i"; sleep 15; }; done
 
 # Install the Zephyr SDK (ARM toolchain only).
 #

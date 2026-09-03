@@ -8,6 +8,10 @@ on:
 
 env:
   ZEPHYR_SDK_VERSION: 0.17.4
+  # PyPI reads on shared runners time out intermittently; give pip a real
+  # retry budget so a transient read timeout does not fail the build.
+  PIP_DEFAULT_TIMEOUT: "120"
+  PIP_RETRIES: "5"
 
 concurrency:
   # One run per workflow per ref.  Pull request runs are cancelled when a new
@@ -50,12 +54,15 @@ jobs:
 
     - name: Initialize Zephyr workspace (using project manifest)
       run: |
+        # Retry the network-bound steps: PyPI and git reads on shared runners
+        # occasionally time out, which is not a build failure.
+        retry() { n=0; until "$@"; do n=$((n+1)); [ $n -ge 3 ] && return 1; echo "retry $n: $*"; sleep 15; done; }
         west init -l software/stm32
         cd software
-        west update --narrow -o=--depth=1
+        retry west update --narrow -o=--depth=1
         # Pre-pin packages to avoid pip backtracking on complex dependency resolution
-        pip3 install --upgrade pip setuptools wheel setuptools_scm poetry-core protobuf grpcio-tools 
-        pip3 install -r zephyr/scripts/requirements.txt
+        retry pip3 install --upgrade pip setuptools wheel setuptools_scm poetry-core protobuf grpcio-tools
+        retry pip3 install -r zephyr/scripts/requirements.txt
 
     - name: Build STM32 firmware
       working-directory: software
