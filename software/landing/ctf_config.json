@@ -22,8 +22,10 @@
           "description": "Introduction to PLC programming and control logic",
           "points": 150,
           "tag": "analysis",
+          "type": "verify",
+          "verify_module": "check_plc_program",
           "flag": "CybICS(ladder_logic_modified)",
-          "hint": "Look for backdoors or unauthorized modifications in the ladder logic",
+          "hint": "Modify the CybICS program in OpenPLC Editor, compile it, then upload and start it via the web UI on port 8080. Then click Verify.",
           "training_content": "training/plc_programming/README.md"
         }
       ]
@@ -73,9 +75,11 @@
           "title": "Flood & Overwrite",
           "description": "Test system resilience against flooding attacks",
           "points": 200,
+          "type": "verify",
+          "verify_module": "check_flood_attack",
           "tag": "exploit",
           "flag": "CybICS(flood_attack_successful)",
-          "hint": "Overwhelm the system with excessive requests or data",
+          "hint": "Flood the HPT setpoint register with Modbus writes, then click Verify.",
           "training_content": "training/flood_overwrite/README.md"
         },
         {
@@ -113,9 +117,11 @@
           "title": "Fuzzing Modbus",
           "description": "Test Modbus protocol robustness",
           "points": 300,
+          "type": "verify",
+          "verify_module": "check_fuzzing_attack",
           "tag": "exploit",
           "flag": "CybICS(modbus_fuzzing_complete)",
-          "hint": "Send malformed or unexpected data to test protocol handling",
+          "hint": "Fuzz the Modbus server including diagnostic function codes, then click Verify.",
           "training_content": "training/fuzzingMB/README.md"
         }
       ]
@@ -129,9 +135,11 @@
           "title": "Man-in-the-Middle (MitM)",
           "description": "Learn about network interception",
           "points": 350,
+          "type": "verify",
+          "verify_module": "check_mitm_attack",
           "tag": "exploit",
           "flag": "CybICS(mitm_attack_successful)",
-          "hint": "Position yourself between communicating devices",
+          "hint": "Run the arpspoof man-in-the-middle between FUXA and the PLC, then click Verify.",
           "training_content": "training/mitm/README.md"
         },
         {

@@ -575,7 +575,7 @@
             </ul>
             <hr class="sidebar-divider">
             <a href="#submit-section" class="sidebar-action" onclick="event.preventDefault(); document.getElementById('submit-section').scrollIntoView({behavior:'smooth'});">
-                {% if challenge_type == 'defense' %}Verify Defense{% else %}Submit Flag{% endif %} &#8595;
+                {% if challenge_type in ['defense', 'verify'] %}{% if challenge_type == 'defense' %}Verify Defense{% else %}Verify{% endif %}{% else %}Submit Flag{% endif %} &#8595;
             </a>
         </nav>
 
@@ -600,10 +600,11 @@
                 <div class="msg msg-ok">
                     <strong>&#127881; Challenge Completed!</strong> You earned {{ challenge.points }} points.
                 </div>
-                {% elif challenge_type == 'defense' %}
-                <h2>&#128737; Verify Defense</h2>
-                <p style="color:#999; font-size:0.9rem; margin-bottom:0.75rem;">Complete the defensive actions above, then verify your work.</p>
-                <button id="verify-button" class="verify-btn">&#128737; Verify Defense</button>
+                {% elif challenge_type in ['defense', 'verify'] %}
+                {% set verify_word = 'Verify Defense' if challenge_type == 'defense' else 'Verify' %}
+                <h2>&#128737; {{ verify_word }}</h2>
+                <p style="color:#999; font-size:0.9rem; margin-bottom:0.75rem;">{% if challenge_type == 'defense' %}Complete the defensive actions above, then verify your work.{% else %}Complete the task above, then verify your work.{% endif %}</p>
+                <button id="verify-button" class="verify-btn" data-label="&#128737; {{ verify_word }}">&#128737; {{ verify_word }}</button>
                 <div id="verify-results"></div>
                 <div id="message-container"></div>
                 {% else %}
@@ -903,8 +904,8 @@
                 results.innerHTML = h;
             }
             if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '&#9989; Verified!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
-            else { showMsg(d.message, false); verifyButton.disabled = false; verifyButton.innerHTML = '&#128737; Verify Defense'; }
-        }).catch(() => { showMsg('Error. Try again.', false); verifyButton.disabled = false; verifyButton.innerHTML = '&#128737; Verify Defense'; });
+            else { showMsg(d.message, false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; }
+        }).catch(() => { showMsg('Error. Try again.', false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; });
     }
 
     if (submitButton) { submitButton.addEventListener('click', submitFlag); }

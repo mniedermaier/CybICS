@@ -109,9 +109,6 @@ class CTFManager:
         if not challenge:
             return {'success': False, 'message': 'Challenge not found', 'checks': []}
 
-        if challenge.get('type') != 'defense':
-            return {'success': False, 'message': 'Not a defense challenge', 'checks': []}
-
         verify_module = challenge.get('verify_module')
         if not verify_module:
             return {'success': False, 'message': 'No verification module configured', 'checks': []}

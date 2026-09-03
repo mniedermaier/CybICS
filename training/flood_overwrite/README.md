@@ -61,7 +61,7 @@ The flag has the format `CybICS(flag)`.
 1. Run the provided `flooding_hpt.py` script to flood Modbus registers on the PLC
 2. While the attack is running, open the **FUXA HMI** and observe how the physical process responds to the manipulated register values
 3. You should see the high pressure tank (HPT) register values being overwritten, causing the compressor (C) to remain enabled continuously, which drives the HPT toward a critical pressure value
-4. After observing the impact, retrieve the flag
+4. After the flood, click **Verify** on the challenge page. It confirms the IDS saw the write flood and reveals the flag.
 
 ## 🛡️ Security Framework References
 
@@ -134,7 +134,5 @@ Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pr
   - Operator notifications for corrective measures
   - Potential actions: reducing heat or shutting down components
 
-  After completion, use the following flag:
-
-**Flag:** `CybICS(flood_attack_successful)`
+Flood the HPT setpoint register with Modbus writes, then click **Verify** on the challenge page. The flag is revealed once the flood has been observed on the wire.
 
