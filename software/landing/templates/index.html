@@ -2269,6 +2269,9 @@
 
             <!-- Training -->
             <div class="nav-section-label">Training</div>
+            <button id="theory-btn" class="nav-button" onclick="updateView('theory')" title="Theory Path">
+                <svg class="nav-icon"><use href="#i-book"/></svg><span class="nav-label">Theory Path</span>
+            </button>
             <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')" title="CTF Training">
                 <svg class="nav-icon"><use href="#i-flag"/></svg><span class="nav-label">CTF Training</span>
             </button>
@@ -2358,11 +2361,11 @@
                                     <p class="learning-card-desc">Launch a guided 15-minute introduction to CybICS.</p>
                                 </div>
                             </div>
-                            <div class="learning-card learning-card-disabled">
+                            <div class="learning-card" onclick="updateView('theory')">
                                 <div class="learning-card-icon"><svg><use href="#i-book"/></svg></div>
                                 <div class="learning-card-body">
-                                    <div class="learning-card-title">Theory Path<span class="badge">COMING SOON</span></div>
-                                    <p class="learning-card-desc">Structured background reading covering ICS protocols, architectures, and threats for each module.</p>
+                                    <div class="learning-card-title">Theory Path</div>
+                                    <p class="learning-card-desc">Structured background reading covering ICS protocols, architectures, and threats, with diagrams. Each topic links to the matching challenge.</p>
                                 </div>
                             </div>
                             <div class="learning-card" onclick="updateView('ctf')">
@@ -2408,6 +2411,19 @@
             {% endfor %}
 
             <!-- CTF Training Card -->
+            <!-- Theory Path Card -->
+            <div id="theory-card" class="service-card hidden">
+                <iframe
+                    id="theory-iframe"
+                    class="service-iframe"
+                    data-src="/theory"
+                    title="Theory Path"
+                    allow="fullscreen"
+                    allowfullscreen="true"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                ></iframe>
+            </div>
+
             <div id="ctf-card" class="service-card hidden">
                 <iframe
                     id="ctf-iframe"
@@ -2477,7 +2493,7 @@
         // Store service IDs in a JavaScript array
         const serviceIds = [{% for service_id in services.keys() %}'{{ service_id }}',{% endfor %}];
         // Additional view IDs for CTF and Tools
-        const additionalViewIds = ['ctf', 'stats', 'network', 'webshell'];
+        const additionalViewIds = ['theory', 'ctf', 'stats', 'network', 'webshell'];
         const allViewIds = [...serviceIds, ...additionalViewIds];
 
         // Track current view

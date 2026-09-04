@@ -28,6 +28,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY software/landing/app.py ./
 COPY software/landing/ctf_config.json ./
+COPY software/landing/theory_config.json ./
 COPY software/landing/pics/ pics/
 COPY software/landing/templates/ templates/
 COPY software/landing/static/ static/

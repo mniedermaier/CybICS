@@ -1,0 +1,446 @@
+{
+  "title": "CybICS - Theory Path",
+  "description": "Structured background reading on ICS protocols, architectures and threats, with diagrams. Each topic links to the matching hands-on challenge.",
+  "sections": {
+    "foundations": {
+      "name": "Foundations",
+      "icon": "book",
+      "description": "Start here. The concepts every later module builds on.",
+      "topics": [
+        {
+          "id": "ics-basics",
+          "title": "What is an ICS?",
+          "summary": "Operational technology versus IT, the Purdue model, and why safety and availability come first.",
+          "minutes": 6,
+          "content": "training/theory/foundations/ics-basics.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "physical_process",
+              "label": "Physical process challenge"
+            }
+          ]
+        },
+        {
+          "id": "plc-fundamentals",
+          "title": "PLCs and the scan cycle",
+          "summary": "How a PLC reads inputs, runs an IEC 61131-3 program, and drives outputs every cycle.",
+          "minutes": 6,
+          "content": "training/theory/foundations/plc-fundamentals.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "plc_programming",
+              "label": "PLC Programming challenge"
+            }
+          ]
+        },
+        {
+          "id": "modbus",
+          "title": "Modbus TCP",
+          "summary": "The most common industrial protocol: registers, coils, function codes, and why it trusts every client.",
+          "minutes": 6,
+          "content": "training/theory/foundations/modbus.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "wireshark_capture",
+              "label": "Wireshark capture challenge"
+            },
+            {
+              "type": "ctf",
+              "id": "flood_overwrite",
+              "label": "Flood & overwrite challenge"
+            }
+          ]
+        },
+        {
+          "id": "s7comm",
+          "title": "S7comm",
+          "summary": "Siemens' PLC protocol, its structure, and how enumeration reveals device information.",
+          "minutes": 5,
+          "content": "training/theory/foundations/s7comm.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning2",
+              "label": "S7comm scanning challenge"
+            }
+          ]
+        },
+        {
+          "id": "opcua",
+          "title": "OPC-UA",
+          "summary": "The modern, vendor-neutral protocol with a real security model: sessions, certificates, and users.",
+          "minutes": 6,
+          "content": "training/theory/foundations/opcua.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "opcua",
+              "label": "OPC-UA challenge"
+            }
+          ]
+        },
+        {
+          "id": "hmi-scada",
+          "title": "HMI and SCADA",
+          "summary": "How operators see and control the process, and why the HMI is a high-value target.",
+          "minutes": 5,
+          "content": "training/theory/foundations/hmi-scada.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "password_attack",
+              "label": "Password attack challenge"
+            }
+          ]
+        },
+        {
+          "id": "attack-lifecycle",
+          "title": "The ICS attack lifecycle",
+          "summary": "From reconnaissance to impact, mapped to MITRE ATT&CK for ICS.",
+          "minutes": 7,
+          "content": "training/theory/foundations/attack-lifecycle.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning",
+              "label": "Scanning challenge"
+            },
+            {
+              "type": "ctf",
+              "id": "mitm",
+              "label": "MITM challenge"
+            }
+          ]
+        },
+        {
+          "id": "detection-monitoring",
+          "title": "Detection and monitoring",
+          "summary": "Passive network monitoring, IDS rules, and mapping detections to MITRE D3FEND.",
+          "minutes": 6,
+          "content": "training/theory/foundations/detection-monitoring.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "detect_basic",
+              "label": "Detect basic challenge"
+            },
+            {
+              "type": "ctf",
+              "id": "ids_challenge",
+              "label": "IDS challenge"
+            }
+          ]
+        },
+        {
+          "id": "defense-hardening",
+          "title": "Defense in depth",
+          "summary": "Zones and conduits, IEC 62443 and NIST SP 800-82, and practical hardening.",
+          "minutes": 7,
+          "content": "training/theory/foundations/defense-hardening.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_firewall",
+              "label": "Firewall challenge"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_network_segmentation",
+              "label": "Segmentation challenge"
+            }
+          ]
+        }
+      ]
+    },
+    "modules": {
+      "name": "Per-module background",
+      "icon": "layers",
+      "description": "Short background for each hands-on module and CTF challenge.",
+      "topics": [
+        {
+          "id": "physical_process",
+          "title": "The gas pressure process",
+          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blowout.",
+          "minutes": 3,
+          "content": "training/theory/modules/physical_process.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "physical_process",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "plc_programming",
+          "title": "Programming the controller",
+          "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",
+          "minutes": 3,
+          "content": "training/theory/modules/plc_programming.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "plc_programming",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "scanning",
+          "title": "Network scanning",
+          "summary": "Discovering ICS hosts and services with nmap without disrupting them.",
+          "minutes": 3,
+          "content": "training/theory/modules/scanning.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "scanning2",
+          "title": "S7comm enumeration",
+          "summary": "Reading device identity from a Siemens-style S7 endpoint.",
+          "minutes": 3,
+          "content": "training/theory/modules/scanning2.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning2",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "wireshark_capture",
+          "title": "Capturing Modbus traffic",
+          "summary": "Reading plaintext Modbus writes off the wire to recover data.",
+          "minutes": 3,
+          "content": "training/theory/modules/wireshark_capture.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "wireshark_capture",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "flood_overwrite",
+          "title": "Flood and overwrite",
+          "summary": "Overwhelming a register with writes to force an unsafe state.",
+          "minutes": 3,
+          "content": "training/theory/modules/flood_overwrite.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "flood_overwrite",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "password_attack",
+          "title": "Password attacks",
+          "summary": "Dictionary attacks against the OpenPLC and FUXA logins.",
+          "minutes": 3,
+          "content": "training/theory/modules/password_attack.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "password_attack",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "opcua",
+          "title": "Attacking OPC-UA",
+          "summary": "Certificate and user authentication, and what weak auth exposes.",
+          "minutes": 3,
+          "content": "training/theory/modules/opcua.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "opcua",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "fuzzingMB",
+          "title": "Modbus fuzzing",
+          "summary": "Sending malformed and non-standard frames to test robustness.",
+          "minutes": 3,
+          "content": "training/theory/modules/fuzzingMB.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "fuzzingMB",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "mitm",
+          "title": "Man in the middle",
+          "summary": "ARP poisoning between the HMI and the PLC to alter traffic.",
+          "minutes": 3,
+          "content": "training/theory/modules/mitm.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "mitm",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "uart_basic",
+          "title": "UART and hardware access",
+          "summary": "The serial console on the board and physical-layer access.",
+          "minutes": 3,
+          "content": "training/theory/modules/uart_basic.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "uart_basic",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "detect_basic",
+          "title": "Detecting a scan",
+          "summary": "How a port scan looks to an IDS and which rule catches it.",
+          "minutes": 3,
+          "content": "training/theory/modules/detect_basic.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "detect_basic",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "detect_overwrite",
+          "title": "Detecting a flood",
+          "summary": "Spotting a Modbus write flood in the alert stream.",
+          "minutes": 3,
+          "content": "training/theory/modules/detect_overwrite.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "detect_overwrite",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "ids_challenge",
+          "title": "Intrusion detection",
+          "summary": "Generating enough alerts to prove the IDS is working.",
+          "minutes": 3,
+          "content": "training/theory/modules/ids_challenge.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_challenge",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "ids_forensics",
+          "title": "IDS forensics",
+          "summary": "Reading the alert buffer to answer who, what, and when.",
+          "minutes": 3,
+          "content": "training/theory/modules/ids_forensics.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_forensics",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "ids_evasion",
+          "title": "IDS evasion",
+          "summary": "Staying under the rate thresholds a simple rule engine uses.",
+          "minutes": 3,
+          "content": "training/theory/modules/ids_evasion.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_evasion",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "defense_password",
+          "title": "Hardening credentials",
+          "summary": "Removing default passwords on the PLC and HMI.",
+          "minutes": 3,
+          "content": "training/theory/modules/defense_password.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_openplc_password",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "defense_firewall",
+          "title": "Host firewalling",
+          "summary": "Restricting Modbus to authorised peers with iptables.",
+          "minutes": 3,
+          "content": "training/theory/modules/defense_firewall.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_firewall",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "defense_network",
+          "title": "Network segmentation",
+          "summary": "Blocking the attack host from the controllers.",
+          "minutes": 3,
+          "content": "training/theory/modules/defense_network.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_network_segmentation",
+              "label": "Hands-on challenge"
+            }
+          ]
+        },
+        {
+          "id": "defense_ids",
+          "title": "Tuning the IDS",
+          "summary": "Keeping detection active and its rules effective.",
+          "minutes": 3,
+          "content": "training/theory/modules/defense_ids.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_ids_tuning",
+              "label": "Hands-on challenge"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
