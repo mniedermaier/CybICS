@@ -58,6 +58,18 @@ def serve(directory, port):
     return httpd
 
 
+def _iframe(page):
+    """The stage iframe's content frame, once its document is in."""
+    el = page.query_selector("#frame-if")
+    fr = el.content_frame() if el else None
+    if fr:
+        try:
+            fr.wait_for_load_state("domcontentloaded", timeout=8000)
+        except Exception:
+            pass
+    return fr
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     ap.add_argument("--spec", required=True, type=Path)
@@ -70,7 +82,7 @@ def main():
         ap.error(f"Piper voice not found: {args.voice} (see doc/video-series/README.md)")
 
     spec = json.loads(args.spec.read_text())
-    outdir = args.out.parent if args.out else Path.home() / "videos" / ("series-" + time.strftime("%Y-%m-%d"))
+    outdir = args.out.parent if args.out else Path.home() / "Videos" / ("cybics-training-" + time.strftime("%Y-%m-%d"))
     outdir.mkdir(parents=True, exist_ok=True)
     out = args.out or outdir / (spec["id"] + ".mp4")
     work = outdir / (spec["id"] + "_work"); work.mkdir(exist_ok=True)
@@ -130,6 +142,27 @@ def main():
                     hold(stream + 1.0)
                 elif b["type"] == "show":
                     page.evaluate("(u)=>cyIframe(u)", b["url"]); hold(b.get("seconds", nd) + pad)
+                elif b["type"] == "web":
+                    # Really perform the challenge in the full web frontend.
+                    start = time.time()
+                    for st in b.get("steps", []):
+                        if "goto" in st:
+                            page.evaluate("(u)=>cyIframe(u)", st["goto"]); time.sleep(0.4)
+                            _iframe(page); time.sleep(st.get("wait", 1500) / 1000)
+                        elif "fill" in st:
+                            fr = _iframe(page)
+                            try: fr.fill(st["fill"], st.get("text", ""), timeout=8000)
+                            except Exception as e: print("fill:", e)
+                            time.sleep(st.get("wait", 700) / 1000)
+                        elif "click" in st:
+                            fr = _iframe(page)
+                            try: fr.click(st["click"], timeout=8000)
+                            except Exception as e: print("click:", e)
+                            time.sleep(st.get("wait", 1500) / 1000)
+                        elif "wait" in st:
+                            time.sleep(st["wait"] / 1000)
+                    rem = nd - (time.time() - start)
+                    if rem > 0: hold(rem)
             hold(0.8)
         ff.terminate(); ff.wait(timeout=30); ff = None
     finally:

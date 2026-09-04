@@ -12,8 +12,7 @@
   /* header */
   header { height:88px; flex:0 0 88px; background:#0f0f0f; border-bottom:3px solid var(--accent);
     display:flex; align-items:center; justify-content:space-between; padding:0 44px; }
-  .brand { font-weight:800; font-size:30px; letter-spacing:1px; }
-  .brand .ics { color:var(--accent); }
+  .brand-logo { height:48px; width:auto; display:block; }
   .h-title { font-size:26px; font-weight:700; color:#fff; text-align:center; flex:1; }
   .h-badge { font-size:16px; color:#1a1a1a; background:var(--accent); border-radius:6px; padding:8px 14px; font-weight:700; white-space:nowrap; }
   /* main */
@@ -40,8 +39,7 @@
   #frame { } #frame iframe { width:100%; height:100%; border:0; background:#fff; }
   /* card */
   #card { flex-direction:column; align-items:center; justify-content:center; gap:24px; background:var(--bg); }
-  #card .c-logo { font-size:96px; font-weight:800; letter-spacing:2px; }
-  #card .c-logo .ics { color:var(--accent); }
+  #card .card-logo { height:120px; width:auto; }
   #card .c-title { font-size:40px; font-weight:700; color:#fff; text-align:center; }
   #card .c-sub { font-size:26px; color:var(--muted); }
   /* caption */
@@ -54,7 +52,7 @@
 <body>
 <div id="stage">
   <header>
-    <div class="brand">Cyb<span class="ics">ICS</span></div>
+    <img class="brand-logo" src="/assets/cybics_logo.png" alt="CybICS">
     <div class="h-title" id="h-title"></div>
     <div class="h-badge" id="h-badge"></div>
   </header>
@@ -68,7 +66,7 @@
       </div>
     </div>
     <div class="mode" id="frame"><iframe id="frame-if" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>
-    <div class="mode" id="card"><div class="c-logo">Cyb<span class="ics">ICS</span></div><div class="c-title" id="c-title"></div><div class="c-sub" id="c-sub"></div></div>
+    <div class="mode" id="card"><img class="card-logo" src="/assets/cybics_logo.png" alt="CybICS"><div class="c-title" id="c-title"></div><div class="c-sub" id="c-sub"></div></div>
   </main>
   <div id="caption" class="empty"><div class="cap-text" id="cap-text"></div></div>
 </div>
