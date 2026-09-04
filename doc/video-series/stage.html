@@ -17,8 +17,8 @@
   .h-badge { font-size:16px; color:#1a1a1a; background:var(--accent); border-radius:6px; padding:8px 14px; font-weight:700; white-space:nowrap; }
   /* main */
   main { flex:1; position:relative; }
-  .mode { position:absolute; inset:0; opacity:0; transition:opacity .35s; display:flex; }
-  .mode.on { opacity:1; }
+  .mode { position:absolute; inset:0; opacity:0; transition:opacity .35s; display:flex; pointer-events:none; }
+  .mode.on { opacity:1; pointer-events:auto; }
   /* slide */
   #slide { flex-direction:column; justify-content:center; padding:70px 120px; gap:26px; }
   #slide .s-head { font-size:52px; font-weight:800; color:var(--accent); line-height:1.1; }
