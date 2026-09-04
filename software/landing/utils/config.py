@@ -15,6 +15,7 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 TRAINING_DIR = os.path.join(BASE_DIR, 'training')
 PROGRESS_FILE = os.path.join(DATA_DIR, 'ctf_progress.json')
 CTF_CONFIG_FILE = os.path.join(BASE_DIR, 'ctf_config.json')
+THEORY_CONFIG_FILE = os.path.join(BASE_DIR, 'theory_config.json')
 
 # Ensure directories exist
 os.makedirs(DATA_DIR, exist_ok=True)

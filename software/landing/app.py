@@ -18,6 +18,7 @@ from utils.logger import logger
 from modules.stats_collector import StatsCollector
 from modules.network_capture import NetworkCapture
 from modules.ctf_manager import CTFManager
+from modules.theory_manager import TheoryManager
 from modules.network_routes import register_network_routes
 
 # Initialize Flask application
@@ -42,6 +43,7 @@ logger.info('='*60)
 stats_collector = StatsCollector()
 network_capture = NetworkCapture()
 ctf_manager = CTFManager()
+theory_manager = TheoryManager()
 
 # Start background collection
 stats_collector.start()
@@ -334,6 +336,30 @@ def ctf_page():
                          challenges=ctf_manager.challenges,
                          solved=session['solved_challenges'],
                          total_points=session['total_points'])
+
+@app.route('/theory')
+def theory_page():
+    """Theory Path hub: sections of illustrated background-reading topics."""
+    initialize_session()
+    logger.info('Rendering Theory page')
+    return render_template('theory.html',
+                           config=theory_manager.config,
+                           sections=theory_manager.sections)
+
+
+@app.route('/theory/<topic_id>')
+def theory_topic(topic_id):
+    """A single theory article, rendered from Markdown (may contain SVG)."""
+    initialize_session()
+    topic, section = theory_manager.get_topic(topic_id)
+    if not topic:
+        logger.warning(f'Theory topic not found: {topic_id}')
+        return "Topic not found", 404
+    content = theory_manager.load_markdown_content(topic.get('content'))
+    return render_template('theory_article.html',
+                           topic=topic, section=section, content=content,
+                           config=theory_manager.config)
+
 
 @app.route('/ctf/challenge/<challenge_id>')
 def challenge_detail(challenge_id):

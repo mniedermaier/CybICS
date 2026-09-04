@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.title or 'CybICS - Theory Path' }}</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background:#1a1a1a; color:#e8e8e8; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; line-height:1.6; }
+        ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-track { background:#1a1a1a; }
+        ::-webkit-scrollbar-thumb { background:#404040; border-radius:4px; } ::-webkit-scrollbar-thumb:hover { background:#ff6b00; }
+        header { background:#2d2d2d; padding:0.9rem 1.5rem; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ff6b00; position:sticky; top:0; z-index:10; }
+        header h1 { font-size:1.25rem; color:#ff6b00; }
+        .header-stats { display:flex; align-items:center; gap:1rem; font-size:0.85rem; }
+        .progress-bar-mini { width:140px; height:6px; background:#404040; border-radius:3px; overflow:hidden; }
+        .progress-bar-mini .fill { height:100%; background:#22c55e; width:0; transition:width .3s; }
+        .wrap { max-width:1000px; margin:0 auto; padding:1.5rem; }
+        .intro { color:#bbb; margin-bottom:1.5rem; }
+        .section { margin-bottom:2rem; }
+        .section-title { font-size:1.05rem; font-weight:700; color:#ff6b00; margin-bottom:0.25rem; }
+        .section-desc { color:#999; font-size:0.9rem; margin-bottom:1rem; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:0.9rem; }
+        .card { display:flex; gap:0.8rem; background:#2d2d2d; border:1px solid #383838; border-left:3px solid #ff6b00; border-radius:0.5rem; padding:0.9rem 1rem; text-decoration:none; color:inherit; transition:border-color .15s, transform .1s; }
+        .card:hover { border-color:#ff6b00; transform:translateY(-1px); }
+        .card.read { border-left-color:#22c55e; }
+        .card-check { flex-shrink:0; width:22px; height:22px; border-radius:50%; border:2px solid #555; color:#555; display:flex; align-items:center; justify-content:center; font-size:0.8rem; margin-top:2px; }
+        .card.read .card-check { background:#22c55e; border-color:#22c55e; color:#fff; }
+        .card-title { font-weight:700; margin-bottom:0.2rem; }
+        .card-summary { color:#aaa; font-size:0.85rem; }
+        .card-meta { color:#ff8c3a; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; margin-top:0.4rem; }
+        html.light-mode body { background:#f5f6f8; color:#1f2733; }
+        html.light-mode header { background:#fff; }
+        html.light-mode .card { background:#fff; border-color:#e2e6ec; box-shadow:0 2px 8px rgba(15,23,42,.06); }
+        html.light-mode .card-summary { color:#5b6675; }
+        html.light-mode header h1, html.light-mode .section-title { color:#b34700; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>&#128218; Theory Path</h1>
+        <div class="header-stats">
+            <span id="read-count">0 / 0 read</span>
+            <div class="progress-bar-mini"><div class="fill" id="progress-fill"></div></div>
+        </div>
+    </header>
+    <div class="wrap">
+        <p class="intro">{{ config.description }}</p>
+        {% for key, section in sections.items() %}
+        <div class="section">
+            <div class="section-title">{{ section.name }}</div>
+            <div class="section-desc">{{ section.description }}</div>
+            <div class="grid">
+                {% for topic in section.topics %}
+                <a class="card" href="/theory/{{ topic.id }}" data-id="{{ topic.id }}">
+                    <div class="card-check">&#10003;</div>
+                    <div>
+                        <div class="card-title">{{ topic.title }}</div>
+                        <div class="card-summary">{{ topic.summary }}</div>
+                        <div class="card-meta">{{ topic.minutes }} min read</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        function readSet() { try { return new Set(JSON.parse(localStorage.getItem('cybics-theory-read')||'[]')); } catch(e){ return new Set(); } }
+        (function(){
+            const read = readSet();
+            const cards = document.querySelectorAll('.card');
+            let done = 0;
+            cards.forEach(c => { if (read.has(c.dataset.id)) { c.classList.add('read'); done++; } });
+            document.getElementById('read-count').textContent = done + ' / ' + cards.length + ' read';
+            document.getElementById('progress-fill').style.width = cards.length ? (done/cards.length*100)+'%' : '0';
+        })();
+    </script>
+</body>
+</html>

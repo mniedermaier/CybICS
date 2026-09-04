@@ -99,7 +99,22 @@ def walkthrough(page, mark):
         page.evaluate(f"{toggle}()")
         page.wait_for_timeout(800)
 
-    # 2. CTF training: the challenge overview, then one challenge with its flag.
+    # 2. Theory Path: the topic hub, then an illustrated article or two.
+    mark("Theory Path", "Illustrated background reading on ICS protocols, threats and defense")
+    view(page, "theory", 3000)
+    th = frame_of(page, "theory-iframe")
+    scroll(th, 3, dy=380, pause=1500)
+    mark("Reading a topic", "Each topic explains the theory with diagrams, then links to the lab")
+    page.evaluate("document.getElementById('theory-iframe').src = '/theory/ics-basics'")
+    page.wait_for_timeout(3000)
+    th = frame_of(page, "theory-iframe")
+    scroll(th, 5, dy=380, pause=1500)
+    page.evaluate("document.getElementById('theory-iframe').src = '/theory/modbus'")
+    page.wait_for_timeout(2500)
+    th = frame_of(page, "theory-iframe")
+    scroll(th, 4, dy=380, pause=1500)
+
+    # 3. CTF training: the challenge overview, then one challenge with its flag.
     mark("CTF training", "Challenges from reconnaissance to attack and defense, each with a flag")
     view(page, "ctf", 3000)
     ctf = frame_of(page, "ctf-iframe")
@@ -120,7 +135,7 @@ def walkthrough(page, mark):
             submit.click()
             page.wait_for_timeout(4000)
 
-    # 3. Virtual hardware: the board, then the 3D view with a slow rotation.
+    # 4. Virtual hardware: the board, then the 3D view with a slow rotation.
     mark("Virtual hardware", "The CybICS board simulated in software, same process model as the STM32")
     view(page, "vhardware", 5000)
     hw = frame_of(page, "vhardware-iframe")
@@ -139,7 +154,7 @@ def walkthrough(page, mark):
         page.wait_for_timeout(2500)
         click_text(hw, "Classic View", 2500)
 
-    # 4. OpenPLC: log in, dashboard, programs, live monitoring.
+    # 5. OpenPLC: log in, dashboard, programs, live monitoring.
     mark("OpenPLC", "The controller, running the IEC 61131-3 program of the plant")
     view(page, "openplc", 3000)
     plc = frame_of(page, "openplc-iframe")
@@ -156,7 +171,7 @@ def walkthrough(page, mark):
     mark("Live monitoring", "Inputs, outputs and variables of the running program")
     click_text(plc, "Monitoring", 4000)
 
-    # 5. FUXA: log in, pressure overview, system view.
+    # 6. FUXA: log in, pressure overview, system view.
     mark("FUXA HMI", "The operator view: pressures, valves, compressor state, trends")
     view(page, "fuxa", 5000)
     fuxa = frame_of(page, "fuxa-iframe")
@@ -182,7 +197,7 @@ def walkthrough(page, mark):
     click_text(fuxa, "Pressure", 4000)
     click_text(fuxa, "System", 3500)
 
-    # 6. IDS: overview, alerts, rules, challenges.
+    # 7. IDS: overview, alerts, rules, challenges.
     mark("Intrusion detection", "Alerts, detection rules mapped to MITRE ATT&CK for ICS, defense challenges")
     view(page, "ids", 3500)
     ids = frame_of(page, "ids-iframe")
@@ -192,7 +207,7 @@ def walkthrough(page, mark):
             btn.click()
             page.wait_for_timeout(3000)
 
-    # 7. Engineering workstation with the OpenPLC Editor opened.
+    # 8. Engineering workstation with the OpenPLC Editor opened.
     subprocess.run(["docker", "exec", ENGWS_CONTAINER, "pkill", "-f", "Beremiz.py"],
                    capture_output=True, timeout=10)
     subprocess.Popen(["docker", "exec", "-d", ENGWS_CONTAINER, "sh", "-c",
@@ -220,7 +235,7 @@ def walkthrough(page, mark):
             page.wait_for_timeout(900)
         page.wait_for_timeout(2000)
 
-    # 8. Attack machine, then back home.
+    # 9. Attack machine, then back home.
     mark("Attack machine", "Kali Linux with ICS tooling, the place to run the training modules from")
     view(page, "attackmachine", 6000)
     mark("", "")
