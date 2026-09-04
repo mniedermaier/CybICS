@@ -11,7 +11,11 @@ opens Chromium on it in kiosk mode, and captures the display with ffmpeg at
 ffmpeg and Playwright with its Chromium (pip install playwright && playwright
 install chromium).
 
-    python3 record_demo.py [--out ~/Videos/cybics-demo/cybics-demo.mp4]
+    python3 record_demo.py [--out FILE] [--music cue.wav] [--narrate]
+
+With --music a background track is mixed under the video; add --narrate for an
+English Piper voiceover of the on-screen captions (needs pip install piper-tts
+and a voice model, see --voice).
 """
 
 import argparse
@@ -20,6 +24,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -325,6 +330,80 @@ def add_outro(video):
     body.unlink(); outro.unlink()
 
 
+INTRO_LINE = "Welcome to CybICS."
+VOICE_DEFAULT = Path.home() / ".local" / "share" / "piper-voices" / "en_US-ljspeech-high.onnx"
+VOICE_URL = ("https://huggingface.co/rhasspy/piper-voices/resolve/main/"
+             "en/en_US/ljspeech/high/en_US-ljspeech-high.onnx")
+
+
+def _duration(path):
+    return float(subprocess.check_output(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)]))
+
+
+def _synth(model, text, wav):
+    """Speak one line to a WAV with Piper (offline, neural)."""
+    subprocess.run([sys.executable, "-m", "piper", "--model", str(model), "--output_file", str(wav)],
+                   input=text.encode(), check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def add_narration(out, music, model):
+    """Speak the section captions in English over a quiet music bed.
+
+    A line per section ("Title. Text.") is placed where its caption appears,
+    with a spoken intro over the logo. The music sits low and the voice leads,
+    so the mix stays intelligible. Voice model: Piper (MIT); the default
+    en_US-ljspeech-high is trained on the public-domain LJ Speech dataset, so
+    the audio is free to publish. The picture is not re-encoded.
+    """
+    silent = out.with_suffix(".silent.mp4")
+    out.rename(silent)
+    length = _duration(silent)
+    marks = json.loads(out.with_suffix(".marks.json").read_text())
+
+    nd = out.parent / "narration"
+    nd.mkdir(exist_ok=True)
+    offset = INTRO_SECONDS - CROSSFADE + 1.0   # where the captions appear
+    gap = 0.35
+    clips = []                                 # (wav, start_seconds)
+
+    intro = nd / "intro.wav"
+    _synth(model, INTRO_LINE, intro)
+    end = 0.9 + _duration(intro)
+    clips.append((intro, 0.9))
+
+    for i, (t, title, text) in enumerate(marks):
+        if not title:
+            continue
+        wav = nd / f"{i:02d}.wav"
+        _synth(model, f"{title}. {text}.", wav)
+        start = max(t + offset, end + gap)
+        end = start + _duration(wav)
+        clips.append((wav, start))
+
+    inputs = ["-i", str(silent), "-i", str(music)]
+    for wav, _ in clips:
+        inputs += ["-i", str(wav)]
+    fc = []
+    labels = []
+    for idx, (wav, start) in enumerate(clips, start=2):
+        ms = int(start * 1000)
+        fc.append(f"[{idx}:a]adelay={ms}|{ms},apad=whole_dur={length}[n{idx}]")
+        labels.append(f"[n{idx}]")
+    fc.append("".join(labels) + f"amix=inputs={len(labels)}:normalize=0:duration=longest[narr]")
+    # Quiet music bed, narration levelled and set clearly on top, faded at the end.
+    fc.append("[1:a]volume=0.30,aformat=channel_layouts=stereo[mus]")
+    fc.append("[narr]aformat=channel_layouts=stereo,dynaudnorm=f=200:g=6,volume=2.2[voice]")
+    fc.append(f"[mus][voice]amix=inputs=2:normalize=0:duration=first,"
+              f"afade=t=out:st={length - 4:.3f}:d=4,alimiter=limit=0.95,aresample=44100[mix]")
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error"] + inputs
+        + ["-filter_complex", ";".join(fc), "-map", "0:v", "-map", "[mix]",
+           "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", str(out)], check=True)
+    silent.unlink()
+
+
 def add_music(out, music):
     """Mux an audio track under the finished video; the picture is not re-encoded."""
     silent = out.with_suffix(".silent.mp4")
@@ -354,11 +433,30 @@ def main():
     ap.add_argument("--keep-raw", action="store_true",
                     help="keep the raw capture and the section marks next to the output")
     ap.add_argument("--remux", action="store_true",
-                    help="do not record; put --music under the existing --out video")
+                    help="do not record; put --music (and --narrate) onto the existing --out video")
+    ap.add_argument("--narrate", action="store_true",
+                    help="add an English Piper voiceover of the captions over the music bed")
+    ap.add_argument("--voice", type=Path, default=VOICE_DEFAULT,
+                    help=f"Piper voice .onnx model (default {VOICE_DEFAULT})")
     args = ap.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
+
+    if args.narrate:
+        if not args.music:
+            ap.error("--narrate needs --music for the background bed")
+        if not args.voice.exists():
+            ap.error(f"Piper voice not found: {args.voice}\n"
+                     f"Download the public-domain LJ Speech voice (and its .json) with:\n"
+                     f"  mkdir -p {args.voice.parent}\n"
+                     f"  curl -L {VOICE_URL} -o {args.voice}\n"
+                     f"  curl -L {VOICE_URL}.json -o {args.voice}.json\n"
+                     f"and install Piper:  pip install piper-tts")
+
     if args.remux:
-        add_music(args.out, args.music)
+        if args.narrate:
+            add_narration(args.out, args.music, args.voice)
+        else:
+            add_music(args.out, args.music)
         print(f"Wrote {args.out}")
         return
     recording = args.out.with_suffix(".raw.mp4")
@@ -413,7 +511,9 @@ def main():
         add_intro(recording, args.out)
         add_captions(args.out, marks, INTRO_SECONDS - CROSSFADE)
         add_outro(args.out)
-        if args.music:
+        if args.narrate:
+            add_narration(args.out, args.music, args.voice)
+        elif args.music:
             add_music(args.out, args.music)
         print(f"Wrote {args.out}")
     finally:
