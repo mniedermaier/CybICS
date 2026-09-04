@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CybICS lesson stage</title>
+<style>
+  :root { --bg:#141414; --panel:#1e1e1e; --line:#333; --accent:#ff6b00; --text:#e8e8e8; --muted:#9aa0a6; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+  #stage { width:1920px; height:1080px; display:flex; flex-direction:column; }
+  /* header */
+  header { height:88px; flex:0 0 88px; background:#0f0f0f; border-bottom:3px solid var(--accent);
+    display:flex; align-items:center; justify-content:space-between; padding:0 44px; }
+  .brand { font-weight:800; font-size:30px; letter-spacing:1px; }
+  .brand .ics { color:var(--accent); }
+  .h-title { font-size:26px; font-weight:700; color:#fff; text-align:center; flex:1; }
+  .h-badge { font-size:16px; color:#1a1a1a; background:var(--accent); border-radius:6px; padding:8px 14px; font-weight:700; white-space:nowrap; }
+  /* main */
+  main { flex:1; position:relative; }
+  .mode { position:absolute; inset:0; opacity:0; transition:opacity .35s; display:flex; }
+  .mode.on { opacity:1; }
+  /* slide */
+  #slide { flex-direction:column; justify-content:center; padding:70px 120px; gap:26px; }
+  #slide .s-head { font-size:52px; font-weight:800; color:var(--accent); line-height:1.1; }
+  #slide .s-body { font-size:30px; line-height:1.5; color:var(--text); max-width:1500px; }
+  #slide .s-body ul { margin:10px 0 0 34px; } #slide .s-body li { margin:12px 0; }
+  #slide .s-body b, #slide .s-head b { color:#fff; }
+  #slide .s-body code { background:#000; color:#ffd7b0; padding:2px 10px; border-radius:6px; font-size:0.9em; }
+  /* terminal */
+  #term { padding:40px 80px; }
+  .term-win { flex:1; background:#0b0b0b; border:1px solid var(--line); border-radius:10px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  .term-bar { height:44px; background:#1b1b1b; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid var(--line); }
+  .term-bar .dot { width:13px; height:13px; border-radius:50%; } .d1{background:#ff5f56}.d2{background:#ffbd2e}.d3{background:#27c93f}
+  .term-bar .term-host { margin-left:14px; color:var(--muted); font-family:monospace; font-size:16px; }
+  .term-body { flex:1; overflow:hidden; padding:20px 26px; font-family:'DejaVu Sans Mono',monospace; font-size:22px; line-height:1.4; white-space:pre-wrap; }
+  .term-body .prompt { color:#27c93f; } .term-body .cmd { color:#fff; } .term-body .out { color:#cfd2d6; }
+  .term-body .hl { color:var(--accent); font-weight:700; }
+  /* iframe */
+  #frame { } #frame iframe { width:100%; height:100%; border:0; background:#fff; }
+  /* card */
+  #card { flex-direction:column; align-items:center; justify-content:center; gap:24px; background:var(--bg); }
+  #card .c-logo { font-size:96px; font-weight:800; letter-spacing:2px; }
+  #card .c-logo .ics { color:var(--accent); }
+  #card .c-title { font-size:40px; font-weight:700; color:#fff; text-align:center; }
+  #card .c-sub { font-size:26px; color:var(--muted); }
+  /* caption */
+  #caption { flex:0 0 auto; min-height:96px; background:#0f0f0f; border-top:1px solid var(--line);
+    display:flex; align-items:center; padding:18px 60px; }
+  #caption .cap-text { font-size:28px; line-height:1.35; color:#fff; }
+  #caption.empty { visibility:hidden; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <header>
+    <div class="brand">Cyb<span class="ics">ICS</span></div>
+    <div class="h-title" id="h-title"></div>
+    <div class="h-badge" id="h-badge"></div>
+  </header>
+  <main>
+    <div class="mode" id="slide"><div class="s-head" id="s-head"></div><div class="s-body" id="s-body"></div></div>
+    <div class="mode" id="term">
+      <div class="term-win">
+        <div class="term-bar"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span>
+          <span class="term-host" id="term-host">root@attack-vm</span></div>
+        <div class="term-body" id="term-body"></div>
+      </div>
+    </div>
+    <div class="mode" id="frame"><iframe id="frame-if" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>
+    <div class="mode" id="card"><div class="c-logo">Cyb<span class="ics">ICS</span></div><div class="c-title" id="c-title"></div><div class="c-sub" id="c-sub"></div></div>
+  </main>
+  <div id="caption" class="empty"><div class="cap-text" id="cap-text"></div></div>
+</div>
+<script>
+  function only(id){ for (const m of document.querySelectorAll('.mode')) m.classList.toggle('on', m.id===id); }
+  window.cyHeader = (t,b)=>{ document.getElementById('h-title').textContent=t||''; document.getElementById('h-badge').textContent=b||''; document.getElementById('h-badge').style.display=b?'':'none'; };
+  window.cySlide = (head, body)=>{ document.getElementById('s-head').innerHTML=head||''; document.getElementById('s-body').innerHTML=body||''; only('slide'); };
+  window.cyCard = (title, sub)=>{ document.getElementById('c-title').innerHTML=title||''; document.getElementById('c-sub').innerHTML=sub||''; only('card'); };
+  window.cyTerminal = (host)=>{ document.getElementById('term-host').textContent=host||'root@attack-vm'; only('term'); };
+  window.cyClearTerm = ()=>{ document.getElementById('term-body').innerHTML=''; };
+  window.cyIframe = (url)=>{ document.getElementById('frame-if').src=url; only('frame'); };
+  window.cyCaption = (t)=>{ const c=document.getElementById('caption'); document.getElementById('cap-text').textContent=t||''; c.classList.toggle('empty', !t); };
+  // type a command after a prompt, animated over ~ms
+  window.cyType = (cmd, ms)=>{ // fire-and-forget; engine controls timing
+      const b=document.getElementById('term-body');
+      const line=document.createElement('div');
+      line.innerHTML='<span class="prompt">$ </span><span class="cmd"></span>';
+      b.appendChild(line); const span=line.querySelector('.cmd');
+      let i=0; const step=Math.max(12,(ms||cmd.length*45)/cmd.length);
+      const t=setInterval(()=>{ span.textContent=cmd.slice(0,++i); b.scrollTop=b.scrollHeight; if(i>=cmd.length){clearInterval(t);} }, step);
+  };
+  // stream output text over ms, highlighting lines matching a regex
+  window.cyStream = (text, ms, hlPattern)=>{ // fire-and-forget
+      const b=document.getElementById('term-body');
+      const pre=document.createElement('div'); pre.className='out'; b.appendChild(pre);
+      const hl = hlPattern ? new RegExp(hlPattern) : null;
+      const lines=text.split('\n'); let i=0; const per=Math.max(60,(ms||1500)/Math.max(1,lines.length));
+      const t=setInterval(()=>{ if(i>=lines.length){clearInterval(t);return;}
+        const d=document.createElement('div'); const ln=lines[i];
+        if(hl && hl.test(ln)) d.innerHTML='<span class="hl">'+ln.replace(/</g,'&lt;')+'</span>'; else d.textContent=ln;
+        pre.appendChild(d); i++; b.scrollTop=b.scrollHeight; }, per);
+  };
+</script>
+</body>
+</html>

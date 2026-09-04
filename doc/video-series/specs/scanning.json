@@ -1,0 +1,63 @@
+{
+  "id": "scanning",
+  "title": "Network Scanning",
+  "badge": "Recon · 100 pts · T0846",
+  "vm": "virtual-attack-machine-1",
+  "term_host": "root@attack-vm : ~",
+  "landing": "http://localhost:80",
+  "beats": [
+    { "type": "card",
+      "title": "Lesson 1 &mdash; Network Scanning",
+      "sub": "ICS reconnaissance from the attack machine",
+      "say": "Welcome to CybICS. In this first lesson we look at network scanning, the reconnaissance step that begins almost every attack on an industrial control system." },
+
+    { "type": "say",
+      "head": "Why scanning comes first",
+      "body": "Before an attacker can touch a process, they need to know what is on the network: which hosts are alive, and which industrial services they run.<ul><li>It maps the <b>PLC</b>, the <b>HMI</b> and the protocols.</li><li>In OT it must be done carefully &mdash; aggressive scans can disturb fragile devices.</li><li>It maps to <b>MITRE ATT&amp;CK for ICS T0846</b>, Remote System Discovery.</li></ul>",
+      "say": "Reconnaissance comes first because an attacker cannot act on a process they cannot see. Scanning reveals which hosts are alive and which industrial services they run, so the attacker learns where the controller, the human-machine interface, and the protocols live. In operational technology this has to be done with care, because aggressive scans can disturb fragile field devices. This step maps to MITRE ATT and CK for I C S technique T zero eight four six, remote system discovery." },
+
+    { "type": "say",
+      "head": "Our vantage point",
+      "body": "Everything in this lesson runs from the <b>Kali attack machine</b> inside the lab, the box a red team would pivot to. From here we scan the CybICS network <code>172.18.0.0/24</code>.",
+      "say": "Everything in this lesson runs from the Kali attack machine inside the lab. This is the foothold a red team would pivot to. From here, we scan the CybICS network." },
+
+    { "type": "run",
+      "caption": "Host discovery: which systems are alive on the network",
+      "cmd": "nmap -sn 172.18.0.0/24",
+      "hl": "Nmap scan report",
+      "say": "We start with host discovery. The dash s n flag tells nmap to find live hosts without scanning their ports yet. In seconds we get the whole lab: the physical process, OpenP L C, the FUXA H M I, the O P C U A and S seven servers, the engineering workstation, and our own attack machine." },
+
+    { "type": "run",
+      "caption": "Identify the industrial services on the PLC",
+      "cmd": "nmap -sV -T4 --version-intensity 2 -p 102,502,8080,20000,44818 172.18.0.3",
+      "hl": "open",
+      "say": "Next we fingerprint the controller. A version scan of the OpenP L C host shows the industrial attack surface: Modbus on port five zero two, S seven comm on one zero two, a web interface on eight zero eight zero, D N P three on twenty thousand, and EtherNet I P on four four eight one eight. None of these protocols authenticate, so every open port is a way in." },
+
+    { "type": "say",
+      "head": "Finding the flag",
+      "body": "Each CybICS challenge hides a flag of the form <code>CybICS(...)</code>. For scanning, it is planted in a place recon naturally looks: the <b>HTTP <code>Server</code> header</b> of the landing page.",
+      "say": "Every CybICS challenge hides a flag, written as CybICS and a value in brackets. For the scanning challenge, the flag is planted exactly where reconnaissance naturally looks: in the HTTP server header of the landing page." },
+
+    { "type": "run",
+      "caption": "Read the HTTP Server header - the flag is in the banner",
+      "cmd": "nmap -p80 --script http-headers 172.18.0.1",
+      "hl": "CybICS",
+      "say": "We point nmap's H T T P headers script at the landing page. There it is, in the server banner: CybICS, scanning done. That string is our flag. A real device banner can leak just as much: a model, a firmware version, a clue for the next step." },
+
+    { "type": "show",
+      "caption": "Submit the flag in the CTF dashboard",
+      "url": "http://localhost:80/ctf/challenge/scanning",
+      "seconds": 9,
+      "say": "Back in the CybICS dashboard, we open the scanning challenge and submit the flag we found. That completes the lesson." },
+
+    { "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Scanning maps the ICS before any attack.</li><li>The lab exposes Modbus, S7comm, OPC-UA, DNP3 and EtherNet/IP &mdash; none authenticated.</li><li>Banners leak information; here, the flag.</li></ul>Next: this same scan is <b>noisy</b>, and the IDS can catch it. See the <b>Detect a scan</b> lesson.",
+      "say": "To recap: scanning maps the industrial control system before any attack. The CybICS lab exposes five industrial protocols, none of them authenticated, and service banners leak information, including our flag. But this scan is loud. In a later lesson we switch sides and watch the intrusion detection system catch exactly this activity." },
+
+    { "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(scanning_d0ne)</span>",
+      "sub": "Next lesson: S7comm enumeration &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we go deeper into one protocol and enumerate a Siemens style controller over S seven comm." }
+  ]
+}
