@@ -203,16 +203,20 @@ The engine gets `setup` and `teardown` hooks per spec for this.
 - The rendered `.mp4` files (kept out of git; written to `~/videos/` or a
   chosen output dir).
 
-## 11. Open decisions (need your call)
+## 11. Decisions (locked)
 
-1. **Capture style for CLI steps** — the recommended controlled terminal fed by
-   real `docker exec` output, versus recording the VM's own desktop terminal
-   over noVNC. (Recommendation: controlled terminal.)
-2. **Video length / depth** — tight ~2 min per challenge, or fuller ~4–5 min
-   with more explanation. (Recommendation: ~2–3 min.)
-3. **Voice** — keep the public-domain Piper voice, or use a higher-quality
-   online TTS (needs a key and sends text out, but sounds better).
-4. **Output location** — `~/videos/`, or a dated folder per run.
+1. **Capture style for CLI steps** — controlled terminal fed by real
+   `docker exec` output in the VM. GUI steps still capture the real interface.
+2. **Video length / depth** — fuller **4–5 min** per challenge: a proper theory
+   opening, and each step explained, not just shown. Specs should budget
+   several `say` beats and generous per-step narration.
+3. **Voice** — public-domain Piper `en_US-ljspeech-high`, with a per-term
+   pronunciation map.
+4. **Output location** — `~/videos/` (a dated subfolder per render run).
+
+With 4–5 min videos the theory opening carries more weight, so each spec pulls a
+fuller summary from its Theory Path article and adds "why it matters" and MITRE
+context as narration, not just captions.
 
 ## 12. Risks
 
