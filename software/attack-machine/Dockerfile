@@ -81,6 +81,7 @@ RUN git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc \
 RUN pip3 install --no-cache-dir --break-system-packages \
     scapy \
     pymodbus \
+    python-dotenv \
     python-snap7 \
     opcua \
     opcua-client \

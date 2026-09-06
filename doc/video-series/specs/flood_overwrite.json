@@ -1,0 +1,67 @@
+{
+  "id": "flood_overwrite",
+  "seq": 6,
+  "slug": "modbus-write-flood",
+  "title": "Modbus Write Flood",
+  "badge": "Exploit · 200 pts · T0836 / T0806",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 6 &mdash; Overwriting a Process Value",
+      "sub": "Seizing control of the plant over Modbus",
+      "say": "Welcome back to CybICS. So far we have looked. Now we act. In this lesson we reach into the physical process and overwrite a live process value by flooding the controller over Modbus."
+    },
+    {
+      "type": "say",
+      "head": "Modbus has no authentication",
+      "body": "<b>Modbus/TCP</b> carries the plant's process data, and it has <b>no authentication</b>. Anyone who can reach port <code>502</code> can not only read registers but <b>write</b> them.<ul><li>The controller reads a sensor value, decides, and drives an actuator.</li><li>If an attacker writes that sensor register <b>faster than the real value updates</b>, the attacker owns it.</li><li>Maps to <b>MITRE ATT&amp;CK for ICS T0836</b> Modify Parameter and <b>T0806</b> Brute Force I/O.</li></ul>",
+      "say": "Modbus over T C P carries the plant's process data, and it has no authentication at all. Anyone who can reach port five zero two can read registers, and just as easily write them. The controller reads a sensor, makes a decision, and drives an actuator. If an attacker writes that sensor register faster than the real value updates, the attacker owns the value the controller sees. This maps to MITRE ATT and CK for I C S, modify parameter and brute force I O."
+    },
+    {
+      "type": "say",
+      "head": "The target: the high-pressure tank",
+      "body": "In CybICS the process is a <b>gas pressure control</b> loop. The controller watches the <b>high-pressure-tank</b> sensor and switches the compressor to hold a safe pressure.<br><br>We will pin that sensor register from the <b>attack machine</b>, so the controller keeps the compressor running &mdash; and the pressure climbs toward a blow-out.",
+      "say": "In CybICS the process is a gas pressure control loop. The controller watches the high pressure tank sensor and switches the compressor on and off to hold a safe pressure. We are going to pin that sensor register from the attack machine, so the controller believes the tank is always low, keeps the compressor running, and drives the real pressure toward a critical blow out."
+    },
+    {
+      "type": "run",
+      "caption": "Flood the HPT register - thousands of Modbus writes per second",
+      "cmd": "cd /CybICS/training/flood_overwrite && python3 flooding_hpt.py 172.18.0.3 --duration 5",
+      "run_seconds": 12,
+      "say": "We launch the flood. This script opens a Modbus connection to the OpenP L C and writes the high pressure tank register, again and again, roughly a thousand times a second. Watch the counter race. Every one of these writes overwrites the real sensor reading before the controller can act on it."
+    },
+    {
+      "type": "say",
+      "head": "What just happened",
+      "body": "<ul><li>The sensor register is <b>pinned</b> to a low value.</li><li>The controller never sees the pressure rise, so the <b>compressor stays on</b>.</li><li>On the HMI the tank pressure climbs past its limit &mdash; a real <b>cyber-to-physical</b> impact from a few unauthenticated writes.</li></ul>",
+      "say": "That is a direct cyber to physical attack. The sensor register is pinned to a low value, so the controller never sees the pressure rising, and it keeps the compressor on. On the operator's screen the tank pressure climbs past its safe limit. A handful of unauthenticated writes are enough to seize control of a physical process."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "The lab confirms the attack. From the attack machine we open the CybICS dashboard, go to the flood and overwrite challenge, and submit the flag that a successful flood earns. The dashboard accepts it.",
+      "url": "http://172.18.0.1/ctf/challenge/flood_overwrite",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(flood_attack_successful)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Unauthenticated Modbus writes let an attacker <b>overwrite live process values</b>.</li><li>Writing faster than the real value updates <b>seizes control</b> of the loop.</li><li>Defences: <b>authenticate and segment</b> the control network, and <b>rate-limit and monitor</b> writes &mdash; the IDS sees this flood.</li></ul>",
+      "say": "To recap: unauthenticated Modbus writes let an attacker overwrite live process values, and writing faster than the real value updates seizes control of the loop. The defences are to authenticate and segment the control network, and to rate limit and monitor writes. In a later lesson we switch sides and watch the intrusion detection system catch exactly this flood."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(flood_attack_successful)</span>",
+      "sub": "Next lesson: fuzzing Modbus &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we stress the controller a different way, by fuzzing Modbus with malformed frames."
+    }
+  ]
+}
