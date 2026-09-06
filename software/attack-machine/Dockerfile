@@ -13,6 +13,11 @@ RUN apt-get update && apt-get install -y \
     tigervnc-common \
     dbus-x11 \
     supervisor \
+    # Desktop automation for the training video series: the renderer opens a
+    # terminal on display :1 and types the real attack commands into it, so the
+    # footage shows the genuine Kali desktop executing the attack.
+    xdotool \
+    wmctrl \
     firefox-esr \
     # Network scanning and enumeration
     nmap \

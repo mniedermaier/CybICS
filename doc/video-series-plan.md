@@ -205,8 +205,13 @@ The engine gets `setup` and `teardown` hooks per spec for this.
 
 ## 11. Decisions (locked)
 
-1. **Capture style for CLI steps** — controlled terminal fed by real
-   `docker exec` output in the VM. GUI steps still capture the real interface.
+1. **Capture style for CLI steps** — *superseded*. The lesson now shows the
+   **real attack-VM desktop**: the renderer opens a terminal on the Kali
+   machine's display `:1` and types each command into it with `xdotool`, and the
+   live desktop is embedded over noVNC. So the footage is the genuine attack VM
+   running the attack, not a reconstructed terminal panel. (The earlier decision
+   was a controlled terminal fed by `docker exec` output; that path still exists
+   for specs without `vm_desktop`.) GUI steps still capture the real interface.
 2. **Video length / depth** — fuller **4–5 min** per challenge: a proper theory
    opening, and each step explained, not just shown. Specs should budget
    several `say` beats and generous per-step narration.

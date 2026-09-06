@@ -97,6 +97,11 @@ if args.marks:
     at = {title: t + args.intro for t, title, _ in json.load(open(args.marks)) if title}
     T_CTF, T_PLC, T_ENG = at["CTF training"], at["OpenPLC"], at["Engineering workstation"]
     T_END = at["Attack machine"] + 5
+elif TOTAL_SEC and abs(TOTAL_SEC - T_END) > 1:
+    # No marks: fit the musical arc to the requested length so the cue spans the
+    # whole video instead of stopping at the old demo's fixed ~165 s structure.
+    scale = TOTAL_SEC / T_END
+    T_CTF, T_PLC, T_ENG, T_END = T_CTF * scale, T_PLC * scale, T_ENG * scale, TOTAL_SEC
 
 # --- 0. logo: drone, cymbal swell, timpani hit at the cut ------------------
 note(pad, 0, sec(4), D-12, 60); note(pad, 0, sec(4), A-12, 55)

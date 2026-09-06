@@ -37,6 +37,15 @@
   .term-body .hl { color:var(--accent); font-weight:700; }
   /* iframe */
   #frame { } #frame iframe { width:100%; height:100%; border:0; background:#fff; }
+  /* attack-VM (noVNC) full-bleed mode: the real Kali desktop fills the main area,
+     the header stays for branding, the caption floats over the desktop. */
+  body.vm #caption { display:none; }
+  body.vm #frame iframe { background:#0b0b0b; }
+  .vmcap { position:absolute; left:0; right:0; bottom:0; padding:26px 60px 30px;
+    background:linear-gradient(transparent, rgba(0,0,0,.55) 30%, rgba(0,0,0,.85)); pointer-events:none; z-index:5; }
+  .vmcap .vc { font-size:30px; line-height:1.32; color:#fff; font-weight:600; max-width:1640px;
+    text-shadow:0 2px 8px #000, 0 0 2px #000; }
+  .vmcap.empty { display:none; }
   /* card */
   #card { flex-direction:column; align-items:center; justify-content:center; gap:24px; background:var(--bg); }
   #card .card-logo { height:120px; width:auto; }
@@ -65,19 +74,24 @@
         <div class="term-body" id="term-body"></div>
       </div>
     </div>
-    <div class="mode" id="frame"><iframe id="frame-if" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe></div>
+    <div class="mode" id="frame"><iframe id="frame-if" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      <div class="vmcap empty" id="vmcap"><div class="vc" id="vmcap-t"></div></div></div>
     <div class="mode" id="card"><img class="card-logo" src="/assets/cybics_logo.png" alt="CybICS"><div class="c-title" id="c-title"></div><div class="c-sub" id="c-sub"></div></div>
   </main>
   <div id="caption" class="empty"><div class="cap-text" id="cap-text"></div></div>
 </div>
 <script>
-  function only(id){ for (const m of document.querySelectorAll('.mode')) m.classList.toggle('on', m.id===id); }
+  function only(id){ if(id!=='frame') document.body.classList.remove('vm'); for (const m of document.querySelectorAll('.mode')) m.classList.toggle('on', m.id===id); }
   window.cyHeader = (t,b)=>{ document.getElementById('h-title').textContent=t||''; document.getElementById('h-badge').textContent=b||''; document.getElementById('h-badge').style.display=b?'':'none'; };
   window.cySlide = (head, body)=>{ document.getElementById('s-head').innerHTML=head||''; document.getElementById('s-body').innerHTML=body||''; only('slide'); };
   window.cyCard = (title, sub)=>{ document.getElementById('c-title').innerHTML=title||''; document.getElementById('c-sub').innerHTML=sub||''; only('card'); };
   window.cyTerminal = (host)=>{ document.getElementById('term-host').textContent=host||'root@attack-vm'; only('term'); };
   window.cyClearTerm = ()=>{ document.getElementById('term-body').innerHTML=''; };
-  window.cyIframe = (url)=>{ document.getElementById('frame-if').src=url; only('frame'); };
+  window.cyIframe = (url)=>{ document.body.classList.remove('vm'); document.getElementById('frame-if').src=url; only('frame'); };
+  // attack-VM mode: embed the real desktop (noVNC) full-bleed with a floating caption
+  window.cyVM = (url)=>{ document.body.classList.add('vm'); if(url) document.getElementById('frame-if').src=url; only('frame'); };
+  window.cyVMOff = ()=>{ document.body.classList.remove('vm'); };
+  window.cyVCap = (t)=>{ const c=document.getElementById('vmcap'); document.getElementById('vmcap-t').textContent=t||''; c.classList.toggle('empty', !t); };
   window.cyCaption = (t)=>{ const c=document.getElementById('caption'); document.getElementById('cap-text').textContent=t||''; c.classList.toggle('empty', !t); };
   // type a command after a prompt, animated over ~ms
   window.cyType = (cmd, ms)=>{ // fire-and-forget; engine controls timing
