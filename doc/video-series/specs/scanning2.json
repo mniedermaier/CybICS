@@ -1,0 +1,109 @@
+{
+  "id": "scanning2",
+  "seq": 2,
+  "slug": "s7comm-enumeration",
+  "title": "S7comm Enumeration",
+  "badge": "Recon · 150 pts · T0846 / T0861",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "sed -i 's/^portrule.*/portrule = shortport.port_or_service(102, \"iso-tsap\", \"tcp\")/' /usr/share/nmap/scripts/s7-info.nse"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 2 &mdash; S7comm Enumeration",
+      "sub": "Fingerprinting a Siemens-style controller",
+      "say": "Welcome back to CybICS. In the first lesson we mapped the network. Now we focus on one industrial protocol and enumerate a Siemens style controller over S seven comm."
+    },
+    {
+      "type": "say",
+      "head": "What is S7comm?",
+      "body": "<b>S7comm</b> is the protocol Siemens PLCs speak, normally on <code>TCP/102</code>. Like most industrial protocols it is <b>unauthenticated</b> and freely answers questions about itself.<ul><li>It reveals the <b>module</b>, <b>hardware</b>, <b>firmware version</b> and <b>serial</b>.</li><li>Attackers use this to match a PLC to known vulnerabilities.</li><li>Maps to <b>MITRE ATT&amp;CK for ICS T0846</b> and <b>T0861</b>.</li></ul>",
+      "say": "S seven comm is the protocol that Siemens P L Cs speak. It normally runs on port one zero two. Like most industrial protocols it is unauthenticated, and it will happily answer questions about itself: the module number, the hardware type, the firmware version, and the serial number. An attacker uses that identity to match the controller to known vulnerabilities. This maps to MITRE ATT and CK for I C S techniques T zero eight four six and T zero eight six one, remote system discovery and point and tag identification."
+    },
+    {
+      "type": "say",
+      "head": "A service on a non-standard port",
+      "body": "In this lab the interesting S7 service does not sit on the usual port. From the <b>Kali attack machine</b> we probe the S7comm host <code>172.18.0.6</code> and find a second service on a <b>non-standard port</b>.",
+      "say": "In this lab the interesting S seven service does not sit on the usual port. Defenders sometimes move a service to hide it. From the Kali attack machine we probe the S seven comm host and look at both the standard port and a non-standard one."
+    },
+    {
+      "type": "run",
+      "caption": "Probe the S7comm host - a second port, 1102, is open",
+      "cmd": "nmap -Pn -p 102,1102 172.18.0.6",
+      "run_seconds": 15,
+      "say": "A quick port scan of the S seven comm host shows the standard port one zero two is closed here, but a second port, one one zero two, is open. The name nmap prints next to it is only a guess from a static list, so we cannot trust it. We need to ask the service what it really is."
+    },
+    {
+      "type": "say",
+      "head": "The tool won't look there",
+      "body": "Nmap ships an <code>s7-info</code> script that fingerprints S7 PLCs &mdash; but its trigger, the <b>portrule</b>, is hard-coded to port <b>102</b>. On a non-standard port it simply never runs.",
+      "say": "Nmap ships a script called s seven info that fingerprints S seven P L Cs. But the script has a catch: its trigger, called the port rule, is hard coded to port one zero two. On a non-standard port, the script simply never runs."
+    },
+    {
+      "type": "run",
+      "caption": "The s7-info script only fires on port 102",
+      "cmd": "grep portrule /usr/share/nmap/scripts/s7-info.nse",
+      "run_seconds": 10,
+      "say": "We can see that in the script itself. The port rule matches only port one zero two. So against our service on one one zero two, s seven info gives us nothing."
+    },
+    {
+      "type": "run",
+      "caption": "Teach the script about port 1102, then confirm the change",
+      "cmd": "sudo sed -i 's/^portrule.*/portrule = shortport.port_or_service({102, 1102}, \"iso-tsap\", \"tcp\")/' /usr/share/nmap/scripts/s7-info.nse; grep portrule /usr/share/nmap/scripts/s7-info.nse",
+      "run_seconds": 12,
+      "say": "So we teach the script about the new port. A single edit adds one one zero two to the port rule. Now s seven info will fire on both ports."
+    },
+    {
+      "type": "run",
+      "caption": "Fingerprint the PLC - the flag is in the Module Type field",
+      "cmd": "nmap --script s7-info -p 102,1102 172.18.0.6",
+      "run_seconds": 25,
+      "say": "We run the scan again. This time s seven info queries the controller on one one zero two and returns its full identity: a S seven three hundred module, firmware two point six point nine, and the system name. And in the module type field, the flag: CybICS, s seven comm analysis complete."
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>S7comm leaks a controller's <b>exact model and firmware</b>, unauthenticated.</li><li>Hiding a service on a <b>non-standard port</b> is not security &mdash; a port scan finds it.</li><li>Tools can be adapted; the <code>s7-info</code> portrule was a one-line change.</li></ul>",
+      "say": "To recap: S seven comm hands an attacker the exact model and firmware of a controller, with no authentication. Moving the service to a non-standard port did not hide it; a port scan found it, and adapting the tool took a single line. This kind of fingerprinting is the first step of a targeted P L C attack."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "Now we complete the challenge on the attack machine itself. In the VM's own browser we open the CybICS dashboard, go to the S seven comm enumeration challenge, paste the flag we recovered from the module type field, and submit it. The dashboard marks the challenge solved.",
+      "url": "http://172.18.0.1/ctf/challenge/scanning2",
+      "actions": [
+        {
+          "scroll": 50,
+          "wait": 1.0
+        },
+        {
+          "click": [
+            1085,
+            849
+          ],
+          "wait": 0.6
+        },
+        {
+          "type": "CybICS(s7comm_analysis_complete)",
+          "wait": 1.0
+        },
+        {
+          "click": [
+            733,
+            923
+          ],
+          "wait": 5.0
+        }
+      ]
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(s7comm_analysis_complete)</span>",
+      "sub": "Next lesson: reading Modbus in a capture &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we switch protocols and read Modbus traffic straight off the wire."
+    }
+  ]
+}

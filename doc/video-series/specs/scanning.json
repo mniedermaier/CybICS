@@ -64,16 +64,13 @@
       "url": "http://172.18.0.1/ctf/challenge/scanning",
       "actions": [
         {
-          "click": [
-            489,
-            400
-          ],
-          "wait": 2.8
+          "scroll": 50,
+          "wait": 1.0
         },
         {
           "click": [
             1085,
-            848
+            849
           ],
           "wait": 0.6
         },

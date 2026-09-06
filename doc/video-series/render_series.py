@@ -86,12 +86,10 @@ def vm_wait_done(vm, cmd, cap=60):
     return time.time() - t0
 
 
-def vm_firefox_open(vm, url, cap=28):
-    """Open Firefox in the VM in kiosk mode on `url` with a clean, quiet profile.
-
-    Kiosk hides the tab/URL bar and the first-run clutter, so the recording shows
-    just the real dashboard fullscreen — driven for real on the attack machine.
-    """
+def vm_firefox_launch(vm, url):
+    """Start Firefox in the VM in kiosk mode on `url` with a clean, quiet profile
+    (non-blocking). Kiosk hides the tab/URL bar and first-run clutter, so the
+    recording shows just the real dashboard fullscreen on the attack machine."""
     b64u = base64.b64encode(url.encode()).decode()
     script = VM_ENV.replace("; ", "\n") + f"""
 pkill -f firefox 2>/dev/null; sleep 1.5
@@ -104,23 +102,43 @@ user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
 user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.messaging-system.whatsNewPanel.enabled", false);
+user_pref("general.smoothScroll", false);
+user_pref("mousewheel.default.delta_multiplier_y", 300);
 JS
 U=$(echo {b64u} | base64 -d)
 setsid firefox --profile "$PROF" --kiosk "$U" </dev/null >/tmp/ff.log 2>&1 &
 """
     vm_sh(vm, script, timeout=30)
+
+
+def vm_firefox_wait(vm, cap=28, settle=6):
+    """Block until the Firefox window is up and the page has settled."""
     t0 = time.time()
     while time.time() - t0 < cap:
         r = vm_sh(vm, VM_ENV + 'xdotool search --class Navigator >/dev/null 2>&1 && echo Y || echo N', timeout=15)
         if "Y" in (r.stdout or ""):
             break
         time.sleep(0.7)
-    time.sleep(6)                                  # let the page paint and settle
+    time.sleep(settle)
+    # Give Firefox the input focus so synthetic scroll/click events reach it
+    # (kiosk launched in the background does not always steal focus from the
+    # terminal, which silently swallows the events).
+    vm_sh(vm, VM_ENV + 'W=$(xdotool search --class Navigator | tail -1); '
+                       '[ -n "$W" ] && xdotool windowactivate "$W" && xdotool windowfocus "$W"; sleep 0.4', timeout=20)
 
 
 def vm_action(vm, a):
-    """One scripted desktop action for a vm_web beat: click [x,y], type, or key."""
-    if "click" in a:
+    """One scripted desktop action for a vm_web beat: scroll, click [x,y], type, or key."""
+    if "scroll" in a:
+        # Mouse-wheel scroll over the page content (robust: no keyboard focus needed).
+        # Firefox swallows the first wheel burst after a fresh load, so send a small
+        # warm-up burst first, then the real one. Positive = down; over-scrolling
+        # past the end is a harmless no-op, so a generous count lands on the bottom
+        # for any challenge page length.
+        n = abs(int(a["scroll"])); btn = 5 if a["scroll"] >= 0 else 4
+        vm_sh(vm, VM_ENV + f'xdotool mousemove 960 500; xdotool click --repeat 3 --delay 20 {btn}; sleep 0.4; '
+                           f'xdotool click --repeat {n} --delay 14 {btn}; xdotool mousemove 1912 1070', timeout=40)
+    elif "click" in a:
         x, y = a["click"]
         vm_sh(vm, VM_ENV + f'xdotool mousemove {x} {y}; sleep 0.25; xdotool click 1; sleep 0.15; xdotool mousemove 1912 1070', timeout=20)
     elif "type" in a:
@@ -204,6 +222,12 @@ def main():
         synth(args.voice, b["say"], wav)
         b["_wav"], b["_nd"] = str(wav), dur(wav)
 
+    # Per-spec setup commands run in the VM before capture (e.g. restore a stock
+    # config so the lesson shows a genuine change). teardown runs after capture.
+    for cmd in spec.get("setup", []):
+        print("setup:", cmd)
+        vm_sh(vm, VM_ENV + cmd, timeout=180)
+
     if vm_desktop:
         print("preparing attack-VM desktop terminal ...")
         vm_term_open(vm)
@@ -247,7 +271,9 @@ def main():
             hold = lambda s: time.sleep(max(0.1, s))
             host = spec.get("term_host", "root@attack-vm")
             vm_live = False                        # noVNC desktop already embedded?
-            for b in beats:
+            ff_ready = False                       # Firefox pre-launched for a vm_web beat?
+            for idx, b in enumerate(beats):
+                nxt = beats[idx + 1] if idx + 1 < len(beats) else None
                 marks.append(time.time() - t0)
                 page.evaluate("(c)=>cyCaption(c)", b.get("caption", ""))
                 nd, pad = b["_nd"], 0.8
@@ -255,7 +281,12 @@ def main():
                     page.evaluate("(t)=>cyCard(t[0],t[1])", [b["title"], b.get("sub", "")])
                     page.evaluate("()=>cyCaption('')"); hold(nd + pad)
                 elif b["type"] == "say":
-                    page.evaluate("(t)=>cySlide(t[0],t[1])", [b.get("head", ""), b.get("body", "")]); hold(nd + pad)
+                    page.evaluate("(t)=>cySlide(t[0],t[1])", [b.get("head", ""), b.get("body", "")])
+                    # Pre-load Firefox behind this slide so the next submit beat is
+                    # snappy instead of narrating over a blank loading page.
+                    if nxt and nxt["type"] == "vm_web" and not ff_ready:
+                        vm_firefox_launch(vm, nxt["url"]); ff_ready = True
+                    hold(nd + pad)
                 elif b["type"] == "run" and vm_desktop:
                     # Show the real attack VM and type the command into its terminal.
                     page.evaluate("()=>cyCaption('')")
@@ -274,15 +305,17 @@ def main():
                     hold(max(1.2, nd + pad - ran))
                     page.evaluate("()=>cyVCap('')")
                 elif b["type"] == "vm_web":
-                    # Submit the flag for real in the attack VM's own browser.
+                    # Perform the challenge for real in the attack VM's own browser.
                     page.evaluate("()=>cyCaption('')")
+                    if not ff_ready:                     # not pre-loaded: launch now
+                        vm_firefox_launch(vm, b["url"]); ff_ready = True
+                    vm_firefox_wait(vm, settle=2)
                     if not vm_live:
                         page.evaluate("(u)=>cyVM(u)", VM_VNC_URL); hold(4.0); vm_live = True
                     else:
                         page.evaluate("()=>cyVM()"); hold(0.4)
                     page.evaluate("(c)=>cyVCap(c)", b.get("caption", ""))
                     start = time.time()
-                    vm_firefox_open(vm, b["url"])         # terminal -> real dashboard, on screen
                     for a in b.get("actions", []):
                         vm_action(vm, a); hold(a.get("wait", 1.0))
                     hold(max(1.5, nd + pad - (time.time() - start)))
@@ -323,6 +356,13 @@ def main():
         if ff and ff.poll() is None:
             ff.kill()
         xvfb.terminate(); httpd.shutdown()
+
+    for cmd in spec.get("teardown", []):
+        print("teardown:", cmd)
+        try:
+            vm_sh(vm, VM_ENV + cmd, timeout=180)
+        except Exception as e:
+            print("teardown failed (continuing):", e)
 
     # 3) audio: narration at the marks (+ optional music bed), then mux
     vlen = dur(raw)
