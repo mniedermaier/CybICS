@@ -1,0 +1,78 @@
+{
+  "id": "ids_challenge",
+  "seq": 14,
+  "slug": "ids-intrusion",
+  "title": "Catching the Intrusion",
+  "badge": "Detection · 300 pts · T0846 / T0836",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 14 &mdash; Catching the Intrusion",
+      "sub": "Correlating a chain of attacks",
+      "say": "Welcome back to CybICS. A real intrusion is rarely a single action. It is a chain: reconnaissance, then access, then impact. In this lesson the intrusion detection system correlates that chain into one verdict."
+    },
+    {
+      "type": "say",
+      "head": "One alert is noise; a chain is an intrusion",
+      "body": "A single alert can be a false alarm. What convinces a defender is a <b>pattern of activity</b> from one source over time.<ul><li>The CybICS <b>IDS</b> counts distinct detections from an attacker.</li><li>Once enough fire, it raises an <b>intrusion</b> verdict and unlocks the flag.</li><li>We will chain a <b>scan</b> and a <b>write flood</b> &mdash; recon and impact &mdash; from the attack machine.</li></ul>",
+      "say": "A single alert can be a false alarm. What convinces a defender is a pattern of activity from one source over time. The CybICS intrusion detection system counts distinct detections from an attacker, and once enough fire, it raises an intrusion verdict and unlocks the flag. We will chain two very different attacks, a scan and a write flood, recon and impact, both from the attack machine."
+    },
+    {
+      "type": "run",
+      "caption": "Attack 1 of 2: reconnaissance - a port scan",
+      "cmd": "nmap -sS -p1-1024 172.18.0.3 -Pn",
+      "run_seconds": 30,
+      "say": "First, reconnaissance. We scan the OpenP L C. That trips the port scan and S Y N flood rules, two detections tied to our source address."
+    },
+    {
+      "type": "run",
+      "caption": "Attack 2 of 2: impact - the Modbus write flood",
+      "cmd": "cd /CybICS/training/flood_overwrite && python3 flooding_hpt.py 172.18.0.3 --duration 5",
+      "run_seconds": 12,
+      "say": "Then impact. We flood the high pressure tank register, the attack from lesson six. That trips the Modbus flood and the unauthorized write rules, two more detections from the same source."
+    },
+    {
+      "type": "run",
+      "caption": "The IDS correlates the chain and unlocks the intrusion flag",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py --flag",
+      "run_seconds": 12,
+      "say": "Now we ask the intrusion detection system what it saw. Four alerts, all from our attack machine, spanning recon and impact. The IDS correlates them into a single intrusion, and unlocks the flag."
+    },
+    {
+      "type": "say",
+      "head": "Correlation over count",
+      "body": "<ul><li>The value is not one alert, but the <b>story</b>: same source, recon then impact.</li><li>Correlation cuts through <b>alert fatigue</b> &mdash; it says <i>this</i> is a real intrusion.</li><li>It also gives responders the <b>full timeline</b> to scope and contain.</li></ul>",
+      "say": "The value here is not one alert, but the story the alerts tell together: the same source doing reconnaissance and then impact. Correlation cuts through alert fatigue and tells the defender that this is a real intrusion, not noise. It also hands the responder the full timeline they need to scope and contain the attack."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We finish on the dashboard, opening the intrusion detection challenge and submitting the flag the IDS unlocked when it caught the chain.",
+      "url": "http://172.18.0.1/ctf/challenge/ids_challenge",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(1ntrusi0n_d3tect3d)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Intrusions are <b>chains</b>; detection is strongest when it <b>correlates</b> them.</li><li>Tie alerts to a <b>source</b> and a <b>timeline</b>, not just a count.</li><li>Correlation is what turns a stream of alerts into an <b>actionable incident</b>.</li></ul>",
+      "say": "To recap: intrusions are chains of activity, and detection is strongest when it correlates them rather than counting alerts in isolation. Tie the alerts to a source and a timeline, and you turn a stream of noise into a single actionable incident."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(1ntrusi0n_d3tect3d)</span>",
+      "sub": "Next lesson: IDS forensics &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. Next we put on the forensic analyst's hat and read the full alert buffer to reconstruct the attack."
+    }
+  ]
+}
