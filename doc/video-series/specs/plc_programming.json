@@ -1,0 +1,85 @@
+{
+  "id": "plc_programming",
+  "seq": 10,
+  "slug": "plc-programming",
+  "title": "Rewriting the PLC's Logic",
+  "badge": "Impair Process Control · 150 pts · T0889 / T0843",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "J=/tmp/plcset; curl -s -c $J -b $J -X POST -d 'username=admin&password=ramirez' http://172.18.0.3:8080/login -o /dev/null; curl -s -c $J -b $J 'http://172.18.0.3:8080/compile-program?file=424345.st' -o /dev/null; sleep 6; curl -s -c $J -b $J http://172.18.0.3:8080/start_plc -o /dev/null"
+  ],
+  "teardown": [
+    "J=/tmp/plctd; curl -s -c $J -b $J -X POST -d 'username=admin&password=ramirez' http://172.18.0.3:8080/login -o /dev/null; curl -s -c $J -b $J 'http://172.18.0.3:8080/compile-program?file=424345.st' -o /dev/null; sleep 6; curl -s -c $J -b $J http://172.18.0.3:8080/start_plc -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 10 &mdash; Rewriting the PLC's Logic",
+      "sub": "Not the values &mdash; the program itself",
+      "say": "Welcome back to CybICS. This is the deepest attack on a controller. Not reading a value, not writing a register, but replacing the control program itself. With the OpenP L C login we cracked earlier, we download our own logic to the P L C."
+    },
+    {
+      "type": "say",
+      "head": "The web UI can reprogram the controller",
+      "body": "OpenPLC's web interface is also its <b>engineering interface</b>. An admin can <b>upload, compile and run</b> a control program.<ul><li>An attacker with the login can push <b>their own program</b> to the P L C.</li><li>The plant's real control logic is <b>replaced</b> &mdash; the process is now driven by the attacker.</li><li>Maps to <b>MITRE ATT&amp;CK for ICS T0889</b> Modify Program and <b>T0843</b> Program Download.</li></ul>",
+      "say": "OpenP L C's web interface is also its engineering interface. An administrator can upload a control program, compile it, and run it on the controller. So an attacker who has the login can push their own program to the P L C. When they do, the plant's real control logic is replaced, and the physical process is now driven by whatever the attacker wrote. This maps to modify program and program download."
+    },
+    {
+      "type": "run",
+      "caption": "Upload and run an attacker-controlled program on the PLC",
+      "cmd": "python3 /CybICS/doc/video-series/plc_upload.py /CybICS/doc/video-series/attacker_program.st AttackerLogic",
+      "run_seconds": 20,
+      "say": "We run our tool. It logs into OpenP L C with the cracked administrator password, uploads a control program we wrote, and asks the controller to compile it. The compiler runs, and finishes successfully. Then we start it. The controller is now executing our program, identified by a brand new file, in place of the plant's original logic."
+    },
+    {
+      "type": "say",
+      "head": "Total loss of control",
+      "body": "<ul><li>The genuine gas-pressure control logic is <b>no longer running</b>.</li><li>The attacker chooses what the outputs do &mdash; they own the <b>process behaviour</b>, not just a value.</li><li>This is the mechanism behind logic-tampering attacks like <b>Stuxnet</b>.</li></ul>",
+      "say": "This is a total loss of control. The genuine gas pressure control logic is no longer running. The attacker now chooses what every output does, owning the behaviour of the process itself, not merely a single value. This is the mechanism behind logic tampering attacks, most famously Stuxnet, which rewrote the code on the centrifuge controllers."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the P L C programming challenge and submitting the flag for downloading our own logic to the controller.",
+      "url": "http://172.18.0.1/ctf/challenge/plc_programming",
+      "actions": [
+        {
+          "scroll": 50,
+          "wait": 1.0
+        },
+        {
+          "click": [
+            1085,
+            849
+          ],
+          "wait": 0.6
+        },
+        {
+          "type": "CybICS(ladder_logic_modified)",
+          "wait": 1.0
+        },
+        {
+          "click": [
+            733,
+            923
+          ],
+          "wait": 5.0
+        }
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Whoever can <b>program</b> the PLC controls the process outright.</li><li>Protect the <b>engineering interface</b>: strong auth, isolation, and least privilege.</li><li><b>Sign and verify</b> programs, and monitor for <b>unexpected program downloads</b>.</li></ul>",
+      "say": "To recap: whoever can program the P L C controls the process outright, so the engineering interface deserves the strongest protection, strong authentication, network isolation, and least privilege. Where the platform allows it, sign and verify control programs, and monitor for unexpected program downloads, because a new program on a controller is one of the most serious events on an O T network."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(ladder_logic_modified)</span>",
+      "sub": "github.com/mniedermaier/CybICS",
+      "say": "Flag captured. That is the most complete compromise of a controller: not its data, but its program."
+    }
+  ]
+}
