@@ -1,0 +1,76 @@
+{
+  "id": "defense_ids_tuning",
+  "seq": 21,
+  "slug": "ids-tuning",
+  "title": "Tuning the IDS",
+  "badge": "Defense · 200 pts · D3-NTA",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 21 &mdash; Tuning the IDS",
+      "sub": "Detection is only a defense if it works",
+      "say": "Welcome back to CybICS. Throughout the detection track the intrusion detection system caught our attacks. In this lesson we treat that as a defensive control in its own right, and validate that it is actually tuned to detect."
+    },
+    {
+      "type": "say",
+      "head": "Deploying an IDS is not the same as detecting",
+      "body": "An IDS only helps if it is <b>running</b>, <b>seeing the traffic</b>, and its <b>rules actually fire</b> on real attacks.<ul><li>Place it where it sees the <b>OT network</b>.</li><li>Keep its <b>rules current</b> for ICS protocols.</li><li>And <b>validate coverage</b> &mdash; replay attacks and confirm they are caught.</li></ul>The dashboard verifies the IDS is up, capturing, and has detected <b>several attack types</b>. Maps to <b>D3FEND Network Traffic Analysis</b>.",
+      "say": "An intrusion detection system only helps if it is running, if it can see the traffic, and if its rules actually fire on real attacks. That means placing it where it sees the operational network, keeping its rules current for the industrial protocols, and, crucially, validating its coverage by replaying attacks and confirming they are caught. The dashboard verifies exactly that: the I D S is up, capturing, and has detected several different attack types."
+    },
+    {
+      "type": "run",
+      "caption": "Confirm the IDS is deployed and capturing traffic",
+      "cmd": "curl -s http://172.18.0.1:8443/api/status | python3 -m json.tool",
+      "run_seconds": 8,
+      "say": "First we confirm the sensor itself. We query the intrusion detection system's status, and it reports that it is active and capturing packets on the control network. The sensor is live."
+    },
+    {
+      "type": "run",
+      "caption": "Validate coverage: replay a scan and a write flood",
+      "cmd": "nmap -sS -p1-1024 172.18.0.3 -Pn >/dev/null 2>&1 && echo 'scan sent' && cd /CybICS/training/flood_overwrite && python3 flooding_hpt.py 172.18.0.3 --duration 5",
+      "run_seconds": 12,
+      "say": "Now we validate coverage the way a purple team does: we replay representative attacks against the lab. A port scan for reconnaissance, and a Modbus write flood for impact. If the sensor is tuned correctly, both should light it up."
+    },
+    {
+      "type": "run",
+      "caption": "The IDS caught recon and impact - coverage confirmed",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py",
+      "run_seconds": 12,
+      "say": "And it does. The alert buffer holds detections spanning both attacks: the port scan and S Y N flood from reconnaissance, and the Modbus flood and unauthorized writes from impact. Several distinct rules fired. The intrusion detection system is not just deployed, it is detecting."
+    },
+    {
+      "type": "say",
+      "head": "Verify the defense",
+      "body": "The dashboard confirms the IDS is <b>running</b>, <b>capturing</b>, and has fired at least <b>three different rules</b>. We open the challenge and verify.",
+      "say": "The dashboard runs the same check: the intrusion detection system is running, it is capturing, and it has fired at least three different rules. We open the challenge and verify our detection coverage."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Verify the defense in the CybICS dashboard - on the attack machine",
+      "say": "On the dashboard we open the tune the I D S challenge and click verify defence. The check confirms the sensor is active and detecting multiple attack types, and marks the defence complete.",
+      "url": "http://172.18.0.1/ctf/challenge/defense_ids_tuning",
+      "actions": [
+        {"scroll": 50, "wait": 1.2},
+        {"click": [753, 923], "wait": 6.5}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Detection is a control you must <b>operate and validate</b>, not just install.</li><li>Place the IDS on <b>OT traffic</b> and keep its <b>ICS rules current</b>.</li><li><b>Purple-team regularly</b>: replay attacks and confirm they are still caught.</li></ul>",
+      "say": "To recap: detection is a control you must operate and validate, not just install. Place the sensor where it sees operational traffic, keep its industrial rules current, and purple team regularly, replaying attacks to confirm they are still caught. A silent I D S is a false sense of security."
+    },
+    {
+      "type": "card",
+      "title": "Defense verified: <span style='color:#ff6b00'>CybICS(1ds_tun3d)</span>",
+      "sub": "github.com/mniedermaier/CybICS",
+      "say": "Defence verified. The intrusion detection system is deployed, tuned, and proven to catch the attacks we have studied throughout this series."
+    }
+  ]
+}
