@@ -1,0 +1,78 @@
+{
+  "id": "ids_evasion",
+  "seq": 16,
+  "slug": "ids-evasion",
+  "title": "Low-and-Slow Evasion",
+  "badge": "Evasion · 400 pts · T0855",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 16 &mdash; Low-and-Slow Evasion",
+      "sub": "Writing to the PLC without tripping an alert",
+      "say": "Welcome back to CybICS. Detection has limits. In this lesson we turn attacker again, and slip a write past the intrusion detection system by staying under its thresholds: low, and slow."
+    },
+    {
+      "type": "say",
+      "head": "Rate-based detection has a blind spot",
+      "body": "The CybICS IDS catches <b>bursts</b>:<ul><li>A <b>Modbus flood</b> at fifty writes in five seconds.</li><li>Unauthorized writes at <b>ten in thirty seconds</b>.</li></ul>An attacker who writes <b>slowly</b> &mdash; a handful of writes, spaced out &mdash; stays under both, and the malicious change lands with <b>no alert</b>. This maps to <b>MITRE ATT&amp;CK for ICS T0855</b>.",
+      "say": "The intrusion detection system here is rate based. It catches bursts: a Modbus flood at fifty writes in five seconds, and unauthorized writes at ten in thirty seconds. But an attacker who writes slowly, just a handful of writes spaced out over time, stays under both thresholds. The malicious change still lands, but no alert fires. This is the blind spot of rate based detection, and it maps to MITRE technique T zero eight five five."
+    },
+    {
+      "type": "run",
+      "caption": "Open a controlled evasion attempt",
+      "cmd": "curl -s -X POST http://172.18.0.1:8443/api/evasion/start | python3 -m json.tool",
+      "run_seconds": 10,
+      "say": "The lab gives us a controlled window to attempt this. We open an evasion attempt. From here, any write we make is measured against the IDS: can we change a register without raising a single alert?"
+    },
+    {
+      "type": "run",
+      "caption": "Write low-and-slow - a few writes, spaced out",
+      "cmd": "python3 /CybICS/doc/video-series/slow_write.py 172.18.0.3 5 2",
+      "run_seconds": 16,
+      "say": "Now the write, but patient. Five writes to the high pressure tank register, one every two seconds. There is no burst for the detector to see, no flood, no rapid unauthorized-write count. Just a slow drip that looks almost like normal traffic."
+    },
+    {
+      "type": "run",
+      "caption": "Check the result: the write landed, no alert fired",
+      "cmd": "python3 /CybICS/doc/video-series/ids_evasion.py",
+      "run_seconds": 10,
+      "say": "We check the outcome. Five Modbus writes detected, and zero new IDS alerts. The change reached the controller, and the detector never noticed. Stealth operation successful, and the flag is ours."
+    },
+    {
+      "type": "say",
+      "head": "Why this matters",
+      "body": "<ul><li>Rate thresholds miss the <b>patient</b> attacker.</li><li>A slow write is still a <b>real</b> write &mdash; it can move a setpoint over time.</li><li>Defence needs more than rates: <b>baseline</b> which writes are normal, <b>allow-list</b> registers, and <b>authenticate</b> writes so 'slow' still cannot mean 'allowed'.</li></ul>",
+      "say": "This matters because rate thresholds miss the patient attacker, and a slow write is still a real write, one that can nudge a setpoint over minutes or hours. Defence needs more than rates. Baseline which writes are normal, allow list the registers that may be changed, and above all authenticate writes, so that slow can never quietly mean allowed."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We finish on the dashboard, opening the evasion challenge and submitting the stealth operator flag we earned by writing past the intrusion detection system.",
+      "url": "http://172.18.0.1/ctf/challenge/ids_evasion",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(st34lth_0p3r4t0r)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Detection tuned to <b>bursts</b> is blind to <b>low-and-slow</b>.</li><li>Combine rate rules with <b>baselining</b> and <b>anomaly detection</b>.</li><li><b>Authenticate</b> and <b>allow-list</b> writes &mdash; the only real fix is that the PLC refuses the write at all.</li></ul>",
+      "say": "To recap: detection tuned to bursts is blind to low and slow activity. Combine rate rules with baselining and anomaly detection, and remember that the only real fix is upstream: authenticate and allow list writes, so the controller refuses the change no matter how slowly it arrives."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(st34lth_0p3r4t0r)</span>",
+      "sub": "Next: the defensive lessons &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. That completes the detection track. Next we move to defence, and start hardening the lab against everything we have done."
+    }
+  ]
+}
