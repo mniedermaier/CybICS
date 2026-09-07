@@ -1,0 +1,69 @@
+{
+  "id": "defense_firewall",
+  "seq": 19,
+  "slug": "firewall",
+  "title": "Firewalling the PLC",
+  "badge": "Defense \u00b7 250 pts \u00b7 D3-NTF",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 19 &mdash; Firewalling the PLC",
+      "sub": "Only the people who need Modbus should have it",
+      "say": "Welcome back to CybICS. Every Modbus attack in this series worked because the controller answered anyone who asked. In this lesson we play defence and put a host firewall in front of the P L C, so that only the systems that genuinely need Modbus can reach it."
+    },
+    {
+      "type": "say",
+      "head": "Restrict the control protocol to authorized hosts",
+      "body": "Modbus has no authentication, so access control has to come from the <b>network</b>. On the ICS host we add <b>iptables</b> rules on the controller so that port <b>502</b> is only reachable from the <b>HMI</b> and the <b>process I/O</b>, and dropped for everyone else:<br><code>iptables -A INPUT -p tcp --dport 502 -s &lt;HMI&gt; -j ACCEPT</code><br><code>iptables -A INPUT -p tcp --dport 502 -s &lt;I/O&gt; -j ACCEPT</code><br><code>iptables -A INPUT -p tcp --dport 502 -j DROP</code><br>Maps to <b>D3FEND Network Traffic Filtering</b>. The operator's HMI keeps working; the attack machine loses its way in.",
+      "say": "Modbus has no authentication of its own, so access control has to come from the network around it. On the ICS host we add iptables rules on the controller: port five zero two is accepted only from the human machine interface and from the process input output, and dropped for every other source. The operator's H M I keeps working, the physical process keeps running, and the attack machine loses its way in. This is network traffic filtering, applied right at the device."
+    },
+    {
+      "type": "run",
+      "caption": "From the attack machine, Modbus is now blocked",
+      "cmd": "python3 /CybICS/doc/video-series/fw_probe.py 172.18.0.3",
+      "run_seconds": 16,
+      "say": "Now we prove it from the attacker's side. We probe the controller's Modbus port from the attack machine, exactly as our earlier attacks did. This time the connection simply times out. Port five zero two is dropped for us. The reconnaissance, the floods, the sensor spoofing we relied on all need this port, and the firewall has taken it away, while leaving the operator's own traffic untouched."
+    },
+    {
+      "type": "say",
+      "head": "Verify the defense",
+      "body": "The CybICS dashboard confirms two things: that <b>restrictive iptables rules</b> exist on the controller, and that port 502 is <b>no longer reachable</b> from an unauthorized host. We open the challenge and verify.",
+      "say": "The dashboard runs the same test from an unauthorised host. It checks that restrictive firewall rules exist on the controller, and that port five zero two is no longer reachable from where it should not be. We open the challenge and verify the defence."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Verify the defense in the CybICS dashboard - on the attack machine",
+      "say": "On the dashboard we open the firewall the P L C challenge and click verify defence. The check confirms the rules are in place and the port is blocked, and marks the defence complete.",
+      "url": "http://172.18.0.1/ctf/challenge/defense_firewall",
+      "actions": [
+        {
+          "scroll": 50,
+          "wait": 1.2
+        },
+        {
+          "click": [
+            753,
+            923
+          ],
+          "wait": 6.5
+        }
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Unauthenticated protocols like Modbus must be protected at the <b>network</b> layer.</li><li>Allow only the hosts that <b>genuinely need</b> the port; drop everything else.</li><li>Apply the filter as close to the <b>device</b> as possible, and pair it with <b>segmentation</b> and <b>monitoring</b>.</li></ul>",
+      "say": "To recap: unauthenticated industrial protocols must be protected at the network layer, because the protocol will not protect itself. Allow only the hosts that genuinely need the port, and drop everything else. Apply that filter as close to the device as you can, and pair it with network segmentation and with the monitoring we built earlier, so that an attacker who is blocked is also seen trying."
+    },
+    {
+      "type": "card",
+      "title": "Defense verified: <span style='color:#ff6b00'>CybICS(f1r3w4ll_h4rd3n3d)</span>",
+      "sub": "github.com/mniedermaier/CybICS",
+      "say": "Defence verified. The controller no longer answers just anyone: Modbus is now a private conversation between the plant and the people who run it."
+    }
+  ],
+  "host_prereq": "Run doc/video-series/fw_apply.sh apply on the Docker host before rendering (the attack VM has no Docker); fw_apply.sh remove afterwards."
+}
