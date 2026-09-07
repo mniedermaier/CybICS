@@ -1,0 +1,77 @@
+{
+  "id": "detect_basic",
+  "seq": 12,
+  "slug": "detect-scan",
+  "title": "Detecting a Scan",
+  "badge": "Detection · 250 pts · T0846",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 12 &mdash; Detecting a Scan",
+      "sub": "Switching sides: the defender's console",
+      "say": "Welcome back to CybICS. Every attack we have run so far leaves a trace. In this lesson we switch sides, and watch the intrusion detection system catch the very first move of an attack: the network scan."
+    },
+    {
+      "type": "say",
+      "head": "Every scan is loud",
+      "body": "In lesson one we mapped the network with a port scan. That scan is <b>noisy</b>: it touches many ports on a host in a few seconds &mdash; a pattern no normal traffic produces.<ul><li>The CybICS <b>IDS</b> sniffs the control network and matches these patterns.</li><li>A port scan trips a rule: <b>five or more ports</b> from one source in a short window.</li><li>It maps to <b>MITRE ATT&amp;CK for ICS T0846</b>, the technique the IDS is watching for.</li></ul>",
+      "say": "In lesson one we mapped the network with a port scan. That scan is loud: it touches many ports on a single host in just a few seconds, a pattern that normal traffic never produces. The CybICS intrusion detection system sniffs the control network and matches exactly these patterns. A port scan trips its rule when five or more ports are probed from one source in a short window. It is watching for MITRE technique T zero eight four six."
+    },
+    {
+      "type": "say",
+      "head": "Run the attack, then look from the other side",
+      "body": "We will first replay the <b>attacker's scan</b> from the Kali machine, and then step over to the <b>defender's console</b> and read what the IDS saw.",
+      "say": "We will first replay the attacker's scan from the Kali machine, and then step over to the defender's console and read what the intrusion detection system saw."
+    },
+    {
+      "type": "run",
+      "caption": "The attacker's scan - loud on the wire",
+      "cmd": "nmap -sS -p1-1024 172.18.0.3 -Pn",
+      "run_seconds": 30,
+      "say": "Here is the attacker's move: a stealth S Y N scan of the first thousand ports on the OpenP L C. To nmap it is quick and quiet. But on the wire it is a burst of connection attempts from one source, and that is exactly what a detector looks for."
+    },
+    {
+      "type": "run",
+      "caption": "The defender's view: query the IDS alert buffer",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py",
+      "run_seconds": 12,
+      "say": "Now the defender's view. We query the intrusion detection system's alert buffer. There it is: a port scan alert, and the source is our own attack machine at one seven two dot eighteen dot zero dot one hundred. The IDS also flags the burst as a S Y N flood. The invisible probe just became a visible incident."
+    },
+    {
+      "type": "say",
+      "head": "What the alert tells the defender",
+      "body": "<ul><li>The <b>source</b> IP &mdash; who is scanning.</li><li>The <b>target</b> and the <b>rule</b> that fired.</li><li>The <b>MITRE technique</b> and a <b>severity</b>.</li></ul>Catching the scan early is the difference between watching an attack unfold and finding out after the damage. The flag is the reward for detecting it.",
+      "say": "The alert gives the defender everything they need: the source doing the scanning, the target, the rule that fired, the MITRE technique, and a severity. Catching the scan early is the difference between watching an attack unfold and finding out only after the damage is done. The flag is the reward for detecting it."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard. In the browser we open the detect a scan challenge, and submit the flag the IDS earns us for catching the reconnaissance.",
+      "url": "http://172.18.0.1/ctf/challenge/detect_basic",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(sc4n_d3tect3d)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Reconnaissance is <b>detectable</b> &mdash; a scan is a loud, recognisable pattern.</li><li>Place the <b>IDS</b> where it sees the control-network traffic.</li><li><b>Baseline</b> normal traffic and <b>alert</b> on scans, so the first move of an attack is also the first alarm.</li></ul>",
+      "say": "To recap: reconnaissance is detectable, because a scan is a loud and recognisable pattern. Place the intrusion detection system where it can see the control network traffic, baseline what normal looks like, and alert on scans. Done well, the attacker's first move is also the defender's first alarm."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(sc4n_d3tect3d)</span>",
+      "sub": "Next lesson: detecting the write flood &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we detect a louder attack still: the Modbus write flood."
+    }
+  ]
+}

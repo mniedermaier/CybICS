@@ -1,0 +1,71 @@
+{
+  "id": "detect_overwrite",
+  "seq": 13,
+  "slug": "detect-flood",
+  "title": "Detecting the Write Flood",
+  "badge": "Detection · 300 pts · T0836",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 13 &mdash; Detecting the Write Flood",
+      "sub": "The IDS catches a cyber-physical attack",
+      "say": "Welcome back to CybICS. In lesson six we seized control of the plant by flooding a Modbus register. That attack is loud. In this lesson we watch the intrusion detection system catch it."
+    },
+    {
+      "type": "say",
+      "head": "A flood is a signature",
+      "body": "Overwriting a process value means writing the same register <b>hundreds of times a second</b>. Normal control traffic never looks like that.<ul><li>The IDS counts <b>Modbus writes per source</b> in a sliding window.</li><li>More than <b>fifty writes in five seconds</b> trips the <b>modbus_flood</b> rule.</li><li>It maps to <b>MITRE ATT&amp;CK for ICS T0836</b>, Modify Parameter.</li></ul>",
+      "say": "Overwriting a live process value means writing the same register hundreds of times a second. Normal control traffic never looks like that. The intrusion detection system counts Modbus writes per source in a sliding window, and more than fifty writes in five seconds trips its flood rule. This maps to MITRE technique T zero eight three six, modify parameter."
+    },
+    {
+      "type": "run",
+      "caption": "Replay the write flood from lesson 6",
+      "cmd": "cd /CybICS/training/flood_overwrite && python3 flooding_hpt.py 172.18.0.3 --duration 5",
+      "run_seconds": 12,
+      "say": "We replay the attack from lesson six: the flood script hammers the high pressure tank register on the OpenP L C, thousands of writes in a few seconds. To the process it is an attempt to seize control. To the detector it is an unmistakable burst."
+    },
+    {
+      "type": "run",
+      "caption": "The defender's view: the IDS flags the flood",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py",
+      "run_seconds": 12,
+      "say": "Now the defender's view. We read the intrusion detection system's alert buffer, and the flood is right there: a Modbus flood alert, high severity, with our attack machine as the source. The attempt to seize the process was caught the moment it began."
+    },
+    {
+      "type": "say",
+      "head": "Detection buys time to respond",
+      "body": "<ul><li>A high-severity alert names the <b>source</b> and the <b>rule</b> the instant the flood starts.</li><li>An operator can <b>isolate</b> the source or <b>fail the process to a safe state</b> before pressure becomes critical.</li></ul>Detection does not stop the write &mdash; but it turns a silent cyber-physical attack into an alarm a human can act on.",
+      "say": "A high severity alert names the source and the rule the instant the flood starts. With that, an operator can isolate the attacking host, or bring the process to a safe state, before the pressure becomes critical. Detection does not stop the write by itself, but it turns a silent cyber to physical attack into an alarm a human can act on."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We finish on the dashboard, opening the detect the flood challenge and submitting the flag the intrusion detection system earns us for catching the write flood.",
+      "url": "http://172.18.0.1/ctf/challenge/detect_overwrite",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(m0dbus_fl00d_d3tect3d)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>A write flood is a <b>clear signature</b> &mdash; rapid writes to one register.</li><li>Monitor <b>Modbus write rates</b> per source and alert on bursts.</li><li>Pair detection with a <b>safe-state response</b>, so an alarm can protect the process, not just record the attack.</li></ul>",
+      "say": "To recap: a write flood is a clear signature, rapid writes to one register from one source. Monitor Modbus write rates and alert on bursts, and pair that detection with a safe state response, so the alarm protects the process rather than just recording the attack."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(m0dbus_fl00d_d3tect3d)</span>",
+      "sub": "Next lesson: the intrusion-detection challenge &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. Next we take on the full intrusion detection challenge, chaining several attacks past the I D S."
+    }
+  ]
+}
