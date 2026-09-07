@@ -1,0 +1,71 @@
+{
+  "id": "fuzzingMB",
+  "seq": 7,
+  "slug": "modbus-fuzzing",
+  "title": "Fuzzing Modbus",
+  "badge": "Impair Process Control · 300 pts · T0855 / T0814",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 7 &mdash; Fuzzing Modbus",
+      "sub": "Stressing the controller with malformed frames",
+      "say": "Welcome back to CybICS. Not every attack sends valid commands. Fuzzing does the opposite: it throws malformed and unexpected input at a device to see what breaks. In this lesson we fuzz the P L C over Modbus."
+    },
+    {
+      "type": "say",
+      "head": "Why fuzzing finds ICS bugs",
+      "body": "Industrial devices were built for <b>trusted networks</b> and often handle bad input poorly.<ul><li>A fuzzer sends frames across the whole <b>function-code space</b> with random data.</li><li>Unexpected input can cause <b>errors, hangs or crashes</b> &mdash; a denial of service on the process.</li><li>The <b>diagnostic functions</b> (<code>0x08</code>, <code>0x2B</code>) are rarely validated and can change how the device communicates.</li></ul>Maps to <b>MITRE ATT&amp;CK for ICS T0855</b> and <b>T0814</b>.",
+      "say": "Industrial devices were built for trusted networks, and they often handle bad input poorly. A fuzzer sends frames across the whole Modbus function code space, each with random data, and watches for anything unexpected: an error, a hang, a crash, any of which is a denial of service on the process. The diagnostic function codes, zero eight and two B, are especially interesting, because they are rarely validated and can change how the device communicates. This maps to unauthorized command message and denial of service."
+    },
+    {
+      "type": "run",
+      "caption": "Fuzz the PLC across the Modbus function-code space",
+      "cmd": "python3 /CybICS/doc/video-series/modbus_fuzz.py 172.18.0.3",
+      "run_seconds": 12,
+      "say": "We launch the fuzzer at the OpenP L C. It walks every Modbus function code from one to forty-three, each with a random payload, and records what comes back. Reads, writes, and crucially the diagnostic functions, all get exercised with input the device never expected."
+    },
+    {
+      "type": "run",
+      "caption": "The IDS flags the diagnostic function it should never see",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py",
+      "run_seconds": 12,
+      "say": "We check the intrusion detection system. It has flagged the one thing that stands out from normal control traffic: a Modbus diagnostic function, code zero eight, from our attack machine. Legitimate operation almost never uses it, so its appearance is a strong signal that someone is probing the device."
+    },
+    {
+      "type": "say",
+      "head": "What fuzzing tells an attacker",
+      "body": "<ul><li>Which function codes the device <b>answers</b>, and which it <b>rejects or ignores</b>.</li><li>Whether malformed input can <b>hang or crash</b> it &mdash; a path to <b>denial of service</b>.</li><li>The diagnostic functions can be abused to force <b>listen-only</b> mode or <b>restart communications</b>.</li></ul>",
+      "say": "Fuzzing tells an attacker which function codes the device answers and which it rejects, and whether malformed input can hang or crash it, which is a direct path to denial of service on the process. And the diagnostic functions it uncovered can be abused, for example to force the controller into a listen only mode, or to restart its communications, cutting the operator off from the plant."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the Modbus fuzzing challenge and submitting the flag that exercising the diagnostic functions earns us.",
+      "url": "http://172.18.0.1/ctf/challenge/fuzzingMB",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(modbus_fuzzing_complete)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Malformed input is a real threat to <b>fragile field devices</b>.</li><li><b>Fuzz-test</b> before deployment; <b>patch or replace</b> devices that misbehave.</li><li><b>Monitor</b> for diagnostic and malformed frames &mdash; they rarely belong on a control network.</li></ul>",
+      "say": "To recap: malformed input is a real threat to fragile field devices. Fuzz test them before deployment, and patch or replace the ones that misbehave. And monitor for diagnostic and malformed frames, because on a healthy control network they almost never belong."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(modbus_fuzzing_complete)</span>",
+      "sub": "Next lesson: man-in-the-middle via ARP &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we get between the H M I and the P L C with an A R P man in the middle."
+    }
+  ]
+}
