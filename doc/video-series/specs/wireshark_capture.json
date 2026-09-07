@@ -1,0 +1,61 @@
+{
+  "id": "wireshark_capture",
+  "seq": 3,
+  "slug": "modbus-capture",
+  "title": "Reading Modbus in Wireshark",
+  "badge": "Collection · 100 pts · T0842 / T0861",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 3 &mdash; Reading Modbus in Wireshark",
+      "sub": "An industrial protocol with nothing to hide",
+      "say": "Welcome back to CybICS. Before we attack anything, we listen. Industrial protocols were designed for trusted, isolated networks, so most of them carry no encryption at all. In this lesson we sniff the Modbus traffic on the control network and read it straight off the wire."
+    },
+    {
+      "type": "say",
+      "head": "Modbus has no encryption and no authentication",
+      "body": "Modbus/TCP is the workhorse of industrial control, and it was never built to be secret.<ul><li>No <b>encryption</b>: every register value travels in <b>clear text</b>.</li><li>No <b>authentication</b>: the protocol cannot tell an operator from an attacker.</li><li>Anyone who can <b>see the traffic</b> can read the entire process, and craft writes to change it.</li></ul>Maps to <b>MITRE ATT&amp;CK for ICS T0842</b> Network Sniffing and <b>T0861</b> Point &amp; Tag Identification.",
+      "say": "Modbus over T C P is the workhorse of industrial control, and it was never built to keep secrets. There is no encryption, so every register value travels in clear text. There is no authentication, so the protocol cannot tell an operator apart from an attacker. That means anyone who can see the traffic can read the entire process, and later craft writes to change it. This maps to network sniffing, and to point and tag identification, the work of learning what each register means."
+    },
+    {
+      "type": "run",
+      "caption": "Capture and decode the PLC's Modbus traffic with tshark",
+      "cmd": "python3 /CybICS/doc/video-series/modbus_sniff.py 172.18.0.3 eth0",
+      "run_seconds": 18,
+      "say": "We run tshark, the command-line Wireshark, filtered to Modbus on port five zero two. As the controller answers our register reads, the decoder lays the exchange out in plain text. There is the query from our machine, and there is the controller's reply, carrying the live plant readings: the gas storage tank, the high pressure tank, the system status, the blow-out valve. No key, no login, no transport security. The whole process is legible to anyone on the wire."
+    },
+    {
+      "type": "say",
+      "head": "What sniffing hands an attacker",
+      "body": "<ul><li>A live <b>map of the process</b> &mdash; which register is which physical value.</li><li>The exact <b>addresses and formats</b> needed to forge a write later.</li><li>All of it <b>passively</b>, leaving no trace on the target.</li></ul>Reconnaissance like this is the quiet first step behind almost every ICS attack in this series.",
+      "say": "Passive sniffing hands an attacker a live map of the process: which register holds which physical value, and the exact addresses and formats they will need to forge a convincing write later. And it costs nothing on the target, because listening leaves no trace. This quiet reconnaissance is the first step behind almost every attack in this series."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the Wireshark capture challenge and submitting the flag for reading Modbus off the wire.",
+      "url": "http://172.18.0.1/ctf/challenge/wireshark_capture",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(m0dbu$)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>Legacy ICS protocols are <b>plaintext</b> &mdash; assume anything on the wire is readable.</li><li>Put Modbus behind <b>encrypted, authenticated gateways</b> or VPNs where you can.</li><li><b>Segment</b> the control network and <b>monitor</b> it, so sniffing and injection are hard and noisy.</li></ul>",
+      "say": "To recap: legacy industrial protocols are plaintext, so assume anything on the control network is readable. Where the equipment allows it, put Modbus behind encrypted, authenticated gateways or a V P N. And segment the control network and monitor it, so that both sniffing and injection become hard to do and easy to notice."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(m0dbu$)</span>",
+      "sub": "Next lesson: brute-forcing the FUXA HMI &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. We can read the process. In the coming lessons we start to change it."
+    }
+  ]
+}
