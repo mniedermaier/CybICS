@@ -1,0 +1,78 @@
+{
+  "id": "ids_forensics",
+  "seq": 15,
+  "slug": "ids-forensics",
+  "title": "Reading the Alert Buffer",
+  "badge": "Detection · 250 pts · IDS Forensics",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 15 &mdash; Reading the Alert Buffer",
+      "sub": "The forensic analyst's view",
+      "say": "Welcome back to CybICS. When an incident is over, someone has to reconstruct what happened. In this lesson we put on the forensic analyst's hat and read the intrusion detection system's alert buffer as evidence."
+    },
+    {
+      "type": "say",
+      "head": "The alert buffer is the record",
+      "body": "Each IDS alert is a timestamped fact: <b>who</b>, <b>what</b>, <b>which target</b>, and <b>which technique</b>. Read together, they reconstruct the attack.<ul><li>The analyst answers: <b>one attacker or many?</b></li><li><b>What was the sequence</b> &mdash; recon, then impact?</li><li><b>Which ATT&amp;CK techniques</b> were used?</li></ul>",
+      "say": "Each alert the intrusion detection system records is a timestamped fact: who, what, which target, and which technique. Read together, they let the analyst reconstruct the attack. The questions are always the same. Was it one attacker or many? What was the sequence of events? And which ATT and CK techniques were used?"
+    },
+    {
+      "type": "run",
+      "caption": "Generate the incident: recon...",
+      "cmd": "nmap -sS -p1-1024 172.18.0.3 -Pn",
+      "run_seconds": 30,
+      "say": "First we generate an incident to analyse. The attacker scans the OpenP L C, the reconnaissance phase."
+    },
+    {
+      "type": "run",
+      "caption": "...then impact",
+      "cmd": "cd /CybICS/training/flood_overwrite && python3 flooding_hpt.py 172.18.0.3 --duration 5",
+      "run_seconds": 12,
+      "say": "Then the attacker moves to impact, flooding the high pressure tank register. Now there is a full incident in the buffer to reconstruct."
+    },
+    {
+      "type": "run",
+      "caption": "Read the evidence: the full IDS alert buffer",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py",
+      "run_seconds": 12,
+      "say": "Now the forensic read. Every alert points to a single source, one seven two dot eighteen dot zero dot one hundred. The order tells the story: reconnaissance first, a port scan and a S Y N flood, then impact, a Modbus flood and unauthorized writes. One attacker, a clear sequence, four techniques."
+    },
+    {
+      "type": "say",
+      "head": "The reconstruction",
+      "body": "<ul><li><b>Attacker:</b> a single source, <code>172.18.0.100</code>.</li><li><b>Timeline:</b> recon (<b>T0846</b>, <b>T0836</b>) &rarr; impact (<b>T0836</b>, <b>T0855</b>).</li><li><b>Target:</b> the OpenPLC at <code>172.18.0.3</code>.</li></ul>That reconstruction &mdash; source, timeline, techniques, target &mdash; is exactly what an incident report needs.",
+      "say": "The reconstruction writes itself. A single attacker at address one hundred. A timeline that runs from reconnaissance to impact. The target was the OpenP L C. And the techniques map straight onto MITRE ATT and CK. Source, timeline, techniques, target: that is exactly what an incident report needs, and it is the analyst's job to read it out of the evidence."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the forensics challenge on the dashboard, submitting the analyst flag we earned by reconstructing the attack from the alert buffer.",
+      "url": "http://172.18.0.1/ctf/challenge/ids_forensics",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(f0r3ns1c_4n4lyst)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li><b>Preserve</b> the alert log &mdash; it is your evidence.</li><li>Reconstruct the <b>timeline</b> and <b>attribute</b> it to a source.</li><li><b>Map</b> each step to ATT&amp;CK so the report is actionable and comparable.</li></ul>",
+      "say": "To recap: preserve the alert log, because it is your evidence. Reconstruct the timeline and attribute it to a source. And map each step onto ATT and CK, so the incident report is actionable and can be compared with known adversary behaviour."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(f0r3ns1c_4n4lyst)</span>",
+      "sub": "Next lesson: evading the IDS &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we try to slip past the intrusion detection system entirely, low and slow."
+    }
+  ]
+}
