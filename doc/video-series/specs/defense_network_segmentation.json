@@ -1,0 +1,60 @@
+{
+  "id": "defense_network_segmentation",
+  "seq": 20,
+  "slug": "network-segmentation",
+  "title": "Network Segmentation",
+  "badge": "Defense · 300 pts · D3-NTF",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "host_prereq": "Run doc/video-series/seg_apply.sh apply on the Docker host before rendering (the attack VM has no Docker); seg_apply.sh remove afterwards. Needs the opcua container rebuilt with iptables + cap_add NET_ADMIN.",
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 20 &mdash; Network Segmentation",
+      "sub": "Cut the attacker off from the whole OT zone",
+      "say": "Welcome back to CybICS. In the last lesson we firewalled a single port on the controller. Segmentation takes the idea further: we isolate the attack machine from every device in the operational zone at once, so a foothold on the business network cannot reach the plant at all."
+    },
+    {
+      "type": "say",
+      "head": "Isolate the OT zone from untrusted hosts",
+      "body": "Segmentation enforces the <b>Purdue-model</b> boundary between IT and OT. On the ICS host we drop <b>all</b> traffic from the untrusted host on each OT device:<br><code>iptables -A INPUT -s &lt;attacker&gt; -j DROP</code><br>applied on the <b>controller</b> (web + Modbus) and the <b>OPC-UA server</b>.<ul><li>The operator's systems keep their access; the attack machine gets <b>none</b>.</li><li>One rule per device isolates the whole zone from that host.</li></ul>Maps to <b>D3FEND Network Traffic Filtering</b>.",
+      "say": "Segmentation enforces the boundary between the business network and the operational zone, the Purdue model boundary. On the ICS host we drop all traffic from the untrusted host on each device in the zone: the controller, both its web interface and Modbus, and the O P C U A server. The operators keep their access, and the attack machine gets none. One rule per device isolates the entire zone from that host."
+    },
+    {
+      "type": "run",
+      "caption": "From the attack machine, every OT target is now unreachable",
+      "cmd": "python3 /CybICS/doc/video-series/seg_probe.py",
+      "run_seconds": 20,
+      "say": "We prove it from the attacker's side. We probe each target in turn: the OpenP L C web interface, its Modbus port, and the O P C U A server. Every one of them times out. The scanning, the password attacks, the sensor spoofing, the O P C U A abuse, every technique in this series depended on reaching one of these, and segmentation has taken all of them away at once, while the plant keeps running for the people who operate it."
+    },
+    {
+      "type": "say",
+      "head": "Verify the defense",
+      "body": "The CybICS dashboard checks that each target device carries an <b>iptables drop rule</b> for the attack machine. We open the challenge and verify.",
+      "say": "The dashboard checks that each target device carries a drop rule for the attack machine, isolating it from the whole zone. We open the challenge and verify the defence."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Verify the defense in the CybICS dashboard - on the attack machine",
+      "say": "On the dashboard we open the network segmentation challenge and click verify defence. The check confirms the attack machine is blocked on the controller and the O P C U A server, and marks the defence complete.",
+      "url": "http://172.18.0.1/ctf/challenge/defense_network_segmentation",
+      "actions": [
+        {"scroll": 50, "wait": 1.2},
+        {"click": [753, 923], "wait": 6.5}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li><b>Segment</b> the OT network from IT, and from anything untrusted, at well-defined boundaries.</li><li>Default to <b>deny</b>: allow only the flows the process needs, and drop the rest.</li><li>Segmentation <b>contains</b> a breach &mdash; a foothold in one zone should not reach the plant in another.</li></ul>",
+      "say": "To recap: segment the operational network from the business network and from anything untrusted, at clear boundaries, and default to deny, allowing only the flows the process actually needs. Good segmentation contains a breach: a foothold in one zone should never be able to reach the plant in another. It is one of the highest-value controls in industrial security."
+    },
+    {
+      "type": "card",
+      "title": "Defense verified: <span style='color:#ff6b00'>CybICS(n3tw0rk_s3gm3nt3d)</span>",
+      "sub": "github.com/mniedermaier/CybICS",
+      "say": "Defence verified. The attack machine is now sealed out of the operational zone, and every attack we studied in this series is stopped at the boundary."
+    }
+  ]
+}
