@@ -1,0 +1,62 @@
+{
+  "id": "uart_basic",
+  "seq": 22,
+  "slug": "uart-console",
+  "title": "The UART Console",
+  "badge": "Initial Access · 100 pts · T0812 / T0822",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 22 &mdash; The UART Console",
+      "sub": "The hardware attack surface behind the network",
+      "say": "Welcome back to CybICS, and to the final lesson. Every attack so far came over the network. This one comes through the hardware. Unlike the rest of the series, the live attack needs the physical CybICS device, so here we walk through the technique and the firmware that makes it work."
+    },
+    {
+      "type": "say",
+      "head": "Debug ports are an overlooked way in",
+      "body": "Embedded controllers expose <b>UART</b>, JTAG and SWD ports for development, and they are often left <b>enabled</b> in the field.<ul><li>These interfaces frequently have <b>weak</b> or <b>no</b> authentication.</li><li>Physical access to them <b>bypasses every network control</b> on the plant.</li><li>On CybICS the microcontroller offers a serial menu &mdash; reachable over UART at <b>115200 baud</b> on <code>/dev/serial0</code>.</li></ul>Maps to <b>MITRE ATT&amp;CK for ICS T0812</b> Default Credentials and <b>T0822</b> External Remote Services.",
+      "say": "Embedded controllers expose debug ports, U A R T, J TAG and S W D, for development, and they are very often left enabled in the field. These interfaces frequently have weak or no authentication, and physical access to them bypasses every network control on the plant. On the CybICS microcontroller, the U A R T offers a serial menu at one hundred fifteen thousand two hundred baud. This maps to default credentials and to external remote services."
+    },
+    {
+      "type": "run",
+      "caption": "Analyze the firmware: the flag sits behind a serial login",
+      "cmd": "bash /CybICS/doc/video-series/uart_analyze.sh",
+      "run_seconds": 16,
+      "say": "We start by reading the firmware that ships on the controller. The serial thread asks for a password, compares it against a built-in login password, and only then shows a menu. Menu option two prints the challenge flag straight to the console. And the password is just three lowercase letters, which is only seventeen and a half thousand combinations, trivially brute-forceable over the serial line."
+    },
+    {
+      "type": "run",
+      "caption": "The brute-force tool: every 3-letter password over serial",
+      "cmd": "sed -n '152,166p' /CybICS/training/uart_basic/bruteforce_login.py",
+      "run_seconds": 14,
+      "say": "The training module ships a brute-force tool for exactly this. It opens the serial port and walks every combination of lowercase letters, sending each as a password and watching for a successful login. On the real hardware you would connect with picocom, run this script, and within minutes to a couple of hours it recovers the password. Then menu option two hands you the flag."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the U A R T console challenge and submitting the flag that the firmware prints once you are logged in.",
+      "url": "http://172.18.0.1/ctf/challenge/uart_basic",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(U#RT)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>ICS security is not only a network problem &mdash; <b>physical and hardware</b> security matter just as much.</li><li><b>Disable or lock</b> debug interfaces before a device ships, and require <b>strong authentication</b> on any that remain.</li><li>Add <b>tamper protection</b> and physical access control around field devices.</li></ul>",
+      "say": "To recap: industrial security is not only a network problem. Physical and hardware security matter just as much, because a debug port defeats every firewall you saw in this series. Disable or lock these interfaces before a device ships, require strong authentication on any that must remain, and put tamper protection and physical access control around your field devices."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(U#RT)</span>",
+      "sub": "That completes the CybICS challenge series &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. From a network scan to a physical debug port, that is the full breadth of an industrial control attack surface, and the reason these systems must be defended at every layer. Thanks for following the CybICS series."
+    }
+  ]
+}
