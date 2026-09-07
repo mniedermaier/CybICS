@@ -1,0 +1,71 @@
+{
+  "id": "mitm",
+  "seq": 8,
+  "slug": "mitm-arp-spoofing",
+  "title": "Man-in-the-Middle via ARP",
+  "badge": "Collection · 350 pts · T0830 / T0856",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "curl -s -X POST http://172.18.0.1:8443/api/alerts/clear -o /dev/null"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 8 &mdash; Man-in-the-Middle via ARP",
+      "sub": "Redirecting the plant's traffic through the attacker",
+      "say": "Welcome back to CybICS. So far we have talked to devices directly. Now we get between two of them. Using ARP spoofing, we redirect the traffic between the H M I and the P L C through the attack machine."
+    },
+    {
+      "type": "say",
+      "head": "ARP has no authentication",
+      "body": "On a local network, hosts use <b>ARP</b> to map an IP address to a MAC address. ARP has <b>no authentication</b>: whoever answers last, wins.<ul><li>We send the <b>FUXA HMI</b> forged replies claiming the <b>PLC's IP</b> is at <b>our</b> MAC.</li><li>Its traffic to the PLC now comes to us. Do the same in reverse and we sit <b>in the middle</b>.</li><li>Maps to <b>MITRE ATT&amp;CK for ICS T0830</b> Adversary-in-the-Middle and <b>T0856</b> Spoof Reporting Message.</li></ul>",
+      "say": "On a local network, hosts use A R P to map an I P address to a hardware MAC address. And A R P has no authentication: whoever answers last, wins. So we send the FUXA H M I a stream of forged replies, claiming that the P L C's I P address is at our MAC. Its traffic to the controller now comes to us instead. Do the same in the other direction, and we sit squarely in the middle. This maps to MITRE adversary in the middle and spoof reporting message."
+    },
+    {
+      "type": "run",
+      "caption": "Poison the HMI's ARP cache - we become the PLC",
+      "cmd": "timeout 6 arpspoof -i eth0 -t 172.18.0.4 172.18.0.3",
+      "run_seconds": 12,
+      "say": "We launch the attack. arpspoof floods the FUXA H M I with A R P replies, each one insisting that the P L C, at address dot three, lives at our MAC. Watch them stream. The H M I believes us, updates its cache, and starts sending the P L C's traffic to the attack machine."
+    },
+    {
+      "type": "run",
+      "caption": "But it is loud: the IDS sees one IP with two MACs",
+      "cmd": "python3 /CybICS/doc/video-series/ids_alerts.py",
+      "run_seconds": 12,
+      "say": "There is a catch, though. A man in the middle is powerful but noisy. We check the intrusion detection system, and it has already flagged us: a critical A R P spoofing alert, noting that the P L C's I P address was suddenly seen with two different MAC addresses. That contradiction is the signature of this attack."
+    },
+    {
+      "type": "say",
+      "head": "What sitting in the middle gives you",
+      "body": "<ul><li>With forwarding enabled, the attacker <b>relays and can rewrite</b> every Modbus request and response.</li><li>Because Modbus is <b>unauthenticated</b>, injected commands look legitimate.</li><li>The attacker can <b>forge the values the operator sees</b> &mdash; hiding physical manipulation, as in Industroyer.</li></ul>",
+      "say": "Once in the middle, and with forwarding enabled, the attacker relays every Modbus request and response, and can rewrite them on the way through. Because Modbus is unauthenticated, an injected command looks perfectly legitimate to the controller. Worse, the attacker can forge the values the operator sees on the H M I, hiding a physical manipulation while it happens, exactly the trick used in the Industroyer attack on the grid."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the man in the middle challenge and submitting the flag the successful A R P poisoning earns us.",
+      "url": "http://172.18.0.1/ctf/challenge/mitm",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(mitm_attack_successful)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>ARP is unauthenticated, so a local attacker can <b>reroute</b> OT traffic.</li><li>In the middle, unauthenticated protocols let them <b>read, inject and forge</b>.</li><li>Defences: <b>static ARP</b> or <b>dynamic ARP inspection</b>, <b>authenticated/encrypted</b> protocols, and <b>monitor for duplicate MACs</b> &mdash; the IDS caught exactly that.</li></ul>",
+      "say": "To recap: A R P is unauthenticated, so a local attacker can reroute operational traffic, and once in the middle, unauthenticated protocols let them read, inject and forge at will. The defences are static A R P entries or dynamic A R P inspection on the switch, authenticated and encrypted protocols where possible, and monitoring for duplicate MAC addresses, which is exactly what caught us here."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(mitm_attack_successful)</span>",
+      "sub": "Next lesson: abusing OPC-UA &nbsp;&middot;&nbsp; github.com/mniedermaier/CybICS",
+      "say": "Flag captured. In the next lesson we turn to the modern, supposedly secure industrial protocol, O P C U A."
+    }
+  ]
+}
