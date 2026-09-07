@@ -1,0 +1,71 @@
+{
+  "id": "opcua",
+  "seq": 9,
+  "slug": "opcua-abuse",
+  "title": "Abusing OPC-UA",
+  "badge": "Lateral Movement · 250 pts · T0859 / T0866",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [
+    "python3 /CybICS/doc/video-series/opcua_escalate.py 0 >/dev/null 2>&1"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 9 &mdash; Abusing OPC-UA",
+      "sub": "The 'secure' protocol, undone",
+      "say": "Welcome back to CybICS. O P C U A is the modern industrial protocol, the one built to be secure, with authentication, encryption and certificates. In this lesson we show that its security depends entirely on how it is configured, and on protecting its keys."
+    },
+    {
+      "type": "say",
+      "head": "Security that depends on configuration",
+      "body": "OPC-UA supports strong security &mdash; but only if it is used well.<ul><li>Accounts can still have <b>weak passwords</b>.</li><li><b>Certificates</b> grant privileged roles &mdash; and their <b>private keys</b> must be guarded.</li><li>We use a weak login for read access, then a <b>leaked admin key</b> for write access.</li></ul>Maps to <b>MITRE ATT&amp;CK for ICS T0859</b> Valid Accounts and <b>T0866</b> Exploitation of Remote Services.",
+      "say": "O P C U A supports strong security, but only if it is used well. Accounts can still be given weak passwords. Certificates grant privileged roles, and the private keys behind them must be guarded like any other secret. In this lesson we use a weak login for read access, and then a leaked admin key for write access. This maps to valid accounts and exploitation of remote services."
+    },
+    {
+      "type": "run",
+      "caption": "Weak credentials: read the process, but writes are denied",
+      "cmd": "python3 /CybICS/doc/video-series/opcua_recon.py 2>/dev/null",
+      "run_seconds": 12,
+      "say": "First, a weak account. The credential user one, password test, gets us in. As that user we can read the live process over O P C U A: the gas tank, the high pressure tank, the sensors, and a user flag. But when we try to write the guarded variable that unlocks the admin flag, the server denies us. This account is read only. The permission model is working."
+    },
+    {
+      "type": "say",
+      "head": "The leaked key breaks it open",
+      "body": "The privilege boundary holds &mdash; until the <b>admin's certificate and private key</b> turn up readable on disk. With the key, an attacker can present the admin's identity and gain the <b>admin role</b>, which <i>can</i> write.",
+      "say": "That boundary holds, until the admin's certificate and its private key turn up readable on disk. That key is the whole game. With it, an attacker can present the admin's identity to the server and be granted the admin role, and the admin role is allowed to write."
+    },
+    {
+      "type": "run",
+      "caption": "Leaked admin key: authenticate as admin and unlock the flag",
+      "cmd": "python3 /CybICS/doc/video-series/opcua_escalate.py 2>/dev/null",
+      "run_seconds": 14,
+      "say": "So we escalate. We generate our own client certificate for the secure channel, then present the leaked admin certificate as our identity. The server accepts it and grants us admin. Now the write goes through: we set the guarded variable, and the admin flag unlocks. CybICS, O P C U A, admin."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the O P C U A challenge and submitting the admin flag we unlocked with the leaked key.",
+      "url": "http://172.18.0.1/ctf/challenge/opcua",
+      "actions": [
+        {"scroll": 50, "wait": 1.0},
+        {"click": [1085, 849], "wait": 0.6},
+        {"type": "CybICS(OPC-UA-$ADMIN)", "wait": 1.0},
+        {"click": [733, 923], "wait": 5.0}
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>A 'secure' protocol is only as strong as its <b>weakest credential</b> and its <b>key hygiene</b>.</li><li><b>Protect private keys</b> as the crown jewels; never leave them readable.</li><li>Use <b>strong, unique passwords</b>, <b>least privilege</b>, and <b>rotate</b> certificates.</li></ul>",
+      "say": "To recap: a secure protocol is only as strong as its weakest credential and its key hygiene. Protect private keys as the crown jewels, and never leave them readable on a reachable host. Use strong unique passwords, grant least privilege, and rotate certificates. The cryptography was fine here. The operations around it were not."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(OPC-UA-$ADMIN)</span>",
+      "sub": "github.com/mniedermaier/CybICS",
+      "say": "Flag captured. Even the modern, secure industrial protocol fell to a weak password and a leaked key."
+    }
+  ]
+}
