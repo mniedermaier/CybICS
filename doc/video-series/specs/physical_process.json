@@ -1,0 +1,91 @@
+{
+  "id": "physical_process",
+  "seq": 11,
+  "slug": "physical-process",
+  "title": "Forcing a Process Blow-out",
+  "badge": "Impair Process Control \u00b7 200 pts \u00b7 T0836 / T0831",
+  "vm": "virtual-attack-machine-1",
+  "landing": "http://localhost:80",
+  "vm_desktop": true,
+  "setup": [],
+  "teardown": [
+    "pkill -f overpressure.py 2>/dev/null; echo overpressure-stopped"
+  ],
+  "beats": [
+    {
+      "type": "card",
+      "title": "Lesson 11 &mdash; Forcing a Process Blow-out",
+      "sub": "From a spoofed sensor to a physical safety trip",
+      "say": "Welcome back to CybICS. Everything so far has led here: making the physical process do something dangerous. In this lesson we drive the gas plant into a blow-out, not by attacking the tank directly, but by lying to the controller about what the tank is doing."
+    },
+    {
+      "type": "say",
+      "head": "Attack the control loop, not the tank",
+      "body": "The controller runs a <b>closed loop</b>: it reads the high-pressure-tank sensor and runs the <b>compressor</b> when the pressure looks low.<ul><li>We hold the <b>HPT sensor register</b> at a <b>low value</b> over Modbus.</li><li>The controller believes the tank is nearly empty, so it keeps the <b>compressor on</b>.</li><li>The <b>real</b> pressure climbs, with no cut-out, toward the mechanical relief limit.</li></ul>Maps to <b>MITRE ATT&amp;CK for ICS T0836</b> Modify Parameter and <b>T0831</b> Manipulation of Control.",
+      "say": "The trick is to attack the control loop, not the tank. The controller reads the high pressure tank sensor and runs the compressor whenever the pressure looks low. So we hold that sensor at a low value over Modbus. The controller now believes the tank is nearly empty, and it keeps the compressor running. But the real pressure is climbing the whole time, with no cut-out to stop it, toward the mechanical relief limit. This is manipulation of control through a spoofed sensor."
+    },
+    {
+      "type": "run",
+      "caption": "Run the overpressure attack - spoof the HPT sensor",
+      "cmd": "python3 /CybICS/doc/video-series/overpressure.py 172.18.0.3",
+      "run_seconds": 16,
+      "say": "We run our overpressure tool. It holds a Modbus connection to the controller open and pins the high pressure tank sensor at ten bar. The controller reads that low value and does exactly what it was designed to do: it keeps the compressor on to raise the pressure. Except the pressure is already critical, and nothing will turn the compressor off."
+    },
+    {
+      "type": "say",
+      "head": "The safety logic is blind",
+      "body": "<ul><li>The controller's own <b>high-pressure cut-out</b> never fires &mdash; it reads the <b>spoofed</b> low value.</li><li>Only the <b>mechanical</b> relief valve is left, and it vents <b>slower</b> than the compressor fills.</li><li>A stuck compressor drives the tank to a state the relief valve <b>cannot recover</b>.</li></ul>This is the essence of a process-impact attack: the digital safety layer is defeated, and the physical one is overwhelmed.",
+      "say": "And the safety logic is now blind. The controller's own high pressure cut-out never fires, because it reads the same spoofed low value we are feeding it. That leaves only the mechanical relief valve, and it vents more slowly than the compressor fills. A compressor stuck on drives the tank to a state the relief valve cannot recover from. The digital safety layer has been defeated. Now we watch the physical one be overwhelmed, as the pressure keeps rising second by second."
+    },
+    {
+      "type": "run",
+      "caption": "Watch the blow-out valve trip on the real process",
+      "cmd": "python3 /CybICS/doc/video-series/blowout_watch.py 172.18.0.3 150",
+      "run_seconds": 152,
+      "say": "Now we read the blow-out valve sensor directly, the one register the controller cannot fake for us. The pressure climbs, past the normal operating band, past the point any real plant would have tripped its own safeties, and still it climbs, because we are holding the controller blind. And there it is: the blow-out valve opens, the system-operational flag drops to zero, and the plant has tripped. We forced a physical safety event from a laptop, using nothing but Modbus."
+    },
+    {
+      "type": "vm_web",
+      "caption": "Submit the flag in the CybICS dashboard - on the attack machine",
+      "say": "We complete the challenge on the dashboard, opening the physical process challenge and submitting the flag for forcing the blow-out.",
+      "url": "http://172.18.0.1/ctf/challenge/physical_process",
+      "actions": [
+        {
+          "scroll": 50,
+          "wait": 1.0
+        },
+        {
+          "click": [
+            1085,
+            849
+          ],
+          "wait": 0.6
+        },
+        {
+          "type": "CybICS(Bl0w0ut)",
+          "wait": 1.0
+        },
+        {
+          "click": [
+            733,
+            923
+          ],
+          "wait": 5.0
+        }
+      ]
+    },
+    {
+      "type": "say",
+      "head": "What we learned",
+      "body": "<ul><li>A <b>spoofed sensor</b> can defeat the controller's own safety logic entirely.</li><li>Never let <b>safety</b> depend only on values an attacker can write &mdash; use <b>independent, hard-wired</b> trips.</li><li><b>Authenticate</b> control traffic, <b>segment</b> the network, and <b>alarm</b> on impossible sensor readings.</li></ul>",
+      "say": "To recap: a spoofed sensor can defeat a controller's own safety logic entirely, because the logic trusts the value completely. So never let safety depend only on values an attacker can write. Use independent, hard wired safety trips that no network message can override. And authenticate control traffic, segment the network, and alarm on physically impossible readings, because a pressure that falls while the compressor runs flat out is a lie worth catching."
+    },
+    {
+      "type": "card",
+      "title": "Flag captured: <span style='color:#ff6b00'>CybICS(Bl0w0ut)</span>",
+      "sub": "github.com/mniedermaier/CybICS",
+      "say": "Flag captured. From reading a register to blowing out a tank: that is the full arc of an industrial control attack, and the reason this equipment must be defended."
+    }
+  ],
+  "host_prereq": "Before rendering: restart hwio and let the plant reach a healthy state, run gst_precharge.py 172.18.0.3 ~100 to fill the reservoir (GST ~200), then start overpressure.py --worker and launch the render immediately. The blow-out needs a clean (non-degraded) OpenPLC Modbus server and a well-stocked reservoir."
+}
