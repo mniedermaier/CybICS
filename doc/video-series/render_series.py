@@ -309,7 +309,9 @@ def main():
                     page.evaluate("()=>cyCaption('')")
                     if not ff_ready:                     # not pre-loaded: launch now
                         vm_firefox_launch(vm, b["url"]); ff_ready = True
-                    vm_firefox_wait(vm, settle=2)
+                        vm_firefox_wait(vm, settle=6)    # fresh launch: give the page time
+                    else:
+                        vm_firefox_wait(vm, settle=2)    # pre-loaded behind the slide
                     if not vm_live:
                         page.evaluate("(u)=>cyVM(u)", VM_VNC_URL); hold(4.0); vm_live = True
                     else:
