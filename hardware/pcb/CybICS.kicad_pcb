@@ -2340,7 +2340,7 @@
 		)
 		(path "/fcf67192-0b33-4f88-a3eb-8127a643064c")
 		(sheetfile "CybICS.kicad_sch")
-		(attr smd exclude_from_bom)
+		(attr smd exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
 			(end 1.25 0)
@@ -15601,7 +15601,7 @@
 		)
 		(path "/83d4748e-9ead-45bb-87b0-469f67179a95")
 		(sheetfile "CybICS.kicad_sch")
-		(attr smd exclude_from_bom)
+		(attr smd exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
 			(end 1.25 0)
@@ -20877,7 +20877,7 @@
 		)
 		(path "/ff74ff2c-9cef-462d-ac0b-8e83112f32fb")
 		(sheetfile "CybICS.kicad_sch")
-		(attr smd exclude_from_bom)
+		(attr smd exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
 			(end 1.25 0)
