@@ -58,10 +58,12 @@ cannot open them -- install KiCad 10 or later before doing anything below:
 
 1. Open the PCB Editor in KiCad
 2. Click on the **Fabrication Toolkit** icon in the toolbar
-3. Configure the export settings:
-   - **Manufacturer**: Select "JLCPCB"
-   - **Include assembly**: Check this option
-   - **Output directory**: Leave as default ("production")
+3. Leave the export options at their defaults. The plugin targets JLCPCB
+   already, so there is no manufacturer to choose -- earlier revisions of this
+   guide described a **Manufacturer** dropdown that the plugin does not have.
+   In particular leave **Plot all active layers** switched off: this is a
+   two-layer board, and enabling it only adds the fabrication and courtyard
+   layers to the archive, which JLCPCB does not need.
 4. Click **Generate** to create all necessary files
 
 <table align="center"><tr><td align="center" width="9999">
