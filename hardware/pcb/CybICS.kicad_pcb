@@ -544,7 +544,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -937,7 +937,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "100R"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "60acd999-c2dd-4639-b516-2b964227024c")
@@ -984,7 +984,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17408"
 			(at 199.584252 -10.015748 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -5734,7 +5734,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -11770,7 +11770,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434441"
+		(property "JLCPCB Part #" "C93094"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -12254,7 +12254,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 183.584252 5.984252 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -13817,7 +13817,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434441"
+		(property "JLCPCB Part #" "C93094"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -16368,7 +16368,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 179.584252 9.984252 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -16783,7 +16783,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "100R"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "74cb7798-6a03-491b-be35-1e092cd1de2b")
@@ -16830,7 +16830,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17408"
 			(at 163.584252 25.984252 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -18382,7 +18382,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -19257,7 +19257,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 195.584252 -6.015748 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -19477,7 +19477,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 187.584252 1.984252 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -20401,7 +20401,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 171.584252 17.984252 0)
 			(layer "F.Fab")
 			(hide yes)

@@ -9263,7 +9263,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 125.73 120.65 90)
 			(effects
 				(font
@@ -9560,7 +9560,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 88.9 153.67 90)
 			(effects
 				(font
@@ -10064,7 +10064,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 57.15 153.67 90)
 			(effects
 				(font
@@ -11127,7 +11127,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 125.73 132.08 90)
 			(effects
 				(font
@@ -11608,7 +11608,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "100R"
 			(at 125.73 162.56 90)
 			(effects
 				(font
@@ -11643,7 +11643,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17408"
 			(at 125.73 166.37 90)
 			(effects
 				(font
@@ -12439,7 +12439,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 24.13 153.67 90)
 			(effects
 				(font
@@ -12747,7 +12747,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 191.77 133.35 90)
 			(effects
 				(font
@@ -13407,7 +13407,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C434441"
+		(property "JLCPCB Part #" "C93094"
 			(at 135.89 132.08 0)
 			(effects
 				(font
@@ -14065,7 +14065,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "100R"
 			(at 160.02 138.43 90)
 			(effects
 				(font
@@ -14100,7 +14100,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17408"
 			(at 160.02 142.24 90)
 			(effects
 				(font
@@ -14527,7 +14527,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C434441"
+		(property "JLCPCB Part #" "C93094"
 			(at 135.89 154.94 0)
 			(effects
 				(font
@@ -15679,7 +15679,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 125.73 154.94 90)
 			(effects
 				(font
@@ -17897,7 +17897,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Part #" "C52548"
+		(property "JLCPCB Part #" "C17630"
 			(at 160.02 121.92 90)
 			(effects
 				(font
