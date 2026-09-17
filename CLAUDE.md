@@ -61,7 +61,7 @@ the ignore file.
 - `tests/`: pytest suite, mostly against a live stack.
 - `training/`: one directory per module; `training/README.md` has the learning
   path and the MITRE ATT&CK for ICS / D3FEND / NIST SP 800-82r3 mapping.
-- `hardware/`: KiCad 8 PCB, KiBot config, enclosure. Generated docs are committed by CI.
+- `hardware/`: KiCad 10 PCB, KiBot config, enclosure. Generated docs are committed by CI.
 
 ## Running and testing
 

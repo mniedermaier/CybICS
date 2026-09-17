@@ -4,7 +4,9 @@
 This guide provides detailed instructions for ordering the CybICS PCB from JLCPCB with full assembly service. The PCB is designed to be manufactured and assembled by JLCPCB, eliminating the need for manual soldering.
 
 ## PCB Design Files
-The PCB is designed using KiCad 8.x and all source files are available in this directory:
+The PCB is designed using KiCad 10.x and all source files are available in this
+directory. The sources are stored in the KiCad 10 file format, so KiCad 8 and 9
+cannot open them -- install KiCad 10 or later before doing anything below:
 - **Schematic**: Shows the circuit design and connections
 - **PCB Layout**: Physical board design with component placement
 - **Gerber Files**: Manufacturing files for PCB fabrication
@@ -14,9 +16,11 @@ The PCB is designed using KiCad 8.x and all source files are available in this d
 ## Prerequisites
 
 ### Software Requirements
-1. **KiCad** (version 8.0 or later)
+1. **KiCad** (version 10.0 or later)
    - Download from: https://www.kicad.org/download/
    - Used to view and modify PCB design files
+   - On Ubuntu, the KiCad project's PPA carries current releases:
+     `sudo add-apt-repository ppa:kicad/kicad-10.0-releases && sudo apt install kicad`
 
 2. **Fabrication Toolkit Plugin** (for KiCad)
    - Install via KiCad Plugin and Content Manager
