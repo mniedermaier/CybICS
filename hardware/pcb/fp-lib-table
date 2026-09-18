@@ -1,3 +1,4 @@
 (fp_lib_table
   (version 7)
+  (lib (name "cybics")(type "KiCad")(uri "${KIPRJMOD}/cybics.pretty")(options "")(descr "CybICS project footprints, converted from the LCSC/EasyEDA source with easyeda2kicad"))
 )
