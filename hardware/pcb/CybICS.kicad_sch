@@ -5607,7 +5607,7 @@
 		)
 		(uuid "0dae8575-39be-4df0-ba42-983b10c2c2cf")
 	)
-	(text "HW version code - \nSTM32 (fitted = 0, omitted = 1)"
+	(text "HW version code - STM32\nfitted = 0, omitted = 1\nv1.1 = 00001 -> R40 not fitted\nno straps at all = 11111 = pre-v1.1 board"
 		(exclude_from_sim no)
 		(at 250.952 74.676 0)
 		(effects
@@ -5750,7 +5750,7 @@
 		)
 		(uuid "9cbe4f31-5a87-4013-b101-e94d33d19964")
 	)
-	(text "HW version code - \nRaspberry Pi (fitted = 0, omitted = 1)"
+	(text "HW version code - Raspberry Pi\nfitted = 0, omitted = 1\nv1.1 = 00001 -> R46 not fitted\nno straps at all = 11111 = pre-v1.1 board"
 		(exclude_from_sim no)
 		(at 211.328 74.93 0)
 		(effects
@@ -10360,7 +10360,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "09ca07f6-176a-43d4-b3db-fef251c83676")
 		(property "Reference" "R46"
@@ -14565,7 +14565,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "6d227d8a-9c46-452e-9e5c-c6251fd8856c")
 		(property "Reference" "R40"

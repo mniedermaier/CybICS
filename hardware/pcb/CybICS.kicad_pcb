@@ -11356,7 +11356,7 @@
 				(pins "1" "2")
 			)
 		)
-		(attr smd)
+		(attr smd dnp)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -0.227064 0.735)
@@ -11698,7 +11698,7 @@
 				(pins "1" "2")
 			)
 		)
-		(attr smd)
+		(attr smd dnp)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -0.227064 0.735)
@@ -23129,7 +23129,7 @@
 		(layer "Edge.Cuts")
 		(uuid "549eb1d9-85c6-49b2-8750-53648138d224")
 	)
-	(gr_text "CybICS v1.0"
+	(gr_text "CybICS v1.1"
 		(at 76.8 59.8 0)
 		(layer "F.Cu")
 		(uuid "a7cb33fe-5e8b-4d23-bc3c-2b0fd61263a6")
@@ -23142,7 +23142,7 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "CybICS v1.0\n"
+	(gr_text "CybICS v1.1\n"
 		(at 76.8 59.8 0)
 		(layer "F.Mask")
 		(uuid "8efc3c74-7fc5-4be8-98c2-581c54cdce86")

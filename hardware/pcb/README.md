@@ -105,6 +105,16 @@ After upload, configure the following options:
    - Select `positions.csv` from the production folder
 4. Click **Process BOM & CPL**
 
+### Step 7b: Check the version straps are not placed
+
+`R40` and `R46` are marked **DNP** -- they encode the hardware revision by
+being absent (see [Hardware Version Coding](../README.md#version-coding)).
+Confirm they are missing from the uploaded BOM and CPL. The Fabrication
+Toolkit skips DNP parts, but verify it rather than assume: if JLCPCB places
+them, the board reports the wrong revision.
+
+Every other `R41`-`R44` and `R47`-`R50` must be placed.
+
 ### Step 8: Component Matching
 
 After processing, JLCPCB will display component matching:

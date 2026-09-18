@@ -137,6 +137,12 @@ format; the project file is deliberately left older. Revert it with
 `git checkout -- hardware/pcb/CybICS.kicad_pro` before committing. The same goes
 for `CybICS.kicad_prl`, which only carries local editor state.
 
+`Update PCB from Schematic` (F8) resets footprint attributes from the library.
+That silently drops `exclude_from_pos_files` from `FID1`-`FID3` and `H1`-`H3`,
+which reintroduces the #238 bug -- the fiducials reappear in the position file.
+After any F8 run, check `kicad-cli pcb export pos --smd-only` still reports no
+`FID` rows.
+
 Copper zone fills are stored in the board, and KiBot refills them before running
 DRC. If you change zones or clearances, refill and commit them with
 `kicad-cli pcb drc --refill-zones --save-board hardware/pcb/CybICS.kicad_pcb`, so
