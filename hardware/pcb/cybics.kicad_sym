@@ -2,7 +2,7 @@
 	(version 20251024)
 	(generator "kicad_symbol_editor")
 	(generator_version "10.0")
-	(symbol "7*7*5-6P-LWX"
+	(symbol "SW_Nav_4Way_7x7"
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
@@ -116,7 +116,7 @@
 				)
 			)
 		)
-		(symbol "7*7*5-6P-LWX_0_1"
+		(symbol "SW_Nav_4Way_7x7_0_1"
 			(rectangle
 				(start -7.62 7.62)
 				(end 7.62 -7.62)

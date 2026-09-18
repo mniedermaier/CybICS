@@ -5584,6 +5584,279 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "cybics:SW_Nav_4Way_7x7"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "SW"
+				(at 0 15.24 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "7*7*5-6P-L WX"
+				(at 0 -15.24 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "cybics:SW-SMD_8P-L7.0-W7.0-P1.40-LS7.4-TL"
+				(at 0 -17.78 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.lcsc.com/datasheet/C2858287.pdf"
+				(at 0 -20.32 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Manufacturer" "SHOU HAN(首韩)"
+				(at 0 -22.86 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "MPN" "7*7*5-6P-L WX"
+				(at 0 -25.4 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "LCSC Part" "C2858287"
+				(at 0 -27.94 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "JLCPCB Part #" "C2858287"
+				(at 0 -27.94 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "Multi-Directional Switches"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "SW_Nav_4Way_7x7_0_1"
+				(rectangle
+					(start -7.62 7.62)
+					(end 7.62 -7.62)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(pin unspecified line
+					(at -12.7 5.08 0)
+					(length 5.08)
+					(name "F2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at -12.7 0 0)
+					(length 5.08)
+					(name "Public"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at -12.7 -5.08 0)
+					(length 5.08)
+					(name "F4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 12.7 -5.08 180)
+					(length 5.08)
+					(name "F5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 12.7 0 180)
+					(length 5.08)
+					(name "F1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 12.7 5.08 180)
+					(length 5.08)
+					(name "F3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 0 10.16 270)
+					(length 2.54)
+					(name "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin unspecified line
+					(at 0 -10.16 90)
+					(length 2.54)
+					(name "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 	)
 	(text "UART"
 		(exclude_from_sim no)
@@ -5796,7 +6069,7 @@
 	)
 	(text "Button Display"
 		(exclude_from_sim no)
-		(at 251.714 47.498 0)
+		(at 252.73 68.58 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5947,12 +6220,6 @@
 		(uuid "b34cdf13-3487-494e-830e-565262ef3baa")
 	)
 	(junction
-		(at 270.51 54.61)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "b5b077b3-a5bd-4fc0-938b-8a5a4aebfa5a")
-	)
-	(junction
 		(at 156.21 181.61)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6023,10 +6290,6 @@
 		(uuid "1312cb32-0ca2-43a6-bcc0-c077b114fe6f")
 	)
 	(no_connect
-		(at 77.47 85.09)
-		(uuid "142af10b-4695-4981-835e-2b9a838e4b9f")
-	)
-	(no_connect
 		(at 186.69 87.63)
 		(uuid "1d3df5c6-f7be-48f4-9d5c-e6316102f99e")
 	)
@@ -6039,20 +6302,8 @@
 		(uuid "29dd2dbb-553e-4477-9d25-e5264c7ef0bf")
 	)
 	(no_connect
-		(at 46.99 95.25)
-		(uuid "2c190513-9441-45c8-b1e1-a9d9ad2134c7")
-	)
-	(no_connect
 		(at 186.69 62.23)
 		(uuid "3ad8a2d2-eafb-460a-97bf-a05dc66d03e5")
-	)
-	(no_connect
-		(at 77.47 82.55)
-		(uuid "3be2bf19-b3b4-46f3-8413-754388bfc5e2")
-	)
-	(no_connect
-		(at 46.99 92.71)
-		(uuid "43cbd82a-c1ad-4fad-912d-0cb7949db4bc")
 	)
 	(no_connect
 		(at 46.99 77.47)
@@ -6824,16 +7075,6 @@
 	)
 	(wire
 		(pts
-			(xy 270.51 54.61) (xy 279.4 54.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "49169e19-3b4c-4db9-9637-11f7fcca41e3")
-	)
-	(wire
-		(pts
 			(xy 40.64 153.67) (xy 38.1 153.67)
 		)
 		(stroke
@@ -7324,16 +7565,6 @@
 	)
 	(wire
 		(pts
-			(xy 269.24 44.45) (xy 267.97 44.45)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "787b12f2-5c05-4b20-bd80-72cf3dd0cadb")
-	)
-	(wire
-		(pts
 			(xy 218.44 90.17) (xy 218.44 87.63)
 		)
 		(stroke
@@ -7691,16 +7922,6 @@
 			(type default)
 		)
 		(uuid "9b3578a1-72e4-46f4-8553-4583ed41f381")
-	)
-	(wire
-		(pts
-			(xy 279.4 44.45) (xy 279.4 43.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9bd6c5ab-dea7-4fc5-913a-3d1a68ef20c2")
 	)
 	(wire
 		(pts
@@ -8074,16 +8295,6 @@
 	)
 	(wire
 		(pts
-			(xy 267.97 54.61) (xy 270.51 54.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "bc7525e6-c852-4c4b-a3a9-4bfae8cba4f8")
-	)
-	(wire
-		(pts
 			(xy 40.64 162.56) (xy 40.64 163.83)
 		)
 		(stroke
@@ -8424,16 +8635,6 @@
 	)
 	(wire
 		(pts
-			(xy 276.86 44.45) (xy 279.4 44.45)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "e50c09e9-d198-4761-8298-7903cbff7f7e")
-	)
-	(wire
-		(pts
 			(xy 241.3 19.05) (xy 241.3 20.32)
 		)
 		(stroke
@@ -8691,16 +8892,6 @@
 			(type default)
 		)
 		(uuid "ff7cc613-dc45-4b71-b87e-2504a013d29b")
-	)
-	(label "PA8"
-		(at 274.32 54.61 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "02ff2f1f-7680-44d4-a98d-4b8c8fb362f4")
 	)
 	(label "PB6"
 		(at 149.86 132.08 0)
@@ -11495,84 +11686,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+3V3")
-		(at 279.4 43.18 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "2591832a-3393-4d9f-8728-baddc11b8cc3")
-		(property "Reference" "#PWR050"
-			(at 279.4 46.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 279.4 38.1 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 279.4 43.18 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 279.4 43.18 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 279.4 43.18 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "ab9b8239-bc1e-4f37-91a5-e21dd789c81f")
-		)
-		(instances
-			(project "CybICS"
-				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-					(reference "#PWR050")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 218.44 158.75 0)
 		(unit 1)
@@ -12994,97 +13107,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:R")
-		(at 273.05 44.45 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "50dcbcf8-f3a2-40d1-8285-00863db4d502")
-		(property "Reference" "R37"
-			(at 273.05 38.1 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "1kR"
-			(at 273.05 40.64 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
-			(at 273.05 42.672 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 273.05 44.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 273.05 44.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLCPCB Part #" "C17513"
-			(at 273.05 44.45 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "c4054c49-53c9-44d9-acd6-0e83763eb9b9")
-		)
-		(pin "1"
-			(uuid "973e884a-2885-49fd-9447-f76ff03097c6")
-		)
-		(instances
-			(project "CybICS"
-				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-					(reference "R37")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:LED")
 		(at 201.93 133.35 0)
 		(unit 1)
@@ -13417,84 +13439,6 @@
 			(project "CybICS"
 				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
 					(reference "#PWR028")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
-		(at 270.51 62.23 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "586a6cda-aacd-4558-997f-2516f9847f4f")
-		(property "Reference" "#PWR049"
-			(at 270.51 68.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 270.51 67.31 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 270.51 62.23 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 270.51 62.23 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 270.51 62.23 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "5778ea9c-189f-43d7-adf1-e156223b7786")
-		)
-		(instances
-			(project "CybICS"
-				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-					(reference "#PWR049")
 					(unit 1)
 				)
 			)
@@ -15498,98 +15442,6 @@
 			(project "CybICS"
 				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
 					(reference "D13")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 270.51 58.42 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "7b197e33-88c2-4313-a3df-e2adbf347de4")
-		(property "Reference" "R36"
-			(at 273.05 57.15 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10kR"
-			(at 273.05 59.69 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
-			(at 268.732 58.42 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 270.51 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 270.51 58.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLCPCB Part #" "C17414"
-			(at 270.51 58.42 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "105353e0-79bd-4ac5-981e-ada0fbb85d90")
-		)
-		(pin "1"
-			(uuid "5f58dda0-8d7c-4740-b2dd-a7e195a6644d")
-		)
-		(instances
-			(project "CybICS"
-				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-					(reference "R36")
 					(unit 1)
 				)
 			)
@@ -21111,99 +20963,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Switch:SW_Push")
-		(at 267.97 49.53 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "eee154d5-dd1a-49dd-8886-ff6b493bf6b6")
-		(property "Reference" "SW3"
-			(at 269.24 48.26 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "SW_Push"
-			(at 269.24 50.8 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" "Button_Switch_THT:SW_PUSH_6mm_H5mm"
-			(at 262.89 49.53 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 262.89 49.53 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 267.97 49.53 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLCPCB Part #" "C428628"
-			(at 267.97 49.53 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "ebf7e688-0d4d-4e36-b16a-b242e589160c")
-		)
-		(pin "1"
-			(uuid "c8960df1-b8af-4ed2-9edf-d32758cecb37")
-		)
-		(instances
-			(project "CybICS"
-				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
-					(reference "SW3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:LED")
 		(at 201.93 121.92 0)
 		(unit 1)
@@ -22329,6 +22088,399 @@
 			(type default)
 		)
 		(uuid "8e63cb4f-6b25-48c2-9dae-e115f60a3e49")
+	)
+	(symbol
+		(lib_id "cybics:SW_Nav_4Way_7x7")
+		(at 267.97 49.53 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "3dfe6bfd-93b9-46aa-ac31-9e4b8f23d8c3")
+		(property "Reference" "SW3"
+			(at 267.97 35.56 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "7*7*5-6P-L WX"
+			(at 274.32 63.5 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "cybics:SW-SMD_8P-L7.0-W7.0-P1.40-LS7.4-TL"
+			(at 267.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.lcsc.com/datasheet/C2858287.pdf"
+			(at 267.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 267.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C2858287"
+			(at 267.97 49.53 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "5bb5ff81-1309-4834-9a41-0406fbbc86b2")
+		)
+		(pin "2"
+			(uuid "225bfecc-06ef-4d32-840f-6f193e24bbe1")
+		)
+		(pin "3"
+			(uuid "8f71ccfa-2724-4d4e-9ae6-2dd5d82e623a")
+		)
+		(pin "4"
+			(uuid "d2a8eebd-e13c-4bac-b3ca-0431c9e2db89")
+		)
+		(pin "5"
+			(uuid "faa683ae-d1ae-44e1-9283-61808e175e16")
+		)
+		(pin "6"
+			(uuid "33f37c7c-d304-4d86-a55a-581fa576fe8a")
+		)
+		(pin "7"
+			(uuid "d887240d-1e9e-4458-9f62-47baf7e36845")
+		)
+		(pin "8"
+			(uuid "2515953a-0582-4a1e-85f4-27b086dbb974")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "SW3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 255.27 49.53) (xy 252.73 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1c0258b6-e2ae-410e-b3bd-baa2687f1677")
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 252.73 60.96 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "e3ccc92e-7cee-4eef-828e-5be3b2fa6fbe")
+		(property "Reference" "#PWR058"
+			(at 252.73 55.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 252.73 53.34 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 252.73 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 252.73 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 252.73 60.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "54d98315-8868-41d4-b547-acb8176cb2b0")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "#PWR058")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 280.67 49.53) (xy 285.75 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3f4c8acb-8b2a-42b5-b28f-996b39b55e7a")
+	)
+	(label "PA8"
+		(at 285.75 49.53 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f08dba86-89a7-4712-a9ab-244643dc8b9a")
+	)
+	(wire
+		(pts
+			(xy 280.67 44.45) (xy 285.75 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c9e2e630-b51b-4075-9911-0ce0908ba756")
+	)
+	(label "NAV_F3"
+		(at 285.75 44.45 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e8c977aa-5fd6-4a2e-a663-b12f9a0efa70")
+	)
+	(wire
+		(pts
+			(xy 280.67 54.61) (xy 285.75 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "20e3fb78-60ba-48f4-ab0d-f4c0104c720a")
+	)
+	(label "NAV_F5"
+		(at 285.75 54.61 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a95da64b-1961-4082-bd80-a0d8f2501db3")
+	)
+	(wire
+		(pts
+			(xy 255.27 44.45) (xy 250.19 44.45)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "81052399-a2b2-4390-ac1e-9ed7f1c4ad39")
+	)
+	(label "NAV_F2"
+		(at 250.19 44.45 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "a506a2f0-4075-4481-961c-f9daee83d411")
+	)
+	(wire
+		(pts
+			(xy 255.27 54.61) (xy 250.19 54.61)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a724b468-0406-4be9-998e-70c1719be99b")
+	)
+	(label "NAV_F4"
+		(at 250.19 54.61 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "8a06298a-4fec-4a72-8568-dfa659804e54")
+	)
+	(no_connect
+		(at 267.97 39.37)
+		(uuid "19ddb2ad-56c8-4362-b511-131d783facae")
+	)
+	(no_connect
+		(at 267.97 59.69)
+		(uuid "b81c142d-f05b-4aaa-a2c0-a226e0d95943")
+	)
+	(wire
+		(pts
+			(xy 46.99 92.71) (xy 44.45 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "16af3cd2-cda8-47ff-a52d-bdfe58930159")
+	)
+	(label "NAV_F2"
+		(at 44.45 92.71 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "e75c26cc-ece4-4249-a4e1-63e29366e3c8")
+	)
+	(wire
+		(pts
+			(xy 46.99 95.25) (xy 44.45 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "85e35f9b-b42b-4c97-9ad2-03b6b7ea34b1")
+	)
+	(label "NAV_F4"
+		(at 44.45 95.25 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "cf76dd67-0e3e-40ec-b0ec-40f5c4702080")
+	)
+	(wire
+		(pts
+			(xy 77.47 82.55) (xy 80.01 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6e55d82f-a972-4dcb-b5e4-b4064f5213c2")
+	)
+	(label "NAV_F3"
+		(at 80.01 82.55 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "7fe6f8dc-b33d-423e-8093-baa701206f39")
+	)
+	(wire
+		(pts
+			(xy 77.47 85.09) (xy 80.01 85.09)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3925e50e-5c45-4d77-9f18-0c38ecec6951")
+	)
+	(label "NAV_F5"
+		(at 80.01 85.09 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "8ad9a2dc-cfd9-49d5-8bba-44f7fe59e46e")
+	)
+	(wire
+		(pts
+			(xy 252.73 49.53) (xy 252.73 60.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e40f83ea-517a-459a-bedd-97b4302f8811")
 	)
 	(sheet_instances
 		(path "/"
