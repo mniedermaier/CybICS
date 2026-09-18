@@ -128,6 +128,20 @@ Nine workflows in `.github/workflows/` must stay green. Two are unusual:
 `cybics.proto`), `hardware/pcb/docs/` and `hardware/pcb/pcb/` (KiBot),
 `software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`.
 
+Do not commit `hardware/pcb/CybICS.kicad_pro`. The KiCad 10 GUI rewrites it into
+the KiCad 10 project format as soon as you open the project, and KiBot 1.9.1 --
+the version in `setsoft/kicad_auto:ki10` -- then fails to load the schematic with
+`Missing sheet instance for /00000000-0000-0000-0000-000000000000`, which breaks
+all five `kibotVerify.yml` jobs. The board and schematic are in the KiCad 10
+format; the project file is deliberately left older. Revert it with
+`git checkout -- hardware/pcb/CybICS.kicad_pro` before committing. The same goes
+for `CybICS.kicad_prl`, which only carries local editor state.
+
+Copper zone fills are stored in the board, and KiBot refills them before running
+DRC. If you change zones or clearances, refill and commit them with
+`kicad-cli pcb drc --refill-zones --save-board hardware/pcb/CybICS.kicad_pcb`, so
+the polygons in git are the ones CI verifies.
+
 ## Things that look like secrets but are not
 
 The OPC-UA test key in `software/opcua/certificates/trusted/`, the credential
