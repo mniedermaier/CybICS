@@ -6407,7 +6407,7 @@
 	)
 	(wire
 		(pts
-			(xy 242.57 50.8) (xy 251.46 50.8)
+			(xy 248.92 50.8) (xy 251.46 50.8)
 		)
 		(stroke
 			(width 0)
@@ -6747,16 +6747,6 @@
 	)
 	(wire
 		(pts
-			(xy 276.86 55.88) (xy 278.13 55.88)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "20e3fb78-60ba-48f4-ab0d-f4c0104c720a")
-	)
-	(wire
-		(pts
 			(xy 172.72 77.47) (xy 175.26 77.47)
 		)
 		(stroke
@@ -7014,16 +7004,6 @@
 			(type default)
 		)
 		(uuid "3dceab0a-8504-4a42-9e0b-172b98d4ef4c")
-	)
-	(wire
-		(pts
-			(xy 276.86 50.8) (xy 278.13 50.8)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "3f4c8acb-8b2a-42b5-b28f-996b39b55e7a")
 	)
 	(wire
 		(pts
@@ -7707,16 +7687,6 @@
 	)
 	(wire
 		(pts
-			(xy 251.46 45.72) (xy 250.19 45.72)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "81052399-a2b2-4390-ac1e-9ed7f1c4ad39")
-	)
-	(wire
-		(pts
 			(xy 163.83 142.24) (xy 166.37 142.24)
 		)
 		(stroke
@@ -8085,16 +8055,6 @@
 		)
 		(uuid "a6a9489c-888d-4b83-b1d1-5934830f41b5")
 	)
-	(wire
-		(pts
-			(xy 251.46 55.88) (xy 250.19 55.88)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a724b468-0406-4be9-998e-70c1719be99b")
-	)
 	(polyline
 		(pts
 			(xy 113.03 106.68) (xy 214.63 106.68)
@@ -8447,7 +8407,7 @@
 	)
 	(wire
 		(pts
-			(xy 242.57 50.8) (xy 242.57 55.88)
+			(xy 248.92 50.8) (xy 248.92 63.5)
 		)
 		(stroke
 			(width 0)
@@ -8574,16 +8534,6 @@
 			(type default)
 		)
 		(uuid "c95e868b-683e-482f-ba15-6299917fdc98")
-	)
-	(wire
-		(pts
-			(xy 276.86 45.72) (xy 278.13 45.72)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c9e2e630-b51b-4075-9911-0ce0908ba756")
 	)
 	(wire
 		(pts
@@ -9605,16 +9555,6 @@
 		)
 		(uuid "881d28ec-8005-4461-a87d-801a3c19fa7a")
 	)
-	(label "NAV_F4"
-		(at 250.19 55.88 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "8a06298a-4fec-4a72-8568-dfa659804e54")
-	)
 	(label "HWV_RPI2"
 		(at 223.52 91.44 90)
 		(effects
@@ -9745,16 +9685,6 @@
 		)
 		(uuid "a29fa7bd-c377-4193-a83a-9d3235b8b1a2")
 	)
-	(label "NAV_F2"
-		(at 250.19 45.72 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "a506a2f0-4075-4481-961c-f9daee83d411")
-	)
 	(label "PA6"
 		(at 83.82 54.61 0)
 		(effects
@@ -9764,16 +9694,6 @@
 			(justify left bottom)
 		)
 		(uuid "a8a53e12-933d-4eeb-a540-e233d5f5b021")
-	)
-	(label "NAV_F5"
-		(at 278.13 55.88 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "a95da64b-1961-4082-bd80-a0d8f2501db3")
 	)
 	(label "PD4"
 		(at 115.57 143.51 0)
@@ -10045,16 +9965,6 @@
 		)
 		(uuid "e6f55bcf-945e-4a55-b80e-21617c649a8a")
 	)
-	(label "NAV_F3"
-		(at 278.13 45.72 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "e8c977aa-5fd6-4a2e-a663-b12f9a0efa70")
-	)
 	(label "HWV_STM2"
 		(at 44.45 115.57 180)
 		(effects
@@ -10104,16 +10014,6 @@
 			(justify left bottom)
 		)
 		(uuid "f088e036-aad0-4302-a709-52096db0611c")
-	)
-	(label "PA8"
-		(at 278.13 50.8 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "f08dba86-89a7-4712-a9ab-244643dc8b9a")
 	)
 	(label "PA2"
 		(at 71.12 190.5 0)
@@ -10275,7 +10175,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 231.14 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10318,7 +10218,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 228.6 97.79 0)
 			(hide yes)
 			(show_name no)
@@ -10715,7 +10615,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 226.06 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10758,7 +10658,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 223.52 97.79 0)
 			(hide yes)
 			(show_name no)
@@ -10806,7 +10706,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 215.9 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10849,7 +10749,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 213.36 97.79 0)
 			(hide yes)
 			(show_name no)
@@ -11080,7 +10980,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 220.98 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11123,7 +11023,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 218.44 97.79 0)
 			(hide yes)
 			(show_name no)
@@ -11765,7 +11665,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 265.43 100.33 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11808,7 +11708,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 262.89 99.06 0)
 			(hide yes)
 			(show_name no)
@@ -14431,7 +14331,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 270.51 100.33 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14474,7 +14374,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 267.97 99.06 0)
 			(hide yes)
 			(show_name no)
@@ -14872,7 +14772,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 255.27 100.33 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14915,7 +14815,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 252.73 99.06 0)
 			(hide yes)
 			(show_name no)
@@ -19104,7 +19004,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 275.59 100.33 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19147,7 +19047,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 273.05 99.06 0)
 			(hide yes)
 			(show_name no)
@@ -21052,7 +20952,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 242.57 55.88 0)
+		(at 248.92 63.5 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -21062,7 +20962,7 @@
 		(dnp no)
 		(uuid "e3ccc92e-7cee-4eef-828e-5be3b2fa6fbe")
 		(property "Reference" "#PWR058"
-			(at 242.57 50.8 0)
+			(at 248.92 50.8 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21083,7 +20983,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 242.57 55.88 0)
+			(at 248.92 63.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21094,7 +20994,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 242.57 55.88 0)
+			(at 248.92 63.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21105,7 +21005,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 242.57 55.88 0)
+			(at 248.92 63.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21990,7 +21890,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 260.35 100.33 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22033,7 +21933,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 257.81 99.06 0)
 			(hide yes)
 			(show_name no)
@@ -22249,7 +22149,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 236.22 99.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22292,7 +22192,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 233.68 97.79 0)
 			(hide yes)
 			(show_name no)
@@ -22459,6 +22359,581 @@
 			(justify right bottom)
 		)
 		(uuid "42043313-52e0-4607-bd4c-6d99a07870da")
+	)
+	(wire
+		(pts
+			(xy 251.46 45.72) (xy 247.65 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cf41928c-f80c-42c4-aed0-89394054de3e")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 243.84 45.72 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "c009b50e-db40-4671-a2f0-081c0ceae44a")
+		(property "Reference" "R51"
+			(at 243.84 43.815 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1kR"
+			(at 243.84 47.625 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 243.84 45.72 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 243.84 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 243.84 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C17513"
+			(at 243.84 45.72 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "11ffffcf-9eb1-4b04-af7e-ada651588a98")
+		)
+		(pin "2"
+			(uuid "a9d73630-46dc-4e02-a41c-efc75a7d3042")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "R51")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 240.03 45.72) (xy 237.49 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "26b7cdd5-a104-4612-ab37-c068b779c40d")
+	)
+	(label "NAV_F2"
+		(at 237.49 45.72 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "2b29ee7a-af7c-4d47-81e8-7b4063d868e0")
+	)
+	(wire
+		(pts
+			(xy 251.46 55.88) (xy 247.65 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c134bf62-f86b-4148-a3cc-7b240c8ac57a")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 243.84 55.88 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "3a3562b6-ac6d-48f4-8e5d-56c6ba9258a6")
+		(property "Reference" "R52"
+			(at 243.84 53.975 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1kR"
+			(at 243.84 57.785 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 243.84 55.88 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 243.84 55.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 243.84 55.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C17513"
+			(at 243.84 55.88 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "974b90b7-51ac-4a1d-8844-9a35536f243e")
+		)
+		(pin "2"
+			(uuid "4fe905a4-9c43-4f4b-9507-cb22fde9f3c6")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "R52")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 240.03 55.88) (xy 237.49 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f6cf973a-cf1c-48b7-88ec-a53fcb8af9bb")
+	)
+	(label "NAV_F4"
+		(at 237.49 55.88 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "16baae2f-18d7-4048-a9a1-a63ec74ec68d")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 280.67 45.72 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "1fff1cdf-997f-4414-88af-2298faefe0fb")
+		(property "Reference" "R53"
+			(at 280.67 43.815 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1kR"
+			(at 280.67 47.625 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 280.67 45.72 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 280.67 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 280.67 45.72 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C17513"
+			(at 280.67 45.72 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "93b14dd5-ba62-48aa-ac9d-573f44e12a9c")
+		)
+		(pin "2"
+			(uuid "0696cd4d-7345-49d4-a5fb-fc6781a7a5ba")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "R53")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(label "NAV_F3"
+		(at 287.02 45.72 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e6a16f7f-2007-4d40-90f4-a7477c80d6c5")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 280.67 50.8 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "c3d52fd8-08b8-4410-b7cd-1cea62dd6e27")
+		(property "Reference" "R54"
+			(at 280.67 48.895 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1kR"
+			(at 280.67 52.705 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 280.67 50.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 280.67 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 280.67 50.8 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C17513"
+			(at 280.67 50.8 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "2bd59a4b-9042-4494-877f-e8ebbbcbc0d3")
+		)
+		(pin "2"
+			(uuid "59a065b4-df40-4b8f-b654-f5ea6cac59a8")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "R54")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(label "PA8"
+		(at 287.02 50.8 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ab5f69de-dd88-4dc7-bad0-acae2768f568")
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 280.67 55.88 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "1848ea95-23a7-499b-b50c-463b0476417e")
+		(property "Reference" "R55"
+			(at 280.67 53.975 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1kR"
+			(at 280.67 57.785 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 280.67 55.88 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 280.67 55.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 280.67 55.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C17513"
+			(at 280.67 55.88 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "4cccecf1-8161-4a76-80ac-b088d87b25f4")
+		)
+		(pin "2"
+			(uuid "b81151b6-7c38-4512-b967-bf51ece6ec72")
+		)
+		(instances
+			(project "CybICS"
+				(path "/8fcde287-628f-41a4-bd3a-47641b4dabbc"
+					(reference "R55")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(label "NAV_F5"
+		(at 287.02 55.88 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c618ee3a-3619-4129-9e80-684d4fc17310")
+	)
+	(wire
+		(pts
+			(xy 284.48 45.72) (xy 287.02 45.72)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7c4b11ae-44d9-4eec-9957-1c8f61b06853")
+	)
+	(wire
+		(pts
+			(xy 284.48 50.8) (xy 287.02 50.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2cc04a36-64df-4591-be92-9aad6f2154ee")
+	)
+	(wire
+		(pts
+			(xy 284.48 55.88) (xy 287.02 55.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1d93cc15-27dc-4c81-8e75-84725eb2c511")
 	)
 	(sheet_instances
 		(path "/"

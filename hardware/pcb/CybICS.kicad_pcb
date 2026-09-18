@@ -389,7 +389,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "e43a047a-a875-47c7-8ba4-49140204b238")
@@ -434,7 +434,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -778,7 +778,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "14e19be9-d4a0-4414-8479-2c5fc0bd13be")
@@ -823,7 +823,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -3963,7 +3963,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "e212111b-b5c7-4fac-a770-2c827dffd152")
@@ -4008,7 +4008,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -8668,7 +8668,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "38b81109-f942-43d3-97ec-1ceef8d38dbf")
@@ -8713,7 +8713,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -11288,7 +11288,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "ab462501-d37a-4f00-8c59-9f0c91acff02")
@@ -11333,7 +11333,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -11459,7 +11459,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "1dd010c2-c950-4fff-ab3c-043ed188c5bd")
@@ -11504,7 +11504,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -11630,7 +11630,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "15ddf777-ef3f-4add-aadd-94c14b8a2909")
@@ -11675,7 +11675,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -12501,7 +12501,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "f4c60c9d-ac85-4c55-a4bc-cdd5557a7436")
@@ -12546,7 +12546,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -17923,7 +17923,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "1166c692-a528-415b-8c08-893dc5a6e37c")
@@ -17968,7 +17968,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -22212,7 +22212,7 @@
 				)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "05eb2a8b-9573-44ce-9d20-96710a5f4c20")
@@ -22257,7 +22257,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17414"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
