@@ -1593,7 +1593,7 @@
 		(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf, https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing), generated with kicad-footprint-generator")
 		(tags "capacitor handsolder")
 		(property "Reference" "C2"
-			(at 0 -1.68 90)
+			(at 2.4 0 0)
 			(layer "F.SilkS")
 			(uuid "dfe35d7a-01f7-4256-a730-05b791813f99")
 			(effects
@@ -2608,7 +2608,7 @@
 		(property "Reference" "J1"
 			(at -17.901496 -25.13 0)
 			(layer "F.SilkS")
-			(uuid "a6dfe79a-7b34-4190-b9e5-38877fe27288")
+			(uuid "0268a247-424e-4fdc-8b4b-8da9f422e73d")
 			(effects
 				(font
 					(size 1 1)
@@ -2619,7 +2619,7 @@
 		(property "Value" "Raspberry_Pi_2_3"
 			(at 10.23 -23.055 0)
 			(layer "F.Fab")
-			(uuid "d65b2ade-2337-4815-a0d3-72bcdc5643bb")
+			(uuid "d4b48cb6-45b8-40bf-91e8-afc0ee78ff7a")
 			(effects
 				(font
 					(size 1 1)
@@ -2631,7 +2631,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "6b3c36c9-e126-4648-904a-53a21063c389")
+			(uuid "97e3bb74-101a-4fd2-a0fc-d8ef3b43e0bc")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2643,7 +2643,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "24cb15a4-c5ff-43b4-a97a-93e1d12109a3")
+			(uuid "e0fbe1e4-bc2a-4028-aa07-995de8dcf1a2")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5828,7 +5828,7 @@
 		(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf, https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing), generated with kicad-footprint-generator")
 		(tags "capacitor handsolder")
 		(property "Reference" "C3"
-			(at 0 -1.68 90)
+			(at 2.4 0 0)
 			(layer "F.SilkS")
 			(uuid "908e1e38-527d-41c2-8711-162bcbbe1478")
 			(effects
@@ -17019,7 +17019,7 @@
 		(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf, https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing), generated with kicad-footprint-generator")
 		(tags "capacitor handsolder")
 		(property "Reference" "C1"
-			(at 0 -1.68 90)
+			(at 2.4 0 0)
 			(layer "F.SilkS")
 			(uuid "b001fce4-07e4-4872-946d-d32e5a28b1c0")
 			(effects
@@ -23311,10 +23311,70 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "  HW version\n---------\n| 0 1 2 4 8 |\n---------"
-		(at 81.7 142.6 0)
+	(gr_text "\n   HW version"
+		(at 81.5 141.7 0)
 		(layer "F.SilkS")
 		(uuid "0756abd6-f223-4137-886d-002805f7d5ef")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.25)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "1"
+		(at 82.9 137.5 0)
+		(layer "F.SilkS")
+		(uuid "28289a31-cd4c-4513-a78b-876d0113e4f9")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.25)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "2"
+		(at 84.9 137.5 0)
+		(layer "F.SilkS")
+		(uuid "9b699251-c1f5-4779-bd27-311f669ad387")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.25)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "4"
+		(at 86.9 137.5 0)
+		(layer "F.SilkS")
+		(uuid "98705406-6132-45d8-871f-ddf398534664")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.25)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "8"
+		(at 88.9 137.5 0)
+		(layer "F.SilkS")
+		(uuid "c8c58372-7226-4180-bd51-b9ffa0d09a55")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.25)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "16"
+		(at 90.5 137.5 0)
+		(layer "F.SilkS")
+		(uuid "f16d1755-0568-436e-a9d5-7d75d1e567f3")
 		(effects
 			(font
 				(size 1 1)
