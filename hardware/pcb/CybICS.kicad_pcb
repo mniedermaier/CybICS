@@ -2005,7 +2005,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor handsolder")
 		(property "Reference" "R55"
-			(at 0 -1.65 0)
+			(at 3.4 0 0)
 			(layer "F.SilkS")
 			(uuid "0d87d6b9-e60f-4863-ac60-a5298eb69d2b")
 			(effects
@@ -2677,7 +2677,7 @@
 				(pins)
 			)
 		)
-		(attr smd exclude_from_bom)
+		(attr smd exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -4235,7 +4235,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor handsolder")
 		(property "Reference" "R52"
-			(at 0 -1.65 0)
+			(at -3.4 0 0)
 			(layer "F.SilkS")
 			(uuid "81573ce9-eeb0-465c-90f9-0fb858e4d8c4")
 			(effects
@@ -6035,7 +6035,7 @@
 				(pins)
 			)
 		)
-		(attr exclude_from_bom)
+		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -6762,7 +6762,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor handsolder")
 		(property "Reference" "R53"
-			(at 0 -1.65 0)
+			(at 3.4 0 0)
 			(layer "F.SilkS")
 			(uuid "1647f453-3762-4b28-a331-880800f4016d")
 			(effects
@@ -9748,7 +9748,7 @@
 				(pins)
 			)
 		)
-		(attr exclude_from_bom)
+		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -10789,7 +10789,7 @@
 				(pins)
 			)
 		)
-		(attr exclude_from_bom)
+		(attr exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -13623,7 +13623,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor handsolder")
 		(property "Reference" "R54"
-			(at 0 -1.65 0)
+			(at 3.4 0 0)
 			(layer "F.SilkS")
 			(uuid "5f447a92-0116-4fdf-aea6-897e962c0bca")
 			(effects
@@ -15597,7 +15597,7 @@
 				(pins)
 			)
 		)
-		(attr smd exclude_from_bom)
+		(attr smd exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -19109,7 +19109,7 @@
 		(descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC-7351 nominal with elongated pad for handsoldering. (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "resistor handsolder")
 		(property "Reference" "R51"
-			(at 0 -1.65 0)
+			(at -3.4 0 0)
 			(layer "F.SilkS")
 			(uuid "ae79c4d8-8e0f-4c37-af47-e3ec0dc1fb31")
 			(effects
@@ -21583,7 +21583,7 @@
 				(pins)
 			)
 		)
-		(attr smd exclude_from_bom)
+		(attr smd exclude_from_pos_files exclude_from_bom)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
 			(center 0 0)
@@ -22937,7 +22937,7 @@
 		)
 	)
 	(gr_text "Open"
-		(at 184.8 104.8 0)
+		(at 182.8 104.8 0)
 		(layer "F.SilkS")
 		(uuid "43380538-023a-4b97-af77-641660ff0b1b")
 		(effects
@@ -22949,7 +22949,7 @@
 		)
 	)
 	(gr_text "Closed"
-		(at 184.8 109.8 0)
+		(at 182.8 109.8 0)
 		(layer "F.SilkS")
 		(uuid "44927b1f-cace-4256-9c9f-b86d344cca35")
 		(effects
@@ -26445,14 +26445,6 @@
 		(net "/USART1_RX")
 		(uuid "9d7dcc04-8695-49bf-adaa-f661dfb7c2a5")
 	)
-	(via
-		(at 111.8 110.584252)
-		(size 0.8)
-		(drill 0.4)
-		(layers "F.Cu" "B.Cu")
-		(net "/USART1_RX")
-		(uuid "fe0cfd03-9478-4cbc-9b38-795fc843a927")
-	)
 	(segment
 		(start 81 118)
 		(end 104.384252 118)
@@ -29065,14 +29057,6 @@
 		(net "/NAV_F4")
 		(uuid "e77a8d9b-94d7-4ad0-b262-d9d04e3c3354")
 	)
-	(segment
-		(start 125.723292 109.1)
-		(end 125.6 109.1)
-		(width 0.25)
-		(layer "F.Cu")
-		(net "/NAV_F4")
-		(uuid "fe4afaf3-e85b-4c78-bc9e-8af13ddce2bd")
-	)
 	(via
 		(at 174.1 106.999991)
 		(size 0.8)
@@ -29152,14 +29136,6 @@
 		(layer "F.Cu")
 		(net "Net-(SW3-F3)")
 		(uuid "39ca2efa-884d-48d0-acea-d99298fdc6f9")
-	)
-	(segment
-		(start 201 107.5)
-		(end 201.5 107)
-		(width 0.25)
-		(layer "F.Cu")
-		(net "Net-(SW3-F3)")
-		(uuid "b4dcf5f5-0b35-46e1-b76b-79211ca3d4b1")
 	)
 	(segment
 		(start 206.4 102.1)
