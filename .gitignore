@@ -77,6 +77,11 @@ fp-info-cache
 *auto_saved_files*
 *.pyc
 
+# KiCad 10 keeps automatic snapshots of the project files here, one per
+# save.  It is per-user scratch state and grows without bound -- the copy
+# in hardware/pcb was 63 MB across 609 files.
+.history/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
