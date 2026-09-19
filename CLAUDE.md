@@ -128,14 +128,17 @@ Nine workflows in `.github/workflows/` must stay green. Two are unusual:
 `cybics.proto`), `hardware/pcb/docs/` and `hardware/pcb/pcb/` (KiBot),
 `software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`.
 
-Do not commit `hardware/pcb/CybICS.kicad_pro`. The KiCad 10 GUI rewrites it into
-the KiCad 10 project format as soon as you open the project, and KiBot 1.9.1 --
-the version in `setsoft/kicad_auto:ki10` -- then fails to load the schematic with
-`Missing sheet instance for /00000000-0000-0000-0000-000000000000`, which breaks
-all five `kibotVerify.yml` jobs. The board and schematic are in the KiCad 10
-format; the project file is deliberately left older. Revert it with
-`git checkout -- hardware/pcb/CybICS.kicad_pro` before committing. The same goes
-for `CybICS.kicad_prl`, which only carries local editor state.
+`hardware/pcb/CybICS.kicad_pro` is in the KiCad 10 project format, like the
+board, the schematic and the project libraries. It used to be held back: KiBot
+was said to fail on the migrated file with `Missing sheet instance for
+/00000000-0000-0000-0000-000000000000`, breaking all five `kibotVerify.yml`
+jobs. That no longer reproduces -- all five jobs were run against the migrated
+file in `setsoft/kicad_auto:ki10` with KiBot 1.9.1 and a control run on the old
+file for comparison, and every one exited 0. If it ever comes back, check the
+image version before assuming the file is at fault.
+
+Do not commit `CybICS.kicad_prl`. That one only carries local editor state --
+the open tabs, the zoom, the active layer -- and changes on every session.
 
 `Update PCB from Schematic` (F8) resets footprint attributes from the library.
 That silently drops `exclude_from_pos_files` from `FID1`-`FID3` and `H1`-`H3`,
