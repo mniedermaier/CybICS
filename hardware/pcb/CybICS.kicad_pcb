@@ -887,7 +887,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 0)
 			(layer "F.Fab")
 			(uuid "a88a42e4-c335-4783-aaae-e22f88bf24cf")
@@ -922,7 +922,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -1323,7 +1323,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 0)
 			(layer "F.Fab")
 			(uuid "09f56990-86ac-48fa-9fef-ce4d837f9650")
@@ -1358,7 +1358,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 119.6 246 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -2136,7 +2136,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "13bf7ddd-4dcd-467a-95cd-270e4e3fcb98")
@@ -2171,7 +2171,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 167.584252 21.984252 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -8410,7 +8410,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "7729e748-c6ce-4d6c-b396-68eb4ee4de29")
@@ -8445,7 +8445,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 191.584252 -2.015748 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -9718,7 +9718,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 0)
 			(layer "F.Fab")
 			(uuid "67a5e2ca-c7c7-4182-8bff-78ac99921c47")
@@ -9753,7 +9753,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -13008,7 +13008,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 0)
 			(layer "F.Fab")
 			(uuid "441647ee-5ace-4acc-9de3-90694381ad5c")
@@ -13043,7 +13043,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -15574,7 +15574,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 90)
 			(layer "F.Fab")
 			(uuid "71fb4f16-c9fe-499d-be01-c509b22a126d")
@@ -15609,7 +15609,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 175.584252 13.984252 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -18681,7 +18681,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 0)
 			(layer "F.Fab")
 			(uuid "c572406d-6108-491c-8e79-1f8ad0743d40")
@@ -18716,7 +18716,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 119.6 261.6 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -19987,7 +19987,7 @@
 				)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "1kR"
 			(at 0 1.65 0)
 			(layer "F.Fab")
 			(uuid "5c5e8408-45f3-4adc-b7f9-f10439451a61")
@@ -20022,7 +20022,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17408"
+		(property "JLCPCB Part #" "C17513"
 			(at 119.6 278 0)
 			(layer "F.Fab")
 			(hide yes)
