@@ -13,6 +13,37 @@ cannot open them -- install KiCad 10 or later before doing anything below:
 - **BOM (Bill of Materials)**: List of all components
 - **CPL (Component Placement List)**: Positions for automated assembly
 
+### Project 3D models
+
+`cybics.3dshapes/` holds the models KiCad does not ship. Each one that was
+generated rather than downloaded keeps its build script next to it, so it can
+be regenerated instead of being an unmaintainable binary:
+
+| Model | Source | Notes |
+|-------|--------|-------|
+| `Raspberry_Pi_Zero.step` | `Raspberry_Pi_Zero.build.py` (CadQuery) | J1's second model, so the Pi appears plugged onto the board |
+| `SW-SMD_8P-...step/.wrl` | vendor download (LCSC C2858287) | navigation switch SW3 |
+
+The Pi Zero model sits 11.0 mm above the board: 2.5 mm for the male header body
+on the carrier plus 8.5 mm for the socket on the Pi, which is the standard Pi
+HAT spacing. Its outline, mounting holes and overhangs are taken from the
+official mechanical drawing and match J1's `F.Fab` envelope exactly; the
+components on its underside are representative envelopes, not exact geometry.
+The PCB thickness of 1.4 mm is an assumption -- the drawing does not state one.
+
+Regenerate with:
+
+```bash
+cd hardware/pcb/cybics.3dshapes
+python3 -m venv .venv && .venv/bin/pip install cadquery
+.venv/bin/python Raspberry_Pi_Zero.build.py
+```
+
+Note that `J4`'s USB-C model is missing from the Ubuntu `kicad-packages3d`
+package, so that connector is absent from local 3D renders. The path in the
+board matches what the KiCad 10 library footprint itself declares, so it
+resolves on a complete installation.
+
 ## Prerequisites
 
 ### Software Requirements
