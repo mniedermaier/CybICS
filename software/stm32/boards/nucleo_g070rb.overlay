@@ -169,6 +169,46 @@
 			gpios = <&gpioc 10 GPIO_ACTIVE_HIGH>;
 			label = "WiFi Mode Button";
 		};
+
+		/*
+		 * Hardware version straps, PC11..PC15 = bit 0..4.
+		 *
+		 * Each bit is one 10k resistor to GND, read against the internal
+		 * pull-up: fitted pulls the pin low (bit 0), omitted lets the
+		 * pull-up win (bit 1).  ACTIVE_HIGH therefore makes
+		 * gpio_pin_get_dt() return the bit value directly.
+		 *
+		 * A pre-v1.1 board has no strap footprints at all, so all five
+		 * pins float high and read 0b11111.  See the table in
+		 * hardware/README.md#version-coding.
+		 *
+		 * PC14/PC15 double as the LSE oscillator pins; that is safe here
+		 * because the board has no crystal and clk_lse stays disabled.
+		 */
+		hw_ver0: hw_ver0 {
+			gpios = <&gpioc 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			label = "HW version strap bit 0";
+		};
+
+		hw_ver1: hw_ver1 {
+			gpios = <&gpioc 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			label = "HW version strap bit 1";
+		};
+
+		hw_ver2: hw_ver2 {
+			gpios = <&gpioc 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			label = "HW version strap bit 2";
+		};
+
+		hw_ver3: hw_ver3 {
+			gpios = <&gpioc 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			label = "HW version strap bit 3";
+		};
+
+		hw_ver4: hw_ver4 {
+			gpios = <&gpioc 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			label = "HW version strap bit 4";
+		};
 	};
 };
 

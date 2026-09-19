@@ -61,7 +61,7 @@ the ignore file.
 - `tests/`: pytest suite, mostly against a live stack.
 - `training/`: one directory per module; `training/README.md` has the learning
   path and the MITRE ATT&CK for ICS / D3FEND / NIST SP 800-82r3 mapping.
-- `hardware/`: KiCad 8 PCB, KiBot config, enclosure. Generated docs are committed by CI.
+- `hardware/`: KiCad 10 PCB, KiBot config, enclosure. Generated docs are committed by CI.
 
 ## Running and testing
 
@@ -127,6 +127,29 @@ Nine workflows in `.github/workflows/` must stay green. Two are unusual:
 `software/build/`, `software/stm32/proto/cybics.pb.{c,h}` (nanopb, from
 `cybics.proto`), `hardware/pcb/docs/` and `hardware/pcb/pcb/` (KiBot),
 `software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`.
+
+`hardware/pcb/CybICS.kicad_pro` is in the KiCad 10 project format, like the
+board, the schematic and the project libraries. It used to be held back: KiBot
+was said to fail on the migrated file with `Missing sheet instance for
+/00000000-0000-0000-0000-000000000000`, breaking all five `kibotVerify.yml`
+jobs. That no longer reproduces -- all five jobs were run against the migrated
+file in `setsoft/kicad_auto:ki10` with KiBot 1.9.1 and a control run on the old
+file for comparison, and every one exited 0. If it ever comes back, check the
+image version before assuming the file is at fault.
+
+Do not commit `CybICS.kicad_prl`. That one only carries local editor state --
+the open tabs, the zoom, the active layer -- and changes on every session.
+
+`Update PCB from Schematic` (F8) resets footprint attributes from the library.
+That silently drops `exclude_from_pos_files` from `FID1`-`FID3` and `H1`-`H3`,
+which reintroduces the #238 bug -- the fiducials reappear in the position file.
+After any F8 run, check `kicad-cli pcb export pos --smd-only` still reports no
+`FID` rows.
+
+Copper zone fills are stored in the board, and KiBot refills them before running
+DRC. If you change zones or clearances, refill and commit them with
+`kicad-cli pcb drc --refill-zones --save-board hardware/pcb/CybICS.kicad_pcb`, so
+the polygons in git are the ones CI verifies.
 
 ## Things that look like secrets but are not
 
