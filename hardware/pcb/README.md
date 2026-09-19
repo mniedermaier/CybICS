@@ -22,6 +22,7 @@ be regenerated instead of being an unmaintainable binary:
 | Model | Source | Notes |
 |-------|--------|-------|
 | `Raspberry_Pi_Zero.step` | `Raspberry_Pi_Zero.build.py` (CadQuery) | J1's second model, so the Pi appears plugged onto the board |
+| `LCD1602.step` | `LCD1602.build.py` (CadQuery) | DS1; replaces KiCad's `WC1602A.step` |
 | `SW-SMD_8P-...step/.wrl` | vendor download (LCSC C2858287) | navigation switch SW3 |
 
 The Pi Zero model sits 11.0 mm above the board: 2.5 mm for the male header body
@@ -53,12 +54,27 @@ not state one. And the microSD card protrudes 2.1 mm past the board edge, which
 is outside J1's `F.Fab` envelope -- that is real, not an error, and worth
 knowing when designing an enclosure.
 
-Regenerate with:
+### The display
+
+KiCad's `Display.3dshapes/WC1602A.step` is one fused solid, so the whole module
+takes a single colour: pale green board, grey frame, blank white screen. The
+replacement splits it into parts and colours them from the photograph -- dark
+green board, black bezel, vivid blue screen -- and draws the characters as a
+real 5 x 8 dot matrix, because a smooth outline font does not read as an LCD.
+The screen shows `CybICS` and nothing more: the firmware also prints a version
+and an uptime there, but both would go stale in a file nobody thinks to
+regenerate.
+
+Its envelope was recovered by slicing the stock model in Z and matches it
+exactly (80 x 36 x 15 mm), so it drops in at the same place.
+
+Regenerate either model with:
 
 ```bash
 cd hardware/pcb/cybics.3dshapes
 python3 -m venv .venv && .venv/bin/pip install cadquery
 .venv/bin/python Raspberry_Pi_Zero.build.py
+.venv/bin/python LCD1602.build.py
 ```
 
 Note that `J4`'s USB-C model is missing from the Ubuntu `kicad-packages3d`

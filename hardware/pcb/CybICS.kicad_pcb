@@ -15076,7 +15076,7 @@
 			(uuid "fcfee33b-6250-4c2e-8c7d-fb8c95282f59")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Display.3dshapes/WC1602A.step"
+		(model "${KIPRJMOD}/cybics.3dshapes/LCD1602.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -20148,7 +20148,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/cybics.3dshapes/SW-SMD_8P-L7.0-W7.0-P1.40-LS7.4-TL.wrl"
 			(offset
-				(xyz 0 0 0)
+				(xyz 0 0 1.85)
 			)
 			(scale
 				(xyz 1 1 1)
