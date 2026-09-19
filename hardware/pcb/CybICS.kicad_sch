@@ -13051,7 +13051,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 99.06 163.83 0)
 			(hide yes)
 			(show_name no)
@@ -13084,7 +13084,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 99.06 163.83 0)
 			(hide yes)
 			(show_name no)
@@ -13388,7 +13388,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 201.93 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -13421,7 +13421,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434438"
+		(property "JLCPCB Part #" "C84256"
 			(at 201.93 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -14250,7 +14250,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 170.18 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -14283,7 +14283,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 170.18 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -14513,7 +14513,7 @@
 				)
 			)
 		)
-		(property "Value" "LED BLUE"
+		(property "Value" "LED WHITE"
 			(at 168.5925 138.43 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14523,7 +14523,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 170.18 142.24 0)
 			(hide yes)
 			(show_name no)
@@ -14556,7 +14556,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434440"
+		(property "JLCPCB Part #" "C34499"
 			(at 170.18 142.24 0)
 			(hide yes)
 			(show_name no)
@@ -14691,7 +14691,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 243.84 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -14724,7 +14724,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 243.84 133.35 0)
 			(hide yes)
 			(show_name no)
@@ -14873,7 +14873,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -14906,7 +14906,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434438"
+		(property "JLCPCB Part #" "C84256"
 			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -15638,7 +15638,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 234.95 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -15671,7 +15671,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 234.95 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -15729,7 +15729,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 135.89 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -15762,7 +15762,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C93094"
+		(property "JLCPCB Part #" "C2296"
 			(at 135.89 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -15820,7 +15820,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 243.84 146.05 0)
 			(hide yes)
 			(show_name no)
@@ -15853,7 +15853,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 243.84 146.05 0)
 			(hide yes)
 			(show_name no)
@@ -15911,7 +15911,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 67.31 163.83 0)
 			(hide yes)
 			(show_name no)
@@ -15944,7 +15944,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 67.31 163.83 0)
 			(hide yes)
 			(show_name no)
@@ -16800,7 +16800,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 135.89 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -16833,7 +16833,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434438"
+		(property "JLCPCB Part #" "C84256"
 			(at 135.89 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -17045,7 +17045,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 135.89 154.94 0)
 			(hide yes)
 			(show_name no)
@@ -17078,7 +17078,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C93094"
+		(property "JLCPCB Part #" "C2296"
 			(at 135.89 154.94 0)
 			(hide yes)
 			(show_name no)
@@ -17475,7 +17475,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 99.06 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -17508,7 +17508,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434438"
+		(property "JLCPCB Part #" "C84256"
 			(at 99.06 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -17892,7 +17892,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 170.18 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -17925,7 +17925,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434438"
+		(property "JLCPCB Part #" "C84256"
 			(at 170.18 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -18313,7 +18313,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 135.89 143.51 0)
 			(hide yes)
 			(show_name no)
@@ -18346,7 +18346,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 135.89 143.51 0)
 			(hide yes)
 			(show_name no)
@@ -19274,7 +19274,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 34.29 163.83 0)
 			(hide yes)
 			(show_name no)
@@ -19307,7 +19307,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 34.29 163.83 0)
 			(hide yes)
 			(show_name no)
@@ -20337,7 +20337,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 67.31 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -20370,7 +20370,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434438"
+		(property "JLCPCB Part #" "C84256"
 			(at 67.31 153.67 0)
 			(hide yes)
 			(show_name no)
@@ -21319,7 +21319,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 201.93 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -21352,7 +21352,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434442"
+		(property "JLCPCB Part #" "C2297"
 			(at 201.93 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -21478,7 +21478,7 @@
 				)
 			)
 		)
-		(property "Value" "LED BLUE"
+		(property "Value" "LED WHITE"
 			(at 134.3025 162.56 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21488,7 +21488,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_1210_3225Metric_Pad1.42x2.65mm_HandSolder"
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder"
 			(at 135.89 166.37 0)
 			(hide yes)
 			(show_name no)
@@ -21521,7 +21521,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C434440"
+		(property "JLCPCB Part #" "C34499"
 			(at 135.89 166.37 0)
 			(hide yes)
 			(show_name no)
