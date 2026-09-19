@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "lcd_hd44780.h"
 #include "version.h"
+#include "hw_version.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include "proto/cybics.pb.h"
@@ -989,6 +990,8 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 				case MENU_MCU:
 					LOG_INF("=== MCU Information ===");
 					LOG_INF("STM32G070RB on Zephyr RTOS");
+					LOG_INF("Board revision: %s (strap code %u)",
+						hw_version_name(), hw_version_code());
 					showMenu = 1;
 					break;
 
@@ -1080,6 +1083,15 @@ int main(void)
 	LOG_INF("========================================");
 	LOG_INF("CybICS Zephyr Port Starting...");
 	LOG_INF("========================================");
+
+	/*
+	 * Read the board revision straps first: the front-panel switch
+	 * changed polarity in v1.1, so pins configured further down depend
+	 * on the answer.
+	 */
+	if (hw_version_init() < 0) {
+		errors++;
+	}
 
 	/* Get UART device */
 	uart_dev = DEVICE_DT_GET(DT_NODELABEL(usart1));

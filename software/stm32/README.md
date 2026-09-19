@@ -15,6 +15,29 @@ The STM32 firmware runs on the CybICS PCB and simulates the physical process (ga
 - LED indicators for process visualization
 - UART menu interface (password: `cyb`)
 - I2C communication with Raspberry Pi
+- Reads the PCB revision from the version straps and adapts to it
+
+## Board Revision Detection
+
+From PCB v1.1 the board encodes its revision as a 5-bit code on `PC11`..`PC15`,
+one 10k resistor to GND per bit, read against the internal pull-up:
+**fitted = 0, omitted = 1**. `src/hw_version.c` reads the straps once at
+startup; `hw_version_name()` and `hw_version_code()` report the result, and it
+is printed at boot and on menu option 5.
+
+One firmware image serves every board revision, so anything whose wiring
+changed between revisions must branch on `hw_version_get()` rather than on a
+build-time option.
+
+A pre-v1.1 board has no strap footprints, so all five pins float high and read
+`0b11111`; that code therefore means "v1.0, or a board whose straps were left
+unpopulated" and is never assigned to a real revision. A code this firmware
+does not recognise is treated as the newest revision it knows, because codes
+are only assigned going forward.
+
+The authoritative code table is in
+[`hardware/README.md`](../../hardware/README.md#version-coding). Keep the two
+in step when a revision is added.
 
 ## Building the Firmware
 
