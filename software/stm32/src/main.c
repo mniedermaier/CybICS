@@ -472,6 +472,22 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 	lcd_clear(lcd);
 }
 
+/*
+ * True while the display switch is pressed, on either board revision: the
+ * v1.0 push-button reads high when pressed, the v1.1 navigation switch reads
+ * low because its common is tied to GND.
+ */
+static bool display_switch_pressed(void)
+{
+	int level = gpio_pin_get_dt(&display_in);
+
+	if (level < 0) {
+		return false;
+	}
+
+	return hw_version_switch_active_low() ? (level == 0) : (level != 0);
+}
+
 /* Thread: Display */
 void thread_display(void *arg1, void *arg2, void *arg3)
 {
@@ -563,7 +579,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		}
 
 		/* Switch between displays if Display button is pressed */
-		if (gpio_pin_get_dt(&display_in)) {
+		if (display_switch_pressed()) {
 			displayScreen++;
 			if (displayScreen > 4) {
 				displayScreen = 0;
@@ -1048,18 +1064,24 @@ static int configure_gpio_output(const struct gpio_dt_spec *spec, const char *na
 	return 0;
 }
 
-static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *name)
+static int configure_gpio_input_flags(const struct gpio_dt_spec *spec, const char *name,
+				      gpio_flags_t extra_flags)
 {
 	if (!device_is_ready(spec->port)) {
 		LOG_ERR("GPIO port not ready for %s", name);
 		return -ENODEV;
 	}
-	int ret = gpio_pin_configure_dt(spec, GPIO_INPUT);
+	int ret = gpio_pin_configure_dt(spec, GPIO_INPUT | extra_flags);
 	if (ret < 0) {
 		LOG_ERR("Failed to configure %s: %d", name, ret);
 		return ret;
 	}
 	return 0;
+}
+
+static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *name)
+{
+	return configure_gpio_input_flags(spec, name, 0);
 }
 
 /* Main function */
@@ -1152,7 +1174,15 @@ int main(void)
 	if (configure_gpio_input(&c_sig, "c_sig") < 0) errors++;
 	if (configure_gpio_input(&sv_sig, "sv_sig") < 0) errors++;
 	if (configure_gpio_input(&gst_sig, "gst_sig") < 0) errors++;
-	if (configure_gpio_input(&display_in, "display_in") < 0) errors++;
+	/*
+	 * v1.0 drives this pin high through an external divider, v1.1 pulls it
+	 * low against GND.  Only the newer board wants the internal pull-up;
+	 * on v1.0 it would fight the divider.
+	 */
+	if (configure_gpio_input_flags(&display_in, "display_in",
+				       hw_version_switch_active_low() ? GPIO_PULL_UP : 0) < 0) {
+		errors++;
+	}
 	if (configure_gpio_input(&button, "button") < 0) errors++;
 
 	LOG_INF("========================================");
