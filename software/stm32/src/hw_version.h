@@ -70,6 +70,13 @@ enum hw_revision hw_version_get(void);
 const char *hw_version_name(void);
 
 /*
+ * Same, but never longer than four characters, for the 16-column LCD:
+ * "v1.0", "v1.1", or "?nn" with the raw code for an unrecognised board.
+ * Built once in hw_version_init(), so it is safe to read from any thread.
+ */
+const char *hw_version_short(void);
+
+/*
  * True when the board's front-panel switch pulls its pins low when pressed,
  * i.e. from v1.1 onwards.  False on a v1.0 board, where the discrete button
  * drives its pin high through an external divider.

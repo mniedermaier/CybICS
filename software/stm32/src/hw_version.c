@@ -11,6 +11,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "hw_version.h"
 
@@ -27,6 +29,8 @@ static const struct gpio_dt_spec straps[HW_VERSION_STRAP_BITS] = {
 
 static uint8_t cached_code = HW_VERSION_CODE_NO_STRAPS;
 static enum hw_revision cached_rev = HW_REV_UNKNOWN;
+/* At most 4 characters plus NUL; filled in by hw_version_init(). */
+static char cached_short[5] = "?";
 
 static enum hw_revision decode(uint8_t code)
 {
@@ -37,6 +41,22 @@ static enum hw_revision decode(uint8_t code)
 		return HW_REV_1_1;
 	default:
 		return HW_REV_UNKNOWN;
+	}
+}
+
+static void set_short_name(void)
+{
+	switch (cached_rev) {
+	case HW_REV_1_0:
+		strcpy(cached_short, "v1.0");
+		break;
+	case HW_REV_1_1:
+		strcpy(cached_short, "v1.1");
+		break;
+	default:
+		/* The code is 5 bits, so at most "?31" -- always fits. */
+		snprintf(cached_short, sizeof(cached_short), "?%u", cached_code);
+		break;
 	}
 }
 
@@ -94,12 +114,14 @@ int hw_version_init(void)
 		 */
 		cached_code = HW_VERSION_CODE_V1_1;
 		cached_rev = HW_REV_1_1;
+		set_short_name();
 		LOG_ERR("version straps unreadable, assuming %s", hw_version_name());
 		return err;
 	}
 
 	cached_code = code;
 	cached_rev = decode(code);
+	set_short_name();
 
 	LOG_INF("Hardware revision: %s (straps 0b%c%c%c%c%c = %u)",
 		hw_version_name(),
@@ -138,6 +160,11 @@ const char *hw_version_name(void)
 	default:
 		return "unknown";
 	}
+}
+
+const char *hw_version_short(void)
+{
+	return cached_short;
 }
 
 bool hw_version_switch_active_low(void)

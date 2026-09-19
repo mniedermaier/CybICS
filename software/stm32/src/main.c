@@ -654,13 +654,20 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			lcd_set_cursor(&lcd, 1, 0);
 			lcd_print(&lcd, displayText);
 		}
-		/* Display showing build information */
+		/* Display showing build and board information */
 		else if (displayScreen == 4) {
 			/* BUILD_DATE and BUILD_TIME are defined by CMake */
 			snprintf(displayText, sizeof(displayText), "Build %s", BUILD_DATE);
 			lcd_set_cursor(&lcd, 0, 0);
 			lcd_print(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "%-16s", BUILD_TIME);
+			/*
+			 * "HH:MM:SS HW v1.1" -- exactly the 16 columns. The board
+			 * revision belongs on this screen rather than screen 0,
+			 * because the virtual plant mirrors screen 0 and has no
+			 * PCB whose revision it could show.
+			 */
+			snprintf(displayText, sizeof(displayText), "%-8s HW %-4s",
+				 BUILD_TIME, hw_version_short());
 			lcd_set_cursor(&lcd, 1, 0);
 			lcd_print(&lcd, displayText);
 		}

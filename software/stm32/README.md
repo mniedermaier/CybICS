@@ -22,8 +22,15 @@ The STM32 firmware runs on the CybICS PCB and simulates the physical process (ga
 From PCB v1.1 the board encodes its revision as a 5-bit code on `PC11`..`PC15`,
 one 10k resistor to GND per bit, read against the internal pull-up:
 **fitted = 0, omitted = 1**. `src/hw_version.c` reads the straps once at
-startup; `hw_version_name()` and `hw_version_code()` report the result, and it
-is printed at boot and on menu option 5.
+startup; `hw_version_name()` and `hw_version_code()` report the result.
+
+It is reported in three places: the boot log, UART menu option 5, and the
+second line of the LCD's build-information screen (press the display button
+until `Build <date>` appears), which reads `HH:MM:SS HW v1.1`.
+
+The revision deliberately does *not* go on screen 0. The virtual plant in
+`software/hwio-virtual/hardwareAbstraction.py` mirrors that screen, and it
+has no PCB whose revision it could show.
 
 One firmware image serves every board revision, so anything whose wiring
 changed between revisions must branch on `hw_version_get()` rather than on a
