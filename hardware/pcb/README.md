@@ -34,8 +34,12 @@ model was built against.
 Outline, mounting holes and the three edge-connector centres come from the
 official mechanical drawing; component positions are measured off that
 photograph and agree with the drawing's connector centres to about 0.4 mm,
-which is what fixes the scale. The parts themselves are simplified shapes, not
-vendor geometry. Two caveats: the PCB thickness of 1.4 mm is an assumption, as
+which is what fixes the scale. The parts are simplified shapes rather than
+vendor geometry, but carry the detail that makes a render readable:
+silkscreen frame and lettering, plated rings around the mounting holes,
+the raspberry on the SiP, a stamped microSD lid, recessed connector
+mouths, gold test pads, and passives split into black chip resistors and
+pale MLCCs the way the photograph shows them. Two caveats: the PCB thickness of 1.4 mm is an assumption, as
 the drawing does not state one, and the microSD card protrudes 2.1 mm past the
 board edge, which is outside J1's `F.Fab` envelope -- that is real, and worth
 knowing when designing an enclosure. The 2x20 socket on the Pi's underside is
