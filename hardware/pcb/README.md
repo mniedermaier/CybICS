@@ -25,11 +25,22 @@ be regenerated instead of being an unmaintainable binary:
 | `SW-SMD_8P-...step/.wrl` | vendor download (LCSC C2858287) | navigation switch SW3 |
 
 The Pi Zero model sits 11.0 mm above the board: 2.5 mm for the male header body
-on the carrier plus 8.5 mm for the socket on the Pi, which is the standard Pi
-HAT spacing. Its outline, mounting holes and overhangs are taken from the
-official mechanical drawing and match J1's `F.Fab` envelope exactly; the
-components on its underside are representative envelopes, not exact geometry.
-The PCB thickness of 1.4 mm is an assumption -- the drawing does not state one.
+on the carrier plus 8.5 mm for the socket on the Pi's underside, which is the
+standard Pi HAT spacing. The Pi is mounted **component side up** -- despite
+"FaceDown" in the footprint name -- so the model puts every part on the top
+face. Check `doc/pics/cybics.png` if in doubt; that photograph is what the
+model was built against.
+
+Outline, mounting holes and the three edge-connector centres come from the
+official mechanical drawing; component positions are measured off that
+photograph and agree with the drawing's connector centres to about 0.4 mm,
+which is what fixes the scale. The parts themselves are simplified shapes, not
+vendor geometry. Two caveats: the PCB thickness of 1.4 mm is an assumption, as
+the drawing does not state one, and the microSD card protrudes 2.1 mm past the
+board edge, which is outside J1's `F.Fab` envelope -- that is real, and worth
+knowing when designing an enclosure. The 2x20 socket on the Pi's underside is
+deliberately not modelled, because the carrier's own header model already fills
+that volume.
 
 Regenerate with:
 
