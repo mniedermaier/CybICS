@@ -5657,7 +5657,7 @@
 			)
 		)
 	)
-	(footprint "Symbol:OSHW-Logo2_7.3x6mm_Copper"
+	(footprint "cybics:OSHW-Logo2_7.3x6mm_Copper"
 		(layer "F.Cu")
 		(uuid "33742d60-eff0-4d98-a394-1b1ee9ef9c0d")
 		(at 67 56.8)
