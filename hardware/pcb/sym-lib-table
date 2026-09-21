@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "cybics") (type "KiCad") (uri "${KIPRJMOD}/cybics.kicad_sym") (options "") (descr "CybICS project symbols"))
+)

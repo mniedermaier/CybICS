@@ -66,6 +66,38 @@ which makes desk usage easier ([link](case/README.md)).
 - Any reputable brand (SanDisk, Samsung, Kingston)
 - Minimum 8GB, Class 10 or better recommended
 
+## Hardware Version Coding  <a id="version-coding"></a>
+
+From v1.1 the board carries its revision as a 5-bit code that both controllers
+can read back, so firmware can adapt without being told which board it runs on.
+
+Each bit is one 1 k resistor to GND, read against the controller's internal
+pull-up: **fitted = 0, omitted = 1**. A new revision therefore only changes
+which resistors are placed -- no schematic or layout edit.
+
+| Bit | STM32 | pin | Raspberry Pi | pin |
+|-----|-------|-----|--------------|-----|
+| 0   | R40   | PC11 | R46 | GPIO17 |
+| 1   | R41   | PC12 | R47 | GPIO27 |
+| 2   | R42   | PC13 | R48 | GPIO22 |
+| 3   | R43   | PC14 | R49 | GPIO23 |
+| 4   | R44   | PC15 | R50 | GPIO10 |
+
+Both sides carry the same code, so one resistor per side is omitted for a
+given revision.
+
+| Code | Revision |
+|------|----------|
+| `00001` (1) | v1.1 -- R40 and R46 omitted |
+| `11111` (31) | **no straps fitted** -- a pre-v1.1 board, or a new board with the straps missing |
+
+`11111` is what a v1.0 board reads by itself: the resistor footprints do not
+exist there, so the pins float and the pull-ups win. Do not assign 31 to a real
+revision. Note that a v1.1 board assembled without any straps is
+indistinguishable from a v1.0 board.
+
+Firmware must enable the internal pull-up on these pins before reading them.
+
 ## Upgrading and Modifications
 
 ### Using Different Raspberry Pi Models

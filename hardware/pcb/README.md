@@ -4,19 +4,115 @@
 This guide provides detailed instructions for ordering the CybICS PCB from JLCPCB with full assembly service. The PCB is designed to be manufactured and assembled by JLCPCB, eliminating the need for manual soldering.
 
 ## PCB Design Files
-The PCB is designed using KiCad 8.x and all source files are available in this directory:
+The PCB is designed using KiCad 10.x and all source files are available in this
+directory. The sources are stored in the KiCad 10 file format, so KiCad 8 and 9
+cannot open them -- install KiCad 10 or later before doing anything below:
 - **Schematic**: Shows the circuit design and connections
 - **PCB Layout**: Physical board design with component placement
 - **Gerber Files**: Manufacturing files for PCB fabrication
 - **BOM (Bill of Materials)**: List of all components
 - **CPL (Component Placement List)**: Positions for automated assembly
 
+### Project 3D models
+
+`cybics.3dshapes/` holds the models KiCad does not ship. Each one that was
+generated rather than downloaded keeps its build script next to it, so it can
+be regenerated instead of being an unmaintainable binary:
+
+| Model | Source | Notes |
+|-------|--------|-------|
+| `Raspberry_Pi_Zero.step` | `Raspberry_Pi_Zero.build.py` (CadQuery) | J1's second model, so the Pi appears plugged onto the board |
+| `LCD1602.step` | `LCD1602.build.py` (CadQuery) | DS1; replaces KiCad's `WC1602A.step` |
+| `SW-SMD_8P-...step/.wrl` | vendor download (LCSC C2858287) | navigation switch SW3 |
+| `USB_C_Receptacle_G-Switch_GT-USB-7010ASV.wrl` | `easyeda2kicad --lcsc_id=C2988369` | J4; KiCad ships no model for this footprint |
+
+The Pi Zero model sits 11.0 mm above the board: 2.5 mm for the male header body
+on the carrier plus 8.5 mm for the socket on the Pi's underside, which is the
+standard Pi HAT spacing. The Pi is mounted **component side up** -- despite
+"FaceDown" in the footprint name -- so the model puts every part on the top
+face. Check `doc/pics/cybics.png` if in doubt; that photograph is what the
+model was built against.
+
+Outline, mounting holes and the three edge-connector centres come from the
+official mechanical drawing; component positions are measured off that
+photograph and agree with the drawing's connector centres to about 0.4 mm,
+which is what fixes the scale. The parts are simplified shapes rather than
+vendor geometry, but carry the detail that makes a render readable:
+silkscreen frame and lettering, plated rings around the mounting holes,
+the raspberry on the SiP, a stamped microSD lid, recessed connector
+mouths, gold test pads, and passives split into black chip resistors and
+pale MLCCs the way the photograph shows them.
+
+The female 2x20 socket on the Pi's underside is modelled, with a hole at each
+pin position so it mates with the board's male header instead of intersecting
+it. It is drawn 0.05 mm short on purpose: the stock header model's body
+measures 2.53 mm rather than the nominal 2.50, which would otherwise leave a
+sliver of overlap across the whole connector and make every clash check report
+it.
+
+Two caveats. The PCB thickness of 1.4 mm is an assumption, as the drawing does
+not state one. And the microSD card protrudes 2.1 mm past the board edge, which
+is outside J1's `F.Fab` envelope -- that is real, not an error, and worth
+knowing when designing an enclosure.
+
+### The display
+
+KiCad's `Display.3dshapes/WC1602A.step` is one fused solid, so the whole module
+takes a single colour: pale green board, grey frame, blank white screen. The
+replacement splits it into parts and colours them from the photograph -- dark
+green board, black bezel, vivid blue screen -- and draws the characters as a
+real 5 x 8 dot matrix, because a smooth outline font does not read as an LCD.
+The screen shows `CybICS` and nothing more: the firmware also prints a version
+and an uptime there, but both would go stale in a file nobody thinks to
+regenerate.
+
+Its envelope was recovered by slicing the stock model in Z and matches it
+exactly (80 x 36 x 15 mm), so it drops in at the same place.
+
+Regenerate either model with:
+
+```bash
+cd hardware/pcb/cybics.3dshapes
+python3 -m venv .venv && .venv/bin/pip install cadquery
+.venv/bin/python Raspberry_Pi_Zero.build.py
+.venv/bin/python LCD1602.build.py
+```
+
+`J4` used to render as nothing at all. The board pointed at
+`${KICAD10_3DMODEL_DIR}/Connector_USB.3dshapes/USB_C_Receptacle_G-Switch_GT-USB-7010ASV.step`,
+which is exactly what the KiCad 10 library footprint declares -- but that file
+does not exist. Not locally, and not upstream: `Connector_USB.3dshapes` holds 13
+models in total and none of them is a G-Switch part, so 62 of the library's 75
+USB footprints have no model. An earlier note here blamed the Ubuntu package;
+that was wrong, `kicad-packages3d` 10.0.6 is complete at 3.2 GB and 7251 STEP
+files. Installing more would never have fixed it.
+
+The model now comes from the vendor via `easyeda2kicad`, the same route the
+navigation switch took, and lives in `cybics.3dshapes/`.
+
+**Vendor models do not share KiCad's footprint origin.** The EasyEDA footprint
+for this part sits 1.325 mm in +Y from the KiCad library one, so the model
+carries `(offset (xyz 0 1.325 0))` -- note that the offset's Y is negated
+relative to the footprint's Y. The way to check an offset is not to reason about
+the sign but to compare extents: with this offset the model spans
+x -4.470..4.470 and y -3.675..4.225, against the footprint's `F.Fab` at
+x -4.470..4.470 and y -3.675..3.675. X matches exactly and so does the front
+edge; the 0.55 mm at the back is the shield tab, which `F.Fab` does not draw.
+
+**A model's `.step` and `.wrl` need not share an origin either.** `SW3`'s do
+not: the STEP has its origin at the top of the switch body, the VRML at the
+board surface. A Z offset measured on one and applied to the other put the
+switch 1.85 mm in the air in every render. The board references the `.wrl`, so
+measure that one.
+
 ## Prerequisites
 
 ### Software Requirements
-1. **KiCad** (version 8.0 or later)
+1. **KiCad** (version 10.0 or later)
    - Download from: https://www.kicad.org/download/
    - Used to view and modify PCB design files
+   - On Ubuntu, the KiCad project's PPA carries current releases:
+     `sudo add-apt-repository ppa:kicad/kicad-10.0-releases && sudo apt install kicad`
 
 2. **Fabrication Toolkit Plugin** (for KiCad)
    - Install via KiCad Plugin and Content Manager
@@ -54,11 +150,20 @@ The PCB is designed using KiCad 8.x and all source files are available in this d
 
 1. Open the PCB Editor in KiCad
 2. Click on the **Fabrication Toolkit** icon in the toolbar
-3. Configure the export settings:
-   - **Manufacturer**: Select "JLCPCB"
-   - **Include assembly**: Check this option
-   - **Output directory**: Leave as default ("production")
-4. Click **Generate** to create all necessary files
+3. Tick **Exclude DNP components from BOM**. This one is **off** by default and
+   must be changed. `R40` and `R46` are marked DNP because their absence is what
+   encodes hardware v1.1, and the plugin keeps DNP parts out of the CPL
+   unconditionally but out of the BOM only when this box is ticked. Leave it off
+   and the two files disagree: JLCPCB's BOM/CPL matching then reports
+   designators that have no position, which is the failure of #238 with the
+   files the other way round.
+4. Leave the rest of the export options at their defaults. The plugin targets
+   JLCPCB already, so there is no manufacturer to choose -- earlier revisions of
+   this guide described a **Manufacturer** dropdown that the plugin does not
+   have. In particular leave **Plot all active layers** switched off: this is a
+   two-layer board, and enabling it only adds the fabrication and courtyard
+   layers to the archive, which JLCPCB does not need.
+5. Click **Generate** to create all necessary files
 
 <table align="center"><tr><td align="center" width="9999">
 <img src="doc/pcbEditor.png" width=40%></img>
@@ -68,10 +173,47 @@ The PCB is designed using KiCad 8.x and all source files are available in this d
 <img src="doc/generate.png" width=40%></img>
 </td></tr></table>
 
-The toolkit will generate:
-- `gerber.zip` - PCB manufacturing files
-- `bom.csv` - Bill of materials for component ordering
-- `positions.csv` - Component placement file for assembly
+The toolkit writes `hardware/pcb/production/` (gitignored):
+- `CybICS.zip` - gerbers and the PTH/NPTH drill files
+- `bom.csv` - bill of materials, JLCPCB column layout
+- `positions.csv` - the CPL
+- `designators.csv`, `netlist.ipc` - not needed by JLCPCB
+
+### Generating the same files without the GUI
+
+The plugin ships a CLI, so the set can be regenerated reproducibly -- useful for
+checking a change without clicking through the dialog. It needs `pcbnew`, so run
+it in the image CI already uses:
+
+```bash
+curl -sL https://github.com/bennymeg/Fabrication-Toolkit/archive/refs/tags/5.3.1.tar.gz \
+  | tar -xz --one-top-level=ft --strip-components=1
+docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp \
+  -v "$PWD/ft:/ft" -v "$PWD:/repo" -w /ft setsoft/kicad_auto:ki10 \
+  python3 -m plugins.cli -p /repo/hardware/pcb/CybICS.kicad_pcb -t -f -e -nI -nB
+```
+
+`-t` and `-f` are the automatic translations and zone fill, which the dialog has
+on by default and the CLI does not. `-e` is the DNP exclusion from step 3. The
+plugin reads the board and writes `production/`; it does not modify the
+schematic, the board or the project file.
+
+Whatever route you take, check the two files agree before uploading:
+
+```bash
+python3 - <<'EOF'
+import csv
+bom=list(csv.DictReader(open('hardware/pcb/production/bom.csv',encoding='utf-8-sig')))
+cpl=list(csv.DictReader(open('hardware/pcb/production/positions.csv',encoding='utf-8-sig')))
+b={r.strip() for row in bom for r in row['Designator'].split(',')}
+c={r['Designator'] for r in cpl}
+print('BOM only:', sorted(b-c) or 'none')
+print('CPL only:', sorted(c-b) or 'none')
+for x in ('R40','R46','FID1','FID2','FID3'):
+    assert x not in b and x not in c, x
+print('no DNP or fiducials in either file')
+EOF
+```
 
 ### Step 4: Upload to JLCPCB
 
@@ -98,6 +240,17 @@ After upload, configure the following options:
    - Click **Add CPL File**
    - Select `positions.csv` from the production folder
 4. Click **Process BOM & CPL**
+
+### Step 7b: Check the version straps are not placed
+
+`R40` and `R46` are marked **DNP** -- they encode the hardware revision by
+being absent (see [Hardware Version Coding](../README.md#version-coding)).
+Confirm they are missing from the uploaded BOM and CPL. Do not take the
+plugin's word for it: whether they leave the BOM depends on the checkbox in
+step 3, and if JLCPCB places them the board reports code `00000` instead of
+`00001` and identifies itself as a revision that does not exist.
+
+Every other `R41`-`R44` and `R47`-`R50` must be placed.
 
 ### Step 8: Component Matching
 

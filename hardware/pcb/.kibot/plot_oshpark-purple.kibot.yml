@@ -12,7 +12,6 @@ outputs:
       no_drillholes: false
       output: '%f-%i.%x'
       placeholder: false
-      remap:
       show_components: none
       style: 'oshpark-purple'
       vcuts: true
@@ -31,7 +30,6 @@ outputs:
       no_drillholes: false
       output: '%f-%i.%x'
       placeholder: false
-      remap:
       show_components: none
       style: 'oshpark-purple'
       vcuts: true

@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "lcd_hd44780.h"
 #include "version.h"
+#include "hw_version.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include "proto/cybics.pb.h"
@@ -471,6 +472,22 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 	lcd_clear(lcd);
 }
 
+/*
+ * True while the display switch is pressed, on either board revision: the
+ * v1.0 push-button reads high when pressed, the v1.1 navigation switch reads
+ * low because its common is tied to GND.
+ */
+static bool display_switch_pressed(void)
+{
+	int level = gpio_pin_get_dt(&display_in);
+
+	if (level < 0) {
+		return false;
+	}
+
+	return hw_version_switch_active_low() ? (level == 0) : (level != 0);
+}
+
 /* Thread: Display */
 void thread_display(void *arg1, void *arg2, void *arg3)
 {
@@ -562,7 +579,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		}
 
 		/* Switch between displays if Display button is pressed */
-		if (gpio_pin_get_dt(&display_in)) {
+		if (display_switch_pressed()) {
 			displayScreen++;
 			if (displayScreen > 4) {
 				displayScreen = 0;
@@ -637,13 +654,20 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			lcd_set_cursor(&lcd, 1, 0);
 			lcd_print(&lcd, displayText);
 		}
-		/* Display showing build information */
+		/* Display showing build and board information */
 		else if (displayScreen == 4) {
 			/* BUILD_DATE and BUILD_TIME are defined by CMake */
 			snprintf(displayText, sizeof(displayText), "Build %s", BUILD_DATE);
 			lcd_set_cursor(&lcd, 0, 0);
 			lcd_print(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "%-16s", BUILD_TIME);
+			/*
+			 * "HH:MM:SS HW v1.1" -- exactly the 16 columns. The board
+			 * revision belongs on this screen rather than screen 0,
+			 * because the virtual plant mirrors screen 0 and has no
+			 * PCB whose revision it could show.
+			 */
+			snprintf(displayText, sizeof(displayText), "%-8s HW %-4s",
+				 BUILD_TIME, hw_version_short());
 			lcd_set_cursor(&lcd, 1, 0);
 			lcd_print(&lcd, displayText);
 		}
@@ -989,6 +1013,8 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 				case MENU_MCU:
 					LOG_INF("=== MCU Information ===");
 					LOG_INF("STM32G070RB on Zephyr RTOS");
+					LOG_INF("Board revision: %s (strap code %u)",
+						hw_version_name(), hw_version_code());
 					showMenu = 1;
 					break;
 
@@ -1045,18 +1071,24 @@ static int configure_gpio_output(const struct gpio_dt_spec *spec, const char *na
 	return 0;
 }
 
-static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *name)
+static int configure_gpio_input_flags(const struct gpio_dt_spec *spec, const char *name,
+				      gpio_flags_t extra_flags)
 {
 	if (!device_is_ready(spec->port)) {
 		LOG_ERR("GPIO port not ready for %s", name);
 		return -ENODEV;
 	}
-	int ret = gpio_pin_configure_dt(spec, GPIO_INPUT);
+	int ret = gpio_pin_configure_dt(spec, GPIO_INPUT | extra_flags);
 	if (ret < 0) {
 		LOG_ERR("Failed to configure %s: %d", name, ret);
 		return ret;
 	}
 	return 0;
+}
+
+static int configure_gpio_input(const struct gpio_dt_spec *spec, const char *name)
+{
+	return configure_gpio_input_flags(spec, name, 0);
 }
 
 /* Main function */
@@ -1080,6 +1112,15 @@ int main(void)
 	LOG_INF("========================================");
 	LOG_INF("CybICS Zephyr Port Starting...");
 	LOG_INF("========================================");
+
+	/*
+	 * Read the board revision straps first: the front-panel switch
+	 * changed polarity in v1.1, so pins configured further down depend
+	 * on the answer.
+	 */
+	if (hw_version_init() < 0) {
+		errors++;
+	}
 
 	/* Get UART device */
 	uart_dev = DEVICE_DT_GET(DT_NODELABEL(usart1));
@@ -1140,7 +1181,15 @@ int main(void)
 	if (configure_gpio_input(&c_sig, "c_sig") < 0) errors++;
 	if (configure_gpio_input(&sv_sig, "sv_sig") < 0) errors++;
 	if (configure_gpio_input(&gst_sig, "gst_sig") < 0) errors++;
-	if (configure_gpio_input(&display_in, "display_in") < 0) errors++;
+	/*
+	 * v1.0 drives this pin high through an external divider, v1.1 pulls it
+	 * low against GND.  Only the newer board wants the internal pull-up;
+	 * on v1.0 it would fight the divider.
+	 */
+	if (configure_gpio_input_flags(&display_in, "display_in",
+				       hw_version_switch_active_low() ? GPIO_PULL_UP : 0) < 0) {
+		errors++;
+	}
 	if (configure_gpio_input(&button, "button") < 0) errors++;
 
 	LOG_INF("========================================");

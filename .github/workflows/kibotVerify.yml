@@ -32,7 +32,7 @@ jobs:
   ERC:
     runs-on: ubuntu-latest
     container:
-      image: setsoft/kicad_auto:ki8
+      image: setsoft/kicad_auto:ki10
     steps:
       - uses: actions/checkout@v7
       - name: run kibot
@@ -42,7 +42,7 @@ jobs:
   DRC:
     runs-on: ubuntu-latest
     container:
-      image: setsoft/kicad_auto:ki8
+      image: setsoft/kicad_auto:ki10
     steps:
       - uses: actions/checkout@v7
       - name: run kibot
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ERC]
     container:
-      image: setsoft/kicad_auto:ki8
+      image: setsoft/kicad_auto:ki10
     steps:
       - uses: actions/checkout@v7
       - name: run kibot
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [DRC]
     container:
-      image: setsoft/kicad_auto:ki8
+      image: setsoft/kicad_auto:ki10
     steps:
       - uses: actions/checkout@v7
       - name: run kibot
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [DRC]
     container:
-      image: setsoft/kicad_auto:ki8
+      image: setsoft/kicad_auto:ki10
     steps:
       - uses: actions/checkout@v7
       - name: run kibot
@@ -149,5 +149,16 @@ jobs:
         with:
           name: ${{github.event.repository.name}}_docs
           path: ${{env.dir}}/docs
-      # Commit all changed files back to the repository
+      # Commit all changed files back to the repository.
+      #
+      # The message MUST carry [skip ci].  This job pushes with the KIBOT
+      # deploy key, and deploy-key pushes do trigger workflows (pushes made
+      # with GITHUB_TOKEN do not).  The pull_request paths filter matches the
+      # PR's whole diff rather than the individual commit, so once a PR touches
+      # a .kicad_pcb or .kicad_sch every later commit on the branch re-triggers
+      # this workflow -- including this job's own commits.  KiBot's PDF and PNG
+      # output is not byte-reproducible, so there is always something to commit
+      # and the cycle never converges.  [skip ci] breaks it.
       - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "Apply automatic changes [skip ci]"

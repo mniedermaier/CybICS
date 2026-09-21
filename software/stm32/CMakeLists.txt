@@ -18,4 +18,5 @@ zephyr_nanopb_sources(app proto/cybics.proto)
 target_sources(app PRIVATE
     src/main.c
     src/lcd_hd44780.c
+    src/hw_version.c
 )
