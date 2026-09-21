@@ -146,6 +146,16 @@ which reintroduces the #238 bug -- the fiducials reappear in the position file.
 After any F8 run, check `kicad-cli pcb export pos --smd-only` still reports no
 `FID` rows.
 
+F8 with **Delete footprints with no symbols** also removed the OSHW logo once,
+because its symbol `#SYM1` carries `(on_board no)`. The placed footprint is now
+`(attr board_only ...)`, which F8 leaves alone. `Tools > Update Footprints from
+Library` is a different operation and would still have overwritten it, so the
+logo lives in the project library `cybics.pretty` rather than in KiCad's
+`Symbol` library: the stock footprint is copper only, and the board needs the 13
+`F.Mask` apertures that make it read as bare gold. Any board-only footprint that
+differs from its stock library version belongs in `cybics.pretty` for the same
+reason.
+
 Copper zone fills are stored in the board, and KiBot refills them before running
 DRC. If you change zones or clearances, refill and commit them with
 `kicad-cli pcb drc --refill-zones --save-board hardware/pcb/CybICS.kicad_pcb`, so
