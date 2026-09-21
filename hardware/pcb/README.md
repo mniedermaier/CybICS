@@ -24,6 +24,7 @@ be regenerated instead of being an unmaintainable binary:
 | `Raspberry_Pi_Zero.step` | `Raspberry_Pi_Zero.build.py` (CadQuery) | J1's second model, so the Pi appears plugged onto the board |
 | `LCD1602.step` | `LCD1602.build.py` (CadQuery) | DS1; replaces KiCad's `WC1602A.step` |
 | `SW-SMD_8P-...step/.wrl` | vendor download (LCSC C2858287) | navigation switch SW3 |
+| `USB_C_Receptacle_G-Switch_GT-USB-7010ASV.wrl` | `easyeda2kicad --lcsc_id=C2988369` | J4; KiCad ships no model for this footprint |
 
 The Pi Zero model sits 11.0 mm above the board: 2.5 mm for the male header body
 on the carrier plus 8.5 mm for the socket on the Pi's underside, which is the
@@ -77,10 +78,32 @@ python3 -m venv .venv && .venv/bin/pip install cadquery
 .venv/bin/python LCD1602.build.py
 ```
 
-Note that `J4`'s USB-C model is missing from the Ubuntu `kicad-packages3d`
-package, so that connector is absent from local 3D renders. The path in the
-board matches what the KiCad 10 library footprint itself declares, so it
-resolves on a complete installation.
+`J4` used to render as nothing at all. The board pointed at
+`${KICAD10_3DMODEL_DIR}/Connector_USB.3dshapes/USB_C_Receptacle_G-Switch_GT-USB-7010ASV.step`,
+which is exactly what the KiCad 10 library footprint declares -- but that file
+does not exist. Not locally, and not upstream: `Connector_USB.3dshapes` holds 13
+models in total and none of them is a G-Switch part, so 62 of the library's 75
+USB footprints have no model. An earlier note here blamed the Ubuntu package;
+that was wrong, `kicad-packages3d` 10.0.6 is complete at 3.2 GB and 7251 STEP
+files. Installing more would never have fixed it.
+
+The model now comes from the vendor via `easyeda2kicad`, the same route the
+navigation switch took, and lives in `cybics.3dshapes/`.
+
+**Vendor models do not share KiCad's footprint origin.** The EasyEDA footprint
+for this part sits 1.325 mm in +Y from the KiCad library one, so the model
+carries `(offset (xyz 0 1.325 0))` -- note that the offset's Y is negated
+relative to the footprint's Y. The way to check an offset is not to reason about
+the sign but to compare extents: with this offset the model spans
+x -4.470..4.470 and y -3.675..4.225, against the footprint's `F.Fab` at
+x -4.470..4.470 and y -3.675..3.675. X matches exactly and so does the front
+edge; the 0.55 mm at the back is the shield tab, which `F.Fab` does not draw.
+
+**A model's `.step` and `.wrl` need not share an origin either.** `SW3`'s do
+not: the STEP has its origin at the top of the switch body, the VRML at the
+board surface. A Z offset measured on one and applied to the other put the
+switch 1.85 mm in the air in every render. The board references the `.wrl`, so
+measure that one.
 
 ## Prerequisites
 

@@ -18637,9 +18637,9 @@
 			(uuid "4df6a49c-e25e-4f8f-bbcd-6431cce00140")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_USB.3dshapes/USB_C_Receptacle_G-Switch_GT-USB-7010ASV.step"
+		(model "${KIPRJMOD}/cybics.3dshapes/USB_C_Receptacle_G-Switch_GT-USB-7010ASV.wrl"
 			(offset
-				(xyz 0 0 0)
+				(xyz 0 1.325 0)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -19682,7 +19682,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/cybics.3dshapes/SW-SMD_8P-L7.0-W7.0-P1.40-LS7.4-TL.wrl"
 			(offset
-				(xyz 0 0 1.85)
+				(xyz 0 0 0)
 			)
 			(scale
 				(xyz 1 1 1)
