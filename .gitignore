@@ -175,3 +175,6 @@ software/rpi-image/stage-cybics/02-load-containers/containers/
 # Python virtualenvs must not be committed
 .venv/
 **/.venv/
+
+# Fabrication Toolkit output: generated from the board on demand, never committed
+hardware/pcb/production/

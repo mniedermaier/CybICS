@@ -127,13 +127,20 @@ resolves on a complete installation.
 
 1. Open the PCB Editor in KiCad
 2. Click on the **Fabrication Toolkit** icon in the toolbar
-3. Leave the export options at their defaults. The plugin targets JLCPCB
-   already, so there is no manufacturer to choose -- earlier revisions of this
-   guide described a **Manufacturer** dropdown that the plugin does not have.
-   In particular leave **Plot all active layers** switched off: this is a
+3. Tick **Exclude DNP components from BOM**. This one is **off** by default and
+   must be changed. `R40` and `R46` are marked DNP because their absence is what
+   encodes hardware v1.1, and the plugin keeps DNP parts out of the CPL
+   unconditionally but out of the BOM only when this box is ticked. Leave it off
+   and the two files disagree: JLCPCB's BOM/CPL matching then reports
+   designators that have no position, which is the failure of #238 with the
+   files the other way round.
+4. Leave the rest of the export options at their defaults. The plugin targets
+   JLCPCB already, so there is no manufacturer to choose -- earlier revisions of
+   this guide described a **Manufacturer** dropdown that the plugin does not
+   have. In particular leave **Plot all active layers** switched off: this is a
    two-layer board, and enabling it only adds the fabrication and courtyard
    layers to the archive, which JLCPCB does not need.
-4. Click **Generate** to create all necessary files
+5. Click **Generate** to create all necessary files
 
 <table align="center"><tr><td align="center" width="9999">
 <img src="doc/pcbEditor.png" width=40%></img>
@@ -143,10 +150,47 @@ resolves on a complete installation.
 <img src="doc/generate.png" width=40%></img>
 </td></tr></table>
 
-The toolkit will generate:
-- `gerber.zip` - PCB manufacturing files
-- `bom.csv` - Bill of materials for component ordering
-- `positions.csv` - Component placement file for assembly
+The toolkit writes `hardware/pcb/production/` (gitignored):
+- `CybICS.zip` - gerbers and the PTH/NPTH drill files
+- `bom.csv` - bill of materials, JLCPCB column layout
+- `positions.csv` - the CPL
+- `designators.csv`, `netlist.ipc` - not needed by JLCPCB
+
+### Generating the same files without the GUI
+
+The plugin ships a CLI, so the set can be regenerated reproducibly -- useful for
+checking a change without clicking through the dialog. It needs `pcbnew`, so run
+it in the image CI already uses:
+
+```bash
+curl -sL https://github.com/bennymeg/Fabrication-Toolkit/archive/refs/tags/5.3.1.tar.gz \
+  | tar -xz --one-top-level=ft --strip-components=1
+docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp \
+  -v "$PWD/ft:/ft" -v "$PWD:/repo" -w /ft setsoft/kicad_auto:ki10 \
+  python3 -m plugins.cli -p /repo/hardware/pcb/CybICS.kicad_pcb -t -f -e -nI -nB
+```
+
+`-t` and `-f` are the automatic translations and zone fill, which the dialog has
+on by default and the CLI does not. `-e` is the DNP exclusion from step 3. The
+plugin reads the board and writes `production/`; it does not modify the
+schematic, the board or the project file.
+
+Whatever route you take, check the two files agree before uploading:
+
+```bash
+python3 - <<'EOF'
+import csv
+bom=list(csv.DictReader(open('hardware/pcb/production/bom.csv',encoding='utf-8-sig')))
+cpl=list(csv.DictReader(open('hardware/pcb/production/positions.csv',encoding='utf-8-sig')))
+b={r.strip() for row in bom for r in row['Designator'].split(',')}
+c={r['Designator'] for r in cpl}
+print('BOM only:', sorted(b-c) or 'none')
+print('CPL only:', sorted(c-b) or 'none')
+for x in ('R40','R46','FID1','FID2','FID3'):
+    assert x not in b and x not in c, x
+print('no DNP or fiducials in either file')
+EOF
+```
 
 ### Step 4: Upload to JLCPCB
 
@@ -178,9 +222,10 @@ After upload, configure the following options:
 
 `R40` and `R46` are marked **DNP** -- they encode the hardware revision by
 being absent (see [Hardware Version Coding](../README.md#version-coding)).
-Confirm they are missing from the uploaded BOM and CPL. The Fabrication
-Toolkit skips DNP parts, but verify it rather than assume: if JLCPCB places
-them, the board reports the wrong revision.
+Confirm they are missing from the uploaded BOM and CPL. Do not take the
+plugin's word for it: whether they leave the BOM depends on the checkbox in
+step 3, and if JLCPCB places them the board reports code `00000` instead of
+`00001` and identifies itself as a revision that does not exist.
 
 Every other `R41`-`R44` and `R47`-`R50` must be placed.
 

@@ -20,7 +20,7 @@ The STM32 firmware runs on the CybICS PCB and simulates the physical process (ga
 ## Board Revision Detection
 
 From PCB v1.1 the board encodes its revision as a 5-bit code on `PC11`..`PC15`,
-one 10k resistor to GND per bit, read against the internal pull-up:
+one 1k resistor to GND per bit, read against the internal pull-up:
 **fitted = 0, omitted = 1**. `src/hw_version.c` reads the straps once at
 startup; `hw_version_name()` and `hw_version_code()` report the result.
 

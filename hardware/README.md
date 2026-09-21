@@ -71,7 +71,7 @@ which makes desk usage easier ([link](case/README.md)).
 From v1.1 the board carries its revision as a 5-bit code that both controllers
 can read back, so firmware can adapt without being told which board it runs on.
 
-Each bit is one 10 k resistor to GND, read against the controller's internal
+Each bit is one 1 k resistor to GND, read against the controller's internal
 pull-up: **fitted = 0, omitted = 1**. A new revision therefore only changes
 which resistors are placed -- no schematic or layout edit.
 
