@@ -15239,7 +15239,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Symbol:OSHW-Logo2_24.3x20mm_Copper"
+		(property "Footprint" "Symbol:OSHW-Logo2_7.3x6mm_Copper"
 			(at 274.32 173.99 0)
 			(hide yes)
 			(show_name no)
