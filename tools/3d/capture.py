@@ -100,6 +100,8 @@ CAMERAS = {
     "gst":      {"pos": [-4, 5, 12], "look": [-7, 4, 0]},
     "hpt":      {"pos": [10, 5, 12], "look": [7, 4, 0]},
     "top":      {"pos": [0, 26, 10], "look": [0, 0, 0]},
+    # Close on the compressor-to-HPT run, for judging the flow band.
+    "pipe":     {"pos": [3.3, 2.2, 5.5], "look": [3.3, 1.2, 0.5]},
 }
 
 
@@ -114,8 +116,9 @@ def stage(page, report, args):
     the LED panel and the status overlay included, then agrees with the tanks.
     """
     notes = {}
-    if args.gst is not None or args.hpt is not None:
+    if args.gst is not None or args.hpt is not None or args.blowout:
         state = dict(DEFAULT_STATE)
+        state["boSen"] = 1 if args.blowout else 0
         if args.gst is not None:
             state["gst"] = args.gst
         if args.hpt is not None:
@@ -225,6 +228,8 @@ def main():
     p.add_argument("--gst", type=int, help="pin GST pressure, 0-255")
     p.add_argument("--hpt", type=int, help="pin HPT pressure, 0-255")
     p.add_argument("--exposure", type=float)
+    p.add_argument("--blowout", action="store_true",
+                   help="pin the blowout sensor active, to see the alarm state")
     p.add_argument("--settle", type=float, default=1.5, help="seconds before the shutter")
     p.add_argument("--window", type=float, default=3.0, help="seconds to average the frame rate over")
     p.add_argument("--bench", type=int, default=20,
@@ -275,7 +280,7 @@ def main():
             frame0 = t_frame0 = None
 
         report["staged"] = stage(page, report, args)
-        if args.gst is not None or args.hpt is not None:
+        if args.gst is not None or args.hpt is not None or args.blowout:
             # Read the overlay back.  A staging step that reports success
             # without checking is how the last set of shots were taken at live
             # pressures under a note that said "pinned".

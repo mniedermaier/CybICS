@@ -133,6 +133,58 @@
         "no contact shadows on the deck",
         "outline hairlines stipple into dashes at sub-pixel widths"
       ]
+    },
+    {
+      "round": 4,
+      "date": "2026-09-22",
+      "what": "animation: every motion moved onto a clock, flow shown on the pipe, motion that meant nothing removed",
+      "score": null,
+      "scored_by": "not yet critiqued",
+      "shots": [
+        "docs/3d/shots/r4-overview.png",
+        "docs/3d/shots/r4-close.png",
+        "docs/3d/shots/r4-alarm.png",
+        "docs/3d/shots/r4-flow-strip.png"
+      ],
+      "measured": {
+        "frame_rate_independence": {
+          "before": {
+            "fan_rad_per_s_at_30fps_cap": 3.5423,
+            "fan_rad_per_s_at_12fps_cap": 1.4984,
+            "ratio": 0.423,
+            "verdict": "frame-rate dependent"
+          },
+          "after": {
+            "fan_rad_per_s_at_30fps_cap": 4.4815,
+            "fan_rad_per_s_at_12fps_cap": 4.466,
+            "ratio": 0.997,
+            "verdict": "time-based"
+          },
+          "three_caps": {
+            "24.7fps": 4.5015,
+            "11.6fps": 4.5364,
+            "5.8fps": 4.3974,
+            "spread": "under 2.5 per cent across a fourfold frame-rate range"
+          }
+        },
+        "hardware_gl_overview": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "materials": 72,
+          "lights": 6,
+          "textures": 11,
+          "console_errors": 0
+        }
+      },
+      "removed": [
+        "100-particle gas cloud, replaced by an emissive band travelling along the pipe",
+        "status collar rotation about its own axis of symmetry, which cannot be seen",
+        "continuous platform edge-strip pulsing, which taught the eye to ignore it"
+      ],
+      "verified_by_hand": [
+        "filmstrip at the pipe camera: the first chevron attempt read as a corrugated hose, the comet-tail pulses read as direction",
+        "alarm state staged for the first time: flare at the stack, both status collars switch orange to red"
+      ]
     }
   ]
 }

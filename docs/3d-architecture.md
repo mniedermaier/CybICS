@@ -168,6 +168,53 @@ Hard rules:
   measurements above show why the override is not a default.
 - Every claim of "faster" comes with before and after numbers from the driver.
 
+## Animation
+
+Everything that moves is driven from one `animate()` call, gated on visibility
+and capped (30 fps, 12 on a software renderer).
+
+| What moves | Driven by | Meaning |
+|---|---|---|
+| Compressor fan | `fanRotationSpeed`, eased with a 0.32 s time constant | the compressor is running |
+| Flow pulses on the two process pipes | `flowTexture.offset.y` | gas is moving, and which way |
+| Pipe emissive | `flowGlow`, eased | on when the compressor runs, dark when it does not |
+| Flare particles | per-particle velocity and life | the blowout sensor is reporting |
+| Flare light | smoothed flicker | the same |
+| Status collars | colour and pulse | **orange steady** normally, **red pulsing** on blowout |
+| Level bands | `setLevel()` from `/api/state` | vessel contents; **never eased** |
+
+Two rules this section exists to protect.
+
+**Every motion is per second, not per frame.** Before this was fixed, each
+animation advanced by a fixed amount per rendered frame, which made the whole
+plant a function of the machine it ran on: measured with `tools/3d/motion.py`,
+the fan turned at 3.54 rad/s at the 30 fps cap and 1.50 rad/s at the 12 fps cap,
+the same plant running at 42 % speed on a slower computer. `animate()` now
+computes `dt` and everything scales by it. The clamp is 0.25 s — a frame at the
+software cap already covers 83 ms, and clamping at 0.1 s clipped time off every
+frame below 10 fps, which showed up as the plant still running 6 % slow after
+the per-frame arithmetic was fixed.
+
+Verify it, do not assume it:
+
+```bash
+tools/3d/motion.py --hardware-gl --rates --caps 33,83,166
+```
+
+A quantity animated per second keeps its rate as the cap changes. Anything whose
+`_per_s` moves with the cap is still per frame.
+
+**The level bands are never smoothed.** `/api/state` is the truth and the view
+may not invent, smooth or lag it. Everything else here may be eased; the levels
+may not.
+
+**Motion must mean something.** Two animations were removed rather than
+improved: the status collars used to rotate about their own axis of symmetry,
+which cannot be seen at all — a circle spun about its centre looks exactly like
+a circle standing still — and the platform edge strips pulsed continuously,
+which teaches the eye to ignore them so that when there is finally something to
+report, the pulsing says nothing. Pulsing is now reserved for an actual blowout.
+
 ## Verifying
 
 `tools/3d/`:
@@ -175,7 +222,13 @@ Hard rules:
 - **`cdp.py`** — a stdlib-only Chrome DevTools Protocol client. No dependencies,
   because this has to run wherever the stack runs.
 - **`capture.py`** — opens the page, clicks the 3D tab, waits for `CybICS3D`,
-  optionally pins levels / camera / exposure, writes a PNG and a JSON sidecar.
+  optionally pins the plant state, camera and exposure, writes a PNG and a JSON
+  sidecar. `--blowout` stages the alarm state, which is otherwise never seen.
+- **`motion.py`** — the same, for things that move. `--rates` samples
+  `CybICS3D.motion()` across a wall-clock window at several frame caps and
+  reports each quantity's rate per second; `--strip N` tiles N screenshots into
+  one filmstrip, with `--crop` for a close look. A still frame says nothing
+  about animation, and neither does the source.
 
 ```bash
 tools/3d/capture.py --hardware-gl --gst 200 --hpt 60 --out docs/3d/shots/a.png

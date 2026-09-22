@@ -1985,6 +1985,60 @@ def index_page():
               roughness: 0.4
             });
 
+            // Flow, shown on the pipe that carries it
+            //
+            // The gas used to be a hundred loose particles drifting in the air
+            // beside the pipe. They appeared from nothing along the whole run,
+            // sat at one height, and read -- in review -- as confetti rather
+            // than as gas. Worse, they said nothing at overview distance,
+            // which is the distance this view is normally read from.
+            //
+            // A band of light travelling along the pipe says the same thing
+            // better: it has a direction, it is attached to the thing that is
+            // actually flowing, it is legible at any zoom because it is
+            // emissive, and it costs one texture and no per-particle work at
+            // all. Stopped, the pipe simply goes dark.
+            function flowCanvas() {
+              const c = document.createElement('canvas');
+              // u wraps around the pipe and v runs along it, so anything drawn
+              // here is a ring, not an arrow. Chevrons were tried first and
+              // came out as corrugation -- the pipe looked like a ribbed hose.
+              //
+              // A ring can still carry a direction if it is shaped like one: a
+              // hard bright leading edge with a tail fading out behind it. Two
+              // of them on the run, so they read as discrete pulses travelling
+              // rather than as a texture on the pipe.
+              c.width = 8; c.height = 128;
+              const g = c.getContext('2d');
+              g.fillStyle = '#000000';
+              g.fillRect(0, 0, 8, 128);
+              for (let i = 0; i < 2; i++) {
+                const head = i * 64 + 40;      // the sharp edge, leading
+                const tail = head - 34;
+                const grad = g.createLinearGradient(0, tail, 0, head);
+                grad.addColorStop(0.0, 'rgba(120, 214, 255, 0)');
+                grad.addColorStop(0.75, 'rgba(150, 226, 255, 0.55)');
+                grad.addColorStop(1.0, 'rgba(210, 244, 255, 1)');
+                g.fillStyle = grad;
+                g.fillRect(0, tail, 8, head - tail);
+              }
+              return c;
+            }
+
+            const flowTexture = new THREE.CanvasTexture(flowCanvas());
+            flowTexture.wrapS = flowTexture.wrapT = THREE.RepeatWrapping;
+            // One tile over the whole run: two pulses on the pipe at a time.
+            flowTexture.repeat.set(1, 1);
+
+            const flowMaterial = new THREE.MeshStandardMaterial({
+              color: 0x9095a0,
+              metalness: 0.85,
+              roughness: 0.4,
+              emissive: 0xffffff,
+              emissiveMap: flowTexture,
+              emissiveIntensity: 0
+            });
+
             const flangeMaterial = new THREE.MeshStandardMaterial({
               color: 0x7a7f8a,
               metalness: 0.9,
@@ -2020,8 +2074,11 @@ def index_page():
 
             // INLET PIPE: GST to Compressor
             const inletPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
-              pipeMaterial
+              // A little thicker than the other runs: this is the pipe the
+              // flow is read off, and at 0.12 the chevrons on it were too few
+              // pixels to see from the overview camera.
+              new THREE.CylinderGeometry(0.16, 0.16, 3.5, 16),
+              flowMaterial
             );
             inletPipe.position.set(-3.25, 1.5, -0.5);
             inletPipe.rotation.z = Math.PI / 2;
@@ -2035,8 +2092,8 @@ def index_page():
 
             // OUTLET PIPE: Compressor to HPT
             const outletPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
-              pipeMaterial
+              new THREE.CylinderGeometry(0.16, 0.16, 3.5, 16),
+              flowMaterial
             );
             outletPipe.position.set(3.25, 1.2, 0.5);
             outletPipe.rotation.z = Math.PI / 2;
@@ -2283,25 +2340,11 @@ def index_page():
 
             await yieldToBrowser();   // built the cabinet
 
-            // Particle system for gas flow (from compressor outlet pipe to HPT)
-            const particleCount = 100;
-            const particles = new Float32Array(particleCount * 3);
-            const particleVelocities = [];
-
-            for(let i = 0; i < particleCount; i++) {
-              // Start particles along the outlet pipe path (compressor to HPT)
-              particles[i * 3] = Math.random() * 7; // X: 0 to 7 (compressor to HPT)
-              particles[i * 3 + 1] = 2.5; // Y: at outlet pipe height
-              particles[i * 3 + 2] = 0.5 + (Math.random() - 0.5) * 0.3; // Z: near outlet pipe
-              particleVelocities.push({
-                x: 0.03 + Math.random() * 0.02, // Moving right toward HPT
-                y: (Math.random() - 0.5) * 0.01, // Slight vertical variance
-                z: (Math.random() - 0.5) * 0.01
-              });
-            }
-
-            const particleGeometry = new THREE.BufferGeometry();
-            particleGeometry.setAttribute('position', new THREE.BufferAttribute(particles, 3));
+            // The gas particle system that stood here is gone. A hundred
+            // points drifting beside the pipe were a hundred position updates
+            // every frame and, in review, read as confetti; the emissive band
+            // travelling along the pipe itself says the same thing at any
+            // zoom for one texture and no per-frame work.
 
             // A point sprite is a square unless it is given a shape, which is
             // why the gas flow rendered as a cloud of hard white cubes. One
@@ -2317,21 +2360,6 @@ def index_page():
             dotCtx.fillStyle = dotGrad;
             dotCtx.fillRect(0, 0, 32, 32);
             const dotTexture = new THREE.CanvasTexture(dotCanvas);
-
-            const particleMaterial = new THREE.PointsMaterial({
-              color: 0x7fe3ff,
-              map: dotTexture,
-              size: 0.26,
-              transparent: true,
-              opacity: 0.8,
-              sizeAttenuation: true,
-              blending: THREE.AdditiveBlending,
-              depthWrite: false
-            });
-
-            const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
-            particleSystem.visible = false;
-            scene.add(particleSystem);
 
             // Flame particle system (from chimney)
             const flameCount = 150;
@@ -2444,6 +2472,11 @@ def index_page():
             // Variables for smooth animations
             let fanRotationSpeed = 0;
             let targetFanSpeed = 0;
+            let flameFlicker = 0;
+            let flowGlow = 0;
+            let compressorRunning = false;
+            // Set from /api/state; drives the collars as well as the flame.
+            let blowoutActive = false;
 
             // Fetch live data from server
             async function fetchData() {
@@ -2468,10 +2501,11 @@ def index_page():
                 compressorLight.intensity = compressorActive ? 0.9 : 0;
 
                 // Update particle visibility
-                particleSystem.visible = compressorActive;
+                compressorRunning = compressorActive;
 
                 // Update flame system
-                flameSystem.visible = data.boSen > 0;
+                blowoutActive = data.boSen > 0;
+                flameSystem.visible = blowoutActive;
                 flameLight.intensity = data.boSen > 0 ? 6 : 0;
 
                 // Update LED indicators
@@ -2544,6 +2578,33 @@ def index_page():
                 fill: fillLight.intensity,
                 accent: accentLight.intensity,
               }),
+
+              // Instrumentation for tools/3d/motion.py.
+              //
+              // Motion cannot be judged from a screenshot, and it cannot be
+              // judged from the source either: whether the fan turns at the
+              // same rate on a fast machine and a slow one is a question about
+              // two numbers taken a known time apart. Nothing below changes
+              // what the scene does; it only makes what the scene does
+              // measurable from outside.
+              motion: () => ({
+                t: performance.now(),
+                frame: renderer.info.render.frame,
+                fan: fanGroup.rotation.z,
+                fanSpeed: fanRotationSpeed,
+                gstRing: gstGlowRing.rotation.z,
+                gstLevel: gstFill.children[0].scale.y,
+                hptLevel: hptFill.children[0].scale.y,
+                flowOffset: flowTexture.offset.y,
+                flowGlow: flowMaterial.emissiveIntensity,
+                flame0: flameGeometry.attributes.position.array[1],
+                strip: edgeStripMaterial.emissiveIntensity,
+                frameCapMs: FRAME_MS
+              }),
+
+              // Re-cap the loop, so the same scene can be measured at the rate
+              // a weak machine would run it at without needing a weak machine.
+              frameCap: ms => { FRAME_MS = ms; },
             };
 
             await yieldToBrowser();   // built everything that gets an outline
@@ -2635,7 +2696,9 @@ def index_page():
             // enough that NiceGUI's client could not answer its own handshake
             // in time and reloaded the page out from under the scene, which is
             // how the 3D tab managed to kill the session it was running in.
-            const FRAME_MS = 1000 / (softwareRenderer ? 12 : 30);
+            // let, not const: tools/3d/motion.py re-caps this to measure the
+            // scene at a slow machine's frame rate.
+            let FRAME_MS = 1000 / (softwareRenderer ? 12 : 30);
             let lastFrame = 0;
 
             function visible() {
@@ -2652,28 +2715,56 @@ def index_page():
 
               if (!visible()) { return; }
               if (now - lastFrame < FRAME_MS) { return; }
+
+              // How much time this frame covers, in seconds.
+              //
+              // Every moving thing in here used to advance by a fixed amount
+              // per frame, which quietly made the whole plant a function of
+              // the machine it was running on: measured with tools/3d/motion.py,
+              // the fan turned at 3.54 rad/s at the 30 fps cap and 1.50 rad/s
+              // at the 12 fps cap the software path uses -- the same plant
+              // running at 42 per cent speed on a slower computer.
+              //
+              // Clamped, because a tab that has been in the background comes
+              // back with a gap of however long it was hidden, and without the
+              // clamp the first frame after that teleports every particle to
+              // the far end of its run.
+              // 0.25 s, not 0.1: a frame at the software path's 12 fps cap
+              // already covers 83 ms, and a machine struggling below 10 fps
+              // would have had time clipped off every single frame -- which
+              // showed up as the plant still running 6 per cent slow after the
+              // per-frame arithmetic was fixed. A quarter of a second is still
+              // far short of a backgrounded tab.
+              const dt = Math.min((now - lastFrame) / 1000, 0.25);
               lastFrame = now;
 
-              // Smooth fan rotation
-              fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) * 0.1;
-              fanGroup.rotation.z += fanRotationSpeed;
+              // The per-frame increments below were written against a loop
+              // pinned at 30 fps, so they are quantities per thirtieth of a
+              // second. This restates them per second without restating every
+              // literal, and it is the one place that old assumption is
+              // written down.
+              const ticks = dt * 30;
 
-              // Animate gas particles (flowing along outlet pipe from compressor to HPT)
-              if(particleSystem.visible) {
-                const positions = particleGeometry.attributes.position.array;
-                for(let i = 0; i < particleCount; i++) {
-                  positions[i * 3] += particleVelocities[i].x;
-                  positions[i * 3 + 1] += particleVelocities[i].y;
-                  positions[i * 3 + 2] += particleVelocities[i].z;
+              // Fan.
+              //
+              // The easing was also per frame -- ten per cent of the remaining
+              // difference each time -- so the fan spun up more slowly on a
+              // slow machine as well as turning more slowly. An exponential
+              // with a time constant settles at the same rate either way; 0.32 s
+              // is what the old ten-per-cent-per-frame worked out to at 30 fps.
+              fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) *
+                                  (1 - Math.exp(-dt / 0.32));
+              fanGroup.rotation.z += fanRotationSpeed * ticks;
 
-                  // Reset particles that reach HPT back to compressor
-                  if(positions[i * 3] > 7.5) {
-                    positions[i * 3] = 0; // Back to compressor
-                    positions[i * 3 + 1] = 2.5; // At outlet pipe height
-                    positions[i * 3 + 2] = 0.5 + (Math.random() - 0.5) * 0.3;
-                  }
-                }
-                particleGeometry.attributes.position.needsUpdate = true;
+              // Flow band. Speed is in texture repeats per second, so it is
+              // the same on any machine; stopped, the pipe goes dark rather
+              // than freezing mid-chevron, which would read as a stalled
+              // animation instead of as a stopped compressor.
+              flowGlow += ((compressorRunning ? 1.15 : 0) - flowGlow) *
+                          (1 - Math.exp(-dt / 0.25));
+              flowMaterial.emissiveIntensity = flowGlow;
+              if (compressorRunning) {
+                flowTexture.offset.y = (flowTexture.offset.y - dt * 0.55) % 1;
               }
 
               // Animate flames
@@ -2682,11 +2773,11 @@ def index_page():
                 const flameCol = flameGeometry.attributes.color.array;
 
                 for(let i = 0; i < flameCount; i++) {
-                  flamePos[i * 3] += flameVelocities[i].x;
-                  flamePos[i * 3 + 1] += flameVelocities[i].y;
-                  flamePos[i * 3 + 2] += flameVelocities[i].z;
+                  flamePos[i * 3] += flameVelocities[i].x * ticks;
+                  flamePos[i * 3 + 1] += flameVelocities[i].y * ticks;
+                  flamePos[i * 3 + 2] += flameVelocities[i].z * ticks;
 
-                  flameVelocities[i].life -= 0.015;
+                  flameVelocities[i].life -= 0.015 * ticks;
 
                   if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 17) {
                     flamePos[i * 3] = 11 + (Math.random() - 0.5) * 0.4;
@@ -2718,20 +2809,44 @@ def index_page():
                 flameGeometry.attributes.position.needsUpdate = true;
                 flameGeometry.attributes.color.needsUpdate = true;
 
-                flameLight.intensity = 5 + Math.sin(Date.now() * 0.01) * 2 + Math.random();
+                // Flicker on a clock rather than on the frame counter, and with
+                // one smoothed random rather than a fresh one every frame --
+                // a per-frame random flickers faster on faster machines and
+                // reads as noise rather than as fire.
+                flameFlicker += (Math.random() - flameFlicker) * (1 - Math.exp(-dt / 0.06));
+                flameLight.intensity = 5 + Math.sin(now * 0.012) * 2 + flameFlicker;
               }
 
-              // Animate status indicators (subtle realistic pulsing)
-              const time = Date.now() * 0.001;
-              gstGlowRing.rotation.z = time * 0.3;
-              gstGlowRing.material.emissiveIntensity = 1.0 + Math.sin(time * 1.5) * 0.3;
+              // Status collars.
+              //
+              // These used to rotate about their own axis of symmetry, which
+              // is an animation that cannot be seen: a circle spun about its
+              // centre looks exactly like a circle standing still. It cost
+              // work every frame and changed no pixel.
+              //
+              // They also pulsed continuously, which is worse than useless --
+              // something blinking all the time teaches the eye to ignore it,
+              // so when there is finally something to report the blinking says
+              // nothing. They are steady now, and pulse only while the blowout
+              // sensor is actually reporting, which is a real signal from the
+              // plant rather than decoration.
+              const alarmPulse = blowoutActive
+                ? 1.6 + Math.sin(now * 0.008) * 0.9
+                : 0.85;
+              gstGlowRing.material.emissiveIntensity = alarmPulse;
+              hptGlowRing.material.emissiveIntensity = alarmPulse;
+              const collar = blowoutActive ? 0xff3b30 : 0xff6b00;
+              if (gstGlowRing.material.emissive.getHex() !== collar) {
+                gstGlowRing.material.emissive.setHex(collar);
+                gstGlowRing.material.color.setHex(collar);
+                hptGlowRing.material.emissive.setHex(collar);
+                hptGlowRing.material.color.setHex(collar);
+              }
 
-              hptGlowRing.rotation.z = -time * 0.3;
-              hptGlowRing.material.emissiveIntensity = 1.0 + Math.cos(time * 1.5) * 0.3;
-
-              // Animate platform edge strips (subtle)
-              const stripIntensity = 1.2 + Math.sin(time * 2) * 0.3;
-              edgeStripMaterial.emissiveIntensity = stripIntensity;
+              // The platform edge strips are steady. A painted safety line
+              // does not breathe, and this one was pulsing in the corner of
+              // every frame for no reason at all.
+              edgeStripMaterial.emissiveIntensity = 1.2;
 
               // Update orbit controls
               controls.update();
