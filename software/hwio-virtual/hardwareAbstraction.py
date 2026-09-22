@@ -932,6 +932,35 @@ def index_page():
               return c;
             }
 
+            // Fold many identical parts into one buffer.
+            //
+            // r128 ships BufferGeometryUtils only in examples/, which is not
+            // vendored here, so this is the small part of it this scene needs.
+            // It matters because the scene is draw-call bound rather than
+            // triangle bound: the platform grating alone was sixty-five
+            // separate meshes drawing sixty-five times for one flat surface.
+            function mergeGeometries(geometries) {
+              const parts = geometries.map(g => (g.index ? g.toNonIndexed() : g));
+              let total = 0;
+              parts.forEach(g => { total += g.attributes.position.count; });
+              const pos = new Float32Array(total * 3);
+              const nor = new Float32Array(total * 3);
+              const uv = new Float32Array(total * 2);
+              let o = 0, uo = 0;
+              parts.forEach(g => {
+                pos.set(g.attributes.position.array, o);
+                if (g.attributes.normal) { nor.set(g.attributes.normal.array, o); }
+                if (g.attributes.uv) { uv.set(g.attributes.uv.array, uo); }
+                o += g.attributes.position.count * 3;
+                uo += g.attributes.position.count * 2;
+              });
+              const out = new THREE.BufferGeometry();
+              out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+              out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+              out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+              return out;
+            }
+
             // Detail costs texture memory and bandwidth, which is exactly what
             // a machine without acceleration has none of.  The software path
             // keeps the flat materials it already had.
@@ -952,78 +981,25 @@ def index_page():
             const concreteRough = detail ? texture(concreteCanvas(512), 30, 30) : null;
             const steelRough = detail ? texture(brushedCanvas(128, 256), 4, 1) : null;
 
-            // ---- Sky -----------------------------------------------------
+            // ---- Backdrop ------------------------------------------------
             //
-            // This used to be a dark blue field with two orange radial glows
-            // and a scatter of white dots, which read as a nebula.  A gas
-            // plant standing in space is the single loudest wrong note in the
-            // picture, and it undermines every material below it: the metals
-            // reflect their surroundings, so the surroundings have to be a
-            // place.
+            // A flat colour, and the fog is the same colour.
             //
-            // What replaces it is late afternoon: cool overhead, warm haze
-            // gathering at the horizon, brightening towards the key light.
-            // The brand orange survives as that haze rather than as a glow in
-            // the sky, and the fog below is given the same horizon colour so
-            // the ground dissolves into the sky instead of stopping at a line.
-            const HORIZON = 0x6c5f52;
-            const bgCanvas = document.createElement('canvas');
-            // A smooth gradient does not need 2048 square.  This was four
-            // megapixels, sixteen megabytes of texture memory, for an image
-            // with no detail finer than a hundred pixels.
-            bgCanvas.width = 512;
-            bgCanvas.height = 512;
-            const ctx = bgCanvas.getContext('2d');
-
-            const sky = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
-            sky.addColorStop(0.00, '#1d2836');
-            sky.addColorStop(0.28, '#34445a');
-            sky.addColorStop(0.46, '#4d4c4a');
-            sky.addColorStop(0.55, '#6c5f52');
-            sky.addColorStop(0.62, '#3c3833');
-            sky.addColorStop(1.00, '#1a1d22');
-            ctx.fillStyle = sky;
-            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-            // The key light stands high and to the right, so the haze is
-            // brightest there.  No sun disc: at this elevation it would be
-            // behind the viewer, and painting one in would be the kind of
-            // detail that reads as wrong without anyone being able to say why.
-            const haze = ctx.createRadialGradient(
-              bgCanvas.width * 0.74, bgCanvas.height * 0.54, 0,
-              bgCanvas.width * 0.74, bgCanvas.height * 0.54, bgCanvas.width * 0.55);
-            haze.addColorStop(0.0, 'rgba(255, 176, 108, 0.30)');
-            haze.addColorStop(0.45, 'rgba(255, 140, 66, 0.10)');
-            haze.addColorStop(1.0, 'rgba(255, 140, 66, 0)');
-            ctx.fillStyle = haze;
-            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-            // Thin cloud banding, stretched flat the way high cloud is near
-            // the horizon.
-            for (let i = 0; i < 9; i++) {
-              const y = bgCanvas.height * (0.10 + Math.random() * 0.34);
-              const h = bgCanvas.height * (0.008 + Math.random() * 0.03);
-              const band = ctx.createLinearGradient(0, y - h, 0, y + h);
-              band.addColorStop(0, 'rgba(180, 196, 214, 0)');
-              band.addColorStop(0.5, 'rgba(180, 196, 214, ' +
-                               (0.04 + Math.random() * 0.06).toFixed(3) + ')');
-              band.addColorStop(1, 'rgba(180, 196, 214, 0)');
-              ctx.fillStyle = band;
-              ctx.fillRect(0, y - h, bgCanvas.width, h * 2);
-            }
-
-            const bgTexture = new THREE.CanvasTexture(bgCanvas);
-            bgTexture.encoding = THREE.sRGBEncoding;
-            scene.background = lightTheme ? new THREE.Color(0xf3f5f8) : bgTexture;
-            // Fog in the horizon colour, not in the zenith colour.  Distance
-            // haze that does not match the sky it fades into is the thing that
-            // makes a scene look like a model on a table.
-            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : HORIZON, 0.017);
+            // A painted horizon cannot be made to line up: the background
+            // texture is stretched across the screen, so its horizon sits at a
+            // fixed fraction of the canvas while the real one moves with the
+            // camera. Every framing showed a step where the ground met the
+            // sky. With one colour for both, the ground simply dissolves into
+            // the distance and there is nothing to align -- and it is one less
+            // texture, which on a machine with no GPU is the whole point.
+            const BACKDROP = 0x121922;
+            scene.background = new THREE.Color(lightTheme ? 0xf3f5f8 : BACKDROP);
+            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : BACKDROP, 0.016);
             window.addEventListener('message', function (event) {
               if (!event.data || event.data.type !== 'theme') return;
               const isLight = event.data.theme === 'light';
-              scene.background = isLight ? new THREE.Color(0xf3f5f8) : bgTexture;
-              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : HORIZON, 0.017);
+              scene.background = new THREE.Color(isLight ? 0xf3f5f8 : BACKDROP);
+              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : BACKDROP, 0.016);
             });
 
             // Create camera
@@ -1115,11 +1091,12 @@ def index_page():
 
             // Realistic industrial lighting setup
             // ambient lifts every surface equally, so it is the first thing to cut
-            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.22);
+            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.26);
             scene.add(ambientLight);
 
             // Main overhead directional light (soft daylight)
-            const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.0);
+            // Carries more of the scene now that the accent spots are gone.
+            const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.25);
             directionalLight.position.set(12, 20, 8);
             directionalLight.castShadow = true;
             // 2048 over a 50-unit shadow camera is 41 texels per world unit,
@@ -1146,28 +1123,16 @@ def index_page():
             accentLight.position.set(8, 10, -15);
             scene.add(accentLight);
 
-            // Accent spotlights for dramatic atmosphere - reduced intensities
-            const createSpotlight = (color, intensity, x, y, z, targetX, targetY, targetZ) => {
-              const spotlight = new THREE.SpotLight(color, intensity, 50, Math.PI / 6, 0.5, 2);
-              spotlight.position.set(x, y, z);
-              // These three are accent lights: they exist to put a warm
-              // pool of light on each vessel, and the shadows they cast land
-              // inside shadows the main light has already drawn.  Three extra
-              // shadow passes per frame for an effect nobody would miss.
-              spotlight.castShadow = false;
-
-              const target = new THREE.Object3D();
-              target.position.set(targetX, targetY, targetZ);
-              scene.add(target);
-              spotlight.target = target;
-
-              return spotlight;
-            };
-
-            // Subtle equipment spotlights (realistic industrial lighting)
-            scene.add(createSpotlight(0xffffff, 0.45, -7, 12, 5, -7, 2, 0));   // GST
-            scene.add(createSpotlight(0xffffff, 0.45, 7, 12, 5, 7, 2, 0));    // HPT
-            scene.add(createSpotlight(0xffffff, 0.35, 0, 8, 3, 0, 1.5, 0));   // Compressor
+            // The three accent spotlights that used to stand here are gone.
+            //
+            // They were a photographic device -- a warm pool on each vessel --
+            // and in a scene lit as a stage they did two things wrong: the HPT
+            // cone spilled past the platform and put a bright warm patch on the
+            // ground with no visible source, which reads as a rendering fault
+            // rather than as lighting, and together they washed the whole floor
+            // pale and undid the darkness the equipment is meant to stand
+            // against. Three fewer lights, and every remaining one is
+            // explainable by something in the picture.
 
             // Industrial concrete floor
             //
@@ -1184,12 +1149,24 @@ def index_page():
             // past about 120 units, so the ground has to outrun it.  This
             // costs nothing: it is still two triangles.
             const groundGeometry = new THREE.PlaneGeometry(300, 300);
+            // Dark and close to plain.  The photographic concrete that was
+            // here tiled visibly at this size and, more to the point, a
+            // detailed floor pulls attention downwards; in this language the
+            // ground is a stage for the equipment and the grid does the work
+            // of telling you it is a surface at all.
+            // Fully matte, and no roughness map.
+            //
+            // The map was multiplying roughness down to near zero in its
+            // darker patches, and the key light answered with a specular lobe:
+            // a bright warm pool on the floor with no visible source, which
+            // reads as a rendering fault rather than as lighting. It was in
+            // the very first screenshot of this scene and survived three
+            // rounds of being blamed on the spotlights. Confirmed by clearing
+            // the map at runtime and photographing the result.
             const groundMaterial = new THREE.MeshStandardMaterial({
-              color: detail ? 0xffffff : 0x3a3f47,
-              map: concreteMap,
-              roughnessMap: concreteRough,
-              roughness: detail ? 1.0 : 0.9,
-              metalness: 0.05
+              color: 0x1a2028,
+              roughness: 1.0,
+              metalness: 0.0
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
@@ -1199,9 +1176,9 @@ def index_page():
             // Expansion joints.  Dimmer than before: at full strength this
             // read as a debug grid laid over the plant rather than as lines
             // scored in a floor, and it was competing with the grating.
-            const gridHelper = new THREE.GridHelper(60, 20, 0x4a5058, 0x3c4147);
+            const gridHelper = new THREE.GridHelper(60, 20, 0x3f5568, 0x2b3a47);
             gridHelper.position.y = 0.01;
-            gridHelper.material.opacity = 0.18;
+            gridHelper.material.opacity = 0.55;
             gridHelper.material.transparent = true;
             scene.add(gridHelper);
 
@@ -1215,31 +1192,34 @@ def index_page():
               roughness: 0.4
             });
 
-            // Create grating bars (multiple bars to simulate grating)
+            // Grating bars, folded into one mesh.
+            //
+            // These were sixty-five separate meshes: sixty-five draw calls and
+            // seven hundred and eighty outline segments for a surface the eye
+            // reads as one texture. Merged, the deck is a single draw call and
+            // contributes nothing to the outline pass, which is where the
+            // frame time was going.
+            const gratingParts = [];
             const numBars = 40;
-            for(let i = 0; i < numBars; i++) {
-              const bar = new THREE.Mesh(
-                new THREE.BoxGeometry(20, 0.08, 0.15),
-                gratingMaterial
-              );
-              bar.position.set(0, 0.3, -6 + (i * 12 / numBars));
-              bar.castShadow = true;
-              bar.receiveShadow = true;
-              platformGroup.add(bar);
+            for (let i = 0; i < numBars; i++) {
+              const g = new THREE.BoxGeometry(20, 0.08, 0.15);
+              g.translate(0, 0.3, -6 + (i * 12 / numBars));
+              gratingParts.push(g);
             }
-
-            // Cross bars
             const numCrossBars = 25;
-            for(let i = 0; i < numCrossBars; i++) {
-              const bar = new THREE.Mesh(
-                new THREE.BoxGeometry(0.15, 0.08, 12),
-                gratingMaterial
-              );
-              bar.position.set(-10 + (i * 20 / numCrossBars), 0.3, 0);
-              bar.castShadow = true;
-              bar.receiveShadow = true;
-              platformGroup.add(bar);
+            for (let i = 0; i < numCrossBars; i++) {
+              const g = new THREE.BoxGeometry(0.15, 0.08, 12);
+              g.translate(-10 + (i * 20 / numCrossBars), 0.3, 0);
+              gratingParts.push(g);
             }
+            const gratingMesh = new THREE.Mesh(
+              mergeGeometries(gratingParts), gratingMaterial);
+            gratingMesh.castShadow = true;
+            gratingMesh.receiveShadow = true;
+            // A repeating pattern outlined edge by edge is visual noise, and
+            // there is a great deal of it.
+            gratingMesh.userData.noOutline = true;
+            platformGroup.add(gratingMesh);
 
             // Platform frame/edge beams
             const frameMaterial = new THREE.MeshStandardMaterial({
@@ -1302,7 +1282,13 @@ def index_page():
             controls.update();
 
             // Helper function to create text sprite
-            function createTextSprite(text, color = '#000000', backgroundColor = '#ffff00') {
+            // Plant signage, drawn to match the status panel rather than to
+            // fight it. These were saturated yellow plates with black Arial on
+            // them, which is the one thing in frame that looked printed rather
+            // than built, and they were the brightest objects in a dark scene.
+            // Dark plate, orange rule, orange text: the same vocabulary as the
+            // HUD, so the eye reads them as one system.
+            function createTextSprite(text, color = '#ffb070', backgroundColor = 'rgba(14, 20, 28, 0.88)') {
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
               canvas.width = 512;
@@ -1311,9 +1297,12 @@ def index_page():
               // Background
               context.fillStyle = backgroundColor;
               context.fillRect(0, 0, canvas.width, canvas.height);
+              context.strokeStyle = 'rgba(255, 140, 66, 0.75)';
+              context.lineWidth = 6;
+              context.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
 
               // Text
-              context.font = 'bold 80px Arial';
+              context.font = 'bold 74px ui-monospace, Menlo, Consolas, monospace';
               context.fillStyle = color;
               context.textAlign = 'center';
               context.textBaseline = 'middle';
@@ -1380,6 +1369,10 @@ def index_page():
             }
 
             function makeLiquid(colour, emissive) {
+              // Outlines are added at the end by tracing geometry; the
+              // liquid body is clipped at render time, so its geometry is
+              // the full vessel and an outline would trace the uncut shape.
+
               const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -LIQUID_R);
               // depthWrite off, and that is not optional here.
               //
@@ -1443,18 +1436,26 @@ def index_page():
             const gstBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xc0c5ce,
-                metalness: 0.85,
-                // The roughness map is what turns this from plastic into
-                // rolled steel: vertical brushing plus the horizontal seams
-                // where a real vessel's courses are welded together.  Colour
-                // is left alone, because painted steel is uniform in colour
-                // and varies only in how sharply it reflects.
-                roughnessMap: steelRough,
-                roughness: detail ? 0.5 : 0.35,
-                envMapIntensity: 1.2,
+                color: 0xc6d3e0,
+                // Matte, not chromed. A see-through wall that also throws
+                // specular highlights reads as glass; without them the same
+                // wall reads as a cutaway, which is what it is meant to be.
+                // The brushed map came off with it -- through a transparent
+                // wall its weld seams banded the liquid behind it, which is
+                // the striping that showed up in review.
+                metalness: 0.15,
+                roughness: 0.55,
+                envMapIntensity: 0.6,
                 transparent: true,
-                opacity: 0.32,
+                // Pale and lighter than the backdrop, not darker. Over a dark
+                // stage a thin see-through wall has nothing behind it to tint
+                // and the whole barrel collapses into a black void, which took
+                // the state colour with it. The vessel has to read as a volume
+                // whether it is full or empty.
+                opacity: 0.35,
+                // A cutaway still needs a silhouette, so this one is outlined
+                // despite being transparent.
+                ...{},
                 side: THREE.DoubleSide,
                 // A transparent enclosure must not write depth.  If it does,
                 // its near surface fails the depth test for everything behind
@@ -1464,6 +1465,7 @@ def index_page():
                 depthWrite: false
               })
             );
+            gstBody.userData.forceOutline = true;
             gstBody.position.y = 4;
             gstBody.castShadow = true;
             gstBody.receiveShadow = true;
@@ -1505,9 +1507,9 @@ def index_page():
 
             // GST reinforcement bands (realistic industrial detail)
             const bandMaterial = new THREE.MeshStandardMaterial({
-              color: 0x8b9099,
-              metalness: 0.9,
-              roughness: 0.25
+              color: 0x7c8894,
+              metalness: 0.25,
+              roughness: 0.55
             });
 
             for(let i = 0; i < 3; i++) {
@@ -1587,10 +1589,14 @@ def index_page():
             }
 
             // GST dished end caps (realistic pressure vessel heads)
+            // Opaque heads over a see-through barrel is what makes the
+            // vessel read as a cutaway rather than as a jar: the cut is
+            // clearly a cut, because it stops. Matte, because the chrome
+            // finish they had was the loudest plastic note in the picture.
             const capMaterial = new THREE.MeshStandardMaterial({
-              color: 0xb0b5bc,
-              metalness: 0.85,
-              roughness: 0.3
+              color: 0x98a3b0,
+              metalness: 0.2,
+              roughness: 0.55
             });
 
             const gstTopCap = new THREE.Mesh(
@@ -1643,15 +1649,18 @@ def index_page():
 
             // GST status indicator light (subtle orange glow)
             const gstGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.04, 8, 32),
+              // Radius 2.06 against a wall of 2.0, so it sits on the vessel
+              // like a lit collar. At 2.3 it orbited a third of a metre
+              // clear of the steel and read as a hoop thrown over the tank.
+              new THREE.TorusGeometry(2.06, 0.1, 8, 32),
               new THREE.MeshStandardMaterial({
                 color: 0xff6b00,
                 emissive: 0xff6b00,
                 emissiveIntensity: 1.0,
                 transparent: true,
-                opacity: 0.7,
-                metalness: 0.8,
-                roughness: 0.2
+                opacity: 0.92,
+                metalness: 0.2,
+                roughness: 0.5
               })
             );
             gstGlowRing.position.y = 7;
@@ -1675,18 +1684,26 @@ def index_page():
             const hptBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xc0c5ce,
-                metalness: 0.85,
-                // The roughness map is what turns this from plastic into
-                // rolled steel: vertical brushing plus the horizontal seams
-                // where a real vessel's courses are welded together.  Colour
-                // is left alone, because painted steel is uniform in colour
-                // and varies only in how sharply it reflects.
-                roughnessMap: steelRough,
-                roughness: detail ? 0.5 : 0.35,
-                envMapIntensity: 1.2,
+                color: 0xc6d3e0,
+                // Matte, not chromed. A see-through wall that also throws
+                // specular highlights reads as glass; without them the same
+                // wall reads as a cutaway, which is what it is meant to be.
+                // The brushed map came off with it -- through a transparent
+                // wall its weld seams banded the liquid behind it, which is
+                // the striping that showed up in review.
+                metalness: 0.15,
+                roughness: 0.55,
+                envMapIntensity: 0.6,
                 transparent: true,
-                opacity: 0.32,
+                // Pale and lighter than the backdrop, not darker. Over a dark
+                // stage a thin see-through wall has nothing behind it to tint
+                // and the whole barrel collapses into a black void, which took
+                // the state colour with it. The vessel has to read as a volume
+                // whether it is full or empty.
+                opacity: 0.35,
+                // A cutaway still needs a silhouette, so this one is outlined
+                // despite being transparent.
+                ...{},
                 side: THREE.DoubleSide,
                 // A transparent enclosure must not write depth.  If it does,
                 // its near surface fails the depth test for everything behind
@@ -1696,6 +1713,7 @@ def index_page():
                 depthWrite: false
               })
             );
+            hptBody.userData.forceOutline = true;
             hptBody.position.y = 4;
             hptBody.castShadow = true;
             hptBody.receiveShadow = true;
@@ -1784,15 +1802,18 @@ def index_page():
 
             // HPT status indicator (subtle)
             const hptGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.04, 8, 32),
+              // Radius 2.06 against a wall of 2.0, so it sits on the vessel
+              // like a lit collar. At 2.3 it orbited a third of a metre
+              // clear of the steel and read as a hoop thrown over the tank.
+              new THREE.TorusGeometry(2.06, 0.1, 8, 32),
               new THREE.MeshStandardMaterial({
                 color: 0xff8c42,
                 emissive: 0xff8c42,
                 emissiveIntensity: 1.0,
                 transparent: true,
-                opacity: 0.7,
-                metalness: 0.8,
-                roughness: 0.2
+                opacity: 0.92,
+                metalness: 0.2,
+                roughness: 0.5
               })
             );
             hptGlowRing.position.y = 7;
@@ -1830,9 +1851,13 @@ def index_page():
             const compressorBody = new THREE.Mesh(
               new THREE.BoxGeometry(2.5, 1.5, 1.8),
               new THREE.MeshStandardMaterial({
-                color: 0x8a8f96,
-                metalness: 0.7,
-                roughness: 0.5,
+                color: 0x79838f,
+                metalness: 0.3,
+                roughness: 0.6,
+                // Running used to tint the entire machine green, which made a
+                // grey skid read as a lime box and said nothing a lamp could
+                // not say better. The indicator and the collar carry the state
+                // now; the casing keeps its own colour.
                 emissive: 0x00ff00,
                 emissiveIntensity: 0
               })
@@ -1948,13 +1973,18 @@ def index_page():
             compressorCanvas.width = 1024; // Wider canvas for longer text
             compressorCanvas.height = 128;
 
-            // Background
-            compressorContext.fillStyle = '#ffff00';
+            // Background -- the same treatment as createTextSprite above, which
+            // this block predates and has to keep in step with by hand.
+            compressorContext.fillStyle = 'rgba(14, 20, 28, 0.88)';
             compressorContext.fillRect(0, 0, compressorCanvas.width, compressorCanvas.height);
+            compressorContext.strokeStyle = 'rgba(255, 140, 66, 0.75)';
+            compressorContext.lineWidth = 6;
+            compressorContext.strokeRect(3, 3, compressorCanvas.width - 6,
+                                         compressorCanvas.height - 6);
 
             // Text
-            compressorContext.font = 'bold 80px Arial';
-            compressorContext.fillStyle = '#000000';
+            compressorContext.font = 'bold 74px ui-monospace, Menlo, Consolas, monospace';
+            compressorContext.fillStyle = '#ffb070';
             compressorContext.textAlign = 'center';
             compressorContext.textBaseline = 'middle';
             compressorContext.fillText('COMPRESSOR', compressorCanvas.width / 2, compressorCanvas.height / 2);
@@ -2098,7 +2128,7 @@ def index_page():
             const chimneyBase = new THREE.Mesh(
               new THREE.CylinderGeometry(1.0, 1.2, 2, 16),
               new THREE.MeshStandardMaterial({
-                color: 0x4a4a52,
+                color: 0x333b44,
                 roughness: 0.9,
                 metalness: 0.1
               })
@@ -2112,9 +2142,12 @@ def index_page():
             const chimneyStack = new THREE.Mesh(
               new THREE.CylinderGeometry(0.7, 0.9, 12, 16),
               new THREE.MeshStandardMaterial({
-                color: 0x5a4a42,
-                roughness: 0.85,
-                metalness: 0.05
+                // Was a brown brick colour, the only warm object left in a
+                // cool palette, which pulled the eye straight to the least
+                // interesting part of the plant.
+                color: 0x57616c,
+                roughness: 0.75,
+                metalness: 0.15
               })
             );
             chimneyStack.position.y = 8;
@@ -2297,9 +2330,25 @@ def index_page():
             const particleGeometry = new THREE.BufferGeometry();
             particleGeometry.setAttribute('position', new THREE.BufferAttribute(particles, 3));
 
+            // A point sprite is a square unless it is given a shape, which is
+            // why the gas flow rendered as a cloud of hard white cubes. One
+            // 32-pixel radial gradient turns every particle in the scene into
+            // a soft dot, for one texture.
+            const dotCanvas = document.createElement('canvas');
+            dotCanvas.width = dotCanvas.height = 32;
+            const dotCtx = dotCanvas.getContext('2d');
+            const dotGrad = dotCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            dotGrad.addColorStop(0.0, 'rgba(255,255,255,1)');
+            dotGrad.addColorStop(0.4, 'rgba(255,255,255,0.55)');
+            dotGrad.addColorStop(1.0, 'rgba(255,255,255,0)');
+            dotCtx.fillStyle = dotGrad;
+            dotCtx.fillRect(0, 0, 32, 32);
+            const dotTexture = new THREE.CanvasTexture(dotCanvas);
+
             const particleMaterial = new THREE.PointsMaterial({
-              color: 0x00ffaa,
-              size: 0.2,
+              color: 0x7fe3ff,
+              map: dotTexture,
+              size: 0.26,
               transparent: true,
               opacity: 0.8,
               sizeAttenuation: true,
@@ -2346,6 +2395,7 @@ def index_page():
             flameGeometry.setAttribute('color', new THREE.BufferAttribute(flameColors, 3));
 
             const flameMaterial = new THREE.PointsMaterial({
+              map: dotTexture,
               size: 0.4,
               vertexColors: true,
               transparent: true,
@@ -2440,9 +2490,9 @@ def index_page():
 
                 // Update compressor status light (realistic)
                 const compressorActive = data.compressor > 0;
-                compressorBody.material.emissiveIntensity = compressorActive ? 0.3 : 0;
+                compressorBody.material.emissiveIntensity = 0;
                 indicator.material.emissiveIntensity = compressorActive ? 1.5 : 0;
-                compressorLight.intensity = compressorActive ? 3 : 0;
+                compressorLight.intensity = compressorActive ? 1.1 : 0;
 
                 // Update particle visibility
                 particleSystem.visible = compressorActive;
@@ -2522,6 +2572,76 @@ def index_page():
                 accent: accentLight.intensity,
               }),
             };
+
+            await yieldToBrowser();   // built everything that gets an outline
+
+            // ---- Technical outlines --------------------------------------
+            //
+            // This is what carries the whole look.  Shaded primitives with no
+            // edges read as soft lumps at any distance; the same primitives
+            // with their silhouettes drawn read as equipment, and they stay
+            // readable at the overview camera where a texture never would.
+            //
+            // Every edge in the scene ends up in one buffer and one
+            // LineSegments, so the entire outline pass is a single draw call
+            // no matter how many objects it covers.  One LineSegments per mesh
+            // would have been two hundred more draw calls for the same image,
+            // and this scene is already draw-call bound rather than triangle
+            // bound.
+            const outlineGroup = (function buildOutlines() {
+              scene.updateMatrixWorld(true);
+              const points = [];
+              const v = new THREE.Vector3();
+              const sphere = new THREE.Sphere();
+
+              scene.traverse(node => {
+                if (!node.isMesh || node.userData.noOutline) { return; }
+                const g = node.geometry;
+                if (!g || !g.attributes || !g.attributes.position) { return; }
+                // Transparent things are see-through on purpose; drawing their
+                // silhouette puts a hard line around something the eye is
+                // meant to look past.
+                const m = node.material;
+                if (m && (m.transparent || m.opacity < 1) &&
+                    !node.userData.forceOutline) { return; }
+                // Bolts, LED dots and flange studs.  At the scale they occupy
+                // on screen their outlines are noise, and there are hundreds.
+                if (!g.boundingSphere) { g.computeBoundingSphere(); }
+                sphere.copy(g.boundingSphere).applyMatrix4(node.matrixWorld);
+                if (sphere.radius < 0.45) { return; }
+
+                // 32 degrees keeps the rim of a cylinder and the horizon of a
+                // dome while dropping the latitude rings inside them.
+                const edges = new THREE.EdgesGeometry(g, 32);
+                const pos = edges.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                  v.fromBufferAttribute(pos, i).applyMatrix4(node.matrixWorld);
+                  points.push(v.x, v.y, v.z);
+                }
+                edges.dispose();
+              });
+
+              const geom = new THREE.BufferGeometry();
+              geom.setAttribute('position',
+                new THREE.Float32BufferAttribute(points, 3));
+              const lines = new THREE.LineSegments(geom,
+                new THREE.LineBasicMaterial({
+                  color: 0xd2e2f2,
+                  transparent: true,
+                  // At 0.55 the outlines cost frame time and carried none of
+                  // the look, which is the worst of both. They either do the
+                  // work or they come out.
+                  opacity: 0.85,
+                  // Outlines have to fade with distance like everything else,
+                  // or the far side of the plant comes forward.
+                  fog: true,
+                  depthWrite: false
+                }));
+              lines.userData.noOutline = true;
+              lines.frustumCulled = false;
+              scene.add(lines);
+              return lines;
+            })();
 
             // Draw the shadow maps once, now that everything is in the scene.
             renderer.shadowMap.needsUpdate = true;
