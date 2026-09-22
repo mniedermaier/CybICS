@@ -719,7 +719,13 @@ def index_page():
       # 3D Visualization Tab Panel
       with ui.tab_panel(viz_3d_tab):
         # Create 3D container
-        container_3d = ui.element('div').props('id=container3d').style('width: 100%; height: 800px; position: relative; background-color: #0a0a0f;')
+        # Sized to the window rather than to a number.  800px was taller than
+        # the viewport on a laptop, which pushed the status panel off the
+        # bottom, and shorter than it on a desktop, which left a dead band
+        # under the scene.
+        container_3d = ui.element('div').props('id=container3d').style(
+          'width: 100%; height: calc(100vh - 150px); min-height: 380px;'
+          'position: relative; background-color: #0a0a0f;')
 
   # Three.js 3D Visualization - Clean implementation
   ui.add_body_html('''
@@ -929,11 +935,21 @@ def index_page():
             // hardest, because those are what flatten a scene when they are too
             // strong.
             renderer.toneMappingExposure = 0.75;
+            // The liquid in each vessel is a full-size body cut off at the
+            // surface by a clipping plane, which is what lets the level run
+            // into the dished heads instead of stopping at the cylinder.
+            renderer.localClippingEnabled = true;
             renderer.physicallyCorrectLights = true;
             // Without this the image is written to the canvas in linear space
             // while the tone mapper assumes it will be encoded, which is what
             // made every surface look washed out and flat.
             renderer.outputEncoding = THREE.sRGBEncoding;
+            // setSize(..., false) leaves the CSS size alone, so the canvas is
+            // told here to fill its box and the observer above only has to
+            // keep the drawing buffer in step with it.
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.display = 'block';
             container.appendChild(canvas);
 
             // An environment for the metals to reflect.
@@ -1164,6 +1180,101 @@ def index_page():
 
             await yieldToBrowser();   // built controls and helpers
 
+            // Liquid in a dished-end pressure vessel
+            //
+            // The fill used to be a plain cylinder scaled on Y, spanning only
+            // the cylindrical section.  Both vessels are a cylinder with a
+            // hemispherical head at each end, so that fill covered 8 of the
+            // 12.2 units you can see: a tank reading 255 of 255 drew its
+            // surface 66% of the way up, and a tank reading 0 left 2.1 units
+            // of empty dome below the line.  The two heads are 23.6% of the
+            // volume and were never drawn as filled at all.
+            //
+            // So the liquid is now the shape of the inside of the vessel, and
+            // a clipping plane cuts it at the surface.  The surface height
+            // comes from the volume rather than from the height, because the
+            // domes hold less per unit of height than the barrel does and a
+            // tank that looks half full should be half full.
+            const LIQUID_R = 1.85;
+            const LIQUID_H = 8.0;
+
+            function liquidVolume(y) {
+              const r = LIQUID_R, H = LIQUID_H;
+              const dome = 2 / 3 * Math.PI * r * r * r;
+              const cyl = Math.PI * r * r * H;
+              if (y <= -r) { return 0; }
+              if (y < 0) { const u = -y; return Math.PI * (2 * r * r * r / 3 - r * r * u + u * u * u / 3); }
+              if (y <= H) { return dome + Math.PI * r * r * y; }
+              if (y < H + r) { const h = y - H; return dome + cyl + Math.PI * (r * r * h - h * h * h / 3); }
+              return 2 * dome + cyl;
+            }
+
+            // Height at which the volume below equals `frac` of the whole.
+            // Bisection: the closed form needs a cubic root in the domes, this
+            // is thirty iterations of arithmetic twice a second.
+            function liquidLevel(frac) {
+              const total = liquidVolume(LIQUID_H + LIQUID_R);
+              const target = Math.max(0, Math.min(1, frac)) * total;
+              let lo = -LIQUID_R, hi = LIQUID_H + LIQUID_R;
+              for (let i = 0; i < 40; i++) {
+                const mid = (lo + hi) / 2;
+                if (liquidVolume(mid) < target) { lo = mid; } else { hi = mid; }
+              }
+              return (lo + hi) / 2;
+            }
+
+            // Inner radius at a given height, for the disc that shows the surface.
+            function liquidRadiusAt(y) {
+              const r = LIQUID_R, H = LIQUID_H;
+              if (y < 0) { return Math.sqrt(Math.max(0, r * r - y * y)); }
+              if (y <= H) { return r; }
+              return Math.sqrt(Math.max(0, r * r - (y - H) * (y - H)));
+            }
+
+            function makeLiquid(colour, emissive) {
+              const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -LIQUID_R);
+              const body = new THREE.MeshStandardMaterial({
+                color: colour, transparent: true, opacity: 0.8,
+                roughness: 0.2, metalness: 0.0,
+                emissive: emissive, emissiveIntensity: 0.3,
+                side: THREE.DoubleSide, clippingPlanes: [plane]
+              });
+              // The cut leaves the body open, so a disc rides at the surface.
+              const surface = new THREE.MeshStandardMaterial({
+                color: colour, transparent: true, opacity: 0.9,
+                roughness: 0.15, metalness: 0.0,
+                emissive: emissive, emissiveIntensity: 0.45
+              });
+
+              const group = new THREE.Group();
+              const cyl = new THREE.Mesh(
+                new THREE.CylinderGeometry(LIQUID_R, LIQUID_R, LIQUID_H, 32), body);
+              cyl.position.y = LIQUID_H / 2;
+              group.add(cyl);
+              const bottom = new THREE.Mesh(new THREE.SphereGeometry(
+                LIQUID_R, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), body);
+              group.add(bottom);
+              const top = new THREE.Mesh(new THREE.SphereGeometry(
+                LIQUID_R, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), body);
+              top.position.y = LIQUID_H;
+              group.add(top);
+
+              const disc = new THREE.Mesh(new THREE.CircleGeometry(LIQUID_R, 32), surface);
+              disc.rotation.x = -Math.PI / 2;
+              group.add(disc);
+
+              group.userData.setLevel = function (frac) {
+                const y = liquidLevel(frac);
+                plane.constant = y;
+                const rad = liquidRadiusAt(y);
+                disc.position.y = y;
+                disc.visible = rad > 0.02;
+                disc.scale.set(rad / LIQUID_R, rad / LIQUID_R, 1);
+              };
+              group.userData.setLevel(0);
+              return group;
+            }
+
             // GST Tank (left) - Realistic industrial pressure vessel
             const gstGroup = new THREE.Group();
             gstGroup.position.set(-7, 0, 0);
@@ -1186,23 +1297,8 @@ def index_page():
             gstBody.receiveShadow = true;
             gstGroup.add(gstBody);
 
-            // GST fill level indicator (visible through transparent tank)
-            const gstFillGeometry = new THREE.CylinderGeometry(1.85, 1.85, 8, 32);
-            gstFillGeometry.translate(0, 4, 0);
-            const gstFill = new THREE.Mesh(
-              gstFillGeometry,
-              new THREE.MeshStandardMaterial({
-                color: 0x2196f3,
-                transparent: true,
-                opacity: 0.8,
-                roughness: 0.2,
-                metalness: 0.0,
-                emissive: 0x1976d2,
-                emissiveIntensity: 0.3
-              })
-            );
-            gstFill.position.y = 0;
-            gstFill.scale.y = 0.01;
+            // GST liquid
+            const gstFill = makeLiquid(0x2196f3, 0x1976d2);
             gstGroup.add(gstFill);
 
             // Add support legs to tank
@@ -1421,23 +1517,8 @@ def index_page():
             hptBody.receiveShadow = true;
             hptGroup.add(hptBody);
 
-            // HPT fill level indicator (visible through transparent tank)
-            const hptFillGeometry = new THREE.CylinderGeometry(1.85, 1.85, 8, 32);
-            hptFillGeometry.translate(0, 4, 0);
-            const hptFill = new THREE.Mesh(
-              hptFillGeometry,
-              new THREE.MeshStandardMaterial({
-                color: 0xf44336,
-                transparent: true,
-                opacity: 0.8,
-                roughness: 0.2,
-                metalness: 0.0,
-                emissive: 0xd32f2f,
-                emissiveIntensity: 0.3
-              })
-            );
-            hptFill.position.y = 0;
-            hptFill.scale.y = 0.01;
+            // HPT liquid
+            const hptFill = makeLiquid(0xf44336, 0xd32f2f);
             hptGroup.add(hptFill);
 
             // Add support legs to HPT tank
@@ -2163,13 +2244,12 @@ def index_page():
                 const response = await fetch('/api/state');
                 const data = await response.json();
 
-                // Update tank fill levels (pressure values range 0-255)
-                const gstPercent = data.gst / 255;
-                const hptPercent = data.hpt / 255;
-
-                // Scale fill (geometry is anchored at bottom, so just scale)
-                gstFill.scale.y = Math.max(0.01, gstPercent);
-                hptFill.scale.y = Math.max(0.01, hptPercent);
+                // Tank levels.  The sensors report 0-255, and the surface is
+                // placed so the volume below it is that fraction of the whole
+                // vessel -- heads included.  Half the pressure is half the
+                // tank, which is what anyone reading the picture assumes.
+                gstFill.userData.setLevel(data.gst / 255);
+                hptFill.userData.setLevel(data.hpt / 255);
 
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
@@ -2380,12 +2460,26 @@ def index_page():
             fetchData();
 
             // Handle resize
-            window.addEventListener('resize', function() {
-              camera.aspect = container.clientWidth / container.clientHeight;
+            //
+            // Watching the container rather than the window: it also changes
+            // when the tab is switched to, when the browser chrome grows or
+            // shrinks, and when the page is zoomed, none of which fire a
+            // window resize.  Without this the canvas kept whatever size it
+            // had when the scene was built and left a dead band around itself.
+            function fitToContainer() {
+              const w = container.clientWidth, h = container.clientHeight;
+              if (!w || !h) { return; }
+              camera.aspect = w / h;
               camera.updateProjectionMatrix();
-              renderer.setSize(container.clientWidth, container.clientHeight);
+              renderer.setSize(w, h, false);
               renderer.shadowMap.needsUpdate = true;
-            });
+            }
+
+            if (window.ResizeObserver) {
+              new ResizeObserver(fitToContainer).observe(container);
+            }
+            window.addEventListener('resize', fitToContainer);
+            fitToContainer();
 
             // Start animation
             animate();
