@@ -915,7 +915,20 @@ def index_page():
             // instead of four more full scene passes on every single frame.
             renderer.shadowMap.autoUpdate = false;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.1;
+            // Exposure and the light intensities below were tuned against the
+            // broken linear output, which swallowed most of what they emitted.
+            // Correcting the encoding handed all of that back at once and the
+            // scene came out washed out -- the same lighting, now actually
+            // arriving.  A mid grey lit to 0.5 in linear space reads as 0.5
+            // when written straight to the canvas and as 0.74 once encoded, so
+            // roughly everything got brighter by half.
+            //
+            // Rebalanced rather than simply dimmed: the key light keeps its
+            // full strength, because that is what gives the vessels their shape
+            // and their shadows, and the ambient and fill terms come down
+            // hardest, because those are what flatten a scene when they are too
+            // strong.
+            renderer.toneMappingExposure = 0.75;
             renderer.physicallyCorrectLights = true;
             // Without this the image is written to the canvas in linear space
             // while the tone mapper assumes it will be encoded, which is what
@@ -954,7 +967,8 @@ def index_page():
             })();
 
             // Realistic industrial lighting setup
-            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.5);
+            // ambient lifts every surface equally, so it is the first thing to cut
+            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.22);
             scene.add(ambientLight);
 
             // Main overhead directional light (soft daylight)
@@ -976,12 +990,12 @@ def index_page():
             scene.add(directionalLight);
 
             // Soft fill light from side (subtle blue)
-            const fillLight = new THREE.DirectionalLight(0xa8c5dd, 0.35);
+            const fillLight = new THREE.DirectionalLight(0xa8c5dd, 0.22);
             fillLight.position.set(-15, 12, -8);
             scene.add(fillLight);
 
             // Warm accent light from opposite side (CybICS orange)
-            const accentLight = new THREE.DirectionalLight(0xff9955, 0.3);
+            const accentLight = new THREE.DirectionalLight(0xff9955, 0.18);
             accentLight.position.set(8, 10, -15);
             scene.add(accentLight);
 
@@ -1004,9 +1018,9 @@ def index_page():
             };
 
             // Subtle equipment spotlights (realistic industrial lighting)
-            scene.add(createSpotlight(0xffffff, 0.8, -7, 12, 5, -7, 2, 0));    // GST
-            scene.add(createSpotlight(0xffffff, 0.8, 7, 12, 5, 7, 2, 0));     // HPT
-            scene.add(createSpotlight(0xffffff, 0.6, 0, 8, 3, 0, 1.5, 0));    // Compressor
+            scene.add(createSpotlight(0xffffff, 0.45, -7, 12, 5, -7, 2, 0));   // GST
+            scene.add(createSpotlight(0xffffff, 0.45, 7, 12, 5, 7, 2, 0));    // HPT
+            scene.add(createSpotlight(0xffffff, 0.35, 0, 8, 3, 0, 1.5, 0));   // Compressor
 
             // Industrial concrete floor
             const groundGeometry = new THREE.PlaneGeometry(60, 60);
@@ -2215,6 +2229,28 @@ def index_page():
                 // Silent fail - will retry on next frame
               }
             }
+
+            // A handle for tuning the look without a rebuild.
+            //
+            // These numbers are a judgement about how a scene should appear and
+            // whoever is looking at it is better placed to make it than whoever
+            // wrote the defaults.  In the browser console:
+            //
+            //   CybICS3D.exposure(0.9)      brighter or darker overall
+            //   CybICS3D.ambient(0.3)       flatter or more contrasty
+            //   CybICS3D.report()           the current values, to paste back
+            window.CybICS3D = {
+              exposure: v => { renderer.toneMappingExposure = v; },
+              ambient: v => { ambientLight.intensity = v; },
+              fill: v => { fillLight.intensity = v; },
+              accent: v => { accentLight.intensity = v; },
+              report: () => ({
+                exposure: renderer.toneMappingExposure,
+                ambient: ambientLight.intensity,
+                fill: fillLight.intensity,
+                accent: accentLight.intensity,
+              }),
+            };
 
             // Draw the shadow maps once, now that everything is in the scene.
             renderer.shadowMap.needsUpdate = true;
