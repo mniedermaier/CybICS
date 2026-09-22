@@ -817,7 +817,11 @@ def index_page():
                 return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
               } catch (e) { return 'unknown'; }
             })();
-            const softwareRenderer =
+            // ?force3d=1 builds the scene anyway.  Someone on a weak machine
+            // may want to look at it regardless, and it is the only way to
+            // inspect the scene from a browser without hardware acceleration.
+            const forced = /[?&]force3d=1/.test(window.location.search);
+            const softwareRenderer = !forced &&
               /swiftshader|llvmpipe|software|microsoft basic|^none$/i.test(gpuName);
 
             if (softwareRenderer) {
@@ -1233,11 +1237,23 @@ def index_page():
 
             function makeLiquid(colour, emissive) {
               const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -LIQUID_R);
+              // depthWrite off, and that is not optional here.
+              //
+              // The clipped body is open at the cut, so it has to be
+              // DoubleSide or you look straight through the surface into
+              // nothing.  A transparent DoubleSide body that also writes depth
+              // has its back faces occlude its own front faces, and what you
+              // get is a volume that renders as very nearly invisible -- which
+              // is exactly what happened when this replaced the old fill: the
+              // surface disc still drew, the liquid under it did not.  The old
+              // fill escaped it by being FrontSide, which it could afford
+              // because a scaled cylinder is never cut open.
               const body = new THREE.MeshStandardMaterial({
                 color: colour, transparent: true, opacity: 0.8,
                 roughness: 0.2, metalness: 0.0,
                 emissive: emissive, emissiveIntensity: 0.3,
-                side: THREE.DoubleSide, clippingPlanes: [plane]
+                side: THREE.DoubleSide, depthWrite: false,
+                clippingPlanes: [plane]
               });
               // The cut leaves the body open, so a disc rides at the surface.
               const surface = new THREE.MeshStandardMaterial({
@@ -2320,6 +2336,13 @@ def index_page():
             //   CybICS3D.ambient(0.3)       flatter or more contrasty
             //   CybICS3D.report()           the current values, to paste back
             window.CybICS3D = {
+              // The objects themselves, for poking at from the console.  Note
+              // that three.js puts render() on the instance rather than on
+              // WebGLRenderer.prototype, so patching the prototype to observe
+              // frames silently does nothing -- reach them through here.
+              scene: scene,
+              renderer: renderer,
+              camera: camera,
               exposure: v => { renderer.toneMappingExposure = v; },
               ambient: v => { ambientLight.intensity = v; },
               fill: v => { fillLight.intensity = v; },
