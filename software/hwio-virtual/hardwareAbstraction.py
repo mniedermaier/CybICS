@@ -1078,6 +1078,7 @@ def index_page():
                   depthWrite: false
                 }));
               dome.userData.noOutline = true;
+              dome.userData.noFrame = true;
               dome.renderOrder = -1;
               return dome;
             })();
@@ -1267,6 +1268,7 @@ def index_page():
               metalness: 0.0
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.userData.noFrame = true;
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
@@ -1414,6 +1416,97 @@ def index_page():
             }
 
             await yieldToBrowser();   // built controls and helpers
+
+            // Vessel plates carry the number, not just the tag
+            //
+            // The scene and the numbers used to read as two unrelated
+            // products: the plant said "GST" and "HPT" and nothing else, while
+            // every actual value lived in an HTML card floating over the deck.
+            // A plant view that has to be read alongside a separate list is
+            // not doing its job.
+            //
+            // The bands and their wording are not invented here. update_ui()
+            // further down this same file already classifies both vessels for
+            // the classic view -- HPT as Empty, Low, Normal, High or Critical
+            // and GST as Low, Normal or Full -- and HPT's Normal band is the
+            // same 50 to 100 window that physical_process_thread uses for
+            // sysSen. If those thresholds move, they have to move in both
+            // places.
+            function makeValuePlate(tag) {
+              const canvas = document.createElement('canvas');
+              canvas.width = 512;
+              canvas.height = 176;
+              const ctx = canvas.getContext('2d');
+              const texture = new THREE.CanvasTexture(canvas);
+              texture.encoding = THREE.sRGBEncoding;
+              const sprite = new THREE.Sprite(
+                new THREE.SpriteMaterial({ map: texture }));
+              sprite.scale.set(4.4, 1.5, 1);
+
+              let last = null;
+              sprite.userData.set = function (value, word, accent) {
+                const key = value + '|' + word + '|' + accent;
+                // Redrawing a canvas and re-uploading its texture every frame
+                // for a number that changes twice a second is pure waste.
+                if (key === last) { return; }
+                last = key;
+
+                ctx.clearRect(0, 0, 512, 176);
+                ctx.fillStyle = 'rgba(14, 20, 28, 0.9)';
+                ctx.fillRect(0, 0, 512, 176);
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 6;
+                ctx.strokeRect(3, 3, 506, 170);
+
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'left';
+                ctx.font = 'bold 54px ui-monospace, Menlo, Consolas, monospace';
+                ctx.fillStyle = '#cfdcea';
+                ctx.fillText(tag, 24, 52);
+
+                ctx.textAlign = 'right';
+                ctx.font = 'bold 66px ui-monospace, Menlo, Consolas, monospace';
+                ctx.fillStyle = accent;
+                ctx.fillText(String(value), 488, 52);
+
+                ctx.textAlign = 'left';
+                ctx.font = '500 40px ui-monospace, Menlo, Consolas, monospace';
+                ctx.fillStyle = accent;
+                ctx.fillText(word, 24, 128);
+
+                texture.needsUpdate = true;
+              };
+              return sprite;
+            }
+
+            const BAND_LOW    = { word: 'LOW',      accent: '#ffb74d',
+                                  face: 0xffa726, glow: 0xb56a00 };
+            const BAND_HIGH   = { word: 'HIGH',     accent: '#ffb74d',
+                                  face: 0xffa726, glow: 0xb56a00 };
+            const BAND_NORMAL = { word: 'NORMAL',   accent: '#5fe39a',
+                                  face: 0x2ecc71, glow: 0x0b7a3f };
+            const BAND_CRIT   = { word: 'CRITICAL', accent: '#ff6b6b',
+                                  face: 0xff3b30, glow: 0xb3120a };
+            const BAND_EMPTY  = { word: 'EMPTY',    accent: '#8fa0b3',
+                                  face: 0x6b7787, glow: 0x2b3340 };
+            const BAND_FULL   = { word: 'FULL',     accent: '#6fc5ff',
+                                  face: 0x2196f3, glow: 0x0d47a1 };
+            const BAND_GST_OK = { word: 'NORMAL',   accent: '#6fc5ff',
+                                  face: 0x2196f3, glow: 0x0d47a1 };
+
+            function hptBand(v, blowout) {
+              if (blowout || v >= 150) { return BAND_CRIT; }
+              if (v === 0) { return BAND_EMPTY; }
+              if (v < 50) { return BAND_LOW; }
+              if (v < 100) { return BAND_NORMAL; }
+              return BAND_HIGH;
+            }
+
+            function gstBand(v) {
+              if (v < 50) { return BAND_LOW; }
+              if (v < 150) { return BAND_GST_OK; }
+              return BAND_FULL;
+            }
 
             // Level, shown on the vessel rather than inside it
             //
@@ -1703,8 +1796,8 @@ def index_page():
             gstGroup.add(gstGlowRing);
 
             // GST Label with text
-            const gstLabel = createTextSprite('GST');
-            gstLabel.position.set(0, 10.5, 0);
+            const gstLabel = makeValuePlate('GST');
+            gstLabel.position.set(0, 11.0, 0);
             gstGroup.add(gstLabel);
 
             scene.add(gstGroup);
@@ -1743,27 +1836,10 @@ def index_page():
             hptGroup.add(hptBody);
 
             // HPT liquid
-            // HPT's band is a state channel, not a tag colour.
-            //
-            // It used to be salmon at every pressure, which put a large red
-            // object in the picture whether the vessel was healthy or in
-            // blowout -- so the one colour an operator reads fastest said
-            // "this is HPT" rather than "this is wrong", and during an actual
-            // alarm nothing about it changed.
-            //
-            // The thresholds are not invented. physical_process_thread in this
-            // same file defines them: sysSen is true only while 50 < hpt < 100,
-            // and a blowout is declared above 220 and held until the pressure
-            // falls back under 200. The band turns green inside the operating
-            // window, amber outside it, and red once the plant itself has
-            // declared the blowout.
-            const HPT_COLOURS = {
-              normal: { face: 0x2ecc71, glow: 0x0b7a3f },
-              high:   { face: 0xffa726, glow: 0xb56a00 },
-              alarm:  { face: 0xff3b30, glow: 0xb3120a }
-            };
-            const hptFill = makeLevelBand(HPT_COLOURS.normal.face,
-                                          HPT_COLOURS.normal.glow);
+            // HPT's band is a state channel rather than a tag colour, and it
+            // is driven from the shared bands above so that the vessel, its
+            // plate and the classic view cannot disagree with one another.
+            const hptFill = makeLevelBand(BAND_NORMAL.face, BAND_NORMAL.glow);
             hptGroup.add(hptFill);
 
             // Add support legs to HPT tank
@@ -1864,8 +1940,8 @@ def index_page():
             hptGroup.add(hptGlowRing);
 
             // HPT Label with text
-            const hptLabel = createTextSprite('HPT');
-            hptLabel.position.set(0, 10.5, 0);
+            const hptLabel = makeValuePlate('HPT');
+            hptLabel.position.set(0, 11.0, 0);
             hptGroup.add(hptLabel);
 
             scene.add(hptGroup);
@@ -2588,10 +2664,12 @@ def index_page():
                 // tank, which is what anyone reading the picture assumes.
                 gstFill.userData.setLevel(data.gst / 255);
                 hptFill.userData.setLevel(data.hpt / 255);
-                const band = data.boSen > 0 ? HPT_COLOURS.alarm
-                           : (data.hpt > 50 && data.hpt < 100) ? HPT_COLOURS.normal
-                           : HPT_COLOURS.high;
-                hptFill.userData.setColour(band.face, band.glow);
+                const hptState = hptBand(data.hpt, data.boSen > 0);
+                const gstState = gstBand(data.gst);
+                hptFill.userData.setColour(hptState.face, hptState.glow);
+                gstFill.userData.setColour(gstState.face, gstState.glow);
+                hptLabel.userData.set(data.hpt, hptState.word, hptState.accent);
+                gstLabel.userData.set(data.gst, gstState.word, gstState.accent);
 
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
@@ -3000,12 +3078,92 @@ def index_page():
             // shrinks, and when the page is zoomed, none of which fire a
             // window resize.  Without this the canvas kept whatever size it
             // had when the scene was built and left a dead band around itself.
+            // Frame the plant, rather than hoping a hand-set camera fits it.
+            //
+            // The camera used to sit at a fixed point chosen by eye, and the
+            // plant filled about a third of the canvas with the right-hand
+            // third empty. Every attempt to move it in by hand clipped the top
+            // of the stack instead, because the scene is both wide and tall and
+            // the trade between the two depends on the window's aspect ratio --
+            // which is not knowable when the number is typed into the source.
+            //
+            // So the scene measures itself. The bounding box of the equipment
+            // is fitted to whichever of width or height is the binding
+            // constraint, from a fixed three-quarter direction, and it is
+            // recomputed whenever the container changes size. The plant fills
+            // the frame at any window shape, and the stack stops being cut off.
+            const FRAME_DIRECTION = new THREE.Vector3(0.02, 0.36, 1).normalize();
+            const FRAME_MARGIN = 1.12;
+            const plantBox = new THREE.Box3();
+            const plantCentre = new THREE.Vector3();
+            const plantSize = new THREE.Vector3();
+
+            function measurePlant() {
+              plantBox.makeEmpty();
+              scene.traverse(node => {
+                // The sky dome is 180 units across and the ground is 300; both
+                // would swallow the box and put the camera in the next county.
+                if (!node.isMesh || node.userData.noFrame) { return; }
+                plantBox.expandByObject(node);
+              });
+              plantBox.getCenter(plantCentre);
+              plantBox.getSize(plantSize);
+            }
+
+            // Where the corners of the plant land on screen, in normalised
+            // device coordinates: 1 means exactly at the edge of the frame.
+            const frameCorner = new THREE.Vector3();
+            function worstCorner() {
+              let worst = 0;
+              for (let i = 0; i < 8; i++) {
+                frameCorner.set(
+                  (i & 1) ? plantBox.max.x : plantBox.min.x,
+                  (i & 2) ? plantBox.max.y : plantBox.min.y,
+                  (i & 4) ? plantBox.max.z : plantBox.min.z);
+                frameCorner.project(camera);
+                worst = Math.max(worst, Math.abs(frameCorner.x),
+                                        Math.abs(frameCorner.y));
+              }
+              return worst;
+            }
+
+            function frameCamera() {
+              if (plantBox.isEmpty()) { return; }
+              // The analytic distance is only a starting point. It measures to
+              // the centre of the box, while the near face stands several units
+              // closer, and the camera looks down rather than straight on -- so
+              // on its own it framed the plant far too tight and cut the stack
+              // off at the top. Project the eight corners and pull back until
+              // they all fit, which is exact and does not care about the shape
+              // of the box or the angle it is seen from.
+              const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
+              let dist = Math.max(
+                (plantSize.y / 2) / Math.tan(halfFov),
+                (plantSize.x / 2) / (Math.tan(halfFov) * camera.aspect));
+
+              for (let pass = 0; pass < 6; pass++) {
+                camera.position.copy(plantCentre)
+                      .addScaledVector(FRAME_DIRECTION, dist);
+                camera.lookAt(plantCentre);
+                camera.updateMatrixWorld(true);
+                camera.updateProjectionMatrix();
+                const worst = worstCorner();
+                if (!isFinite(worst) || worst <= 0) { break; }
+                const wanted = dist * worst * FRAME_MARGIN;
+                if (Math.abs(wanted - dist) < 0.05) { break; }
+                dist = wanted;
+              }
+              controls.target.copy(plantCentre);
+              controls.update();
+            }
+
             function fitToContainer() {
               const w = container.clientWidth, h = container.clientHeight;
               if (!w || !h) { return; }
               camera.aspect = w / h;
               camera.updateProjectionMatrix();
               renderer.setSize(w, h, false);
+              frameCamera();
               renderer.shadowMap.needsUpdate = true;
             }
 
@@ -3013,6 +3171,7 @@ def index_page():
               new ResizeObserver(fitToContainer).observe(container);
             }
             window.addEventListener('resize', fitToContainer);
+            measurePlant();
             fitToContainer();
 
             // Start animation

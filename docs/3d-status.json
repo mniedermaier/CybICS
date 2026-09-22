@@ -265,6 +265,52 @@
         "the vent line does not move": "the mechanism works -- ventGlow reaches 1.3 and the texture offset advances -- but the finding about visibility stands; the run is small and far from the camera.",
         "no shadows anywhere": "shadows were rendering. The key light stood about 55 degrees up, so every shadow fell off the platform and the only visible one, GST's, sat detached on the ground and read as a bug. Fixed by lowering the light, verified at runtime before committing."
       }
+    },
+    {
+      "round": 7,
+      "date": "2026-09-22",
+      "what": "composition and information: the camera frames the measured plant, and the vessel plates carry the numbers",
+      "score": null,
+      "scored_by": "critique pending",
+      "shots": [
+        "docs/3d/shots/r7-normal.png",
+        "docs/3d/shots/r7-high.png",
+        "docs/3d/shots/r7-alarm.png",
+        "docs/3d/shots/r7-wide.png",
+        "docs/3d/shots/r7-portrait.png"
+      ],
+      "changes": [
+        "the camera fits the equipment's bounding box instead of sitting at a point chosen by eye; the analytic distance is refined by projecting the eight corners and pulling back until they all fit, and it is recomputed on every resize",
+        "vessel plates carry tag, live value and band word, redrawn only when one of them changes",
+        "bands and their wording taken from update_ui() in the same file, which already classifies both vessels for the classic view, so the two views cannot disagree"
+      ],
+      "measured": {
+        "hardware_gl": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "materials": 72,
+          "build_seconds": 2.21,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "verified_by_hand": [
+        "framing checked at 1400x900, 1920x780 and 900x1000",
+        "plates checked at GST 200 FULL / HPT 60 NORMAL, GST 100 / HPT 120 HIGH, GST 30 LOW / HPT 240 CRITICAL"
+      ],
+      "found_but_out_of_scope": {
+        "page overflows narrow windows": "at a 900 px window the body scrolls to 1216 px, so the 3D container is wider than the viewport and the plant is cut off on the left. The camera framed its container correctly; the cause is the fixed 'width: 1200px' wrapper the classic view needs for its absolutely positioned board overlays. Not a 3D fault and not fixed here."
+      },
+      "still_open": [
+        "the relief line does not visibly enter the stack",
+        "thin elements stipple into dashed lines at sub-pixel widths",
+        "some vessel hoops render solid and others dashed, which looks like depth precision"
+      ]
     }
   ]
 }
