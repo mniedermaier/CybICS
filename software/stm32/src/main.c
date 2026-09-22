@@ -289,188 +289,6 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 }
 
 /* Custom characters for startup animation */
-static const uint8_t char_logo_tl[8] = {0x00, 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x0F};  /* Top-left corner */
-static const uint8_t char_logo_tr[8] = {0x00, 0x00, 0x00, 0x10, 0x18, 0x1C, 0x1E, 0x1E};  /* Top-right corner */
-static const uint8_t char_logo_bl[8] = {0x0F, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00};  /* Bottom-left corner */
-static const uint8_t char_logo_br[8] = {0x1E, 0x1E, 0x1C, 0x18, 0x10, 0x00, 0x00, 0x00};  /* Bottom-right corner */
-static const uint8_t char_block_full[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};  /* Full block */
-static const uint8_t char_block_left[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};  /* Left edge */
-static const uint8_t char_block_right[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}; /* Right edge */
-static const uint8_t char_gear[8] = {0x00, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x0E, 0x00};  /* Gear/cog */
-
-/**
- * @brief Play startup animation on LCD for ~10 seconds
- */
-static void play_startup_animation(struct lcd_hd44780 *lcd)
-{
-	int i;
-
-	/* Create custom characters */
-	lcd_create_char(lcd, 0, char_logo_tl);
-	lcd_create_char(lcd, 1, char_logo_tr);
-	lcd_create_char(lcd, 2, char_logo_bl);
-	lcd_create_char(lcd, 3, char_logo_br);
-	lcd_create_char(lcd, 4, char_block_full);
-	lcd_create_char(lcd, 5, char_block_left);
-	lcd_create_char(lcd, 6, char_block_right);
-	lcd_create_char(lcd, 7, char_gear);
-
-	/* Phase 1: Animated logo sequence (~5 seconds) */
-	lcd_clear(lcd);
-	k_msleep(300);
-
-	/* Sweep effect: lines coming from both sides */
-	for (i = 0; i < 8; i++) {
-		lcd_set_cursor(lcd, 0, i);
-		lcd_putc(lcd, '=');
-		lcd_set_cursor(lcd, 0, 15 - i);
-		lcd_putc(lcd, '=');
-		lcd_set_cursor(lcd, 1, i);
-		lcd_putc(lcd, '=');
-		lcd_set_cursor(lcd, 1, 15 - i);
-		lcd_putc(lcd, '=');
-		k_msleep(80);
-	}
-	k_msleep(200);
-
-	/* Clear with fade effect */
-	for (i = 0; i < 8; i++) {
-		lcd_set_cursor(lcd, 0, i);
-		lcd_putc(lcd, ' ');
-		lcd_set_cursor(lcd, 0, 15 - i);
-		lcd_putc(lcd, ' ');
-		lcd_set_cursor(lcd, 1, i);
-		lcd_putc(lcd, ' ');
-		lcd_set_cursor(lcd, 1, 15 - i);
-		lcd_putc(lcd, ' ');
-		k_msleep(50);
-	}
-	k_msleep(200);
-
-	/* Draw expanding box */
-	lcd_set_cursor(lcd, 0, 7);
-	lcd_putc(lcd, 0);  /* Top-left */
-	lcd_putc(lcd, 1);  /* Top-right */
-	lcd_set_cursor(lcd, 1, 7);
-	lcd_putc(lcd, 2);  /* Bottom-left */
-	lcd_putc(lcd, 3);  /* Bottom-right */
-	k_msleep(400);
-
-	/* Add horizontal lines expanding from center */
-	for (i = 1; i <= 5; i++) {
-		lcd_set_cursor(lcd, 0, 7 - i);
-		lcd_putc(lcd, '-');
-		lcd_set_cursor(lcd, 0, 8 + i);
-		lcd_putc(lcd, '-');
-		lcd_set_cursor(lcd, 1, 7 - i);
-		lcd_putc(lcd, '-');
-		lcd_set_cursor(lcd, 1, 8 + i);
-		lcd_putc(lcd, '-');
-		k_msleep(100);
-	}
-	k_msleep(300);
-
-	/* Add gear icons with animation */
-	lcd_set_cursor(lcd, 0, 1);
-	lcd_putc(lcd, 7);
-	k_msleep(150);
-	lcd_set_cursor(lcd, 0, 14);
-	lcd_putc(lcd, 7);
-	k_msleep(150);
-	lcd_set_cursor(lcd, 1, 1);
-	lcd_putc(lcd, 7);
-	k_msleep(150);
-	lcd_set_cursor(lcd, 1, 14);
-	lcd_putc(lcd, 7);
-	k_msleep(400);
-
-	/* Spinning effect on gears */
-	for (i = 0; i < 4; i++) {
-		lcd_set_cursor(lcd, 0, 1);
-		lcd_putc(lcd, (i % 2) ? 7 : '*');
-		lcd_set_cursor(lcd, 0, 14);
-		lcd_putc(lcd, (i % 2) ? '*' : 7);
-		lcd_set_cursor(lcd, 1, 1);
-		lcd_putc(lcd, (i % 2) ? '*' : 7);
-		lcd_set_cursor(lcd, 1, 14);
-		lcd_putc(lcd, (i % 2) ? 7 : '*');
-		k_msleep(200);
-	}
-	k_msleep(300);
-
-	/* Phase 2: Typewriter effect for "CybICS" */
-	lcd_clear(lcd);
-	k_msleep(200);
-	lcd_set_cursor(lcd, 0, 5);
-	const char *logo = "CybICS";
-	for (i = 0; logo[i] != '\0'; i++) {
-		lcd_putc(lcd, logo[i]);
-		k_msleep(200);
-	}
-	k_msleep(800);
-
-	/* Phase 3: Loading bar animation - loops until I2C message received */
-	lcd_clear(lcd);
-	lcd_set_cursor(lcd, 0, 1);
-	lcd_print(lcd, "Waiting for Pi");
-
-	/* Draw loading bar frame */
-	lcd_set_cursor(lcd, 1, 0);
-	lcd_print(lcd, "[              ]");
-
-	/* Animate loading bar until I2C message is received */
-	i = 0;
-	while (!i2c_first_message_received) {
-		/* Calculate position in the bar (ping-pong effect) */
-		int pos = i % 28;  /* 0-27 for back and forth */
-		if (pos >= 14) {
-			pos = 27 - pos;  /* Reverse direction */
-		}
-
-		/* Clear the bar */
-		lcd_set_cursor(lcd, 1, 1);
-		lcd_print(lcd, "              ");
-
-		/* Draw moving segment (3 chars wide) */
-		for (int j = 0; j < 3; j++) {
-			int p = pos + j;
-			if (p >= 0 && p < 14) {
-				lcd_set_cursor(lcd, 1, 1 + p);
-				lcd_putc(lcd, '=');
-			}
-		}
-
-		/* Animate dots on top line */
-		lcd_set_cursor(lcd, 0, 15);
-		lcd_putc(lcd, "\\|/-"[i % 4]);  /* Spinning indicator */
-
-		i++;
-		k_msleep(100);
-	}
-
-	/* Show connected message briefly */
-	lcd_clear(lcd);
-	lcd_set_cursor(lcd, 0, 2);
-	lcd_print(lcd, "Pi Connected!");
-	lcd_set_cursor(lcd, 1, 0);
-	lcd_print(lcd, "[==============]");
-	k_msleep(800);
-
-	/* Phase 4: System ready with flash effect */
-	for (int flash = 0; flash < 3; flash++) {
-		lcd_clear(lcd);
-		k_msleep(100);
-		lcd_set_cursor(lcd, 0, 2);
-		lcd_print(lcd, "** READY **");
-		lcd_set_cursor(lcd, 1, 5);
-		lcd_print(lcd, "CybICS");
-		k_msleep(300);
-	}
-
-	/* Hold ready message */
-	k_msleep(500);
-	lcd_clear(lcd);
-}
 /*
  * LCD screen text.
  *
@@ -487,6 +305,13 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
  * LCD_SCREENS_BEGIN
  */
 #define LCD_SCREEN_COUNT            5
+/*
+ * Boot animation geometry and timing.  Shared because the virtual plant plays
+ * the same sweep at the same speed; the captions are not, because the two wait
+ * for different peers and neither should claim otherwise.
+ */
+#define LCD_BOOT_SUBPIXELS          5
+#define LCD_BOOT_SWEEP_MS           972
 #define LCD_FMT_OVERVIEW_L0         "CybICS %-9s"
 #define LCD_FMT_OVERVIEW_L1         "%16u"
 #define LCD_TXT_NET_STA_L0          "Wifi STA mode"
@@ -506,6 +331,150 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 #define LCD_FMT_BUILD_L0            "Build %s"
 #define LCD_FMT_BUILD_L1            "%-8s HW %-4s"
 /* LCD_SCREENS_END */
+
+/*
+ * Boot animation glyphs.
+ *
+ * Five characters, each a bar filled from the left edge to pixel column 1..5,
+ * with the top and bottom rows left clear so it reads as a bar rather than a
+ * blob.  That is the whole set: an HD44780 cell is five pixels wide, so these
+ * five let a bar grow a fifth of a character at a time instead of jumping a
+ * whole one, and a bar that moves in pixel steps is the one thing a character
+ * LCD can do that looks genuinely smooth.
+ *
+ * The previous animation used eight glyphs -- logo corners, a gear, three
+ * block shapes -- for a sweep, a fade, an expanding box, four spinning gears
+ * and a typewriter, about nine seconds of effects that said nothing.  Three of
+ * those eight were created and never drawn.
+ */
+#define LCD_COLS_ANIM 16
+#define BAR_SUBPIXELS LCD_BOOT_SUBPIXELS
+#define BAR_PIXELS_MAX (LCD_COLS_ANIM * BAR_SUBPIXELS)
+
+/* Custom character slots 0..4 hold widths 1..5. */
+#define BAR_GLYPH(width) ((char)((width) - 1))
+#define BAR_GLYPH_FULL BAR_GLYPH(BAR_SUBPIXELS)
+
+static const uint8_t char_bar[BAR_SUBPIXELS][8] = {
+	{0x00, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x00},
+	{0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00},
+	{0x00, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x00},
+	{0x00, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x00},
+	{0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x00},
+};
+
+/*
+ * Move the bar on the bottom row to `pixels`, touching only the cells that
+ * changed.  *shown carries the position across calls, so a step costs one or
+ * two character writes rather than a redraw of the row -- which matters,
+ * because at 80 steps a full sweep would otherwise be 1280 writes down a
+ * bit-banged 4-bit bus.
+ */
+static void bar_set(struct lcd_hd44780 *lcd, int pixels, int *shown)
+{
+	int cell, sub, old_cell;
+
+	if (pixels == *shown) {
+		return;
+	}
+
+	cell = pixels / BAR_SUBPIXELS;
+	sub = pixels % BAR_SUBPIXELS;
+	old_cell = *shown / BAR_SUBPIXELS;
+
+	/* Cells the bar has just covered. */
+	for (int c = old_cell; c < cell; c++) {
+		lcd_set_cursor(lcd, 1, (uint8_t)c);
+		lcd_putc(lcd, BAR_GLYPH_FULL);
+	}
+
+	/*
+	 * Cells it has just uncovered, when draining.  Clamped to the last
+	 * real column: a full bar sits at cell 16, one past the end, and
+	 * writing there would address DDRAM the panel does not show.
+	 */
+	for (int c = (old_cell < LCD_COLS_ANIM) ? old_cell : LCD_COLS_ANIM - 1; c > cell; c--) {
+		lcd_set_cursor(lcd, 1, (uint8_t)c);
+		lcd_putc(lcd, ' ');
+	}
+
+	/* The leading edge, at pixel resolution. */
+	if (cell < LCD_COLS_ANIM) {
+		lcd_set_cursor(lcd, 1, (uint8_t)cell);
+		lcd_putc(lcd, sub ? BAR_GLYPH(sub) : ' ');
+	}
+
+	*shown = pixels;
+}
+
+/* Centre a string on a row, for the two captions this animation shows. */
+static void lcd_centre(struct lcd_hd44780 *lcd, uint8_t row, const char *text)
+{
+	size_t len = strlen(text);
+	uint8_t col = (len >= LCD_COLS_ANIM) ? 0 : (uint8_t)((LCD_COLS_ANIM - len) / 2);
+	char padded[LCD_COLS_ANIM + 1];
+
+	snprintf(padded, sizeof(padded), "%*s%-*s", col, "", LCD_COLS_ANIM - col, text);
+	lcd_set_cursor(lcd, row, 0);
+	lcd_print(lcd, padded);
+}
+
+/*
+ * Boot animation: one idea, about a second of it.
+ *
+ * The name appears, a bar sweeps across underneath, and that same bar is then
+ * the thing that tells you the board is waiting for the Pi -- so the startup
+ * sequence is one continuous motion rather than four unrelated effects played
+ * in a row.  If the Pi is slow the caption changes to say so, which is the only
+ * part of the old nine seconds that carried information.
+ */
+static void play_startup_animation(struct lcd_hd44780 *lcd)
+{
+	/* One sweep takes LCD_BOOT_SWEEP_MS, the figure the browser uses too. */
+	const int step_ms = LCD_BOOT_SWEEP_MS / (BAR_PIXELS_MAX + 1);
+	int shown = 0;
+	bool said_waiting = false;
+
+	for (int i = 0; i < BAR_SUBPIXELS; i++) {
+		lcd_create_char(lcd, (uint8_t)i, char_bar[i]);
+	}
+
+	lcd_clear(lcd);
+	lcd_centre(lcd, 0, "CybICS " FIRMWARE_VERSION_STRING);
+
+	/* Fill. */
+	for (int p = 0; p <= BAR_PIXELS_MAX; p++) {
+		bar_set(lcd, p, &shown);
+		k_msleep(step_ms);
+	}
+
+	/*
+	 * Keep sweeping until the Pi says hello.  On a healthy boot this loop
+	 * runs once or not at all; when it does not, the caption explains why
+	 * the board is sitting there.
+	 */
+	while (!i2c_first_message_received) {
+		if (!said_waiting) {
+			lcd_centre(lcd, 0, "Waiting for Pi");
+			said_waiting = true;
+		}
+
+		for (int p = BAR_PIXELS_MAX; p >= 0 && !i2c_first_message_received; p--) {
+			bar_set(lcd, p, &shown);
+			k_msleep(step_ms);
+		}
+		for (int p = 0; p <= BAR_PIXELS_MAX && !i2c_first_message_received; p++) {
+			bar_set(lcd, p, &shown);
+			k_msleep(step_ms);
+		}
+	}
+
+	/* Snap the bar full, say so, and get out of the way. */
+	bar_set(lcd, BAR_PIXELS_MAX, &shown);
+	lcd_centre(lcd, 0, "Pi connected");
+	k_msleep(600);
+	lcd_clear(lcd);
+}
 
 #define LCD_COLS 16
 

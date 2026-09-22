@@ -75,6 +75,11 @@ client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 #
 # LCD_SCREENS_BEGIN
 LCD_SCREEN_COUNT           = 5
+# Boot animation geometry and timing.  Shared because this plays the same sweep
+# at the same speed as the board; the captions are not shared, because the two
+# wait for different peers and neither should claim otherwise.
+LCD_BOOT_SUBPIXELS         = 5
+LCD_BOOT_SWEEP_MS          = 972
 LCD_FMT_OVERVIEW_L0        = "CybICS %-9s"
 LCD_FMT_OVERVIEW_L1        = "%16u"
 LCD_TXT_NET_STA_L0         = "Wifi STA mode"
@@ -159,6 +164,70 @@ def lcd_render(screen):
 def virtual_ip():
   """Address this plant is reachable on, for the network screen."""
   return os.environ.get("HWIO_ADDRESS", "172.18.0.4")
+
+
+# ---------------------------------------------------------------------------
+# Boot animation
+#
+# The same one the firmware plays: the name, then a bar sweeping across the
+# bottom row, and that same bar is what says the plant is waiting for its
+# controller.  Same 972 ms sweep, same five sub-pixel steps per character.
+#
+# Two things cannot be identical and are not pretended to be.  The board waits
+# for the Raspberry Pi over I2C and this waits for OpenPLC over Modbus, so the
+# caption names the peer each side actually has.  And a character LCD splits a
+# cell into five columns where a font offers eighths, so the partial cell is
+# drawn with the nearest eighth-block -- visibly the same motion, a fraction of
+# a pixel off.
+BAR_EIGHTHS = {0: " ", 1: "\u258e", 2: "\u258d", 3: "\u258b", 4: "\u258a", 5: "\u2588"}
+
+boot_started_at = None
+boot_finished = False
+
+
+def boot_animation_start():
+  """Replay the animation, from a reset or at start-up."""
+  global boot_started_at, boot_finished
+  boot_started_at = time.monotonic()
+  boot_finished = False
+
+
+def boot_bar(pixels):
+  """The bottom row at `pixels` of LCD_COLS * LCD_BOOT_SUBPIXELS."""
+  full, sub = divmod(pixels, LCD_BOOT_SUBPIXELS)
+  cells = [BAR_EIGHTHS[LCD_BOOT_SUBPIXELS]] * full
+  if len(cells) < LCD_COLS:
+    cells.append(BAR_EIGHTHS[sub])
+  return "".join(cells).ljust(LCD_COLS)
+
+
+def boot_frame():
+  """Two lines for the current moment, or None once the animation is over."""
+  global boot_finished
+  if boot_started_at is None or boot_finished:
+    return None
+
+  span = LCD_BOOT_SWEEP_MS / 1000.0
+  elapsed = time.monotonic() - boot_started_at
+  maxp = LCD_COLS * LCD_BOOT_SUBPIXELS
+
+  if elapsed < span:
+    # The opening sweep.
+    return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), boot_bar(
+      int(maxp * elapsed / span))
+
+  if not client.connected:
+    # Sweep back and forth for as long as the controller is missing, which is
+    # the only part of this that carries information.
+    phase = ((elapsed - span) % (2 * span)) / span
+    pixels = int(maxp * (1 - phase)) if phase < 1 else int(maxp * (phase - 1))
+    return "Waiting for PLC".ljust(LCD_COLS), boot_bar(pixels)
+
+  if elapsed < span + 0.6:
+    return "PLC connected".ljust(LCD_COLS), boot_bar(maxp)
+
+  boot_finished = True
+  return None
 
 
 def nav_event(event):
@@ -364,6 +433,7 @@ def button_reset():
   gstSig=0
   delay=0
   timer=0
+  boot_animation_start()
   logging.info("button_rest: all reseted")
 
 # API endpoint for 3D visualization data
@@ -2108,8 +2178,10 @@ def index_page():
     global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
     # Update the LCD.  Both lines every tick, from one renderer, so the panel
-    # can never show half of one screen and half of another.
-    line0, line1 = lcd_render(displayScreen)
+    # can never show half of one screen and half of another.  The boot
+    # animation owns the panel while it runs.
+    frame = boot_frame()
+    line0, line1 = frame if frame else lcd_render(displayScreen)
     DISPLAYoverlay1.set_text(line0)
     DISPLAYoverlay2.set_text(line1)
 
@@ -2461,6 +2533,10 @@ def index_page():
       ''')
     except:
       pass  # 3D visualization tab not loaded yet
+
+  # The panel boots the way the board does, for whoever opens the page first.
+  if boot_started_at is None:
+    boot_animation_start()
 
   # Create a timer to update every 20ms (50Hz to match OpenPLC cycle time)
   ui.timer(0.02, update)
