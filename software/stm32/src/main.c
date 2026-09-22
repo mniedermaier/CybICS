@@ -17,6 +17,7 @@
 #include "lcd_hd44780.h"
 #include "version.h"
 #include "hw_version.h"
+#include "ui_input.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include "proto/cybics.pb.h"
@@ -253,7 +254,6 @@ static const struct gpio_dt_spec d_d4 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d4), gpi
 static const struct gpio_dt_spec d_d5 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d5), gpios);
 static const struct gpio_dt_spec d_d6 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d6), gpios);
 static const struct gpio_dt_spec d_d7 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d7), gpios);
-static const struct gpio_dt_spec display_in = GPIO_DT_SPEC_GET(DT_NODELABEL(display_in), gpios);
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_NODELABEL(button), gpios);
 
 
@@ -471,21 +471,62 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 	k_msleep(500);
 	lcd_clear(lcd);
 }
+/*
+ * LCD screen text.
+ *
+ * These are the only strings the display ever shows, and the virtual plant in
+ * software/hwio-virtual/hardwareAbstraction.py reproduces them character for
+ * character so that a student sees the same 16x2 panel whether they are in
+ * front of the board or in front of the browser.
+ *
+ * tests/test_display_parity.py parses this block and the Python one and fails
+ * if the two drift apart, the same way test_plant_model_parity.py guards the
+ * plant model.  Change a string here and the test will tell you where its
+ * twin lives.
+ *
+ * LCD_SCREENS_BEGIN
+ */
+#define LCD_SCREEN_COUNT            5
+#define LCD_FMT_OVERVIEW_L0         "CybICS %-9s"
+#define LCD_FMT_OVERVIEW_L1         "%16u"
+#define LCD_TXT_NET_STA_L0          "Wifi STA mode"
+#define LCD_FMT_NET_STA_L1          "IP: %-12s"
+#define LCD_TXT_NET_AP_L0           "AP mode: cybics-"
+#define LCD_FMT_NET_AP_L1           "%-16s"
+#define LCD_TXT_NET_ERR_L0          "WiFi error"
+#define LCD_TXT_NET_ERR_L1          ""
+#define LCD_TXT_PROCESS_L0          "Physical/real:  "
+#define LCD_FMT_PROCESS_L1          "GST:%03d HPT:%03d "
+#define LCD_TXT_STATUS_L0           "Status:"
+#define LCD_TXT_STATUS_BLOWOUT      "Danger! BlowOut"
+#define LCD_TXT_STATUS_OPERATIONAL  "Operational"
+#define LCD_TXT_STATUS_SV_CLOSED    "SV closed"
+#define LCD_TXT_STATUS_PRESS_HIGH   "Pressure high"
+#define LCD_TXT_STATUS_PRESS_LOW    "Pressure low"
+#define LCD_FMT_BUILD_L0            "Build %s"
+#define LCD_FMT_BUILD_L1            "%-8s HW %-4s"
+/* LCD_SCREENS_END */
+
+#define LCD_COLS 16
 
 /*
- * True while the display switch is pressed, on either board revision: the
- * v1.0 push-button reads high when pressed, the v1.1 navigation switch reads
- * low because its common is tied to GND.
+ * Write a line only if it differs from what is already there.
+ *
+ * The old code rewrote both lines every second whether or not anything had
+ * changed, which is 32 characters of HD44780 bit-banging a second and a
+ * visible shimmer on the screen.  Now a static screen costs nothing.
  */
-static bool display_switch_pressed(void)
+static void lcd_line(struct lcd_hd44780 *lcd, uint8_t row, char *shadow, const char *text)
 {
-	int level = gpio_pin_get_dt(&display_in);
-
-	if (level < 0) {
-		return false;
+	if (strncmp(shadow, text, LCD_COLS + 1) == 0) {
+		return;
 	}
 
-	return hw_version_switch_active_low() ? (level == 0) : (level != 0);
+	strncpy(shadow, text, LCD_COLS);
+	shadow[LCD_COLS] = '\0';
+
+	lcd_set_cursor(lcd, row, 0);
+	lcd_print(lcd, shadow);
 }
 
 /* Thread: Display */
@@ -495,11 +536,14 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	uint8_t shifting = 0;
 	uint8_t displayScreen = 0;
-	uint32_t secondsAfterStart = 0;
 	uint8_t wifiPressed = 0;
-	char displayText[20];
+	char line0[LCD_COLS + 1];
+	char line1[LCD_COLS + 1];
+	/* What the panel is currently showing, so we only write what changed. */
+	char shown0[LCD_COLS + 1];
+	char shown1[LCD_COLS + 1];
+	int64_t uptime_base_ms;
 	int ret;
 
 	/* Wait for initialization to complete */
@@ -531,6 +575,14 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	play_startup_animation(&lcd);
 	LOG_INF("Display thread: startup animation complete");
 
+	/*
+	 * Uptime starts when the panel does, so the number on screen 0 is the
+	 * time the board has been showing something.  It used to be a count of
+	 * loop iterations labelled as seconds, which drifted by however long
+	 * the LCD writes took -- minutes a day.
+	 */
+	uptime_base_ms = k_uptime_get();
+
 	/* Get unique ID from STM32 UID registers (same as LL_GetUID_Word0/1/2) */
 	volatile uint32_t *uid_regs = (volatile uint32_t *)0x1FFF7590;
 
@@ -556,9 +608,36 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	LOG_INF("STM32 UID: %08lx %08lx %08lx -> SSID: %s",
 		(unsigned long)uid_regs[0], (unsigned long)uid_regs[1], (unsigned long)uid_regs[2], uid_hex);
 
-	LOG_INF("Display thread: starting main loop");
+	/* The animation cleared the panel, so nothing is on it yet. */
+	shown0[0] = '\0';
+	shown1[0] = '\0';
 
+	LOG_INF("Display thread: starting main loop, input is %s", ui_input_backend_name());
+
+	/*
+	 * The loop now runs at the input poll rate rather than once a second.
+	 * That is what makes a press land: the switch is sampled every 20 ms
+	 * and acted on after the 60 ms debounce, instead of being caught or
+	 * missed depending on where in a one-second sleep it happened to fall.
+	 *
+	 * Running fifty times a second costs almost nothing, because a line is
+	 * only written to the panel when its text changed -- on a static screen
+	 * the loop reads five pins, formats two strings and goes back to sleep.
+	 */
 	while (1) {
+		enum ui_event ev;
+		uint32_t uptime_s;
+
+		if (ui_input_poll(&ev)) {
+			if (ev == UI_EVENT_NEXT) {
+				displayScreen = (uint8_t)((displayScreen + 1) % LCD_SCREEN_COUNT);
+			} else {
+				displayScreen = (uint8_t)((displayScreen + LCD_SCREEN_COUNT - 1) %
+							  LCD_SCREEN_COUNT);
+			}
+			LOG_DBG("screen %u", displayScreen);
+		}
+
 		/* Switch between station and AP mode of Wifi */
 		if (gpio_pin_get_dt(&button)) {
 			if (!wifiPressed) {
@@ -571,108 +650,87 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 				}
 				encode_device_info();  /* Re-encode with new wifi_mode */
 				snprintf(rpiIP, sizeof(rpiIP), "%-15s", "Unknown");
-				shifting = 0;
 				wifiPressed = 1;
 			}
 		} else {
 			wifiPressed = 0;
 		}
 
-		/* Switch between displays if Display button is pressed */
-		if (display_switch_pressed()) {
-			displayScreen++;
-			if (displayScreen > 4) {
-				displayScreen = 0;
-			}
-		}
+		uptime_s = (uint32_t)((k_uptime_get() - uptime_base_ms) / 1000);
 
-		secondsAfterStart++;
+		line1[0] = '\0';
 
-		/* Display showing CybICS string and uptime */
-		if (displayScreen == 0) {
-			snprintf(displayText, sizeof(displayText), "CybICS %-9s", FIRMWARE_VERSION_STRING);
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "%16u", secondsAfterStart);
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
-		}
-		/* Display WiFi configuration */
-		else if (displayScreen == 1) {
+		switch (displayScreen) {
+		/* CybICS string and uptime */
+		case 0:
+			snprintf(line0, sizeof(line0), LCD_FMT_OVERVIEW_L0, FIRMWARE_VERSION_STRING);
+			snprintf(line1, sizeof(line1), LCD_FMT_OVERVIEW_L1, uptime_s);
+			break;
+
+		/* WiFi configuration */
+		case 1:
 			if (wifi_mode == 0) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Wifi STA mode");
-				lcd_set_cursor(&lcd, 0, 0);
-				lcd_print(&lcd, displayText);
-				snprintf(displayText, sizeof(displayText), "IP: %-12s", &rpiIP[shifting]);
-				lcd_set_cursor(&lcd, 1, 0);
-				lcd_print(&lcd, displayText);
-
-				if (strlen(rpiIP) > 12) {
-					shifting++;
-				}
-				if (shifting > 3) {
-					shifting = 0;
-				}
+				/*
+				 * "IP: " leaves twelve columns, and rpiIP is
+				 * padded to fifteen, so the address scrolls
+				 * through four positions.  Derived from the
+				 * uptime rather than counted per iteration:
+				 * the loop now runs four times a second, and a
+				 * counter would scroll four times as fast as
+				 * it used to.
+				 */
+				uint8_t shifting = (strlen(rpiIP) > 12) ? (uint8_t)(uptime_s % 4) : 0;
+				snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_NET_STA_L0);
+				snprintf(line1, sizeof(line1), LCD_FMT_NET_STA_L1, &rpiIP[shifting]);
 			} else if (wifi_mode == 1) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "AP mode: cybics-");
-				lcd_set_cursor(&lcd, 0, 0);
-				lcd_print(&lcd, displayText);
-				snprintf(displayText, sizeof(displayText), "%-16s", uid_hex);
-				lcd_set_cursor(&lcd, 1, 0);
-				lcd_print(&lcd, displayText);
+				snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_NET_AP_L0);
+				snprintf(line1, sizeof(line1), LCD_FMT_NET_AP_L1, uid_hex);
 			} else {
-				snprintf(displayText, sizeof(displayText), "%-16s", "WiFi error");
-				lcd_set_cursor(&lcd, 0, 0);
-				lcd_print(&lcd, displayText);
+				snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_NET_ERR_L0);
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_NET_ERR_L1);
 			}
-		}
-		/* Display showing real pressure values */
-		else if (displayScreen == 2) {
-			snprintf(displayText, sizeof(displayText), "%-16s", "Physical/real:  ");
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "GST:%03d HPT:%03d ", GSTpressure, HPTpressure);
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
-		}
-		/* Display showing status */
-		else if (displayScreen == 3) {
-			snprintf(displayText, sizeof(displayText), "%-16s", "Status:");
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
-			if (BO_sen > 0) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Danger! BlowOut");
-			} else if ((HPTpressure > 50) && (HPTpressure < 100) && SV_green) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Operational");
-			} else if ((HPTpressure > 50) && (HPTpressure < 100)) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "SV closed");
-			} else if (HPTpressure > 100) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure high");
-			} else if (HPTpressure <= 50) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure low");
+			break;
+
+		/* Tank pressures */
+		case 2:
+			snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_PROCESS_L0);
+			snprintf(line1, sizeof(line1), LCD_FMT_PROCESS_L1, GSTpressure, HPTpressure);
+			break;
+
+		/* Plant status */
+		case 3:
+			snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_STATUS_L0);
+			if (BO_red) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_BLOWOUT);
+			} else if (S_green) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_OPERATIONAL);
+			} else if (SV_red) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_SV_CLOSED);
+			} else if (HPT_critical || HPT_high) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_PRESS_HIGH);
+			} else {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_PRESS_LOW);
 			}
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
-		}
-		/* Display showing build and board information */
-		else if (displayScreen == 4) {
+			break;
+
+		/* Build and board information */
+		default:
 			/* BUILD_DATE and BUILD_TIME are defined by CMake */
-			snprintf(displayText, sizeof(displayText), "Build %s", BUILD_DATE);
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
+			snprintf(line0, sizeof(line0), LCD_FMT_BUILD_L0, BUILD_DATE);
 			/*
 			 * "HH:MM:SS HW v1.1" -- exactly the 16 columns. The board
 			 * revision belongs on this screen rather than screen 0,
-			 * because the virtual plant mirrors screen 0 and has no
-			 * PCB whose revision it could show.
+			 * because the virtual plant has no PCB whose revision it
+			 * could show.
 			 */
-			snprintf(displayText, sizeof(displayText), "%-8s HW %-4s",
-				 BUILD_TIME, hw_version_short());
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
+			snprintf(line1, sizeof(line1), LCD_FMT_BUILD_L1, BUILD_TIME, hw_version_short());
+			break;
 		}
 
-		k_msleep(1000);
+		lcd_line(&lcd, 0, shown0, line0);
+		lcd_line(&lcd, 1, shown1, line1);
+
+		k_msleep(UI_INPUT_POLL_INTERVAL_MS);
 	}
 }
 
@@ -1013,8 +1071,13 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 				case MENU_MCU:
 					LOG_INF("=== MCU Information ===");
 					LOG_INF("STM32G070RB on Zephyr RTOS");
-					LOG_INF("Board revision: %s (strap code %u)",
-						hw_version_name(), hw_version_code());
+					LOG_INF("Board revision: %s (strap code %u, %u of 5 straps fitted)",
+						hw_version_name(), hw_version_code(),
+						hw_version_straps_fitted());
+					if (hw_version_straps_missing()) {
+						LOG_INF("  straps unpopulated; revision taken from the PA8 probe");
+					}
+					LOG_INF("Front panel: %s", ui_input_backend_name());
 					showMenu = 1;
 					break;
 
@@ -1181,16 +1244,16 @@ int main(void)
 	if (configure_gpio_input(&c_sig, "c_sig") < 0) errors++;
 	if (configure_gpio_input(&sv_sig, "sv_sig") < 0) errors++;
 	if (configure_gpio_input(&gst_sig, "gst_sig") < 0) errors++;
+	if (configure_gpio_input(&button, "button") < 0) errors++;
+
 	/*
-	 * v1.0 drives this pin high through an external divider, v1.1 pulls it
-	 * low against GND.  Only the newer board wants the internal pull-up;
-	 * on v1.0 it would fight the divider.
+	 * The front panel configures itself: which pins exist, which way round
+	 * they read and whether they want the internal pull-up all depend on
+	 * the revision hw_version_init() just worked out.  See ui_input.c.
 	 */
-	if (configure_gpio_input_flags(&display_in, "display_in",
-				       hw_version_switch_active_low() ? GPIO_PULL_UP : 0) < 0) {
+	if (ui_input_init() < 0) {
 		errors++;
 	}
-	if (configure_gpio_input(&button, "button") < 0) errors++;
 
 	LOG_INF("========================================");
 	if (errors > 0) {

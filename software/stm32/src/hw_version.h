@@ -77,6 +77,22 @@ const char *hw_version_name(void);
 const char *hw_version_short(void);
 
 /*
+ * How many of the five strap resistors are actually soldered.  Read by
+ * probing each pin against both internal pulls, so it counts hardware rather
+ * than inferring it from the code: zero means a board with no straps at all,
+ * which is what a v1.0 board and an unpopulated v1.1 board have in common.
+ */
+unsigned int hw_version_straps_fitted(void);
+
+/*
+ * True when the revision was not taken from the straps but from the PA8
+ * probe, i.e. this is a v1.1-or-newer board whose version straps were left
+ * unpopulated.  Worth surfacing, because the board is then lying about
+ * itself and the next person to read the strap code will be confused.
+ */
+bool hw_version_straps_missing(void);
+
+/*
  * True when the board's front-panel switch pulls its pins low when pressed,
  * i.e. from v1.1 onwards.  False on a v1.0 board, where the discrete button
  * drives its pin high through an external divider.

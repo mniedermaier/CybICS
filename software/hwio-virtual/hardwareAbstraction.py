@@ -60,6 +60,122 @@ import random
 client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 # Don't connect yet - will connect in background thread to avoid blocking
 
+# ---------------------------------------------------------------------------
+# The LCD
+#
+# The panel on the board and the panel in the browser show the same thing.
+# These are the same strings the firmware uses, copied out of
+# software/stm32/src/main.c, and tests/test_display_parity.py parses both files
+# and fails if they drift apart -- the same guard test_plant_model_parity.py
+# puts on the physical model.
+#
+# Values differ, of course: this plant has no STM32 unique ID and no WiFi radio,
+# just as two real boards show different uptimes.  The screens, their order and
+# their layout are what have to match.
+#
+# LCD_SCREENS_BEGIN
+LCD_SCREEN_COUNT           = 5
+LCD_FMT_OVERVIEW_L0        = "CybICS %-9s"
+LCD_FMT_OVERVIEW_L1        = "%16u"
+LCD_TXT_NET_STA_L0         = "Wifi STA mode"
+LCD_FMT_NET_STA_L1         = "IP: %-12s"
+LCD_TXT_NET_AP_L0          = "AP mode: cybics-"
+LCD_FMT_NET_AP_L1          = "%-16s"
+LCD_TXT_NET_ERR_L0         = "WiFi error"
+LCD_TXT_NET_ERR_L1         = ""
+LCD_TXT_PROCESS_L0         = "Physical/real:  "
+LCD_FMT_PROCESS_L1         = "GST:%03d HPT:%03d "
+LCD_TXT_STATUS_L0          = "Status:"
+LCD_TXT_STATUS_BLOWOUT     = "Danger! BlowOut"
+LCD_TXT_STATUS_OPERATIONAL = "Operational"
+LCD_TXT_STATUS_SV_CLOSED   = "SV closed"
+LCD_TXT_STATUS_PRESS_HIGH  = "Pressure high"
+LCD_TXT_STATUS_PRESS_LOW   = "Pressure low"
+LCD_FMT_BUILD_L0           = "Build %s"
+LCD_FMT_BUILD_L1           = "%-8s HW %-4s"
+# LCD_SCREENS_END
+
+LCD_COLS = 16
+
+# The firmware's screen 0 prints FIRMWARE_VERSION_STRING from
+# software/stm32/src/version.h.  That header is the source of truth; this copy
+# has to be bumped alongside it.
+FIRMWARE_VERSION_STRING = "v1.2.2"
+
+# There is no PCB here, so there is no revision strap to read.  Four characters,
+# because that is all the firmware's build screen leaves for it.
+HW_VERSION_SHORT = "virt"
+
+BUILD_DATE = time.strftime("%Y.%m.%d")
+BUILD_TIME = time.strftime("%H:%M:%S")
+
+displayScreen = 0
+
+
+def lcd_render(screen):
+  """Return the two 16-column lines the panel shows for `screen`.
+
+  Mirrors the switch in thread_display() in software/stm32/src/main.c,
+  including the order the status conditions are tested in -- that order is
+  what decides which message wins when several apply at once.
+  """
+  if screen == 0:
+    line0 = LCD_FMT_OVERVIEW_L0 % FIRMWARE_VERSION_STRING
+    line1 = LCD_FMT_OVERVIEW_L1 % timer
+
+  elif screen == 1:
+    # The virtual plant has no radio.  It reports the STA layout with the
+    # address it is actually reachable on, and never the AP or error branch.
+    line0 = "%-16s" % LCD_TXT_NET_STA_L0
+    line1 = LCD_FMT_NET_STA_L1 % virtual_ip()
+
+  elif screen == 2:
+    line0 = "%-16s" % LCD_TXT_PROCESS_L0
+    line1 = LCD_FMT_PROCESS_L1 % (gst, hpt)
+
+  elif screen == 3:
+    line0 = "%-16s" % LCD_TXT_STATUS_L0
+    # BO_red, then S_green, then SV_red, then HPT_high/critical.
+    if boSen:
+      line1 = "%-16s" % LCD_TXT_STATUS_BLOWOUT
+    elif sysSen:
+      line1 = "%-16s" % LCD_TXT_STATUS_OPERATIONAL
+    elif systemValve <= 0:
+      line1 = "%-16s" % LCD_TXT_STATUS_SV_CLOSED
+    elif hpt >= 100:
+      line1 = "%-16s" % LCD_TXT_STATUS_PRESS_HIGH
+    else:
+      line1 = "%-16s" % LCD_TXT_STATUS_PRESS_LOW
+
+  else:
+    line0 = LCD_FMT_BUILD_L0 % BUILD_DATE
+    line1 = LCD_FMT_BUILD_L1 % (BUILD_TIME, HW_VERSION_SHORT)
+
+  # The HD44780 has sixteen columns and no more; snprintf() truncates on the
+  # board and so does this.
+  return line0[:LCD_COLS].ljust(LCD_COLS), line1[:LCD_COLS].ljust(LCD_COLS)
+
+
+def virtual_ip():
+  """Address this plant is reachable on, for the network screen."""
+  return os.environ.get("HWIO_ADDRESS", "172.18.0.4")
+
+
+def nav_event(event):
+  """One press of the front panel.
+
+  The navigation switch is modelled, not the v1.0 button, because that is the
+  hardware being built now.  ui_input.c maps centre, down and right to NEXT and
+  up and left to PREV; this does the same, so the browser and the board walk
+  the screens in the same order.
+  """
+  global displayScreen
+  if event == "next":
+    displayScreen = (displayScreen + 1) % LCD_SCREEN_COUNT
+  else:
+    displayScreen = (displayScreen - 1) % LCD_SCREEN_COUNT
+
+
 # Global variables
 gst=0
 hpt=0
@@ -329,20 +445,43 @@ def index_page():
             )
 
             # Overlay Display
-            # Reproduces the STM32's LCD, whose first line reads
-            # "CybICS <version>" from FIRMWARE_VERSION_STRING in
-            # software/stm32/src/version.h. That header is the source of
-            # truth; this copy has to be bumped alongside it.
-            DISPLAYoverlay1 = ui.label('CybICS v1.2.2').style(
-              'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
+            #
+            # A real 16x2 panel rather than two free-floating labels: the same
+            # sixteen columns, monospaced and left-aligned, so a line that is
+            # padded or truncated on the board is padded or truncated here too.
+            # lcd_render() decides what goes in them.
+            lcd_line_style = (
+              'position: absolute; left: 430px; color: black;'
               'background-color: transparent; font-size: 40px;'
+              'font-family: monospace; white-space: pre; letter-spacing: 0px;'
               'display: block;'
             )
-            DISPLAYoverlay2 = ui.label('0').style(
-              'position: absolute; top: 415px; left: 430px; border-radius: 50%; color=black'
-              'background-color: transparent; font-size: 40px; width:330px; text-align: right;'
+            DISPLAYoverlay1 = ui.label('').style('top: 370px;' + lcd_line_style)
+            DISPLAYoverlay2 = ui.label('').style('top: 415px;' + lcd_line_style)
+
+            # The navigation switch, SW3.
+            #
+            # From board v1.1 the front panel is a 5-way switch, so the virtual
+            # plant offers the same five contacts instead of a single button.
+            # Placement follows SW3 on the board: (204.5, 103.5) mm on a
+            # 160 x 100 mm outline is 96 % across and 53 % down, which lands
+            # here on the 800 x 500 photograph.
+            nav_button_style = (
+              'position: absolute; background-color: #444; color: white;'
+              'width: 22px; height: 22px; min-width: 22px; padding: 0;'
+              'font-size: 14px; line-height: 22px;'
               'display: block;'
             )
+            ui.button('^', on_click=lambda: nav_event('prev')).style(
+              'top: 240px; left: 745px;' + nav_button_style).tooltip('Up: previous screen')
+            ui.button('<', on_click=lambda: nav_event('prev')).style(
+              'top: 264px; left: 721px;' + nav_button_style).tooltip('Left: previous screen')
+            ui.button('O', on_click=lambda: nav_event('next')).style(
+              'top: 264px; left: 745px;' + nav_button_style).tooltip('Centre: next screen')
+            ui.button('>', on_click=lambda: nav_event('next')).style(
+              'top: 264px; left: 769px;' + nav_button_style).tooltip('Right: next screen')
+            ui.button('v', on_click=lambda: nav_event('next')).style(
+              'top: 288px; left: 745px;' + nav_button_style).tooltip('Down: next screen')
 
             # Overlay GST
             GSToverlayLow=ui.card().style(
@@ -1960,8 +2099,11 @@ def index_page():
   async def update():
     global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
-    # Update display timer
-    DISPLAYoverlay2.set_text(str(timer))
+    # Update the LCD.  Both lines every tick, from one renderer, so the panel
+    # can never show half of one screen and half of another.
+    line0, line1 = lcd_render(displayScreen)
+    DISPLAYoverlay1.set_text(line0)
+    DISPLAYoverlay2.set_text(line1)
 
     # System Valve
     if systemValve > 0:

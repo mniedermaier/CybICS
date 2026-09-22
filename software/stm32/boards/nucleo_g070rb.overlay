@@ -9,7 +9,7 @@
 	};
 
 	cybics_gpios {
-		compatible = "gpio-keys";
+		compatible = "cybics-gpio-group";
 
 		/* Heartbeat LED */
 		heartbeat_led: heartbeat_led {
@@ -159,54 +159,124 @@
 			label = "Display D7";
 		};
 
+	};
+
+	/*
+	 * The board's actual buttons.
+	 *
+	 * Kept apart from cybics_gpios so that "gpio-keys" covers only things
+	 * that really are keys.  Nothing binds this today -- the application
+	 * polls the pins itself in ui_input.c, because the pull-up and the
+	 * polarity differ between board revisions and the devicetree cannot
+	 * express a runtime choice.  See ui_input.c for why.
+	 *
+	 * display_in is the front-panel switch on both revisions:
+	 *   v1.0  a discrete push-button, 3V3 -> R37 -> SW3 -> PA8 with R36
+	 *         to GND.  Pressed reads high, and an internal pull-up would
+	 *         fight R36.
+	 *   v1.1+ contact F1, the centre press of the 5-way navigation switch,
+	 *         whose common is tied to GND.  Pressed reads low and the pin
+	 *         needs the internal pull-up.
+	 *
+	 * nav_up..nav_right exist only from v1.1.  On a v1.0 board PC6, PC7,
+	 * PD8 and PD9 are unconnected, so ui_input.c leaves them unconfigured
+	 * there rather than reading four floating pins.
+	 */
+	cybics_keys {
+		compatible = "gpio-keys";
+
 		display_in: display_in {
 			gpios = <&gpioa 8 GPIO_ACTIVE_HIGH>;
-			label = "Display Input Button";
+			label = "Display switch (v1.0 button / v1.1 centre)";
 		};
 
-		/* Button */
 		button: button {
 			gpios = <&gpioc 10 GPIO_ACTIVE_HIGH>;
 			label = "WiFi Mode Button";
 		};
 
 		/*
-		 * Hardware version straps, PC11..PC15 = bit 0..4.
+		 * Navigation switch directions, v1.1 and newer.
 		 *
-		 * Each bit is one 10k resistor to GND, read against the internal
-		 * pull-up: fitted pulls the pin low (bit 0), omitted lets the
-		 * pull-up win (bit 1).  ACTIVE_HIGH therefore makes
-		 * gpio_pin_get_dt() return the bit value directly.
+		 * Contact-to-direction comes from the SHOU HAN 7x7x5-6P-L WX
+		 * outline drawing (LCSC C2858287, sheet KFC-A07-02-02-2CL): the
+		 * moving contact is a diamond and F2, F3, F5, F4 sit clockwise
+		 * from its upper-left face, with pins 1..3 on the west edge and
+		 * 4..6 on the east.  SW3 is placed unrotated with its locating
+		 * posts north and south, so that order maps to up, right, down,
+		 * left as seen by someone facing the board.
 		 *
-		 * A pre-v1.1 board has no strap footprints at all, so all five
-		 * pins float high and read 0b11111.  See the table in
-		 * hardware/README.md#version-coding.
-		 *
-		 * PC14/PC15 double as the LSE oscillator pins; that is safe here
-		 * because the board has no crystal and clk_lse stays disabled.
+		 * ACTIVE_LOW because the switch common is GND.  The pull-up is
+		 * applied at runtime, not here, so that one image still serves
+		 * v1.0 -- see ui_input.c.
 		 */
+		nav_up: nav_up {
+			gpios = <&gpioc 6 GPIO_ACTIVE_LOW>;
+			label = "Navigation up (SW3 F2)";
+		};
+
+		nav_right: nav_right {
+			gpios = <&gpioc 7 GPIO_ACTIVE_LOW>;
+			label = "Navigation right (SW3 F3)";
+		};
+
+		nav_down: nav_down {
+			gpios = <&gpiod 9 GPIO_ACTIVE_LOW>;
+			label = "Navigation down (SW3 F5)";
+		};
+
+		nav_left: nav_left {
+			gpios = <&gpiod 8 GPIO_ACTIVE_LOW>;
+			label = "Navigation left (SW3 F4)";
+		};
+	};
+
+	/*
+	 * Hardware version straps, PC11..PC15 = bit 0..4.
+	 *
+	 * Each bit is one 1k resistor to GND.  ACTIVE_HIGH makes
+	 * gpio_pin_get_dt() return the bit value directly: a fitted strap
+	 * holds the pin low (bit 0), an absent one lets the internal pull-up
+	 * win (bit 1).
+	 *
+	 * No GPIO_PULL_UP here, deliberately.  hw_version.c probes each strap
+	 * with the pull-down and then the pull-up to tell a fitted resistor
+	 * from an unconnected pin, and a pull specified in the devicetree
+	 * would be ORed into both configurations and break the pull-down half
+	 * of that probe.
+	 *
+	 * A pre-v1.1 board has no strap footprints at all, so all five pins
+	 * float high and read 0b11111.  See the table in
+	 * hardware/README.md#version-coding.
+	 *
+	 * PC14/PC15 double as the LSE oscillator pins; that is safe here
+	 * because the board has no crystal and clk_lse stays disabled.
+	 */
+	cybics_straps {
+		compatible = "cybics-gpio-group";
+
 		hw_ver0: hw_ver0 {
-			gpios = <&gpioc 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			gpios = <&gpioc 11 GPIO_ACTIVE_HIGH>;
 			label = "HW version strap bit 0";
 		};
 
 		hw_ver1: hw_ver1 {
-			gpios = <&gpioc 12 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			gpios = <&gpioc 12 GPIO_ACTIVE_HIGH>;
 			label = "HW version strap bit 1";
 		};
 
 		hw_ver2: hw_ver2 {
-			gpios = <&gpioc 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			gpios = <&gpioc 13 GPIO_ACTIVE_HIGH>;
 			label = "HW version strap bit 2";
 		};
 
 		hw_ver3: hw_ver3 {
-			gpios = <&gpioc 14 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			gpios = <&gpioc 14 GPIO_ACTIVE_HIGH>;
 			label = "HW version strap bit 3";
 		};
 
 		hw_ver4: hw_ver4 {
-			gpios = <&gpioc 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+			gpios = <&gpioc 15 GPIO_ACTIVE_HIGH>;
 			label = "HW version strap bit 4";
 		};
 	};

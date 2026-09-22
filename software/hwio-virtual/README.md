@@ -10,6 +10,31 @@ This component simulates:
 - System valve actuator
 - Safety sensors (system sensor, blowout sensor)
 - Physical process dynamics (pressure changes, gas flow, etc.)
+- The 16x2 LCD and the 5-way navigation switch on the front panel
+
+## The front panel
+
+The browser shows the same panel as the board: sixteen columns, two rows, the
+same five screens in the same order. The five buttons over `SW3` in the
+photograph are the navigation switch -- centre, down and right go forward, up
+and left go back, which is what `ui_input.c` does on real hardware. The
+navigation switch is modelled rather than the v1.0 push-button, because that is
+the hardware being built now.
+
+`lcd_render()` mirrors the `switch` in `thread_display()` in
+`software/stm32/src/main.c`, including the order the status conditions are
+tested in -- that order decides which message wins when several apply at once.
+
+The screen strings are declared in a marked `LCD_SCREENS_BEGIN` block in both
+files, and `tests/test_display_parity.py` parses the two and fails if they
+drift apart. That guard exists because they already drifted once: the browser
+rendered the first screen only, with a hand-written copy of its first line, and
+ignored the other four entirely.
+
+Values differ between the two, as they do between any two boards. This plant
+has no STM32 unique ID and no WiFi radio, so the network screen always shows
+the STA layout with the address the container is reachable on, and the build
+screen reports `HW virt` where a board reports its strap-encoded revision.
 
 ## Purpose
 The virtual hardware I/O serves several key purposes:
