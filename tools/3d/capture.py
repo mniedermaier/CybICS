@@ -100,6 +100,8 @@ CAMERAS = {
     "gst":      {"pos": [-4, 5, 12], "look": [-7, 4, 0]},
     "hpt":      {"pos": [10, 5, 12], "look": [7, 4, 0]},
     "top":      {"pos": [0, 26, 10], "look": [0, 0, 0]},
+    # Close on the HPT-to-stack relief line, for judging the vent during a blowout.
+    "vent":     {"pos": [9, 8.5, 9], "look": [9.5, 7.5, 0]},
     # Close on the compressor-to-HPT run, for judging the flow band.
     "pipe":     {"pos": [3.3, 2.2, 5.5], "look": [3.3, 1.2, 0.5]},
 }

@@ -1185,7 +1185,17 @@ def index_page():
             // Main overhead directional light (soft daylight)
             // Carries more of the scene now that the accent spots are gone.
             const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.25);
-            directionalLight.position.set(12, 20, 8);
+            // Lower and further round than it was.
+            //
+            // At (12, 20, 8) the key stood about 55 degrees up, which threw
+            // shadows so short that every one of them landed off the platform
+            // -- two separate reviews read the plant as having no contact with
+            // its own floor, and the one shadow that was visible, GST's, sat
+            // out on the ground detached from anything and read as a bug.
+            // Dropping the light puts the vessels' and the stack's shadows
+            // back into the picture. Verified by moving it at runtime and
+            // photographing the result before committing to it.
+            directionalLight.position.set(16, 11, 13);
             directionalLight.castShadow = true;
             // 2048 over a 50-unit shadow camera is 41 texels per world unit,
             // far finer than the screen resolves these objects at any sane
@@ -1457,6 +1467,11 @@ def index_page():
                 band.scale.y = Math.max(f, 0.0001);
               };
               group.userData.setLevel(0);
+              group.userData.setColour = function (face, glow) {
+                if (band.material.color.getHex() === face) { return; }
+                band.material.color.setHex(face);
+                band.material.emissive.setHex(glow);
+              };
               return group;
             }
 
@@ -1728,7 +1743,27 @@ def index_page():
             hptGroup.add(hptBody);
 
             // HPT liquid
-            const hptFill = makeLevelBand(0xf44336, 0xb71c1c);
+            // HPT's band is a state channel, not a tag colour.
+            //
+            // It used to be salmon at every pressure, which put a large red
+            // object in the picture whether the vessel was healthy or in
+            // blowout -- so the one colour an operator reads fastest said
+            // "this is HPT" rather than "this is wrong", and during an actual
+            // alarm nothing about it changed.
+            //
+            // The thresholds are not invented. physical_process_thread in this
+            // same file defines them: sysSen is true only while 50 < hpt < 100,
+            // and a blowout is declared above 220 and held until the pressure
+            // falls back under 200. The band turns green inside the operating
+            // window, amber outside it, and red once the plant itself has
+            // declared the blowout.
+            const HPT_COLOURS = {
+              normal: { face: 0x2ecc71, glow: 0x0b7a3f },
+              high:   { face: 0xffa726, glow: 0xb56a00 },
+              alarm:  { face: 0xff3b30, glow: 0xb3120a }
+            };
+            const hptFill = makeLevelBand(HPT_COLOURS.normal.face,
+                                          HPT_COLOURS.normal.glow);
             hptGroup.add(hptFill);
 
             // Add support legs to HPT tank
@@ -2064,8 +2099,8 @@ def index_page():
                 // stays under the pipe's highlight, reads as something moving
                 // through the pipe instead of as part of it.
                 grad.addColorStop(0.0, 'rgba(0, 140, 150, 0)');
-                grad.addColorStop(0.8, 'rgba(40, 190, 200, 0.45)');
-                grad.addColorStop(1.0, 'rgba(90, 225, 230, 0.8)');
+                grad.addColorStop(0.8, 'rgba(60, 214, 224, 0.62)');
+                grad.addColorStop(1.0, 'rgba(130, 240, 245, 1.0)');
                 g.fillStyle = grad;
                 g.fillRect(0, tail, 8, head - tail);
               }
@@ -2379,23 +2414,23 @@ def index_page():
 
             // Add labels for LED panel
             const ledLabel1 = createTextSprite('GST', '#ffffff', '#333333');
-            ledLabel1.scale.set(1.5, 0.45, 1);
-            ledLabel1.position.set(12.6, 4.2, 0);
+            ledLabel1.scale.set(1.25, 0.4, 1);
+            ledLabel1.position.set(13.3, 4.2, 0);
             scene.add(ledLabel1);
 
             const ledLabel2 = createTextSprite('COMP', '#ffffff', '#333333');
-            ledLabel2.scale.set(1.5, 0.45, 1);
-            ledLabel2.position.set(12.6, 3.6, 0);
+            ledLabel2.scale.set(1.25, 0.4, 1);
+            ledLabel2.position.set(13.3, 3.6, 0);
             scene.add(ledLabel2);
 
             const ledLabel3 = createTextSprite('SYSTEM', '#ffffff', '#333333');
-            ledLabel3.scale.set(1.5, 0.45, 1);
-            ledLabel3.position.set(12.6, 3.0, 0);
+            ledLabel3.scale.set(1.25, 0.4, 1);
+            ledLabel3.position.set(13.3, 3.0, 0);
             scene.add(ledLabel3);
 
             const ledLabel4 = createTextSprite('BLOWOUT', '#ffffff', '#333333');
-            ledLabel4.scale.set(1.9, 0.45, 1);
-            ledLabel4.position.set(12.6, 2.4, 0);
+            ledLabel4.scale.set(1.25, 0.4, 1);
+            ledLabel4.position.set(13.3, 2.4, 0);
             scene.add(ledLabel4);
 
             scene.add(ledPanel);
@@ -2553,6 +2588,10 @@ def index_page():
                 // tank, which is what anyone reading the picture assumes.
                 gstFill.userData.setLevel(data.gst / 255);
                 hptFill.userData.setLevel(data.hpt / 255);
+                const band = data.boSen > 0 ? HPT_COLOURS.alarm
+                           : (data.hpt > 50 && data.hpt < 100) ? HPT_COLOURS.normal
+                           : HPT_COLOURS.high;
+                hptFill.userData.setColour(band.face, band.glow);
 
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
@@ -2837,7 +2876,12 @@ def index_page():
               // the same on any machine; stopped, the pipe goes dark rather
               // than freezing mid-chevron, which would read as a stalled
               // animation instead of as a stopped compressor.
-              flowGlow += ((compressorRunning ? 0.7 : 0) - flowGlow) *
+              // Between the two extremes that have been tried: white enough to
+              // blow out the pipe's own shading, and faint enough to vanish at
+              // the overview camera, which is the view this is actually read
+              // from. Measured peak-to-trough along the pipe was 62 levels when
+              // it was too bright and 41 when it was too faint.
+              flowGlow += ((compressorRunning ? 1.0 : 0) - flowGlow) *
                           (1 - Math.exp(-dt / 0.25));
               flowMaterial.emissiveIntensity = flowGlow;
               if (compressorRunning) {
@@ -2866,7 +2910,11 @@ def index_page():
 
                   flameVelocities[i].life -= 0.015 * ticks;
 
-                  if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 17) {
+                  // 16.2, not 17: at the default camera the stack tip leaves only
+                  // about forty pixels of headroom, so the plume ran off the top
+                  // of the frame -- the most important event in the scene cut off
+                  // by the edge of the picture announcing it.
+                  if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 16.2) {
                     flamePos[i * 3] = 11 + (Math.random() - 0.5) * 0.4;
                     flamePos[i * 3 + 1] = 14 + Math.random() * 0.5;
                     flamePos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;

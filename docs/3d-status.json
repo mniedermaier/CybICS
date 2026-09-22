@@ -203,8 +203,8 @@
       "round": 5,
       "date": "2026-09-22",
       "what": "answering the animation critique: flow reads as gas, the alarm has its own language, the vent line moves",
-      "score": null,
-      "scored_by": "critique pending",
+      "score": 6.3,
+      "scored_by": "independent critic, images and logs only",
       "shots": [
         "docs/3d/shots/r5-overview.png",
         "docs/3d/shots/r5-close.png",
@@ -225,7 +225,46 @@
       "not_changed_on_purpose": [
         "the fan speed does not vary with load: the compressor signal is binary, and inventing a load would break the rule that /api/state is the truth",
         "the chimney is not re-modelled: its apparent lean is the pitched camera, verified against the source"
-      ]
+      ],
+      "critic_verdict": "flow partly fixed, alarm partly fixed, vent not visible; flow lost 35 per cent of its contrast at the overview camera"
+    },
+    {
+      "round": 6,
+      "date": "2026-09-22",
+      "what": "colour made to carry state, contrast restored, flare kept in frame, shadows given back to the plant",
+      "shots": [
+        "docs/3d/shots/r6-normal.png",
+        "docs/3d/shots/r6-high.png",
+        "docs/3d/shots/r6-alarm.png",
+        "docs/3d/shots/r6-top.png"
+      ],
+      "changes": [
+        "HPT's band is a state channel: green inside the plant's own 50-100 operating window, amber outside it, red once the model declares the blowout above 220. Thresholds taken from physical_process_thread, not invented.",
+        "flow band brightness set between the two failed extremes, measured at 62 levels when too bright and 41 when too faint",
+        "flare capped at y=16.2 so the plume is no longer cut off by the top of the canvas",
+        "key light lowered from (12,20,8) to (16,11,13) so shadows land in the picture",
+        "annunciator plates moved clear of both the stack and the LED board"
+      ],
+      "measured": {
+        "hardware_gl_overview": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "materials": 72,
+          "lights": 6,
+          "shadow_casters": 87,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "critic_claims_checked": {
+        "the vent line does not move": "the mechanism works -- ventGlow reaches 1.3 and the texture offset advances -- but the finding about visibility stands; the run is small and far from the camera.",
+        "no shadows anywhere": "shadows were rendering. The key light stood about 55 degrees up, so every shadow fell off the platform and the only visible one, GST's, sat detached on the ground and read as a bug. Fixed by lowering the light, verified at runtime before committing."
+      }
     }
   ]
 }
