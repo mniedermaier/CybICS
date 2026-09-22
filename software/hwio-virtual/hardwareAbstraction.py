@@ -847,56 +847,183 @@ def index_page():
             const scene = new THREE.Scene();
             const lightTheme = document.documentElement.classList.contains('light-mode');
 
-            // Create enhanced CybICS background with radial gradients
+            // ---- Procedural surfaces -------------------------------------
+            //
+            // Everything below is drawn into a canvas at build time.  The
+            // container has no network at runtime and gets pulled onto
+            // classroom machines, so a few kilobytes of JavaScript that draws
+            // its own concrete beats any amount of downloaded PBR material.
+            // These are the textures the whole scene is judged through: with
+            // no variation in a surface, no amount of lighting makes it look
+            // like anything but a solid colour.
+
+            // Fine grain plus large soft blotches plus a few stains.  The
+            // grain alone reads as video noise; it is the blotches at the
+            // scale of a metre or two that make a floor look poured rather
+            // than filled.
+            function concreteCanvas(size) {
+              const c = document.createElement('canvas');
+              c.width = c.height = size;
+              const g = c.getContext('2d');
+              g.fillStyle = '#4b5058';
+              g.fillRect(0, 0, size, size);
+
+              for (let i = 0; i < 60; i++) {
+                const r = size * (0.04 + Math.random() * 0.14);
+                const x = Math.random() * size, y = Math.random() * size;
+                const shade = 60 + Math.random() * 40;
+                const blot = g.createRadialGradient(x, y, 0, x, y, r);
+                blot.addColorStop(0, 'rgba(' + shade + ',' + shade + ',' +
+                                  (shade + 6) + ',0.35)');
+                blot.addColorStop(1, 'rgba(0,0,0,0)');
+                g.fillStyle = blot;
+                g.fillRect(x - r, y - r, r * 2, r * 2);
+              }
+
+              // A handful of oil stains.  Real plant floors are never clean,
+              // and the eye reads "used" long before it reads "detailed".
+              for (let i = 0; i < 7; i++) {
+                const r = size * (0.02 + Math.random() * 0.05);
+                const x = Math.random() * size, y = Math.random() * size;
+                const stain = g.createRadialGradient(x, y, 0, x, y, r);
+                stain.addColorStop(0, 'rgba(24,22,20,0.45)');
+                stain.addColorStop(1, 'rgba(24,22,20,0)');
+                g.fillStyle = stain;
+                g.fillRect(x - r, y - r, r * 2, r * 2);
+              }
+
+              const img = g.getImageData(0, 0, size, size);
+              const d = img.data;
+              for (let i = 0; i < d.length; i += 4) {
+                const n = (Math.random() - 0.5) * 26;
+                d[i] += n; d[i + 1] += n; d[i + 2] += n;
+              }
+              g.putImageData(img, 0, 0);
+              return c;
+            }
+
+            // Brushed steel: vertical streaks of varying roughness.  Used as a
+            // roughness map rather than a colour map, so the metal keeps its
+            // colour and only the sharpness of its reflection varies -- which
+            // is what actually distinguishes rolled steel from plastic.
+            function brushedCanvas(w, h) {
+              const c = document.createElement('canvas');
+              c.width = w; c.height = h;
+              const g = c.getContext('2d');
+              g.fillStyle = '#8a8a8a';
+              g.fillRect(0, 0, w, h);
+              for (let i = 0; i < w * 3; i++) {
+                const x = Math.random() * w;
+                const v = 118 + Math.random() * 74;
+                g.strokeStyle = 'rgba(' + v + ',' + v + ',' + v + ',' +
+                                (0.05 + Math.random() * 0.18) + ')';
+                g.lineWidth = 0.5 + Math.random() * 1.8;
+                g.beginPath();
+                g.moveTo(x, 0); g.lineTo(x + (Math.random() - 0.5) * 3, h);
+                g.stroke();
+              }
+              // Horizontal weld seams, where a real vessel's courses meet.
+              for (let i = 1; i < 4; i++) {
+                const y = h * i / 4;
+                g.strokeStyle = 'rgba(210,210,210,0.55)';
+                g.lineWidth = Math.max(1, h * 0.012);
+                g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+              }
+              return c;
+            }
+
+            // Detail costs texture memory and bandwidth, which is exactly what
+            // a machine without acceleration has none of.  The software path
+            // keeps the flat materials it already had.
+            const detail = !softwareRenderer;
+
+            function texture(canvas, repeatX, repeatY) {
+              const t = new THREE.CanvasTexture(canvas);
+              t.wrapS = t.wrapT = THREE.RepeatWrapping;
+              t.repeat.set(repeatX, repeatY);
+              t.anisotropy = 4;
+              return t;
+            }
+
+            // Repeats chosen to keep one tile at ten world units across the
+            // larger ground plane, so the concrete does not stretch.
+            const concreteMap = detail ? texture(concreteCanvas(512), 30, 30) : null;
+            if (concreteMap) { concreteMap.encoding = THREE.sRGBEncoding; }
+            const concreteRough = detail ? texture(concreteCanvas(512), 30, 30) : null;
+            const steelRough = detail ? texture(brushedCanvas(128, 256), 4, 1) : null;
+
+            // ---- Sky -----------------------------------------------------
+            //
+            // This used to be a dark blue field with two orange radial glows
+            // and a scatter of white dots, which read as a nebula.  A gas
+            // plant standing in space is the single loudest wrong note in the
+            // picture, and it undermines every material below it: the metals
+            // reflect their surroundings, so the surroundings have to be a
+            // place.
+            //
+            // What replaces it is late afternoon: cool overhead, warm haze
+            // gathering at the horizon, brightening towards the key light.
+            // The brand orange survives as that haze rather than as a glow in
+            // the sky, and the fog below is given the same horizon colour so
+            // the ground dissolves into the sky instead of stopping at a line.
+            const HORIZON = 0x6c5f52;
             const bgCanvas = document.createElement('canvas');
-            bgCanvas.width = 2048;
-            bgCanvas.height = 2048;
+            // A smooth gradient does not need 2048 square.  This was four
+            // megapixels, sixteen megabytes of texture memory, for an image
+            // with no detail finer than a hundred pixels.
+            bgCanvas.width = 512;
+            bgCanvas.height = 512;
             const ctx = bgCanvas.getContext('2d');
 
-            // Base gradient (dark blue to dark)
-            const baseGradient = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
-            baseGradient.addColorStop(0, '#0f1520');
-            baseGradient.addColorStop(0.3, '#1a1a2e');
-            baseGradient.addColorStop(0.6, '#16213e');
-            baseGradient.addColorStop(1, '#0a0a10');
-            ctx.fillStyle = baseGradient;
+            const sky = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
+            sky.addColorStop(0.00, '#1d2836');
+            sky.addColorStop(0.28, '#34445a');
+            sky.addColorStop(0.46, '#4d4c4a');
+            sky.addColorStop(0.55, '#6c5f52');
+            sky.addColorStop(0.62, '#3c3833');
+            sky.addColorStop(1.00, '#1a1d22');
+            ctx.fillStyle = sky;
             ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
-            // Add warm orange radial glow (top left)
-            const glow1 = ctx.createRadialGradient(400, 400, 200, 400, 400, 800);
-            glow1.addColorStop(0, 'rgba(255, 107, 0, 0.15)');
-            glow1.addColorStop(0.5, 'rgba(255, 140, 66, 0.08)');
-            glow1.addColorStop(1, 'rgba(255, 107, 0, 0)');
-            ctx.fillStyle = glow1;
+            // The key light stands high and to the right, so the haze is
+            // brightest there.  No sun disc: at this elevation it would be
+            // behind the viewer, and painting one in would be the kind of
+            // detail that reads as wrong without anyone being able to say why.
+            const haze = ctx.createRadialGradient(
+              bgCanvas.width * 0.74, bgCanvas.height * 0.54, 0,
+              bgCanvas.width * 0.74, bgCanvas.height * 0.54, bgCanvas.width * 0.55);
+            haze.addColorStop(0.0, 'rgba(255, 176, 108, 0.30)');
+            haze.addColorStop(0.45, 'rgba(255, 140, 66, 0.10)');
+            haze.addColorStop(1.0, 'rgba(255, 140, 66, 0)');
+            ctx.fillStyle = haze;
             ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
-            // Add warm orange radial glow (bottom right)
-            const glow2 = ctx.createRadialGradient(1648, 1648, 200, 1648, 1648, 800);
-            glow2.addColorStop(0, 'rgba(255, 165, 0, 0.12)');
-            glow2.addColorStop(0.5, 'rgba(255, 140, 66, 0.06)');
-            glow2.addColorStop(1, 'rgba(255, 107, 0, 0)');
-            ctx.fillStyle = glow2;
-            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-            // Add subtle texture with small dots
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-            for(let i = 0; i < 300; i++) {
-              const x = Math.random() * bgCanvas.width;
-              const y = Math.random() * bgCanvas.height;
-              const size = Math.random() * 2;
-              ctx.beginPath();
-              ctx.arc(x, y, size, 0, Math.PI * 2);
-              ctx.fill();
+            // Thin cloud banding, stretched flat the way high cloud is near
+            // the horizon.
+            for (let i = 0; i < 9; i++) {
+              const y = bgCanvas.height * (0.10 + Math.random() * 0.34);
+              const h = bgCanvas.height * (0.008 + Math.random() * 0.03);
+              const band = ctx.createLinearGradient(0, y - h, 0, y + h);
+              band.addColorStop(0, 'rgba(180, 196, 214, 0)');
+              band.addColorStop(0.5, 'rgba(180, 196, 214, ' +
+                               (0.04 + Math.random() * 0.06).toFixed(3) + ')');
+              band.addColorStop(1, 'rgba(180, 196, 214, 0)');
+              ctx.fillStyle = band;
+              ctx.fillRect(0, y - h, bgCanvas.width, h * 2);
             }
 
             const bgTexture = new THREE.CanvasTexture(bgCanvas);
+            bgTexture.encoding = THREE.sRGBEncoding;
             scene.background = lightTheme ? new THREE.Color(0xf3f5f8) : bgTexture;
-            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : 0x0f1520, 0.010);
+            // Fog in the horizon colour, not in the zenith colour.  Distance
+            // haze that does not match the sky it fades into is the thing that
+            // makes a scene look like a model on a table.
+            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : HORIZON, 0.017);
             window.addEventListener('message', function (event) {
               if (!event.data || event.data.type !== 'theme') return;
               const isLight = event.data.theme === 'light';
               scene.background = isLight ? new THREE.Color(0xf3f5f8) : bgTexture;
-              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : 0x0f1520, 0.010);
+              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : HORIZON, 0.017);
             });
 
             // Create camera
@@ -1043,21 +1170,38 @@ def index_page():
             scene.add(createSpotlight(0xffffff, 0.35, 0, 8, 3, 0, 1.5, 0));   // Compressor
 
             // Industrial concrete floor
-            const groundGeometry = new THREE.PlaneGeometry(60, 60);
+            //
+            // A flat grey plane is the one surface that cannot be rescued by
+            // lighting: it is large, it is lit evenly, and with no variation
+            // across it the eye reads it as a backdrop rather than as ground.
+            // The texture is the same canvas used twice, once for colour and
+            // once for roughness, so the darker patches are also the duller
+            // ones -- which is how a damp or oiled patch of concrete behaves.
+            //
+            // The plane is far larger than the plant it carries.  At 60 units
+            // its edge fell inside the fog's reach and cut a hard horizontal
+            // line across the middle of the picture; the fog only saturates
+            // past about 120 units, so the ground has to outrun it.  This
+            // costs nothing: it is still two triangles.
+            const groundGeometry = new THREE.PlaneGeometry(300, 300);
             const groundMaterial = new THREE.MeshStandardMaterial({
-              color: 0x3a3f47,
-              roughness: 0.9,
-              metalness: 0.1
+              color: detail ? 0xffffff : 0x3a3f47,
+              map: concreteMap,
+              roughnessMap: concreteRough,
+              roughness: detail ? 1.0 : 0.9,
+              metalness: 0.05
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Subtle grid lines (like expansion joints in concrete)
-            const gridHelper = new THREE.GridHelper(60, 20, 0x555a62, 0x404550);
+            // Expansion joints.  Dimmer than before: at full strength this
+            // read as a debug grid laid over the plant rather than as lines
+            // scored in a floor, and it was competing with the grating.
+            const gridHelper = new THREE.GridHelper(60, 20, 0x4a5058, 0x3c4147);
             gridHelper.position.y = 0.01;
-            gridHelper.material.opacity = 0.4;
+            gridHelper.material.opacity = 0.18;
             gridHelper.material.transparent = true;
             scene.add(gridHelper);
 
@@ -1301,10 +1445,16 @@ def index_page():
               new THREE.MeshStandardMaterial({
                 color: 0xc0c5ce,
                 metalness: 0.85,
-                roughness: 0.35,
-                envMapIntensity: 1.0,
+                // The roughness map is what turns this from plastic into
+                // rolled steel: vertical brushing plus the horizontal seams
+                // where a real vessel's courses are welded together.  Colour
+                // is left alone, because painted steel is uniform in colour
+                // and varies only in how sharply it reflects.
+                roughnessMap: steelRough,
+                roughness: detail ? 0.5 : 0.35,
+                envMapIntensity: 1.2,
                 transparent: true,
-                opacity: 0.3,
+                opacity: 0.32,
                 side: THREE.DoubleSide,
                 // A transparent enclosure must not write depth.  If it does,
                 // its near surface fails the depth test for everything behind
@@ -1527,10 +1677,16 @@ def index_page():
               new THREE.MeshStandardMaterial({
                 color: 0xc0c5ce,
                 metalness: 0.85,
-                roughness: 0.35,
-                envMapIntensity: 1.0,
+                // The roughness map is what turns this from plastic into
+                // rolled steel: vertical brushing plus the horizontal seams
+                // where a real vessel's courses are welded together.  Colour
+                // is left alone, because painted steel is uniform in colour
+                // and varies only in how sharply it reflects.
+                roughnessMap: steelRough,
+                roughness: detail ? 0.5 : 0.35,
+                envMapIntensity: 1.2,
                 transparent: true,
-                opacity: 0.3,
+                opacity: 0.32,
                 side: THREE.DoubleSide,
                 // A transparent enclosure must not write depth.  If it does,
                 // its near surface fails the depth test for everything behind
