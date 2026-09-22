@@ -1305,7 +1305,13 @@ def index_page():
                 envMapIntensity: 1.0,
                 transparent: true,
                 opacity: 0.3,
-                side: THREE.DoubleSide
+                side: THREE.DoubleSide,
+                // A transparent enclosure must not write depth.  If it does,
+                // its near surface fails the depth test for everything behind
+                // it -- which is the liquid it exists to let you see.  That is
+                // what emptied the tanks: the level arithmetic and the clipping
+                // were both right, the shell was simply drawn over them.
+                depthWrite: false
               })
             );
             gstBody.position.y = 4;
@@ -1525,7 +1531,13 @@ def index_page():
                 envMapIntensity: 1.0,
                 transparent: true,
                 opacity: 0.3,
-                side: THREE.DoubleSide
+                side: THREE.DoubleSide,
+                // A transparent enclosure must not write depth.  If it does,
+                // its near surface fails the depth test for everything behind
+                // it -- which is the liquid it exists to let you see.  That is
+                // what emptied the tanks: the level arithmetic and the clipping
+                // were both right, the shell was simply drawn over them.
+                depthWrite: false
               })
             );
             hptBody.position.y = 4;
