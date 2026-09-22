@@ -75,10 +75,16 @@ client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 #
 # LCD_SCREENS_BEGIN
 LCD_SCREEN_COUNT           = 5
-# Boot animation geometry and timing.  Shared because this plays the same sweep
+# Boot animation geometry and timing.  Shared because this plays the same wave
 # at the same speed as the board; the captions are not shared, because the two
 # wait for different peers and neither should claim otherwise.
-LCD_BOOT_SUBPIXELS         = 5
+#
+# LCD_BOOT_BUMP is the pulse shape: entry i is the height, 0..8, at a distance
+# of i eighths of a character from the crest.  A shape that drifted between the
+# two files would be a wave in two different speeds.
+LCD_BOOT_LEVELS            = 8
+LCD_BOOT_SUBSTEPS          = 8
+LCD_BOOT_BUMP              = "8888777666554332221110"
 LCD_BOOT_SWEEP_MS          = 972
 LCD_FMT_OVERVIEW_L0        = "CybICS %-9s"
 LCD_FMT_OVERVIEW_L1        = "%16u"
@@ -173,13 +179,12 @@ def virtual_ip():
 # bottom row, and that same bar is what says the plant is waiting for its
 # controller.  Same 972 ms sweep, same five sub-pixel steps per character.
 #
-# Two things cannot be identical and are not pretended to be.  The board waits
-# for the Raspberry Pi over I2C and this waits for OpenPLC over Modbus, so the
-# caption names the peer each side actually has.  And a character LCD splits a
-# cell into five columns where a font offers eighths, so the partial cell is
-# drawn with the nearest eighth-block -- visibly the same motion, a fraction of
-# a pixel off.
-BAR_EIGHTHS = {0: " ", 1: "\u258e", 2: "\u258d", 3: "\u258b", 4: "\u258a", 5: "\u2588"}
+# The one thing that cannot be identical is the caption: the board waits for the
+# Raspberry Pi over I2C and this waits for OpenPLC over Modbus, so each names
+# the peer it actually has.  The wave itself is exact -- an HD44780 cell is
+# eight pixel rows tall and Unicode has eight block heights, so every glyph the
+# firmware draws has a character here that is the same shape.
+WAVE_LEVELS = " \u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588"
 
 boot_started_at = None
 boot_finished = False
@@ -192,13 +197,18 @@ def boot_animation_start():
   boot_finished = False
 
 
-def boot_bar(pixels):
-  """The bottom row at `pixels` of LCD_COLS * LCD_BOOT_SUBPIXELS."""
-  full, sub = divmod(pixels, LCD_BOOT_SUBPIXELS)
-  cells = [BAR_EIGHTHS[LCD_BOOT_SUBPIXELS]] * full
-  if len(cells) < LCD_COLS:
-    cells.append(BAR_EIGHTHS[sub])
-  return "".join(cells).ljust(LCD_COLS)
+def wave_height(col, pos, base):
+  """Height of one cell with the crest at `pos`, over a floor of `base`."""
+  dx = abs(col * LCD_BOOT_SUBSTEPS - pos)
+  h = int(LCD_BOOT_BUMP[dx]) if dx < len(LCD_BOOT_BUMP) else 0
+  if col * LCD_BOOT_SUBSTEPS <= pos:
+    h = max(h, base)
+  return h
+
+
+def wave_row(pos, base):
+  """The bottom row for one frame of the pulse."""
+  return "".join(WAVE_LEVELS[wave_height(c, pos, base)] for c in range(LCD_COLS))
 
 
 def boot_frame():
@@ -209,22 +219,29 @@ def boot_frame():
 
   span = LCD_BOOT_SWEEP_MS / 1000.0
   elapsed = time.monotonic() - boot_started_at
-  maxp = LCD_COLS * LCD_BOOT_SUBPIXELS
+  maxp = LCD_COLS * LCD_BOOT_SUBSTEPS
+  # The floor the pulse lays down, and the quieter one it patrols over.
+  floor_laid, floor_idle = 3, 2
 
   if elapsed < span:
-    # The opening sweep.
-    return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), boot_bar(
-      int(maxp * elapsed / span))
+    # The pulse crosses, leaving the floor behind it.
+    return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), wave_row(
+      int(maxp * elapsed / span), floor_laid)
+
+  # It arrives: full, overshoot down, settle.  Same three frames as the board.
+  for until, height in ((0.09, LCD_BOOT_LEVELS), (0.15, 4), (0.27, 6)):
+    if elapsed < span + until:
+      return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), \
+        WAVE_LEVELS[height] * LCD_COLS
 
   if not client.connected:
-    # Sweep back and forth for as long as the controller is missing, which is
+    # Keep the pulse running for as long as the controller is missing, which is
     # the only part of this that carries information.
-    phase = ((elapsed - span) % (2 * span)) / span
-    pixels = int(maxp * (1 - phase)) if phase < 1 else int(maxp * (phase - 1))
-    return "Waiting for PLC".ljust(LCD_COLS), boot_bar(pixels)
+    pos = int(maxp * (((elapsed - span - 0.27) % span) / span))
+    return "Waiting for PLC".ljust(LCD_COLS), wave_row(pos, floor_idle)
 
-  if elapsed < span + 0.6:
-    return "PLC connected".ljust(LCD_COLS), boot_bar(maxp)
+  if elapsed < span + 0.87:
+    return "PLC connected".ljust(LCD_COLS), WAVE_LEVELS[LCD_BOOT_LEVELS] * LCD_COLS
 
   boot_finished = True
   return None

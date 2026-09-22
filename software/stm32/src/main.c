@@ -307,10 +307,19 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 #define LCD_SCREEN_COUNT            5
 /*
  * Boot animation geometry and timing.  Shared because the virtual plant plays
- * the same sweep at the same speed; the captions are not, because the two wait
+ * the same wave at the same speed; the captions are not, because the two wait
  * for different peers and neither should claim otherwise.
+ *
+ * LCD_BOOT_BUMP is the pulse shape: entry i is the height, 0..8, at a distance
+ * of i eighths of a character from the crest.  It is a cos^2 bell trimmed at
+ * the first zero, so the pulse is about five characters wide.  As a string
+ * because that is a shape both a C file and a Python file can hold verbatim,
+ * and a shape that drifted between them would be a wave in two different
+ * speeds.
  */
-#define LCD_BOOT_SUBPIXELS          5
+#define LCD_BOOT_LEVELS             8
+#define LCD_BOOT_SUBSTEPS           8
+#define LCD_BOOT_BUMP               "8888777666554332221110"
 #define LCD_BOOT_SWEEP_MS           972
 #define LCD_FMT_OVERVIEW_L0         "CybICS %-9s"
 #define LCD_FMT_OVERVIEW_L1         "%16u"
@@ -333,78 +342,96 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 /* LCD_SCREENS_END */
 
 /*
- * Boot animation glyphs.
+ * Boot animation.
  *
- * Five characters, each a bar filled from the left edge to pixel column 1..5,
- * with the top and bottom rows left clear so it reads as a bar rather than a
- * blob.  That is the whole set: an HD44780 cell is five pixels wide, so these
- * five let a bar grow a fifth of a character at a time instead of jumping a
- * whole one, and a bar that moves in pixel steps is the one thing a character
- * LCD can do that looks genuinely smooth.
+ * Eight characters, each a bar filled from the bottom to height 1..8.  An
+ * HD44780 cell is eight pixel rows tall, so these are every height it has, and
+ * they let the bottom row behave like a level meter.
  *
- * The previous animation used eight glyphs -- logo corners, a gear, three
- * block shapes -- for a sweep, a fade, an expanding box, four spinning gears
- * and a typewriter, about nine seconds of effects that said nothing.  Three of
- * those eight were created and never drawn.
+ * What travels along it is a pulse: a cos^2 bell whose crest moves in eighths
+ * of a character.  Sub-character motion is the one thing a character LCD can
+ * do that looks genuinely smooth, and doing it with heights rather than widths
+ * costs nothing extra -- the crest glides between cells because the two cells
+ * either side of it trade height, which is what a level meter does anyway.
+ *
+ * The previous version of this file spent about nine seconds on four unrelated
+ * effects -- a sweep, a fade, an expanding box, four gears taking turns being
+ * asterisks, a typewriter, a ping-pong bar and three clear-and-redraw flashes
+ * of "** READY **" -- and three of its eight glyphs were created and never
+ * drawn.
  */
 #define LCD_COLS_ANIM 16
-#define BAR_SUBPIXELS LCD_BOOT_SUBPIXELS
-#define BAR_PIXELS_MAX (LCD_COLS_ANIM * BAR_SUBPIXELS)
+#define WAVE_MAX_POS (LCD_COLS_ANIM * LCD_BOOT_SUBSTEPS)
 
-/* Custom character slots 0..4 hold widths 1..5. */
-#define BAR_GLYPH(width) ((char)((width) - 1))
-#define BAR_GLYPH_FULL BAR_GLYPH(BAR_SUBPIXELS)
-
-static const uint8_t char_bar[BAR_SUBPIXELS][8] = {
-	{0x00, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x00},
-	{0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00},
-	{0x00, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x00},
-	{0x00, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x00},
-	{0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x00},
+/* Slot h holds a bar h+1 rows tall, measured up from the bottom. */
+static const uint8_t char_level[LCD_BOOT_LEVELS][8] = {
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F},
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F},
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
 };
 
-/*
- * Move the bar on the bottom row to `pixels`, touching only the cells that
- * changed.  *shown carries the position across calls, so a step costs one or
- * two character writes rather than a redraw of the row -- which matters,
- * because at 80 steps a full sweep would otherwise be 1280 writes down a
- * bit-banged 4-bit bus.
- */
-static void bar_set(struct lcd_hd44780 *lcd, int pixels, int *shown)
+static const char wave_bump[] = LCD_BOOT_BUMP;
+
+/* Height of cell `col` with the crest at `pos`, over a floor of `base`. */
+static uint8_t wave_height(int col, int pos, uint8_t base)
 {
-	int cell, sub, old_cell;
+	int dx = col * LCD_BOOT_SUBSTEPS - pos;
+	uint8_t h = 0;
 
-	if (pixels == *shown) {
-		return;
+	if (dx < 0) {
+		dx = -dx;
 	}
 
-	cell = pixels / BAR_SUBPIXELS;
-	sub = pixels % BAR_SUBPIXELS;
-	old_cell = *shown / BAR_SUBPIXELS;
+	if (dx < (int)(sizeof(wave_bump) - 1)) {
+		h = (uint8_t)(wave_bump[dx] - '0');
+	}
 
-	/* Cells the bar has just covered. */
-	for (int c = old_cell; c < cell; c++) {
+	/* The pulse lays the floor down behind itself. */
+	if (col * LCD_BOOT_SUBSTEPS <= pos && h < base) {
+		h = base;
+	}
+
+	return h;
+}
+
+/*
+ * Draw the bottom row for one frame, writing only the cells whose height
+ * changed.  `shown` carries the last frame across calls: the pulse touches
+ * about five cells, so a step costs a handful of writes rather than a redraw
+ * of the row, which matters on a bit-banged 4-bit bus.
+ */
+static void wave_draw(struct lcd_hd44780 *lcd, int pos, uint8_t base, uint8_t *shown)
+{
+	for (int c = 0; c < LCD_COLS_ANIM; c++) {
+		uint8_t h = wave_height(c, pos, base);
+
+		if (h == shown[c]) {
+			continue;
+		}
+
 		lcd_set_cursor(lcd, 1, (uint8_t)c);
-		lcd_putc(lcd, BAR_GLYPH_FULL);
+		lcd_putc(lcd, h ? (char)(h - 1) : ' ');
+		shown[c] = h;
 	}
+}
 
-	/*
-	 * Cells it has just uncovered, when draining.  Clamped to the last
-	 * real column: a full bar sits at cell 16, one past the end, and
-	 * writing there would address DDRAM the panel does not show.
-	 */
-	for (int c = (old_cell < LCD_COLS_ANIM) ? old_cell : LCD_COLS_ANIM - 1; c > cell; c--) {
+/* Flatten the row to one height, for the settle and the finish. */
+static void wave_flat(struct lcd_hd44780 *lcd, uint8_t height, uint8_t *shown)
+{
+	for (int c = 0; c < LCD_COLS_ANIM; c++) {
+		if (height == shown[c]) {
+			continue;
+		}
+
 		lcd_set_cursor(lcd, 1, (uint8_t)c);
-		lcd_putc(lcd, ' ');
+		lcd_putc(lcd, height ? (char)(height - 1) : ' ');
+		shown[c] = height;
 	}
-
-	/* The leading edge, at pixel resolution. */
-	if (cell < LCD_COLS_ANIM) {
-		lcd_set_cursor(lcd, 1, (uint8_t)cell);
-		lcd_putc(lcd, sub ? BAR_GLYPH(sub) : ' ');
-	}
-
-	*shown = pixels;
 }
 
 /* Centre a string on a row, for the two captions this animation shows. */
@@ -422,55 +449,67 @@ static void lcd_centre(struct lcd_hd44780 *lcd, uint8_t row, const char *text)
 /*
  * Boot animation: one idea, about a second of it.
  *
- * The name appears, a bar sweeps across underneath, and that same bar is then
- * the thing that tells you the board is waiting for the Pi -- so the startup
- * sequence is one continuous motion rather than four unrelated effects played
- * in a row.  If the Pi is slow the caption changes to say so, which is the only
- * part of the old nine seconds that carried information.
+ * A pulse runs the length of the bottom row, laying a floor down behind it,
+ * lands with a thump, and then keeps running for as long as the board is
+ * waiting for the Pi.  So the startup is one continuous motion, and the part
+ * that repeats is the part that carries information: if you are still watching
+ * the pulse, the Pi has not said hello.
  */
 static void play_startup_animation(struct lcd_hd44780 *lcd)
 {
 	/* One sweep takes LCD_BOOT_SWEEP_MS, the figure the browser uses too. */
-	const int step_ms = LCD_BOOT_SWEEP_MS / (BAR_PIXELS_MAX + 1);
-	int shown = 0;
+	const int step_ms = LCD_BOOT_SWEEP_MS / (WAVE_MAX_POS + 1);
+	/* The floor the pulse lays down, and the quieter one it patrols over. */
+	const uint8_t floor_laid = 3;
+	const uint8_t floor_idle = 2;
+	uint8_t shown[LCD_COLS_ANIM];
 	bool said_waiting = false;
 
-	for (int i = 0; i < BAR_SUBPIXELS; i++) {
-		lcd_create_char(lcd, (uint8_t)i, char_bar[i]);
+	for (int i = 0; i < LCD_BOOT_LEVELS; i++) {
+		lcd_create_char(lcd, (uint8_t)i, char_level[i]);
 	}
 
 	lcd_clear(lcd);
+	memset(shown, 0, sizeof(shown));
 	lcd_centre(lcd, 0, "CybICS " FIRMWARE_VERSION_STRING);
 
-	/* Fill. */
-	for (int p = 0; p <= BAR_PIXELS_MAX; p++) {
-		bar_set(lcd, p, &shown);
+	/* The pulse crosses, leaving the floor behind it. */
+	for (int p = 0; p <= WAVE_MAX_POS; p++) {
+		wave_draw(lcd, p, floor_laid, shown);
 		k_msleep(step_ms);
 	}
 
 	/*
-	 * Keep sweeping until the Pi says hello.  On a healthy boot this loop
-	 * runs once or not at all; when it does not, the caption explains why
-	 * the board is sitting there.
+	 * It arrives.  The row jumps to full, overshoots back down and settles,
+	 * which is the whole flourish -- three frames rather than three
+	 * clear-and-redraw flashes.
+	 */
+	wave_flat(lcd, LCD_BOOT_LEVELS, shown);
+	k_msleep(90);
+	wave_flat(lcd, 4, shown);
+	k_msleep(60);
+	wave_flat(lcd, 6, shown);
+	k_msleep(120);
+
+	/*
+	 * Keep the pulse running until the Pi says hello.  On a healthy boot
+	 * this loop does not run at all; when it does, the caption says why the
+	 * board is sitting there.
 	 */
 	while (!i2c_first_message_received) {
 		if (!said_waiting) {
 			lcd_centre(lcd, 0, "Waiting for Pi");
 			said_waiting = true;
+			wave_flat(lcd, floor_idle, shown);
 		}
 
-		for (int p = BAR_PIXELS_MAX; p >= 0 && !i2c_first_message_received; p--) {
-			bar_set(lcd, p, &shown);
-			k_msleep(step_ms);
-		}
-		for (int p = 0; p <= BAR_PIXELS_MAX && !i2c_first_message_received; p++) {
-			bar_set(lcd, p, &shown);
+		for (int p = 0; p <= WAVE_MAX_POS && !i2c_first_message_received; p++) {
+			wave_draw(lcd, p, floor_idle, shown);
 			k_msleep(step_ms);
 		}
 	}
 
-	/* Snap the bar full, say so, and get out of the way. */
-	bar_set(lcd, BAR_PIXELS_MAX, &shown);
+	wave_flat(lcd, LCD_BOOT_LEVELS, shown);
 	lcd_centre(lcd, 0, "Pi connected");
 	k_msleep(600);
 	lcd_clear(lcd);
