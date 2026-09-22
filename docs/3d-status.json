@@ -270,14 +270,12 @@
       "round": 7,
       "date": "2026-09-22",
       "what": "composition and information: the camera frames the measured plant, and the vessel plates carry the numbers",
-      "score": null,
-      "scored_by": "critique pending",
+      "score": 6.4,
+      "scored_by": "independent critic, images only",
       "shots": [
         "docs/3d/shots/r7-normal.png",
         "docs/3d/shots/r7-high.png",
-        "docs/3d/shots/r7-alarm.png",
-        "docs/3d/shots/r7-wide.png",
-        "docs/3d/shots/r7-portrait.png"
+        "docs/3d/shots/r7-alarm.png"
       ],
       "changes": [
         "the camera fits the equipment's bounding box instead of sitting at a point chosen by eye; the analytic distance is refined by projecting the eight corners and pulling back until they all fit, and it is recomputed on every resize",
@@ -310,6 +308,50 @@
         "the relief line does not visibly enter the stack",
         "thin elements stipple into dashed lines at sub-pixel widths",
         "some vessel hoops render solid and others dashed, which looks like depth precision"
+      ],
+      "evidence_defect": "r7-wide and r7-portrait were captured 21:55, before the plates landed at 21:58, so they showed the previous round's labels while being filed as this round's evidence. Caught by the critic, not by me. Both removed and re-taken as r8."
+    },
+    {
+      "round": 8,
+      "date": "2026-09-22",
+      "what": "a longer lens, and hardware taken out of the state palette",
+      "score": null,
+      "scored_by": "critique pending",
+      "shots": [
+        "docs/3d/shots/r8-normal.png",
+        "docs/3d/shots/r8-high.png",
+        "docs/3d/shots/r8-alarm.png",
+        "docs/3d/shots/r8-wide.png",
+        "docs/3d/shots/r8-portrait.png"
+      ],
+      "changes": [
+        "field of view 60 -> 30 degrees. The wide lens made the left-hand vessel lean and its dome go elliptical, which the critic called the loudest 'not a commercial product' tell in the image. The automatic fit pulls the camera back to compensate, so the framing is unchanged.",
+        "status collars are a neutral steel that the state palette never uses, and only HPT's answers for a blowout. Previously both turned red, which said 'in alarm' over a GST that was merely low, and their normal amber had been claimed by the LOW and HIGH bands."
+      ],
+      "measured": {
+        "hardware_gl": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "build_seconds": 2.17,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "verified_by_hand": [
+        "four focal lengths compared side by side at 60, 42, 30 and 22 degrees before choosing",
+        "all five shots retaken at the same build, so the evidence matches the code"
+      ],
+      "still_open": [
+        "the process topology is invisible: pipe stubs end in mid-air and nothing joins tank to compressor to vessel to flare",
+        "no contact shadows where anything meets the deck",
+        "thin geometry stipples into beaded lines",
+        "the plates are screen-space sprites and read as UI laid over the scene rather than objects in it",
+        "the page overflows windows narrower than about 1216 px, which is a layout fault outside the 3D view"
       ]
     }
   ]

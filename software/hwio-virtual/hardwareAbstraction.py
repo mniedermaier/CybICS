@@ -1092,8 +1092,18 @@ def index_page():
             });
 
             // Create camera
+            // 30 degrees, not 60.
+            //
+            // A wide lens was the loudest "not a real product" tell in the
+            // picture: the left-hand vessel leaned, its dome flattened into an
+            // ellipse and the deck splayed, because objects away from the
+            // optical axis distort more the wider the lens. A longer lens
+            // keeps the vessels upright wherever they sit in frame, which is
+            // how technical and digital-twin views are drawn. The automatic
+            // fit simply moves the camera further back to compensate, so the
+            // plant still fills the frame.
             const camera = new THREE.PerspectiveCamera(
-              60,
+              30,
               container.clientWidth / container.clientHeight,
               0.1,
               1000
@@ -1782,9 +1792,9 @@ def index_page():
               // clear of the steel and read as a hoop thrown over the tank.
               new THREE.TorusGeometry(2.06, 0.1, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xff6b00,
-                emissive: 0xff6b00,
-                emissiveIntensity: 1.0,
+                color: 0x8d9aa8,
+                emissive: 0x8d9aa8,
+                emissiveIntensity: 0.22,
                 transparent: true,
                 opacity: 0.92,
                 metalness: 0.2,
@@ -2651,6 +2661,10 @@ def index_page():
             let compressorRunning = false;
             // Set from /api/state; drives the collars as well as the flame.
             let blowoutActive = false;
+            // Neutral: deliberately outside the LOW / NORMAL / HIGH / CRITICAL
+            // palette, so a ring of hardware can never be mistaken for a state.
+            const COLLAR_STEEL = 0x8d9aa8;
+            const COLLAR_IDLE_GLOW = 0.22;
 
             // Fetch live data from server
             async function fetchData() {
@@ -2799,6 +2813,14 @@ def index_page():
               // Re-cap the loop, so the same scene can be measured at the rate
               // a weak machine would run it at without needing a weak machine.
               frameCap: ms => { FRAME_MS = ms; },
+
+              // Re-measure and re-frame, and try a different lens. The focal
+              // length is a judgement about how the plant should look, and it
+              // is far quicker to turn it here and photograph the result than
+              // to rebuild the container for each candidate.
+              frame: () => { measurePlant(); frameCamera(); },
+              fov: v => { camera.fov = v; camera.updateProjectionMatrix();
+                          measurePlant(); frameCamera(); return camera.fov; },
             };
 
             await yieldToBrowser();   // built everything that gets an outline
@@ -3043,15 +3065,22 @@ def index_page():
               // nothing. They are steady now, and pulse only while the blowout
               // sensor is actually reporting, which is a real signal from the
               // plant rather than decoration.
+              // Only the vessel that is actually in trouble.
+              //
+              // A blowout used to turn both collars red and pulse them, which
+              // said "this tank is in alarm" over a GST that was merely low --
+              // and the collars' normal amber had meanwhile been claimed by
+              // the LOW and HIGH bands, so the same colour meant two different
+              // things on the same object. Structural hardware stays a neutral
+              // that the state palette never uses; the blowout is HPT's, so
+              // only HPT's collar answers for it.
               const alarmPulse = blowoutActive
-                ? 1.6 + Math.sin(now * 0.008) * 0.9
-                : 0.85;
-              gstGlowRing.material.emissiveIntensity = alarmPulse;
+                ? 1.5 + Math.sin(now * 0.008) * 0.9
+                : COLLAR_IDLE_GLOW;
               hptGlowRing.material.emissiveIntensity = alarmPulse;
-              const collar = blowoutActive ? 0xff3b30 : 0xff6b00;
-              if (gstGlowRing.material.emissive.getHex() !== collar) {
-                gstGlowRing.material.emissive.setHex(collar);
-                gstGlowRing.material.color.setHex(collar);
+              gstGlowRing.material.emissiveIntensity = COLLAR_IDLE_GLOW;
+              const collar = blowoutActive ? 0xff3b30 : COLLAR_STEEL;
+              if (hptGlowRing.material.emissive.getHex() !== collar) {
                 hptGlowRing.material.emissive.setHex(collar);
                 hptGlowRing.material.color.setHex(collar);
               }
