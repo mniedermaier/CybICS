@@ -27,7 +27,7 @@ from cdp import Browser  # noqa: E402
 from capture import CAMERAS  # noqa: E402
 
 # Quantities that only ever increase, so a wrap or a reset is not a rate.
-CUMULATIVE = ("fan", "gstRing", "frame")
+CUMULATIVE = ("fan", "frame")
 
 
 def open_scene(page, url, timeout=90):

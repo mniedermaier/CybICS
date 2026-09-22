@@ -843,6 +843,46 @@ def index_page():
             // Clear container
             container.innerHTML = '';
 
+            // Alarm treatment for the viewport as a whole.
+            //
+            // The review was blunt about this: during a blowout the only
+            // blowout-specific token in frame was a flare about one and a half
+            // per cent of the picture high, in the far corner, and the vessel
+            // colour that changed most was salmon -- which is HPT's product
+            // colour, so "big and red" also means "HPT is full". An operator
+            // reads the wrong thing, or nothing.
+            //
+            // A pulsing rim on the viewport is caught peripherally, uses a
+            // colour nothing else in the scene wears, and says "state change"
+            // rather than "quantity". It costs nothing to draw.
+            // The rim is its own layer on top of the canvas, not a shadow on
+            // the container. An inset box-shadow paints behind the container's
+            // children, so the canvas sat straight over it and the first
+            // attempt was invisible in the screenshot.
+            if (!document.getElementById('cybics-alarm-style')) {
+              const style = document.createElement('style');
+              style.id = 'cybics-alarm-style';
+              style.textContent =
+                '@keyframes cybics-alarm-pulse {' +
+                '  0%, 100% { opacity: 1; }' +
+                '  50%      { opacity: 0.35; }' +
+                '}' +
+                '#cybics-alarm-rim {' +
+                '  position: absolute; inset: 0; pointer-events: none;' +
+                '  z-index: 5; display: none; border: 3px solid #ff3b30;' +
+                '  box-shadow: inset 0 0 44px 10px rgba(255,59,48,0.22);' +
+                '  animation: cybics-alarm-pulse 1.1s ease-in-out infinite; }' +
+                '#container3d.cybics-alarm #cybics-alarm-rim { display: block; }';
+              document.head.appendChild(style);
+            }
+            if (getComputedStyle(container).position === 'static') {
+              container.style.position = 'relative';
+            }
+            const alarmRim = document.createElement('div');
+            alarmRim.id = 'cybics-alarm-rim';
+            container.appendChild(alarmRim);
+            container.classList.remove('cybics-alarm');
+
             // Create scene with stunning gradient background
             const scene = new THREE.Scene();
             const lightTheme = document.documentElement.classList.contains('light-mode');
@@ -2014,11 +2054,18 @@ def index_page():
               g.fillRect(0, 0, 8, 128);
               for (let i = 0; i < 2; i++) {
                 const head = i * 64 + 40;      // the sharp edge, leading
-                const tail = head - 34;
+                const tail = head - 42;
                 const grad = g.createLinearGradient(0, tail, 0, head);
-                grad.addColorStop(0.0, 'rgba(120, 214, 255, 0)');
-                grad.addColorStop(0.75, 'rgba(150, 226, 255, 0.55)');
-                grad.addColorStop(1.0, 'rgba(210, 244, 255, 1)');
+                // Teal, and never white. In review the band peaked brighter
+                // than the pipe's own lit edge, which flattened the cylinder
+                // and made the run look like a corrugated hose from close up
+                // and like a pipe with gaps in it from the overview camera.
+                // A hue no metal in this scene wears, at a brightness that
+                // stays under the pipe's highlight, reads as something moving
+                // through the pipe instead of as part of it.
+                grad.addColorStop(0.0, 'rgba(0, 140, 150, 0)');
+                grad.addColorStop(0.8, 'rgba(40, 190, 200, 0.45)');
+                grad.addColorStop(1.0, 'rgba(90, 225, 230, 0.8)');
                 g.fillStyle = grad;
                 g.fillRect(0, tail, 8, head - tail);
               }
@@ -2236,9 +2283,24 @@ def index_page():
             scene.add(chimneyGroup);
 
             // Blowout Pipe: HPT to Chimney
+            // The vent run carries the flow band too. During a blowout the
+            // gas is going somewhere, and with this line standing still while
+            // the flare burned, the picture never drew the cause and effect.
+            const ventTexture = new THREE.CanvasTexture(flowCanvas());
+            ventTexture.wrapS = ventTexture.wrapT = THREE.RepeatWrapping;
+            ventTexture.repeat.set(1, 1);
+            const ventMaterial = new THREE.MeshStandardMaterial({
+              color: 0x9095a0,
+              metalness: 0.85,
+              roughness: 0.4,
+              emissive: 0xff7a3d,
+              emissiveMap: ventTexture,
+              emissiveIntensity: 0
+            });
+
             const blowoutPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.12, 0.12, 4, 16),
-              pipeMaterial
+              new THREE.CylinderGeometry(0.16, 0.16, 4, 16),
+              ventMaterial
             );
             blowoutPipe.position.set(9, 7, 0);
             blowoutPipe.rotation.z = Math.PI / 2;
@@ -2317,23 +2379,23 @@ def index_page():
 
             // Add labels for LED panel
             const ledLabel1 = createTextSprite('GST', '#ffffff', '#333333');
-            ledLabel1.scale.set(2, 0.5, 1);
-            ledLabel1.position.set(13, 4.2, 0);
+            ledLabel1.scale.set(1.5, 0.45, 1);
+            ledLabel1.position.set(12.6, 4.2, 0);
             scene.add(ledLabel1);
 
             const ledLabel2 = createTextSprite('COMP', '#ffffff', '#333333');
-            ledLabel2.scale.set(2, 0.5, 1);
-            ledLabel2.position.set(13, 3.6, 0);
+            ledLabel2.scale.set(1.5, 0.45, 1);
+            ledLabel2.position.set(12.6, 3.6, 0);
             scene.add(ledLabel2);
 
             const ledLabel3 = createTextSprite('SYSTEM', '#ffffff', '#333333');
-            ledLabel3.scale.set(2, 0.5, 1);
-            ledLabel3.position.set(13, 3.0, 0);
+            ledLabel3.scale.set(1.5, 0.45, 1);
+            ledLabel3.position.set(12.6, 3.0, 0);
             scene.add(ledLabel3);
 
             const ledLabel4 = createTextSprite('BLOWOUT', '#ffffff', '#333333');
-            ledLabel4.scale.set(2.5, 0.5, 1);
-            ledLabel4.position.set(13, 2.4, 0);
+            ledLabel4.scale.set(1.9, 0.45, 1);
+            ledLabel4.position.set(12.6, 2.4, 0);
             scene.add(ledLabel4);
 
             scene.add(ledPanel);
@@ -2474,6 +2536,7 @@ def index_page():
             let targetFanSpeed = 0;
             let flameFlicker = 0;
             let flowGlow = 0;
+            let ventGlow = 0;
             let compressorRunning = false;
             // Set from /api/state; drives the collars as well as the flame.
             let blowoutActive = false;
@@ -2541,7 +2604,15 @@ def index_page():
                 document.getElementById('gst-value').textContent = data.gst;
                 document.getElementById('hpt-value').textContent = data.hpt;
                 document.getElementById('syssen-value').textContent = data.sysSen ? 'OK' : 'ALARM';
-                document.getElementById('bosen-value').textContent = data.boSen > 0 ? 'ACTIVE' : 'INACTIVE';
+                // An alarm has to be a change of state, not a change of
+                // word. ACTIVE and INACTIVE were rendered in the same colour,
+                // so the one row that matters looked exactly like the seven
+                // that do not.
+                const boCell = document.getElementById('bosen-value');
+                boCell.textContent = data.boSen > 0 ? 'ACTIVE' : 'INACTIVE';
+                boCell.style.color = data.boSen > 0 ? '#ff4d4d' : '#aabbcc';
+                boCell.style.fontWeight = data.boSen > 0 ? '700' : '';
+                container.classList.toggle('cybics-alarm', data.boSen > 0);
                 document.getElementById('compressor-value').textContent = data.compressor > 0 ? 'ON' : 'OFF';
                 document.getElementById('systemvalve-value').textContent = data.systemValve ? 'OPEN' : 'CLOSED';
                 document.getElementById('gstsig-value').textContent = data.gstSig ? 'HIGH' : 'LOW';
@@ -2592,7 +2663,13 @@ def index_page():
                 frame: renderer.info.render.frame,
                 fan: fanGroup.rotation.z,
                 fanSpeed: fanRotationSpeed,
-                gstRing: gstGlowRing.rotation.z,
+                // gstRing used to be reported here. The rotation it measured
+                // was removed on purpose -- it spun a ring about its own axis
+                // of symmetry and changed no pixel -- and leaving the probe in
+                // place made a deliberate removal look like an animation that
+                // had stopped working.
+                collarPulse: gstGlowRing.material.emissiveIntensity,
+                ventGlow: ventMaterial.emissiveIntensity,
                 gstLevel: gstFill.children[0].scale.y,
                 hptLevel: hptFill.children[0].scale.y,
                 flowOffset: flowTexture.offset.y,
@@ -2760,11 +2837,21 @@ def index_page():
               // the same on any machine; stopped, the pipe goes dark rather
               // than freezing mid-chevron, which would read as a stalled
               // animation instead of as a stopped compressor.
-              flowGlow += ((compressorRunning ? 1.15 : 0) - flowGlow) *
+              flowGlow += ((compressorRunning ? 0.7 : 0) - flowGlow) *
                           (1 - Math.exp(-dt / 0.25));
               flowMaterial.emissiveIntensity = flowGlow;
               if (compressorRunning) {
                 flowTexture.offset.y = (flowTexture.offset.y - dt * 0.55) % 1;
+              }
+
+              // The vent. Faster than the process flow, because a relief line
+              // is not moving gas at the same leisurely rate as the duty
+              // pipework, and the difference is worth seeing.
+              ventGlow += ((blowoutActive ? 1.3 : 0) - ventGlow) *
+                          (1 - Math.exp(-dt / 0.18));
+              ventMaterial.emissiveIntensity = ventGlow;
+              if (blowoutActive) {
+                ventTexture.offset.y = (ventTexture.offset.y - dt * 1.4) % 1;
               }
 
               // Animate flames

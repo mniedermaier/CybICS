@@ -138,8 +138,8 @@
       "round": 4,
       "date": "2026-09-22",
       "what": "animation: every motion moved onto a clock, flow shown on the pipe, motion that meant nothing removed",
-      "score": null,
-      "scored_by": "not yet critiqued",
+      "score": 6.8,
+      "scored_by": "independent critic, images and logs only",
       "shots": [
         "docs/3d/shots/r4-overview.png",
         "docs/3d/shots/r4-close.png",
@@ -184,6 +184,47 @@
       "verified_by_hand": [
         "filmstrip at the pipe camera: the first chevron attempt read as a corrugated hose, the comet-tail pulses read as direction",
         "alarm state staged for the first time: flare at the stack, both status collars switch orange to red"
+      ],
+      "critic_animation_score": 5.5,
+      "critic_top_faults": [
+        "the flow marker read as a corrugated hose close up and as a pipe with gaps in it at overview",
+        "the alarm had no alarm language: salmon is also HPT's product colour, so 'big and red' means 'HPT is full'",
+        "motion did not follow the process: the vent line stood still during a blowout",
+        "the app loop was running at about 18 fps, so every animated element advanced in visible jumps",
+        "bead-chain aliasing on thin elements"
+      ],
+      "critic_claims_checked": {
+        "stack is leaning": "not a bug. The chimney group carries no rotation, only a position. Verticals off-axis converge because the camera is pitched down; that is correct perspective.",
+        "panel label reads SYSTER": "the text in the source is SYSTEM. The finding was real but the cause was the label sprite overhanging the panel edge, not a typo.",
+        "gstRing_per_s fell to 0.0": "not a regression. That rotation was removed on purpose this round; the probe reporting a quantity that no longer animates is what made it look broken, and the probe has been corrected."
+      }
+    },
+    {
+      "round": 5,
+      "date": "2026-09-22",
+      "what": "answering the animation critique: flow reads as gas, the alarm has its own language, the vent line moves",
+      "score": null,
+      "scored_by": "critique pending",
+      "shots": [
+        "docs/3d/shots/r5-overview.png",
+        "docs/3d/shots/r5-close.png",
+        "docs/3d/shots/r5-alarm.png",
+        "docs/3d/shots/r5-flow-strip.png"
+      ],
+      "changes": [
+        "flow band retinted teal and dropped below the pipe's own highlight, so the cylinder is no longer flattened to white and the run does not break into chunks",
+        "alarm language: a pulsing red rim on the viewport, a red bold HUD row, red status collars and a larger flare",
+        "the vent line to the stack now carries a faster flow band while the blowout sensor reports",
+        "LED panel row labels moved clear of the board instead of overhanging its edge",
+        "motion() no longer reports gstRing, a quantity whose animation was deliberately removed"
+      ],
+      "measured": {
+        "time_invariance_ratio": 1.003,
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "not_changed_on_purpose": [
+        "the fan speed does not vary with load: the compressor signal is binary, and inventing a load would break the rule that /api/state is the truth",
+        "the chimney is not re-modelled: its apparent lean is the pitched camera, verified against the source"
       ]
     }
   ]
