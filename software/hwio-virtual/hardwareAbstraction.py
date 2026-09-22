@@ -754,7 +754,22 @@ def index_page():
           window.CYBICS_3D_VERSION = "7.0.0-CLEAN";
           document.title = "CybICS 3D Visualization";
 
-          function init3DScene() {
+          // Let the browser breathe.
+          //
+          // Building this scene is a few seconds of straight-line work on a
+          // machine without GPU acceleration: 56 meshes, 39 physically based
+          // materials and the shader compiles that go with them.  Done in one
+          // block it holds the main thread long enough that NiceGUI's client
+          // cannot answer its own handshake, and NiceGUI responds by reloading
+          // the page -- so the 3D tab used to take the session down with it,
+          // measured as a reload roughly six seconds after opening the tab
+          // while the same page left alone ran for forty without one.
+          //
+          // Yielding between sections costs a few milliseconds and lets the
+          // socket be serviced while the scene assembles.
+          const yieldToBrowser = () => new Promise(r => setTimeout(r, 0));
+
+          async function init3DScene() {
             const container = document.getElementById('container3d');
             if (!container) {
               setTimeout(init3DScene, 100);
@@ -763,6 +778,55 @@ def index_page():
 
             if (typeof THREE === 'undefined') {
               setTimeout(init3DScene, 100);
+              return;
+            }
+
+            // Is there a GPU behind this page?
+            //
+            // A browser with no hardware acceleration falls back to a software
+            // rasteriser -- SwiftShader in Chrome, llvmpipe on Mesa -- and this
+            // scene is far outside what that can sustain: 56 meshes, 39
+            // physically based materials and nine lights, with every shader
+            // compiled on the CPU.
+            //
+            // That is not a slow scene, it is a broken page.  Measured in
+            // headless Chrome on SwiftShader, opening this tab held the main
+            // thread long enough that NiceGUI's client could not answer its own
+            // handshake and reloaded the page, every time, taking the session
+            // with it -- while the same page left on the other tab ran for as
+            // long as it was watched without a single reload.  Turning shadows
+            // off, dropping to twelve frames a second and building the scene in
+            // chunks all helped and none of it was enough.
+            //
+            // So on a machine without acceleration the honest thing is to say
+            // so rather than to take the page down.  A training platform gets
+            // run in classroom VMs without GPU passthrough, and everything the
+            // 3D tab shows is on the classic view as well.
+            const gpuName = (function () {
+              try {
+                const probe = document.createElement('canvas');
+                const gl = probe.getContext('webgl2') || probe.getContext('webgl');
+                if (!gl) { return 'none'; }
+                const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
+              } catch (e) { return 'unknown'; }
+            })();
+            const softwareRenderer =
+              /swiftshader|llvmpipe|software|microsoft basic|^none$/i.test(gpuName);
+
+            if (softwareRenderer) {
+              console.log('CybICS 3D: no hardware acceleration (' + gpuName + '), not building the scene');
+              container.innerHTML =
+                '<div style="display:flex;align-items:center;justify-content:center;' +
+                'height:100%;min-height:320px;padding:32px;text-align:center;' +
+                'font-family:sans-serif;color:#8fa4bb;line-height:1.6">' +
+                '<div><div style="font-size:18px;color:#dfe9f5;margin-bottom:8px">' +
+                '3D view needs hardware acceleration</div>' +
+                'This browser is rendering WebGL in software, where the scene runs ' +
+                'slowly enough to stall the page.<br>Everything it shows is on the ' +
+                '<b>Classic View</b> tab as well.' +
+                '<div style="font-size:12px;margin-top:12px;opacity:.7">renderer: ' +
+                gpuName + '</div></div></div>';
               return;
             }
 
@@ -839,13 +903,55 @@ def index_page():
             const canvas = document.createElement('canvas');
             const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
+            // Render at the display's own resolution, but never beyond 2x: the
+            // difference above that is invisible and the cost is quadratic.
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             renderer.sortObjects = true;
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Nothing that casts a shadow here ever moves -- the tanks, pipes,
+            // platform and floor are fixed, and the only animated things are
+            // the fan and the particles.  So the shadow maps are rendered once
+            // instead of four more full scene passes on every single frame.
+            renderer.shadowMap.autoUpdate = false;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.1;
             renderer.physicallyCorrectLights = true;
+            // Without this the image is written to the canvas in linear space
+            // while the tone mapper assumes it will be encoded, which is what
+            // made every surface look washed out and flat.
+            renderer.outputEncoding = THREE.sRGBEncoding;
             container.appendChild(canvas);
+
+            // An environment for the metals to reflect.
+            //
+            // MeshStandardMaterial is a physically based material: its
+            // metalness and roughness describe how a surface reflects its
+            // surroundings, and with no surroundings to reflect, every metal
+            // part resolves to flat grey no matter what those values say.  A
+            // small gradient -- bright sky, dark floor, warm horizon -- run
+            // through PMREM gives the tanks, pipes and frames something to
+            // pick up, which is the single biggest step towards looking like
+            // metal rather than plastic.  It is generated once.
+            (function buildEnvironment() {
+              if (softwareRenderer) { return; }
+              const c = document.createElement('canvas');
+              c.width = 64; c.height = 32;
+              const g = c.getContext('2d');
+              const grad = g.createLinearGradient(0, 0, 0, 32);
+              grad.addColorStop(0.00, '#dfe9f5');
+              grad.addColorStop(0.45, '#8fa4bb');
+              grad.addColorStop(0.55, '#6b5a4a');
+              grad.addColorStop(1.00, '#20242a');
+              g.fillStyle = grad; g.fillRect(0, 0, 64, 32);
+              const tex = new THREE.CanvasTexture(c);
+              tex.mapping = THREE.EquirectangularReflectionMapping;
+              const pmrem = new THREE.PMREMGenerator(renderer);
+              pmrem.compileEquirectangularShader();
+              scene.environment = pmrem.fromEquirectangular(tex).texture;
+              tex.dispose();
+              pmrem.dispose();
+            })();
 
             // Realistic industrial lighting setup
             const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.5);
@@ -855,8 +961,12 @@ def index_page():
             const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.0);
             directionalLight.position.set(12, 20, 8);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 4096;
-            directionalLight.shadow.mapSize.height = 4096;
+            // 2048 over a 50-unit shadow camera is 41 texels per world unit,
+            // far finer than the screen resolves these objects at any sane
+            // camera distance.  4096 cost four times the memory and bandwidth
+            // for a difference nobody can see.
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
             directionalLight.shadow.camera.left = -25;
             directionalLight.shadow.camera.right = 25;
             directionalLight.shadow.camera.top = 25;
@@ -879,9 +989,11 @@ def index_page():
             const createSpotlight = (color, intensity, x, y, z, targetX, targetY, targetZ) => {
               const spotlight = new THREE.SpotLight(color, intensity, 50, Math.PI / 6, 0.5, 2);
               spotlight.position.set(x, y, z);
-              spotlight.castShadow = true;
-              spotlight.shadow.mapSize.width = 1024;
-              spotlight.shadow.mapSize.height = 1024;
+              // These three are accent lights: they exist to put a warm
+              // pool of light on each vessel, and the shadows they cast land
+              // inside shadows the main light has already drawn.  Three extra
+              // shadow passes per frame for an effect nobody would miss.
+              spotlight.castShadow = false;
 
               const target = new THREE.Object3D();
               target.position.set(targetX, targetY, targetZ);
@@ -998,6 +1110,8 @@ def index_page():
 
             scene.add(platformGroup);
 
+            await yieldToBrowser();   // built lighting, floor and platform
+
             // Orbit Controls for interactive camera
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -1033,6 +1147,8 @@ def index_page():
               sprite.scale.set(4, 1, 1);
               return sprite;
             }
+
+            await yieldToBrowser();   // built controls and helpers
 
             // GST Tank (left) - Realistic industrial pressure vessel
             const gstGroup = new THREE.Group();
@@ -1267,6 +1383,8 @@ def index_page():
 
             scene.add(gstGroup);
 
+            await yieldToBrowser();   // built the GST
+
             // HPT Tank (right) - Realistic industrial pressure vessel
             const hptGroup = new THREE.Group();
             hptGroup.position.set(7, 0, 0);
@@ -1408,6 +1526,8 @@ def index_page():
             hptGroup.add(hptLabel);
 
             scene.add(hptGroup);
+
+            await yieldToBrowser();   // built the HPT
 
             // Realistic industrial compressor
             const compressorGroup = new THREE.Group();
@@ -1569,6 +1689,8 @@ def index_page():
 
             scene.add(compressorGroup);
 
+            await yieldToBrowser();   // built the compressor
+
             // Pipes with flanges - realistic industrial piping
             const pipeMaterial = new THREE.MeshStandardMaterial({
               color: 0x9095a0,
@@ -1687,6 +1809,8 @@ def index_page():
             elbowHPT.castShadow = true;
             scene.add(elbowHPT);
 
+            await yieldToBrowser();   // built the pipework
+
             // Industrial Chimney Stack (beside HPT)
             const chimneyGroup = new THREE.Group();
             chimneyGroup.position.set(11, 0, 0);
@@ -1802,6 +1926,8 @@ def index_page():
             elbowChimneyInlet.castShadow = true;
             scene.add(elbowChimneyInlet);
 
+            await yieldToBrowser();   // built the chimney
+
             // System Cabinet (right of HPT)
             const cabinetGroup = new THREE.Group();
             cabinetGroup.position.set(13, 0, -3);
@@ -1869,6 +1995,8 @@ def index_page():
             scene.add(ledLabel4);
 
             scene.add(ledPanel);
+
+            await yieldToBrowser();   // built the cabinet
 
             // Particle system for gas flow (from compressor outlet pipe to HPT)
             const particleCount = 100;
@@ -2088,9 +2216,43 @@ def index_page():
               }
             }
 
+            // Draw the shadow maps once, now that everything is in the scene.
+            renderer.shadowMap.needsUpdate = true;
+
             // Animation loop
-            function animate() {
+            //
+            // Two gates, both of which matter more than any single drawing
+            // trick in here.
+            //
+            // The scene lives in a tab.  Without a visibility check it kept
+            // rendering the whole thing at the display's refresh rate while
+            // the user was looking at the board photograph on the other tab --
+            // all of that work thrown away every frame.
+            //
+            // And it is capped to 30 fps.  Nothing here moves fast enough to
+            // need more: the fan eases, the particles drift, the data behind
+            // it arrives twice a second.  Uncapped, this pegged a core hard
+            // enough that NiceGUI's client could not answer its own handshake
+            // in time and reloaded the page out from under the scene, which is
+            // how the 3D tab managed to kill the session it was running in.
+            const FRAME_MS = 1000 / (softwareRenderer ? 12 : 30);
+            let lastFrame = 0;
+
+            function visible() {
+              return document.visibilityState === 'visible' && canvas.offsetParent !== null;
+            }
+
+            function animate(now) {
               requestAnimationFrame(animate);
+
+              // The first call comes from start-up rather than from rAF, so it
+              // arrives without a timestamp; leaving it undefined would poison
+              // every later comparison with NaN and the cap would never apply.
+              if (now === undefined) { now = performance.now(); }
+
+              if (!visible()) { return; }
+              if (now - lastFrame < FRAME_MS) { return; }
+              lastFrame = now;
 
               // Smooth fan rotation
               fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) * 0.1;
@@ -2186,6 +2348,7 @@ def index_page():
               camera.aspect = container.clientWidth / container.clientHeight;
               camera.updateProjectionMatrix();
               renderer.setSize(container.clientWidth, container.clientHeight);
+              renderer.shadowMap.needsUpdate = true;
             });
 
             // Start animation
