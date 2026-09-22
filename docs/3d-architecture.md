@@ -111,40 +111,46 @@ the scene has finished building (`typeof window.CybICS3D === 'object'`).
 
 Real numbers from `tools/3d/capture.py`, not estimates. Hardware GL here is an
 Intel HD 4000 (2012, Mesa) — deliberately weak, so passing on it means
-something.
+something. All figures at the `overview` camera: **draw calls depend on frustum
+culling, so two cameras are not comparable.**
 
-| | hardware GL | SwiftShader |
+| | before the restyle | now |
 |---|---|---|
-| tab-open → scene exists | 1.0–1.8 s | 3.9–4.1 s |
-| frame rate, app loop | 21–22 fps (cap 30) | 1.7 fps (cap 12) |
-| real frame cost, rAF-driven | 22.4 ms | unmeasurable — the page reloads first |
-| main-thread submit per frame | 3.4–4.6 ms | 3.1–8.0 ms |
-| draw calls | 241 | 242 |
-| triangles | 21 866 | |
-| meshes / distinct materials / lights | 232 / 108 / 9 | |
-| shadow casters | 187 | |
-| geometries / textures / programs | 233 / 10 / 7 | |
-| 60 s soak with `?force3d=1` | not yet run | **reloads** |
+| tab-open → scene exists | 1.8 s | 1.0 s |
+| draw calls | 241 | 178 |
+| triangles | 21 866 | 21 866 |
+| meshes | 232 | 168 |
+| distinct materials | 108 | 108 |
+| lights | 9 | 6 |
+| shadow casters | 187 | 123 |
+| textures | 13 | 10 |
+| frame, rAF-driven | 22.4 ms | 22.5 ms |
+| outline segments | — | ~3 500, in one draw call |
 
-Two corrections to what the scene looks like it costs:
+Three corrections to what the scene looks like it costs:
 
-- Reading the source suggests ~58 meshes and ~39 materials. At runtime it is
+- Reading the source suggests ~58 meshes and ~39 materials. At runtime it was
   **232 meshes and 108 materials**, because the grating bars, railings, ladder
   rungs, flange bolts and LED dots are built in loops. Any budget reasoned from
   the source is wrong by a factor of four.
-- The GPU is not the bottleneck. 22 ms per frame against 3.4 ms of command
-  submission, on a fourteen-year-old integrated GPU, means there is headroom for
-  considerably more scene — but not for more main-thread work.
+- The GPU is not the bottleneck. The scene is **draw-call bound**, not triangle
+  bound: 178 calls for 21 866 triangles. Merging the grating's 65 bars into one
+  mesh removed 64 draw calls and changed nothing in the picture.
+- **Frame time on this host is not a reliable signal at the ten-millisecond
+  level.** The identical scene has measured anywhere between 22 ms and 60 ms
+  across runs, and an ablation contradicted a same-page A/B taken minutes
+  earlier. Use draw calls, mesh counts and outline segment counts — which are
+  deterministic — and quote frame time only from repeated readings.
 
 ## Budget
 
 | | now | target |
 |---|---|---|
-| meshes / materials / lights | 232 / 108 / 9 | no worse |
-| tab-open → first frame | 1.8 s hw, 4.0 s sw | < 1.5 s |
+| meshes / materials / lights | 168 / 108 / 6 | no worse |
+| tab-open → first frame | 1.0 s hw, ~4 s sw | < 1.5 s |
 | shadow passes per frame | 1, maps drawn once | keep at 1 |
-| frame rate, hardware GL | ~45 fps uncapped | ≥ 50 fps |
-| draw calls | 241 | ≤ 400 |
+| frame, hardware GL | ~22 ms | ≤ 20 ms |
+| draw calls | 178 | ≤ 400 |
 | page survives 60 s | yes behind the guard | yes |
 
 Hard rules:

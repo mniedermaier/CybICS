@@ -49,6 +49,90 @@
         "The brief's target of >=50 fps cannot be read off the app loop, which caps itself at 30 fps (12 on a software renderer). Uncapped the scene runs at ~45 fps on an Intel HD 4000.",
         "The brief said build time was 4.2 s. That is the software-renderer number; on hardware GL it is 1.8 s."
       ]
+    },
+    {
+      "round": 1,
+      "date": "2026-09-22",
+      "what": "photographic pass: sky, procedural concrete, brushed steel",
+      "score": 4.8,
+      "scored_by": "independent critic, images and logs only",
+      "verdict": "the gain was entirely lighting; the geometry underneath still read as untextured primitives",
+      "shots": [
+        "docs/3d/shots/r1-overview.png",
+        "docs/3d/shots/r1-close.png",
+        "docs/3d/shots/r1-gst.png"
+      ]
+    },
+    {
+      "round": 2,
+      "date": "2026-09-22",
+      "what": "direction changed to a stylised digital twin: merged outlines, flat backdrop, cutaway vessels, palette",
+      "score": 5.6,
+      "scored_by": "independent critic, images and logs only",
+      "verdict": "changing direction was right and not close; progress in framing, not yet in craft",
+      "shots": [
+        "docs/3d/shots/r2-overview.png",
+        "docs/3d/shots/r2-close.png",
+        "docs/3d/shots/r2-gst.png"
+      ],
+      "critic_top_faults": [
+        "HPT read as a red tub standing on the deck rather than as contents in a vessel",
+        "compressor running was no longer visible at overview distance -- a regression from round 1",
+        "the plant is small and off-centre in an empty frame",
+        "domes overhang the shell and handrails hoop in mid-air",
+        "particles read as white confetti"
+      ],
+      "critic_regressions_from_round_1": [
+        "lost atmosphere and depth: flat backdrop left the plant floating with no far distance",
+        "lost compressor legibility",
+        "chimney merged with HPT into one grey mass"
+      ]
+    },
+    {
+      "round": 3,
+      "date": "2026-09-22",
+      "what": "state communication: level moved onto the vessel as a filled band, opaque shells, compressor state restored, world-space sky dome, merged flanges",
+      "score": null,
+      "scored_by": "not yet critiqued",
+      "shots": [
+        "docs/3d/shots/r3-overview.png",
+        "docs/3d/shots/r3-close.png",
+        "docs/3d/shots/r3-gst.png",
+        "docs/3d/shots/r3-inverted.png"
+      ],
+      "measured": {
+        "hardware_gl": {
+          "camera": "overview",
+          "build_seconds": 1.04,
+          "draw_calls": 137,
+          "triangles": 21866,
+          "meshes": 127,
+          "materials": 71,
+          "lights": 6,
+          "shadow_casters": 87,
+          "textures": 10,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "url": "http://127.0.0.1:8090/ (no force3d)",
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "verified_by_hand": [
+        "state readback: overlay reports the pinned pressures, so shots are reproducible",
+        "inverted state (GST 40, HPT 220) produces the inverted picture -- the view follows the data"
+      ],
+      "still_open": [
+        "camera framing: the plant fills about a third of the canvas and the status card overlaps GST",
+        "particles still read as scattered dots rather than a directed jet",
+        "handrail hoops have no stanchions or walkway",
+        "LED panel row labels are clipped by the panel edge",
+        "no contact shadows on the deck",
+        "outline hairlines stipple into dashes at sub-pixel widths"
+      ]
     }
   ]
 }

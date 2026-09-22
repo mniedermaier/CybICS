@@ -1,0 +1,50 @@
+{
+  "url": "http://127.0.0.1:8090/?force3d=1",
+  "camera": "close",
+  "gl": "hardware",
+  "build_seconds": 1.05,
+  "ready": true,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) HD Graphics 4000 (IVB GT2), OpenGL ES 3.0)",
+  "draw_calls": 117,
+  "triangles": 17580,
+  "geometries": 126,
+  "textures": 11,
+  "programs": 8,
+  "meshes": 127,
+  "lights": 6,
+  "shadow_casters": 87,
+  "materials": 71,
+  "pixel_ratio": 1,
+  "environment": true,
+  "exposure": 0.75,
+  "shadow_auto_update": false,
+  "drawing_buffer": [
+    1168,
+    607
+  ],
+  "skipped": {
+    "camera": "returned undefined"
+  },
+  "staged": {
+    "state": {
+      "gst": 200,
+      "hpt": 60,
+      "sysSen": 1,
+      "boSen": 0,
+      "heartbeat": true,
+      "compressor": true,
+      "systemValve": true,
+      "gstSig": true
+    },
+    "camera": "close",
+    "overlay": [
+      200,
+      60
+    ]
+  },
+  "bytes": 246066,
+  "fps": 22.3,
+  "frames": 67,
+  "console_errors": [],
+  "navigations": 1
+}

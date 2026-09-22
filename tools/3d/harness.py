@@ -44,45 +44,31 @@ from cdp import Browser  # noqa: E402
 # source, so renaming a comment breaks the preset loudly rather than lifting
 # the wrong lines.
 PRESETS = {
-    "liquid": {
-        "start": r"// Liquid in a dished-end pressure vessel",
+    "level-band": {
+        # The one subject the whole visualisation hangs on: a viewer has to be
+        # able to tell two vessels apart by their level at a glance. Rendered
+        # alone at five fractions, that claim is either obvious or it is false.
+        "start": r"// Level, shown on the vessel rather than inside it",
         "end": r"// GST Tank \(left\)",
-        "returns": ["makeLiquid", "LIQUID_R", "LIQUID_H", "liquidLevel"],
-        # One variant per fill fraction.  This is the subject the scars are
-        # about: the fill must sit where the *volume* says, not the height.
+        "returns": ["makeLevelBand", "BAND_R", "BAND_H"],
         "variant": """
-          const g = api.makeLiquid(0x4a9eff, 0x1a5fa0);
-          g.userData.setLevel(value);
-          scene.add(g);
-          camera.position.set(0, 4, 16); camera.lookAt(0, 4, 0);
-          return value.toFixed(2);
+          // A stand-in for the vessel, so the band is judged where it lives
+          // rather than floating on its own.
+          const shell = new THREE.Mesh(
+            new THREE.CylinderGeometry(2, 2, 8, 32),
+            new THREE.MeshStandardMaterial({
+              color: 0x8f9bab, metalness: 0.15, roughness: 0.6 }));
+          shell.position.y = 4;
+          scene.add(shell);
+
+          const band = api.makeLevelBand(0x2196f3, 0x0d47a1);
+          band.userData.setLevel(value);
+          scene.add(band);
+
+          camera.position.set(0, 5, 15); camera.lookAt(0, 4, 0);
+          return (value * 100).toFixed(0) + '%';
         """,
         "values": "0,0.25,0.5,0.75,1.0",
-    },
-    "liquid-in-shell": {
-        # The same fill, but inside a transparent shell -- the configuration in
-        # which it was invisible.  Keep it: it is the regression test for the
-        # depthWrite scar, and it is a picture, so it cannot be argued with.
-        "start": r"// Liquid in a dished-end pressure vessel",
-        "end": r"// GST Tank \(left\)",
-        "returns": ["makeLiquid", "LIQUID_R", "LIQUID_H"],
-        "variant": """
-          const g = api.makeLiquid(0x4a9eff, 0x1a5fa0);
-          g.userData.setLevel(0.6);
-          scene.add(g);
-          const shell = new THREE.Mesh(
-            new THREE.CylinderGeometry(api.LIQUID_R * 1.05, api.LIQUID_R * 1.05,
-                                       api.LIQUID_H, 32, 1, true),
-            new THREE.MeshStandardMaterial({
-              color: 0xb8c4d0, metalness: 0.9, roughness: 0.25,
-              transparent: true, opacity: 0.45, side: THREE.DoubleSide,
-              depthWrite: value > 0.5 }));
-          shell.position.y = api.LIQUID_H / 2;
-          scene.add(shell);
-          camera.position.set(0, 4, 16); camera.lookAt(0, 4, 0);
-          return 'depthWrite: ' + (value > 0.5);
-        """,
-        "values": "0,1",
     },
 }
 

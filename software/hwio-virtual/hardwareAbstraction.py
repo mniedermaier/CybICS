@@ -992,14 +992,62 @@ def index_page():
             // sky. With one colour for both, the ground simply dissolves into
             // the distance and there is nothing to align -- and it is one less
             // texture, which on a machine with no GPU is the whole point.
-            const BACKDROP = 0x121922;
-            scene.background = new THREE.Color(lightTheme ? 0xf3f5f8 : BACKDROP);
-            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : BACKDROP, 0.016);
+            const BACKDROP = 0x1b2836;
+            scene.background = new THREE.Color(lightTheme ? 0xf3f5f8 : 0x0a0f16);
+            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : BACKDROP, 0.014);
+
+            // A sky dome, so the horizon is in the world rather than on the
+            // screen.
+            //
+            // The first attempt painted a horizon into a background image.
+            // That image is stretched across the canvas, so its horizon sits
+            // at a fixed fraction of the screen while the real one moves with
+            // the camera, and every framing showed a step where the ground met
+            // the sky. Replacing it with a flat colour removed the step but
+            // took the depth with it -- the plant ended up floating in a void
+            // with no far distance.
+            //
+            // A dome fixes both: the gradient is a real thing at a real place,
+            // it lines up from any angle, and the fog is given the same colour
+            // as its horizon band so the ground dissolves into it. One mesh,
+            // one draw call, no lighting, no fog of its own.
+            const skyDome = (function () {
+              const c = document.createElement('canvas');
+              c.width = 4; c.height = 256;
+              const g = c.getContext('2d');
+              // Canvas top is the zenith: three.js flips images, so v = 1 --
+              // the top of the sphere -- samples row zero.
+              const grad = g.createLinearGradient(0, 0, 0, 256);
+              grad.addColorStop(0.00, '#0a0f16');
+              grad.addColorStop(0.38, '#141d28');
+              grad.addColorStop(0.48, '#22303d');
+              grad.addColorStop(0.50, '#2b3a49');
+              grad.addColorStop(0.54, '#1a232e');
+              grad.addColorStop(1.00, '#0a0d12');
+              g.fillStyle = grad;
+              g.fillRect(0, 0, 4, 256);
+
+              const tex = new THREE.CanvasTexture(c);
+              tex.encoding = THREE.sRGBEncoding;
+              const dome = new THREE.Mesh(
+                new THREE.SphereGeometry(180, 24, 16),
+                new THREE.MeshBasicMaterial({
+                  map: tex,
+                  side: THREE.BackSide,
+                  fog: false,
+                  depthWrite: false
+                }));
+              dome.userData.noOutline = true;
+              dome.renderOrder = -1;
+              return dome;
+            })();
+            scene.add(skyDome);
             window.addEventListener('message', function (event) {
               if (!event.data || event.data.type !== 'theme') return;
               const isLight = event.data.theme === 'light';
-              scene.background = new THREE.Color(isLight ? 0xf3f5f8 : BACKDROP);
-              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : BACKDROP, 0.016);
+              scene.background = new THREE.Color(isLight ? 0xf3f5f8 : 0x0a0f16);
+              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : BACKDROP, 0.014);
+              skyDome.visible = !isLight;
             });
 
             // Create camera
@@ -1317,112 +1365,56 @@ def index_page():
 
             await yieldToBrowser();   // built controls and helpers
 
-            // Liquid in a dished-end pressure vessel
+            // Level, shown on the vessel rather than inside it
             //
-            // The fill used to be a plain cylinder scaled on Y, spanning only
-            // the cylindrical section.  Both vessels are a cylinder with a
-            // hemispherical head at each end, so that fill covered 8 of the
-            // 12.2 units you can see: a tank reading 255 of 255 drew its
-            // surface 66% of the way up, and a tank reading 0 left 2.1 units
-            // of empty dome below the line.  The two heads are 23.6% of the
-            // volume and were never drawn as filled at all.
+            // This used to be a body of liquid modelled inside the shell and
+            // clipped at the surface, seen through a transparent wall. It was
+            // volumetrically exact and it did not communicate. At a low level
+            // the contents became a coloured puck standing on the deck with
+            // its own lit outer wall, while the shell above it faded into the
+            // dark background -- so the picture said "a tall grey tower, and
+            // separately a red tub", and the one comparison that has to be
+            // instant, two identical vessels at different levels, was not
+            // available at all.
             //
-            // So the liquid is now the shape of the inside of the vessel, and
-            // a clipping plane cuts it at the surface.  The surface height
-            // comes from the volume rather than from the height, because the
-            // domes hold less per unit of height than the barrel does and a
-            // tank that looks half full should be half full.
-            const LIQUID_R = 1.85;
-            const LIQUID_H = 8.0;
+            // The vessel is opaque now and the level is a filled band on its
+            // outside, rising from the base the way a bar gauge fills. One
+            // silhouette, one object, and the band is the brightest thing on
+            // it. The band's height is the fraction of the vessel's volume
+            // that is full, so half the pressure is still half the tank --
+            // the same promise as before, made in a way that reads across a
+            // room.
+            const BAND_R = 2.03;      // just clear of the 2.0 shell
+            const BAND_H = 8.0;       // the barrel, which spans y = 0 to 8
 
-            function liquidVolume(y) {
-              const r = LIQUID_R, H = LIQUID_H;
-              const dome = 2 / 3 * Math.PI * r * r * r;
-              const cyl = Math.PI * r * r * H;
-              if (y <= -r) { return 0; }
-              if (y < 0) { const u = -y; return Math.PI * (2 * r * r * r / 3 - r * r * u + u * u * u / 3); }
-              if (y <= H) { return dome + Math.PI * r * r * y; }
-              if (y < H + r) { const h = y - H; return dome + cyl + Math.PI * (r * r * h - h * h * h / 3); }
-              return 2 * dome + cyl;
-            }
+            function makeLevelBand(colour, emissive) {
+              const geometry = new THREE.CylinderGeometry(
+                BAND_R, BAND_R, BAND_H, 32, 1, true);
+              // Origin at the foot of the band, so scaling y fills upwards
+              // instead of growing in both directions from the middle.
+              geometry.translate(0, BAND_H / 2, 0);
 
-            // Height at which the volume below equals `frac` of the whole.
-            // Bisection: the closed form needs a cubic root in the domes, this
-            // is thirty iterations of arithmetic twice a second.
-            function liquidLevel(frac) {
-              const total = liquidVolume(LIQUID_H + LIQUID_R);
-              const target = Math.max(0, Math.min(1, frac)) * total;
-              let lo = -LIQUID_R, hi = LIQUID_H + LIQUID_R;
-              for (let i = 0; i < 40; i++) {
-                const mid = (lo + hi) / 2;
-                if (liquidVolume(mid) < target) { lo = mid; } else { hi = mid; }
-              }
-              return (lo + hi) / 2;
-            }
-
-            // Inner radius at a given height, for the disc that shows the surface.
-            function liquidRadiusAt(y) {
-              const r = LIQUID_R, H = LIQUID_H;
-              if (y < 0) { return Math.sqrt(Math.max(0, r * r - y * y)); }
-              if (y <= H) { return r; }
-              return Math.sqrt(Math.max(0, r * r - (y - H) * (y - H)));
-            }
-
-            function makeLiquid(colour, emissive) {
-              // Outlines are added at the end by tracing geometry; the
-              // liquid body is clipped at render time, so its geometry is
-              // the full vessel and an outline would trace the uncut shape.
-
-              const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -LIQUID_R);
-              // depthWrite off, and that is not optional here.
-              //
-              // The clipped body is open at the cut, so it has to be
-              // DoubleSide or you look straight through the surface into
-              // nothing.  A transparent DoubleSide body that also writes depth
-              // has its back faces occlude its own front faces, and what you
-              // get is a volume that renders as very nearly invisible -- which
-              // is exactly what happened when this replaced the old fill: the
-              // surface disc still drew, the liquid under it did not.  The old
-              // fill escaped it by being FrontSide, which it could afford
-              // because a scaled cylinder is never cut open.
-              const body = new THREE.MeshStandardMaterial({
-                color: colour, transparent: true, opacity: 0.8,
-                roughness: 0.2, metalness: 0.0,
-                emissive: emissive, emissiveIntensity: 0.3,
-                side: THREE.DoubleSide, depthWrite: false,
-                clippingPlanes: [plane]
-              });
-              // The cut leaves the body open, so a disc rides at the surface.
-              const surface = new THREE.MeshStandardMaterial({
-                color: colour, transparent: true, opacity: 0.9,
-                roughness: 0.15, metalness: 0.0,
-                emissive: emissive, emissiveIntensity: 0.45
-              });
+              const band = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+                color: colour,
+                emissive: emissive,
+                emissiveIntensity: 0.45,
+                metalness: 0.0,
+                roughness: 0.55,
+                // An open cylinder seen from outside and from inside its own
+                // far wall.
+                side: THREE.DoubleSide
+              }));
+              // Its silhouette is the vessel's, which is already drawn.
+              band.userData.noOutline = true;
 
               const group = new THREE.Group();
-              const cyl = new THREE.Mesh(
-                new THREE.CylinderGeometry(LIQUID_R, LIQUID_R, LIQUID_H, 32), body);
-              cyl.position.y = LIQUID_H / 2;
-              group.add(cyl);
-              const bottom = new THREE.Mesh(new THREE.SphereGeometry(
-                LIQUID_R, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), body);
-              group.add(bottom);
-              const top = new THREE.Mesh(new THREE.SphereGeometry(
-                LIQUID_R, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), body);
-              top.position.y = LIQUID_H;
-              group.add(top);
-
-              const disc = new THREE.Mesh(new THREE.CircleGeometry(LIQUID_R, 32), surface);
-              disc.rotation.x = -Math.PI / 2;
-              group.add(disc);
-
+              group.add(band);
               group.userData.setLevel = function (frac) {
-                const y = liquidLevel(frac);
-                plane.constant = y;
-                const rad = liquidRadiusAt(y);
-                disc.position.y = y;
-                disc.visible = rad > 0.02;
-                disc.scale.set(rad / LIQUID_R, rad / LIQUID_R, 1);
+                const f = Math.max(0, Math.min(1, frac));
+                // A zero-height cylinder is a degenerate mesh, not an empty
+                // tank.
+                band.visible = f > 0.002;
+                band.scale.y = Math.max(f, 0.0001);
               };
               group.userData.setLevel(0);
               return group;
@@ -1432,47 +1424,35 @@ def index_page():
             const gstGroup = new THREE.Group();
             gstGroup.position.set(-7, 0, 0);
 
-            // Main tank body - industrial steel (semi-transparent to see fill)
+            // Main tank body - painted steel, opaque; the level is a band on it
             const gstBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xc6d3e0,
-                // Matte, not chromed. A see-through wall that also throws
-                // specular highlights reads as glass; without them the same
-                // wall reads as a cutaway, which is what it is meant to be.
-                // The brushed map came off with it -- through a transparent
-                // wall its weld seams banded the liquid behind it, which is
-                // the striping that showed up in review.
+                // Opaque. A see-through vessel was tried and it cost more
+                // than it gave: the wall vanished against a dark backdrop,
+                // transparency sorted differently from one camera to the next,
+                // and the contents detached from the container. Painted steel
+                // reads as one mass, takes the level band cleanly, and sorts
+                // like everything else.
+                color: 0x8f9bab,
                 metalness: 0.15,
-                roughness: 0.55,
-                envMapIntensity: 0.6,
-                transparent: true,
-                // Pale and lighter than the backdrop, not darker. Over a dark
-                // stage a thin see-through wall has nothing behind it to tint
-                // and the whole barrel collapses into a black void, which took
-                // the state colour with it. The vessel has to read as a volume
-                // whether it is full or empty.
-                opacity: 0.35,
-                // A cutaway still needs a silhouette, so this one is outlined
-                // despite being transparent.
-                ...{},
-                side: THREE.DoubleSide,
-                // A transparent enclosure must not write depth.  If it does,
-                // its near surface fails the depth test for everything behind
-                // it -- which is the liquid it exists to let you see.  That is
-                // what emptied the tanks: the level arithmetic and the clipping
-                // were both right, the shell was simply drawn over them.
-                depthWrite: false
+                roughness: 0.6,
+                envMapIntensity: 0.6
+                // No depthWrite: false and no DoubleSide here any more. Both
+                // were needed while the shell was a window onto the liquid
+                // inside it; on an opaque wall they are the bug that made this
+                // vessel keep looking transparent -- a surface that does not
+                // write depth cannot hide anything behind it, whatever its
+                // opacity says.
               })
             );
-            gstBody.userData.forceOutline = true;
             gstBody.position.y = 4;
             gstBody.castShadow = true;
             gstBody.receiveShadow = true;
             gstGroup.add(gstBody);
 
             // GST liquid
-            const gstFill = makeLiquid(0x2196f3, 0x1976d2);
+            const gstFill = makeLevelBand(0x2196f3, 0x0d47a1);
             gstGroup.add(gstFill);
 
             // Add support legs to tank
@@ -1680,47 +1660,35 @@ def index_page():
             const hptGroup = new THREE.Group();
             hptGroup.position.set(7, 0, 0);
 
-            // Main tank body - industrial steel (semi-transparent to see fill)
+            // Main tank body - painted steel, opaque; the level is a band on it
             const hptBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xc6d3e0,
-                // Matte, not chromed. A see-through wall that also throws
-                // specular highlights reads as glass; without them the same
-                // wall reads as a cutaway, which is what it is meant to be.
-                // The brushed map came off with it -- through a transparent
-                // wall its weld seams banded the liquid behind it, which is
-                // the striping that showed up in review.
+                // Opaque. A see-through vessel was tried and it cost more
+                // than it gave: the wall vanished against a dark backdrop,
+                // transparency sorted differently from one camera to the next,
+                // and the contents detached from the container. Painted steel
+                // reads as one mass, takes the level band cleanly, and sorts
+                // like everything else.
+                color: 0x8f9bab,
                 metalness: 0.15,
-                roughness: 0.55,
-                envMapIntensity: 0.6,
-                transparent: true,
-                // Pale and lighter than the backdrop, not darker. Over a dark
-                // stage a thin see-through wall has nothing behind it to tint
-                // and the whole barrel collapses into a black void, which took
-                // the state colour with it. The vessel has to read as a volume
-                // whether it is full or empty.
-                opacity: 0.35,
-                // A cutaway still needs a silhouette, so this one is outlined
-                // despite being transparent.
-                ...{},
-                side: THREE.DoubleSide,
-                // A transparent enclosure must not write depth.  If it does,
-                // its near surface fails the depth test for everything behind
-                // it -- which is the liquid it exists to let you see.  That is
-                // what emptied the tanks: the level arithmetic and the clipping
-                // were both right, the shell was simply drawn over them.
-                depthWrite: false
+                roughness: 0.6,
+                envMapIntensity: 0.6
+                // No depthWrite: false and no DoubleSide here any more. Both
+                // were needed while the shell was a window onto the liquid
+                // inside it; on an opaque wall they are the bug that made this
+                // vessel keep looking transparent -- a surface that does not
+                // write depth cannot hide anything behind it, whatever its
+                // opacity says.
               })
             );
-            hptBody.userData.forceOutline = true;
             hptBody.position.y = 4;
             hptBody.castShadow = true;
             hptBody.receiveShadow = true;
             hptGroup.add(hptBody);
 
             // HPT liquid
-            const hptFill = makeLiquid(0xf44336, 0xd32f2f);
+            const hptFill = makeLevelBand(0xf44336, 0xb71c1c);
             hptGroup.add(hptFill);
 
             // Add support legs to HPT tank
@@ -1854,11 +1822,15 @@ def index_page():
                 color: 0x79838f,
                 metalness: 0.3,
                 roughness: 0.6,
-                // Running used to tint the entire machine green, which made a
-                // grey skid read as a lime box and said nothing a lamp could
-                // not say better. The indicator and the collar carry the state
-                // now; the casing keeps its own colour.
-                emissive: 0x00ff00,
+                // The casing does carry the running state after all.
+                //
+                // It was taken away last round on the grounds that a lime box
+                // is crude, and that was the wrong trade: "is the compressor
+                // running" is the one fact a viewer has to catch at overview
+                // distance, and a three-pixel lamp cannot say it. A restrained
+                // green lift over the whole housing can, and it goes dark the
+                // moment the machine stops.
+                emissive: 0x2bd46a,
                 emissiveIntensity: 0
               })
             );
@@ -1915,8 +1887,14 @@ def index_page():
             indicator.position.set(0, 1.8, 0.95);
             compressorGroup.add(indicator);
 
-            // Point light for status
-            const compressorLight = new THREE.PointLight(0x00ff00, 0, 4);
+            // Point light for status.
+            //
+            // Saturated green over a four-unit radius threw a hard-edged green
+            // patch across the grating that reads as light leaking rather than
+            // as a machine indicator. A running compressor gets a lamp, not a
+            // floodlight: a softer green, and a reach short enough that the
+            // glow stays on the casing around it.
+            const compressorLight = new THREE.PointLight(0x66ff99, 0, 1.6);
             compressorLight.position.set(0, 1.8, 0.95);
             compressorGroup.add(compressorLight);
 
@@ -2014,36 +1992,30 @@ def index_page():
             });
 
             // Helper function to create flange
-            function createFlange(x, y, z, rotation) {
-              const flangeGroup = new THREE.Group();
-
-              // Flange ring
-              const flange = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16),
-                flangeMaterial
-              );
-              flange.castShadow = true;
-              flangeGroup.add(flange);
-
-              // Bolts around flange
-              for(let i = 0; i < 6; i++) {
+            //
+            // Ring and bolts are one geometry. Each flange used to be seven
+            // meshes -- a ring plus six bolts, each with its own material --
+            // and there are eight flanges, so this was fifty-six draw calls
+            // spent on bolt heads that are two pixels across at the overview
+            // camera. Merged, a flange costs one, and the bolts are still
+            // there when you come close.
+            const flangeGeometry = (function () {
+              const parts = [new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16)];
+              for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI * 2 / 6) * i;
-                const bolt = new THREE.Mesh(
-                  new THREE.CylinderGeometry(0.02, 0.02, 0.1, 6),
-                  new THREE.MeshStandardMaterial({
-                    color: 0x505050,
-                    metalness: 0.9,
-                    roughness: 0.2
-                  })
-                );
-                bolt.position.set(Math.cos(angle) * 0.2, 0, Math.sin(angle) * 0.2);
-                bolt.castShadow = true;
-                flangeGroup.add(bolt);
+                const bolt = new THREE.CylinderGeometry(0.02, 0.02, 0.1, 6);
+                bolt.translate(Math.cos(angle) * 0.2, 0, Math.sin(angle) * 0.2);
+                parts.push(bolt);
               }
+              return mergeGeometries(parts);
+            })();
 
-              flangeGroup.position.set(x, y, z);
-              if(rotation) flangeGroup.rotation.z = rotation;
-              return flangeGroup;
+            function createFlange(x, y, z, rotation) {
+              const flange = new THREE.Mesh(flangeGeometry, flangeMaterial);
+              flange.castShadow = true;
+              flange.position.set(x, y, z);
+              if (rotation) { flange.rotation.z = rotation; }
+              return flange;
             }
 
             // INLET PIPE: GST to Compressor
@@ -2142,10 +2114,11 @@ def index_page():
             const chimneyStack = new THREE.Mesh(
               new THREE.CylinderGeometry(0.7, 0.9, 12, 16),
               new THREE.MeshStandardMaterial({
-                // Was a brown brick colour, the only warm object left in a
-                // cool palette, which pulled the eye straight to the least
-                // interesting part of the plant.
-                color: 0x57616c,
+                // Warm enough to separate from the vessels, cool enough to
+                // stay in the palette. Brown made it the loudest thing in a
+                // cool scene; the grey that replaced it merged with HPT into
+                // one mass at overview distance, which was no better.
+                color: 0x7a6a5f,
                 roughness: 0.75,
                 metalness: 0.15
               })
@@ -2490,9 +2463,9 @@ def index_page():
 
                 // Update compressor status light (realistic)
                 const compressorActive = data.compressor > 0;
-                compressorBody.material.emissiveIntensity = 0;
+                compressorBody.material.emissiveIntensity = compressorActive ? 0.55 : 0;
                 indicator.material.emissiveIntensity = compressorActive ? 1.5 : 0;
-                compressorLight.intensity = compressorActive ? 1.1 : 0;
+                compressorLight.intensity = compressorActive ? 0.9 : 0;
 
                 // Update particle visibility
                 particleSystem.visible = compressorActive;
