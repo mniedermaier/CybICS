@@ -197,18 +197,24 @@ def boot_animation_start():
   boot_finished = False
 
 
-def wave_height(col, pos, base):
-  """Height of one cell with the crest at `pos`, over a floor of `base`."""
+def wave_height(col, pos, base, floor_to):
+  """Height of one cell with the crest at `pos`, over a floor of `base` that
+  has been laid as far as `floor_to`.
+
+  Those are two different positions on purpose: while the pulse is crossing for
+  the first time the floor follows it, and while it patrols the floor is
+  already down across the whole row.
+  """
   dx = abs(col * LCD_BOOT_SUBSTEPS - pos)
   h = int(LCD_BOOT_BUMP[dx]) if dx < len(LCD_BOOT_BUMP) else 0
-  if col * LCD_BOOT_SUBSTEPS <= pos:
+  if col * LCD_BOOT_SUBSTEPS <= floor_to:
     h = max(h, base)
   return h
 
 
-def wave_row(pos, base):
+def wave_row(pos, base, floor_to):
   """The bottom row for one frame of the pulse."""
-  return "".join(WAVE_LEVELS[wave_height(c, pos, base)] for c in range(LCD_COLS))
+  return "".join(WAVE_LEVELS[wave_height(c, pos, base, floor_to)] for c in range(LCD_COLS))
 
 
 def boot_frame():
@@ -225,8 +231,9 @@ def boot_frame():
 
   if elapsed < span:
     # The pulse crosses, leaving the floor behind it.
+    pos = int(maxp * elapsed / span)
     return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), wave_row(
-      int(maxp * elapsed / span), floor_laid)
+      pos, floor_laid, pos)
 
   # It arrives: full, overshoot down, settle.  Same three frames as the board.
   for until, height in ((0.09, LCD_BOOT_LEVELS), (0.15, 4), (0.27, 6)):
@@ -236,9 +243,15 @@ def boot_frame():
 
   if not client.connected:
     # Keep the pulse running for as long as the controller is missing, which is
-    # the only part of this that carries information.
-    pos = int(maxp * (((elapsed - span - 0.27) % span) / span))
-    return "Waiting for PLC".ljust(LCD_COLS), wave_row(pos, floor_idle)
+    # the only part of this that carries information.  There and back, over a
+    # floor that stays where the first pass left it: a pulse that ran only one
+    # way had to jump back to the start, and that jump moved fifteen of the
+    # sixteen cells in a single frame, once a second, for as long as the wait
+    # lasted.
+    patrol_max = (LCD_COLS - 1) * LCD_BOOT_SUBSTEPS
+    phase = ((elapsed - span - 0.27) % (2 * span)) / span
+    pos = int(patrol_max * (phase if phase < 1 else 2 - phase))
+    return "Waiting for PLC".ljust(LCD_COLS), wave_row(pos, floor_idle, maxp)
 
   if elapsed < span + 0.87:
     return "PLC connected".ljust(LCD_COLS), WAVE_LEVELS[LCD_BOOT_LEVELS] * LCD_COLS

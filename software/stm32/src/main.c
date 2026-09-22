@@ -362,6 +362,11 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
  */
 #define LCD_COLS_ANIM 16
 #define WAVE_MAX_POS (LCD_COLS_ANIM * LCD_BOOT_SUBSTEPS)
+/*
+ * The furthest the crest goes while patrolling: the centre of the last cell,
+ * so it turns round on screen instead of half off the right-hand edge.
+ */
+#define WAVE_PATROL_MAX ((LCD_COLS_ANIM - 1) * LCD_BOOT_SUBSTEPS)
 
 /* Slot h holds a bar h+1 rows tall, measured up from the bottom. */
 static const uint8_t char_level[LCD_BOOT_LEVELS][8] = {
@@ -377,8 +382,17 @@ static const uint8_t char_level[LCD_BOOT_LEVELS][8] = {
 
 static const char wave_bump[] = LCD_BOOT_BUMP;
 
-/* Height of cell `col` with the crest at `pos`, over a floor of `base`. */
-static uint8_t wave_height(int col, int pos, uint8_t base)
+/*
+ * Height of cell `col` with the crest at `pos`, over a floor of `base` that
+ * has been laid as far as `floor_to`.
+ *
+ * Those are two different positions on purpose.  While the pulse is crossing
+ * for the first time the floor follows it, so pass the crest position; while it
+ * is patrolling the floor is already down across the whole row, so pass the
+ * end.  Tying the two together is what used to make the row empty itself every
+ * time the patrol came round again.
+ */
+static uint8_t wave_height(int col, int pos, uint8_t base, int floor_to)
 {
 	int dx = col * LCD_BOOT_SUBSTEPS - pos;
 	uint8_t h = 0;
@@ -391,8 +405,7 @@ static uint8_t wave_height(int col, int pos, uint8_t base)
 		h = (uint8_t)(wave_bump[dx] - '0');
 	}
 
-	/* The pulse lays the floor down behind itself. */
-	if (col * LCD_BOOT_SUBSTEPS <= pos && h < base) {
+	if (col * LCD_BOOT_SUBSTEPS <= floor_to && h < base) {
 		h = base;
 	}
 
@@ -405,10 +418,11 @@ static uint8_t wave_height(int col, int pos, uint8_t base)
  * about five cells, so a step costs a handful of writes rather than a redraw
  * of the row, which matters on a bit-banged 4-bit bus.
  */
-static void wave_draw(struct lcd_hd44780 *lcd, int pos, uint8_t base, uint8_t *shown)
+static void wave_draw(struct lcd_hd44780 *lcd, int pos, uint8_t base, int floor_to,
+		      uint8_t *shown)
 {
 	for (int c = 0; c < LCD_COLS_ANIM; c++) {
-		uint8_t h = wave_height(c, pos, base);
+		uint8_t h = wave_height(c, pos, base, floor_to);
 
 		if (h == shown[c]) {
 			continue;
@@ -475,7 +489,7 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 
 	/* The pulse crosses, leaving the floor behind it. */
 	for (int p = 0; p <= WAVE_MAX_POS; p++) {
-		wave_draw(lcd, p, floor_laid, shown);
+		wave_draw(lcd, p, floor_laid, p, shown);
 		k_msleep(step_ms);
 	}
 
@@ -500,11 +514,29 @@ static void play_startup_animation(struct lcd_hd44780 *lcd)
 		if (!said_waiting) {
 			lcd_centre(lcd, 0, "Waiting for Pi");
 			said_waiting = true;
+			/* Step down to the patrol floor rather than drop to it. */
+			wave_flat(lcd, 4, shown);
+			k_msleep(60);
 			wave_flat(lcd, floor_idle, shown);
+			k_msleep(60);
 		}
 
-		for (int p = 0; p <= WAVE_MAX_POS && !i2c_first_message_received; p++) {
-			wave_draw(lcd, p, floor_idle, shown);
+		/*
+		 * There and back, over a floor that stays where the first pass
+		 * left it.  A pulse that ran only left to right had to jump
+		 * back to the start, and with the floor following the crest
+		 * that meant fifteen of the sixteen cells changing in a single
+		 * frame, once a second, for as long as the Pi was missing.
+		 * This way the most that changes between two frames is three
+		 * cells, and nothing at all changes where one cycle meets the
+		 * next.
+		 */
+		for (int p = 0; p <= WAVE_PATROL_MAX && !i2c_first_message_received; p++) {
+			wave_draw(lcd, p, floor_idle, WAVE_MAX_POS, shown);
+			k_msleep(step_ms);
+		}
+		for (int p = WAVE_PATROL_MAX; p >= 0 && !i2c_first_message_received; p--) {
+			wave_draw(lcd, p, floor_idle, WAVE_MAX_POS, shown);
 			k_msleep(step_ms);
 		}
 	}
