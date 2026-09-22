@@ -450,14 +450,22 @@ def index_page():
             # sixteen columns, monospaced and left-aligned, so a line that is
             # padded or truncated on the board is padded or truncated here too.
             # lcd_render() decides what goes in them.
+            # Sized to the panel rather than by eye.  The blue area of the
+            # module in pics/pcb.png covers x 424..783 and y 375..462 of the
+            # 800 x 500 the image is drawn at, so 360 x 88 px.  Sixteen columns
+            # of monospace at 32px advance 0.6022em each, 308 px, which leaves
+            # about 26 px of margin on either side -- roughly the proportion a
+            # real 1602 has, whose 56 mm character area sits in a 64 mm window.
+            # The previous 40px was 385 px wide and spilled over the edge of
+            # the display.
             lcd_line_style = (
-              'position: absolute; left: 430px; color: black;'
-              'background-color: transparent; font-size: 40px;'
+              'position: absolute; left: 450px; color: black;'
+              'background-color: transparent; font-size: 32px; line-height: 34px;'
               'font-family: monospace; white-space: pre; letter-spacing: 0px;'
               'display: block;'
             )
-            DISPLAYoverlay1 = ui.label('').style('top: 370px;' + lcd_line_style)
-            DISPLAYoverlay2 = ui.label('').style('top: 415px;' + lcd_line_style)
+            DISPLAYoverlay1 = ui.label('').style('top: 385px;' + lcd_line_style)
+            DISPLAYoverlay2 = ui.label('').style('top: 419px;' + lcd_line_style)
 
             # The navigation switch, SW3.
             #
