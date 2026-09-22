@@ -87,6 +87,13 @@ def safe(page, report, expression, await_promise=False, label=None):
     return value
 
 
+# The shape /api/state returns.  Staging replaces the live answer with this,
+# with gst and hpt overridden, so a shot is reproducible.
+DEFAULT_STATE = {
+    "gst": 128, "hpt": 128, "sysSen": 1, "boSen": 0,
+    "heartbeat": True, "compressor": True, "systemValve": True, "gstSig": True,
+}
+
 CAMERAS = {
     "overview": None,                       # leave the scene's own default
     "close":    {"pos": [6, 5, 14],  "look": [0, 3, 0]},
@@ -97,31 +104,44 @@ CAMERAS = {
 
 
 def stage(page, report, args):
-    """Pin whatever the caller wants fixed, so shots are comparable."""
+    """Pin the plant data, so two shots can actually be compared.
+
+    Setting the tank levels directly does not hold: fetchData() polls
+    /api/state every animation frame and writes them again, so a shot taken a
+    moment later shows live pressures and a "pinned" note that is a lie.  The
+    fix is to pin the data rather than the geometry -- intercept the one fetch
+    the scene makes and answer it from a frozen state.  Everything downstream,
+    the LED panel and the status overlay included, then agrees with the tanks.
+    """
     notes = {}
     if args.gst is not None or args.hpt is not None:
-        gst = (args.gst if args.gst is not None else 128) / 255.0
-        hpt = (args.hpt if args.hpt is not None else 128) / 255.0
-        notes["levels"] = safe(page, report,
+        state = dict(DEFAULT_STATE)
+        if args.gst is not None:
+            state["gst"] = args.gst
+        if args.hpt is not None:
+            state["hpt"] = args.hpt
+        notes["state"] = safe(page, report,
             "(() => {"
-            "  const t = []; window.CybICS3D.scene.traverse(n => {"
-            "    if (n.userData && n.userData.setLevel) t.push(n); });"
-            "  if (t.length < 2) return 'found ' + t.length;"
-            f"  t[0].userData.setLevel({gst}); t[1].userData.setLevel({hpt});"
-            "  return 'pinned';"
-            "})()"
-        )
+            "  const fixed = %s;"
+            "  const orig = window.fetch.bind(window);"
+            "  window.fetch = (u, o) => /api\\/state/.test(String(u))"
+            "    ? Promise.resolve(new Response(JSON.stringify(fixed),"
+            "        {headers: {'Content-Type': 'application/json'}}))"
+            "    : orig(u, o);"
+            "  return fixed;"
+            "})()" % json.dumps(state), label="state")
+        # Let a few polls land so the frozen state reaches the geometry.
+        time.sleep(1.0)
     cam = CAMERAS.get(args.camera)
     if cam:
         safe(page, report,
             "(() => { const c = window.CybICS3D.camera;"
             f" c.position.set({cam['pos'][0]}, {cam['pos'][1]}, {cam['pos'][2]});"
             f" c.lookAt({cam['look'][0]}, {cam['look'][1]}, {cam['look'][2]});"
-            " c.updateProjectionMatrix(); })()"
-        )
+            " c.updateProjectionMatrix(); })()", label="camera")
         notes["camera"] = args.camera
     if args.exposure is not None:
-        safe(page, report, f"window.CybICS3D.exposure({args.exposure})")
+        safe(page, report, f"window.CybICS3D.exposure({args.exposure})", label="exposure")
         notes["exposure"] = args.exposure
     return notes
 
@@ -255,6 +275,15 @@ def main():
             frame0 = t_frame0 = None
 
         report["staged"] = stage(page, report, args)
+        if args.gst is not None or args.hpt is not None:
+            # Read the overlay back.  A staging step that reports success
+            # without checking is how the last set of shots were taken at live
+            # pressures under a note that said "pinned".
+            report["staged"]["overlay"] = safe(page, report,
+                "(() => { const t = document.body.innerText;"
+                " const m = t.match(/GST Pressure:\\s*(\\d+)[\\s\\S]*?HPT Pressure:\\s*(\\d+)/);"
+                " return m ? [Number(m[1]), Number(m[2])] : null; })()",
+                label="overlay readback")
         time.sleep(args.settle)
         report["bytes"] = page.screenshot(args.out)
 
