@@ -1,0 +1,40 @@
+{
+  "url": "http://127.0.0.1:8090/?force3d=1",
+  "camera": "overview",
+  "gl": "swiftshader",
+  "build_seconds": 4.15,
+  "ready": true,
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "draw_calls": 242,
+  "triangles": 21866,
+  "geometries": 233,
+  "textures": 10,
+  "programs": 7,
+  "meshes": 232,
+  "lights": 9,
+  "shadow_casters": 187,
+  "materials": 108,
+  "pixel_ratio": 1,
+  "environment": true,
+  "exposure": 0.75,
+  "shadow_auto_update": false,
+  "drawing_buffer": [
+    1168,
+    663
+  ],
+  "staged": {
+    "levels": "pinned"
+  },
+  "bytes": 261379,
+  "fps": 1.7,
+  "frames": 12,
+  "submit_ms": 8.04,
+  "reloaded": true,
+  "error": "the page reloaded while being measured",
+  "skipped": {
+    "frame_ms": "the page reloaded while being measured"
+  },
+  "frame_ms": null,
+  "console_errors": [],
+  "navigations": 2
+}

@@ -1,0 +1,54 @@
+{
+  "note": "Scores and measurements for the 3D plant view. Written by hand after each round; the numbers come from tools/3d/capture.py, never from estimation. See docs/3d-architecture.md.",
+  "rounds": [
+    {
+      "round": 0,
+      "date": "2026-09-22",
+      "what": "baseline: tools built, nothing in the scene changed yet",
+      "score": 5.0,
+      "scored_by": "self, pending a critic pass",
+      "shots": [
+        "docs/3d/shots/baseline-hw-overview.png",
+        "docs/3d/shots/baseline-sw-overview.png",
+        "docs/3d/shots/harness-liquid.png"
+      ],
+      "measured": {
+        "hardware_gl": {
+          "gpu": "ANGLE (Intel, Mesa Intel(R) HD Graphics 4000 (IVB GT2), OpenGL ES 3.0)",
+          "build_seconds": 1.8,
+          "fps_app_loop": 21.0,
+          "frame_ms_raf": 22.4,
+          "submit_ms": 3.4,
+          "draw_calls": 241,
+          "triangles": 21866,
+          "meshes": 232,
+          "materials": 108,
+          "lights": 9,
+          "shadow_casters": 187,
+          "console_errors": 0
+        },
+        "swiftshader": {
+          "build_seconds": 4.0,
+          "fps_app_loop": 1.7,
+          "frame_ms_raf": null,
+          "soak_60s_reloaded": true,
+          "note": "with ?force3d=1, which deliberately bypasses the software guard"
+        }
+      },
+      "open_issues": [
+        "Flat grey concrete ground with no texture, no wear, no variation.",
+        "Vessel shells read as plastic rather than steel; no weld seams, no dirt.",
+        "Labels are flat yellow sprites that float like sticky notes.",
+        "No atmospheric depth: distant objects are as saturated as near ones.",
+        "Sky gradient behind the plant does not match the scene's own lighting.",
+        "232 meshes and 108 materials, four times what the source suggests; many are loop-built and could be merged or instanced.",
+        "187 of 232 meshes cast shadows, including parts that can never be seen to."
+      ],
+      "corrections_to_the_brief": [
+        "The brief's budget table said 56 meshes / 39 materials / 9 lights. Measured at runtime it is 232 / 108 / 9.",
+        "The brief's target of >=50 fps cannot be read off the app loop, which caps itself at 30 fps (12 on a software renderer). Uncapped the scene runs at ~45 fps on an Intel HD 4000.",
+        "The brief said build time was 4.2 s. That is the software-renderer number; on hardware GL it is 1.8 s."
+      ]
+    }
+  ]
+}

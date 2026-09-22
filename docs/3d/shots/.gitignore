@@ -1,0 +1,5 @@
+# The harness copies the vendored three.min.js next to its page so the page can
+# be opened straight from disk, and writes the page itself.  Both are generated
+# from tools/3d/harness.py and the scene source; only the evidence is kept.
+three.min.js
+*.html
