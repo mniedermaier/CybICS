@@ -4,11 +4,12 @@ A **Programmable Logic Controller (PLC)** is the small, rugged computer at the h
 
 ## The scan cycle
 
-A PLC does not run like a normal program that starts, does work, and exits. It runs a **cyclic scan**: an endless loop of three phases. The CybICS program declares its period in its own configuration &mdash; `TASK TaskMain(INTERVAL := T#50ms, PRIORITY := 0)` &mdash; so this PLC scans **every 50 ms, twenty times a second**. That number is worth remembering; most of what follows is a consequence of it.
+A PLC does not run like a normal program that starts, does work, and exits. It runs a **cyclic scan**: an endless loop of three phases. The CybICS program declares its period in its own configuration &mdash; `TASK TaskMain(INTERVAL := T#50ms,PRIORITY := 0);` &mdash; so this PLC scans **every 50 ms, twenty times a second**. That number is worth remembering; most of what follows is a consequence of it.
 
 <figure>
 <style>
 .pl-c {--c: 6s;}
+html.light-mode .pl-c .dot {fill:#b34700;}
 /* The marker is moved with transform:translate along the ring that is actually
    drawn. offset-path composes on top of cx/cy rather than replacing them, so a
    circle given both renders at double its coordinates -- which put this marker
@@ -32,8 +33,8 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
 @keyframes c-p1t{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-p2t{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @keyframes c-p3t{0%,50%{opacity:0} 50.01%,83.2%{opacity:1} 83.3%,100%{opacity:0}}
-@keyframes c-atk{0%,11.9%{opacity:0} 12%,66%{opacity:1} 66.01%,100%{opacity:0}}
-@keyframes c-gone{0%,66.9%{opacity:0} 67%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes c-atk{0%,16.7%{opacity:0} 16.71%,66%{opacity:1} 66.01%,100%{opacity:0}}
+@keyframes c-gone{0%,66.9%{opacity:0} 67%,83%{opacity:1} 83.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   /* Four of the nine animations were left running, so the captions kept
      flashing; and the frozen state asserted phase 1 alongside a finished
@@ -53,7 +54,7 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
       <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/>
     </marker>
   </defs>
-  <circle cx="220" cy="140" r="76" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="220" cy="140" r="76" fill="none" stroke="currentColor" stroke-opacity="0.4" stroke-width="2"/>
   <path d="M 239.7 66.6 A76 76 0 0 1 293.4 159.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
   <path d="M 273.7 193.7 A76 76 0 0 1 166.3 193.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
   <path d="M 146.6 159.7 A76 76 0 0 1 200.3 66.6" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
@@ -78,8 +79,8 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
     <text x="220" y="156" opacity="0.7" font-size="11">one scan, 50 ms</text>
   </g>
   <g font-size="11">
-    <text class="atk" x="4" y="164" fill="#ff6b00" font-weight="bold">attacker: FC 05 sets coil 1 = off</text>
-    <text class="gone" x="4" y="164" opacity="0.75">&hellip; and phase 3 has just overwritten it</text>
+    <text class="atk" x="4" y="236" fill="#ff6b00" font-weight="bold">attacker: FC 05 sets coil 1 = off</text>
+    <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 3 has just overwritten it</text>
   </g>
 </svg>
 <figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land during the program phase and be erased when phase 3 writes the outputs &mdash; that is the whole of the next section in one turn of the ring.</figcaption>
@@ -93,14 +94,14 @@ Each phase does something the next one depends on, and they never overlap:
 
 That last point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies.
 
-CybICS bends phase 1, and the way it bends it is the reason this page has a second half. `cybICS.st` declares no `%I` address of any kind: its variables are `%QX` outputs and `%MW` memory words, nothing else. `hpt` is not a sensor the PLC samples, it is a memory word that `hwio` pushes in from outside over Modbus. Phase 1 has nothing local to read. That is exactly why a value the program treats as a pressure reading is something a stranger on the network can set.
+CybICS bends phase 1, and the way it bends it is the reason this page has a second half. `cybICS.st` declares no `%I` address of any kind: every located variable in it is a `%QX` output or a `%MW` memory word. `hpt` is not a sensor the PLC samples, it is a memory word that `hwio` pushes in from outside over Modbus. Phase 1 has nothing local to read. That is exactly why a value the program treats as a pressure reading is something a stranger on the network can set.
 
 ## What the scan overwrites, and what it does not
 
 Write a value into the PLC from outside &mdash; over Modbus, say &mdash; and whether it sticks depends entirely on **who owns that address**. This is the single most useful thing to understand about attacking a PLC, and it is easy to get backwards.
 
 - **Coil 1 is the compressor**, declared `compressor AT %QX0.1` and assigned on every scan by `IF compressorState = 1 THEN compressor := TRUE; ELSE compressor := FALSE;`. The program computes it, so the program owns it. Force it with Modbus FC 05 and the next scan puts back whatever the logic says &mdash; within 50 ms, every time.
-- **Register 1126 is the HPT pressure**, declared `hpt AT %MW102`. The program only ever *reads* it: it appears in comparisons and is never on the left of an assignment. Nothing in the scan restores it. What restores it is `hwio`, the bridge standing in for the sensor, which writes the true pressure back every 20 ms.
+- **Register 1126 is the HPT pressure**, declared `hpt AT %MW102`. The program only ever *reads* it: it appears in comparisons and is never on the left of an assignment. Nothing in the scan restores it. What restores it is `hwio`, the bridge standing in for the sensor. Its loop reads the coils, writes five register blocks and then sleeps 20 ms, so the true pressure comes back roughly every 20 ms and a little more &mdash; and note the asymmetry: the PLC's 50 ms is a scheduled task interval, `hwio`'s 20 ms is a sleep at the bottom of a serial loop.
 
 Both values snap back, but for opposite reasons and on different clocks &mdash; and an attacker who confuses the two will build the wrong attack.
 
@@ -112,24 +113,23 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
    the nominal period: hwio's loop also does a read and five writes before
    it sleeps, so the real gap is a little longer. */
 .pl-t .head {animation: t-head var(--t) linear infinite;}
-.pl-t .barA {opacity:0; animation: t-barA var(--t) steps(1,end) infinite;}
-.pl-t .barB {opacity:0; animation: t-barB var(--t) steps(1,end) infinite;}
+.pl-t .barA, .pl-t .barB {transform-box: fill-box; transform-origin: left;}
+.pl-t .barA {animation: t-barA var(--t) linear infinite;}
+.pl-t .barB {animation: t-barB var(--t) linear infinite;}
 .pl-t .fixA {opacity:0; animation: t-fixA var(--t) steps(1,end) infinite;}
 .pl-t .fixB {opacity:0; animation: t-fixB var(--t) steps(1,end) infinite;}
 .pl-t .shot {opacity:0; animation: t-shot var(--t) steps(1,end) infinite;}
 @keyframes t-head{0%{transform:translateX(0)} 70%,100%{transform:translateX(410px)}}
 @keyframes t-shot{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes t-barA{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes t-barB{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes t-barA{0%,10.5%{transform:scaleX(0)} 17.5%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
+@keyframes t-barB{0%,10.5%{transform:scaleX(0)} 14%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
 @keyframes t-fixA{0%,17.4%{opacity:0} 17.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes t-fixB{0%,13.9%{opacity:0} 14%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   .pl-t .head{animation:none; transform:translateX(410px)}
-  .pl-t .barA,.pl-t .barB{animation:none; opacity:1}
+  .pl-t .barA,.pl-t .barB{animation:none; transform:scaleX(1)}
   .pl-t .shot{animation:none; opacity:1}
-  /* The bars and the restore captions are mutually exclusive states, so
-     the frozen frame keeps the bars and drops the captions. */
-  .pl-t .fixA,.pl-t .fixB{animation:none; opacity:0}
+  .pl-t .fixA,.pl-t .fixB{animation:none; opacity:1}
 }
 </style>
 <svg class="pl-t" viewBox="0 0 520 210" role="img"
@@ -184,10 +184,10 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
   </g>
 
 </svg>
-<figcaption>Two addresses, two owners, two clocks. The attacker's single write lands at the same instant in both rows, but the PLC's next scan is up to 50 ms away while <code>hwio</code>'s next write is at most 20 ms away. Averaged over where the write happens to land, the coil is free for 25 ms and the register for 10 &mdash; and the thing that takes the register back is not the PLC at all. The orange bars are how long the attacker's value actually stood.</figcaption>
+<figcaption>Two addresses, two owners, two clocks. The attacker's single write lands at the same instant in both rows, but the PLC's next scan is up to 50 ms away while <code>hwio</code>'s next write is about 20 ms away. Averaged over where the write happens to land, the coil is free for 25 ms and the register for 10 &mdash; and the thing that takes the register back is not the PLC at all. The orange bars are how long the attacker's value actually stood.</figcaption>
 </figure>
 
-Two attacks follow from this. Writing *faster than whoever owns the address* keeps the value pinned: that is the **Flood &amp; Overwrite** challenge, whose script `flooding_hpt.py` hammers register 1126 with the value **10** in a tight loop. It has to beat `hwio`'s 20 ms, not the PLC's 50 ms, and it is noisy for exactly that reason. Changing the *program* instead makes the PLC compute the attacker's value itself &mdash; quiet, and it survives a restart. That is the **PLC Programming** challenge.
+Two attacks follow from this. Writing *faster than whoever owns the address* keeps the value pinned: that is the **Flood &amp; Overwrite** challenge, whose script `flooding_hpt.py` hammers register 1126 with the value **10** in a tight loop. It has to beat `hwio`'s roughly 20 ms loop, not the PLC's 50 ms task, and it is noisy for exactly that reason. Changing the *program* instead makes the PLC compute the attacker's value itself &mdash; quiet, and it survives a restart. That is the **PLC Programming** challenge.
 
 There is a third door, and it is in the logic &mdash; but only one of the two obvious candidates is really a door. The coil-assigning block sits inside `IF stop < 1` and then `IF manual < 1`. Setting `stop` looks like it should free the coils and does the opposite: the `ELSE` branch runs instead and drives `compressor`, `systemValve` and `gstSig` to `FALSE`, twenty times a second. Pin a coil on that way and you are fighting the program harder, not less.
 
@@ -206,7 +206,7 @@ html.light-mode .pl-r {--w:#b34700;}
 /* Marching dashes mean current, so a de-energised segment drops its
    dash pattern entirely rather than marching while dark. */
 .pl-r .seg {animation: r-flow 1.2s linear infinite;}
-.pl-r .live {stroke:var(--w); stroke-dasharray:6 8;}
+.pl-r .live {stroke:var(--w); stroke-dasharray:6 4;}
 .pl-r .a1 {animation: r-a1 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
 .pl-r .a2 {animation: r-a2 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
 .pl-r .b1 {animation: r-b1 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
@@ -228,21 +228,22 @@ html.light-mode .pl-r {--w:#b34700;}
 @keyframes r-b1{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(0px)}}
 @keyframes r-b2{0%,33.32%{transform:translateX(0px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(34px)}}
 @keyframes r-c3{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(34px)}}
-@keyframes r-wa1{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 33.33%,66.66%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
-@keyframes r-wa2{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 33.33%,66.66%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
-@keyframes r-wb1{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
-@keyframes r-wb2{0%,33.32%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
-@keyframes r-wt{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
-@keyframes r-wc{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
-@keyframes r-coil{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-wa1{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 33.33%,66.66%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-wa2{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 33.33%,66.66%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-wb1{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-wb2{0%,33.32%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-wt{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-wc{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
+@keyframes r-coil{0%,33.32%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 33.33%,66.66%{stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4} 66.67%,99.99%{stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none}}
 @keyframes r-rd1{0%,33.32%{opacity:1} 33.33%,66.66%{opacity:0} 66.67%,99.99%{opacity:0}}
 @keyframes r-rd2{0%,33.32%{opacity:0} 33.33%,66.66%{opacity:1} 66.67%,99.99%{opacity:0}}
 @keyframes r-rd3{0%,33.32%{opacity:0} 33.33%,66.66%{opacity:0} 66.67%,99.99%{opacity:1}}
 @media (prefers-reduced-motion: reduce){
   .pl-r * {animation:none !important;}
   .pl-r .a1,.pl-r .a2,.pl-r .b1,.pl-r .c3 {transform:translateX(34px);}
-  .pl-r .wa1,.pl-r .wa2,.pl-r .wb1,.pl-r .wt,.pl-r .wc,.pl-r .coil > * {stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 8;}
+  .pl-r .wa1,.pl-r .wa2,.pl-r .wb1,.pl-r .wt,.pl-r .wc,.pl-r .coil > * {stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4;}
   .pl-r .wb2 {stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none;}
+  .pl-r .coil > * {stroke-dasharray:none;}
   .pl-r .rd1 {opacity:1;}
 }
 </style>
@@ -254,34 +255,34 @@ html.light-mode .pl-r {--w:#b34700;}
   <line class="seg live" x1="70" y1="70" x2="70" y2="130" stroke-width="2"/>
   <line class="seg live" x1="70" y1="70" x2="100" y2="70" stroke-width="2"/>
   <line class="seg live" x1="70" y1="130" x2="100" y2="130" stroke-width="2"/>
-  <line class="seg wt" x1="330" y1="70" x2="330" y2="130" stroke-width="2"/>
+  <line class="seg wt" x1="330" y1="70" x2="330" y2="130" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   <line class="a1" x1="100" y1="54" x2="100" y2="86" stroke="currentColor" stroke-width="2"/>
   <line x1="144" y1="54" x2="144" y2="86" stroke="currentColor" stroke-width="2"/>
-  <text x="122" y="54" text-anchor="middle" font-size="13">hpt &lt; 60</text>
+  <text x="122" y="48" text-anchor="middle" font-size="13">hpt &lt; 60</text>
   <line class="a2" x1="210" y1="54" x2="210" y2="86" stroke="currentColor" stroke-width="2"/>
   <line x1="254" y1="54" x2="254" y2="86" stroke="currentColor" stroke-width="2"/>
-  <text x="232" y="54" text-anchor="middle" font-size="13">compressorState = 0</text>
+  <text x="232" y="48" text-anchor="middle" font-size="13">compressorState = 0</text>
   <line class="b1" x1="100" y1="114" x2="100" y2="146" stroke="currentColor" stroke-width="2"/>
   <line x1="144" y1="114" x2="144" y2="146" stroke="currentColor" stroke-width="2"/>
-  <text x="122" y="156" text-anchor="middle" font-size="13">hpt &lt; 90</text>
+  <text x="122" y="162" text-anchor="middle" font-size="13">hpt &lt; 90</text>
   <line class="b2" x1="210" y1="114" x2="210" y2="146" stroke="currentColor" stroke-width="2"/>
   <line x1="254" y1="114" x2="254" y2="146" stroke="currentColor" stroke-width="2"/>
-  <text x="232" y="156" text-anchor="middle" font-size="13">compressorState = 1</text>
+  <text x="232" y="162" text-anchor="middle" font-size="13">compressorState = 1</text>
   <line class="c3" x1="360" y1="84" x2="360" y2="116" stroke="currentColor" stroke-width="2"/>
   <line x1="404" y1="84" x2="404" y2="116" stroke="currentColor" stroke-width="2"/>
-  <text x="382" y="84" text-anchor="middle" font-size="13">gst &gt; 50</text>
-  <line class="seg wa1" x1="144" y1="70" x2="210" y2="70" stroke-width="2"/>
-  <line class="seg wa2" x1="254" y1="70" x2="330" y2="70" stroke-width="2"/>
-  <line class="seg wb1" x1="144" y1="130" x2="210" y2="130" stroke-width="2"/>
-  <line class="seg wb2" x1="254" y1="130" x2="330" y2="130" stroke-width="2"/>
-  <line class="seg wt" x1="330" y1="100" x2="360" y2="100" stroke-width="2"/>
-  <line class="seg wc" x1="404" y1="100" x2="430" y2="100" stroke-width="2"/>
+  <text x="382" y="78" text-anchor="middle" font-size="13">gst &gt; 50</text>
+  <line class="seg wa1" x1="144" y1="70" x2="210" y2="70" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+  <line class="seg wa2" x1="254" y1="70" x2="330" y2="70" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+  <line class="seg wb1" x1="144" y1="130" x2="210" y2="130" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+  <line class="seg wb2" x1="254" y1="130" x2="330" y2="130" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+  <line class="seg wt" x1="330" y1="100" x2="360" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+  <line class="seg wc" x1="404" y1="100" x2="430" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   <g class="coil">
-    <path d="M430 84 A18 16 0 0 0 430 116" fill="none" stroke-width="2"/>
-    <path d="M462 84 A18 16 0 0 1 462 116" fill="none" stroke-width="2"/>
-    <line x1="462" y1="100" x2="500" y2="100" stroke-width="2"/>
+    <path d="M430 84 A18 16 0 0 0 430 116" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+    <path d="M462 84 A18 16 0 0 1 462 116" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+    <line x1="462" y1="100" x2="500" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   </g>
-  <text x="446" y="76" text-anchor="middle" font-size="13" fill="#ff6b00">compressorState</text>
+  <text x="446" y="60" text-anchor="middle" font-size="13" fill="#ff6b00">compressorState</text>
   <text x="26" y="36" font-size="12" opacity="0.7">start branch</text>
   <text x="26" y="176" font-size="12" opacity="0.7">seal-in branch</text>
 
@@ -296,7 +297,7 @@ html.light-mode .pl-r {--w:#b34700;}
 
 ## How the outside world reaches the PLC
 
-The program's variables are bound to memory addresses in their declarations: `%QX0.1` for the compressor output, `%MW102` for the HPT reading. OpenPLC exposes those over industrial protocols, with `%QX0.0`&ndash;`%QX0.3` appearing as Modbus coils 0&ndash;3 and each `%MW`*n* as holding register 1024 + *n*. That is why HPT, declared `%MW102`, is register **1126** &mdash; the same arithmetic gives 1124 for GST, and 1132 and 1134 for `systemSen` and `boSen` &mdash; system-operational and blow-out.
+The program's variables are bound to memory addresses in their declarations: `%QX0.1` for the compressor output, `%MW102` for the HPT reading. OpenPLC exposes those over industrial protocols, with `%QX0.0`&ndash;`%QX0.3` appearing as Modbus coils 0&ndash;3 and each `%MW`*n* as holding register 1024 + *n*. That offset is OpenPLC's own convention, not anything Modbus requires &mdash; carry it to a Siemens or a Schneider controller and it will be wrong. That is why HPT, declared `%MW102`, is register **1126** &mdash; the same arithmetic gives 1124 for GST, and 1132 and 1134 for `systemSen` and `boSen` &mdash; system-operational and blow-out.
 
 OpenPLC publishes the same memory over Modbus, S7comm, DNP3 and EtherNet/IP simultaneously, which is convenient for integration and equally convenient for an attacker: as deployed here, none of them authenticate. Blocking one port does not close the door, because the same memory is reachable through the next protocol along. *Modbus Firewall Rules* filters port 502. *Network Segmentation* does not test a port at all &mdash; its check greps each container's `iptables -L INPUT` for any rule naming the attack machine with DROP or REJECT. Follow its Steps, which say `iptables -A INPUT -s 172.18.0.100 -j DROP`, and you close everything including S7comm. Follow its Solution, which writes one rule per port, and you pass the check with the same memory word still writable through OpenPLC's S7 server on 102 &mdash; where it is not register 1126 at all, but word 102 of DB1002.
 
