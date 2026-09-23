@@ -15,6 +15,12 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
    off-canvas for most of every loop. */
 .pl-c .dot {animation: c-run var(--c) linear infinite;}
 .pl-c .ph1 {animation: c-p1 var(--c) steps(1,end) infinite;}
+.pl-c .car1,.pl-c .car2,.pl-c .car3 {opacity:0;}
+.pl-c .car1{animation: c-p1t var(--c) steps(1,end) infinite;}
+.pl-c .car2{animation: c-p2t var(--c) steps(1,end) infinite;}
+.pl-c .car3{animation: c-p3t var(--c) steps(1,end) infinite;}
+.pl-c .atk {opacity:0; animation: c-atk var(--c) steps(1,end) infinite;}
+.pl-c .gone{opacity:0; animation: c-gone var(--c) steps(1,end) infinite;}
 .pl-c .ph2 {animation: c-p2 var(--c) steps(1,end) infinite;}
 .pl-c .ph3 {animation: c-p3 var(--c) steps(1,end) infinite;}
 @keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(44px,11.8px)} 16.67%{transform:translate(76.2px,44px)} 25%{transform:translate(88px,88px)} 33.33%{transform:translate(76.2px,132px)} 41.67%{transform:translate(44px,164.2px)} 50%{transform:translate(0px,176px)} 58.33%{transform:translate(-44px,164.2px)} 66.67%{transform:translate(-76.2px,132px)} 75%{transform:translate(-88px,88px)} 83.33%{transform:translate(-76.2px,44px)} 91.67%{transform:translate(-44px,11.8px)} 100%{transform:translate(-0px,0px)}}
@@ -23,10 +29,17 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
 @keyframes c-p1{0%,16.7%{stroke-width:3} 16.71%,83.2%{stroke-width:0} 83.3%,100%{stroke-width:3}}
 @keyframes c-p2{0%,16.7%{stroke-width:0} 16.71%,50%{stroke-width:3} 50.01%,100%{stroke-width:0}}
 @keyframes c-p3{0%,50%{stroke-width:0} 50.01%,83.2%{stroke-width:3} 83.3%,100%{stroke-width:0}}
+@keyframes c-p1t{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
+@keyframes c-p2t{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
+@keyframes c-p3t{0%,50%{opacity:0} 50.01%,83.2%{opacity:1} 83.3%,100%{opacity:0}}
+@keyframes c-atk{0%,11.9%{opacity:0} 12%,66%{opacity:1} 66.01%,100%{opacity:0}}
+@keyframes c-gone{0%,66.9%{opacity:0} 67%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   .pl-c .dot,.pl-c .ph1,.pl-c .ph2,.pl-c .ph3{animation:none}
   .pl-c .ph1{stroke-width:3}
   .pl-c .dot{transform:translate(0,0)}
+  .pl-c .car1,.pl-c .gone{opacity:1}
+  .pl-c .car2,.pl-c .car3,.pl-c .atk{opacity:0}
 }
 </style>
 <svg class="pl-c" viewBox="0 0 440 244" role="img"
@@ -36,29 +49,34 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
       <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/>
     </marker>
   </defs>
-  <circle cx="220" cy="140" r="88" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="2"/>
-  <path d="M 242.8 55 A88 88 0 0 1 305 162.8" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
-  <path d="M 282.2 202.2 A88 88 0 0 1 157.8 202.2" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
-  <path d="M 135 162.8 A88 88 0 0 1 197.2 55" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
+  <circle cx="220" cy="140" r="76" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="2"/>
+  <path d="M 239.7 66.6 A76 76 0 0 1 293.4 159.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
+  <path d="M 273.7 193.7 A76 76 0 0 1 166.3 193.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
+  <path d="M 146.6 159.7 A76 76 0 0 1 200.3 66.6" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
 
   <g font-size="12" text-anchor="middle">
     <rect class="ph1" x="152" y="10" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
     <text x="220" y="31" style="fill:#1a1a1a" font-weight="bold">1. Read inputs</text>
     <text x="220" y="46" style="fill:#1a1a1a" font-size="11">sensors &rarr; memory</text>
-    <rect class="ph2" x="246" y="172" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
-    <text x="314" y="193" style="fill:#1a1a1a" font-weight="bold">2. Run program</text>
-    <text x="314" y="208" style="fill:#1a1a1a" font-size="11">logic on the values</text>
-    <rect class="ph3" x="58" y="172" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
-    <text x="126" y="193" style="fill:#1a1a1a" font-weight="bold">3. Write outputs</text>
-    <text x="126" y="208" style="fill:#1a1a1a" font-size="11">memory &rarr; actuators</text>
+    <rect class="ph2" x="300" y="176" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
+    <text x="368" y="197" style="fill:#1a1a1a" font-weight="bold">2. Run program</text>
+    <text x="368" y="212" style="fill:#1a1a1a" font-size="11">logic on the values</text>
+    <rect class="ph3" x="4" y="176" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
+    <text x="72" y="197" style="fill:#1a1a1a" font-weight="bold">3. Write outputs</text>
+    <text x="72" y="212" style="fill:#1a1a1a" font-size="11">memory &rarr; actuators</text>
   </g>
 
-  <circle class="dot" cx="220" cy="52" r="7" fill="#ff6b00" stroke="#1a1a1a" stroke-width="1"/>
+  <circle class="dot" cx="220" cy="64" r="7" fill="#ff6b00" stroke="#1a1a1a" stroke-width="1"/>
   <g text-anchor="middle" font-size="12">
-    <text x="220" y="136" opacity="0.75">scan cycle</text>
-    <text x="220" y="154" opacity="0.75">every 50 ms</text>
+    <text class="car1" x="220" y="136" fill="#ff6b00" font-weight="bold">reads hpt = 75</text>
+    <text class="car2" x="220" y="136" fill="#ff6b00" font-weight="bold">decides: keep it on</text>
+    <text class="car3" x="220" y="136" fill="#ff6b00" font-weight="bold">writes coil 1 = on</text>
+    <text x="220" y="156" opacity="0.7" font-size="11">one scan, 50 ms</text>
   </g>
-  <text x="8" y="238" font-size="11" opacity="0.7">Twenty of these per second, for as long as the PLC is powered.</text>
+  <g font-size="11">
+    <text class="atk" x="4" y="164" fill="#ff6b00" font-weight="bold">attacker: FC 05 sets coil 1 = off</text>
+    <text class="gone" x="4" y="164" opacity="0.75">&hellip; and phase 3 has just overwritten it</text>
+  </g>
 </svg>
 <figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing.</figcaption>
 </figure>
@@ -84,7 +102,7 @@ Both values snap back, but for opposite reasons and on different clocks &mdash; 
 
 <figure>
 <style>
-.pl-t {--t: 10s;}
+.pl-t {--t: 14s;}
 /* The playhead is real time: the two bars can only end where their owner's
    next tick falls, so the figure is a measurement, not an illustration. */
 .pl-t .head {animation: t-head var(--t) linear infinite;}
@@ -95,8 +113,8 @@ Both values snap back, but for opposite reasons and on different clocks &mdash; 
 .pl-t .shot {opacity:0; animation: t-shot var(--t) steps(1,end) infinite;}
 @keyframes t-head{0%{transform:translateX(0)} 70%,100%{transform:translateX(410px)}}
 @keyframes t-shot{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes t-barA{0%,10.4%{opacity:0} 10.5%,17.4%{opacity:1} 17.5%,100%{opacity:0}}
-@keyframes t-barB{0%,10.4%{opacity:0} 10.5%,13.9%{opacity:1} 14%,100%{opacity:0}}
+@keyframes t-barA{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes t-barB{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes t-fixA{0%,17.4%{opacity:0} 17.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes t-fixB{0%,13.9%{opacity:0} 14%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
@@ -131,7 +149,6 @@ Both values snap back, but for opposite reasons and on different clocks &mdash; 
     <line x1="500"   y1="34" x2="500"   y2="74"/>
   </g>
   <rect class="barA" x="151.5" y="44" width="41" height="22" rx="3" fill="#ff6b00"/>
-  <text x="172" y="38" text-anchor="middle" font-size="11" fill="#ff6b00">forced</text>
   <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="200" y="40" font-size="11" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
 
   <!-- row B: hwio, one write every 20 ms -->
@@ -148,7 +165,6 @@ Both values snap back, but for opposite reasons and on different clocks &mdash; 
     <line x1="500" y1="104" x2="500" y2="144"/>
   </g>
   <rect class="barB" x="151.5" y="114" width="20.5" height="22" rx="3" fill="#ff6b00"/>
-  <text x="162" y="108" text-anchor="middle" font-size="11" fill="#ff6b00">forced</text>
   <g class="fixB"><path d="M 172 114 L 167.5 106 L 176.5 106 Z" fill="#ff6b00"/><text x="180" y="110" font-size="11" fill="#ff6b00" font-weight="bold">hwio puts it back</text></g>
 
   <!-- the attacker's single write -->
@@ -180,53 +196,55 @@ PLC programs are written in the languages standardised by **IEC 61131-3**. The o
 <figure>
 <style>
 .pl-r {--r: 12s;}
-/* Both rungs are cybICS.st:47-52 verbatim. Rung A starts the compressor
+/* Both rungs are cybICS.st:47-53 verbatim. Rung A starts the compressor
    below 60; rung B seals it in up to 90. Which rung conducts is the whole
    of the plant's hysteresis, and it is the one thing ladder shows better
    than the IF it compiles from. */
-.pl-r .plate {animation-timing-function: cubic-bezier(.4,0,.2,1);}
 .pl-r .seg {stroke-dasharray:6 8; animation: r-flow 1.2s linear infinite;}
-.pl-r .a1 {animation: r-a1 var(--r) infinite;}
-.pl-r .a2 {animation: r-a2 var(--r) infinite;}
-.pl-r .a3 {animation: r-a3 var(--r) infinite;}
-.pl-r .b1 {animation: r-b1 var(--r) infinite;}
-.pl-r .b2 {animation: r-b2 var(--r) infinite;}
-.pl-r .b3 {animation: r-b3 var(--r) infinite;}
+.pl-r .a1 {animation: r-a1 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
+.pl-r .a2 {animation: r-a2 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
+.pl-r .a3 {animation: r-a3 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
+.pl-r .b1 {animation: r-b1 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
+.pl-r .b2 {animation: r-b2 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
+.pl-r .b3 {animation: r-b3 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
 .pl-r .wa2 {animation: r-wa2 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wa3 {animation: r-wa3 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wa4 {animation: r-wa4 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wb2 {animation: r-wb2 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wb3 {animation: r-wb3 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wb4 {animation: r-wb4 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
-.pl-r .ca {animation: r-ca var(--r) steps(1,end) infinite;}
-.pl-r .cb {animation: r-cb var(--r) steps(1,end) infinite;}
+.pl-r .ca > * {animation: r-ca var(--r) steps(1,end) infinite;}
+.pl-r .cb > * {animation: r-cb var(--r) steps(1,end) infinite;}
 .pl-r .rd1 {opacity:0; animation: r-rd1 var(--r) steps(1,end) infinite;}
 .pl-r .rd2 {opacity:0; animation: r-rd2 var(--r) steps(1,end) infinite;}
 .pl-r .rd3 {opacity:0; animation: r-rd3 var(--r) steps(1,end) infinite;}
-@keyframes r-a1{0%,33.32%{transform:translateX(40px)} 33.33%,66.66%{transform:translateX(0px)} 66.67%,99.99%{transform:translateX(0px)}}
-@keyframes r-a2{0%,33.32%{transform:translateX(40px)} 33.33%,66.66%{transform:translateX(0px)} 66.67%,99.99%{transform:translateX(0px)}}
-@keyframes r-a3{0%,33.32%{transform:translateX(40px)} 33.33%,66.66%{transform:translateX(40px)} 66.67%,99.99%{transform:translateX(40px)}}
-@keyframes r-b1{0%,33.32%{transform:translateX(40px)} 33.33%,66.66%{transform:translateX(40px)} 66.67%,99.99%{transform:translateX(0px)}}
-@keyframes r-b2{0%,33.32%{transform:translateX(0px)} 33.33%,66.66%{transform:translateX(40px)} 66.67%,99.99%{transform:translateX(40px)}}
-@keyframes r-b3{0%,33.32%{transform:translateX(40px)} 33.33%,66.66%{transform:translateX(40px)} 66.67%,99.99%{transform:translateX(40px)}}
-@keyframes r-wa2{0%,33.33%{opacity:1} 33.33%,100%{opacity:0.18}}
-@keyframes r-wa3{0%,33.33%{opacity:1} 33.33%,100%{opacity:0.18}}
-@keyframes r-wa4{0%,33.33%{opacity:1} 33.33%,100%{opacity:0.18}}
-@keyframes r-wb2{0%,66.67%{opacity:1} 66.67%,100%{opacity:0.18}}
-@keyframes r-wb3{0%,33.33%{opacity:0.18} 33.33%,66.67%{opacity:1} 66.67%,100%{opacity:0.18}}
-@keyframes r-wb4{0%,33.33%{opacity:0.18} 33.33%,66.67%{opacity:1} 66.67%,100%{opacity:0.18}}
-@keyframes r-ca{0%,33.33%{opacity:1} 33.33%,100%{opacity:0.18}}
-@keyframes r-cb{0%,33.33%{opacity:0.18} 33.33%,66.67%{opacity:1} 66.67%,100%{opacity:0.18}}
-@keyframes r-rd1{0%,33.33%{opacity:1} 33.33%,100%{opacity:0}}
-@keyframes r-rd2{0%,33.33%{opacity:0} 33.33%,66.67%{opacity:1} 66.67%,100%{opacity:0}}
-@keyframes r-rd3{0%,66.67%{opacity:0} 66.67%,100%{opacity:1}}
+@keyframes r-a1{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(0px)} 66.67%,99.99%{transform:translateX(0px)}}
+@keyframes r-a2{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(0px)} 66.67%,99.99%{transform:translateX(0px)}}
+@keyframes r-a3{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(34px)}}
+@keyframes r-b1{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(0px)}}
+@keyframes r-b2{0%,33.32%{transform:translateX(0px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(34px)}}
+@keyframes r-b3{0%,33.32%{transform:translateX(34px)} 33.33%,66.66%{transform:translateX(34px)} 66.67%,99.99%{transform:translateX(34px)}}
+@keyframes r-wa2{0%,33.33%{stroke:#ff6b00; stroke-opacity:1} 33.33%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-wa3{0%,33.33%{stroke:#ff6b00; stroke-opacity:1} 33.33%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-wa4{0%,33.33%{stroke:#ff6b00; stroke-opacity:1} 33.33%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-wb2{0%,66.67%{stroke:#ff6b00; stroke-opacity:1} 66.67%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-wb3{0%,33.33%{stroke:currentColor; stroke-opacity:0.55} 33.33%,66.67%{stroke:#ff6b00; stroke-opacity:1} 66.67%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-wb4{0%,33.33%{stroke:currentColor; stroke-opacity:0.55} 33.33%,66.67%{stroke:#ff6b00; stroke-opacity:1} 66.67%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-ca{0%,33.33%{stroke:#ff6b00; stroke-opacity:1} 33.33%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-cb{0%,33.33%{stroke:currentColor; stroke-opacity:0.55} 33.33%,66.67%{stroke:#ff6b00; stroke-opacity:1} 66.67%,100%{stroke:currentColor; stroke-opacity:0.55}}
+@keyframes r-rd1{0%,33.33%{opacity:1} 33.34%,100%{opacity:0}}
+@keyframes r-rd2{0%,33.33%{opacity:0} 33.34%,66.67%{opacity:1} 66.68%,100%{opacity:0}}
+@keyframes r-rd3{0%,66.67%{opacity:0} 66.68%,100%{opacity:1}}
 @keyframes r-flow{to{stroke-dashoffset:-56}}
 @media (prefers-reduced-motion: reduce){
   .pl-r * {animation:none !important;}
-  .pl-r .a1,.pl-r .a2,.pl-r .a3 {transform:translateX(40px);}
-  .pl-r .b3 {transform:translateX(40px);}
-  .pl-r .wa2,.pl-r .wa3,.pl-r .wa4,.pl-r .ca {opacity:1;}
-  .pl-r .wb2 {opacity:1;} .pl-r .wb3,.pl-r .wb4,.pl-r .cb {opacity:0.18;}
+  .pl-r .a1,.pl-r .a2,.pl-r .a3 {transform:translateX(34px);}
+  /* Phase 1: hpt is 55, so `hpt < 90` is closed too. Only
+     `compressorState = 1` is open, which is why rung B does not conduct. */
+  .pl-r .b1,.pl-r .b3 {transform:translateX(34px);}
+  .pl-r .wa2,.pl-r .wa3,.pl-r .wa4,.pl-r .ca > * {stroke:#ff6b00; stroke-opacity:1;}
+  .pl-r .wb2 {stroke:#ff6b00; stroke-opacity:1;}
+  .pl-r .wb3,.pl-r .wb4,.pl-r .cb > * {stroke:currentColor; stroke-opacity:0.55;}
   .pl-r .rd1 {opacity:1;}
 }
 </style>
@@ -236,26 +254,26 @@ PLC programs are written in the languages standardised by **IEC 61131-3**. The o
   <line x1="500" y1="20" x2="500" y2="180" stroke="currentColor" stroke-width="2"/>
   <line class="seg" x1="20" y1="60" x2="90" y2="60" stroke="#ff6b00" stroke-width="2"/>
   <line class="seg" x1="20" y1="130" x2="90" y2="130" stroke="#ff6b00" stroke-width="2"/>
-  <text x="26" y="44" font-size="11" opacity="0.7">rung A &mdash; start</text>
-  <text x="26" y="114" font-size="11" opacity="0.7">rung B &mdash; seal-in</text>
+  <text x="26" y="90" font-size="11" opacity="0.7">rung A &mdash; start</text>
+  <text x="26" y="160" font-size="11" opacity="0.7">rung B &mdash; seal-in</text>
   <line class="plate a1" x1="90" y1="44" x2="90" y2="76" stroke="currentColor" stroke-width="2"/>
   <line x1="134" y1="44" x2="134" y2="76" stroke="currentColor" stroke-width="2"/>
-  <text x="112" y="36" text-anchor="middle" font-size="11">hpt &lt; 60</text>
+  <text x="112" y="36" text-anchor="middle" font-size="13">hpt &lt; 60</text>
   <line class="plate a2" x1="210" y1="44" x2="210" y2="76" stroke="currentColor" stroke-width="2"/>
   <line x1="254" y1="44" x2="254" y2="76" stroke="currentColor" stroke-width="2"/>
-  <text x="232" y="36" text-anchor="middle" font-size="11">compressorState = 0</text>
+  <text x="232" y="36" text-anchor="middle" font-size="13">compressorState = 0</text>
   <line class="plate a3" x1="330" y1="44" x2="330" y2="76" stroke="currentColor" stroke-width="2"/>
   <line x1="374" y1="44" x2="374" y2="76" stroke="currentColor" stroke-width="2"/>
-  <text x="352" y="36" text-anchor="middle" font-size="11">gst &gt; 50</text>
+  <text x="352" y="36" text-anchor="middle" font-size="13">gst &gt; 50</text>
   <line class="plate b1" x1="90" y1="114" x2="90" y2="146" stroke="currentColor" stroke-width="2"/>
   <line x1="134" y1="114" x2="134" y2="146" stroke="currentColor" stroke-width="2"/>
-  <text x="112" y="106" text-anchor="middle" font-size="11">hpt &lt; 90</text>
+  <text x="112" y="106" text-anchor="middle" font-size="13">hpt &lt; 90</text>
   <line class="plate b2" x1="210" y1="114" x2="210" y2="146" stroke="currentColor" stroke-width="2"/>
   <line x1="254" y1="114" x2="254" y2="146" stroke="currentColor" stroke-width="2"/>
-  <text x="232" y="106" text-anchor="middle" font-size="11">compressorState = 1</text>
+  <text x="232" y="106" text-anchor="middle" font-size="13">compressorState = 1</text>
   <line class="plate b3" x1="330" y1="114" x2="330" y2="146" stroke="currentColor" stroke-width="2"/>
   <line x1="374" y1="114" x2="374" y2="146" stroke="currentColor" stroke-width="2"/>
-  <text x="352" y="106" text-anchor="middle" font-size="11">gst &gt; 50</text>
+  <text x="352" y="106" text-anchor="middle" font-size="13">gst &gt; 50</text>
   <line class="seg wa2" x1="134" y1="60" x2="210" y2="60" stroke="#ff6b00" stroke-width="2"/>
   <line class="seg wa3" x1="254" y1="60" x2="330" y2="60" stroke="#ff6b00" stroke-width="2"/>
   <line class="seg wa4" x1="374" y1="60" x2="420" y2="60" stroke="#ff6b00" stroke-width="2"/>
@@ -272,8 +290,8 @@ PLC programs are written in the languages standardised by **IEC 61131-3**. The o
     <path d="M452 114 A18 16 0 0 1 452 146" fill="none" stroke="#ff6b00" stroke-width="2"/>
     <line x1="452" y1="130" x2="500" y2="130" stroke="#ff6b00" stroke-width="2"/>
   </g>
-  <text x="436" y="36" text-anchor="middle" font-size="11" fill="#ff6b00">compressorState</text>
-  <text x="436" y="106" text-anchor="middle" font-size="11" fill="#ff6b00">compressorState</text>
+  <text x="436" y="36" text-anchor="middle" font-size="13" fill="#ff6b00">compressorState</text>
+  <text x="436" y="106" text-anchor="middle" font-size="13" fill="#ff6b00">compressorState</text>
 
   <g font-size="12" font-weight="bold">
     <text class="rd1" x="26" y="204" fill="#ff6b00">HPT 55, already off &mdash; rung A starts it</text>
@@ -288,6 +306,6 @@ PLC programs are written in the languages standardised by **IEC 61131-3**. The o
 
 The program's variables are bound to memory addresses in their declarations: `%QX0.1` for the compressor output, `%MW102` for the HPT reading. OpenPLC exposes those over industrial protocols, with `%QX0.0`&ndash;`%QX0.3` appearing as Modbus coils 0&ndash;3 and each `%MW`*n* as holding register 1024 + *n*. That is why HPT, declared `%MW102`, is register **1126** &mdash; the same arithmetic gives 1124 for GST, and 1132 and 1134 for `systemSen` and `boSen` &mdash; system-operational and blow-out.
 
-OpenPLC publishes the same memory over Modbus, S7comm, DNP3 and EtherNet/IP simultaneously, which is convenient for integration and equally convenient for an attacker: as deployed here, none of them authenticate. Blocking one port does not close the door, because the same address is reachable through the next protocol along &mdash; a point the *Network Segmentation* and *Modbus Firewall Rules* modules make concrete.
+OpenPLC publishes the same memory over Modbus, S7comm, DNP3 and EtherNet/IP simultaneously, which is convenient for integration and equally convenient for an attacker: as deployed here, none of them authenticate. Blocking one port does not close the door, because the same address is reachable through the next protocol along &mdash; and neither defence module closes it either. *Modbus Firewall Rules* filters port 502; *Network Segmentation* checks 8080, 502 and 4840. Pass both and register 1126 is still writable over S7comm on port 102.
 
 Uploading a **new program** to a running controller is one of the most impactful actions in ICS: it changes how the process behaves, permanently, and no amount of watching register values will reveal it. That is exactly the *PLC Programming* challenge, and it maps to MITRE ATT&CK for ICS **T0843 Program Download**.
