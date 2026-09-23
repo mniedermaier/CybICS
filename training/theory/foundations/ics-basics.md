@@ -13,14 +13,13 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
 .pri .swap-a {animation: p-left  var(--p) ease-in-out infinite;}
 .pri .lab-it {animation: p-it    var(--p) steps(1,end) infinite;}
 .pri .lab-ot {opacity:0; animation: p-ot var(--p) steps(1,end) infinite;}
-.pri .safety {opacity:0; animation: p-ot var(--p) steps(1,end) infinite;}
 .pri .fallback {display:none;}
 @keyframes p-right {0%,25%{transform:translateX(0)} 38%,88%{transform:translateX(340px)}
                     100%{transform:translateX(0)}}
 @keyframes p-left  {0%,25%{transform:translateX(0)} 38%,88%{transform:translateX(-340px)}
                     100%{transform:translateX(0)}}
-@keyframes p-it {0%,30%{opacity:1} 30.01%,92%{opacity:0} 92.01%,100%{opacity:1}}
-@keyframes p-ot {0%,30%{opacity:0} 38%,88%{opacity:1} 92%,100%{opacity:0}}
+@keyframes p-it {0%,31%{opacity:1} 31.01%,94%{opacity:0} 94.01%,100%{opacity:1}}
+@keyframes p-ot {0%,31%{opacity:0} 31.01%,94%{opacity:1} 94.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
   .pri .animated {display:none;}
   .pri .fallback {display:block;}
@@ -29,28 +28,28 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
 <svg class="pri" viewBox="0 0 520 150" role="img"
      aria-label="The same three security goals in two orders. IT ranks them confidentiality, integrity, availability. OT reverses the outer two: safety and availability first, confidentiality last.">
   <g class="animated">
+    <g font-size="11" opacity="0.7" text-anchor="middle">
+      <text x="90" y="40">most important</text><text x="430" y="40">least important</text>
+    </g>
     <text class="lab-it" x="10" y="26" font-size="13" font-weight="bold">IT priorities</text>
     <text class="lab-ot" x="10" y="26" font-size="13" font-weight="bold" fill="#ff6b00">OT priorities</text>
 
+    <text x="20" y="66" font-size="12" font-weight="bold" opacity="0.65">1.</text>
     <g class="swap-c">
-      <rect x="10" y="44" width="160" height="30" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-      <text x="90" y="64" font-size="12" text-anchor="middle">Confidentiality</text>
+      <rect x="34" y="44" width="136" height="30" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+      <text x="102" y="64" font-size="12" text-anchor="middle">Confidentiality</text>
     </g>
-    <g>
-      <rect x="180" y="44" width="160" height="30" rx="4" fill="currentColor" opacity="0.25" stroke="currentColor"/>
-      <text x="260" y="64" font-size="12" text-anchor="middle">Integrity</text>
-    </g>
+    <text x="360" y="66" font-size="12" font-weight="bold" opacity="0.65">3.</text>
     <g class="swap-a">
-      <rect x="350" y="44" width="160" height="30" rx="4" fill="#ff6b00" opacity="0.85"/>
-      <text x="430" y="64" font-size="12" text-anchor="middle" style="fill:#1a1a1a">Availability</text>
+      <rect x="374" y="44" width="136" height="30" rx="4" fill="#ff6b00" opacity="0.85"/>
+      <text x="442" y="64" font-size="12" text-anchor="middle" style="fill:#1a1a1a">Availability</text>
+    </g>
+    <text x="190" y="66" font-size="12" font-weight="bold" opacity="0.65">2.</text>
+    <g>
+      <rect x="204" y="44" width="136" height="30" rx="4" fill="currentColor" opacity="0.25" stroke="currentColor"/>
+      <text x="272" y="64" font-size="12" text-anchor="middle">Integrity</text>
     </g>
 
-    <text class="safety" x="10" y="100" font-size="11" fill="#ff6b00">
-      and above all of them, safety: the process must not hurt anyone
-    </text>
-    <text x="10" y="124" font-size="11" opacity="0.8">
-      Integrity does not move. What changes is which of the other two you sacrifice first.
-    </text>
   </g>
 
   <g class="fallback" font-size="12">
@@ -71,7 +70,7 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
     <text x="430" y="117" text-anchor="middle">3. Confidentiality</text>
   </g>
 </svg>
-<figcaption>The same three goals, ordered differently. A stopped process can be dangerous as well as expensive, so in OT availability leads and confidentiality comes last &mdash; which is exactly why the protocols in the next few topics never bothered to encrypt anything.</figcaption>
+<figcaption>Integrity does not move. What changes is which of the other two you give up first &mdash; and above both of them sits safety, because the process must not hurt anyone. A stopped process can be dangerous as well as expensive, so in OT availability leads and confidentiality comes last. That ordering explains what gets fixed first when something breaks; it does not explain why Modbus has no encryption. That has a simpler cause, and the next topic gets to it.</figcaption>
 </figure>
 
 ## The Purdue model
@@ -100,8 +99,8 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
   .pur .note {animation:none; opacity:1;}
 }
 </style>
-<svg class="pur" viewBox="0 0 520 330" role="img"
-     aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The DMZ boundary it crosses sits between Level 3 and the enterprise; CybICS has no such boundary, only one flat network.">
+<svg class="pur" viewBox="0 0 520 340" role="img"
+     aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The DMZ boundary it crosses sits between Level 3 and the enterprise; CybICS has no such boundary: the plant components share one flat network, and the IDS watches from the host.">
   <g font-size="12">
     <rect x="70" y="10" width="440" height="40" rx="5" fill="currentColor" opacity="0.10" stroke="currentColor"/>
     <text x="82" y="35">Level 4/5 &mdash; Enterprise IT (ERP, email, internet)</text>
@@ -124,16 +123,17 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
     <text x="40" y="34" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">!</text>
   </g>
 
-  <text class="note" x="70" y="314" font-size="11" fill="#ff6b00" font-weight="bold">
-    CybICS has no boundary at all: every service sits on one flat 172.18.0.0/24.
-  </text>
+  <g class="note" font-size="11" fill="#ff6b00" font-weight="bold">
+    <text x="70" y="308">CybICS has no boundary at all: one flat 172.18.0.0/24,</text>
+    <text x="70" y="324">with the IDS watching it from the host itself.</text>
+  </g>
 </svg>
 <figcaption>Five levels, and one intruder walking down all of them. The descent is the point: each step is a different protocol and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
 </figure>
 
 ## Where CybICS fits
 
-CybICS is a small but complete ICS, and every component sits on the same bridge network, `172.18.0.0/24`. That is not an oversight &mdash; it is what makes the attacks in the later modules reachable from a single machine.
+CybICS is a small but complete ICS, and every simulated plant component sits on the same bridge network, `172.18.0.0/24`, with nothing between them. That is not an oversight &mdash; it is what makes the attacks in the later modules reachable from a single machine. Two services are deliberately outside it: the landing page and the IDS run on the *host* network, which is how the IDS gets to see traffic between containers it is not a party to.
 
 | Purdue level | CybICS component | Address |
 |---|---|---|
@@ -141,80 +141,122 @@ CybICS is a small but complete ICS, and every component sits on the same bridge 
 | Level 3 (Operations) | Engineering workstation | 172.18.0.10 |
 | Level 2 (Supervisory) | FUXA HMI; OPC-UA and S7comm servers alongside it | 172.18.0.4, .5, .6 |
 | Level 1 (Control) | OpenPLC runtime executing the plant program | 172.18.0.3 |
-| Level 0 (Process) | `hwio`, the bridge to the gas pressure process | 172.18.0.2 |
+| Level 0 (Process) | `hwio`, which runs the gas pressure simulation and writes its readings into the PLC | 172.18.0.2 |
 
-On real hardware, Level 0 is not a container at all: the STM32 on the CybICS board runs the process, and `hwio` talks to it over I&sup2;C.
+On real hardware, Level 0 is not a container at all: the STM32 on the CybICS board runs the process, and `hwio` becomes a genuine bridge, talking to it over I&sup2;C at address 0x20.
 
 ## The process you are actually protecting
 
-Everything above exists to run one small plant. Gas is pumped from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open. Both tank readings are a single byte, 0 to 255.
+Everything above exists to run one small plant. A compressor pumps gas from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open. Both readings are a single byte, 0 to 255, and OpenPLC is the thing that decides: it reads the HPT pressure out of register 1126 and drives the compressor on coil 1. That loop &mdash; sensor, controller, actuator, process, sensor again &mdash; is what makes this a *control* system rather than a machine.
+
+Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the HPT falls below 60 and stops it at 90, so the pressure saws gently between the two, comfortably inside the 50-to-100 band in which the plant reports itself healthy. Nothing ever goes near the relief valve.
 
 <figure>
 <style>
-.plt {--t: 14s;}
+.plt {--t: 18s;}
 .plt .lvl {transform-origin: center bottom;}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
 .plt .comp{animation: t-comp var(--t) steps(1,end) infinite;}
 .plt .vent{opacity:0; animation: t-vent var(--t) steps(1,end) infinite;}
-.plt .bo  {opacity:0; animation: t-vent var(--t) steps(1,end) infinite;}
-/* Two units of GST buy one unit of HPT, so the left tank empties twice as
-   fast as the right one fills -- the ratio is the plant's, not decoration. */
-@keyframes t-gst {0%{transform:scaleY(0.98)} 72%{transform:scaleY(0.20)}
-                  86%{transform:scaleY(0.20)} 100%{transform:scaleY(0.98)}}
-@keyframes t-hpt {0%{transform:scaleY(0.24)} 72%{transform:scaleY(0.88)}
-                  86%{transform:scaleY(0.79)} 100%{transform:scaleY(0.24)}}
-@keyframes t-comp{0%,84%{fill:#ff6b00} 84.01%,100%{fill:currentColor}}
-@keyframes t-vent{0%,69%{opacity:0} 70%,86%{opacity:1} 86.01%,100%{opacity:0}}
+.plt .atk {opacity:0; animation: t-atk  var(--t) steps(1,end) infinite;}
+.plt .sup {opacity:0.25; animation: t-sup var(--t) steps(1,end) infinite;}
+.plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
+.plt .ph-a{opacity:0; animation: t-atk var(--t) steps(1,end) infinite;}
+/* Every segment obeys the plant model: two units of GST buy one of HPT, and
+   the HPT can only fall while the compressor is off. The tank is never drawn
+   falling under a running compressor, because the model cannot do that. */
+@keyframes t-hpt {0%{transform:scaleY(0.235)}  15%{transform:scaleY(0.353)}
+                  30%{transform:scaleY(0.235)} 36%{transform:scaleY(0.294)}
+                  60%{transform:scaleY(0.471)} 78%{transform:scaleY(0.863)}
+                  86%,92%{transform:scaleY(0.878)} 100%{transform:scaleY(0.235)}}
+@keyframes t-gst {0%{transform:scaleY(0.941)}  15%,30%{transform:scaleY(0.706)}
+                  36%{transform:scaleY(0.588)} 60%{transform:scaleY(0.235)}
+                  78%{transform:scaleY(0.204)} 92%{transform:scaleY(0.196)}
+                  100%{transform:scaleY(0.941)}}
+@keyframes t-comp{0%,15%{fill:#ff6b00} 15.01%,30%{fill:currentColor}
+                  30.01%,92%{fill:#ff6b00} 92.01%,100%{fill:currentColor}}
+@keyframes t-vent{0%,77.9%{opacity:0} 78%,93%{opacity:1} 93.01%,100%{opacity:0}}
+@keyframes t-atk {0%,35.9%{opacity:0} 36%,92%{opacity:1} 92.01%,100%{opacity:0}}
+@keyframes t-sup {0%,59.9%{opacity:0.25} 60%,100%{opacity:1}}
+@keyframes t-phn {0%,35.9%{opacity:1} 36%,92%{opacity:0} 92.01%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) {
-  .plt .gst {animation:none; transform:scaleY(0.20);}
-  .plt .hpt {animation:none; transform:scaleY(0.88);}
+  .plt .gst {animation:none; transform:scaleY(0.204);}
+  .plt .hpt {animation:none; transform:scaleY(0.878);}
   .plt .comp{animation:none; fill:#ff6b00;}
-  .plt .vent,.plt .bo {animation:none; opacity:1;}
+  .plt .vent,.plt .atk,.plt .ph-a {animation:none; opacity:1;}
+  .plt .sup {animation:none; opacity:1;}
+  .plt .ph-n{animation:none; opacity:0;}
 }
 </style>
-<svg class="plt" viewBox="0 0 520 250" role="img"
-     aria-label="The CybICS plant. A compressor moves gas from the storage tank into the high pressure tank, taking two units from one to add one to the other. Above 220 the blow-out valve opens and vents until the pressure falls back below 200. The system reports healthy only while the high pressure tank sits between 50 and 100 with the valve open.">
-  <!-- storage tank -->
-  <rect x="40" y="60" width="60" height="140" rx="4" fill="none" stroke="currentColor"/>
-  <rect class="lvl gst" x="42" y="62" width="56" height="136" fill="currentColor" opacity="0.35"/>
-  <text x="70" y="52" text-anchor="middle" font-size="12" font-weight="bold">GST</text>
-  <text x="70" y="218" text-anchor="middle" font-size="11" opacity="0.8">storage</text>
+<svg class="plt" viewBox="0 0 520 300" role="img"
+     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1. Normally the pressure saws between 60 and 90. When an attacker holds the compressor on, the storage tank drains two units for every one gained, the external supply valve opens to keep feeding it, and the pressure climbs past 220 where the relief valve opens but cannot bring it back.">
+  <!-- storage tank; fill is 126 units tall with its base at y=188, so a value
+       v sits at y = 188 - 126*v/255 -->
+  <rect x="40" y="60" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
+  <rect class="lvl gst" x="42" y="62" width="52" height="126" fill="currentColor" opacity="0.35"/>
+  <text x="68" y="52" text-anchor="middle" font-size="12" font-weight="bold">GST</text>
+  <text x="68" y="206" text-anchor="middle" font-size="11" opacity="0.8">storage</text>
+  <g class="sup">
+    <path d="M 68 60 L 68 34" stroke="#ff6b00" stroke-width="2"/>
+    <path d="M 62 42 L 68 32 L 74 42" fill="none" stroke="#ff6b00" stroke-width="2"/>
+    <text x="68" y="26" text-anchor="middle" font-size="11" fill="#ff6b00">supply</text>
+  </g>
 
   <!-- compressor -->
-  <rect class="comp" x="160" y="110" width="90" height="40" rx="5" opacity="0.8"/>
-  <text x="205" y="135" text-anchor="middle" font-size="12" style="fill:#1a1a1a" font-weight="bold">compressor</text>
-  <path d="M 104 130 L 156 130" stroke="currentColor" stroke-width="2"/>
-  <path d="M 254 130 L 306 130" stroke="currentColor" stroke-width="2"/>
-  <text x="205" y="168" text-anchor="middle" font-size="11" opacity="0.85">&minus;2 GST &rarr; +1 HPT per tick</text>
+  <rect class="comp" x="150" y="105" width="90" height="40" rx="5" opacity="0.8"/>
+  <text x="195" y="130" text-anchor="middle" font-size="12" style="fill:#1a1a1a" font-weight="bold">compressor</text>
+  <path d="M 100 125 L 146 125" stroke="currentColor" stroke-width="2"/>
+  <path d="M 244 125 L 296 125" stroke="currentColor" stroke-width="2"/>
+  <text x="195" y="164" text-anchor="middle" font-size="11" opacity="0.85">&minus;2 GST &rarr; +1 HPT</text>
+  <g class="atk">
+    <rect x="148" y="80" width="94" height="20" rx="3" fill="#ff6b00"/>
+    <text x="195" y="94" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">coil 1 forced on</text>
+  </g>
 
   <!-- high pressure tank -->
-  <rect x="310" y="60" width="60" height="140" rx="4" fill="none" stroke="currentColor"/>
-  <rect class="lvl hpt" x="312" y="62" width="56" height="136" fill="#ff6b00" opacity="0.55"/>
-  <text x="340" y="52" text-anchor="middle" font-size="12" font-weight="bold">HPT</text>
-  <text x="340" y="218" text-anchor="middle" font-size="11" opacity="0.8">high pressure</text>
-
-  <!-- thresholds, placed at their real values on a 0-255 scale -->
-  <line x1="306" y1="81" x2="404" y2="81" stroke="#ff6b00" stroke-dasharray="4 3"/>
-  <text x="408" y="85" font-size="11" fill="#ff6b00">220 blow-out opens</text>
-  <line x1="306" y1="91" x2="374" y2="91" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-  <text x="408" y="99" font-size="11" opacity="0.75">200 closes again</text>
-  <rect x="306" y="145" width="68" height="27" fill="currentColor" opacity="0.12"/>
-  <text x="408" y="165" font-size="11" opacity="0.85">50&ndash;100 healthy band</text>
-
-  <!-- venting -->
-  <g class="vent">
-    <path d="M 340 60 L 340 30" stroke="#ff6b00" stroke-width="2"/>
-    <path d="M 334 38 L 340 28 L 346 38" fill="none" stroke="#ff6b00" stroke-width="2"/>
-    <text x="356" y="34" font-size="11" fill="#ff6b00" font-weight="bold">venting</text>
+  <rect x="300" y="60" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
+  <rect class="lvl hpt" x="302" y="62" width="52" height="126" fill="#ff6b00" opacity="0.55"/>
+  <text x="328" y="52" text-anchor="middle" font-size="12" font-weight="bold">HPT</text>
+  <text x="328" y="206" text-anchor="middle" font-size="11" opacity="0.8">high pressure</text>
+  <g font-size="11">
+    <line x1="296" y1="79" x2="360" y2="79" stroke="#ff6b00" stroke-dasharray="4 3"/>
+    <text x="364" y="83" fill="#ff6b00">220</text>
+    <line x1="296" y1="89" x2="360" y2="89" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <text x="364" y="93" opacity="0.75">200</text>
+    <line x1="296" y1="143" x2="360" y2="143" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <text x="364" y="147" opacity="0.75">90</text>
+    <line x1="296" y1="158" x2="360" y2="158" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <text x="364" y="162" opacity="0.75">60</text>
   </g>
-  <text class="bo" x="40" y="244" font-size="11" fill="#ff6b00" font-weight="bold">
-    The relief valve vents more slowly than the compressor fills. A compressor stuck on wins.
-  </text>
-  <text x="40" y="20" font-size="11" opacity="0.8">Both readings are one byte: 0 to 255.</text>
+  <g class="vent">
+    <path d="M 328 60 L 328 34" stroke="#ff6b00" stroke-width="2"/>
+    <path d="M 322 42 L 328 32 L 334 42" fill="none" stroke="#ff6b00" stroke-width="2"/>
+    <text x="340" y="30" font-size="11" fill="#ff6b00" font-weight="bold">venting</text>
+  </g>
+
+  <!-- the controller, and the two wires that make this a loop -->
+  <rect x="170" y="232" width="160" height="44" rx="5" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+  <text x="250" y="252" text-anchor="middle" font-size="12" font-weight="bold">OpenPLC</text>
+  <text x="250" y="268" text-anchor="middle" font-size="11" opacity="0.8">on below 60, off at 90</text>
+  <path d="M 392 190 L 392 254 L 336 254" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M 344 248 L 334 254 L 344 260" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M 356 190 L 392 190" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <text x="398" y="218" font-size="11" opacity="0.8">reads 1126</text>
+  <path d="M 170 254 L 126 254 L 126 125 L 144 125" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M 136 119 L 146 125 L 136 131" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <text x="120" y="218" font-size="11" opacity="0.8" text-anchor="end">drives coil 1</text>
+
+  <text class="ph-n" x="10" y="292" font-size="11" opacity="0.85">normal operation</text>
+  <text class="ph-a" x="10" y="292" font-size="11" fill="#ff6b00" font-weight="bold">under attack</text>
+  <text x="510" y="292" font-size="11" opacity="0.7" text-anchor="end">both tanks read 0 to 255</text>
 </svg>
-<figcaption>The plant, at the rates it actually runs. A mechanical relief valve opens above 220 and stays open until the pressure falls back under 200 &mdash; but it vents at most one unit per tick while the compressor adds one every tick, so holding the compressor on is enough to drive the tank somewhere the safety device cannot recover it. That is the <em>Physical Process</em> challenge, and it is why the last line of defence here is mechanical, not digital.</figcaption>
+<figcaption>The same loop twice: first doing its job, then with coil 1 held on from outside. Watch the storage tank during the attack &mdash; it gives up two units for every one the high pressure tank gains, and would stall long before 220 if nothing refilled it. The external supply valve is what keeps the attack fed.</figcaption>
 </figure>
+
+The attack is the second half of that loop, and it is worth being precise about why it succeeds. A mechanical relief valve opens above 220 and stays open until the pressure falls back under 200, but it can bleed off at most one unit per tick while the compressor adds one every tick. It cannot win while the compressor runs; it can only stop things getting worse. Nothing here is a digital protection that an attacker disables &mdash; the last line of defence is a spring, and the attacker simply out-paces it.
+
+The storage tank is the other half of the answer. Draining two units per unit gained, a full tank buys about 90 units of pressure and no more, which from the normal band would stop short of 220. What closes the gap is the external supply: OpenPLC opens it whenever the storage tank falls below 60, so the tank hovers just above the level at which the compressor would stall, and the pressure keeps creeping up. That is the *Physical Process* challenge, and the interesting part of it is that every component involved is behaving exactly as designed.
 
 ## Why it matters for security
 
