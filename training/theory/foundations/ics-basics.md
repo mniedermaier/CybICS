@@ -2,7 +2,7 @@
 
 An **Industrial Control System (ICS)** is the combination of hardware and software that monitors and controls a physical process: a gas plant, a water works, a power grid, a production line. Unlike ordinary IT, an ICS acts on the real world. A wrong value does not corrupt a spreadsheet, it opens a valve.
 
-This is why the priorities are inverted compared to IT. In IT the order is usually **confidentiality, integrity, availability**. In operational technology (OT) it is the reverse: keeping the process running safely comes first.
+This is why the priorities are inverted compared to IT. A control system runs for twenty or thirty years, there is rarely a window in which it can be stopped to patch, and a process that halts can be more dangerous than one running badly. In IT the order is usually **confidentiality, integrity, availability**. In operational technology (OT) it is the reverse: keeping the process running safely comes first.
 
 <figure>
 <style>
@@ -31,7 +31,7 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
   .pri-static {display:block;}
 }
 </style>
-<svg class="pri" viewBox="0 0 520 130" role="img"
+<svg class="pri" viewBox="0 -4 520 134" role="img"
      aria-label="The same three security goals in one row, ordered most important on the left. IT ranks them confidentiality, integrity, availability; OT swaps the outer two, so availability leads and confidentiality comes last.">
   <text class="lab-it" x="10" y="20" font-size="13" font-weight="bold">IT priorities</text>
   <text class="lab-ot" x="10" y="20" font-size="13" font-weight="bold" fill="#ff6b00">OT priorities</text>
@@ -126,7 +126,7 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
   </g>
 
 </svg>
-<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. An intruder that starts at the top reaches the process by descending all five levels, one protocol at a time. The descent is the point: each step is a different protocol and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
+<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. An intruder that starts at the top reaches the process by descending all five levels, one protocol at a time. The descent is the point: each step meets a different service and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
 </figure>
 
 ## Where CybICS fits
@@ -152,10 +152,14 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 <figure>
 <style>
 .plt {--t: 20s;}
+html.light-mode .plt .hpt {fill:#b34700; opacity:0.75;}
 /* transform-box defaults to view-box for SVG, so `center bottom` would anchor
    at the bottom of the *viewBox*, not of the rect -- which put the fills
    outside their tanks entirely. fill-box anchors on the element's own box. */
 .plt .lvl {transform-box: fill-box; transform-origin: bottom;}
+.plt .gst {transform: scaleY(0.941);}
+.plt .hpt {transform: scaleY(0.235);}
+.plt .compt {fill:#1a1a1a;}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
 .plt .comp{fill:#ff6b00; animation: t-comp var(--t) steps(1,end) infinite;}
@@ -175,11 +179,12 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
    down, because nothing inside this loop can bring it down. */
 @keyframes t-hpt {0%{transform:scaleY(0.235)}  12%{transform:scaleY(0.353)}
                   24%{transform:scaleY(0.235)} 30%{transform:scaleY(0.294)}
-                  62%{transform:scaleY(0.863)} 82%{transform:scaleY(0.941)}
+                  62%{transform:scaleY(0.863)} 78%,82%{transform:scaleY(1)}
                   94%,100%{transform:scaleY(0.784)}}
 @keyframes t-gst {0%{transform:scaleY(0.941)}  12%,24%{transform:scaleY(0.706)}
                   30%{transform:scaleY(0.588)} 62%{transform:scaleY(0.304)}
-                  82%{transform:scaleY(0.225)} 100%{transform:scaleY(0.60)}}
+                  78%{transform:scaleY(0.225)} 82%{transform:scaleY(0.245)}
+                  100%{transform:scaleY(0.60)}}
 @keyframes t-comp {0%,12%{fill:#ff6b00; fill-opacity:1} 12.01%,24%{fill:currentColor; fill-opacity:0.18}
                    24.01%,82%{fill:#ff6b00; fill-opacity:1} 82.01%,100%{fill:currentColor; fill-opacity:0.18}}
 /* The label has to follow the box, or the dark ink sits on a dark panel. */
@@ -229,11 +234,11 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
   <rect x="290" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
   <rect class="lvl hpt" x="292" y="72" width="52" height="126" fill="#ff6b00" opacity="0.55"/>
   <text x="318" y="216" text-anchor="middle" font-size="13" font-weight="bold">HPT</text>
-  <g font-size="12">
+  <g font-size="13">
     <line x1="288" y1="89" x2="348" y2="89" stroke="#ff6b00" stroke-dasharray="4 3"/>
     <text x="354" y="86" fill="#ff6b00">220</text>
     <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="354" y="106" opacity="0.75">200</text>
+    <text x="354" y="96" opacity="0.75">200</text>
     <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
     <text x="354" y="152" opacity="0.75">100</text>
     <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
@@ -261,15 +266,15 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 
   <rect x="160" y="242" width="180" height="44" rx="5" fill="currentColor" opacity="0.15" stroke="currentColor"/>
   <text x="250" y="262" text-anchor="middle" font-size="13" font-weight="bold">OpenPLC</text>
-  <text x="250" y="278" text-anchor="middle" font-size="12" opacity="0.8">on below 60, off at 90</text>
+  <text x="250" y="278" text-anchor="middle" font-size="13" opacity="0.8">on below 60, off at 90</text>
   <path d="M 346 198 L 428 198 L 428 264 L 346 264" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <path d="M 354 258 L 344 264 L 354 270" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="424" y="230" font-size="12" opacity="0.8" text-anchor="end">reads 1126</text>
+  <text x="424" y="250" font-size="14" opacity="0.8" text-anchor="end">reads 1126</text>
   <path d="M 160 264 L 96 264 L 96 135 L 128 135" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <path d="M 120 129 L 130 135 L 120 141" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <text x="102" y="210" font-size="12" opacity="0.8">drives coil 1</text>
 
-  <text class="stuck" x="354" y="122" font-size="12" fill="#ff6b00" font-weight="bold">stuck here</text>
+  <text class="stuck" x="354" y="122" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
   <text class="ph-n" x="10" y="308" font-size="13" opacity="0.85">automatic: the loop holds 60 to 90</text>
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
 </svg>
