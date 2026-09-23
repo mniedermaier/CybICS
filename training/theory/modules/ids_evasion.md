@@ -13,7 +13,7 @@ html.light-mode .ev-w {--on:#b34700;}
    rises and then falls again without anything else happening.
    The resting state is the animation's most informative frame, so it is also
    the default for anyone who gets no animation at all. */
-.ev-w .win {transform: translateX(140px); animation: w-slide var(--d) linear 20 forwards;}
+.ev-w .win {transform: translateX(233.4px); animation: w-slide var(--d) linear 20 forwards;}
 .ev-w .c0{opacity:0; animation: w-c0 var(--d) steps(1,end) 20 forwards;}
 .ev-w .c1{opacity:0; animation: w-c1 var(--d) steps(1,end) 20 forwards;}
 .ev-w .c2{opacity:0; animation: w-c2 var(--d) steps(1,end) 20 forwards;}
@@ -30,7 +30,7 @@ html.light-mode .ev-w {--on:#b34700;}
 @keyframes w-c5{0%,71.11%{opacity:0} 71.12%,80%{opacity:1}}
 @media (prefers-reduced-motion: reduce){
   .ev-w *{animation:none !important}
-  .ev-w .win{transform:translateX(140px)}
+  .ev-w .win{transform:translateX(233.4px)}
   .ev-w .c0,.ev-w .c1,.ev-w .c3,.ev-w .c4,.ev-w .c5{opacity:0}
   .ev-w .c2{opacity:1}
 }
@@ -70,7 +70,7 @@ html.light-mode .ev-w {--on:#b34700;}
 `solve_ids_evasion.py` sends three writes to register 1124, five seconds apart, over a single TCP connection. The timing is the whole of it, and two of the other choices are not what they look like.
 
 - Three writes across **ten** seconds never brings rule 4's thirty-second count above three, or rule 3's five-second count above two &mdash; in practice one, because a `sleep(5)` plus a send and a receive always overshoots the window edge.
-- The script's comment credits its single connection with dodging `syn_flood`. It does not: three connections would be three SYNs against a threshold of a hundred. And `port_scan` counts *distinct destination ports* per source-destination pair, so a thousand connections to 502 still count as one port. The single connection is tidy, not stealthy; nothing here is decided at the TCP layer.
+- The script's comment credits its single connection with dodging `syn_flood`. It does not: three connections would be three SYNs against a threshold of a hundred. And `port_scan` counts *distinct destination ports* per source-destination pair, so a thousand connections to 502 still count as one port. Staying on one port does matter, because that is what rule 1 counts; the number of connections to it does not. The single connection is tidy, not stealthy.
 - Register 1124 is the GST reading, which `hwio` rewrites every cycle. The write is therefore invisible to the process as well as to the detector &mdash; which is exactly why the loud counterpart has to flood to have any effect at all.
 
 The scoring is unusual, and there is no Verify button: the IDS keeps its own score. You arm a two-minute window at `/api/evasion/start`, which records the current alert id, and `/api/evasion/check` awards the flag as soon as it has seen three Modbus writes with zero new alerts since. It is winnable about twelve seconds in &mdash; and if you let the window run out instead, `check_evasion` returns `expired` and no flag, however many writes it counted.
@@ -79,7 +79,7 @@ The scoring is unusual, and there is no Verify button: the IDS keeps its own sco
 <style>
 .ev-c {--d: 12s; --on:#ff6b00;}
 html.light-mode .ev-c {--on:#b34700;}
-.ev-c .run {transform-box: fill-box; transform-origin: left; transform: scaleX(1);
+.ev-c .run {transform-box: fill-box; transform-origin: left; transform: scaleX(0.12);
             animation: c-run var(--d) linear 20 forwards;}
 .ev-c .w {transform-box: fill-box; transform-origin: bottom;
           animation-duration:var(--d); animation-timing-function:steps(1,end);
@@ -104,8 +104,8 @@ html.light-mode .ev-c {--on:#b34700;}
 <svg class="ev-c" viewBox="0 0 460 150" role="img"
      aria-label="A two-minute evasion window. Three Modbus writes land in its first ten seconds, and the flag becomes available about twelve seconds in, while a hundred and eight seconds of the window remain. When the bar runs out the window expires and the flag is gone, however many writes were counted.">
   <text x="8" y="42" font-size="14" opacity="0.85">window</text>
-  <rect x="96" y="30" width="300" height="16" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.45"/>
-  <rect class="run" x="97" y="31" width="298" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+  <rect x="96" y="30" width="300" height="16" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.7"/>
+  <rect class="run" x="97" y="31" width="298" height="14" rx="2" fill="currentColor" opacity="0.55"/>
   <text x="402" y="43" font-size="13" opacity="0.7">120 s</text>
 
   <text x="8" y="92" font-size="14" opacity="0.85">writes</text>
@@ -113,18 +113,20 @@ html.light-mode .ev-c {--on:#b34700;}
   <line class="w w1" x1="96" y1="72" x2="96" y2="92" stroke="var(--on)" stroke-width="4"/>
   <line class="w w2" x1="108.5" y1="72" x2="108.5" y2="92" stroke="var(--on)" stroke-width="4"/>
   <line class="w w3" x1="121" y1="72" x2="121" y2="92" stroke="var(--on)" stroke-width="4"/>
-  <text x="140" y="88" font-size="13" opacity="0.7">0, 5, 10 s &mdash; three of three</text>
+  <text x="140" y="88" font-size="13" opacity="0.7">0, 5 and 10 s</text>
 
   <text x="8" y="126" font-size="14" opacity="0.85">alerts</text>
   <line x1="96" y1="126" x2="396" y2="126" stroke="currentColor" stroke-opacity="0.45"/>
   <text x="140" y="122" font-size="13" opacity="0.8">0 &mdash; nothing to draw</text>
-  <text class="flag" x="8" y="146" font-size="13" fill="var(--on)" font-weight="bold">CybICS(st34lth_0p3r4t0r) &mdash; available now</text>
+  <text class="flag" x="8" y="146" font-size="13" fill="var(--on)" font-weight="bold">CybICS(&hellip;) &mdash; available now</text>
   <text class="gone" x="8" y="146" font-size="13" opacity="0.8">window expired &mdash; no flag, whatever it counted</text>
 </svg>
-<figcaption>The flag arrives long before the bar does, and leaves when it does. The row being scored is the one with nothing in it, together with the write count &mdash; and an absence is exactly what a rate rule cannot distinguish from an empty network.</figcaption>
+<figcaption>Three writes are all the check requires. The flag arrives long before the bar does, and leaves when it does. The row being scored is the one with nothing in it, together with the write count &mdash; and an absence is exactly what a rate rule cannot distinguish from an empty network.</figcaption>
 </figure>
 
-One detail in the scoring is a bug wearing a comment. `check_evasion` skips any alert whose rule is `arp_spoof`, described in the source as "background noise". It is not background: `arp_tracker` is the one tracker `cleanup()` never prunes, so the IDS remembers every MAC an address has ever had. Restart a container and Docker hands the same IP a new MAC, and rule 8 fires on that address from then on, for ever, rate-limited only by the thirty-second cooldown. Rather than make the tracker forget, the scoring learned to look away. A rule that has to be excluded from its own product's scoring is a rule nobody reads &mdash; which is the same failure as one tuned so tightly it never fires, approached from the other side.
+One detail in the scoring is a bug wearing a comment. `check_evasion` skips any alert whose rule is `arp_spoof`, called "background noise" in the source. It is not noise, it is memory: the four rate trackers drop stale timestamps on every event inside `_track_event`, but `arp_tracker` holds a *set* of MACs per address and nothing anywhere removes one. Restart a container, Docker hands the same IP a fresh MAC, and that address is permanently on record as having had two &mdash; so the rule re-fires whenever it next ARPs, which on a settled bridge is a couple of times a day, indefinitely. Rather than let the set forget, the scoring learned to look away.
+
+Three lines further on there is a second bug with no comment at all, and it is the one a learner will actually trip over. `get_status` reports the evasion window's alert count as `alerts_total - evasion_start_alert_count`, but `evasion_start_alert_count` is initialised to zero and never assigned again &mdash; `start_evasion` sets `evasion_start_alert_id` instead, which is what `check_evasion` correctly uses. So the dashboard shows the IDS's *lifetime* alert total while the scoring endpoint, reading the same window, returns zero. You can be told you have triggered a hundred and seventy-seven alerts and win anyway.
 
 ## The skill
 
