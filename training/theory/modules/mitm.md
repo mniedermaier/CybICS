@@ -16,8 +16,8 @@ is done with **ARP poisoning**, which redirects traffic through the attacker.
   <line x1="100" y1="70" x2="215" y2="35" stroke="#ff6b00" stroke-width="2" marker-end="url(#mm)"/>
   <line x1="305" y1="35" x2="420" y2="70" stroke="#ff6b00" stroke-width="2" marker-end="url(#mm)"/>
   <line x1="100" y1="85" x2="420" y2="85" stroke="currentColor" stroke-dasharray="5 4" opacity="0.4"/>
-  <text x="260" y="105" text-anchor="middle" font-size="10" opacity="0.7">traffic now flows through the attacker, who can alter it</text>
-  <text x="260" y="130" text-anchor="middle" font-size="10" opacity="0.8">one IP appearing with two MAC addresses = the arp_spoof signature</text>
+  <text x="260" y="105" text-anchor="middle" font-size="11" opacity="0.7">traffic now flows through the attacker, who can alter it</text>
+  <text x="260" y="130" text-anchor="middle" font-size="11" opacity="0.8">one IP appearing with two MAC addresses = the arp_spoof signature</text>
 </svg>
 <figcaption>ARP poisoning inserts the attacker between HMI and PLC. The tell-tale is one IP claimed by two MAC addresses, which the IDS flags.</figcaption>
 </figure>

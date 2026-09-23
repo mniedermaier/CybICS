@@ -6,7 +6,7 @@ An analyst reconstructs the incident from the recorded alerts rather than the li
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Alert record fields">
   <rect x="20" y="30" width="480" height="60" rx="6" fill="currentColor" opacity="0.12" stroke="currentColor"/>
-  <g font-size="10" text-anchor="middle">
+  <g font-size="11" text-anchor="middle">
     <text x="90" y="52" font-weight="bold" fill="#ff6b00">timestamp</text><text x="90" y="70">when</text>
     <text x="210" y="52" font-weight="bold" fill="#ff6b00">source IP</text><text x="210" y="70">who</text>
     <text x="330" y="52" font-weight="bold" fill="#ff6b00">rule</text><text x="330" y="70">what</text>

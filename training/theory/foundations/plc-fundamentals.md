@@ -45,17 +45,17 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
     <g class="ph1">
       <rect x="150" y="10" width="120" height="42" rx="6" fill="#ff6b00"/>
       <text x="210" y="30" fill="#1a1a1a" font-weight="bold">1. Read inputs</text>
-      <text x="210" y="45" fill="#1a1a1a" font-size="10">sensors &rarr; memory</text>
+      <text x="210" y="45" fill="#1a1a1a" font-size="11">sensors &rarr; memory</text>
     </g>
     <g class="ph2">
       <rect x="300" y="150" width="120" height="42" rx="6" fill="#ff6b00"/>
       <text x="360" y="170" fill="#1a1a1a" font-weight="bold">2. Run program</text>
-      <text x="360" y="185" fill="#1a1a1a" font-size="10">logic on the values</text>
+      <text x="360" y="185" fill="#1a1a1a" font-size="11">logic on the values</text>
     </g>
     <g class="ph3">
       <rect x="0" y="150" width="120" height="42" rx="6" fill="#ff6b00"/>
       <text x="60" y="170" fill="#1a1a1a" font-weight="bold">3. Write outputs</text>
-      <text x="60" y="185" fill="#1a1a1a" font-size="10">memory &rarr; actuators</text>
+      <text x="60" y="185" fill="#1a1a1a" font-size="11">memory &rarr; actuators</text>
     </g>
   </g>
 
@@ -110,22 +110,22 @@ you have changed a value that the next scan is about to recompute from its own i
      aria-label="An attacker writes 90 into a holding register; the value changes, then the next scan cycle recomputes it from the sensors and it snaps back to 45.">
   <rect x="10" y="20" width="104" height="40" rx="5" fill="#ff6b00" opacity="0.85"/>
   <text x="62" y="36" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="bold">Attacker</text>
-  <text x="62" y="50" text-anchor="middle" font-size="9" fill="#1a1a1a">Modbus FC 06</text>
+  <text x="62" y="50" text-anchor="middle" font-size="11" fill="#1a1a1a">Modbus FC 06</text>
 
   <rect x="290" y="14" width="140" height="52" rx="5" fill="currentColor" opacity="0.18" stroke="currentColor"/>
   <text x="360" y="32" text-anchor="middle" font-size="11" font-weight="bold">holding register</text>
-  <text x="330" y="52" text-anchor="middle" font-size="10">1126 =</text>
+  <text x="330" y="52" text-anchor="middle" font-size="11">1126 =</text>
   <text class="v45" x="386" y="53" text-anchor="middle" font-size="15" font-weight="bold">45</text>
   <text class="v90" x="386" y="53" text-anchor="middle" font-size="15" font-weight="bold" fill="#ff6b00">90</text>
 
   <g class="atk">
     <rect x="124" y="30" width="150" height="20" rx="3" fill="#ff6b00"/>
-    <text x="199" y="44" text-anchor="middle" font-size="10" fill="#1a1a1a">write 1126 = 90</text>
+    <text x="199" y="44" text-anchor="middle" font-size="11" fill="#1a1a1a">write 1126 = 90</text>
   </g>
 
   <rect x="10" y="108" width="500" height="44" rx="5" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-opacity="0.3"/>
-  <text x="18" y="102" font-size="10" opacity="0.75">the next scan, a few milliseconds later</text>
-  <g font-size="10" text-anchor="middle">
+  <text x="18" y="102" font-size="11" opacity="0.75">the next scan, a few milliseconds later</text>
+  <g font-size="11" text-anchor="middle">
     <rect x="22" y="116" width="110" height="28" rx="4" fill="currentColor" opacity="0.2"/>
     <text x="77" y="134">read sensors</text>
     <rect x="146" y="116" width="110" height="28" rx="4" fill="currentColor" opacity="0.2"/>
@@ -139,7 +139,7 @@ you have changed a value that the next scan is about to recompute from its own i
     <text x="260" y="180" text-anchor="middle" font-size="11" fill="#ff6b00" font-weight="bold">
       the register is back to 45 &mdash; the scan did not care what was in it
     </text>
-    <text x="260" y="198" text-anchor="middle" font-size="10" opacity="0.85">
+    <text x="260" y="198" text-anchor="middle" font-size="11" opacity="0.85">
       to hold a value you must write faster than the scan, or change the program
     </text>
   </g>
@@ -181,7 +181,7 @@ in CybICS are:
   .pl-r .gap{transform:translateY(-15px)}
 }
 </style>
-<svg class="pl-r" viewBox="0 0 460 110" role="img"
+<svg class="pl-r" viewBox="0 0 460 92" role="img"
      aria-label="A ladder rung: the start contact closes, power flows along the rung, and the motor coil energises; when the contact opens the coil falls dark again.">
   <line x1="20" y1="10" x2="20" y2="80" stroke="currentColor" stroke-width="2"/>
   <line x1="440" y1="10" x2="440" y2="80" stroke="currentColor" stroke-width="2"/>
@@ -198,16 +198,16 @@ in CybICS are:
     <line x1="392" y1="45" x2="440" y2="45" stroke="#ff6b00" stroke-width="2"/>
   </g>
   <text x="360" y="24" font-size="11" fill="#ff6b00">motor</text>
-  <text x="20" y="78" font-size="10" opacity="0.7">left rail (power)</text>
-  <text x="440" y="78" font-size="10" opacity="0.7" text-anchor="end">right rail</text>
-  <text x="230" y="100" font-size="10" text-anchor="middle" opacity="0.75">
-    the contact closes, power reaches the coil, the motor runs &mdash; and stops when it opens
-  </text>
+  <text x="20" y="78" font-size="11" opacity="0.7">left rail (power)</text>
+  <text x="440" y="78" font-size="11" opacity="0.7" text-anchor="end">right rail</text>
 </svg>
 <figcaption>A single ladder rung. The notation is literal: it was drawn for electricians who
 were replacing relay cabinets, so a closed contact really does let power through to a coil. The
 CybICS program expresses the same logic in Structured Text.</figcaption>
 </figure>
+
+Watch the rung: the contact closes, power reaches the coil, the motor runs &mdash; and stops
+the moment it opens again. That literalness is the point of the notation.
 
 ## How the outside world reaches the PLC
 

@@ -28,8 +28,8 @@ from the PLC, and the conduit between them should be tightly restricted.
   <!-- conduit with firewall -->
   <line x1="170" y1="105" x2="350" y2="105" stroke="currentColor" stroke-width="2"/>
   <rect x="240" y="88" width="40" height="34" rx="4" fill="#ff6b00"/>
-  <text x="260" y="110" text-anchor="middle" font-size="10" fill="#1a1a1a">FW</text>
-  <text x="260" y="140" text-anchor="middle" font-size="10" opacity="0.8">conduit: only what is needed</text>
+  <text x="260" y="110" text-anchor="middle" font-size="11" fill="#1a1a1a">FW</text>
+  <text x="260" y="140" text-anchor="middle" font-size="11" opacity="0.8">conduit: only what is needed</text>
 </svg>
 <figcaption>Segmentation puts the attacker and the controllers in different zones, with a firewalled conduit between them. The segmentation and firewall challenges build exactly this boundary.</figcaption>
 </figure>
