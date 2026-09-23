@@ -51,6 +51,16 @@
               "type": "ctf",
               "id": "flood_overwrite",
               "label": "Flood & overwrite challenge"
+            },
+            {
+              "type": "ctf",
+              "id": "fuzzingMB",
+              "label": "Fuzzing Modbus challenge"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_ids_tuning",
+              "label": "IDS Monitoring & Tuning challenge"
             }
           ]
         },
