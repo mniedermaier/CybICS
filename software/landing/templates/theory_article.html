@@ -66,6 +66,11 @@
         /* `.article pre code` is (0,1,2) and loses to the rule above at (0,2,2),
            which painted white pills inside the navy code blocks. */
         html.light-mode .article pre code { background:none; }
+        /* The navy block keeps its background in light mode but nothing set a
+           colour, so the ink stayed at the body's #1f2733: 1.19:1, which hid
+           every command on every theory page. */
+        html.light-mode .article pre,
+        html.light-mode .article pre code { color:#e8eaed; }
         html.light-mode .article pre { background:#0f172a; }
         html.light-mode .article figure svg { background:#fff; border-color:#e2e6ec; color:#1f2733; }
         html.light-mode .article th { background:#eef1f5; color:#b34700; }
