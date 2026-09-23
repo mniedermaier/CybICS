@@ -3475,6 +3475,12 @@
                         <div class="system-info-value">${data.compose_version}</div>
                         <div class="system-info-label">Running Containers:</div>
                         <div class="system-info-value">${data.running_containers}</div>
+                        <div class="system-info-label">Board Revision:</div>
+                        <div class="system-info-value">${
+                            data.hardware && data.hardware.detected
+                                ? data.hardware.revision + (data.hardware.straps_present ? '' : ' (straps not fitted)')
+                                : (data.hardware ? data.hardware.description : 'unknown')
+                        }</div>
                     `;
                 })
                 .catch(error => {

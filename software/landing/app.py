@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import configuration and utilities
 from utils.config import *
+from utils.hardware import read_hardware_version  # noqa: E402
 from utils.logger import logger
 
 # Import modules
@@ -160,6 +161,7 @@ def webshell_page():
 # Commands run as tracked background jobs so long-running scans (e.g. a full
 # `nmap -sV`) survive the user navigating away from the webshell page and back.
 # The page starts a job, then polls for incremental output by job id.
+import json  # noqa: E402
 import threading  # noqa: E402
 import uuid  # noqa: E402
 import time  # noqa: E402
@@ -696,7 +698,8 @@ def system_info():
             'python_version': platform.python_version(),
             'docker_version': docker_version,
             'compose_version': compose_version,
-            'running_containers': container_count
+            'running_containers': container_count,
+            'hardware': read_hardware_version()
         })
     except Exception as e:
         logger.error(f'Error getting system info: {str(e)}', exc_info=True)

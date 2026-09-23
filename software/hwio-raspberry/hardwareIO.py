@@ -11,6 +11,8 @@ try:
     import smbus
 except ImportError:
     import smbus2 as smbus
+import os
+import json
 import time 
 from pymodbus.client import ModbusTcpClient
 import nmcli
@@ -19,6 +21,7 @@ import logging
 import threading
 
 from cybics_pb2 import PressureData, DeviceInfo, IPAddress
+import hw_version
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -405,11 +408,47 @@ def thread_i2c():
 
 
 # main function
+# Where the detected revision is published for the rest of the stack.  The
+# landing page reads this read-only; see software/landing/app.py.  A file on a
+# shared volume rather than an HTTP endpoint keeps this container inside its
+# 48 MB limit and adds no listening socket to a privileged process.
+STATE_DIR = os.environ.get("CYBICS_STATE_DIR", "/var/lib/cybics")
+HARDWARE_STATE = os.path.join(STATE_DIR, "hardware.json")
+
+
+def publish_hardware_version():
+  """Read the board revision straps and write them where the UI can find them.
+
+  Never fatal: on a board without the straps, or with no usable GPIO at all,
+  the platform still runs -- it just cannot name its own revision.
+  """
+  try:
+    code, name, present = hw_version.read(GPIO)
+  except Exception as error:
+    logging.warning("Main    : could not read the board revision straps: %s", error)
+    return
+
+  logging.info("Main    : board revision %s", hw_version.describe(code, name, present))
+
+  payload = hw_version.status_payload(code, name, present)
+  try:
+    os.makedirs(STATE_DIR, exist_ok=True)
+    # Write then rename, so a reader never sees a half-written file.
+    tmp = HARDWARE_STATE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+      json.dump(payload, fh)
+    os.replace(tmp, HARDWARE_STATE)
+  except OSError as error:
+    logging.warning("Main    : could not write %s: %s", HARDWARE_STATE, error)
+
+
 if __name__ == "__main__":
   format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
   
+  publish_hardware_version()
+
   try:
     logging.info("Main    : before creating threads")
     openplcX = threading.Thread(target=thread_openplc, args=())

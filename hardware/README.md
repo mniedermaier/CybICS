@@ -98,6 +98,10 @@ indistinguishable from a v1.0 board.
 
 Firmware must enable the internal pull-up on these pins before reading them.
 
+Both sides read them: `software/stm32/src/hw_version.c` for the STM32's copy and
+`software/hwio-raspberry/hw_version.py` for the Pi's. The Pi publishes what it
+finds to the landing page, under *Settings -> Board Revision*.
+
 The firmware does not simply read them, though: it probes each pin against both
 internal pulls, so it can tell a fitted resistor (holds the pin low either way)
 from an empty footprint (follows the pull). That is what lets it count how many
