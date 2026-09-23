@@ -32,11 +32,11 @@ A client (the "master") sends a request naming a **function code** and an addres
 .mb-x .new {animation: mb-show var(--mb-dur) linear infinite;}
 .mb-x .hs  {animation: mb-blink var(--mb-dur) linear infinite;}
 @keyframes mb-fly  {0%,2%{transform:translateX(0);opacity:0}
-                    5%{opacity:1} 19%{transform:translateX(232px);opacity:1}
-                    21%,100%{transform:translateX(232px);opacity:0}}
+                    5%{opacity:1} 19%{transform:translateX(134px);opacity:1}
+                    21%,100%{transform:translateX(134px);opacity:0}}
 @keyframes mb-back {0%,26%{transform:translateX(0);opacity:0}
-                    28%{opacity:1} 41%{transform:translateX(-232px);opacity:1}
-                    43%,100%{transform:translateX(-232px);opacity:0}}
+                    28%{opacity:1} 41%{transform:translateX(-134px);opacity:1}
+                    43%,100%{transform:translateX(-134px);opacity:0}}
 @keyframes mb-fade {0%,20%{opacity:1} 22%,92%{opacity:0} 94%,100%{opacity:1}}
 @keyframes mb-show {0%,20%{opacity:0} 22%,92%{opacity:1} 94%,100%{opacity:0}}
 /* Appears the instant the register flips, i.e. in the gap where a check
@@ -71,7 +71,7 @@ A client (the "master") sends a request naming a **function code** and an addres
     <text x="194" y="50" text-anchor="middle" font-size="11" fill="#1a1a1a">FC 06 · 1126 · 90</text>
   </g>
   <g class="ack">
-    <rect x="278" y="64" width="96" height="20" rx="3" fill="currentColor" opacity="0.45"/>
+    <rect x="278" y="64" width="96" height="20" rx="3" fill="currentColor" opacity="0.2"/>
     <text x="326" y="78" text-anchor="middle" font-size="11">echo · 1126 · 90</text>
   </g>
 
@@ -92,6 +92,8 @@ authentication step would be is the whole attack surface.</figcaption>
 
 The value changed before anything asked who was writing. There is no session to hijack and no login to brute-force, because there is neither. This single fact underlies the flood, overwrite and MITM attacks.
 
+It also does not last. Register 1126 is the HPT pressure reading, and `hwio` writes the true value back into it every 20 milliseconds &mdash; so the forged 90 survives one twentieth of a second and is gone. Nothing defended the register; something simply overwrote it, the way it overwrites it fifty times a second regardless. That is the whole reason the *Flood &amp; Overwrite* challenge is a loop rather than a single packet: the attacker is not defeating a check, they are winning a race against a process that never stops writing.
+
 ## The frame
 
 A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide what happens.
@@ -100,28 +102,28 @@ A Modbus TCP message is a 7-byte **MBAP header** followed by the function code a
 <svg viewBox="0 0 520 108" role="img"
      aria-label="The Modbus TCP frame: a seven-byte MBAP header holding transaction id, protocol id, length and unit id, followed by the PDU holding the function code and its data. The table below the figure says what each field does.">
   <g font-size="11" text-anchor="middle">
-    <rect x="10" y="30" width="70" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-    <text x="45" y="22">2 B</text><text x="45" y="56">Transaction</text>
-    <rect x="80" y="30" width="70" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-    <text x="115" y="22">2 B</text><text x="115" y="56">Protocol</text>
-    <rect x="150" y="30" width="70" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
-    <text x="185" y="22">2 B</text><text x="185" y="56">Length</text>
-    <rect x="220" y="30" width="50" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-    <text x="245" y="22">1 B</text><text x="245" y="56">Unit</text>
-    <rect x="270" y="30" width="60" height="42" fill="#ff6b00" opacity="0.75" stroke="#ff6b00"/>
-    <text x="300" y="22">1 B</text><text x="300" y="56" style="fill:#1a1a1a">Func</text>
+    <rect x="10" y="30" width="80" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <text x="50" y="22">2 B</text><text x="50" y="56">Transaction</text>
+    <rect x="90" y="30" width="80" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <text x="130" y="22">2 B</text><text x="130" y="56">Protocol</text>
+    <rect x="170" y="30" width="80" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
+    <text x="210" y="22">2 B</text><text x="210" y="56">Length</text>
+    <rect x="250" y="30" width="40" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <text x="270" y="22">1 B</text><text x="270" y="56">Unit</text>
+    <rect x="290" y="30" width="40" height="42" fill="#ff6b00" opacity="0.75" stroke="#ff6b00"/>
+    <text x="310" y="22">1 B</text><text x="310" y="56" style="fill:#1a1a1a">Func</text>
     <rect x="330" y="30" width="180" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
     <text x="420" y="22">n B</text><text x="420" y="56">Data (address, values)</text>
   </g>
 
   <!-- The header ends and the PDU begins at byte 7, between Unit and Func. -->
-  <line x1="270" y1="24" x2="270" y2="96" stroke="currentColor" stroke-width="2"/>
-  <path d="M 10 80 L 10 88 L 270 88 L 270 80" fill="none" stroke="currentColor"
+  <line x1="290" y1="24" x2="290" y2="96" stroke="currentColor" stroke-width="2"/>
+  <path d="M 10 80 L 10 88 L 290 88 L 290 80" fill="none" stroke="currentColor"
         stroke-opacity="0.55"/>
-  <path d="M 270 80 L 270 88 L 510 88 L 510 80" fill="none" stroke="currentColor"
+  <path d="M 290 80 L 290 88 L 510 88 L 510 80" fill="none" stroke="currentColor"
         stroke-opacity="0.55"/>
-  <text x="140" y="102" text-anchor="middle" font-size="11" opacity="0.8">MBAP header, 7 bytes</text>
-  <text x="390" y="102" text-anchor="middle" font-size="11" opacity="0.8">PDU &mdash; what the PLC acts on</text>
+  <text x="150" y="102" text-anchor="middle" font-size="11" opacity="0.8">MBAP header, 7 bytes</text>
+  <text x="400" y="102" text-anchor="middle" font-size="11" opacity="0.8">PDU &mdash; what the PLC acts on</text>
 </svg>
 <figcaption>Orange marks the three fields a forged frame has to get right. The fields are a
 layout, not a sequence, so this figure stays still: six labels read at a glance beat six shown
@@ -147,26 +149,58 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
 <figure>
 <style>
 .mb-d {--d: 11s;}
-.mb-d .reg  {animation: d-reg var(--d) steps(1,end) infinite;}
 /* Each register is taken apart in three beats: the box is picked out, it
    splits into its two bytes, and the bytes become their characters. That
    sequence is the thing being taught, so the motion carries it rather than
-   merely revealing a finished picture. */
-.mb-d .byt  {opacity:0; animation: d-step var(--d) steps(1,end) infinite;}
-.mb-d .chr  {opacity:0; animation: d-step var(--d) steps(1,end) infinite;}
-.mb-d .r1{animation-delay:0.00s} .mb-d .b1{animation-delay:0.20s} .mb-d .k1{animation-delay:0.55s}
-.mb-d .r2{animation-delay:0.90s} .mb-d .b2{animation-delay:1.10s} .mb-d .k2{animation-delay:1.45s}
-.mb-d .r3{animation-delay:1.80s} .mb-d .b3{animation-delay:2.00s} .mb-d .k3{animation-delay:2.35s}
-.mb-d .r4{animation-delay:2.70s} .mb-d .b4{animation-delay:2.90s} .mb-d .k4{animation-delay:3.25s}
-.mb-d .r5{animation-delay:3.60s} .mb-d .b5{animation-delay:3.80s} .mb-d .k5{animation-delay:4.15s}
-.mb-d .r6{animation-delay:4.50s} .mb-d .b6{animation-delay:4.70s} .mb-d .k6{animation-delay:5.05s}
-.mb-d .r7{animation-delay:5.40s} .mb-d .b7{animation-delay:5.60s} .mb-d .k7{animation-delay:5.95s}
+   merely revealing a finished picture.
+   The stagger lives in the keyframe percentages, not in animation-delay: a
+   delay shifts an element's whole cycle permanently, so the figure would
+   never reset together and would be correct only on its first loop. */
+.mb-d .byt, .mb-d .chr {opacity:0;}
+.mb-d .r1{animation: d-reg1 var(--d) steps(1,end) infinite;}
+.mb-d .b1{animation: d-byt1 var(--d) steps(1,end) infinite;}
+.mb-d .k1{animation: d-chr1 var(--d) steps(1,end) infinite;}
+.mb-d .r2{animation: d-reg2 var(--d) steps(1,end) infinite;}
+.mb-d .b2{animation: d-byt2 var(--d) steps(1,end) infinite;}
+.mb-d .k2{animation: d-chr2 var(--d) steps(1,end) infinite;}
+.mb-d .r3{animation: d-reg3 var(--d) steps(1,end) infinite;}
+.mb-d .b3{animation: d-byt3 var(--d) steps(1,end) infinite;}
+.mb-d .k3{animation: d-chr3 var(--d) steps(1,end) infinite;}
+.mb-d .r4{animation: d-reg4 var(--d) steps(1,end) infinite;}
+.mb-d .b4{animation: d-byt4 var(--d) steps(1,end) infinite;}
+.mb-d .k4{animation: d-chr4 var(--d) steps(1,end) infinite;}
+.mb-d .r5{animation: d-reg5 var(--d) steps(1,end) infinite;}
+.mb-d .b5{animation: d-byt5 var(--d) steps(1,end) infinite;}
+.mb-d .k5{animation: d-chr5 var(--d) steps(1,end) infinite;}
+.mb-d .r6{animation: d-reg6 var(--d) steps(1,end) infinite;}
+.mb-d .b6{animation: d-byt6 var(--d) steps(1,end) infinite;}
+.mb-d .k6{animation: d-chr6 var(--d) steps(1,end) infinite;}
+.mb-d .r7{animation: d-reg7 var(--d) steps(1,end) infinite;}
+.mb-d .b7{animation: d-byt7 var(--d) steps(1,end) infinite;}
+.mb-d .k7{animation: d-chr7 var(--d) steps(1,end) infinite;}
 .mb-d .flag {opacity:0; animation: d-flag var(--d) steps(1,end) infinite;}
-/* Highlight the box, never dim the hex the reader is meant to read. */
-@keyframes d-reg {0%,6%{stroke:#ff6b00; stroke-width:2.5}
-                  6.01%,100%{stroke:currentColor; stroke-width:1}}
-@keyframes d-step{0%{opacity:0} 0.01%,92%{opacity:1} 92.01%,100%{opacity:0}}
-@keyframes d-flag{0%,60%{opacity:0} 64%,94%{opacity:1} 94.01%,100%{opacity:0}}
+@keyframes d-reg1{0.00%,5.45%{stroke:#ff6b00; stroke-width:2.5} 5.46%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt1{0%,1.82%{opacity:0} 1.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr1{0%,5.00%{opacity:0} 5.01%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-reg2{0%,8.18%{stroke:currentColor; stroke-width:1} 8.18%,13.64%{stroke:#ff6b00; stroke-width:2.5} 13.65%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt2{0%,10.00%{opacity:0} 10.01%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr2{0%,13.18%{opacity:0} 13.19%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-reg3{0%,16.36%{stroke:currentColor; stroke-width:1} 16.36%,21.82%{stroke:#ff6b00; stroke-width:2.5} 21.83%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt3{0%,18.18%{opacity:0} 18.19%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr3{0%,21.36%{opacity:0} 21.37%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-reg4{0%,24.55%{stroke:currentColor; stroke-width:1} 24.55%,30.00%{stroke:#ff6b00; stroke-width:2.5} 30.01%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt4{0%,26.36%{opacity:0} 26.37%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr4{0%,29.55%{opacity:0} 29.56%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-reg5{0%,32.73%{stroke:currentColor; stroke-width:1} 32.73%,38.18%{stroke:#ff6b00; stroke-width:2.5} 38.19%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt5{0%,34.55%{opacity:0} 34.56%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr5{0%,37.73%{opacity:0} 37.74%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-reg6{0%,40.91%{stroke:currentColor; stroke-width:1} 40.91%,46.36%{stroke:#ff6b00; stroke-width:2.5} 46.37%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt6{0%,42.73%{opacity:0} 42.74%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr6{0%,45.91%{opacity:0} 45.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-reg7{0%,49.09%{stroke:currentColor; stroke-width:1} 49.09%,54.55%{stroke:#ff6b00; stroke-width:2.5} 54.56%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-byt7{0%,50.91%{opacity:0} 50.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-chr7{0%,54.09%{opacity:0} 54.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes d-flag{0%,60%{opacity:0} 64%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   .mb-d .reg,.mb-d .byt,.mb-d .chr,.mb-d .flag{animation:none;opacity:1}
   .mb-d .reg{stroke:currentColor}
@@ -180,13 +214,13 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
   </text>
 
   <g font-size="11" text-anchor="middle">
-    <g class="reg r1"><rect x="14" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="47" y="82">0x4379</text></g>
-    <g class="reg r2"><rect x="86" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="119" y="82">0x6249</text></g>
-    <g class="reg r3"><rect x="158" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="191" y="82">0x4353</text></g>
-    <g class="reg r4"><rect x="230" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="263" y="82">0x286D</text></g>
-    <g class="reg r5"><rect x="302" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="335" y="82">0x3064</text></g>
-    <g class="reg r6"><rect x="374" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="407" y="82">0x6275</text></g>
-    <g class="reg r7"><rect x="446" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="479" y="82">0x2429</text></g>
+    <g><rect class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="47" y="82">0x4379</text></g>
+    <g><rect class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="119" y="82">0x6249</text></g>
+    <g><rect class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="191" y="82">0x4353</text></g>
+    <g><rect class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="263" y="82">0x286D</text></g>
+    <g><rect class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="335" y="82">0x3064</text></g>
+    <g><rect class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="407" y="82">0x6275</text></g>
+    <g><rect class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="479" y="82">0x2429</text></g>
   </g>
 
   <g font-size="11" text-anchor="middle">
@@ -248,14 +282,14 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
     </g>
   </g>
 
-  <g font-size="13" text-anchor="middle" font-weight="bold" fill="#ff6b00">
-    <g class="chr k1"><text x="30" y="146">C</text><text x="64" y="146">y</text></g>
-    <g class="chr k2"><text x="102" y="146">b</text><text x="136" y="146">I</text></g>
-    <g class="chr k3"><text x="174" y="146">C</text><text x="208" y="146">S</text></g>
-    <g class="chr k4"><text x="246" y="146">(</text><text x="280" y="146">m</text></g>
-    <g class="chr k5"><text x="318" y="146">0</text><text x="352" y="146">d</text></g>
-    <g class="chr k6"><text x="390" y="146">b</text><text x="424" y="146">u</text></g>
-    <g class="chr k7"><text x="462" y="146">$</text><text x="496" y="146">)</text></g>
+  <g font-size="13" text-anchor="middle" font-weight="bold">
+    <g class="chr k1"><text x="30" y="146" style="fill:#ff6b00">C</text><text x="64" y="146" style="fill:#ff6b00">y</text></g>
+    <g class="chr k2"><text x="102" y="146" style="fill:#ff6b00">b</text><text x="136" y="146" style="fill:#ff6b00">I</text></g>
+    <g class="chr k3"><text x="174" y="146" style="fill:#ff6b00">C</text><text x="208" y="146" style="fill:#ff6b00">S</text></g>
+    <g class="chr k4"><text x="246" y="146" style="fill:#ff6b00">(</text><text x="280" y="146" style="fill:#ff6b00">m</text></g>
+    <g class="chr k5"><text x="318" y="146" style="fill:#ff6b00">0</text><text x="352" y="146" style="fill:#ff6b00">d</text></g>
+    <g class="chr k6"><text x="390" y="146" style="fill:#ff6b00">b</text><text x="424" y="146" style="fill:#ff6b00">u</text></g>
+    <g class="chr k7"><text x="462" y="146" style="fill:#ff6b00">$</text><text x="496" y="146" style="fill:#ff6b00">)</text></g>
   </g>
 
   <text x="260" y="168" text-anchor="middle" font-size="11" opacity="0.8">
@@ -310,15 +344,14 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
 
   <text x="10" y="166" font-size="12" fill="#ff6b00">A source address is identity you can forge. That is the honest limit here.</text>
 </svg>
-<figcaption>Both frames write 0x5a (90) to register 0x0466 (1126). This one is still on purpose:
+<figcaption>Both frames write 0x5a (90) to register 0x0466 (1126). Even the transaction id is the attacker's to choose: <code>hwio</code> lets pymodbus count it up per request, and a forged frame simply picks one. This one is still on purpose:
 comparing two things is what eyes do well when both are visible at once, and sliding them past
-each other in turn would make it harder, not clearer. Only <code>hwio</code> writes 1126 in this
-plant.</figcaption>
+each other in turn would make it harder, not clearer. Nothing but <code>hwio</code> has any business writing 1126 &mdash; which is not the same as nothing else being able to.</figcaption>
 </figure>
 
 So the IDS cannot ask Modbus who is writing. It asks the IP header, and then asks how often and what:
 
-- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Its exemption list is `hwio`, `fuxa` and `openplc`, and only the first of those earns its place: `hwio` writes the plant registers at 50 Hz, `fuxa` writes a coil when an operator clicks something, and `openplc` writes nothing at all &mdash; it is the *server* on 172.18.0.3, its `Slave_dev` table is empty and `Pstorage_polling` is disabled, so it never originates a write. That entry exempts a host that was never going to trigger the rule. Allowlists accumulate entries like this, and nobody re-derives them.
+- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Its exemption list is `hwio`, `fuxa` and `openplc`, and only the first of those earns its place: `hwio` writes the plant registers at 50 Hz, `fuxa` writes a coil when an operator clicks something, and `openplc` writes nothing at all &mdash; it is the *server* on 172.18.0.3, its `Slave_dev` table is empty, so it has no slave to poll and never originates a write at all. The IDS would not have looked anyway: it only inspects traffic *towards* port 502, never the replies coming back from it. That entry exempts a host that was never going to trigger the rule. Allowlists accumulate entries like this, and nobody re-derives them.
 - **Rule 4, unauthorised write** &mdash; 10 writes in 30 seconds from a source that is not `hwio` or `fuxa`. A narrower list than rule 3's, and note the threshold: a *single* write from the attack machine raises nothing at all.
 - **Rule 5, diagnostic** &mdash; function code 0x08 or 0x2B from anywhere.
 
@@ -337,6 +370,6 @@ Those last two are worth dwelling on. The PLC rejecting a function code does not
 
 ## Security relevance
 
-Because Modbus carries no identity of its own, the CybICS IDS borrows one from the layer below and mixes it with behaviour: a burst of writes (flood, rule 3), a write from a source address that is not `hwio` or `fuxa` (unauthorised write, rule 4), or a diagnostic function code (rule 5). Two of those three are behavioural; the middle one is an allowlist of IP addresses, which is identity of a sort &mdash; just the weakest sort, since the attack machine sits on the same bridge and can claim any address it likes.
+Because Modbus carries no identity of its own, the CybICS IDS borrows one from the layer below and mixes it with behaviour: a burst of 50 writes in 5 seconds (flood, rule 3), 10 writes in 30 seconds from a source that is not `hwio` or `fuxa` (unauthorised write, rule 4), or a single diagnostic function code (rule 5). Only rule 5 is a signature: one byte matched, alerting on the first packet that carries it. The other two are rate rules, and *both* carry an IP allowlist on top of their counter &mdash; which is identity of a sort &mdash; just the weakest sort, since the attack machine sits on the same bridge and can claim any address it likes.
 
 Note what that costs. A behavioural rule has no ground truth to appeal to, so it is a judgement about what is normal *here*, tuned against this plant's traffic. Change the polling rate and the flood threshold is wrong. An address allowlist is worse: it is exactly as strong as the assumption that nobody spoofs. Both trade-offs are the subject of the *IDS Monitoring & Tuning* challenge.
