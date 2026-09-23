@@ -1,0 +1,43 @@
+{
+  "url": "http://127.0.0.1:8090/?force3d=1",
+  "motion_keys": [
+    "fan",
+    "fanSpeed",
+    "flame0",
+    "frame",
+    "frameCapMs",
+    "gstLevel",
+    "gstRing",
+    "hptLevel",
+    "particle0",
+    "strip",
+    "t"
+  ],
+  "rates": [
+    {
+      "cap_ms": 33.0,
+      "seconds": 5.01,
+      "fps": 24.7,
+      "fan_per_s": 4.5015,
+      "gstRing_per_s": 0.0,
+      "fan_per_frame": 0.18201
+    },
+    {
+      "cap_ms": 83.0,
+      "seconds": 5.01,
+      "fps": 11.6,
+      "fan_per_s": 4.5364,
+      "gstRing_per_s": 0.0,
+      "fan_per_frame": 0.3918
+    },
+    {
+      "cap_ms": 166.0,
+      "seconds": 5.03,
+      "fps": 5.8,
+      "fan_per_s": 4.3974,
+      "gstRing_per_s": 0.0,
+      "fan_per_frame": 0.76291
+    }
+  ],
+  "console_errors": []
+}

@@ -1,0 +1,358 @@
+{
+  "note": "Scores and measurements for the 3D plant view. Written by hand after each round; the numbers come from tools/3d/capture.py, never from estimation. See docs/3d-architecture.md.",
+  "rounds": [
+    {
+      "round": 0,
+      "date": "2026-09-22",
+      "what": "baseline: tools built, nothing in the scene changed yet",
+      "score": 5.0,
+      "scored_by": "self, pending a critic pass",
+      "shots": [
+        "docs/3d/shots/baseline-hw-overview.png",
+        "docs/3d/shots/baseline-sw-overview.png",
+        "docs/3d/shots/harness-liquid.png"
+      ],
+      "measured": {
+        "hardware_gl": {
+          "gpu": "ANGLE (Intel, Mesa Intel(R) HD Graphics 4000 (IVB GT2), OpenGL ES 3.0)",
+          "build_seconds": 1.8,
+          "fps_app_loop": 21.0,
+          "frame_ms_raf": 22.4,
+          "submit_ms": 3.4,
+          "draw_calls": 241,
+          "triangles": 21866,
+          "meshes": 232,
+          "materials": 108,
+          "lights": 9,
+          "shadow_casters": 187,
+          "console_errors": 0
+        },
+        "swiftshader": {
+          "build_seconds": 4.0,
+          "fps_app_loop": 1.7,
+          "frame_ms_raf": null,
+          "soak_60s_reloaded": true,
+          "note": "with ?force3d=1, which deliberately bypasses the software guard"
+        }
+      },
+      "open_issues": [
+        "Flat grey concrete ground with no texture, no wear, no variation.",
+        "Vessel shells read as plastic rather than steel; no weld seams, no dirt.",
+        "Labels are flat yellow sprites that float like sticky notes.",
+        "No atmospheric depth: distant objects are as saturated as near ones.",
+        "Sky gradient behind the plant does not match the scene's own lighting.",
+        "232 meshes and 108 materials, four times what the source suggests; many are loop-built and could be merged or instanced.",
+        "187 of 232 meshes cast shadows, including parts that can never be seen to."
+      ],
+      "corrections_to_the_brief": [
+        "The brief's budget table said 56 meshes / 39 materials / 9 lights. Measured at runtime it is 232 / 108 / 9.",
+        "The brief's target of >=50 fps cannot be read off the app loop, which caps itself at 30 fps (12 on a software renderer). Uncapped the scene runs at ~45 fps on an Intel HD 4000.",
+        "The brief said build time was 4.2 s. That is the software-renderer number; on hardware GL it is 1.8 s."
+      ]
+    },
+    {
+      "round": 1,
+      "date": "2026-09-22",
+      "what": "photographic pass: sky, procedural concrete, brushed steel",
+      "score": 4.8,
+      "scored_by": "independent critic, images and logs only",
+      "verdict": "the gain was entirely lighting; the geometry underneath still read as untextured primitives",
+      "shots": [
+        "docs/3d/shots/r1-overview.png",
+        "docs/3d/shots/r1-close.png",
+        "docs/3d/shots/r1-gst.png"
+      ]
+    },
+    {
+      "round": 2,
+      "date": "2026-09-22",
+      "what": "direction changed to a stylised digital twin: merged outlines, flat backdrop, cutaway vessels, palette",
+      "score": 5.6,
+      "scored_by": "independent critic, images and logs only",
+      "verdict": "changing direction was right and not close; progress in framing, not yet in craft",
+      "shots": [
+        "docs/3d/shots/r2-overview.png",
+        "docs/3d/shots/r2-close.png",
+        "docs/3d/shots/r2-gst.png"
+      ],
+      "critic_top_faults": [
+        "HPT read as a red tub standing on the deck rather than as contents in a vessel",
+        "compressor running was no longer visible at overview distance -- a regression from round 1",
+        "the plant is small and off-centre in an empty frame",
+        "domes overhang the shell and handrails hoop in mid-air",
+        "particles read as white confetti"
+      ],
+      "critic_regressions_from_round_1": [
+        "lost atmosphere and depth: flat backdrop left the plant floating with no far distance",
+        "lost compressor legibility",
+        "chimney merged with HPT into one grey mass"
+      ]
+    },
+    {
+      "round": 3,
+      "date": "2026-09-22",
+      "what": "state communication: level moved onto the vessel as a filled band, opaque shells, compressor state restored, world-space sky dome, merged flanges",
+      "score": null,
+      "scored_by": "not yet critiqued",
+      "shots": [
+        "docs/3d/shots/r3-overview.png",
+        "docs/3d/shots/r3-close.png",
+        "docs/3d/shots/r3-gst.png",
+        "docs/3d/shots/r3-inverted.png"
+      ],
+      "measured": {
+        "hardware_gl": {
+          "camera": "overview",
+          "build_seconds": 1.04,
+          "draw_calls": 137,
+          "triangles": 21866,
+          "meshes": 127,
+          "materials": 71,
+          "lights": 6,
+          "shadow_casters": 87,
+          "textures": 10,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "url": "http://127.0.0.1:8090/ (no force3d)",
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "verified_by_hand": [
+        "state readback: overlay reports the pinned pressures, so shots are reproducible",
+        "inverted state (GST 40, HPT 220) produces the inverted picture -- the view follows the data"
+      ],
+      "still_open": [
+        "camera framing: the plant fills about a third of the canvas and the status card overlaps GST",
+        "particles still read as scattered dots rather than a directed jet",
+        "handrail hoops have no stanchions or walkway",
+        "LED panel row labels are clipped by the panel edge",
+        "no contact shadows on the deck",
+        "outline hairlines stipple into dashes at sub-pixel widths"
+      ]
+    },
+    {
+      "round": 4,
+      "date": "2026-09-22",
+      "what": "animation: every motion moved onto a clock, flow shown on the pipe, motion that meant nothing removed",
+      "score": 6.8,
+      "scored_by": "independent critic, images and logs only",
+      "shots": [
+        "docs/3d/shots/r4-overview.png",
+        "docs/3d/shots/r4-close.png",
+        "docs/3d/shots/r4-alarm.png",
+        "docs/3d/shots/r4-flow-strip.png"
+      ],
+      "measured": {
+        "frame_rate_independence": {
+          "before": {
+            "fan_rad_per_s_at_30fps_cap": 3.5423,
+            "fan_rad_per_s_at_12fps_cap": 1.4984,
+            "ratio": 0.423,
+            "verdict": "frame-rate dependent"
+          },
+          "after": {
+            "fan_rad_per_s_at_30fps_cap": 4.4815,
+            "fan_rad_per_s_at_12fps_cap": 4.466,
+            "ratio": 0.997,
+            "verdict": "time-based"
+          },
+          "three_caps": {
+            "24.7fps": 4.5015,
+            "11.6fps": 4.5364,
+            "5.8fps": 4.3974,
+            "spread": "under 2.5 per cent across a fourfold frame-rate range"
+          }
+        },
+        "hardware_gl_overview": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "materials": 72,
+          "lights": 6,
+          "textures": 11,
+          "console_errors": 0
+        }
+      },
+      "removed": [
+        "100-particle gas cloud, replaced by an emissive band travelling along the pipe",
+        "status collar rotation about its own axis of symmetry, which cannot be seen",
+        "continuous platform edge-strip pulsing, which taught the eye to ignore it"
+      ],
+      "verified_by_hand": [
+        "filmstrip at the pipe camera: the first chevron attempt read as a corrugated hose, the comet-tail pulses read as direction",
+        "alarm state staged for the first time: flare at the stack, both status collars switch orange to red"
+      ],
+      "critic_animation_score": 5.5,
+      "critic_top_faults": [
+        "the flow marker read as a corrugated hose close up and as a pipe with gaps in it at overview",
+        "the alarm had no alarm language: salmon is also HPT's product colour, so 'big and red' means 'HPT is full'",
+        "motion did not follow the process: the vent line stood still during a blowout",
+        "the app loop was running at about 18 fps, so every animated element advanced in visible jumps",
+        "bead-chain aliasing on thin elements"
+      ],
+      "critic_claims_checked": {
+        "stack is leaning": "not a bug. The chimney group carries no rotation, only a position. Verticals off-axis converge because the camera is pitched down; that is correct perspective.",
+        "panel label reads SYSTER": "the text in the source is SYSTEM. The finding was real but the cause was the label sprite overhanging the panel edge, not a typo.",
+        "gstRing_per_s fell to 0.0": "not a regression. That rotation was removed on purpose this round; the probe reporting a quantity that no longer animates is what made it look broken, and the probe has been corrected."
+      }
+    },
+    {
+      "round": 5,
+      "date": "2026-09-22",
+      "what": "answering the animation critique: flow reads as gas, the alarm has its own language, the vent line moves",
+      "score": 6.3,
+      "scored_by": "independent critic, images and logs only",
+      "shots": [
+        "docs/3d/shots/r5-overview.png",
+        "docs/3d/shots/r5-close.png",
+        "docs/3d/shots/r5-alarm.png",
+        "docs/3d/shots/r5-flow-strip.png"
+      ],
+      "changes": [
+        "flow band retinted teal and dropped below the pipe's own highlight, so the cylinder is no longer flattened to white and the run does not break into chunks",
+        "alarm language: a pulsing red rim on the viewport, a red bold HUD row, red status collars and a larger flare",
+        "the vent line to the stack now carries a faster flow band while the blowout sensor reports",
+        "LED panel row labels moved clear of the board instead of overhanging its edge",
+        "motion() no longer reports gstRing, a quantity whose animation was deliberately removed"
+      ],
+      "measured": {
+        "time_invariance_ratio": 1.003,
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "not_changed_on_purpose": [
+        "the fan speed does not vary with load: the compressor signal is binary, and inventing a load would break the rule that /api/state is the truth",
+        "the chimney is not re-modelled: its apparent lean is the pitched camera, verified against the source"
+      ],
+      "critic_verdict": "flow partly fixed, alarm partly fixed, vent not visible; flow lost 35 per cent of its contrast at the overview camera"
+    },
+    {
+      "round": 6,
+      "date": "2026-09-22",
+      "what": "colour made to carry state, contrast restored, flare kept in frame, shadows given back to the plant",
+      "shots": [
+        "docs/3d/shots/r6-normal.png",
+        "docs/3d/shots/r6-high.png",
+        "docs/3d/shots/r6-alarm.png",
+        "docs/3d/shots/r6-top.png"
+      ],
+      "changes": [
+        "HPT's band is a state channel: green inside the plant's own 50-100 operating window, amber outside it, red once the model declares the blowout above 220. Thresholds taken from physical_process_thread, not invented.",
+        "flow band brightness set between the two failed extremes, measured at 62 levels when too bright and 41 when too faint",
+        "flare capped at y=16.2 so the plume is no longer cut off by the top of the canvas",
+        "key light lowered from (12,20,8) to (16,11,13) so shadows land in the picture",
+        "annunciator plates moved clear of both the stack and the LED board"
+      ],
+      "measured": {
+        "hardware_gl_overview": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "materials": 72,
+          "lights": 6,
+          "shadow_casters": 87,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "critic_claims_checked": {
+        "the vent line does not move": "the mechanism works -- ventGlow reaches 1.3 and the texture offset advances -- but the finding about visibility stands; the run is small and far from the camera.",
+        "no shadows anywhere": "shadows were rendering. The key light stood about 55 degrees up, so every shadow fell off the platform and the only visible one, GST's, sat detached on the ground and read as a bug. Fixed by lowering the light, verified at runtime before committing."
+      }
+    },
+    {
+      "round": 7,
+      "date": "2026-09-22",
+      "what": "composition and information: the camera frames the measured plant, and the vessel plates carry the numbers",
+      "score": 6.4,
+      "scored_by": "independent critic, images only",
+      "shots": [
+        "docs/3d/shots/r7-normal.png",
+        "docs/3d/shots/r7-high.png",
+        "docs/3d/shots/r7-alarm.png"
+      ],
+      "changes": [
+        "the camera fits the equipment's bounding box instead of sitting at a point chosen by eye; the analytic distance is refined by projecting the eight corners and pulling back until they all fit, and it is recomputed on every resize",
+        "vessel plates carry tag, live value and band word, redrawn only when one of them changes",
+        "bands and their wording taken from update_ui() in the same file, which already classifies both vessels for the classic view, so the two views cannot disagree"
+      ],
+      "measured": {
+        "hardware_gl": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "materials": 72,
+          "build_seconds": 2.21,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "verified_by_hand": [
+        "framing checked at 1400x900, 1920x780 and 900x1000",
+        "plates checked at GST 200 FULL / HPT 60 NORMAL, GST 100 / HPT 120 HIGH, GST 30 LOW / HPT 240 CRITICAL"
+      ],
+      "found_but_out_of_scope": {
+        "page overflows narrow windows": "at a 900 px window the body scrolls to 1216 px, so the 3D container is wider than the viewport and the plant is cut off on the left. The camera framed its container correctly; the cause is the fixed 'width: 1200px' wrapper the classic view needs for its absolutely positioned board overlays. Not a 3D fault and not fixed here."
+      },
+      "still_open": [
+        "the relief line does not visibly enter the stack",
+        "thin elements stipple into dashed lines at sub-pixel widths",
+        "some vessel hoops render solid and others dashed, which looks like depth precision"
+      ],
+      "evidence_defect": "r7-wide and r7-portrait were captured 21:55, before the plates landed at 21:58, so they showed the previous round's labels while being filed as this round's evidence. Caught by the critic, not by me. Both removed and re-taken as r8."
+    },
+    {
+      "round": 8,
+      "date": "2026-09-22",
+      "what": "a longer lens, and hardware taken out of the state palette",
+      "score": null,
+      "scored_by": "critique pending",
+      "shots": [
+        "docs/3d/shots/r8-normal.png",
+        "docs/3d/shots/r8-high.png",
+        "docs/3d/shots/r8-alarm.png",
+        "docs/3d/shots/r8-wide.png",
+        "docs/3d/shots/r8-portrait.png"
+      ],
+      "changes": [
+        "field of view 60 -> 30 degrees. The wide lens made the left-hand vessel lean and its dome go elliptical, which the critic called the loudest 'not a commercial product' tell in the image. The automatic fit pulls the camera back to compensate, so the framing is unchanged.",
+        "status collars are a neutral steel that the state palette never uses, and only HPT's answers for a blowout. Previously both turned red, which said 'in alarm' over a GST that was merely low, and their normal amber had been claimed by the LOW and HIGH bands."
+      ],
+      "measured": {
+        "hardware_gl": {
+          "draw_calls": 136,
+          "meshes": 127,
+          "build_seconds": 2.17,
+          "console_errors": 0
+        },
+        "soak_60s_normal_path": {
+          "reloaded": false,
+          "navigations": 1,
+          "console_errors": 0
+        },
+        "pytest": "80 passed, 1 skipped against the running stack"
+      },
+      "verified_by_hand": [
+        "four focal lengths compared side by side at 60, 42, 30 and 22 degrees before choosing",
+        "all five shots retaken at the same build, so the evidence matches the code"
+      ],
+      "still_open": [
+        "the process topology is invisible: pipe stubs end in mid-air and nothing joins tank to compressor to vessel to flare",
+        "no contact shadows where anything meets the deck",
+        "thin geometry stipples into beaded lines",
+        "the plates are screen-space sprites and read as UI laid over the scene rather than objects in it",
+        "the page overflows windows narrower than about 1216 px, which is a layout fault outside the 3D view"
+      ]
+    }
+  ]
+}

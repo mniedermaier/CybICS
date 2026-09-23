@@ -1,0 +1,30 @@
+{
+  "url": "http://127.0.0.1:8090/?force3d=1",
+  "camera": "pipe",
+  "motion_keys": [
+    "collarPulse",
+    "fan",
+    "fanSpeed",
+    "flame0",
+    "flowGlow",
+    "flowOffset",
+    "frame",
+    "frameCapMs",
+    "gstLevel",
+    "hptLevel",
+    "strip",
+    "t",
+    "ventGlow"
+  ],
+  "crop": [
+    300,
+    300,
+    1150,
+    650
+  ],
+  "strip": [
+    1700,
+    1050
+  ],
+  "console_errors": []
+}

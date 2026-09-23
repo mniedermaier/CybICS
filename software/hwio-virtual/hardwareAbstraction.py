@@ -843,65 +843,267 @@ def index_page():
             // Clear container
             container.innerHTML = '';
 
+            // Alarm treatment for the viewport as a whole.
+            //
+            // The review was blunt about this: during a blowout the only
+            // blowout-specific token in frame was a flare about one and a half
+            // per cent of the picture high, in the far corner, and the vessel
+            // colour that changed most was salmon -- which is HPT's product
+            // colour, so "big and red" also means "HPT is full". An operator
+            // reads the wrong thing, or nothing.
+            //
+            // A pulsing rim on the viewport is caught peripherally, uses a
+            // colour nothing else in the scene wears, and says "state change"
+            // rather than "quantity". It costs nothing to draw.
+            // The rim is its own layer on top of the canvas, not a shadow on
+            // the container. An inset box-shadow paints behind the container's
+            // children, so the canvas sat straight over it and the first
+            // attempt was invisible in the screenshot.
+            if (!document.getElementById('cybics-alarm-style')) {
+              const style = document.createElement('style');
+              style.id = 'cybics-alarm-style';
+              style.textContent =
+                '@keyframes cybics-alarm-pulse {' +
+                '  0%, 100% { opacity: 1; }' +
+                '  50%      { opacity: 0.35; }' +
+                '}' +
+                '#cybics-alarm-rim {' +
+                '  position: absolute; inset: 0; pointer-events: none;' +
+                '  z-index: 5; display: none; border: 3px solid #ff3b30;' +
+                '  box-shadow: inset 0 0 44px 10px rgba(255,59,48,0.22);' +
+                '  animation: cybics-alarm-pulse 1.1s ease-in-out infinite; }' +
+                '#container3d.cybics-alarm #cybics-alarm-rim { display: block; }';
+              document.head.appendChild(style);
+            }
+            if (getComputedStyle(container).position === 'static') {
+              container.style.position = 'relative';
+            }
+            const alarmRim = document.createElement('div');
+            alarmRim.id = 'cybics-alarm-rim';
+            container.appendChild(alarmRim);
+            container.classList.remove('cybics-alarm');
+
             // Create scene with stunning gradient background
             const scene = new THREE.Scene();
             const lightTheme = document.documentElement.classList.contains('light-mode');
 
-            // Create enhanced CybICS background with radial gradients
-            const bgCanvas = document.createElement('canvas');
-            bgCanvas.width = 2048;
-            bgCanvas.height = 2048;
-            const ctx = bgCanvas.getContext('2d');
+            // ---- Procedural surfaces -------------------------------------
+            //
+            // Everything below is drawn into a canvas at build time.  The
+            // container has no network at runtime and gets pulled onto
+            // classroom machines, so a few kilobytes of JavaScript that draws
+            // its own concrete beats any amount of downloaded PBR material.
+            // These are the textures the whole scene is judged through: with
+            // no variation in a surface, no amount of lighting makes it look
+            // like anything but a solid colour.
 
-            // Base gradient (dark blue to dark)
-            const baseGradient = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
-            baseGradient.addColorStop(0, '#0f1520');
-            baseGradient.addColorStop(0.3, '#1a1a2e');
-            baseGradient.addColorStop(0.6, '#16213e');
-            baseGradient.addColorStop(1, '#0a0a10');
-            ctx.fillStyle = baseGradient;
-            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            // Fine grain plus large soft blotches plus a few stains.  The
+            // grain alone reads as video noise; it is the blotches at the
+            // scale of a metre or two that make a floor look poured rather
+            // than filled.
+            function concreteCanvas(size) {
+              const c = document.createElement('canvas');
+              c.width = c.height = size;
+              const g = c.getContext('2d');
+              g.fillStyle = '#4b5058';
+              g.fillRect(0, 0, size, size);
 
-            // Add warm orange radial glow (top left)
-            const glow1 = ctx.createRadialGradient(400, 400, 200, 400, 400, 800);
-            glow1.addColorStop(0, 'rgba(255, 107, 0, 0.15)');
-            glow1.addColorStop(0.5, 'rgba(255, 140, 66, 0.08)');
-            glow1.addColorStop(1, 'rgba(255, 107, 0, 0)');
-            ctx.fillStyle = glow1;
-            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+              for (let i = 0; i < 60; i++) {
+                const r = size * (0.04 + Math.random() * 0.14);
+                const x = Math.random() * size, y = Math.random() * size;
+                const shade = 60 + Math.random() * 40;
+                const blot = g.createRadialGradient(x, y, 0, x, y, r);
+                blot.addColorStop(0, 'rgba(' + shade + ',' + shade + ',' +
+                                  (shade + 6) + ',0.35)');
+                blot.addColorStop(1, 'rgba(0,0,0,0)');
+                g.fillStyle = blot;
+                g.fillRect(x - r, y - r, r * 2, r * 2);
+              }
 
-            // Add warm orange radial glow (bottom right)
-            const glow2 = ctx.createRadialGradient(1648, 1648, 200, 1648, 1648, 800);
-            glow2.addColorStop(0, 'rgba(255, 165, 0, 0.12)');
-            glow2.addColorStop(0.5, 'rgba(255, 140, 66, 0.06)');
-            glow2.addColorStop(1, 'rgba(255, 107, 0, 0)');
-            ctx.fillStyle = glow2;
-            ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+              // A handful of oil stains.  Real plant floors are never clean,
+              // and the eye reads "used" long before it reads "detailed".
+              for (let i = 0; i < 7; i++) {
+                const r = size * (0.02 + Math.random() * 0.05);
+                const x = Math.random() * size, y = Math.random() * size;
+                const stain = g.createRadialGradient(x, y, 0, x, y, r);
+                stain.addColorStop(0, 'rgba(24,22,20,0.45)');
+                stain.addColorStop(1, 'rgba(24,22,20,0)');
+                g.fillStyle = stain;
+                g.fillRect(x - r, y - r, r * 2, r * 2);
+              }
 
-            // Add subtle texture with small dots
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-            for(let i = 0; i < 300; i++) {
-              const x = Math.random() * bgCanvas.width;
-              const y = Math.random() * bgCanvas.height;
-              const size = Math.random() * 2;
-              ctx.beginPath();
-              ctx.arc(x, y, size, 0, Math.PI * 2);
-              ctx.fill();
+              const img = g.getImageData(0, 0, size, size);
+              const d = img.data;
+              for (let i = 0; i < d.length; i += 4) {
+                const n = (Math.random() - 0.5) * 26;
+                d[i] += n; d[i + 1] += n; d[i + 2] += n;
+              }
+              g.putImageData(img, 0, 0);
+              return c;
             }
 
-            const bgTexture = new THREE.CanvasTexture(bgCanvas);
-            scene.background = lightTheme ? new THREE.Color(0xf3f5f8) : bgTexture;
-            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : 0x0f1520, 0.010);
+            // Brushed steel: vertical streaks of varying roughness.  Used as a
+            // roughness map rather than a colour map, so the metal keeps its
+            // colour and only the sharpness of its reflection varies -- which
+            // is what actually distinguishes rolled steel from plastic.
+            function brushedCanvas(w, h) {
+              const c = document.createElement('canvas');
+              c.width = w; c.height = h;
+              const g = c.getContext('2d');
+              g.fillStyle = '#8a8a8a';
+              g.fillRect(0, 0, w, h);
+              for (let i = 0; i < w * 3; i++) {
+                const x = Math.random() * w;
+                const v = 118 + Math.random() * 74;
+                g.strokeStyle = 'rgba(' + v + ',' + v + ',' + v + ',' +
+                                (0.05 + Math.random() * 0.18) + ')';
+                g.lineWidth = 0.5 + Math.random() * 1.8;
+                g.beginPath();
+                g.moveTo(x, 0); g.lineTo(x + (Math.random() - 0.5) * 3, h);
+                g.stroke();
+              }
+              // Horizontal weld seams, where a real vessel's courses meet.
+              for (let i = 1; i < 4; i++) {
+                const y = h * i / 4;
+                g.strokeStyle = 'rgba(210,210,210,0.55)';
+                g.lineWidth = Math.max(1, h * 0.012);
+                g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+              }
+              return c;
+            }
+
+            // Fold many identical parts into one buffer.
+            //
+            // r128 ships BufferGeometryUtils only in examples/, which is not
+            // vendored here, so this is the small part of it this scene needs.
+            // It matters because the scene is draw-call bound rather than
+            // triangle bound: the platform grating alone was sixty-five
+            // separate meshes drawing sixty-five times for one flat surface.
+            function mergeGeometries(geometries) {
+              const parts = geometries.map(g => (g.index ? g.toNonIndexed() : g));
+              let total = 0;
+              parts.forEach(g => { total += g.attributes.position.count; });
+              const pos = new Float32Array(total * 3);
+              const nor = new Float32Array(total * 3);
+              const uv = new Float32Array(total * 2);
+              let o = 0, uo = 0;
+              parts.forEach(g => {
+                pos.set(g.attributes.position.array, o);
+                if (g.attributes.normal) { nor.set(g.attributes.normal.array, o); }
+                if (g.attributes.uv) { uv.set(g.attributes.uv.array, uo); }
+                o += g.attributes.position.count * 3;
+                uo += g.attributes.position.count * 2;
+              });
+              const out = new THREE.BufferGeometry();
+              out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+              out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+              out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+              return out;
+            }
+
+            // Detail costs texture memory and bandwidth, which is exactly what
+            // a machine without acceleration has none of.  The software path
+            // keeps the flat materials it already had.
+            const detail = !softwareRenderer;
+
+            function texture(canvas, repeatX, repeatY) {
+              const t = new THREE.CanvasTexture(canvas);
+              t.wrapS = t.wrapT = THREE.RepeatWrapping;
+              t.repeat.set(repeatX, repeatY);
+              t.anisotropy = 4;
+              return t;
+            }
+
+            // Repeats chosen to keep one tile at ten world units across the
+            // larger ground plane, so the concrete does not stretch.
+            const concreteMap = detail ? texture(concreteCanvas(512), 30, 30) : null;
+            if (concreteMap) { concreteMap.encoding = THREE.sRGBEncoding; }
+            const concreteRough = detail ? texture(concreteCanvas(512), 30, 30) : null;
+            const steelRough = detail ? texture(brushedCanvas(128, 256), 4, 1) : null;
+
+            // ---- Backdrop ------------------------------------------------
+            //
+            // A flat colour, and the fog is the same colour.
+            //
+            // A painted horizon cannot be made to line up: the background
+            // texture is stretched across the screen, so its horizon sits at a
+            // fixed fraction of the canvas while the real one moves with the
+            // camera. Every framing showed a step where the ground met the
+            // sky. With one colour for both, the ground simply dissolves into
+            // the distance and there is nothing to align -- and it is one less
+            // texture, which on a machine with no GPU is the whole point.
+            const BACKDROP = 0x1b2836;
+            scene.background = new THREE.Color(lightTheme ? 0xf3f5f8 : 0x0a0f16);
+            scene.fog = new THREE.FogExp2(lightTheme ? 0xf3f5f8 : BACKDROP, 0.014);
+
+            // A sky dome, so the horizon is in the world rather than on the
+            // screen.
+            //
+            // The first attempt painted a horizon into a background image.
+            // That image is stretched across the canvas, so its horizon sits
+            // at a fixed fraction of the screen while the real one moves with
+            // the camera, and every framing showed a step where the ground met
+            // the sky. Replacing it with a flat colour removed the step but
+            // took the depth with it -- the plant ended up floating in a void
+            // with no far distance.
+            //
+            // A dome fixes both: the gradient is a real thing at a real place,
+            // it lines up from any angle, and the fog is given the same colour
+            // as its horizon band so the ground dissolves into it. One mesh,
+            // one draw call, no lighting, no fog of its own.
+            const skyDome = (function () {
+              const c = document.createElement('canvas');
+              c.width = 4; c.height = 256;
+              const g = c.getContext('2d');
+              // Canvas top is the zenith: three.js flips images, so v = 1 --
+              // the top of the sphere -- samples row zero.
+              const grad = g.createLinearGradient(0, 0, 0, 256);
+              grad.addColorStop(0.00, '#0a0f16');
+              grad.addColorStop(0.38, '#141d28');
+              grad.addColorStop(0.48, '#22303d');
+              grad.addColorStop(0.50, '#2b3a49');
+              grad.addColorStop(0.54, '#1a232e');
+              grad.addColorStop(1.00, '#0a0d12');
+              g.fillStyle = grad;
+              g.fillRect(0, 0, 4, 256);
+
+              const tex = new THREE.CanvasTexture(c);
+              tex.encoding = THREE.sRGBEncoding;
+              const dome = new THREE.Mesh(
+                new THREE.SphereGeometry(180, 24, 16),
+                new THREE.MeshBasicMaterial({
+                  map: tex,
+                  side: THREE.BackSide,
+                  fog: false,
+                  depthWrite: false
+                }));
+              dome.userData.noOutline = true;
+              dome.userData.noFrame = true;
+              dome.renderOrder = -1;
+              return dome;
+            })();
+            scene.add(skyDome);
             window.addEventListener('message', function (event) {
               if (!event.data || event.data.type !== 'theme') return;
               const isLight = event.data.theme === 'light';
-              scene.background = isLight ? new THREE.Color(0xf3f5f8) : bgTexture;
-              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : 0x0f1520, 0.010);
+              scene.background = new THREE.Color(isLight ? 0xf3f5f8 : 0x0a0f16);
+              scene.fog = new THREE.FogExp2(isLight ? 0xf3f5f8 : BACKDROP, 0.014);
+              skyDome.visible = !isLight;
             });
 
             // Create camera
+            // 30 degrees, not 60.
+            //
+            // A wide lens was the loudest "not a real product" tell in the
+            // picture: the left-hand vessel leaned, its dome flattened into an
+            // ellipse and the deck splayed, because objects away from the
+            // optical axis distort more the wider the lens. A longer lens
+            // keeps the vessels upright wherever they sit in frame, which is
+            // how technical and digital-twin views are drawn. The automatic
+            // fit simply moves the camera further back to compensate, so the
+            // plant still fills the frame.
             const camera = new THREE.PerspectiveCamera(
-              60,
+              30,
               container.clientWidth / container.clientHeight,
               0.1,
               1000
@@ -988,12 +1190,23 @@ def index_page():
 
             // Realistic industrial lighting setup
             // ambient lifts every surface equally, so it is the first thing to cut
-            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.22);
+            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.26);
             scene.add(ambientLight);
 
             // Main overhead directional light (soft daylight)
-            const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.0);
-            directionalLight.position.set(12, 20, 8);
+            // Carries more of the scene now that the accent spots are gone.
+            const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.25);
+            // Lower and further round than it was.
+            //
+            // At (12, 20, 8) the key stood about 55 degrees up, which threw
+            // shadows so short that every one of them landed off the platform
+            // -- two separate reviews read the plant as having no contact with
+            // its own floor, and the one shadow that was visible, GST's, sat
+            // out on the ground detached from anything and read as a bug.
+            // Dropping the light puts the vessels' and the stack's shadows
+            // back into the picture. Verified by moving it at runtime and
+            // photographing the result before committing to it.
+            directionalLight.position.set(16, 11, 13);
             directionalLight.castShadow = true;
             // 2048 over a 50-unit shadow camera is 41 texels per world unit,
             // far finer than the screen resolves these objects at any sane
@@ -1019,45 +1232,63 @@ def index_page():
             accentLight.position.set(8, 10, -15);
             scene.add(accentLight);
 
-            // Accent spotlights for dramatic atmosphere - reduced intensities
-            const createSpotlight = (color, intensity, x, y, z, targetX, targetY, targetZ) => {
-              const spotlight = new THREE.SpotLight(color, intensity, 50, Math.PI / 6, 0.5, 2);
-              spotlight.position.set(x, y, z);
-              // These three are accent lights: they exist to put a warm
-              // pool of light on each vessel, and the shadows they cast land
-              // inside shadows the main light has already drawn.  Three extra
-              // shadow passes per frame for an effect nobody would miss.
-              spotlight.castShadow = false;
-
-              const target = new THREE.Object3D();
-              target.position.set(targetX, targetY, targetZ);
-              scene.add(target);
-              spotlight.target = target;
-
-              return spotlight;
-            };
-
-            // Subtle equipment spotlights (realistic industrial lighting)
-            scene.add(createSpotlight(0xffffff, 0.45, -7, 12, 5, -7, 2, 0));   // GST
-            scene.add(createSpotlight(0xffffff, 0.45, 7, 12, 5, 7, 2, 0));    // HPT
-            scene.add(createSpotlight(0xffffff, 0.35, 0, 8, 3, 0, 1.5, 0));   // Compressor
+            // The three accent spotlights that used to stand here are gone.
+            //
+            // They were a photographic device -- a warm pool on each vessel --
+            // and in a scene lit as a stage they did two things wrong: the HPT
+            // cone spilled past the platform and put a bright warm patch on the
+            // ground with no visible source, which reads as a rendering fault
+            // rather than as lighting, and together they washed the whole floor
+            // pale and undid the darkness the equipment is meant to stand
+            // against. Three fewer lights, and every remaining one is
+            // explainable by something in the picture.
 
             // Industrial concrete floor
-            const groundGeometry = new THREE.PlaneGeometry(60, 60);
+            //
+            // A flat grey plane is the one surface that cannot be rescued by
+            // lighting: it is large, it is lit evenly, and with no variation
+            // across it the eye reads it as a backdrop rather than as ground.
+            // The texture is the same canvas used twice, once for colour and
+            // once for roughness, so the darker patches are also the duller
+            // ones -- which is how a damp or oiled patch of concrete behaves.
+            //
+            // The plane is far larger than the plant it carries.  At 60 units
+            // its edge fell inside the fog's reach and cut a hard horizontal
+            // line across the middle of the picture; the fog only saturates
+            // past about 120 units, so the ground has to outrun it.  This
+            // costs nothing: it is still two triangles.
+            const groundGeometry = new THREE.PlaneGeometry(300, 300);
+            // Dark and close to plain.  The photographic concrete that was
+            // here tiled visibly at this size and, more to the point, a
+            // detailed floor pulls attention downwards; in this language the
+            // ground is a stage for the equipment and the grid does the work
+            // of telling you it is a surface at all.
+            // Fully matte, and no roughness map.
+            //
+            // The map was multiplying roughness down to near zero in its
+            // darker patches, and the key light answered with a specular lobe:
+            // a bright warm pool on the floor with no visible source, which
+            // reads as a rendering fault rather than as lighting. It was in
+            // the very first screenshot of this scene and survived three
+            // rounds of being blamed on the spotlights. Confirmed by clearing
+            // the map at runtime and photographing the result.
             const groundMaterial = new THREE.MeshStandardMaterial({
-              color: 0x3a3f47,
-              roughness: 0.9,
-              metalness: 0.1
+              color: 0x1a2028,
+              roughness: 1.0,
+              metalness: 0.0
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.userData.noFrame = true;
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Subtle grid lines (like expansion joints in concrete)
-            const gridHelper = new THREE.GridHelper(60, 20, 0x555a62, 0x404550);
+            // Expansion joints.  Dimmer than before: at full strength this
+            // read as a debug grid laid over the plant rather than as lines
+            // scored in a floor, and it was competing with the grating.
+            const gridHelper = new THREE.GridHelper(60, 20, 0x3f5568, 0x2b3a47);
             gridHelper.position.y = 0.01;
-            gridHelper.material.opacity = 0.4;
+            gridHelper.material.opacity = 0.55;
             gridHelper.material.transparent = true;
             scene.add(gridHelper);
 
@@ -1071,31 +1302,34 @@ def index_page():
               roughness: 0.4
             });
 
-            // Create grating bars (multiple bars to simulate grating)
+            // Grating bars, folded into one mesh.
+            //
+            // These were sixty-five separate meshes: sixty-five draw calls and
+            // seven hundred and eighty outline segments for a surface the eye
+            // reads as one texture. Merged, the deck is a single draw call and
+            // contributes nothing to the outline pass, which is where the
+            // frame time was going.
+            const gratingParts = [];
             const numBars = 40;
-            for(let i = 0; i < numBars; i++) {
-              const bar = new THREE.Mesh(
-                new THREE.BoxGeometry(20, 0.08, 0.15),
-                gratingMaterial
-              );
-              bar.position.set(0, 0.3, -6 + (i * 12 / numBars));
-              bar.castShadow = true;
-              bar.receiveShadow = true;
-              platformGroup.add(bar);
+            for (let i = 0; i < numBars; i++) {
+              const g = new THREE.BoxGeometry(20, 0.08, 0.15);
+              g.translate(0, 0.3, -6 + (i * 12 / numBars));
+              gratingParts.push(g);
             }
-
-            // Cross bars
             const numCrossBars = 25;
-            for(let i = 0; i < numCrossBars; i++) {
-              const bar = new THREE.Mesh(
-                new THREE.BoxGeometry(0.15, 0.08, 12),
-                gratingMaterial
-              );
-              bar.position.set(-10 + (i * 20 / numCrossBars), 0.3, 0);
-              bar.castShadow = true;
-              bar.receiveShadow = true;
-              platformGroup.add(bar);
+            for (let i = 0; i < numCrossBars; i++) {
+              const g = new THREE.BoxGeometry(0.15, 0.08, 12);
+              g.translate(-10 + (i * 20 / numCrossBars), 0.3, 0);
+              gratingParts.push(g);
             }
+            const gratingMesh = new THREE.Mesh(
+              mergeGeometries(gratingParts), gratingMaterial);
+            gratingMesh.castShadow = true;
+            gratingMesh.receiveShadow = true;
+            // A repeating pattern outlined edge by edge is visual noise, and
+            // there is a great deal of it.
+            gratingMesh.userData.noOutline = true;
+            platformGroup.add(gratingMesh);
 
             // Platform frame/edge beams
             const frameMaterial = new THREE.MeshStandardMaterial({
@@ -1158,7 +1392,13 @@ def index_page():
             controls.update();
 
             // Helper function to create text sprite
-            function createTextSprite(text, color = '#000000', backgroundColor = '#ffff00') {
+            // Plant signage, drawn to match the status panel rather than to
+            // fight it. These were saturated yellow plates with black Arial on
+            // them, which is the one thing in frame that looked printed rather
+            // than built, and they were the brightest objects in a dark scene.
+            // Dark plate, orange rule, orange text: the same vocabulary as the
+            // HUD, so the eye reads them as one system.
+            function createTextSprite(text, color = '#ffb070', backgroundColor = 'rgba(14, 20, 28, 0.88)') {
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
               canvas.width = 512;
@@ -1167,9 +1407,12 @@ def index_page():
               // Background
               context.fillStyle = backgroundColor;
               context.fillRect(0, 0, canvas.width, canvas.height);
+              context.strokeStyle = 'rgba(255, 140, 66, 0.75)';
+              context.lineWidth = 6;
+              context.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
 
               // Text
-              context.font = 'bold 80px Arial';
+              context.font = 'bold 74px ui-monospace, Menlo, Consolas, monospace';
               context.fillStyle = color;
               context.textAlign = 'center';
               context.textBaseline = 'middle';
@@ -1184,110 +1427,154 @@ def index_page():
 
             await yieldToBrowser();   // built controls and helpers
 
-            // Liquid in a dished-end pressure vessel
+            // Vessel plates carry the number, not just the tag
             //
-            // The fill used to be a plain cylinder scaled on Y, spanning only
-            // the cylindrical section.  Both vessels are a cylinder with a
-            // hemispherical head at each end, so that fill covered 8 of the
-            // 12.2 units you can see: a tank reading 255 of 255 drew its
-            // surface 66% of the way up, and a tank reading 0 left 2.1 units
-            // of empty dome below the line.  The two heads are 23.6% of the
-            // volume and were never drawn as filled at all.
+            // The scene and the numbers used to read as two unrelated
+            // products: the plant said "GST" and "HPT" and nothing else, while
+            // every actual value lived in an HTML card floating over the deck.
+            // A plant view that has to be read alongside a separate list is
+            // not doing its job.
             //
-            // So the liquid is now the shape of the inside of the vessel, and
-            // a clipping plane cuts it at the surface.  The surface height
-            // comes from the volume rather than from the height, because the
-            // domes hold less per unit of height than the barrel does and a
-            // tank that looks half full should be half full.
-            const LIQUID_R = 1.85;
-            const LIQUID_H = 8.0;
+            // The bands and their wording are not invented here. update_ui()
+            // further down this same file already classifies both vessels for
+            // the classic view -- HPT as Empty, Low, Normal, High or Critical
+            // and GST as Low, Normal or Full -- and HPT's Normal band is the
+            // same 50 to 100 window that physical_process_thread uses for
+            // sysSen. If those thresholds move, they have to move in both
+            // places.
+            function makeValuePlate(tag) {
+              const canvas = document.createElement('canvas');
+              canvas.width = 512;
+              canvas.height = 176;
+              const ctx = canvas.getContext('2d');
+              const texture = new THREE.CanvasTexture(canvas);
+              texture.encoding = THREE.sRGBEncoding;
+              const sprite = new THREE.Sprite(
+                new THREE.SpriteMaterial({ map: texture }));
+              sprite.scale.set(4.4, 1.5, 1);
 
-            function liquidVolume(y) {
-              const r = LIQUID_R, H = LIQUID_H;
-              const dome = 2 / 3 * Math.PI * r * r * r;
-              const cyl = Math.PI * r * r * H;
-              if (y <= -r) { return 0; }
-              if (y < 0) { const u = -y; return Math.PI * (2 * r * r * r / 3 - r * r * u + u * u * u / 3); }
-              if (y <= H) { return dome + Math.PI * r * r * y; }
-              if (y < H + r) { const h = y - H; return dome + cyl + Math.PI * (r * r * h - h * h * h / 3); }
-              return 2 * dome + cyl;
+              let last = null;
+              sprite.userData.set = function (value, word, accent) {
+                const key = value + '|' + word + '|' + accent;
+                // Redrawing a canvas and re-uploading its texture every frame
+                // for a number that changes twice a second is pure waste.
+                if (key === last) { return; }
+                last = key;
+
+                ctx.clearRect(0, 0, 512, 176);
+                ctx.fillStyle = 'rgba(14, 20, 28, 0.9)';
+                ctx.fillRect(0, 0, 512, 176);
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 6;
+                ctx.strokeRect(3, 3, 506, 170);
+
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'left';
+                ctx.font = 'bold 54px ui-monospace, Menlo, Consolas, monospace';
+                ctx.fillStyle = '#cfdcea';
+                ctx.fillText(tag, 24, 52);
+
+                ctx.textAlign = 'right';
+                ctx.font = 'bold 66px ui-monospace, Menlo, Consolas, monospace';
+                ctx.fillStyle = accent;
+                ctx.fillText(String(value), 488, 52);
+
+                ctx.textAlign = 'left';
+                ctx.font = '500 40px ui-monospace, Menlo, Consolas, monospace';
+                ctx.fillStyle = accent;
+                ctx.fillText(word, 24, 128);
+
+                texture.needsUpdate = true;
+              };
+              return sprite;
             }
 
-            // Height at which the volume below equals `frac` of the whole.
-            // Bisection: the closed form needs a cubic root in the domes, this
-            // is thirty iterations of arithmetic twice a second.
-            function liquidLevel(frac) {
-              const total = liquidVolume(LIQUID_H + LIQUID_R);
-              const target = Math.max(0, Math.min(1, frac)) * total;
-              let lo = -LIQUID_R, hi = LIQUID_H + LIQUID_R;
-              for (let i = 0; i < 40; i++) {
-                const mid = (lo + hi) / 2;
-                if (liquidVolume(mid) < target) { lo = mid; } else { hi = mid; }
-              }
-              return (lo + hi) / 2;
+            const BAND_LOW    = { word: 'LOW',      accent: '#ffb74d',
+                                  face: 0xffa726, glow: 0xb56a00 };
+            const BAND_HIGH   = { word: 'HIGH',     accent: '#ffb74d',
+                                  face: 0xffa726, glow: 0xb56a00 };
+            const BAND_NORMAL = { word: 'NORMAL',   accent: '#5fe39a',
+                                  face: 0x2ecc71, glow: 0x0b7a3f };
+            const BAND_CRIT   = { word: 'CRITICAL', accent: '#ff6b6b',
+                                  face: 0xff3b30, glow: 0xb3120a };
+            const BAND_EMPTY  = { word: 'EMPTY',    accent: '#8fa0b3',
+                                  face: 0x6b7787, glow: 0x2b3340 };
+            const BAND_FULL   = { word: 'FULL',     accent: '#6fc5ff',
+                                  face: 0x2196f3, glow: 0x0d47a1 };
+            const BAND_GST_OK = { word: 'NORMAL',   accent: '#6fc5ff',
+                                  face: 0x2196f3, glow: 0x0d47a1 };
+
+            function hptBand(v, blowout) {
+              if (blowout || v >= 150) { return BAND_CRIT; }
+              if (v === 0) { return BAND_EMPTY; }
+              if (v < 50) { return BAND_LOW; }
+              if (v < 100) { return BAND_NORMAL; }
+              return BAND_HIGH;
             }
 
-            // Inner radius at a given height, for the disc that shows the surface.
-            function liquidRadiusAt(y) {
-              const r = LIQUID_R, H = LIQUID_H;
-              if (y < 0) { return Math.sqrt(Math.max(0, r * r - y * y)); }
-              if (y <= H) { return r; }
-              return Math.sqrt(Math.max(0, r * r - (y - H) * (y - H)));
+            function gstBand(v) {
+              if (v < 50) { return BAND_LOW; }
+              if (v < 150) { return BAND_GST_OK; }
+              return BAND_FULL;
             }
 
-            function makeLiquid(colour, emissive) {
-              const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -LIQUID_R);
-              // depthWrite off, and that is not optional here.
-              //
-              // The clipped body is open at the cut, so it has to be
-              // DoubleSide or you look straight through the surface into
-              // nothing.  A transparent DoubleSide body that also writes depth
-              // has its back faces occlude its own front faces, and what you
-              // get is a volume that renders as very nearly invisible -- which
-              // is exactly what happened when this replaced the old fill: the
-              // surface disc still drew, the liquid under it did not.  The old
-              // fill escaped it by being FrontSide, which it could afford
-              // because a scaled cylinder is never cut open.
-              const body = new THREE.MeshStandardMaterial({
-                color: colour, transparent: true, opacity: 0.8,
-                roughness: 0.2, metalness: 0.0,
-                emissive: emissive, emissiveIntensity: 0.3,
-                side: THREE.DoubleSide, depthWrite: false,
-                clippingPlanes: [plane]
-              });
-              // The cut leaves the body open, so a disc rides at the surface.
-              const surface = new THREE.MeshStandardMaterial({
-                color: colour, transparent: true, opacity: 0.9,
-                roughness: 0.15, metalness: 0.0,
-                emissive: emissive, emissiveIntensity: 0.45
-              });
+            // Level, shown on the vessel rather than inside it
+            //
+            // This used to be a body of liquid modelled inside the shell and
+            // clipped at the surface, seen through a transparent wall. It was
+            // volumetrically exact and it did not communicate. At a low level
+            // the contents became a coloured puck standing on the deck with
+            // its own lit outer wall, while the shell above it faded into the
+            // dark background -- so the picture said "a tall grey tower, and
+            // separately a red tub", and the one comparison that has to be
+            // instant, two identical vessels at different levels, was not
+            // available at all.
+            //
+            // The vessel is opaque now and the level is a filled band on its
+            // outside, rising from the base the way a bar gauge fills. One
+            // silhouette, one object, and the band is the brightest thing on
+            // it. The band's height is the fraction of the vessel's volume
+            // that is full, so half the pressure is still half the tank --
+            // the same promise as before, made in a way that reads across a
+            // room.
+            const BAND_R = 2.03;      // just clear of the 2.0 shell
+            const BAND_H = 8.0;       // the barrel, which spans y = 0 to 8
+
+            function makeLevelBand(colour, emissive) {
+              const geometry = new THREE.CylinderGeometry(
+                BAND_R, BAND_R, BAND_H, 32, 1, true);
+              // Origin at the foot of the band, so scaling y fills upwards
+              // instead of growing in both directions from the middle.
+              geometry.translate(0, BAND_H / 2, 0);
+
+              const band = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+                color: colour,
+                emissive: emissive,
+                emissiveIntensity: 0.45,
+                metalness: 0.0,
+                roughness: 0.55,
+                // An open cylinder seen from outside and from inside its own
+                // far wall.
+                side: THREE.DoubleSide
+              }));
+              // Its silhouette is the vessel's, which is already drawn.
+              band.userData.noOutline = true;
 
               const group = new THREE.Group();
-              const cyl = new THREE.Mesh(
-                new THREE.CylinderGeometry(LIQUID_R, LIQUID_R, LIQUID_H, 32), body);
-              cyl.position.y = LIQUID_H / 2;
-              group.add(cyl);
-              const bottom = new THREE.Mesh(new THREE.SphereGeometry(
-                LIQUID_R, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), body);
-              group.add(bottom);
-              const top = new THREE.Mesh(new THREE.SphereGeometry(
-                LIQUID_R, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), body);
-              top.position.y = LIQUID_H;
-              group.add(top);
-
-              const disc = new THREE.Mesh(new THREE.CircleGeometry(LIQUID_R, 32), surface);
-              disc.rotation.x = -Math.PI / 2;
-              group.add(disc);
-
+              group.add(band);
               group.userData.setLevel = function (frac) {
-                const y = liquidLevel(frac);
-                plane.constant = y;
-                const rad = liquidRadiusAt(y);
-                disc.position.y = y;
-                disc.visible = rad > 0.02;
-                disc.scale.set(rad / LIQUID_R, rad / LIQUID_R, 1);
+                const f = Math.max(0, Math.min(1, frac));
+                // A zero-height cylinder is a degenerate mesh, not an empty
+                // tank.
+                band.visible = f > 0.002;
+                band.scale.y = Math.max(f, 0.0001);
               };
               group.userData.setLevel(0);
+              group.userData.setColour = function (face, glow) {
+                if (band.material.color.getHex() === face) { return; }
+                band.material.color.setHex(face);
+                band.material.emissive.setHex(glow);
+              };
               return group;
             }
 
@@ -1295,23 +1582,26 @@ def index_page():
             const gstGroup = new THREE.Group();
             gstGroup.position.set(-7, 0, 0);
 
-            // Main tank body - industrial steel (semi-transparent to see fill)
+            // Main tank body - painted steel, opaque; the level is a band on it
             const gstBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xc0c5ce,
-                metalness: 0.85,
-                roughness: 0.35,
-                envMapIntensity: 1.0,
-                transparent: true,
-                opacity: 0.3,
-                side: THREE.DoubleSide,
-                // A transparent enclosure must not write depth.  If it does,
-                // its near surface fails the depth test for everything behind
-                // it -- which is the liquid it exists to let you see.  That is
-                // what emptied the tanks: the level arithmetic and the clipping
-                // were both right, the shell was simply drawn over them.
-                depthWrite: false
+                // Opaque. A see-through vessel was tried and it cost more
+                // than it gave: the wall vanished against a dark backdrop,
+                // transparency sorted differently from one camera to the next,
+                // and the contents detached from the container. Painted steel
+                // reads as one mass, takes the level band cleanly, and sorts
+                // like everything else.
+                color: 0x8f9bab,
+                metalness: 0.15,
+                roughness: 0.6,
+                envMapIntensity: 0.6
+                // No depthWrite: false and no DoubleSide here any more. Both
+                // were needed while the shell was a window onto the liquid
+                // inside it; on an opaque wall they are the bug that made this
+                // vessel keep looking transparent -- a surface that does not
+                // write depth cannot hide anything behind it, whatever its
+                // opacity says.
               })
             );
             gstBody.position.y = 4;
@@ -1320,7 +1610,7 @@ def index_page():
             gstGroup.add(gstBody);
 
             // GST liquid
-            const gstFill = makeLiquid(0x2196f3, 0x1976d2);
+            const gstFill = makeLevelBand(0x2196f3, 0x0d47a1);
             gstGroup.add(gstFill);
 
             // Add support legs to tank
@@ -1355,9 +1645,9 @@ def index_page():
 
             // GST reinforcement bands (realistic industrial detail)
             const bandMaterial = new THREE.MeshStandardMaterial({
-              color: 0x8b9099,
-              metalness: 0.9,
-              roughness: 0.25
+              color: 0x7c8894,
+              metalness: 0.25,
+              roughness: 0.55
             });
 
             for(let i = 0; i < 3; i++) {
@@ -1437,10 +1727,14 @@ def index_page():
             }
 
             // GST dished end caps (realistic pressure vessel heads)
+            // Opaque heads over a see-through barrel is what makes the
+            // vessel read as a cutaway rather than as a jar: the cut is
+            // clearly a cut, because it stops. Matte, because the chrome
+            // finish they had was the loudest plastic note in the picture.
             const capMaterial = new THREE.MeshStandardMaterial({
-              color: 0xb0b5bc,
-              metalness: 0.85,
-              roughness: 0.3
+              color: 0x98a3b0,
+              metalness: 0.2,
+              roughness: 0.55
             });
 
             const gstTopCap = new THREE.Mesh(
@@ -1493,15 +1787,18 @@ def index_page():
 
             // GST status indicator light (subtle orange glow)
             const gstGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.04, 8, 32),
+              // Radius 2.06 against a wall of 2.0, so it sits on the vessel
+              // like a lit collar. At 2.3 it orbited a third of a metre
+              // clear of the steel and read as a hoop thrown over the tank.
+              new THREE.TorusGeometry(2.06, 0.1, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xff6b00,
-                emissive: 0xff6b00,
-                emissiveIntensity: 1.0,
+                color: 0x8d9aa8,
+                emissive: 0x8d9aa8,
+                emissiveIntensity: 0.22,
                 transparent: true,
-                opacity: 0.7,
-                metalness: 0.8,
-                roughness: 0.2
+                opacity: 0.92,
+                metalness: 0.2,
+                roughness: 0.5
               })
             );
             gstGlowRing.position.y = 7;
@@ -1509,8 +1806,8 @@ def index_page():
             gstGroup.add(gstGlowRing);
 
             // GST Label with text
-            const gstLabel = createTextSprite('GST');
-            gstLabel.position.set(0, 10.5, 0);
+            const gstLabel = makeValuePlate('GST');
+            gstLabel.position.set(0, 11.0, 0);
             gstGroup.add(gstLabel);
 
             scene.add(gstGroup);
@@ -1521,23 +1818,26 @@ def index_page():
             const hptGroup = new THREE.Group();
             hptGroup.position.set(7, 0, 0);
 
-            // Main tank body - industrial steel (semi-transparent to see fill)
+            // Main tank body - painted steel, opaque; the level is a band on it
             const hptBody = new THREE.Mesh(
               new THREE.CylinderGeometry(2, 2, 8, 32),
               new THREE.MeshStandardMaterial({
-                color: 0xc0c5ce,
-                metalness: 0.85,
-                roughness: 0.35,
-                envMapIntensity: 1.0,
-                transparent: true,
-                opacity: 0.3,
-                side: THREE.DoubleSide,
-                // A transparent enclosure must not write depth.  If it does,
-                // its near surface fails the depth test for everything behind
-                // it -- which is the liquid it exists to let you see.  That is
-                // what emptied the tanks: the level arithmetic and the clipping
-                // were both right, the shell was simply drawn over them.
-                depthWrite: false
+                // Opaque. A see-through vessel was tried and it cost more
+                // than it gave: the wall vanished against a dark backdrop,
+                // transparency sorted differently from one camera to the next,
+                // and the contents detached from the container. Painted steel
+                // reads as one mass, takes the level band cleanly, and sorts
+                // like everything else.
+                color: 0x8f9bab,
+                metalness: 0.15,
+                roughness: 0.6,
+                envMapIntensity: 0.6
+                // No depthWrite: false and no DoubleSide here any more. Both
+                // were needed while the shell was a window onto the liquid
+                // inside it; on an opaque wall they are the bug that made this
+                // vessel keep looking transparent -- a surface that does not
+                // write depth cannot hide anything behind it, whatever its
+                // opacity says.
               })
             );
             hptBody.position.y = 4;
@@ -1546,7 +1846,10 @@ def index_page():
             hptGroup.add(hptBody);
 
             // HPT liquid
-            const hptFill = makeLiquid(0xf44336, 0xd32f2f);
+            // HPT's band is a state channel rather than a tag colour, and it
+            // is driven from the shared bands above so that the vessel, its
+            // plate and the classic view cannot disagree with one another.
+            const hptFill = makeLevelBand(BAND_NORMAL.face, BAND_NORMAL.glow);
             hptGroup.add(hptFill);
 
             // Add support legs to HPT tank
@@ -1628,15 +1931,18 @@ def index_page():
 
             // HPT status indicator (subtle)
             const hptGlowRing = new THREE.Mesh(
-              new THREE.TorusGeometry(2.3, 0.04, 8, 32),
+              // Radius 2.06 against a wall of 2.0, so it sits on the vessel
+              // like a lit collar. At 2.3 it orbited a third of a metre
+              // clear of the steel and read as a hoop thrown over the tank.
+              new THREE.TorusGeometry(2.06, 0.1, 8, 32),
               new THREE.MeshStandardMaterial({
                 color: 0xff8c42,
                 emissive: 0xff8c42,
                 emissiveIntensity: 1.0,
                 transparent: true,
-                opacity: 0.7,
-                metalness: 0.8,
-                roughness: 0.2
+                opacity: 0.92,
+                metalness: 0.2,
+                roughness: 0.5
               })
             );
             hptGlowRing.position.y = 7;
@@ -1644,8 +1950,8 @@ def index_page():
             hptGroup.add(hptGlowRing);
 
             // HPT Label with text
-            const hptLabel = createTextSprite('HPT');
-            hptLabel.position.set(0, 10.5, 0);
+            const hptLabel = makeValuePlate('HPT');
+            hptLabel.position.set(0, 11.0, 0);
             hptGroup.add(hptLabel);
 
             scene.add(hptGroup);
@@ -1674,10 +1980,18 @@ def index_page():
             const compressorBody = new THREE.Mesh(
               new THREE.BoxGeometry(2.5, 1.5, 1.8),
               new THREE.MeshStandardMaterial({
-                color: 0x8a8f96,
-                metalness: 0.7,
-                roughness: 0.5,
-                emissive: 0x00ff00,
+                color: 0x79838f,
+                metalness: 0.3,
+                roughness: 0.6,
+                // The casing does carry the running state after all.
+                //
+                // It was taken away last round on the grounds that a lime box
+                // is crude, and that was the wrong trade: "is the compressor
+                // running" is the one fact a viewer has to catch at overview
+                // distance, and a three-pixel lamp cannot say it. A restrained
+                // green lift over the whole housing can, and it goes dark the
+                // moment the machine stops.
+                emissive: 0x2bd46a,
                 emissiveIntensity: 0
               })
             );
@@ -1734,8 +2048,14 @@ def index_page():
             indicator.position.set(0, 1.8, 0.95);
             compressorGroup.add(indicator);
 
-            // Point light for status
-            const compressorLight = new THREE.PointLight(0x00ff00, 0, 4);
+            // Point light for status.
+            //
+            // Saturated green over a four-unit radius threw a hard-edged green
+            // patch across the grating that reads as light leaking rather than
+            // as a machine indicator. A running compressor gets a lamp, not a
+            // floodlight: a softer green, and a reach short enough that the
+            // glow stays on the casing around it.
+            const compressorLight = new THREE.PointLight(0x66ff99, 0, 1.6);
             compressorLight.position.set(0, 1.8, 0.95);
             compressorGroup.add(compressorLight);
 
@@ -1792,13 +2112,18 @@ def index_page():
             compressorCanvas.width = 1024; // Wider canvas for longer text
             compressorCanvas.height = 128;
 
-            // Background
-            compressorContext.fillStyle = '#ffff00';
+            // Background -- the same treatment as createTextSprite above, which
+            // this block predates and has to keep in step with by hand.
+            compressorContext.fillStyle = 'rgba(14, 20, 28, 0.88)';
             compressorContext.fillRect(0, 0, compressorCanvas.width, compressorCanvas.height);
+            compressorContext.strokeStyle = 'rgba(255, 140, 66, 0.75)';
+            compressorContext.lineWidth = 6;
+            compressorContext.strokeRect(3, 3, compressorCanvas.width - 6,
+                                         compressorCanvas.height - 6);
 
             // Text
-            compressorContext.font = 'bold 80px Arial';
-            compressorContext.fillStyle = '#000000';
+            compressorContext.font = 'bold 74px ui-monospace, Menlo, Consolas, monospace';
+            compressorContext.fillStyle = '#ffb070';
             compressorContext.textAlign = 'center';
             compressorContext.textBaseline = 'middle';
             compressorContext.fillText('COMPRESSOR', compressorCanvas.width / 2, compressorCanvas.height / 2);
@@ -1821,6 +2146,67 @@ def index_page():
               roughness: 0.4
             });
 
+            // Flow, shown on the pipe that carries it
+            //
+            // The gas used to be a hundred loose particles drifting in the air
+            // beside the pipe. They appeared from nothing along the whole run,
+            // sat at one height, and read -- in review -- as confetti rather
+            // than as gas. Worse, they said nothing at overview distance,
+            // which is the distance this view is normally read from.
+            //
+            // A band of light travelling along the pipe says the same thing
+            // better: it has a direction, it is attached to the thing that is
+            // actually flowing, it is legible at any zoom because it is
+            // emissive, and it costs one texture and no per-particle work at
+            // all. Stopped, the pipe simply goes dark.
+            function flowCanvas() {
+              const c = document.createElement('canvas');
+              // u wraps around the pipe and v runs along it, so anything drawn
+              // here is a ring, not an arrow. Chevrons were tried first and
+              // came out as corrugation -- the pipe looked like a ribbed hose.
+              //
+              // A ring can still carry a direction if it is shaped like one: a
+              // hard bright leading edge with a tail fading out behind it. Two
+              // of them on the run, so they read as discrete pulses travelling
+              // rather than as a texture on the pipe.
+              c.width = 8; c.height = 128;
+              const g = c.getContext('2d');
+              g.fillStyle = '#000000';
+              g.fillRect(0, 0, 8, 128);
+              for (let i = 0; i < 2; i++) {
+                const head = i * 64 + 40;      // the sharp edge, leading
+                const tail = head - 42;
+                const grad = g.createLinearGradient(0, tail, 0, head);
+                // Teal, and never white. In review the band peaked brighter
+                // than the pipe's own lit edge, which flattened the cylinder
+                // and made the run look like a corrugated hose from close up
+                // and like a pipe with gaps in it from the overview camera.
+                // A hue no metal in this scene wears, at a brightness that
+                // stays under the pipe's highlight, reads as something moving
+                // through the pipe instead of as part of it.
+                grad.addColorStop(0.0, 'rgba(0, 140, 150, 0)');
+                grad.addColorStop(0.8, 'rgba(60, 214, 224, 0.62)');
+                grad.addColorStop(1.0, 'rgba(130, 240, 245, 1.0)');
+                g.fillStyle = grad;
+                g.fillRect(0, tail, 8, head - tail);
+              }
+              return c;
+            }
+
+            const flowTexture = new THREE.CanvasTexture(flowCanvas());
+            flowTexture.wrapS = flowTexture.wrapT = THREE.RepeatWrapping;
+            // One tile over the whole run: two pulses on the pipe at a time.
+            flowTexture.repeat.set(1, 1);
+
+            const flowMaterial = new THREE.MeshStandardMaterial({
+              color: 0x9095a0,
+              metalness: 0.85,
+              roughness: 0.4,
+              emissive: 0xffffff,
+              emissiveMap: flowTexture,
+              emissiveIntensity: 0
+            });
+
             const flangeMaterial = new THREE.MeshStandardMaterial({
               color: 0x7a7f8a,
               metalness: 0.9,
@@ -1828,42 +2214,39 @@ def index_page():
             });
 
             // Helper function to create flange
-            function createFlange(x, y, z, rotation) {
-              const flangeGroup = new THREE.Group();
-
-              // Flange ring
-              const flange = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16),
-                flangeMaterial
-              );
-              flange.castShadow = true;
-              flangeGroup.add(flange);
-
-              // Bolts around flange
-              for(let i = 0; i < 6; i++) {
+            //
+            // Ring and bolts are one geometry. Each flange used to be seven
+            // meshes -- a ring plus six bolts, each with its own material --
+            // and there are eight flanges, so this was fifty-six draw calls
+            // spent on bolt heads that are two pixels across at the overview
+            // camera. Merged, a flange costs one, and the bolts are still
+            // there when you come close.
+            const flangeGeometry = (function () {
+              const parts = [new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16)];
+              for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI * 2 / 6) * i;
-                const bolt = new THREE.Mesh(
-                  new THREE.CylinderGeometry(0.02, 0.02, 0.1, 6),
-                  new THREE.MeshStandardMaterial({
-                    color: 0x505050,
-                    metalness: 0.9,
-                    roughness: 0.2
-                  })
-                );
-                bolt.position.set(Math.cos(angle) * 0.2, 0, Math.sin(angle) * 0.2);
-                bolt.castShadow = true;
-                flangeGroup.add(bolt);
+                const bolt = new THREE.CylinderGeometry(0.02, 0.02, 0.1, 6);
+                bolt.translate(Math.cos(angle) * 0.2, 0, Math.sin(angle) * 0.2);
+                parts.push(bolt);
               }
+              return mergeGeometries(parts);
+            })();
 
-              flangeGroup.position.set(x, y, z);
-              if(rotation) flangeGroup.rotation.z = rotation;
-              return flangeGroup;
+            function createFlange(x, y, z, rotation) {
+              const flange = new THREE.Mesh(flangeGeometry, flangeMaterial);
+              flange.castShadow = true;
+              flange.position.set(x, y, z);
+              if (rotation) { flange.rotation.z = rotation; }
+              return flange;
             }
 
             // INLET PIPE: GST to Compressor
             const inletPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
-              pipeMaterial
+              // A little thicker than the other runs: this is the pipe the
+              // flow is read off, and at 0.12 the chevrons on it were too few
+              // pixels to see from the overview camera.
+              new THREE.CylinderGeometry(0.16, 0.16, 3.5, 16),
+              flowMaterial
             );
             inletPipe.position.set(-3.25, 1.5, -0.5);
             inletPipe.rotation.z = Math.PI / 2;
@@ -1877,8 +2260,8 @@ def index_page():
 
             // OUTLET PIPE: Compressor to HPT
             const outletPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.12, 0.12, 3.5, 16),
-              pipeMaterial
+              new THREE.CylinderGeometry(0.16, 0.16, 3.5, 16),
+              flowMaterial
             );
             outletPipe.position.set(3.25, 1.2, 0.5);
             outletPipe.rotation.z = Math.PI / 2;
@@ -1942,7 +2325,7 @@ def index_page():
             const chimneyBase = new THREE.Mesh(
               new THREE.CylinderGeometry(1.0, 1.2, 2, 16),
               new THREE.MeshStandardMaterial({
-                color: 0x4a4a52,
+                color: 0x333b44,
                 roughness: 0.9,
                 metalness: 0.1
               })
@@ -1956,9 +2339,13 @@ def index_page():
             const chimneyStack = new THREE.Mesh(
               new THREE.CylinderGeometry(0.7, 0.9, 12, 16),
               new THREE.MeshStandardMaterial({
-                color: 0x5a4a42,
-                roughness: 0.85,
-                metalness: 0.05
+                // Warm enough to separate from the vessels, cool enough to
+                // stay in the palette. Brown made it the loudest thing in a
+                // cool scene; the grey that replaced it merged with HPT into
+                // one mass at overview distance, which was no better.
+                color: 0x7a6a5f,
+                roughness: 0.75,
+                metalness: 0.15
               })
             );
             chimneyStack.position.y = 8;
@@ -2017,9 +2404,24 @@ def index_page():
             scene.add(chimneyGroup);
 
             // Blowout Pipe: HPT to Chimney
+            // The vent run carries the flow band too. During a blowout the
+            // gas is going somewhere, and with this line standing still while
+            // the flare burned, the picture never drew the cause and effect.
+            const ventTexture = new THREE.CanvasTexture(flowCanvas());
+            ventTexture.wrapS = ventTexture.wrapT = THREE.RepeatWrapping;
+            ventTexture.repeat.set(1, 1);
+            const ventMaterial = new THREE.MeshStandardMaterial({
+              color: 0x9095a0,
+              metalness: 0.85,
+              roughness: 0.4,
+              emissive: 0xff7a3d,
+              emissiveMap: ventTexture,
+              emissiveIntensity: 0
+            });
+
             const blowoutPipe = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.12, 0.12, 4, 16),
-              pipeMaterial
+              new THREE.CylinderGeometry(0.16, 0.16, 4, 16),
+              ventMaterial
             );
             blowoutPipe.position.set(9, 7, 0);
             blowoutPipe.rotation.z = Math.PI / 2;
@@ -2098,62 +2500,49 @@ def index_page():
 
             // Add labels for LED panel
             const ledLabel1 = createTextSprite('GST', '#ffffff', '#333333');
-            ledLabel1.scale.set(2, 0.5, 1);
-            ledLabel1.position.set(13, 4.2, 0);
+            ledLabel1.scale.set(1.25, 0.4, 1);
+            ledLabel1.position.set(13.3, 4.2, 0);
             scene.add(ledLabel1);
 
             const ledLabel2 = createTextSprite('COMP', '#ffffff', '#333333');
-            ledLabel2.scale.set(2, 0.5, 1);
-            ledLabel2.position.set(13, 3.6, 0);
+            ledLabel2.scale.set(1.25, 0.4, 1);
+            ledLabel2.position.set(13.3, 3.6, 0);
             scene.add(ledLabel2);
 
             const ledLabel3 = createTextSprite('SYSTEM', '#ffffff', '#333333');
-            ledLabel3.scale.set(2, 0.5, 1);
-            ledLabel3.position.set(13, 3.0, 0);
+            ledLabel3.scale.set(1.25, 0.4, 1);
+            ledLabel3.position.set(13.3, 3.0, 0);
             scene.add(ledLabel3);
 
             const ledLabel4 = createTextSprite('BLOWOUT', '#ffffff', '#333333');
-            ledLabel4.scale.set(2.5, 0.5, 1);
-            ledLabel4.position.set(13, 2.4, 0);
+            ledLabel4.scale.set(1.25, 0.4, 1);
+            ledLabel4.position.set(13.3, 2.4, 0);
             scene.add(ledLabel4);
 
             scene.add(ledPanel);
 
             await yieldToBrowser();   // built the cabinet
 
-            // Particle system for gas flow (from compressor outlet pipe to HPT)
-            const particleCount = 100;
-            const particles = new Float32Array(particleCount * 3);
-            const particleVelocities = [];
+            // The gas particle system that stood here is gone. A hundred
+            // points drifting beside the pipe were a hundred position updates
+            // every frame and, in review, read as confetti; the emissive band
+            // travelling along the pipe itself says the same thing at any
+            // zoom for one texture and no per-frame work.
 
-            for(let i = 0; i < particleCount; i++) {
-              // Start particles along the outlet pipe path (compressor to HPT)
-              particles[i * 3] = Math.random() * 7; // X: 0 to 7 (compressor to HPT)
-              particles[i * 3 + 1] = 2.5; // Y: at outlet pipe height
-              particles[i * 3 + 2] = 0.5 + (Math.random() - 0.5) * 0.3; // Z: near outlet pipe
-              particleVelocities.push({
-                x: 0.03 + Math.random() * 0.02, // Moving right toward HPT
-                y: (Math.random() - 0.5) * 0.01, // Slight vertical variance
-                z: (Math.random() - 0.5) * 0.01
-              });
-            }
-
-            const particleGeometry = new THREE.BufferGeometry();
-            particleGeometry.setAttribute('position', new THREE.BufferAttribute(particles, 3));
-
-            const particleMaterial = new THREE.PointsMaterial({
-              color: 0x00ffaa,
-              size: 0.2,
-              transparent: true,
-              opacity: 0.8,
-              sizeAttenuation: true,
-              blending: THREE.AdditiveBlending,
-              depthWrite: false
-            });
-
-            const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
-            particleSystem.visible = false;
-            scene.add(particleSystem);
+            // A point sprite is a square unless it is given a shape, which is
+            // why the gas flow rendered as a cloud of hard white cubes. One
+            // 32-pixel radial gradient turns every particle in the scene into
+            // a soft dot, for one texture.
+            const dotCanvas = document.createElement('canvas');
+            dotCanvas.width = dotCanvas.height = 32;
+            const dotCtx = dotCanvas.getContext('2d');
+            const dotGrad = dotCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            dotGrad.addColorStop(0.0, 'rgba(255,255,255,1)');
+            dotGrad.addColorStop(0.4, 'rgba(255,255,255,0.55)');
+            dotGrad.addColorStop(1.0, 'rgba(255,255,255,0)');
+            dotCtx.fillStyle = dotGrad;
+            dotCtx.fillRect(0, 0, 32, 32);
+            const dotTexture = new THREE.CanvasTexture(dotCanvas);
 
             // Flame particle system (from chimney)
             const flameCount = 150;
@@ -2190,6 +2579,7 @@ def index_page():
             flameGeometry.setAttribute('color', new THREE.BufferAttribute(flameColors, 3));
 
             const flameMaterial = new THREE.PointsMaterial({
+              map: dotTexture,
               size: 0.4,
               vertexColors: true,
               transparent: true,
@@ -2265,6 +2655,16 @@ def index_page():
             // Variables for smooth animations
             let fanRotationSpeed = 0;
             let targetFanSpeed = 0;
+            let flameFlicker = 0;
+            let flowGlow = 0;
+            let ventGlow = 0;
+            let compressorRunning = false;
+            // Set from /api/state; drives the collars as well as the flame.
+            let blowoutActive = false;
+            // Neutral: deliberately outside the LOW / NORMAL / HIGH / CRITICAL
+            // palette, so a ring of hardware can never be mistaken for a state.
+            const COLLAR_STEEL = 0x8d9aa8;
+            const COLLAR_IDLE_GLOW = 0.22;
 
             // Fetch live data from server
             async function fetchData() {
@@ -2278,21 +2678,28 @@ def index_page():
                 // tank, which is what anyone reading the picture assumes.
                 gstFill.userData.setLevel(data.gst / 255);
                 hptFill.userData.setLevel(data.hpt / 255);
+                const hptState = hptBand(data.hpt, data.boSen > 0);
+                const gstState = gstBand(data.gst);
+                hptFill.userData.setColour(hptState.face, hptState.glow);
+                gstFill.userData.setColour(gstState.face, gstState.glow);
+                hptLabel.userData.set(data.hpt, hptState.word, hptState.accent);
+                gstLabel.userData.set(data.gst, gstState.word, gstState.accent);
 
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
 
                 // Update compressor status light (realistic)
                 const compressorActive = data.compressor > 0;
-                compressorBody.material.emissiveIntensity = compressorActive ? 0.3 : 0;
+                compressorBody.material.emissiveIntensity = compressorActive ? 0.55 : 0;
                 indicator.material.emissiveIntensity = compressorActive ? 1.5 : 0;
-                compressorLight.intensity = compressorActive ? 3 : 0;
+                compressorLight.intensity = compressorActive ? 0.9 : 0;
 
                 // Update particle visibility
-                particleSystem.visible = compressorActive;
+                compressorRunning = compressorActive;
 
                 // Update flame system
-                flameSystem.visible = data.boSen > 0;
+                blowoutActive = data.boSen > 0;
+                flameSystem.visible = blowoutActive;
                 flameLight.intensity = data.boSen > 0 ? 6 : 0;
 
                 // Update LED indicators
@@ -2328,7 +2735,15 @@ def index_page():
                 document.getElementById('gst-value').textContent = data.gst;
                 document.getElementById('hpt-value').textContent = data.hpt;
                 document.getElementById('syssen-value').textContent = data.sysSen ? 'OK' : 'ALARM';
-                document.getElementById('bosen-value').textContent = data.boSen > 0 ? 'ACTIVE' : 'INACTIVE';
+                // An alarm has to be a change of state, not a change of
+                // word. ACTIVE and INACTIVE were rendered in the same colour,
+                // so the one row that matters looked exactly like the seven
+                // that do not.
+                const boCell = document.getElementById('bosen-value');
+                boCell.textContent = data.boSen > 0 ? 'ACTIVE' : 'INACTIVE';
+                boCell.style.color = data.boSen > 0 ? '#ff4d4d' : '#aabbcc';
+                boCell.style.fontWeight = data.boSen > 0 ? '700' : '';
+                container.classList.toggle('cybics-alarm', data.boSen > 0);
                 document.getElementById('compressor-value').textContent = data.compressor > 0 ? 'ON' : 'OFF';
                 document.getElementById('systemvalve-value').textContent = data.systemValve ? 'OPEN' : 'CLOSED';
                 document.getElementById('gstsig-value').textContent = data.gstSig ? 'HIGH' : 'LOW';
@@ -2365,7 +2780,118 @@ def index_page():
                 fill: fillLight.intensity,
                 accent: accentLight.intensity,
               }),
+
+              // Instrumentation for tools/3d/motion.py.
+              //
+              // Motion cannot be judged from a screenshot, and it cannot be
+              // judged from the source either: whether the fan turns at the
+              // same rate on a fast machine and a slow one is a question about
+              // two numbers taken a known time apart. Nothing below changes
+              // what the scene does; it only makes what the scene does
+              // measurable from outside.
+              motion: () => ({
+                t: performance.now(),
+                frame: renderer.info.render.frame,
+                fan: fanGroup.rotation.z,
+                fanSpeed: fanRotationSpeed,
+                // gstRing used to be reported here. The rotation it measured
+                // was removed on purpose -- it spun a ring about its own axis
+                // of symmetry and changed no pixel -- and leaving the probe in
+                // place made a deliberate removal look like an animation that
+                // had stopped working.
+                collarPulse: gstGlowRing.material.emissiveIntensity,
+                ventGlow: ventMaterial.emissiveIntensity,
+                gstLevel: gstFill.children[0].scale.y,
+                hptLevel: hptFill.children[0].scale.y,
+                flowOffset: flowTexture.offset.y,
+                flowGlow: flowMaterial.emissiveIntensity,
+                flame0: flameGeometry.attributes.position.array[1],
+                strip: edgeStripMaterial.emissiveIntensity,
+                frameCapMs: FRAME_MS
+              }),
+
+              // Re-cap the loop, so the same scene can be measured at the rate
+              // a weak machine would run it at without needing a weak machine.
+              frameCap: ms => { FRAME_MS = ms; },
+
+              // Re-measure and re-frame, and try a different lens. The focal
+              // length is a judgement about how the plant should look, and it
+              // is far quicker to turn it here and photograph the result than
+              // to rebuild the container for each candidate.
+              frame: () => { measurePlant(); frameCamera(); },
+              fov: v => { camera.fov = v; camera.updateProjectionMatrix();
+                          measurePlant(); frameCamera(); return camera.fov; },
             };
+
+            await yieldToBrowser();   // built everything that gets an outline
+
+            // ---- Technical outlines --------------------------------------
+            //
+            // This is what carries the whole look.  Shaded primitives with no
+            // edges read as soft lumps at any distance; the same primitives
+            // with their silhouettes drawn read as equipment, and they stay
+            // readable at the overview camera where a texture never would.
+            //
+            // Every edge in the scene ends up in one buffer and one
+            // LineSegments, so the entire outline pass is a single draw call
+            // no matter how many objects it covers.  One LineSegments per mesh
+            // would have been two hundred more draw calls for the same image,
+            // and this scene is already draw-call bound rather than triangle
+            // bound.
+            const outlineGroup = (function buildOutlines() {
+              scene.updateMatrixWorld(true);
+              const points = [];
+              const v = new THREE.Vector3();
+              const sphere = new THREE.Sphere();
+
+              scene.traverse(node => {
+                if (!node.isMesh || node.userData.noOutline) { return; }
+                const g = node.geometry;
+                if (!g || !g.attributes || !g.attributes.position) { return; }
+                // Transparent things are see-through on purpose; drawing their
+                // silhouette puts a hard line around something the eye is
+                // meant to look past.
+                const m = node.material;
+                if (m && (m.transparent || m.opacity < 1) &&
+                    !node.userData.forceOutline) { return; }
+                // Bolts, LED dots and flange studs.  At the scale they occupy
+                // on screen their outlines are noise, and there are hundreds.
+                if (!g.boundingSphere) { g.computeBoundingSphere(); }
+                sphere.copy(g.boundingSphere).applyMatrix4(node.matrixWorld);
+                if (sphere.radius < 0.45) { return; }
+
+                // 32 degrees keeps the rim of a cylinder and the horizon of a
+                // dome while dropping the latitude rings inside them.
+                const edges = new THREE.EdgesGeometry(g, 32);
+                const pos = edges.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                  v.fromBufferAttribute(pos, i).applyMatrix4(node.matrixWorld);
+                  points.push(v.x, v.y, v.z);
+                }
+                edges.dispose();
+              });
+
+              const geom = new THREE.BufferGeometry();
+              geom.setAttribute('position',
+                new THREE.Float32BufferAttribute(points, 3));
+              const lines = new THREE.LineSegments(geom,
+                new THREE.LineBasicMaterial({
+                  color: 0xd2e2f2,
+                  transparent: true,
+                  // At 0.55 the outlines cost frame time and carried none of
+                  // the look, which is the worst of both. They either do the
+                  // work or they come out.
+                  opacity: 0.85,
+                  // Outlines have to fade with distance like everything else,
+                  // or the far side of the plant comes forward.
+                  fog: true,
+                  depthWrite: false
+                }));
+              lines.userData.noOutline = true;
+              lines.frustumCulled = false;
+              scene.add(lines);
+              return lines;
+            })();
 
             // Draw the shadow maps once, now that everything is in the scene.
             renderer.shadowMap.needsUpdate = true;
@@ -2386,7 +2912,9 @@ def index_page():
             // enough that NiceGUI's client could not answer its own handshake
             // in time and reloaded the page out from under the scene, which is
             // how the 3D tab managed to kill the session it was running in.
-            const FRAME_MS = 1000 / (softwareRenderer ? 12 : 30);
+            // let, not const: tools/3d/motion.py re-caps this to measure the
+            // scene at a slow machine's frame rate.
+            let FRAME_MS = 1000 / (softwareRenderer ? 12 : 30);
             let lastFrame = 0;
 
             function visible() {
@@ -2403,28 +2931,71 @@ def index_page():
 
               if (!visible()) { return; }
               if (now - lastFrame < FRAME_MS) { return; }
+
+              // How much time this frame covers, in seconds.
+              //
+              // Every moving thing in here used to advance by a fixed amount
+              // per frame, which quietly made the whole plant a function of
+              // the machine it was running on: measured with tools/3d/motion.py,
+              // the fan turned at 3.54 rad/s at the 30 fps cap and 1.50 rad/s
+              // at the 12 fps cap the software path uses -- the same plant
+              // running at 42 per cent speed on a slower computer.
+              //
+              // Clamped, because a tab that has been in the background comes
+              // back with a gap of however long it was hidden, and without the
+              // clamp the first frame after that teleports every particle to
+              // the far end of its run.
+              // 0.25 s, not 0.1: a frame at the software path's 12 fps cap
+              // already covers 83 ms, and a machine struggling below 10 fps
+              // would have had time clipped off every single frame -- which
+              // showed up as the plant still running 6 per cent slow after the
+              // per-frame arithmetic was fixed. A quarter of a second is still
+              // far short of a backgrounded tab.
+              const dt = Math.min((now - lastFrame) / 1000, 0.25);
               lastFrame = now;
 
-              // Smooth fan rotation
-              fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) * 0.1;
-              fanGroup.rotation.z += fanRotationSpeed;
+              // The per-frame increments below were written against a loop
+              // pinned at 30 fps, so they are quantities per thirtieth of a
+              // second. This restates them per second without restating every
+              // literal, and it is the one place that old assumption is
+              // written down.
+              const ticks = dt * 30;
 
-              // Animate gas particles (flowing along outlet pipe from compressor to HPT)
-              if(particleSystem.visible) {
-                const positions = particleGeometry.attributes.position.array;
-                for(let i = 0; i < particleCount; i++) {
-                  positions[i * 3] += particleVelocities[i].x;
-                  positions[i * 3 + 1] += particleVelocities[i].y;
-                  positions[i * 3 + 2] += particleVelocities[i].z;
+              // Fan.
+              //
+              // The easing was also per frame -- ten per cent of the remaining
+              // difference each time -- so the fan spun up more slowly on a
+              // slow machine as well as turning more slowly. An exponential
+              // with a time constant settles at the same rate either way; 0.32 s
+              // is what the old ten-per-cent-per-frame worked out to at 30 fps.
+              fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) *
+                                  (1 - Math.exp(-dt / 0.32));
+              fanGroup.rotation.z += fanRotationSpeed * ticks;
 
-                  // Reset particles that reach HPT back to compressor
-                  if(positions[i * 3] > 7.5) {
-                    positions[i * 3] = 0; // Back to compressor
-                    positions[i * 3 + 1] = 2.5; // At outlet pipe height
-                    positions[i * 3 + 2] = 0.5 + (Math.random() - 0.5) * 0.3;
-                  }
-                }
-                particleGeometry.attributes.position.needsUpdate = true;
+              // Flow band. Speed is in texture repeats per second, so it is
+              // the same on any machine; stopped, the pipe goes dark rather
+              // than freezing mid-chevron, which would read as a stalled
+              // animation instead of as a stopped compressor.
+              // Between the two extremes that have been tried: white enough to
+              // blow out the pipe's own shading, and faint enough to vanish at
+              // the overview camera, which is the view this is actually read
+              // from. Measured peak-to-trough along the pipe was 62 levels when
+              // it was too bright and 41 when it was too faint.
+              flowGlow += ((compressorRunning ? 1.0 : 0) - flowGlow) *
+                          (1 - Math.exp(-dt / 0.25));
+              flowMaterial.emissiveIntensity = flowGlow;
+              if (compressorRunning) {
+                flowTexture.offset.y = (flowTexture.offset.y - dt * 0.55) % 1;
+              }
+
+              // The vent. Faster than the process flow, because a relief line
+              // is not moving gas at the same leisurely rate as the duty
+              // pipework, and the difference is worth seeing.
+              ventGlow += ((blowoutActive ? 1.3 : 0) - ventGlow) *
+                          (1 - Math.exp(-dt / 0.18));
+              ventMaterial.emissiveIntensity = ventGlow;
+              if (blowoutActive) {
+                ventTexture.offset.y = (ventTexture.offset.y - dt * 1.4) % 1;
               }
 
               // Animate flames
@@ -2433,13 +3004,17 @@ def index_page():
                 const flameCol = flameGeometry.attributes.color.array;
 
                 for(let i = 0; i < flameCount; i++) {
-                  flamePos[i * 3] += flameVelocities[i].x;
-                  flamePos[i * 3 + 1] += flameVelocities[i].y;
-                  flamePos[i * 3 + 2] += flameVelocities[i].z;
+                  flamePos[i * 3] += flameVelocities[i].x * ticks;
+                  flamePos[i * 3 + 1] += flameVelocities[i].y * ticks;
+                  flamePos[i * 3 + 2] += flameVelocities[i].z * ticks;
 
-                  flameVelocities[i].life -= 0.015;
+                  flameVelocities[i].life -= 0.015 * ticks;
 
-                  if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 17) {
+                  // 16.2, not 17: at the default camera the stack tip leaves only
+                  // about forty pixels of headroom, so the plume ran off the top
+                  // of the frame -- the most important event in the scene cut off
+                  // by the edge of the picture announcing it.
+                  if(flameVelocities[i].life <= 0 || flamePos[i * 3 + 1] > 16.2) {
                     flamePos[i * 3] = 11 + (Math.random() - 0.5) * 0.4;
                     flamePos[i * 3 + 1] = 14 + Math.random() * 0.5;
                     flamePos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
@@ -2469,20 +3044,51 @@ def index_page():
                 flameGeometry.attributes.position.needsUpdate = true;
                 flameGeometry.attributes.color.needsUpdate = true;
 
-                flameLight.intensity = 5 + Math.sin(Date.now() * 0.01) * 2 + Math.random();
+                // Flicker on a clock rather than on the frame counter, and with
+                // one smoothed random rather than a fresh one every frame --
+                // a per-frame random flickers faster on faster machines and
+                // reads as noise rather than as fire.
+                flameFlicker += (Math.random() - flameFlicker) * (1 - Math.exp(-dt / 0.06));
+                flameLight.intensity = 5 + Math.sin(now * 0.012) * 2 + flameFlicker;
               }
 
-              // Animate status indicators (subtle realistic pulsing)
-              const time = Date.now() * 0.001;
-              gstGlowRing.rotation.z = time * 0.3;
-              gstGlowRing.material.emissiveIntensity = 1.0 + Math.sin(time * 1.5) * 0.3;
+              // Status collars.
+              //
+              // These used to rotate about their own axis of symmetry, which
+              // is an animation that cannot be seen: a circle spun about its
+              // centre looks exactly like a circle standing still. It cost
+              // work every frame and changed no pixel.
+              //
+              // They also pulsed continuously, which is worse than useless --
+              // something blinking all the time teaches the eye to ignore it,
+              // so when there is finally something to report the blinking says
+              // nothing. They are steady now, and pulse only while the blowout
+              // sensor is actually reporting, which is a real signal from the
+              // plant rather than decoration.
+              // Only the vessel that is actually in trouble.
+              //
+              // A blowout used to turn both collars red and pulse them, which
+              // said "this tank is in alarm" over a GST that was merely low --
+              // and the collars' normal amber had meanwhile been claimed by
+              // the LOW and HIGH bands, so the same colour meant two different
+              // things on the same object. Structural hardware stays a neutral
+              // that the state palette never uses; the blowout is HPT's, so
+              // only HPT's collar answers for it.
+              const alarmPulse = blowoutActive
+                ? 1.5 + Math.sin(now * 0.008) * 0.9
+                : COLLAR_IDLE_GLOW;
+              hptGlowRing.material.emissiveIntensity = alarmPulse;
+              gstGlowRing.material.emissiveIntensity = COLLAR_IDLE_GLOW;
+              const collar = blowoutActive ? 0xff3b30 : COLLAR_STEEL;
+              if (hptGlowRing.material.emissive.getHex() !== collar) {
+                hptGlowRing.material.emissive.setHex(collar);
+                hptGlowRing.material.color.setHex(collar);
+              }
 
-              hptGlowRing.rotation.z = -time * 0.3;
-              hptGlowRing.material.emissiveIntensity = 1.0 + Math.cos(time * 1.5) * 0.3;
-
-              // Animate platform edge strips (subtle)
-              const stripIntensity = 1.2 + Math.sin(time * 2) * 0.3;
-              edgeStripMaterial.emissiveIntensity = stripIntensity;
+              // The platform edge strips are steady. A painted safety line
+              // does not breathe, and this one was pulsing in the corner of
+              // every frame for no reason at all.
+              edgeStripMaterial.emissiveIntensity = 1.2;
 
               // Update orbit controls
               controls.update();
@@ -2501,12 +3107,92 @@ def index_page():
             // shrinks, and when the page is zoomed, none of which fire a
             // window resize.  Without this the canvas kept whatever size it
             // had when the scene was built and left a dead band around itself.
+            // Frame the plant, rather than hoping a hand-set camera fits it.
+            //
+            // The camera used to sit at a fixed point chosen by eye, and the
+            // plant filled about a third of the canvas with the right-hand
+            // third empty. Every attempt to move it in by hand clipped the top
+            // of the stack instead, because the scene is both wide and tall and
+            // the trade between the two depends on the window's aspect ratio --
+            // which is not knowable when the number is typed into the source.
+            //
+            // So the scene measures itself. The bounding box of the equipment
+            // is fitted to whichever of width or height is the binding
+            // constraint, from a fixed three-quarter direction, and it is
+            // recomputed whenever the container changes size. The plant fills
+            // the frame at any window shape, and the stack stops being cut off.
+            const FRAME_DIRECTION = new THREE.Vector3(0.02, 0.36, 1).normalize();
+            const FRAME_MARGIN = 1.12;
+            const plantBox = new THREE.Box3();
+            const plantCentre = new THREE.Vector3();
+            const plantSize = new THREE.Vector3();
+
+            function measurePlant() {
+              plantBox.makeEmpty();
+              scene.traverse(node => {
+                // The sky dome is 180 units across and the ground is 300; both
+                // would swallow the box and put the camera in the next county.
+                if (!node.isMesh || node.userData.noFrame) { return; }
+                plantBox.expandByObject(node);
+              });
+              plantBox.getCenter(plantCentre);
+              plantBox.getSize(plantSize);
+            }
+
+            // Where the corners of the plant land on screen, in normalised
+            // device coordinates: 1 means exactly at the edge of the frame.
+            const frameCorner = new THREE.Vector3();
+            function worstCorner() {
+              let worst = 0;
+              for (let i = 0; i < 8; i++) {
+                frameCorner.set(
+                  (i & 1) ? plantBox.max.x : plantBox.min.x,
+                  (i & 2) ? plantBox.max.y : plantBox.min.y,
+                  (i & 4) ? plantBox.max.z : plantBox.min.z);
+                frameCorner.project(camera);
+                worst = Math.max(worst, Math.abs(frameCorner.x),
+                                        Math.abs(frameCorner.y));
+              }
+              return worst;
+            }
+
+            function frameCamera() {
+              if (plantBox.isEmpty()) { return; }
+              // The analytic distance is only a starting point. It measures to
+              // the centre of the box, while the near face stands several units
+              // closer, and the camera looks down rather than straight on -- so
+              // on its own it framed the plant far too tight and cut the stack
+              // off at the top. Project the eight corners and pull back until
+              // they all fit, which is exact and does not care about the shape
+              // of the box or the angle it is seen from.
+              const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
+              let dist = Math.max(
+                (plantSize.y / 2) / Math.tan(halfFov),
+                (plantSize.x / 2) / (Math.tan(halfFov) * camera.aspect));
+
+              for (let pass = 0; pass < 6; pass++) {
+                camera.position.copy(plantCentre)
+                      .addScaledVector(FRAME_DIRECTION, dist);
+                camera.lookAt(plantCentre);
+                camera.updateMatrixWorld(true);
+                camera.updateProjectionMatrix();
+                const worst = worstCorner();
+                if (!isFinite(worst) || worst <= 0) { break; }
+                const wanted = dist * worst * FRAME_MARGIN;
+                if (Math.abs(wanted - dist) < 0.05) { break; }
+                dist = wanted;
+              }
+              controls.target.copy(plantCentre);
+              controls.update();
+            }
+
             function fitToContainer() {
               const w = container.clientWidth, h = container.clientHeight;
               if (!w || !h) { return; }
               camera.aspect = w / h;
               camera.updateProjectionMatrix();
               renderer.setSize(w, h, false);
+              frameCamera();
               renderer.shadowMap.needsUpdate = true;
             }
 
@@ -2514,6 +3200,7 @@ def index_page():
               new ResizeObserver(fitToContainer).observe(container);
             }
             window.addEventListener('resize', fitToContainer);
+            measurePlant();
             fitToContainer();
 
             // Start animation
