@@ -28,7 +28,7 @@ A client (the "master") sends a request naming a **function code** and an addres
 .mb-x {--mb-dur: 9s;}
 .mb-x .pkt {animation: mb-fly var(--mb-dur) linear infinite;}
 .mb-x .ack {animation: mb-back var(--mb-dur) linear infinite;}
-.mb-x .old {animation: mb-fade var(--mb-dur) linear infinite;}
+.mb-x .old {opacity:0; animation: mb-fade var(--mb-dur) linear infinite;}
 .mb-x .new {animation: mb-show var(--mb-dur) linear infinite;}
 .mb-x .hs  {animation: mb-blink var(--mb-dur) linear infinite;}
 @keyframes mb-fly  {0%,2%{transform:translateX(0);opacity:0}
@@ -41,7 +41,7 @@ A client (the "master") sends a request naming a **function code** and an addres
 @keyframes mb-show {0%,20%{opacity:0} 22%,92%{opacity:1} 94%,100%{opacity:0}}
 /* Appears the instant the register flips, i.e. in the gap where a check
    would have been, and stays for the long rest phase. */
-@keyframes mb-blink{0%,18%{opacity:0} 21%,92%{opacity:1} 94%,100%{opacity:0}}
+@keyframes mb-blink{0%,21%{opacity:0} 23%,92%{opacity:1} 94%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
   .mb-x .pkt,.mb-x .ack,.mb-x .old,.mb-x .new,.mb-x .hs {animation: none;}
   .mb-x .pkt,.mb-x .ack {opacity:1;}
@@ -134,7 +134,7 @@ in turn.</figcaption>
 <thead><tr><th>Field</th><th>Size</th><th>What it does</th><th>Has to be right?</th></tr></thead>
 <tbody>
 <tr><td>Transaction</td><td>2 B</td><td>Echoed back so a client can match a reply to its request.</td><td>No &mdash; any value works.</td></tr>
-<tr><td>Protocol</td><td>2 B</td><td>Always 0 for Modbus TCP. Nothing useful is ever checked here.</td><td>No.</td></tr>
+<tr><td>Protocol</td><td>2 B</td><td>Always 0 for Modbus TCP. Nothing in CybICS ever checks it.</td><td>No.</td></tr>
 <tr><td>Length</td><td>2 B</td><td>Number of bytes that follow, from the unit id onwards.</td><td><strong>Yes</strong> &mdash; wrong and the parse desynchronises.</td></tr>
 <tr><td>Unit</td><td>1 B</td><td>Addresses a device behind a serial gateway. Usually 1.</td><td>No &mdash; unless a gateway is in the path.</td></tr>
 <tr><td>Function</td><td>1 B</td><td>Read or write, bit or word. This is what the PLC acts on.</td><td><strong>Yes.</strong></td></tr>
@@ -148,7 +148,8 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
 
 <figure>
 <style>
-.mb-d {--d: 11s;}
+.mb-d {--d: 11s; --hi:#ff6b00;}
+html.light-mode .mb-d {--hi:#b34700;}
 /* Each register is taken apart in three beats: the box is picked out, it
    splits into its two bytes, and the bytes become their characters. That
    sequence is the thing being taught, so the motion carries it rather than
@@ -156,7 +157,7 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
    The stagger lives in the keyframe percentages, not in animation-delay: a
    delay shifts an element's whole cycle permanently, so the figure would
    never reset together and would be correct only on its first loop. */
-.mb-d .byt, .mb-d .chr {opacity:0;}
+.mb-d .byt, .mb-d .chr {opacity:1;}
 .mb-d .r1{animation: d-reg1 var(--d) steps(1,end) infinite;}
 .mb-d .b1{animation: d-byt1 var(--d) steps(1,end) infinite;}
 .mb-d .k1{animation: d-chr1 var(--d) steps(1,end) infinite;}
@@ -178,26 +179,26 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
 .mb-d .r7{animation: d-reg7 var(--d) steps(1,end) infinite;}
 .mb-d .b7{animation: d-byt7 var(--d) steps(1,end) infinite;}
 .mb-d .k7{animation: d-chr7 var(--d) steps(1,end) infinite;}
-.mb-d .flag {opacity:0; animation: d-flag var(--d) steps(1,end) infinite;}
-@keyframes d-reg1{0.00%,6.36%{stroke:#ff6b00; stroke-width:2.5} 6.37%,100%{stroke:currentColor; stroke-width:1}}
+.mb-d .flag {animation: d-flag var(--d) steps(1,end) infinite;}
+@keyframes d-reg1{0.00%,6.36%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 6.37%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt1{0%,2.73%{opacity:0} 2.74%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr1{0%,5.91%{opacity:0} 5.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg2{0%,8.18%{stroke:currentColor; stroke-width:1} 8.18%,14.55%{stroke:#ff6b00; stroke-width:2.5} 14.56%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-reg2{0%,8.18%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 8.18%,14.55%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 14.56%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt2{0%,10.91%{opacity:0} 10.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr2{0%,14.09%{opacity:0} 14.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg3{0%,16.36%{stroke:currentColor; stroke-width:1} 16.36%,22.73%{stroke:#ff6b00; stroke-width:2.5} 22.74%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-reg3{0%,16.36%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 16.36%,22.73%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 22.74%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt3{0%,19.09%{opacity:0} 19.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr3{0%,22.27%{opacity:0} 22.28%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg4{0%,24.55%{stroke:currentColor; stroke-width:1} 24.55%,30.91%{stroke:#ff6b00; stroke-width:2.5} 30.92%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-reg4{0%,24.55%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 24.55%,30.91%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 30.92%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt4{0%,27.27%{opacity:0} 27.28%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr4{0%,30.45%{opacity:0} 30.46%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg5{0%,32.73%{stroke:currentColor; stroke-width:1} 32.73%,39.09%{stroke:#ff6b00; stroke-width:2.5} 39.10%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-reg5{0%,32.73%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 32.73%,39.09%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 39.10%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt5{0%,35.45%{opacity:0} 35.46%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr5{0%,38.64%{opacity:0} 38.65%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg6{0%,40.91%{stroke:currentColor; stroke-width:1} 40.91%,47.27%{stroke:#ff6b00; stroke-width:2.5} 47.28%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-reg6{0%,40.91%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 40.91%,47.27%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 47.28%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt6{0%,43.64%{opacity:0} 43.65%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr6{0%,46.82%{opacity:0} 46.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg7{0%,49.09%{stroke:currentColor; stroke-width:1} 49.09%,55.45%{stroke:#ff6b00; stroke-width:2.5} 55.46%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-reg7{0%,49.09%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 49.09%,55.45%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 55.46%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
 @keyframes d-byt7{0%,51.82%{opacity:0} 51.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr7{0%,55.00%{opacity:0} 55.01%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-flag{0%,60%{opacity:0} 64%,96%{opacity:1} 96.01%,100%{opacity:0}}
@@ -216,13 +217,13 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
   </text>
 
   <g font-size="13" text-anchor="middle">
-    <g><rect class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
-    <g><rect class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
-    <g><rect class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
-    <g><rect class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
-    <g><rect class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
-    <g><rect class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
-    <g><rect class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
   </g>
 
   <g font-size="11" text-anchor="middle">
@@ -339,7 +340,7 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
   <text x="98" y="132" text-anchor="middle" font-size="11" opacity="0.85">the only difference</text>
 
 </svg>
-<figcaption>A source address is identity you can forge, and that is the honest limit of this rule. Both frames write 0x5a (90) to register 0x0466 (1126). Even the transaction id is the attacker's to choose: <code>hwio</code> lets pymodbus count it up per request, and a forged frame simply picks one. This one is still on purpose:
+<figcaption>A source address is identity you can forge, and that is the honest limit of rule 4's allowlist. Both frames write 0x5a (90) to register 0x0466 (1126). Even the transaction id is the attacker's to choose: <code>hwio</code> lets pymodbus count it up per request, and a forged frame simply picks one. This one is still on purpose:
 comparing two things is what eyes do well when both are visible at once, and sliding them past
 each other in turn would make it harder, not clearer. Nothing but <code>hwio</code> has any business writing 1126 &mdash; which is not the same as nothing else being able to.</figcaption>
 </figure>
@@ -367,4 +368,4 @@ Those last two are worth dwelling on. The PLC rejecting a function code does not
 
 Because Modbus carries no identity of its own, the CybICS IDS borrows one from the layer below and mixes it with behaviour: a burst of 50 writes in 5 seconds (flood, rule 3), 10 writes in 30 seconds from a source that is not `hwio` or `fuxa` (unauthorised write, rule 4), or a single diagnostic function code (rule 5). Only rule 5 is a signature: one byte matched, alerting on the first packet that carries it. The other two are rate rules, and *both* carry an IP allowlist on top of their counter &mdash; which is identity of a sort &mdash; just the weakest sort, since the attack machine sits on the same bridge and can claim any address it likes.
 
-Note what that costs. A behavioural rule has no ground truth to appeal to, so it is a judgement about what is normal *here*, tuned against this plant's traffic. Change the polling rate and the flood threshold is wrong. An address allowlist is worse: it is exactly as strong as the assumption that nobody spoofs. Both trade-offs are the subject of the *IDS Monitoring & Tuning* challenge.
+Note what that costs. A behavioural rule has no ground truth to appeal to, so it is a judgement about what is normal *here*, tuned against this plant's traffic. Change the polling rate and the flood threshold is wrong. An address allowlist is worse: it is exactly as strong as the assumption that nobody spoofs. Neither trade-off is actually exercised anywhere: the *IDS Monitoring &amp; Tuning* challenge only asks you to start the IDS and make three different rules fire. The thresholds and the allowlists are both in `software/ids/rules.py`, and changing them is the exercise the challenge leaves out.
