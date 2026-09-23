@@ -1,9 +1,6 @@
 # The ICS attack lifecycle
 
-Real ICS intrusions are not single tricks; they are campaigns with stages. The
-**MITRE ATT&CK for ICS** knowledge base names the tactics an adversary moves through. The
-CybICS challenges are arranged along the same arc, so the CTF is a guided walk through a
-real attack.
+Real ICS intrusions are not single tricks; they are campaigns with stages. The **MITRE ATT&CK for ICS** knowledge base names the tactics an adversary moves through. The CybICS challenges are arranged along the same arc, so the CTF is a guided walk through a real attack.
 
 <figure>
 <svg viewBox="0 0 560 150" role="img" aria-label="ICS attack lifecycle stages">
@@ -44,8 +41,4 @@ real attack.
 
 ## Why the order matters for defenders
 
-Reconnaissance is quiet; impact is obvious. The earlier you detect, the more options you
-have and the less damage is done. That is the whole argument for monitoring the control
-network: it turns a silent campaign into a series of alerts, which is exactly what the
-detection modules practise. The defender's goal is to **shift detection left**, catching the
-scan before it becomes a blowout.
+Reconnaissance is quiet; impact is obvious. The earlier you detect, the more options you have and the less damage is done. That is the whole argument for monitoring the control network: it turns a silent campaign into a series of alerts, which is exactly what the detection modules practise. The defender's goal is to **shift detection left**, catching the scan before it becomes a blowout.

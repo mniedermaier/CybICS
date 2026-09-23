@@ -1,7 +1,6 @@
 # IDS forensics
 
-Detection produces an alert buffer; forensics reads it to answer **who, what, and when**.
-An analyst reconstructs the incident from the recorded alerts rather than the live process.
+Detection produces an alert buffer; forensics reads it to answer **who, what, and when**. An analyst reconstructs the incident from the recorded alerts rather than the live process.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Alert record fields">
@@ -18,9 +17,6 @@ An analyst reconstructs the incident from the recorded alerts rather than the li
 
 ## The skill
 
-Query the IDS for its alert history and answer questions computed from the buffer: which host
-was most active, which rule fired most, when it started. Correct answers unlock the
-forensics flag.
+Query the IDS for its alert history and answer questions computed from the buffer: which host was most active, which rule fired most, when it started. Correct answers unlock the forensics flag.
 
-> **MITRE D3FEND:** Network Traffic Analysis and incident reconstruction. This is the
-> analyst's counterpart to the attacker's noise.
+> **MITRE D3FEND:** Network Traffic Analysis and incident reconstruction. This is the analyst's counterpart to the attacker's noise.

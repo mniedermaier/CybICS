@@ -1,7 +1,6 @@
 # Hardening credentials
 
-The first control every ICS needs is to remove default and weak passwords. This module has
-you change the OpenPLC and FUXA logins so the earlier dictionary attack no longer works.
+The first control every ICS needs is to remove default and weak passwords. This module has you change the OpenPLC and FUXA logins so the earlier dictionary attack no longer works.
 
 <figure>
 <svg viewBox="0 0 520 110" role="img" aria-label="Default versus changed credentials">
@@ -18,8 +17,6 @@ you change the OpenPLC and FUXA logins so the earlier dictionary attack no longe
 
 ## The skill
 
-Change the OpenPLC and FUXA passwords through their web UIs, then verify. The check logs in
-with the old defaults and passes only when they are rejected.
+Change the OpenPLC and FUXA passwords through their web UIs, then verify. The check logs in with the old defaults and passes only when they are rejected.
 
-> **IEC 62443** SR 1.1; **NIST SP 800-82 / 800-53** IA-5 Authenticator Management. Detection
-> counterpart: HTTP brute-force alerting.
+> **IEC 62443** SR 1.1; **NIST SP 800-82 / 800-53** IA-5 Authenticator Management. Detection counterpart: HTTP brute-force alerting.

@@ -1,13 +1,10 @@
 # S7comm
 
-**S7comm** is the proprietary protocol Siemens PLCs use for programming and data exchange.
-It rides on the ISO-on-TCP (RFC 1006) transport on port **102**. CybICS ships a small
-S7comm server so you can practise enumeration without a real Siemens PLC.
+**S7comm** is the proprietary protocol Siemens PLCs use for programming and data exchange. It rides on the ISO-on-TCP (RFC 1006) transport on port **102**. CybICS ships a small S7comm server so you can practise enumeration without a real Siemens PLC.
 
 ## The layered stack
 
-S7comm is not a flat protocol; it is wrapped in two lower layers. Understanding the layers
-explains why a connection needs a setup handshake before any data flows.
+S7comm is not a flat protocol; it is wrapped in two lower layers. Understanding the layers explains why a connection needs a setup handshake before any data flows.
 
 <figure>
 <svg viewBox="0 0 360 210" role="img" aria-label="S7comm protocol stack">
@@ -29,10 +26,7 @@ explains why a connection needs a setup handshake before any data flows.
 
 ## Reading device identity
 
-A useful, low-noise reconnaissance step is the **Read SZL** (System Status List) function.
-It returns identity records: module type, serial number, firmware, plant designation. No
-authentication is needed, so a scanner can fingerprint a Siemens device before touching the
-process. In CybICS the module-type field is where the *scanning2* challenge hides its flag.
+A useful, low-noise reconnaissance step is the **Read SZL** (System Status List) function. It returns identity records: module type, serial number, firmware, plant designation. No authentication is needed, so a scanner can fingerprint a Siemens device before touching the process. In CybICS the module-type field is where the *scanning2* challenge hides its flag.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="SZL identity query">
@@ -53,7 +47,4 @@ process. In CybICS the module-type field is where the *scanning2* challenge hide
 
 ## Security relevance
 
-Classic S7comm (S7-300/400) has no authentication. Newer S7-1200/1500 added S7comm-Plus
-with anti-replay and integrity, but huge installed bases still speak the old protocol.
-Enumeration is quiet and hard to distinguish from legitimate engineering traffic, which is
-why detecting it relies on *where* the request comes from, not *what* it is.
+Classic S7comm (S7-300/400) has no authentication. Newer S7-1200/1500 added S7comm-Plus with anti-replay and integrity, but huge installed bases still speak the old protocol. Enumeration is quiet and hard to distinguish from legitimate engineering traffic, which is why detecting it relies on *where* the request comes from, not *what* it is.

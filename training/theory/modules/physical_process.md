@@ -1,9 +1,6 @@
 # The gas pressure process
 
-Every CybICS attack ends in a physical effect, so it pays to know the process. The plant
-moves gas from an external supply into a **Gas Storage Tank (GST)**, compresses it into a
-**High Pressure Tank (HPT)**, and protects itself with a mechanical **blowout** if pressure
-climbs too high.
+Every CybICS attack ends in a physical effect, so it pays to know the process. The plant moves gas from an external supply into a **Gas Storage Tank (GST)**, compresses it into a **High Pressure Tank (HPT)**, and protects itself with a mechanical **blowout** if pressure climbs too high.
 
 <figure>
 <svg viewBox="0 0 520 150" role="img" aria-label="Gas pressure process">
@@ -31,10 +28,6 @@ The PLC keeps HPT in a safe band; forcing it past critical triggers the blowout.
 
 ## Why it matters
 
-The control logic keeps the HPT within a safe pressure band by running the compressor and
-opening valves. An attacker who overwrites those registers, or the setpoints, can drive the
-tank past its limit &mdash; the `CybICS(Bl0w0ut)` outcome shown on the HMI. Knowing which
-register is which turns a blind write into a targeted one.
+The control logic keeps the HPT within a safe pressure band by running the compressor and opening valves. An attacker who overwrites those registers, or the setpoints, can drive the tank past its limit &mdash; the `CybICS(Bl0w0ut)` outcome shown on the HMI. Knowing which register is which turns a blind write into a targeted one.
 
-> Related: the plant model exists identically in the STM32 firmware and the virtual
-> `hardwareAbstraction.py`, kept in sync by a parity test.
+> Related: the plant model exists identically in the STM32 firmware and the virtual `hardwareAbstraction.py`, kept in sync by a parity test.

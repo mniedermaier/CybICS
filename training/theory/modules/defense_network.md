@@ -1,8 +1,6 @@
 # Network segmentation
 
-Segmentation is firewalling raised to the network level: the attacker's zone is cut off from
-the control zone across every service, not just one port. In CybICS you block the attack
-host from both the PLC and the OPC-UA server.
+Segmentation is firewalling raised to the network level: the attacker's zone is cut off from the control zone across every service, not just one port. In CybICS you block the attack host from both the PLC and the OPC-UA server.
 
 <figure>
 <svg viewBox="0 0 520 150" role="img" aria-label="Segmenting attacker from control zone">
@@ -22,7 +20,6 @@ host from both the PLC and the OPC-UA server.
 
 ## The skill
 
-Apply DROP rules on both the OpenPLC and OPC-UA containers for the attack host, then verify.
-This builds the zone boundary between the attacker and the controllers.
+Apply DROP rules on both the OpenPLC and OPC-UA containers for the attack host, then verify. This builds the zone boundary between the attacker and the controllers.
 
 > **IEC 62443** zones and conduits (SR 5.1); **NIST SP 800-82 / 800-53** SC-7.

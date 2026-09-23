@@ -1,8 +1,6 @@
 # UART and hardware access
 
-Physical access changes everything. Many embedded controllers expose a **UART** serial
-console on the board for debugging. Anyone who can attach to those pins may get a shell, a
-boot log, or a login prompt &mdash; below every network control.
+Physical access changes everything. Many embedded controllers expose a **UART** serial console on the board for debugging. Anyone who can attach to those pins may get a shell, a boot log, or a login prompt &mdash; below every network control.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="UART serial console">
@@ -24,9 +22,6 @@ boot log, or a login prompt &mdash; below every network control.
 
 ## The skill
 
-Connect to the board's serial console, reach the menu, and get past its simple login. The
-UART flag `CybICS(U#RT)` is printed by the firmware behind that gate. This module is
-hardware-only.
+Connect to the board's serial console, reach the menu, and get past its simple login. The UART flag `CybICS(U#RT)` is printed by the firmware behind that gate. This module is hardware-only.
 
-> **MITRE ATT&CK for ICS:** physical/hardware access. Defence: disable or protect debug
-> interfaces, and control physical access to the equipment.
+> **MITRE ATT&CK for ICS:** physical/hardware access. Defence: disable or protect debug interfaces, and control physical access to the equipment.

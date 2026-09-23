@@ -1,8 +1,6 @@
 # Network scanning
 
-Reconnaissance comes first. Scanning maps which hosts are alive and which industrial
-services they run, so the attacker knows where the PLC, HMI and protocols live. In OT this
-must be done carefully &mdash; aggressive scans can disturb fragile devices.
+Reconnaissance comes first. Scanning maps which hosts are alive and which industrial services they run, so the attacker knows where the PLC, HMI and protocols live. In OT this must be done carefully &mdash; aggressive scans can disturb fragile devices.
 
 <figure>
 <svg viewBox="0 0 520 130" role="img" aria-label="Port scan">
@@ -26,8 +24,6 @@ must be done carefully &mdash; aggressive scans can disturb fragile devices.
 
 ## The skill
 
-Use `nmap -sV` to discover hosts and service versions on the lab network. Service banners
-reveal the ICS stack; one of them even carries a flag in its HTTP `Server` header.
+Use `nmap -sV` to discover hosts and service versions on the lab network. Service banners reveal the ICS stack; one of them even carries a flag in its HTTP `Server` header.
 
-> **MITRE ATT&CK for ICS:** T0846 Remote System Discovery. It is loud on purpose here, to
-> connect directly to the *detect a scan* module.
+> **MITRE ATT&CK for ICS:** T0846 Remote System Discovery. It is loud on purpose here, to connect directly to the *detect a scan* module.

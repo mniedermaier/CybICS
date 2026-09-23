@@ -1,8 +1,6 @@
 # Programming the controller
 
-The PLC runs a program you can change. Downloading modified logic to a running controller is
-one of the highest-impact actions in ICS, because it silently changes how the process
-behaves &mdash; the technique behind Stuxnet.
+The PLC runs a program you can change. Downloading modified logic to a running controller is one of the highest-impact actions in ICS, because it silently changes how the process behaves &mdash; the technique behind Stuxnet.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Program download to PLC">
@@ -21,9 +19,6 @@ behaves &mdash; the technique behind Stuxnet.
 
 ## The skill
 
-Open the CybICS project in OpenPLC Editor, modify and compile it, then upload and launch it
-through the web UI. The controller then runs a program that is no longer the shipped one
-&mdash; proof you exercised the program-download workflow.
+Open the CybICS project in OpenPLC Editor, modify and compile it, then upload and launch it through the web UI. The controller then runs a program that is no longer the shipped one &mdash; proof you exercised the program-download workflow.
 
-> **MITRE ATT&CK for ICS:** T0843 Program Download, T0889 Modify Program. Defence:
-> configuration management and change control (NIST CM-3), and integrity verification.
+> **MITRE ATT&CK for ICS:** T0843 Program Download, T0889 Modify Program. Defence: configuration management and change control (NIST CM-3), and integrity verification.

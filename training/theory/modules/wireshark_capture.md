@@ -1,8 +1,6 @@
 # Capturing Modbus traffic
 
-Modbus is plaintext. Anyone who can see the traffic can read every value the HMI and PLC
-exchange &mdash; setpoints, readings, and anything an application writes into registers.
-Traffic capture turns a network position into data.
+Modbus is plaintext. Anyone who can see the traffic can read every value the HMI and PLC exchange &mdash; setpoints, readings, and anything an application writes into registers. Traffic capture turns a network position into data.
 
 <figure>
 <svg viewBox="0 0 520 130" role="img" aria-label="Sniffing Modbus writes">
@@ -22,8 +20,6 @@ Traffic capture turns a network position into data.
 
 ## The skill
 
-Capture traffic with Wireshark or tshark, filter for Modbus write function codes, and decode
-the register payloads. The plaintext nature of Modbus is the whole point.
+Capture traffic with Wireshark or tshark, filter for Modbus write function codes, and decode the register payloads. The plaintext nature of Modbus is the whole point.
 
-> **MITRE ATT&CK for ICS:** T0802 Automated Collection. Defence: encrypt or segment the
-> control network so capture is not possible from arbitrary hosts.
+> **MITRE ATT&CK for ICS:** T0802 Automated Collection. Defence: encrypt or segment the control network so capture is not possible from arbitrary hosts.

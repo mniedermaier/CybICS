@@ -1,7 +1,6 @@
 # Detecting a flood
 
-A Modbus write flood is even louder than a scan. The IDS counts write function codes per
-source in a short window and alerts when the rate crosses a threshold.
+A Modbus write flood is even louder than a scan. The IDS counts write function codes per source in a short window and alerts when the rate crosses a threshold.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Flood detection rate">
@@ -17,8 +16,6 @@ source in a short window and alerts when the rate crosses a threshold.
 
 ## The skill
 
-Launch the flood, then read the IDS alert stream for the `modbus_flood` detection that
-carries the flag. Note the rule inspects *write* function codes, so a read flood raises
-nothing &mdash; detections are specific by design.
+Launch the flood, then read the IDS alert stream for the `modbus_flood` detection that carries the flag. Note the rule inspects *write* function codes, so a read flood raises nothing &mdash; detections are specific by design.
 
 > **MITRE D3FEND:** Protocol Metadata Anomaly Detection. Maps to T0814 / T0836.

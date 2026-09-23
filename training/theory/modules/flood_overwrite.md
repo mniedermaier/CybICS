@@ -1,8 +1,6 @@
 # Flood and overwrite
 
-Because Modbus accepts any write, an attacker can hammer a register faster than the process
-logic can correct it, pinning a value or driving the plant into an unsafe state. This is a
-denial-of-control against the process itself.
+Because Modbus accepts any write, an attacker can hammer a register faster than the process logic can correct it, pinning a value or driving the plant into an unsafe state. This is a denial-of-control against the process itself.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Write flood">
@@ -25,9 +23,6 @@ denial-of-control against the process itself.
 
 ## The skill
 
-Run rapid Modbus writes at the HPT register and watch the process react. In CybICS the flood
-is confirmed by the IDS `modbus_flood` signature, which reveals the flag once the attack is
-observed on the wire.
+Run rapid Modbus writes at the HPT register and watch the process react. In CybICS the flood is confirmed by the IDS `modbus_flood` signature, which reveals the flag once the attack is observed on the wire.
 
-> **MITRE ATT&CK for ICS:** T0836 Modify Parameter, T0814 Denial of Service. Detection: the
-> *detect a flood* module.
+> **MITRE ATT&CK for ICS:** T0836 Modify Parameter, T0814 Denial of Service. Detection: the *detect a flood* module.
