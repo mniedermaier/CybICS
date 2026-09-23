@@ -1,8 +1,6 @@
 # Tuning the IDS
 
-Detection only helps if it is running and its rules actually fire on real attacks. This
-module has you confirm the IDS is healthy, active, and catching the techniques the lab
-throws at it.
+Detection only helps if it is running and its rules actually fire on real attacks. This module has you confirm the IDS is healthy, active, and catching the techniques the lab throws at it.
 
 <figure>
 <svg viewBox="0 0 520 110" role="img" aria-label="IDS health and active rules">
@@ -20,8 +18,6 @@ throws at it.
 
 ## The skill
 
-Ensure the IDS service is up and its rules have fired on the attacks you have run. The check
-confirms the engine is active and multiple rules have non-zero hits.
+Ensure the IDS service is up and its rules have fired on the attacks you have run. The check confirms the engine is active and multiple rules have non-zero hits.
 
-> **NIST SP 800-82 / 800-53** SI-4 System Monitoring. Detection is only a control if it is
-> maintained.
+> **NIST SP 800-82 / 800-53** SI-4 System Monitoring. Detection is only a control if it is maintained.

@@ -1,8 +1,6 @@
 # S7comm enumeration
 
-Beyond open ports, an attacker wants device identity: make, model, firmware. S7comm exposes
-this through its System Status List (SZL) with no authentication, letting a scanner
-fingerprint a Siemens-style PLC before touching the process.
+Beyond open ports, an attacker wants device identity: make, model, firmware. S7comm exposes this through its System Status List (SZL) with no authentication, letting a scanner fingerprint a Siemens-style PLC before touching the process.
 
 <figure>
 <svg viewBox="0 0 520 110" role="img" aria-label="S7 identity enumeration">
@@ -21,8 +19,6 @@ fingerprint a Siemens-style PLC before touching the process.
 
 ## The skill
 
-Point an S7 enumeration tool (or nmap S7 script) at port 102 and read the identity records.
-The device fingerprint tells an attacker what exploits and defaults might apply.
+Point an S7 enumeration tool (or nmap S7 script) at port 102 and read the identity records. The device fingerprint tells an attacker what exploits and defaults might apply.
 
-> **MITRE ATT&CK for ICS:** T0846 Remote System Discovery. Background: see the S7comm
-> foundation topic.
+> **MITRE ATT&CK for ICS:** T0846 Remote System Discovery. Background: see the S7comm foundation topic.

@@ -1,13 +1,10 @@
 # PLCs and the scan cycle
 
-A **Programmable Logic Controller (PLC)** is the small, rugged computer at the heart of a
-control system. It reads sensors, runs a control program, and drives actuators &mdash; over
-and over, thousands of times a minute. In CybICS the PLC role is played by **OpenPLC**.
+A **Programmable Logic Controller (PLC)** is the small, rugged computer at the heart of a control system. It reads sensors, runs a control program, and drives actuators &mdash; over and over, thousands of times a minute. In CybICS the PLC role is played by **OpenPLC**.
 
 ## The scan cycle
 
-A PLC does not run like a normal program that starts, does work, and exits. It runs a
-**cyclic scan**: an endless loop of three phases repeated every few milliseconds.
+A PLC does not run like a normal program that starts, does work, and exits. It runs a **cyclic scan**: an endless loop of three phases repeated every few milliseconds.
 
 <figure>
 <style>
@@ -81,9 +78,7 @@ timing predictable &mdash; and what makes the next figure inevitable.</figcaptio
 
 ## The snapshot is why forcing a value does not stick
 
-The program works on a **snapshot** taken at the start of the scan, and an output it sets is
-only applied at the end. Write a register from outside &mdash; over Modbus, say &mdash; and
-you have changed a value that the next scan is about to recompute from its own inputs.
+The program works on a **snapshot** taken at the start of the scan, and an output it sets is only applied at the end. Write a register from outside &mdash; over Modbus, say &mdash; and you have changed a value that the next scan is about to recompute from its own inputs.
 
 <figure>
 <style>
@@ -150,19 +145,14 @@ the <em>PLC Programming</em> challenge &mdash; changing the logic itself &mdash;
 attack. It is also why an operator can watch a value flicker and never see the cause.</figcaption>
 </figure>
 
-Two attacks follow directly from this one property. Writing *faster than the scan* keeps the
-value pinned, which is a flood and is noisy. Changing the *program* makes the PLC compute the
-attacker's value itself, which is quiet and survives a restart.
+Two attacks follow directly from this one property. Writing *faster than the scan* keeps the value pinned, which is a flood and is noisy. Changing the *program* makes the PLC compute the attacker's value itself, which is quiet and survives a restart.
 
 ## IEC 61131-3 languages
 
-PLC programs are written in the languages standardised by **IEC 61131-3**. The two you meet
-in CybICS are:
+PLC programs are written in the languages standardised by **IEC 61131-3**. The two you meet in CybICS are:
 
-- **Ladder Diagram (LD)** &mdash; a graphical notation that looks like a relay wiring
-  diagram. Power flows left to right through contacts and coils.
-- **Structured Text (ST)** &mdash; a Pascal-like textual language. The CybICS plant program
-  `cybICS.st` is written in ST.
+- **Ladder Diagram (LD)** &mdash; a graphical notation that looks like a relay wiring diagram. Power flows left to right through contacts and coils.
+- **Structured Text (ST)** &mdash; a Pascal-like textual language. The CybICS plant program `cybICS.st` is written in ST.
 
 <figure>
 <style>
@@ -206,16 +196,10 @@ were replacing relay cabinets, so a closed contact really does let power through
 CybICS program expresses the same logic in Structured Text.</figcaption>
 </figure>
 
-Watch the rung: the contact closes, power reaches the coil, the motor runs &mdash; and stops
-the moment it opens again. That literalness is the point of the notation.
+Watch the rung: the contact closes, power reaches the coil, the motor runs &mdash; and stops the moment it opens again. That literalness is the point of the notation.
 
 ## How the outside world reaches the PLC
 
-The program's variables are mapped to memory addresses (`%IX`, `%QX`, `%MW` &hellip;) that are
-exposed over industrial protocols. OpenPLC publishes them over Modbus, S7comm, DNP3 and
-EtherNet/IP at the same time. That is convenient for integration &mdash; and, because those
-protocols do not authenticate, convenient for an attacker.
+The program's variables are mapped to memory addresses (`%IX`, `%QX`, `%MW` &hellip;) that are exposed over industrial protocols. OpenPLC publishes them over Modbus, S7comm, DNP3 and EtherNet/IP at the same time. That is convenient for integration &mdash; and, because those protocols do not authenticate, convenient for an attacker.
 
-Uploading a **new program** to a running controller is one of the most impactful actions in
-ICS: it changes how the process behaves. That is exactly the *PLC Programming* challenge,
-and it maps to MITRE ATT&CK for ICS **T0843 Program Download**.
+Uploading a **new program** to a running controller is one of the most impactful actions in ICS: it changes how the process behaves. That is exactly the *PLC Programming* challenge, and it maps to MITRE ATT&CK for ICS **T0843 Program Download**.

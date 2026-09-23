@@ -1,8 +1,6 @@
 # Password attacks
 
-Default and weak credentials are the most common way into ICS web interfaces. A dictionary
-attack tries a wordlist against a login until one works. CybICS has two targets: the OpenPLC
-web UI and the FUXA HMI.
+Default and weak credentials are the most common way into ICS web interfaces. A dictionary attack tries a wordlist against a login until one works. CybICS has two targets: the OpenPLC web UI and the FUXA HMI.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Dictionary attack">
@@ -24,9 +22,6 @@ web UI and the FUXA HMI.
 
 ## The skill
 
-Analyse the login request, then run `ffuf` with a wordlist, filtering by response size or
-content. OpenPLC uses form-encoded POST at `/login`; FUXA uses a JSON API at `/api/signin`.
-Each yields its own flag.
+Analyse the login request, then run `ffuf` with a wordlist, filtering by response size or content. OpenPLC uses form-encoded POST at `/login`; FUXA uses a JSON API at `/api/signin`. Each yields its own flag.
 
-> **MITRE ATT&CK for ICS:** T0812 Default Credentials, T0859 Valid Accounts. Defence: the
-> *harden credentials* module.
+> **MITRE ATT&CK for ICS:** T0812 Default Credentials, T0859 Valid Accounts. Defence: the *harden credentials* module.

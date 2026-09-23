@@ -1,8 +1,6 @@
 # Man in the middle
 
-If the HMI-to-PLC traffic can be intercepted, an attacker can read and alter it: show the
-operator a normal reading while sending the PLC a different command. On a switched LAN this
-is done with **ARP poisoning**, which redirects traffic through the attacker.
+If the HMI-to-PLC traffic can be intercepted, an attacker can read and alter it: show the operator a normal reading while sending the PLC a different command. On a switched LAN this is done with **ARP poisoning**, which redirects traffic through the attacker.
 
 <figure>
 <svg viewBox="0 0 520 150" role="img" aria-label="ARP poisoning MITM">
@@ -24,8 +22,6 @@ is done with **ARP poisoning**, which redirects traffic through the attacker.
 
 ## The skill
 
-Use `arpspoof` to poison the ARP tables of the HMI and PLC, enable forwarding, and relay (or
-alter) the Modbus traffic. CybICS confirms the attack via the IDS `arp_spoof` signature.
+Use `arpspoof` to poison the ARP tables of the HMI and PLC, enable forwarding, and relay (or alter) the Modbus traffic. CybICS confirms the attack via the IDS `arp_spoof` signature.
 
-> **MITRE ATT&CK for ICS:** T0830 Adversary-in-the-Middle. Defence: static ARP, segmentation,
-> and integrity-protected protocols.
+> **MITRE ATT&CK for ICS:** T0830 Adversary-in-the-Middle. Defence: static ARP, segmentation, and integrity-protected protocols.

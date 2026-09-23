@@ -1,7 +1,6 @@
 # Intrusion detection
 
-This module is about the IDS as a whole: generate enough malicious activity that the system
-recognises it is under attack, and collect the reward for a working detection pipeline.
+This module is about the IDS as a whole: generate enough malicious activity that the system recognises it is under attack, and collect the reward for a working detection pipeline.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Alerts accumulating to a threshold">
@@ -20,8 +19,6 @@ recognises it is under attack, and collect the reward for a working detection pi
 
 ## The skill
 
-Combine the attacks you have learned &mdash; scan, flood, unauthorised writes &mdash; until
-the IDS has logged enough alerts to declare an intrusion. It ties the offensive modules to
-their detections.
+Combine the attacks you have learned &mdash; scan, flood, unauthorised writes &mdash; until the IDS has logged enough alerts to declare an intrusion. It ties the offensive modules to their detections.
 
 > **MITRE D3FEND:** the detection side of the whole attack lifecycle.

@@ -1,8 +1,6 @@
 # Host firewalling
 
-Not every host needs to talk Modbus to the PLC &mdash; only the HMI does. A host firewall on
-the controller drops Modbus from everyone else, so an attacker on the network cannot reach
-port 502 at all.
+Not every host needs to talk Modbus to the PLC &mdash; only the HMI does. A host firewall on the controller drops Modbus from everyone else, so an attacker on the network cannot reach port 502 at all.
 
 <figure>
 <svg viewBox="0 0 520 130" role="img" aria-label="iptables allowing only the HMI">
@@ -21,8 +19,6 @@ port 502 at all.
 
 ## The skill
 
-Add iptables rules on the OpenPLC container so only the HMI reaches port 502. The check
-confirms a DROP/REJECT rule for the attack host and that 502 is no longer reachable from
-elsewhere.
+Add iptables rules on the OpenPLC container so only the HMI reaches port 502. The check confirms a DROP/REJECT rule for the attack host and that 502 is no longer reachable from elsewhere.
 
 > **IEC 62443** SR 5.1; **NIST SP 800-82 / 800-53** SC-7 Boundary Protection.

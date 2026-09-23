@@ -1,8 +1,6 @@
 # Detecting a scan
 
-The scan you ran in reconnaissance is noisy: one host touching many ports in a short time.
-A simple rule engine catches exactly that pattern. This module flips you from attacker to
-defender.
+The scan you ran in reconnaissance is noisy: one host touching many ports in a short time. A simple rule engine catches exactly that pattern. This module flips you from attacker to defender.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Port scan detection window">
@@ -27,7 +25,6 @@ defender.
 
 ## The skill
 
-Run a scan, open the IDS dashboard, and find the `port_scan` alert. The rule revealing the
-flag proves the detection fired.
+Run a scan, open the IDS dashboard, and find the `port_scan` alert. The rule revealing the flag proves the detection fired.
 
 > **MITRE D3FEND:** Network Traffic Analysis. Maps to the attacker's T0846 Discovery.

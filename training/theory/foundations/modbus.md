@@ -1,18 +1,8 @@
 # Modbus TCP
 
-**Modbus** is the lingua franca of industrial automation. It was designed in 1979 for
-serial links and later wrapped in TCP/IP as **Modbus TCP** on port **502**. It is simple,
-open, and everywhere &mdash; and it has no authentication, no encryption, and no
-*cryptographic* integrity. (There is error detection: a CRC on serial lines, the TCP
-checksum here. It catches a corrupted frame, not a forged one.) Whoever can reach port 502
-can read and write the controller.
+**Modbus** is the lingua franca of industrial automation. It was designed in 1979 for serial links and later wrapped in TCP/IP as **Modbus TCP** on port **502**. It is simple, open, and everywhere &mdash; and it has no authentication, no encryption, and no *cryptographic* integrity. (There is error detection: a CRC on serial lines, the TCP checksum here. It catches a corrupted frame, not a forged one.) Whoever can reach port 502 can read and write the controller.
 
-That is not an oversight. In 1979 the "network" was a shielded cable running a few metres
-inside a locked cabinet. Physical access *was* the authentication. When that cable became
-Ethernet, and Ethernet reached the office LAN, the protocol did not notice. A secure
-variant does exist &mdash; Modbus/TCP Security, TLS on port 802, published in 2018 &mdash;
-and almost nobody deploys it, because the installed base is measured in decades and a
-controller from 2004 will not learn TLS.
+That is not an oversight. In 1979 the "network" was a shielded cable running a few metres inside a locked cabinet. Physical access *was* the authentication. When that cable became Ethernet, and Ethernet reached the office LAN, the protocol did not notice. A secure variant does exist &mdash; Modbus/TCP Security, TLS on port 802, published in 2018 &mdash; and almost nobody deploys it, because the installed base is measured in decades and a controller from 2004 will not learn TLS.
 
 ## The data model
 
@@ -25,15 +15,11 @@ Modbus exposes four tables of values. Two are bits, two are 16-bit words:
 | Holding registers | read/write | analogue setpoints, counters |
 | Input registers | read only | sensor readings |
 
-In CybICS the plant's variables live in holding registers: gas storage tank at 1124, high
-pressure tank at 1126, and so on.
+In CybICS the plant's variables live in holding registers: gas storage tank at 1124, high pressure tank at 1126, and so on.
 
 ## Request and response
 
-A client (the "master") sends a request naming a **function code** and an address; the
-server (the PLC) answers. There is no session and no login. Watch what that means: the
-register changes on the *first Modbus request* the PLC ever sees from this client. A
-TCP handshake did precede it &mdash; what never happens is an authentication handshake.
+A client (the "master") sends a request naming a **function code** and an address; the server (the PLC) answers. There is no session and no login. Watch what that means: the register changes on the *first Modbus request* the PLC ever sees from this client. A TCP handshake did precede it &mdash; what never happens is an authentication handshake.
 
 <figure>
 <style>
@@ -98,14 +84,11 @@ it back. TCP got the bytes there; nothing in Modbus asked who sent them. The gap
 authentication step would be is the whole attack surface.</figcaption>
 </figure>
 
-The value changed before anything asked who was writing. There is no session to hijack and no
-login to brute-force, because there is neither. This single fact underlies the flood,
-overwrite and MITM attacks.
+The value changed before anything asked who was writing. There is no session to hijack and no login to brute-force, because there is neither. This single fact underlies the flood, overwrite and MITM attacks.
 
 ## The frame
 
-A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data.
-Three of the six fields are free for the taking; three decide what happens.
+A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide what happens.
 
 <figure>
 <svg viewBox="0 0 520 250" role="img"
@@ -153,25 +136,26 @@ show and six captions at once are read faster than six shown in turn.</figcaptio
 
 ## Reading a flag out of the registers
 
-The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth seeing exactly
-how, because the mechanism &mdash; two ASCII characters packed into each 16-bit register
-&mdash; is how text crosses a protocol that only knows numbers.
+The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth seeing exactly how, because the mechanism &mdash; two ASCII characters packed into each 16-bit register &mdash; is how text crosses a protocol that only knows numbers.
 
 <figure>
 <style>
 .mb-d {--d: 11s;}
-.mb-d .reg  {opacity:0.35; animation: d-reg var(--d) steps(1,end) infinite;}
+.mb-d .reg  {animation: d-reg var(--d) steps(1,end) infinite;}
 .mb-d .chr  {opacity:0;    animation: d-chr var(--d) steps(1,end) infinite;}
 .mb-d .r1,.mb-d .k1{animation-delay:0s}    .mb-d .r2,.mb-d .k2{animation-delay:0.9s}
 .mb-d .r3,.mb-d .k3{animation-delay:1.8s}  .mb-d .r4,.mb-d .k4{animation-delay:2.7s}
 .mb-d .r5,.mb-d .k5{animation-delay:3.6s}  .mb-d .r6,.mb-d .k6{animation-delay:4.5s}
 .mb-d .r7,.mb-d .k7{animation-delay:5.4s}
 .mb-d .flag {opacity:0; animation: d-flag var(--d) steps(1,end) infinite;}
-@keyframes d-reg {0%,8%{opacity:1} 8.01%,100%{opacity:0.35}}
+/* Highlight the box, never dim the hex the reader is meant to read. */
+@keyframes d-reg {0%,8%{stroke:#ff6b00; stroke-width:2.5}
+                  8.01%,100%{stroke:currentColor; stroke-width:1}}
 @keyframes d-chr {0%{opacity:0} 0.01%,92%{opacity:1} 92.01%,100%{opacity:0}}
 @keyframes d-flag{0%,58%{opacity:0} 62%,94%{opacity:1} 94.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   .mb-d .reg,.mb-d .chr,.mb-d .flag{animation:none;opacity:1}
+  .mb-d .reg{stroke:currentColor}
 }
 </style>
 <svg class="mb-d" viewBox="0 0 520 210" role="img"
@@ -220,9 +204,7 @@ the Data field of that one frame is the whole challenge.</figcaption>
 
 ## What the IDS has to work with instead
 
-Here is the same write, sent twice: once by `hwio`, the bridge that is supposed to write the
-plant's registers, and once by the attack machine. Stacked and aligned, the Modbus frames are
-the same bytes. Only the IP header outside them differs.
+Here is the same write, sent twice: once by `hwio`, the bridge that is supposed to write the plant's registers, and once by the attack machine. Stacked and aligned, the Modbus frames are the same bytes. Only the IP header outside them differs.
 
 <figure>
 <svg viewBox="0 0 520 180" role="img"
@@ -261,20 +243,13 @@ each other in turn would make it harder, not clearer. Only <code>hwio</code> wri
 plant.</figcaption>
 </figure>
 
-So the IDS cannot ask Modbus who is writing. It asks the IP header, and then asks how often
-and what:
+So the IDS cannot ask Modbus who is writing. It asks the IP header, and then asks how often and what:
 
-- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Exempts `hwio`, `fuxa`
-  *and* `openplc`, which all write at rate legitimately.
-- **Rule 4, unauthorised write** &mdash; 10 writes in 30 seconds from a source that is not
-  `hwio` or `fuxa`. A narrower list than rule 3's, and note the threshold: a *single* write
-  from the attack machine raises nothing at all.
+- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Its exemption list is `hwio`, `fuxa` and `openplc`, and only the first of those earns its place: `hwio` writes the plant registers at 50 Hz, `fuxa` writes a coil when an operator clicks something, and `openplc` writes nothing at all &mdash; it is the *server* on 172.18.0.3, its `Slave_dev` table is empty and `Pstorage_polling` is disabled, so it never originates a write. That entry exempts a host that was never going to trigger the rule. Allowlists accumulate entries like this, and nobody re-derives them.
+- **Rule 4, unauthorised write** &mdash; 10 writes in 30 seconds from a source that is not `hwio` or `fuxa`. A narrower list than rule 3's, and note the threshold: a *single* write from the attack machine raises nothing at all.
 - **Rule 5, diagnostic** &mdash; function code 0x08 or 0x2B from anywhere.
 
-That rule 4 threshold is not a detail. Three writes five seconds apart stay under it
-indefinitely, which is exactly what the *IDS Evasion* challenge does &mdash; its solver says
-so in as many words. A detector tuned to catch a flood is, by construction, blind to
-patience.
+That rule 4 threshold is not a detail. Three writes five seconds apart stay under it indefinitely, which is exactly what the *IDS Evasion* challenge does &mdash; its solver says so in as many words. A detector tuned to catch a flood is, by construction, blind to patience.
 
 ## Common function codes
 
@@ -282,29 +257,13 @@ patience.
 - **3/4** read holding / input registers
 - **5/6** write single coil / register
 - **15/16** write multiple coils / registers
-- **8** diagnostics &mdash; specified for serial lines. OpenPLC does *not* implement it:
-  `processModbusMessage()` falls through to `ERR_ILLEGAL_FUNCTION` and answers with
-  exception 0x01
+- **8** diagnostics &mdash; specified for serial lines. OpenPLC does *not* implement it: `processModbusMessage()` falls through to `ERR_ILLEGAL_FUNCTION` and answers with exception 0x01
 - **43 (0x2B)** encapsulated transport / device identification &mdash; likewise refused
 
-Those last two are worth dwelling on. The PLC rejecting a function code does not make the
-attempt harmless or invisible: the *Fuzzing Modbus* challenge passes when the IDS's
-`modbus_diagnostic` rule fires, which happens because the **request crossed the wire**, not
-because anything replied. `check_fuzzing_attack.py` asks the IDS, not the PLC. Detection has
-to sit on the network precisely because a refusal at the endpoint leaves no trace the
-endpoint will tell you about.
+Those last two are worth dwelling on. The PLC rejecting a function code does not make the attempt harmless or invisible: the *Fuzzing Modbus* challenge passes when the IDS's `modbus_diagnostic` rule fires, which happens because the **request crossed the wire**, not because anything replied. `check_fuzzing_attack.py` asks the IDS, not the PLC. Detection has to sit on the network precisely because a refusal at the endpoint leaves no trace the endpoint will tell you about.
 
 ## Security relevance
 
-Because Modbus carries no identity of its own, the CybICS IDS borrows one from the layer
-below and mixes it with behaviour: a burst of writes (flood, rule 3), a write from a source
-address that is not `hwio` or `fuxa` (unauthorised write, rule 4), or a diagnostic function
-code (rule 5). Two of those three are behavioural; the middle one is an allowlist of IP
-addresses, which is identity of a sort &mdash; just the weakest sort, since the attack
-machine sits on the same bridge and can claim any address it likes.
+Because Modbus carries no identity of its own, the CybICS IDS borrows one from the layer below and mixes it with behaviour: a burst of writes (flood, rule 3), a write from a source address that is not `hwio` or `fuxa` (unauthorised write, rule 4), or a diagnostic function code (rule 5). Two of those three are behavioural; the middle one is an allowlist of IP addresses, which is identity of a sort &mdash; just the weakest sort, since the attack machine sits on the same bridge and can claim any address it likes.
 
-Note what that costs. A behavioural rule has no ground truth to appeal to, so it is a
-judgement about what is normal *here*, tuned against this plant's traffic. Change the polling
-rate and the flood threshold is wrong. An address allowlist is worse: it is exactly as strong
-as the assumption that nobody spoofs. Both trade-offs are the subject of the *IDS Monitoring
-& Tuning* challenge.
+Note what that costs. A behavioural rule has no ground truth to appeal to, so it is a judgement about what is normal *here*, tuned against this plant's traffic. Change the polling rate and the flood threshold is wrong. An address allowlist is worse: it is exactly as strong as the assumption that nobody spoofs. Both trade-offs are the subject of the *IDS Monitoring & Tuning* challenge.

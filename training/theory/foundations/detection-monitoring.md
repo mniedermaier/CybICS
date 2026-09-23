@@ -1,15 +1,10 @@
 # Detection and monitoring
 
-Because ICS protocols do not authenticate, defenders cannot ask "is this client allowed?".
-Instead they **watch the network** and reason about behaviour. An **Intrusion Detection
-System (IDS)** observes traffic passively and raises alerts when it sees patterns that
-should not occur. CybICS ships a lightweight rule-based IDS.
+Because ICS protocols do not authenticate, defenders cannot ask "is this client allowed?". Instead they **watch the network** and reason about behaviour. An **Intrusion Detection System (IDS)** observes traffic passively and raises alerts when it sees patterns that should not occur. CybICS ships a lightweight rule-based IDS.
 
 ## Passive monitoring
 
-The IDS sits on a mirror/span of the control network. It never injects packets, so it
-cannot disturb the process &mdash; a hard requirement in OT, where availability is
-paramount.
+The IDS sits on a mirror/span of the control network. It never injects packets, so it cannot disturb the process &mdash; a hard requirement in OT, where availability is paramount.
 
 <figure>
 <svg viewBox="0 0 520 170" role="img" aria-label="Passive IDS on a network tap">
@@ -33,8 +28,7 @@ paramount.
 
 ## What the rules look for
 
-The CybICS rule engine keeps small sliding-window counters per source and fires named
-rules. Each maps to a MITRE technique:
+The CybICS rule engine keeps small sliding-window counters per source and fires named rules. Each maps to a MITRE technique:
 
 | Rule | Fires on | ATT&CK for ICS |
 |---|---|---|
@@ -48,10 +42,6 @@ rules. Each maps to a MITRE technique:
 
 ## Detection is not prevention
 
-An alert is only useful if someone acts on it. Defense maps detections to responses. MITRE
-**D3FEND** catalogues the countermeasures: network traffic analysis, protocol-metadata
-anomaly detection, and so on. The detection challenges have you *cause* an attack and then
-*find* it in the alert stream; the tuning challenge keeps the IDS effective.
+An alert is only useful if someone acts on it. Defense maps detections to responses. MITRE **D3FEND** catalogues the countermeasures: network traffic analysis, protocol-metadata anomaly detection, and so on. The detection challenges have you *cause* an attack and then *find* it in the alert stream; the tuning challenge keeps the IDS effective.
 
-> **Rule of thumb:** a good ICS detection is specific (few false alarms on normal plant
-> traffic) and tied to a real technique, so an analyst knows what it means and what to do.
+> **Rule of thumb:** a good ICS detection is specific (few false alarms on normal plant traffic) and tied to a real technique, so an analyst knows what it means and what to do.

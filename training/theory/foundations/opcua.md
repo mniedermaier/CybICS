@@ -1,15 +1,10 @@
 # OPC-UA
 
-**OPC Unified Architecture (OPC-UA)** is the modern, vendor-neutral standard for industrial
-data exchange, on port **4840**. Unlike Modbus and classic S7comm, OPC-UA was designed with
-security in mind: it has sessions, authentication, and optional signing and encryption. It
-is the protocol you *can* secure &mdash; if it is configured correctly.
+**OPC Unified Architecture (OPC-UA)** is the modern, vendor-neutral standard for industrial data exchange, on port **4840**. Unlike Modbus and classic S7comm, OPC-UA was designed with security in mind: it has sessions, authentication, and optional signing and encryption. It is the protocol you *can* secure &mdash; if it is configured correctly.
 
 ## Address space and sessions
 
-OPC-UA models a device as an **address space** of nodes (objects, variables, methods) that
-a client browses. To read or write, a client opens a **secure channel**, then a
-**session**, authenticating as an anonymous, username, or certificate user.
+OPC-UA models a device as an **address space** of nodes (objects, variables, methods) that a client browses. To read or write, a client opens a **secure channel**, then a **session**, authenticating as an anonymous, username, or certificate user.
 
 <figure>
 <svg viewBox="0 0 520 200" role="img" aria-label="OPC-UA session establishment">
@@ -37,18 +32,12 @@ a client browses. To read or write, a client opens a **secure channel**, then a
 
 OPC-UA can be strong, but defaults and convenience often weaken it:
 
-- **SecurityPolicy None** &mdash; the channel is neither signed nor encrypted, so traffic
-  can be read and forged like Modbus.
+- **SecurityPolicy None** &mdash; the channel is neither signed nor encrypted, so traffic can be read and forged like Modbus.
 - **Anonymous access** &mdash; no user token required.
 - **Weak or shared passwords**, or certificates trusted too broadly.
 
-The CybICS OPC-UA server exposes both a user-tier and an admin-tier value. The challenge is
-to authenticate well enough to reach the admin flag, illustrating how much rides on the
-identity model.
+The CybICS OPC-UA server exposes both a user-tier and an admin-tier value. The challenge is to authenticate well enough to reach the admin flag, illustrating how much rides on the identity model.
 
 ## Security relevance
 
-OPC-UA shifts the question from "can anyone talk to it" (Modbus) to "who is allowed, and how
-strongly are they proven". Detection focuses on unexpected clients and on sessions using the
-weakest policies. In CybICS, OPC-UA activity from any host that is not a known client raises
-an IDS alert.
+OPC-UA shifts the question from "can anyone talk to it" (Modbus) to "who is allowed, and how strongly are they proven". Detection focuses on unexpected clients and on sessions using the weakest policies. In CybICS, OPC-UA activity from any host that is not a known client raises an IDS alert.

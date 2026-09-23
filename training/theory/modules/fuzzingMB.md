@@ -1,8 +1,6 @@
 # Modbus fuzzing
 
-Fuzzing sends malformed and non-standard messages to see whether a device mishandles them:
-crashes, hangs, or misbehaves. It tests robustness &mdash; and fragile field devices often
-fail badly on input their firmware never expected.
+Fuzzing sends malformed and non-standard messages to see whether a device mishandles them: crashes, hangs, or misbehaves. It tests robustness &mdash; and fragile field devices often fail badly on input their firmware never expected.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="Fuzzing malformed frames">
@@ -23,8 +21,6 @@ fail badly on input their firmware never expected.
 
 ## The skill
 
-Run a Modbus fuzzer against port 502, including the diagnostic function codes. In CybICS the
-run is confirmed by the IDS `modbus_diagnostic` signature, which reveals the flag.
+Run a Modbus fuzzer against port 502, including the diagnostic function codes. In CybICS the run is confirmed by the IDS `modbus_diagnostic` signature, which reveals the flag.
 
-> **MITRE ATT&CK for ICS:** exploitation via malformed protocol input. Robust field devices
-> and protocol-aware monitoring are the defence.
+> **MITRE ATT&CK for ICS:** exploitation via malformed protocol input. Robust field devices and protocol-aware monitoring are the defence.

@@ -1,14 +1,10 @@
 # Defense in depth
 
-No single control secures an ICS. The strategy is **defense in depth**: layered controls so
-that getting past one still leaves an attacker facing the next. Two standards frame this for
-OT: **IEC 62443** and **NIST SP 800-82**.
+No single control secures an ICS. The strategy is **defense in depth**: layered controls so that getting past one still leaves an attacker facing the next. Two standards frame this for OT: **IEC 62443** and **NIST SP 800-82**.
 
 ## Zones and conduits
 
-IEC 62443 groups assets into **zones** with similar security needs and controls the
-**conduits** (the connections) between them. The attack machine belongs in a different zone
-from the PLC, and the conduit between them should be tightly restricted.
+IEC 62443 groups assets into **zones** with similar security needs and controls the **conduits** (the connections) between them. The attack machine belongs in a different zone from the PLC, and the conduit between them should be tightly restricted.
 
 <figure>
 <svg viewBox="0 0 520 210" role="img" aria-label="Zones and conduits">
@@ -47,9 +43,7 @@ The defense challenges implement concrete, verifiable controls:
 
 ## Layering the controls
 
-Each control is modest alone; together they compound. Change the passwords and a stolen
-default is worthless. Segment the network and a scan never reaches the PLC. Keep the IDS
-tuned and whatever slips through still raises an alarm.
+Each control is modest alone; together they compound. Change the passwords and a stolen default is worthless. Segment the network and a scan never reaches the PLC. Keep the IDS tuned and whatever slips through still raises an alarm.
 
 <figure>
 <svg viewBox="0 0 420 150" role="img" aria-label="Layers of defense">
@@ -68,7 +62,4 @@ tuned and whatever slips through still raises an alarm.
 
 ## The mindset
 
-Assume any single control can fail. Design so that a failure is contained and observed. In
-OT this must be balanced against availability &mdash; a lockout or a dropped packet must
-never endanger the process &mdash; which is why segmentation and monitoring, not intrusive
-blocking, are the workhorses of ICS defense.
+Assume any single control can fail. Design so that a failure is contained and observed. In OT this must be balanced against availability &mdash; a lockout or a dropped packet must never endanger the process &mdash; which is why segmentation and monitoring, not intrusive blocking, are the workhorses of ICS defense.

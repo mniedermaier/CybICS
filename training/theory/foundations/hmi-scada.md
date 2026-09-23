@@ -1,15 +1,10 @@
 # HMI and SCADA
 
-The **Human-Machine Interface (HMI)** is the screen an operator watches: tank levels,
-pressures, pumps, alarms, and the buttons to start and stop the process. **SCADA**
-(Supervisory Control and Data Acquisition) is the wider system that gathers data from many
-controllers and presents it. In CybICS the HMI is **FUXA**, a web-based SCADA/HMI.
+The **Human-Machine Interface (HMI)** is the screen an operator watches: tank levels, pressures, pumps, alarms, and the buttons to start and stop the process. **SCADA** (Supervisory Control and Data Acquisition) is the wider system that gathers data from many controllers and presents it. In CybICS the HMI is **FUXA**, a web-based SCADA/HMI.
 
 ## Where the HMI sits
 
-The HMI does not talk to sensors directly. It reads and writes the PLC's registers over an
-industrial protocol, and the PLC drives the process. The operator's "start pump" click
-becomes a Modbus write.
+The HMI does not talk to sensors directly. It reads and writes the PLC's registers over an industrial protocol, and the PLC drives the process. The operator's "start pump" click becomes a Modbus write.
 
 <figure>
 <svg viewBox="0 0 520 150" role="img" aria-label="Operator to process data flow">
@@ -37,17 +32,10 @@ becomes a Modbus write.
 
 - It holds **valid credentials** and network paths to the controllers.
 - It can **command** the process directly.
-- The operator **trusts what it shows**. The Stuxnet worm famously replayed normal readings
-  to the HMI while sabotaging the centrifuges underneath &mdash; a lie in the supervisory
-  layer.
+- The operator **trusts what it shows**. The Stuxnet worm famously replayed normal readings to the HMI while sabotaging the centrifuges underneath &mdash; a lie in the supervisory layer.
 
-In CybICS the FUXA login is a dictionary-attack target (the *password attack* challenge),
-and the man-in-the-middle challenge sits on the HMI-to-PLC link to alter what each side
-sees.
+In CybICS the FUXA login is a dictionary-attack target (the *password attack* challenge), and the man-in-the-middle challenge sits on the HMI-to-PLC link to alter what each side sees.
 
 ## Security relevance
 
-Protecting the supervisory layer means strong HMI authentication, restricting who can reach
-it, and protecting the integrity of the HMI-to-PLC traffic. When that traffic can be
-altered undetected, the operator's screen becomes untrustworthy &mdash; the most dangerous
-failure in a control room.
+Protecting the supervisory layer means strong HMI authentication, restricting who can reach it, and protecting the integrity of the HMI-to-PLC traffic. When that traffic can be altered undetected, the operator's screen becomes untrustworthy &mdash; the most dangerous failure in a control room.

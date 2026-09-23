@@ -1,13 +1,8 @@
 # What is an Industrial Control System?
 
-An **Industrial Control System (ICS)** is the combination of hardware and software that
-monitors and controls a physical process: a gas plant, a water works, a power grid, a
-production line. Unlike ordinary IT, an ICS acts on the real world. A wrong value does not
-corrupt a spreadsheet, it opens a valve.
+An **Industrial Control System (ICS)** is the combination of hardware and software that monitors and controls a physical process: a gas plant, a water works, a power grid, a production line. Unlike ordinary IT, an ICS acts on the real world. A wrong value does not corrupt a spreadsheet, it opens a valve.
 
-This is why the priorities are inverted compared to IT. In IT the order is usually
-**confidentiality, integrity, availability**. In operational technology (OT) it is the
-reverse: keeping the process running safely comes first.
+This is why the priorities are inverted compared to IT. In IT the order is usually **confidentiality, integrity, availability**. In operational technology (OT) it is the reverse: keeping the process running safely comes first.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="IT versus OT priorities">
@@ -31,10 +26,7 @@ reverse: keeping the process running safely comes first.
 
 ## The Purdue model
 
-ICS networks are traditionally described with the **Purdue Enterprise Reference
-Architecture**, a layered model that separates the office from the plant floor. Each level
-talks mostly to its neighbours, and a well-designed plant places security boundaries
-between the levels.
+ICS networks are traditionally described with the **Purdue Enterprise Reference Architecture**, a layered model that separates the office from the plant floor. Each level talks mostly to its neighbours, and a well-designed plant places security boundaries between the levels.
 
 <figure>
 <svg viewBox="0 0 520 320" role="img" aria-label="Purdue model levels">
@@ -69,16 +61,10 @@ CybICS is a small but complete ICS. The mapping to the Purdue levels is:
 | Level 1 (Control) | OpenPLC runtime executing the plant program |
 | Level 0 (Process) | The gas pressure process (real on the STM32 board, or simulated) |
 
-The office levels (3&ndash;5) are represented by the engineering workstation and the
-attack machine that sit on the same network for training.
+The office levels (3&ndash;5) are represented by the engineering workstation and the attack machine that sit on the same network for training.
 
 ## Why it matters for security
 
-Because these systems were built for reliability, not for hostile networks, most ICS
-protocols have **no authentication and no encryption**. Any host that can reach a PLC can
-usually read and write its values. The rest of the Theory Path shows exactly how each
-protocol works, how that trust is abused, and how to detect and contain it.
+Because these systems were built for reliability, not for hostile networks, most ICS protocols have **no authentication and no encryption**. Any host that can reach a PLC can usually read and write its values. The rest of the Theory Path shows exactly how each protocol works, how that trust is abused, and how to detect and contain it.
 
-> **Key idea:** in ICS security you are protecting a physical process. Every attack in the
-> later modules ends in a real-world effect &mdash; a frozen reading, a forced valve, a
-> blown-out tank.
+> **Key idea:** in ICS security you are protecting a physical process. Every attack in the later modules ends in a real-world effect &mdash; a frozen reading, a forced valve, a blown-out tank.

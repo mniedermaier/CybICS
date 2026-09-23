@@ -1,8 +1,6 @@
 # Attacking OPC-UA
 
-OPC-UA can be secure, but weak configurations undo it: an anonymous or weakly authenticated
-session may read and write nodes it should not. The challenge is to authenticate well enough
-to reach an admin-tier value.
+OPC-UA can be secure, but weak configurations undo it: an anonymous or weakly authenticated session may read and write nodes it should not. The challenge is to authenticate well enough to reach an admin-tier value.
 
 <figure>
 <svg viewBox="0 0 520 120" role="img" aria-label="OPC-UA node access by tier">
@@ -24,9 +22,6 @@ to reach an admin-tier value.
 
 ## The skill
 
-Connect with an OPC-UA client, browse the address space, and authenticate to write the value
-that unlocks the admin flag. Contrast this with Modbus: here there *is* a security model to
-get past.
+Connect with an OPC-UA client, browse the address space, and authenticate to write the value that unlocks the admin flag. Contrast this with Modbus: here there *is* a security model to get past.
 
-> **MITRE ATT&CK for ICS:** T0855 Unauthorized Command Message. Background: the OPC-UA
-> foundation topic.
+> **MITRE ATT&CK for ICS:** T0855 Unauthorized Command Message. Background: the OPC-UA foundation topic.
