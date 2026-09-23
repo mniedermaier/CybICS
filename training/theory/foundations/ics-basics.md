@@ -16,11 +16,13 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
 .pri .lab-it {animation: p-it    var(--p) steps(1,end) infinite;}
 .pri .lab-ot {opacity:0; animation: p-ot var(--p) steps(1,end) infinite;}
 .pri-static {display:none;}
-@keyframes p-right {0%,25%{transform:translate(0,0)} 31%{transform:translate(170px,38px)}
-                    38%,88%{transform:translate(340px,0)} 94%{transform:translate(170px,38px)}
+@keyframes p-right {0%,25%{transform:translate(0,0)} 27%{transform:translate(16px,38px)}
+                    36%{transform:translate(324px,38px)} 38%,88%{transform:translate(340px,0)}
+                    90%{transform:translate(324px,38px)} 98%{transform:translate(16px,38px)}
                     100%{transform:translate(0,0)}}
-@keyframes p-left  {0%,25%{transform:translate(0,0)} 31%{transform:translate(-170px,-36px)}
-                    38%,88%{transform:translate(-340px,0)} 94%{transform:translate(-170px,-36px)}
+@keyframes p-left  {0%,25%{transform:translate(0,0)} 27%{transform:translate(-16px,-38px)}
+                    36%{transform:translate(-324px,-38px)} 38%,88%{transform:translate(-340px,0)}
+                    90%{transform:translate(-324px,-38px)} 98%{transform:translate(-16px,-38px)}
                     100%{transform:translate(0,0)}}
 @keyframes p-it {0%,31%{opacity:1} 31.01%,94%{opacity:0} 94.01%,100%{opacity:1}}
 @keyframes p-ot {0%,31%{opacity:0} 31.01%,94%{opacity:1} 94.01%,100%{opacity:0}}
@@ -163,10 +165,12 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 .plt .sup {opacity:0; animation: t-man  var(--t) steps(1,end) infinite;}
 .plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .ph-a{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
+.plt .sv-open{animation: t-phn var(--t) steps(1,end) infinite;}
+.plt .sv-shut{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
 .plt .stuck{opacity:0; animation: t-stuck var(--t) steps(1,end) infinite;}
 /* Every segment obeys the model: HPT can only fall while the compressor is off,
    GST can only fall while it is on, and two units of GST buy one of HPT unless
-   the supply valve is feeding, which halves the net drain. The loop restarts
+   the supply valve is feeding, which cuts the net drain to a quarter. The loop restarts
    with a hard cut at the boundary rather than animating the pressure back
    down, because nothing inside this loop can bring it down. */
 @keyframes t-hpt {0%{transform:scaleY(0.235)}  12%{transform:scaleY(0.353)}
@@ -176,8 +180,8 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 @keyframes t-gst {0%{transform:scaleY(0.941)}  12%,24%{transform:scaleY(0.706)}
                   30%{transform:scaleY(0.588)} 62%{transform:scaleY(0.304)}
                   82%{transform:scaleY(0.225)} 100%{transform:scaleY(0.60)}}
-@keyframes t-comp {0%,12%{fill:#ff6b00} 12.01%,24%{fill:currentColor; fill-opacity:0.18}
-                   24.01%,82%{fill:#ff6b00} 82.01%,100%{fill:currentColor; fill-opacity:0.18}}
+@keyframes t-comp {0%,12%{fill:#ff6b00; fill-opacity:1} 12.01%,24%{fill:currentColor; fill-opacity:0.18}
+                   24.01%,82%{fill:#ff6b00; fill-opacity:1} 82.01%,100%{fill:currentColor; fill-opacity:0.18}}
 /* The label has to follow the box, or the dark ink sits on a dark panel. */
 @keyframes t-compt{0%,12%{fill:#1a1a1a} 12.01%,24%{fill:currentColor}
                    24.01%,82%{fill:#1a1a1a} 82.01%,100%{fill:currentColor}}
@@ -192,85 +196,95 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
   .plt .hpt {animation:none; transform:scaleY(0.784);}
   .plt .comp {animation:none; fill:currentColor; fill-opacity:0.18;}
   .plt .compt{animation:none; fill:currentColor;}
-  .plt .sup,.plt .ph-a,.plt .stuck {animation:none; opacity:1;}
+  .plt .sup,.plt .ph-a,.plt .stuck,.plt .sv-shut {animation:none; opacity:1;}
+  .plt .sv-open{animation:none; opacity:0;}
   .plt .man {animation:none; opacity:0;}
   .plt .vent{animation:none; opacity:0;}
   .plt .ph-n{animation:none; opacity:0;}
 }
 </style>
-<svg class="plt" viewBox="0 0 520 300" role="img"
-     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1, holding the pressure between 60 and 90. An operator then switches to manual mode, closes the system valve and runs the compressor; the pressure climbs past 220, the relief valve opens but only halves the rate of rise, and when the compressor finally stops the pressure settles at 200 and stays there, because above 100 the system valve is shut and there is no consumer left.">
-  <!-- storage tank; the fill is 126 units tall with its base at y=188, so a
-       value v sits at y = 188 - 126*v/255 -->
-  <rect x="40" y="60" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
-  <rect class="lvl gst" x="42" y="62" width="52" height="126" fill="currentColor" opacity="0.35"/>
-  <text x="68" y="52" text-anchor="middle" font-size="12" font-weight="bold">GST</text>
-  <text x="68" y="206" text-anchor="middle" font-size="11" opacity="0.8">storage</text>
+<svg class="plt" viewBox="0 0 460 320" role="img"
+     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1, holding the pressure between 60 and 90 while the system valve lets the downstream process draw from it. An operator then switches to manual mode, shuts the system valve and runs the compressor; the pressure climbs past 220, the relief valve opens but only halves the rate of rise, and when the compressor finally stops the pressure settles at 200 and stays there, because the shut valve leaves no consumer.">
+  <!-- storage tank; the fill is 126 units tall with its base at y=198, so a
+       value v sits at y = 198 - 126*v/255 -->
+  <rect x="24" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
+  <rect class="lvl gst" x="26" y="72" width="52" height="126" fill="currentColor" opacity="0.35"/>
+  <text x="52" y="216" text-anchor="middle" font-size="13" font-weight="bold">GST</text>
   <g class="sup">
-    <path d="M 24 34 L 24 58" stroke="#ff6b00" stroke-width="2"/>
-    <path d="M 18 50 L 24 60 L 30 50" fill="none" stroke="#ff6b00" stroke-width="2"/>
-    <text x="8" y="28" font-size="11" fill="#ff6b00">supply, opened by hand</text>
+    <path d="M 52 36 L 52 62" stroke="#ff6b00" stroke-width="2"/>
+    <path d="M 46 54 L 52 64 L 58 54" fill="none" stroke="#ff6b00" stroke-width="2"/>
+    <text x="52" y="28" text-anchor="middle" font-size="13" fill="#ff6b00">supply</text>
   </g>
 
-  <!-- compressor -->
-  <rect class="comp" x="150" y="105" width="90" height="40" rx="5" stroke="currentColor" stroke-opacity="0.5"/>
-  <text class="compt" x="195" y="130" text-anchor="middle" font-size="12" font-weight="bold">compressor</text>
-  <path d="M 100 125 L 146 125" stroke="currentColor" stroke-width="2"/>
-  <path d="M 244 125 L 296 125" stroke="currentColor" stroke-width="2"/>
-  <text x="195" y="164" text-anchor="middle" font-size="11" opacity="0.85">&minus;2 GST &rarr; +1 HPT</text>
+  <rect class="comp" x="134" y="115" width="90" height="40" rx="5" stroke="currentColor" stroke-opacity="0.5"/>
+  <text class="compt" x="179" y="140" text-anchor="middle" font-size="13" font-weight="bold">compressor</text>
+  <path d="M 84 135 L 130 135" stroke="currentColor" stroke-width="2"/>
+  <path d="M 228 135 L 286 135" stroke="currentColor" stroke-width="2"/>
+  <text x="179" y="176" text-anchor="middle" font-size="13" opacity="0.85">&minus;2 GST &rarr; +1 HPT</text>
   <g class="man">
-    <rect x="148" y="80" width="94" height="20" rx="3" fill="#ff6b00"/>
-    <text x="195" y="94" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">held on by hand</text>
+    <rect x="132" y="90" width="94" height="20" rx="3" fill="#ff6b00"/>
+    <text x="179" y="105" text-anchor="middle" font-size="13" style="fill:#1a1a1a" font-weight="bold">held on by hand</text>
   </g>
 
-  <!-- high pressure tank -->
-  <rect x="300" y="60" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
-  <rect class="lvl hpt" x="302" y="62" width="52" height="126" fill="#ff6b00" opacity="0.55"/>
-  <text x="328" y="52" text-anchor="middle" font-size="12" font-weight="bold">HPT</text>
-  <text x="328" y="206" text-anchor="middle" font-size="11" opacity="0.8">high pressure</text>
-  <g font-size="11">
-    <line x1="296" y1="79" x2="360" y2="79" stroke="#ff6b00" stroke-dasharray="4 3"/>
-    <text x="364" y="83" fill="#ff6b00">220</text>
-    <line x1="296" y1="89" x2="360" y2="89" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="364" y="93" opacity="0.75">200</text>
-    <line x1="296" y1="139" x2="360" y2="139" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="364" y="143" opacity="0.75">100</text>
-    <line x1="296" y1="158" x2="360" y2="158" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="364" y="162" opacity="0.75">60</text>
+  <rect x="290" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
+  <rect class="lvl hpt" x="292" y="72" width="52" height="126" fill="#ff6b00" opacity="0.55"/>
+  <text x="318" y="216" text-anchor="middle" font-size="13" font-weight="bold">HPT</text>
+  <g font-size="12">
+    <line x1="288" y1="89" x2="348" y2="89" stroke="#ff6b00" stroke-dasharray="4 3"/>
+    <text x="354" y="86" fill="#ff6b00">220</text>
+    <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <text x="354" y="106" opacity="0.75">200</text>
+    <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <text x="354" y="152" opacity="0.75">100</text>
+    <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <text x="354" y="172" opacity="0.75">60</text>
   </g>
   <g class="vent">
-    <path d="M 344 60 L 344 36" stroke="#ff6b00" stroke-width="2"/>
-    <path d="M 338 44 L 344 34 L 350 44" fill="none" stroke="#ff6b00" stroke-width="2"/>
-    <text x="356" y="32" font-size="11" fill="#ff6b00" font-weight="bold">venting</text>
+    <path d="M 318 62 L 318 36" stroke="#ff6b00" stroke-width="2"/>
+    <path d="M 312 44 L 318 34 L 324 44" fill="none" stroke="#ff6b00" stroke-width="2"/>
+    <text x="318" y="26" text-anchor="middle" font-size="13" fill="#ff6b00" font-weight="bold">venting</text>
   </g>
-  <text class="stuck" x="364" y="103" font-size="11" fill="#ff6b00" font-weight="bold">stuck here</text>
 
-  <!-- the controller, and the two wires that make this a loop -->
-  <rect x="170" y="232" width="160" height="44" rx="5" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-  <text x="250" y="252" text-anchor="middle" font-size="12" font-weight="bold">OpenPLC</text>
-  <text x="250" y="268" text-anchor="middle" font-size="11" opacity="0.8">on below 60, off at 90</text>
-  <path d="M 356 190 L 392 190 L 392 254 L 336 254" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <path d="M 344 248 L 334 254 L 344 260" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="398" y="218" font-size="11" opacity="0.8">reads 1126</text>
-  <path d="M 170 254 L 126 254 L 126 125 L 144 125" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <path d="M 136 119 L 146 125 L 136 131" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="120" y="218" font-size="11" opacity="0.8" text-anchor="end">drives coil 1</text>
+  <!-- the system valve: the one thing the challenge asks you to close -->
+  <text x="372" y="210" text-anchor="middle" font-size="13" font-weight="bold">SV</text>
+  <path d="M 346 186 L 398 186" stroke="currentColor" stroke-width="2"/>
+  <g class="sv-open">
+    <path d="M 364 178 L 364 194 L 380 186 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M 380 178 L 380 194 L 364 186 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <text x="372" y="226" text-anchor="middle" font-size="13" opacity="0.8">open</text>
+  </g>
+  <g class="sv-shut">
+    <path d="M 364 178 L 364 194 L 380 186 Z" fill="#ff6b00"/>
+    <path d="M 380 178 L 380 194 L 364 186 Z" fill="#ff6b00"/>
+    <text x="372" y="226" text-anchor="middle" font-size="13" fill="#ff6b00" font-weight="bold">shut</text>
+  </g>
 
-  <text class="ph-n" x="10" y="292" font-size="11" opacity="0.85">automatic: the loop holds 60 to 90</text>
-  <text class="ph-a" x="10" y="292" font-size="11" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
+  <rect x="160" y="242" width="180" height="44" rx="5" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+  <text x="250" y="262" text-anchor="middle" font-size="13" font-weight="bold">OpenPLC</text>
+  <text x="250" y="278" text-anchor="middle" font-size="12" opacity="0.8">on below 60, off at 90</text>
+  <path d="M 346 198 L 428 198 L 428 264 L 346 264" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M 354 258 L 344 264 L 354 270" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <text x="424" y="230" font-size="12" opacity="0.8" text-anchor="end">reads 1126</text>
+  <path d="M 160 264 L 96 264 L 96 135 L 128 135" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M 120 129 L 130 135 L 120 141" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <text x="102" y="210" font-size="12" opacity="0.8">drives coil 1</text>
+
+  <text class="stuck" x="354" y="122" font-size="12" fill="#ff6b00" font-weight="bold">stuck here</text>
+  <text class="ph-n" x="10" y="308" font-size="13" opacity="0.85">automatic: the loop holds 60 to 90</text>
+  <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
 </svg>
-<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90, then with an operator in manual mode. When the compressor finally stops, the pressure falls to 200 and no further.</figcaption>
+<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90 with the system valve open, then with an operator in manual mode who has shut that valve. When the compressor finally stops, the pressure falls to 200 and no further. Without motion the figure shows that end state: valve shut, compressor stopped, the tank resting at 200.</figcaption>
 </figure>
 
 The attack is the second half of that loop, and it is not a network attack at all. The *Physical Process* challenge has you log in to the FUXA HMI as `operator:operator`, press **Manual / Automatic**, close the system valve and run the compressor. Every step is a legitimate operator action; the damage comes from the combination &mdash; a shut valve with a running compressor.
 
 Three details make it work, and each of them is a design decision rather than a bug.
 
-**Manual mode does not fail safe, it freezes.** The whole automatic block is wrapped in `IF manual < 1`, and the inner block has no `ELSE`. In manual mode OpenPLC stops assigning the compressor, the system valve and the supply valve entirely &mdash; they keep whatever value they had at the instant the operator switched over, and the panel hands all three to the operator. The `Comp.`, `SV` and `GST` buttons in FUXA write those same three coils, and each is gated on manual mode being on. Nothing is left to chance: the operator opens the supply deliberately, which matters because of the budget at the end of this section.
+**Manual mode does not fail safe, it freezes.** The whole automatic block is wrapped in `IF manual < 1`, and the inner block has no `ELSE`. In manual mode OpenPLC stops assigning the compressor, the system valve and the supply valve entirely &mdash; they keep whatever value they had at the instant the operator switched over, and the panel hands all three to the operator. The `Comp.`, `SV` and `GST` buttons in FUXA write those same three coils, and each is gated on manual mode being on. The operator opens the supply deliberately &mdash; unless manual mode was entered during the tank's own refill window, in which case `gstSig` freezes on and the supply is already feeding. Either way it matters, because of the budget at the end of this section.
 
-**The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure falls back under 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
+**The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure has fallen back to 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
 
-**And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help: OpenPLC opens the system valve only while the pressure is between 50 and 100, so above 100 there is no consumer at all. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
+**And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help either. The valve is shut because the operator shut it, and handing the plant back to OpenPLC does not reopen it: the automatic rule only opens the valve between 50 and 100, and the tank is sitting at 200. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
 
 For scale: draining two units of storage per unit of pressure, a completely full storage tank buys 103 units of pressure before the compressor stalls at the `gst >= 50` guard. That is not enough to reach 220 from the normal band on its own, which is exactly why the supply valve matters.
 
