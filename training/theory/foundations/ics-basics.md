@@ -16,10 +16,12 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
 .pri .lab-it {animation: p-it    var(--p) steps(1,end) infinite;}
 .pri .lab-ot {opacity:0; animation: p-ot var(--p) steps(1,end) infinite;}
 .pri-static {display:none;}
-@keyframes p-right {0%,25%{transform:translateX(0)} 38%,88%{transform:translateX(340px)}
-                    100%{transform:translateX(0)}}
-@keyframes p-left  {0%,25%{transform:translateX(0)} 38%,88%{transform:translateX(-340px)}
-                    100%{transform:translateX(0)}}
+@keyframes p-right {0%,25%{transform:translate(0,0)} 31%{transform:translate(170px,38px)}
+                    38%,88%{transform:translate(340px,0)} 94%{transform:translate(170px,38px)}
+                    100%{transform:translate(0,0)}}
+@keyframes p-left  {0%,25%{transform:translate(0,0)} 31%{transform:translate(-170px,-36px)}
+                    38%,88%{transform:translate(-340px,0)} 94%{transform:translate(-170px,-36px)}
+                    100%{transform:translate(0,0)}}
 @keyframes p-it {0%,31%{opacity:1} 31.01%,94%{opacity:0} 94.01%,100%{opacity:1}}
 @keyframes p-ot {0%,31%{opacity:0} 31.01%,94%{opacity:1} 94.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
@@ -27,7 +29,7 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
   .pri-static {display:block;}
 }
 </style>
-<svg class="pri" viewBox="0 0 520 96" role="img"
+<svg class="pri" viewBox="0 0 520 130" role="img"
      aria-label="The same three security goals in one row, ordered most important on the left. IT ranks them confidentiality, integrity, availability; OT swaps the outer two, so availability leads and confidentiality comes last.">
   <text class="lab-it" x="10" y="20" font-size="13" font-weight="bold">IT priorities</text>
   <text class="lab-ot" x="10" y="20" font-size="13" font-weight="bold" fill="#ff6b00">OT priorities</text>
@@ -48,23 +50,25 @@ This is why the priorities are inverted compared to IT. In IT the order is usual
     <rect x="204" y="38" width="136" height="30" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
     <text x="272" y="58" font-size="12" text-anchor="middle">Integrity</text>
   </g>
-  <text x="102" y="88" font-size="11" opacity="0.7" text-anchor="middle">most important</text>
-  <text x="442" y="88" font-size="11" opacity="0.7" text-anchor="middle">least important</text>
+  <text x="102" y="122" font-size="11" opacity="0.7" text-anchor="middle">most important</text>
+  <text x="442" y="122" font-size="11" opacity="0.7" text-anchor="middle">least important</text>
 </svg>
 <svg class="pri-static" viewBox="0 0 520 134" role="img"
      aria-label="IT ranks the three goals confidentiality, integrity, availability. OT reverses the outer two: availability first, integrity second, confidentiality last.">
   <g font-size="12">
     <text x="10" y="20" font-size="13" font-weight="bold">IT priorities</text>
-    <rect x="10" y="28" width="160" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
-    <text x="90" y="45" text-anchor="middle"><tspan fill="#ff6b00" font-weight="bold">1. </tspan>Confidentiality</text>
+    <text x="4" y="45" font-size="12" font-weight="bold" fill="#ff6b00">1.</text>
+    <rect x="22" y="28" width="148" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <text x="96" y="45" text-anchor="middle">Confidentiality</text>
     <rect x="180" y="28" width="160" height="26" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
     <text x="260" y="45" text-anchor="middle">2. Integrity</text>
     <rect x="350" y="28" width="160" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
     <text x="430" y="45" text-anchor="middle">3. Availability</text>
 
     <text x="10" y="86" font-size="13" font-weight="bold" fill="#ff6b00">OT priorities</text>
-    <rect x="10" y="94" width="160" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
-    <text x="90" y="111" text-anchor="middle"><tspan fill="#ff6b00" font-weight="bold">1. </tspan>Availability</text>
+    <text x="4" y="111" font-size="12" font-weight="bold" fill="#ff6b00">1.</text>
+    <rect x="22" y="94" width="148" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <text x="96" y="111" text-anchor="middle">Availability</text>
     <rect x="180" y="94" width="160" height="26" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
     <text x="260" y="111" text-anchor="middle">2. Integrity</text>
     <rect x="350" y="94" width="160" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
@@ -85,7 +89,6 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
    DMZ is supposed to occupy, so the crossing is the moment worth watching. */
 .pur .walk {animation: u-walk var(--u) ease-in-out infinite;}
 .pur .dmz  {animation: u-dmz  var(--u) linear infinite;}
-.pur .note {opacity:0; animation: u-note var(--u) steps(1,end) infinite;}
 @keyframes u-walk {0%,6%{transform:translateY(0)}      14%,22%{transform:translateY(0)}
                    30%,38%{transform:translateY(50px)}  46%,54%{transform:translateY(100px)}
                    62%,70%{transform:translateY(150px)} 78%,94%{transform:translateY(200px)}
@@ -93,14 +96,12 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
 @keyframes u-dmz  {0%,24%{stroke-opacity:0.5; stroke-width:1.5}
                    26%,34%{stroke-opacity:1; stroke-width:3}
                    36%,100%{stroke-opacity:0.5; stroke-width:1.5}}
-@keyframes u-note {0%,70%{opacity:0} 76%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
   .pur .walk {animation:none; transform:translateY(200px);}
   .pur .dmz  {animation:none;}
-  .pur .note {animation:none; opacity:1;}
 }
 </style>
-<svg class="pur" viewBox="0 0 520 340" role="img"
+<svg class="pur" viewBox="0 0 520 266" role="img"
      aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The DMZ boundary it crosses sits between Level 3 and the enterprise; CybICS has no such boundary: the plant components share one flat network, and the IDS watches from the host.">
   <g font-size="12">
     <rect x="70" y="10" width="440" height="40" rx="5" fill="currentColor" opacity="0.10" stroke="currentColor"/>
@@ -122,12 +123,8 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
     <text x="40" y="34" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">!</text>
   </g>
 
-  <g class="note" font-size="11" font-weight="bold">
-    <text x="70" y="308" fill="#ff6b00">CybICS has no boundary at all: one flat 172.18.0.0/24,</text>
-    <text x="70" y="324" fill="#ff6b00">with the IDS watching it from the host itself.</text>
-  </g>
 </svg>
-<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. Five levels, and one intruder walking down all of them. The descent is the point: each step is a different protocol and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
+<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. An intruder that starts at the top reaches the process by descending all five levels, one protocol at a time. The descent is the point: each step is a different protocol and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
 </figure>
 
 ## Where CybICS fits
@@ -146,7 +143,7 @@ On real hardware, Level 0 is not a container at all: the STM32 on the CybICS boa
 
 ## The process you are actually protecting
 
-Everything above exists to run one small plant. A compressor pumps gas from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open. Both readings are a single byte, 0 to 255, and OpenPLC is the thing that decides: it reads the HPT pressure out of register 1126 and drives the compressor on coil 1. That loop &mdash; sensor, controller, actuator, process, sensor again &mdash; is what makes this a *control* system rather than a machine.
+Everything above exists to run one small plant. A compressor pumps gas from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open &mdash; but only while the compressor is off, because the model gives the plant one job per tick. Both readings are a single byte, 0 to 255, and OpenPLC is the thing that decides: it reads the HPT pressure out of register 1126 and drives the compressor on coil 1. That loop &mdash; sensor, controller, actuator, process, sensor again &mdash; is what makes this a *control* system rather than a machine.
 
 Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the HPT falls below 60 and stops it at 90, so the pressure saws gently between the two, comfortably inside the 50-to-100 band in which the plant reports itself healthy. Nothing ever goes near the relief valve.
 
@@ -159,9 +156,10 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 .plt .lvl {transform-box: fill-box; transform-origin: bottom;}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
-.plt .comp{animation: t-comp var(--t) steps(1,end) infinite;}
+.plt .comp{fill:#ff6b00; animation: t-comp var(--t) steps(1,end) infinite;}
+.plt .compt{animation: t-compt var(--t) steps(1,end) infinite;}
 .plt .vent{opacity:0; animation: t-vent var(--t) steps(1,end) infinite;}
-.plt .man {opacity:0; animation: t-man  var(--t) steps(1,end) infinite;}
+.plt .man {opacity:0; animation: t-hold var(--t) steps(1,end) infinite;}
 .plt .sup {opacity:0; animation: t-man  var(--t) steps(1,end) infinite;}
 .plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .ph-a{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
@@ -173,23 +171,29 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
    down, because nothing inside this loop can bring it down. */
 @keyframes t-hpt {0%{transform:scaleY(0.235)}  12%{transform:scaleY(0.353)}
                   24%{transform:scaleY(0.235)} 30%{transform:scaleY(0.294)}
-                  62%{transform:scaleY(0.863)} 82%,88%{transform:scaleY(0.941)}
+                  62%{transform:scaleY(0.863)} 82%{transform:scaleY(0.941)}
                   94%,100%{transform:scaleY(0.784)}}
 @keyframes t-gst {0%{transform:scaleY(0.941)}  12%,24%{transform:scaleY(0.706)}
                   30%{transform:scaleY(0.588)} 62%{transform:scaleY(0.304)}
-                  82%{transform:scaleY(0.225)} 88%{transform:scaleY(0.245)}
-                  94%{transform:scaleY(0.40)}  100%{transform:scaleY(0.60)}}
-@keyframes t-comp {0%,12%{fill:#ff6b00} 12.01%,24%{fill:currentColor}
-                   24.01%,82%{fill:#ff6b00} 82.01%,100%{fill:currentColor}}
+                  82%{transform:scaleY(0.225)} 100%{transform:scaleY(0.60)}}
+@keyframes t-comp {0%,12%{fill:#ff6b00} 12.01%,24%{fill:currentColor; fill-opacity:0.18}
+                   24.01%,82%{fill:#ff6b00} 82.01%,100%{fill:currentColor; fill-opacity:0.18}}
+/* The label has to follow the box, or the dark ink sits on a dark panel. */
+@keyframes t-compt{0%,12%{fill:#1a1a1a} 12.01%,24%{fill:currentColor}
+                   24.01%,82%{fill:#1a1a1a} 82.01%,100%{fill:currentColor}}
 @keyframes t-vent {0%,61.9%{opacity:0} 62%,94%{opacity:1} 94.01%,100%{opacity:0}}
 @keyframes t-man  {0%,29.9%{opacity:0} 30%,100%{opacity:1}}
+/* The badge has to stop when the compressor does, at 82%. */
+@keyframes t-hold {0%,29.9%{opacity:0} 30%,82%{opacity:1} 82.01%,100%{opacity:0}}
 @keyframes t-phn  {0%,29.9%{opacity:1} 30%,100%{opacity:0}}
 @keyframes t-stuck{0%,93.9%{opacity:0} 94%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) {
   .plt .gst {animation:none; transform:scaleY(0.40);}
   .plt .hpt {animation:none; transform:scaleY(0.784);}
-  .plt .comp{animation:none; fill:currentColor;}
-  .plt .man,.plt .sup,.plt .ph-a,.plt .stuck {animation:none; opacity:1;}
+  .plt .comp {animation:none; fill:currentColor; fill-opacity:0.18;}
+  .plt .compt{animation:none; fill:currentColor;}
+  .plt .sup,.plt .ph-a,.plt .stuck {animation:none; opacity:1;}
+  .plt .man {animation:none; opacity:0;}
   .plt .vent{animation:none; opacity:0;}
   .plt .ph-n{animation:none; opacity:0;}
 }
@@ -203,14 +207,14 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
   <text x="68" y="52" text-anchor="middle" font-size="12" font-weight="bold">GST</text>
   <text x="68" y="206" text-anchor="middle" font-size="11" opacity="0.8">storage</text>
   <g class="sup">
-    <path d="M 24 60 L 24 36" stroke="#ff6b00" stroke-width="2"/>
-    <path d="M 18 44 L 24 34 L 30 44" fill="none" stroke="#ff6b00" stroke-width="2"/>
-    <text x="8" y="28" font-size="11" fill="#ff6b00">supply, frozen open</text>
+    <path d="M 24 34 L 24 58" stroke="#ff6b00" stroke-width="2"/>
+    <path d="M 18 50 L 24 60 L 30 50" fill="none" stroke="#ff6b00" stroke-width="2"/>
+    <text x="8" y="28" font-size="11" fill="#ff6b00">supply, opened by hand</text>
   </g>
 
   <!-- compressor -->
-  <rect class="comp" x="150" y="105" width="90" height="40" rx="5" opacity="0.8"/>
-  <text x="195" y="130" text-anchor="middle" font-size="12" style="fill:#1a1a1a" font-weight="bold">compressor</text>
+  <rect class="comp" x="150" y="105" width="90" height="40" rx="5" stroke="currentColor" stroke-opacity="0.5"/>
+  <text class="compt" x="195" y="130" text-anchor="middle" font-size="12" font-weight="bold">compressor</text>
   <path d="M 100 125 L 146 125" stroke="currentColor" stroke-width="2"/>
   <path d="M 244 125 L 296 125" stroke="currentColor" stroke-width="2"/>
   <text x="195" y="164" text-anchor="middle" font-size="11" opacity="0.85">&minus;2 GST &rarr; +1 HPT</text>
@@ -255,14 +259,14 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
   <text class="ph-n" x="10" y="292" font-size="11" opacity="0.85">automatic: the loop holds 60 to 90</text>
   <text class="ph-a" x="10" y="292" font-size="11" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
 </svg>
-<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90, then with an operator in manual mode. Watch what happens when the compressor finally stops &mdash; the pressure falls to 200 and no further.</figcaption>
+<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90, then with an operator in manual mode. When the compressor finally stops, the pressure falls to 200 and no further.</figcaption>
 </figure>
 
-The attack is the second half of that loop, and it is not a network attack at all. The *Physical Process* challenge has you log in to the FUXA HMI as `operator:operator`, press **Manual / Automatic**, close the system valve and run the compressor. Every step is a legitimate operator action; the damage comes from the order they are done in.
+The attack is the second half of that loop, and it is not a network attack at all. The *Physical Process* challenge has you log in to the FUXA HMI as `operator:operator`, press **Manual / Automatic**, close the system valve and run the compressor. Every step is a legitimate operator action; the damage comes from the combination &mdash; a shut valve with a running compressor.
 
 Three details make it work, and each of them is a design decision rather than a bug.
 
-**Manual mode does not fail safe, it freezes.** The whole automatic block is wrapped in `IF manual < 1`, and the inner block has no `ELSE`. In manual mode OpenPLC stops assigning the compressor, the system valve and the supply valve entirely &mdash; they keep whatever value they had at the instant the operator switched over. Whether the supply valve happens to be frozen open decides whether there is enough gas to finish the job, which is why the exercise wants a charged storage tank before you start.
+**Manual mode does not fail safe, it freezes.** The whole automatic block is wrapped in `IF manual < 1`, and the inner block has no `ELSE`. In manual mode OpenPLC stops assigning the compressor, the system valve and the supply valve entirely &mdash; they keep whatever value they had at the instant the operator switched over, and the panel hands all three to the operator. The `Comp.`, `SV` and `GST` buttons in FUXA write those same three coils, and each is gated on manual mode being on. Nothing is left to chance: the operator opens the supply deliberately, which matters because of the budget at the end of this section.
 
 **The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure falls back under 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
 

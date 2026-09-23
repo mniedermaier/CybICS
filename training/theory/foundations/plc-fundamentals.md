@@ -23,7 +23,7 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
 .pl-c .gone{opacity:0; animation: c-gone var(--c) steps(1,end) infinite;}
 .pl-c .ph2 {animation: c-p2 var(--c) steps(1,end) infinite;}
 .pl-c .ph3 {animation: c-p3 var(--c) steps(1,end) infinite;}
-@keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(44px,11.8px)} 16.67%{transform:translate(76.2px,44px)} 25%{transform:translate(88px,88px)} 33.33%{transform:translate(76.2px,132px)} 41.67%{transform:translate(44px,164.2px)} 50%{transform:translate(0px,176px)} 58.33%{transform:translate(-44px,164.2px)} 66.67%{transform:translate(-76.2px,132px)} 75%{transform:translate(-88px,88px)} 83.33%{transform:translate(-76.2px,44px)} 91.67%{transform:translate(-44px,11.8px)} 100%{transform:translate(-0px,0px)}}
+@keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(38px,10.2px)} 16.67%{transform:translate(65.8px,38px)} 25%{transform:translate(76px,76px)} 33.33%{transform:translate(65.8px,114px)} 41.67%{transform:translate(38px,141.8px)} 50%{transform:translate(0px,152px)} 58.33%{transform:translate(-38px,141.8px)} 66.67%{transform:translate(-65.8px,114px)} 75%{transform:translate(-76px,76px)} 83.33%{transform:translate(-65.8px,38px)} 91.67%{transform:translate(-38px,10.2px)} 100%{transform:translate(-0px,0px)}}
 /* The active phase is marked with an outline, not by dimming the others: an
    orange panel at 0.55 opacity puts its dark label at 2.57:1. */
 @keyframes c-p1{0%,16.7%{stroke-width:3} 16.71%,83.2%{stroke-width:0} 83.3%,100%{stroke-width:3}}
