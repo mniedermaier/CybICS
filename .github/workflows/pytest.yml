@@ -51,6 +51,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Buildx
+      id: buildx
       uses: docker/setup-buildx-action@v4
 
     - name: Prepare environment
@@ -73,10 +74,21 @@ jobs:
     #
     # bake ignores compose profiles, so the targets are named explicitly; with
     # no arguments it would build all eleven again.
+    #
+    # --allow: the build contexts are ../../software/*, outside the directory
+    # holding the compose file, and bake refuses to read across that boundary
+    # without being told to. Granting the workspace is narrower than setting
+    # BUILDX_BAKE_ENTITLEMENTS_FS=0, which would disable the check entirely.
+    #
+    # --builder: setup-buildx-action creates a docker-container builder with
+    # --use, but bake still picked the default docker driver, which cannot
+    # export a type=gha cache at all. Naming the builder removes the question.
     - name: Build images with a layer cache
       working-directory: ./.devcontainer/virtual
       run: |
         docker buildx bake -f docker-compose.yml \
+          --builder "${{ steps.buildx.outputs.name }}" \
+          --allow "fs.read=${{ github.workspace }}" \
           --set "*.cache-from=type=gha,scope=pytest" \
           --set "*.cache-to=type=gha,mode=max,scope=pytest" \
           --load \
