@@ -21,8 +21,8 @@ explains why a connection needs a setup handshake before any data flows.
     <rect x="80" y="136" width="200" height="34" rx="4" fill="currentColor" opacity="0.14" stroke="currentColor"/>
     <text x="180" y="158">TCP : 102</text>
   </g>
-  <text x="180" y="192" font-size="10" opacity="0.7">Each layer wraps the one above; a COTP connection request</text>
-  <text x="180" y="205" font-size="10" opacity="0.7">opens the session before any S7 function is sent.</text>
+  <text x="180" y="192" font-size="11" opacity="0.7">Each layer wraps the one above; a COTP connection request</text>
+  <text x="180" y="205" font-size="11" opacity="0.7">opens the session before any S7 function is sent.</text>
 </svg>
 <figcaption>The S7comm stack. A client first completes a COTP connection request, then negotiates S7 parameters, then can read data or identity.</figcaption>
 </figure>
@@ -40,13 +40,13 @@ process. In CybICS the module-type field is where the *scanning2* challenge hide
   <text x="75" y="57" text-anchor="middle" font-size="12" fill="#1a1a1a">scanner</text>
   <rect x="390" y="30" width="110" height="44" rx="6" fill="currentColor" opacity="0.2" stroke="currentColor"/>
   <text x="445" y="52" text-anchor="middle" font-size="12">S7 server</text>
-  <text x="445" y="66" text-anchor="middle" font-size="10">:102</text>
+  <text x="445" y="66" text-anchor="middle" font-size="11">:102</text>
   <defs><marker id="s" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/></marker></defs>
   <line x1="130" y1="45" x2="388" y2="45" stroke="#ff6b00" stroke-width="2" marker-end="url(#s)"/>
   <text x="259" y="39" text-anchor="middle" font-size="11">Read SZL (module identification)</text>
   <line x1="390" y1="62" x2="132" y2="62" stroke="currentColor" stroke-width="2" opacity="0.6" marker-end="url(#s)"/>
   <text x="259" y="80" text-anchor="middle" font-size="11" opacity="0.85">Module type, serial, firmware &hellip;</text>
-  <text x="20" y="108" font-size="10" opacity="0.7">Enumeration maps to MITRE ATT&amp;CK for ICS T0846 Remote System Discovery.</text>
+  <text x="20" y="108" font-size="11" opacity="0.7">Enumeration maps to MITRE ATT&amp;CK for ICS T0846 Remote System Discovery.</text>
 </svg>
 <figcaption>An SZL read returns device identity with no login &mdash; ideal for the attacker's discovery phase, and the basis of the S7comm scanning challenge.</figcaption>
 </figure>

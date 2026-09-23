@@ -15,10 +15,10 @@ denial-of-control against the process itself.
     <line x1="110" y1="62" x2="392" y2="62" marker-end="url(#fo)"/>
     <line x1="110" y1="70" x2="392" y2="70" marker-end="url(#fo)"/>
   </g>
-  <text x="250" y="38" text-anchor="middle" font-size="10">hundreds of writes/second to HPT</text>
+  <text x="250" y="38" text-anchor="middle" font-size="11">hundreds of writes/second to HPT</text>
   <rect x="394" y="40" width="100" height="40" rx="6" fill="#ff6b00" opacity="0.6"/>
   <text x="444" y="64" text-anchor="middle" font-size="11" fill="#1a1a1a">PLC / HPT</text>
-  <text x="20" y="110" font-size="10" opacity="0.7">The flood outruns the control loop, so the register no longer reflects reality.</text>
+  <text x="20" y="110" font-size="11" opacity="0.7">The flood outruns the control loop, so the register no longer reflects reality.</text>
 </svg>
 <figcaption>A write flood overwhelms the register faster than the scan cycle can restore it, an impairment of process control.</figcaption>
 </figure>

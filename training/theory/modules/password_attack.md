@@ -9,8 +9,8 @@ web UI and the FUXA HMI.
   <defs><marker id="pw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/></marker></defs>
   <rect x="20" y="34" width="120" height="52" rx="6" fill="#ff6b00" opacity="0.8"/>
   <text x="80" y="56" text-anchor="middle" font-size="11" fill="#1a1a1a">ffuf + wordlist</text>
-  <text x="80" y="72" text-anchor="middle" font-size="9" fill="#1a1a1a">rockyou.txt</text>
-  <g font-size="9" text-anchor="middle">
+  <text x="80" y="72" text-anchor="middle" font-size="11" fill="#1a1a1a">rockyou.txt</text>
+  <g font-size="11" text-anchor="middle">
     <line x1="140" y1="52" x2="380" y2="40" stroke="#ff6b00" stroke-width="1.3" marker-end="url(#pw)"/>
     <line x1="140" y1="60" x2="380" y2="60" stroke="#ff6b00" stroke-width="1.3" marker-end="url(#pw)"/>
     <line x1="140" y1="68" x2="380" y2="80" stroke="#ff6b00" stroke-width="1.3" marker-end="url(#pw)"/>

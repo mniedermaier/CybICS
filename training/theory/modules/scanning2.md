@@ -10,9 +10,9 @@ fingerprint a Siemens-style PLC before touching the process.
   <rect x="20" y="34" width="100" height="44" rx="6" fill="#ff6b00" opacity="0.8"/>
   <text x="70" y="60" text-anchor="middle" font-size="11" fill="#1a1a1a">enumerator</text>
   <line x1="120" y1="48" x2="390" y2="48" stroke="#ff6b00" stroke-width="2" marker-end="url(#se)"/>
-  <text x="255" y="42" text-anchor="middle" font-size="10">Read SZL (module id)</text>
+  <text x="255" y="42" text-anchor="middle" font-size="11">Read SZL (module id)</text>
   <line x1="390" y1="66" x2="122" y2="66" stroke="currentColor" stroke-width="2" opacity="0.6" marker-end="url(#se)"/>
-  <text x="255" y="84" text-anchor="middle" font-size="10" opacity="0.85">Module type, serial, firmware</text>
+  <text x="255" y="84" text-anchor="middle" font-size="11" opacity="0.85">Module type, serial, firmware</text>
   <rect x="392" y="34" width="108" height="44" rx="6" fill="currentColor" opacity="0.2" stroke="currentColor"/>
   <text x="446" y="55" text-anchor="middle" font-size="11">S7 server :102</text>
 </svg>

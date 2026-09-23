@@ -19,14 +19,14 @@ paramount.
     <rect x="400" y="30" width="90" height="40" rx="6" fill="#ff6b00" opacity="0.55"/>
     <text x="445" y="54" fill="#1a1a1a">PLC</text>
     <line x1="120" y1="50" x2="400" y2="50" stroke="currentColor" stroke-width="2"/>
-    <text x="260" y="42" font-size="10">Modbus / S7 / OPC-UA traffic</text>
+    <text x="260" y="42" font-size="11">Modbus / S7 / OPC-UA traffic</text>
     <!-- tap -->
     <line x1="260" y1="50" x2="260" y2="110" stroke="#ff6b00" stroke-dasharray="5 3"/>
     <rect x="205" y="110" width="110" height="42" rx="6" fill="currentColor" opacity="0.2" stroke="#ff6b00"/>
     <text x="260" y="130">IDS (passive)</text>
-    <text x="260" y="145" font-size="9">read-only copy</text>
+    <text x="260" y="145" font-size="11">read-only copy</text>
   </g>
-  <text x="30" y="168" font-size="10" opacity="0.7">The IDS receives a copy of the traffic and never writes to the wire.</text>
+  <text x="30" y="168" font-size="11" opacity="0.7">The IDS receives a copy of the traffic and never writes to the wire.</text>
 </svg>
 <figcaption>A passive IDS reads a copy of the traffic. It can alert but cannot block, matching OT's availability-first priorities.</figcaption>
 </figure>

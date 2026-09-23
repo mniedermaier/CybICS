@@ -17,7 +17,7 @@ a client browses. To read or write, a client opens a **secure channel**, then a
   <text x="75" y="47" text-anchor="middle" font-size="12" fill="#1a1a1a">Client</text>
   <rect x="390" y="20" width="110" height="44" rx="6" fill="currentColor" opacity="0.2" stroke="currentColor"/>
   <text x="445" y="42" text-anchor="middle" font-size="12">Server</text>
-  <text x="445" y="56" text-anchor="middle" font-size="10">:4840</text>
+  <text x="445" y="56" text-anchor="middle" font-size="11">:4840</text>
   <defs><marker id="o" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/></marker></defs>
   <g font-size="11">
     <line x1="130" y1="36" x2="388" y2="36" stroke="#ff6b00" stroke-width="2" marker-end="url(#o)"/>
