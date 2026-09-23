@@ -118,6 +118,9 @@ build_and_push "mniedermaier1337/cybicsfuxa" "software/FUXA" "software/FUXA/Dock
 build_and_push "mniedermaier1337/cybicshwio" "software/hwio-virtual" "software/hwio-virtual/Dockerfile"
 build_and_push "mniedermaier1337/landing" "." "software/landing/Dockerfile"
 build_and_push "mniedermaier1337/cybics-engineeringws" "software" "software/engineeringWS/Dockerfile"
+build_and_push "mniedermaier1337/cybicsagent" "software/cybicsagent" "software/cybicsagent/Dockerfile"
+build_and_push "mniedermaier1337/cybics-ids" "software/ids" "software/ids/Dockerfile"
+build_and_push "mniedermaier1337/cybics-nginx-proxy" "software/nginx-proxy" "software/nginx-proxy/Dockerfile"
 
 echo ""
 echo "========================================"

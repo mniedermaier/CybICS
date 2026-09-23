@@ -8,6 +8,7 @@ KNOWN_SERVICES, which includes the bundled attack machine -- so the one host
 an exercise expects to be detected was the one host that never alerted.
 """
 import os
+import re
 import sys
 
 import pytest
@@ -75,3 +76,70 @@ def test_opcua_clients_are_a_subset_of_known_services():
 def test_short_payload_is_ignored():
     pkt = (ATTACK_MACHINE, OPCUA_SERVER, 51000, 4840, "PA", 6, b"HEL", None)
     assert not _opcua_alerts(rules.RuleEngine().check_packet(pkt))
+
+
+def _compose_static_ips():
+    """Service name -> static IP, read from the virtual stack's compose file."""
+    compose = os.path.join(ROOT, ".devcontainer", "virtual", "docker-compose.yml")
+    if not os.path.exists(compose):
+        pytest.skip("virtual docker-compose.yml not present")
+    found, service = {}, None
+    with open(compose, encoding="utf-8") as fh:
+        for line in fh:
+            name = re.match(r"^  ([a-z0-9_-]+):\s*$", line)
+            if name:
+                service = name.group(1)
+            addr = re.search(r"ipv4_address:\s*(\d+\.\d+\.\d+\.\d+)", line)
+            if addr and service:
+                found[service] = addr.group(1)
+    assert found, "no static addresses found in the compose file"
+    return found
+
+
+def test_every_container_is_a_known_service():
+    """Each container with a fixed address must be named in KNOWN_SERVICES.
+
+    A container the IDS cannot name shows up in the dashboard as an unknown
+    host, and the rules that exempt known services never apply to it. This
+    caught nginx-proxy on 172.18.0.12, which had been added to the compose
+    file and to pushDockerRepos.yml but not here.
+
+    The converse is deliberately not asserted: 172.18.0.7 is the STM32, which
+    is a container only in the Raspberry Pi deployment, not in this stack.
+    """
+    missing = {
+        name: ip
+        for name, ip in _compose_static_ips().items()
+        if ip not in rules.KNOWN_SERVICES
+    }
+    assert not missing, (
+        "containers with a fixed address but no KNOWN_SERVICES entry in "
+        "software/ids/rules.py: " + ", ".join(f"{n} ({i})" for n, i in sorted(missing.items()))
+    )
+
+
+def test_dashboard_service_table_matches_the_rules_table():
+    """The IDS page carries its own copy of KNOWN_SERVICES in JavaScript.
+
+    Two hand-maintained copies of the same table drift, and they had: the
+    dashboard knew a 'gateway' the rule engine did not, and neither knew the
+    reverse proxy. Until the page is served the table from the backend, this
+    test is what keeps them together.
+    """
+    page = os.path.join(ROOT, "software", "ids", "templates", "index.html")
+    if not os.path.exists(page):
+        pytest.skip("IDS dashboard template not present")
+    with open(page, encoding="utf-8") as fh:
+        text = fh.read()
+    block = re.search(r"const KNOWN_SERVICES = \{(.*?)\}", text, re.S)
+    assert block, "KNOWN_SERVICES not found in the dashboard template"
+    page_table = dict(re.findall(r"'([\d.]+)':\s*'([^']+)'", block.group(1)))
+
+    # The gateway is an address on the bridge, not a container of ours.
+    page_table.pop("172.18.0.1", None)
+
+    assert page_table == rules.KNOWN_SERVICES, (
+        "the dashboard's table and software/ids/rules.py disagree; "
+        f"only in the page: {sorted(set(page_table) - set(rules.KNOWN_SERVICES))}, "
+        f"only in rules.py: {sorted(set(rules.KNOWN_SERVICES) - set(page_table))}"
+    )

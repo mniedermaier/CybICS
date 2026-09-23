@@ -44,6 +44,9 @@ S7COM_PORT = _port("S7COM", 1102)
 OPENPLC_PORT = _port("OPENPLC", 8080)
 FUXA_PORT = _port("FUXA", 1881)
 HWIO_PORT = _port("HWIO", 8090)
+# The reverse proxy fronts the landing page; 8082 is its plain-HTTP listener,
+# chosen over 443 so a certificate problem does not read as a dead stack.
+NGINX_PROXY_PORT = _port("NGINX_PROXY", 8082)
 
 OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
 
@@ -63,6 +66,7 @@ REQUIRED_SERVICES = {
     "openplc web": OPENPLC_PORT,
     "fuxa": FUXA_PORT,
     "hwio": HWIO_PORT,
+    "nginx-proxy": NGINX_PROXY_PORT,
 }
 
 STACK_READY_TIMEOUT = int(os.getenv("TEST_STACK_TIMEOUT", "180"))
