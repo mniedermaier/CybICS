@@ -111,11 +111,11 @@ Both values snap back, but for opposite reasons and on different clocks &mdash; 
   <!-- time axis: t = 0 at x = 90, 2.05 px per millisecond -->
   <g font-size="11" opacity="0.7">
     <line x1="90" y1="182" x2="500" y2="182" stroke="currentColor"/>
-    <text x="90"    y="198" text-anchor="middle">0</text>
+    <text x="90"    y="198" text-anchor="middle">0 ms</text>
     <text x="192.5" y="198" text-anchor="middle">50</text>
     <text x="295"   y="198" text-anchor="middle">100</text>
     <text x="397.5" y="198" text-anchor="middle">150</text>
-    <text x="500"   y="198" text-anchor="middle">200 ms</text>
+    <text x="500"   y="198" text-anchor="middle">200</text>
   </g>
 
   <!-- row A: the PLC scan, one tick every 50 ms -->
