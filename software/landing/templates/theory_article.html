@@ -33,7 +33,12 @@
         .article blockquote { border-left:3px solid #ff6b00; background:#2d2d2d; padding:0.6rem 1rem; margin:1rem 0; color:#cfcfcf; }
         .article figure { margin:1.4rem 0; text-align:center; }
         .article figure svg { max-width:100%; height:auto; background:#141414; border:1px solid #333; border-radius:0.5rem; padding:0.8rem; color:#e8e8e8; }
-        .article figure svg text { fill:currentColor; }
+        /* Only supply a colour where the figure did not choose one. A bare
+           `fill:currentColor` here beats the figures' own fill attributes,
+           which turned every dark label on an orange panel into light grey
+           at about 3:1 — under the 4.5:1 floor. 26 of the 29 theory pages
+           were affected. */
+        .article figure svg text:not([fill]) { fill:currentColor; }
         .article figcaption { color:#999; font-size:0.82rem; margin-top:0.5rem; }
         .related { margin-top:2.5rem; border-top:1px solid #383838; padding-top:1rem; }
         .related h2 { font-size:1rem; color:#ff8c3a; margin-bottom:0.6rem; }
