@@ -1,0 +1,28 @@
+# Copyright (c) 2024 CybICS
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  A plain container for the board's GPIO lines.
+
+  The board's LEDs, plant signal inputs and LCD bus lines used to live in a
+  node declared as "gpio-keys".  Nothing bound them, because CONFIG_INPUT is
+  off, so it worked -- but "gpio-keys" is the input subsystem's binding, and
+  enabling CONFIG_INPUT_GPIO_KEYS would have made the driver try to register
+  every LED and every output as a keyboard key.
+
+  This binding says what those lines actually are: GPIO specs the application
+  fetches with GPIO_DT_SPEC_GET.  It declares no driver, so nothing binds and
+  nothing can be bound by accident.  The genuine buttons live in a separate
+  "gpio-keys" node.
+
+compatible: "cybics-gpio-group"
+
+child-binding:
+  description: One GPIO line.
+  properties:
+    gpios:
+      type: phandle-array
+      required: true
+    label:
+      type: string
+      description: Human-readable name, used in log messages.

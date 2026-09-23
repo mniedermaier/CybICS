@@ -98,6 +98,18 @@ indistinguishable from a v1.0 board.
 
 Firmware must enable the internal pull-up on these pins before reading them.
 
+The firmware does not simply read them, though: it probes each pin against both
+internal pulls, so it can tell a fitted resistor (holds the pin low either way)
+from an empty footprint (follows the pull). That is what lets it count how many
+of the five are actually soldered, and a board with **none** fitted is then
+resolved through `PA8`, which v1.0 loads with `R36` and v1.1 does not. See
+[Front Panel and Board Revision Detection](../software/stm32/README.md#board-revision-detection).
+
+So a v1.1 board assembled without straps is no longer silently mistaken for a
+v1.0 board -- it is detected, and the firmware says so in the boot log. Fit
+`R41`-`R44` anyway: the probe is a safety net, not a substitute, and it cannot
+work while somebody is holding the navigation switch during boot.
+
 ## Upgrading and Modifications
 
 ### Using Different Raspberry Pi Models

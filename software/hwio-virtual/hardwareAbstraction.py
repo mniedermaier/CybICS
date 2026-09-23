@@ -60,6 +60,221 @@ import random
 client = ModbusTcpClient(host="openplc",port=502)  # Create client object
 # Don't connect yet - will connect in background thread to avoid blocking
 
+# ---------------------------------------------------------------------------
+# The LCD
+#
+# The panel on the board and the panel in the browser show the same thing.
+# These are the same strings the firmware uses, copied out of
+# software/stm32/src/main.c, and tests/test_display_parity.py parses both files
+# and fails if they drift apart -- the same guard test_plant_model_parity.py
+# puts on the physical model.
+#
+# Values differ, of course: this plant has no STM32 unique ID and no WiFi radio,
+# just as two real boards show different uptimes.  The screens, their order and
+# their layout are what have to match.
+#
+# LCD_SCREENS_BEGIN
+LCD_SCREEN_COUNT           = 5
+# Boot animation geometry and timing.  Shared because this plays the same wave
+# at the same speed as the board; the captions are not shared, because the two
+# wait for different peers and neither should claim otherwise.
+#
+# LCD_BOOT_BUMP is the pulse shape: entry i is the height, 0..8, at a distance
+# of i eighths of a character from the crest.  A shape that drifted between the
+# two files would be a wave in two different speeds.
+LCD_BOOT_LEVELS            = 8
+LCD_BOOT_SUBSTEPS          = 8
+LCD_BOOT_BUMP              = "8888777666554332221110"
+LCD_BOOT_SWEEP_MS          = 972
+LCD_FMT_OVERVIEW_L0        = "CybICS %-9s"
+LCD_FMT_OVERVIEW_L1        = "%16u"
+LCD_TXT_NET_STA_L0         = "Wifi STA mode"
+LCD_FMT_NET_STA_L1         = "IP: %-12s"
+LCD_TXT_NET_AP_L0          = "AP mode: cybics-"
+LCD_FMT_NET_AP_L1          = "%-16s"
+LCD_TXT_NET_ERR_L0         = "WiFi error"
+LCD_TXT_NET_ERR_L1         = ""
+LCD_TXT_PROCESS_L0         = "Physical/real:  "
+LCD_FMT_PROCESS_L1         = "GST:%03d HPT:%03d "
+LCD_TXT_STATUS_L0          = "Status:"
+LCD_TXT_STATUS_BLOWOUT     = "Danger! BlowOut"
+LCD_TXT_STATUS_OPERATIONAL = "Operational"
+LCD_TXT_STATUS_SV_CLOSED   = "SV closed"
+LCD_TXT_STATUS_PRESS_HIGH  = "Pressure high"
+LCD_TXT_STATUS_PRESS_LOW   = "Pressure low"
+LCD_FMT_BUILD_L0           = "Build %s"
+LCD_FMT_BUILD_L1           = "%-8s HW %-4s"
+# LCD_SCREENS_END
+
+LCD_COLS = 16
+
+# The firmware's screen 0 prints FIRMWARE_VERSION_STRING from
+# software/stm32/src/version.h.  That header is the source of truth; this copy
+# has to be bumped alongside it.
+FIRMWARE_VERSION_STRING = "v1.2.2"
+
+# There is no PCB here, so there is no revision strap to read.  Four characters,
+# because that is all the firmware's build screen leaves for it.
+HW_VERSION_SHORT = "virt"
+
+BUILD_DATE = time.strftime("%Y.%m.%d")
+BUILD_TIME = time.strftime("%H:%M:%S")
+
+displayScreen = 0
+
+
+def lcd_render(screen):
+  """Return the two 16-column lines the panel shows for `screen`.
+
+  Mirrors the switch in thread_display() in software/stm32/src/main.c,
+  including the order the status conditions are tested in -- that order is
+  what decides which message wins when several apply at once.
+  """
+  if screen == 0:
+    line0 = LCD_FMT_OVERVIEW_L0 % FIRMWARE_VERSION_STRING
+    line1 = LCD_FMT_OVERVIEW_L1 % timer
+
+  elif screen == 1:
+    # The virtual plant has no radio.  It reports the STA layout with the
+    # address it is actually reachable on, and never the AP or error branch.
+    line0 = "%-16s" % LCD_TXT_NET_STA_L0
+    line1 = LCD_FMT_NET_STA_L1 % virtual_ip()
+
+  elif screen == 2:
+    line0 = "%-16s" % LCD_TXT_PROCESS_L0
+    line1 = LCD_FMT_PROCESS_L1 % (gst, hpt)
+
+  elif screen == 3:
+    line0 = "%-16s" % LCD_TXT_STATUS_L0
+    # BO_red, then S_green, then SV_red, then HPT_high/critical.
+    if boSen:
+      line1 = "%-16s" % LCD_TXT_STATUS_BLOWOUT
+    elif sysSen:
+      line1 = "%-16s" % LCD_TXT_STATUS_OPERATIONAL
+    elif systemValve <= 0:
+      line1 = "%-16s" % LCD_TXT_STATUS_SV_CLOSED
+    elif hpt >= 100:
+      line1 = "%-16s" % LCD_TXT_STATUS_PRESS_HIGH
+    else:
+      line1 = "%-16s" % LCD_TXT_STATUS_PRESS_LOW
+
+  else:
+    line0 = LCD_FMT_BUILD_L0 % BUILD_DATE
+    line1 = LCD_FMT_BUILD_L1 % (BUILD_TIME, HW_VERSION_SHORT)
+
+  # The HD44780 has sixteen columns and no more; snprintf() truncates on the
+  # board and so does this.
+  return line0[:LCD_COLS].ljust(LCD_COLS), line1[:LCD_COLS].ljust(LCD_COLS)
+
+
+def virtual_ip():
+  """Address this plant is reachable on, for the network screen."""
+  return os.environ.get("HWIO_ADDRESS", "172.18.0.4")
+
+
+# ---------------------------------------------------------------------------
+# Boot animation
+#
+# The same one the firmware plays: the name, then a bar sweeping across the
+# bottom row, and that same bar is what says the plant is waiting for its
+# controller.  Same 972 ms sweep, same five sub-pixel steps per character.
+#
+# The one thing that cannot be identical is the caption: the board waits for the
+# Raspberry Pi over I2C and this waits for OpenPLC over Modbus, so each names
+# the peer it actually has.  The wave itself is exact -- an HD44780 cell is
+# eight pixel rows tall and Unicode has eight block heights, so every glyph the
+# firmware draws has a character here that is the same shape.
+WAVE_LEVELS = " \u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588"
+
+boot_started_at = None
+boot_finished = False
+
+
+def boot_animation_start():
+  """Replay the animation, from a reset or at start-up."""
+  global boot_started_at, boot_finished
+  boot_started_at = time.monotonic()
+  boot_finished = False
+
+
+def wave_height(col, pos, base, floor_to):
+  """Height of one cell with the crest at `pos`, over a floor of `base` that
+  has been laid as far as `floor_to`.
+
+  Those are two different positions on purpose: while the pulse is crossing for
+  the first time the floor follows it, and while it patrols the floor is
+  already down across the whole row.
+  """
+  dx = abs(col * LCD_BOOT_SUBSTEPS - pos)
+  h = int(LCD_BOOT_BUMP[dx]) if dx < len(LCD_BOOT_BUMP) else 0
+  if col * LCD_BOOT_SUBSTEPS <= floor_to:
+    h = max(h, base)
+  return h
+
+
+def wave_row(pos, base, floor_to):
+  """The bottom row for one frame of the pulse."""
+  return "".join(WAVE_LEVELS[wave_height(c, pos, base, floor_to)] for c in range(LCD_COLS))
+
+
+def boot_frame():
+  """Two lines for the current moment, or None once the animation is over."""
+  global boot_finished
+  if boot_started_at is None or boot_finished:
+    return None
+
+  span = LCD_BOOT_SWEEP_MS / 1000.0
+  elapsed = time.monotonic() - boot_started_at
+  maxp = LCD_COLS * LCD_BOOT_SUBSTEPS
+  # The floor the pulse lays down, and the quieter one it patrols over.
+  floor_laid, floor_idle = 3, 2
+
+  if elapsed < span:
+    # The pulse crosses, leaving the floor behind it.
+    pos = int(maxp * elapsed / span)
+    return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), wave_row(
+      pos, floor_laid, pos)
+
+  # It arrives: full, overshoot down, settle.  Same three frames as the board.
+  for until, height in ((0.09, LCD_BOOT_LEVELS), (0.15, 4), (0.27, 6)):
+    if elapsed < span + until:
+      return ("CybICS %s" % FIRMWARE_VERSION_STRING).ljust(LCD_COLS), \
+        WAVE_LEVELS[height] * LCD_COLS
+
+  if not client.connected:
+    # Keep the pulse running for as long as the controller is missing, which is
+    # the only part of this that carries information.  There and back, over a
+    # floor that stays where the first pass left it: a pulse that ran only one
+    # way had to jump back to the start, and that jump moved fifteen of the
+    # sixteen cells in a single frame, once a second, for as long as the wait
+    # lasted.
+    patrol_max = (LCD_COLS - 1) * LCD_BOOT_SUBSTEPS
+    phase = ((elapsed - span - 0.27) % (2 * span)) / span
+    pos = int(patrol_max * (phase if phase < 1 else 2 - phase))
+    return "Waiting for PLC".ljust(LCD_COLS), wave_row(pos, floor_idle, maxp)
+
+  if elapsed < span + 0.87:
+    return "PLC connected".ljust(LCD_COLS), WAVE_LEVELS[LCD_BOOT_LEVELS] * LCD_COLS
+
+  boot_finished = True
+  return None
+
+
+def nav_event(event):
+  """One press of the front panel.
+
+  The navigation switch is modelled, not the v1.0 button, because that is the
+  hardware being built now.  ui_input.c maps centre, down and right to NEXT and
+  up and left to PREV; this does the same, so the browser and the board walk
+  the screens in the same order.
+  """
+  global displayScreen
+  if event == "next":
+    displayScreen = (displayScreen + 1) % LCD_SCREEN_COUNT
+  else:
+    displayScreen = (displayScreen - 1) % LCD_SCREEN_COUNT
+
+
 # Global variables
 gst=0
 hpt=0
@@ -248,6 +463,7 @@ def button_reset():
   gstSig=0
   delay=0
   timer=0
+  boot_animation_start()
   logging.info("button_rest: all reseted")
 
 # API endpoint for 3D visualization data
@@ -329,20 +545,51 @@ def index_page():
             )
 
             # Overlay Display
-            # Reproduces the STM32's LCD, whose first line reads
-            # "CybICS <version>" from FIRMWARE_VERSION_STRING in
-            # software/stm32/src/version.h. That header is the source of
-            # truth; this copy has to be bumped alongside it.
-            DISPLAYoverlay1 = ui.label('CybICS v1.2.2').style(
-              'position: absolute; top: 370px; left: 430px; border-radius: 50%; color=black'
-              'background-color: transparent; font-size: 40px;'
+            #
+            # A real 16x2 panel rather than two free-floating labels: the same
+            # sixteen columns, monospaced and left-aligned, so a line that is
+            # padded or truncated on the board is padded or truncated here too.
+            # lcd_render() decides what goes in them.
+            # Sized to the panel rather than by eye.  The blue area of the
+            # module in pics/pcb.png covers x 424..783 and y 375..462 of the
+            # 800 x 500 the image is drawn at, so 360 x 88 px.  Sixteen columns
+            # of monospace at 32px advance 0.6022em each, 308 px, which leaves
+            # about 26 px of margin on either side -- roughly the proportion a
+            # real 1602 has, whose 56 mm character area sits in a 64 mm window.
+            # The previous 40px was 385 px wide and spilled over the edge of
+            # the display.
+            lcd_line_style = (
+              'position: absolute; left: 450px; color: black;'
+              'background-color: transparent; font-size: 32px; line-height: 34px;'
+              'font-family: monospace; white-space: pre; letter-spacing: 0px;'
               'display: block;'
             )
-            DISPLAYoverlay2 = ui.label('0').style(
-              'position: absolute; top: 415px; left: 430px; border-radius: 50%; color=black'
-              'background-color: transparent; font-size: 40px; width:330px; text-align: right;'
+            DISPLAYoverlay1 = ui.label('').style('top: 385px;' + lcd_line_style)
+            DISPLAYoverlay2 = ui.label('').style('top: 419px;' + lcd_line_style)
+
+            # The navigation switch, SW3.
+            #
+            # From board v1.1 the front panel is a 5-way switch, so the virtual
+            # plant offers the same five contacts instead of a single button.
+            # Placement follows SW3 on the board: (204.5, 103.5) mm on a
+            # 160 x 100 mm outline is 96 % across and 53 % down, which lands
+            # here on the 800 x 500 photograph.
+            nav_button_style = (
+              'position: absolute; background-color: #444; color: white;'
+              'width: 22px; height: 22px; min-width: 22px; padding: 0;'
+              'font-size: 14px; line-height: 22px;'
               'display: block;'
             )
+            ui.button('^', on_click=lambda: nav_event('prev')).style(
+              'top: 240px; left: 745px;' + nav_button_style).tooltip('Up: previous screen')
+            ui.button('<', on_click=lambda: nav_event('prev')).style(
+              'top: 264px; left: 721px;' + nav_button_style).tooltip('Left: previous screen')
+            ui.button('O', on_click=lambda: nav_event('next')).style(
+              'top: 264px; left: 745px;' + nav_button_style).tooltip('Centre: next screen')
+            ui.button('>', on_click=lambda: nav_event('next')).style(
+              'top: 264px; left: 769px;' + nav_button_style).tooltip('Right: next screen')
+            ui.button('v', on_click=lambda: nav_event('next')).style(
+              'top: 288px; left: 745px;' + nav_button_style).tooltip('Down: next screen')
 
             # Overlay GST
             GSToverlayLow=ui.card().style(
@@ -472,7 +719,13 @@ def index_page():
       # 3D Visualization Tab Panel
       with ui.tab_panel(viz_3d_tab):
         # Create 3D container
-        container_3d = ui.element('div').props('id=container3d').style('width: 100%; height: 800px; position: relative; background-color: #0a0a0f;')
+        # Sized to the window rather than to a number.  800px was taller than
+        # the viewport on a laptop, which pushed the status panel off the
+        # bottom, and shorter than it on a desktop, which left a dead band
+        # under the scene.
+        container_3d = ui.element('div').props('id=container3d').style(
+          'width: 100%; height: calc(100vh - 150px); min-height: 380px;'
+          'position: relative; background-color: #0a0a0f;')
 
   # Three.js 3D Visualization - Clean implementation
   ui.add_body_html('''
@@ -507,7 +760,22 @@ def index_page():
           window.CYBICS_3D_VERSION = "7.0.0-CLEAN";
           document.title = "CybICS 3D Visualization";
 
-          function init3DScene() {
+          // Let the browser breathe.
+          //
+          // Building this scene is a few seconds of straight-line work on a
+          // machine without GPU acceleration: 56 meshes, 39 physically based
+          // materials and the shader compiles that go with them.  Done in one
+          // block it holds the main thread long enough that NiceGUI's client
+          // cannot answer its own handshake, and NiceGUI responds by reloading
+          // the page -- so the 3D tab used to take the session down with it,
+          // measured as a reload roughly six seconds after opening the tab
+          // while the same page left alone ran for forty without one.
+          //
+          // Yielding between sections costs a few milliseconds and lets the
+          // socket be serviced while the scene assembles.
+          const yieldToBrowser = () => new Promise(r => setTimeout(r, 0));
+
+          async function init3DScene() {
             const container = document.getElementById('container3d');
             if (!container) {
               setTimeout(init3DScene, 100);
@@ -516,6 +784,59 @@ def index_page():
 
             if (typeof THREE === 'undefined') {
               setTimeout(init3DScene, 100);
+              return;
+            }
+
+            // Is there a GPU behind this page?
+            //
+            // A browser with no hardware acceleration falls back to a software
+            // rasteriser -- SwiftShader in Chrome, llvmpipe on Mesa -- and this
+            // scene is far outside what that can sustain: 56 meshes, 39
+            // physically based materials and nine lights, with every shader
+            // compiled on the CPU.
+            //
+            // That is not a slow scene, it is a broken page.  Measured in
+            // headless Chrome on SwiftShader, opening this tab held the main
+            // thread long enough that NiceGUI's client could not answer its own
+            // handshake and reloaded the page, every time, taking the session
+            // with it -- while the same page left on the other tab ran for as
+            // long as it was watched without a single reload.  Turning shadows
+            // off, dropping to twelve frames a second and building the scene in
+            // chunks all helped and none of it was enough.
+            //
+            // So on a machine without acceleration the honest thing is to say
+            // so rather than to take the page down.  A training platform gets
+            // run in classroom VMs without GPU passthrough, and everything the
+            // 3D tab shows is on the classic view as well.
+            const gpuName = (function () {
+              try {
+                const probe = document.createElement('canvas');
+                const gl = probe.getContext('webgl2') || probe.getContext('webgl');
+                if (!gl) { return 'none'; }
+                const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
+              } catch (e) { return 'unknown'; }
+            })();
+            // ?force3d=1 builds the scene anyway.  Someone on a weak machine
+            // may want to look at it regardless, and it is the only way to
+            // inspect the scene from a browser without hardware acceleration.
+            const forced = /[?&]force3d=1/.test(window.location.search);
+            const softwareRenderer = !forced &&
+              /swiftshader|llvmpipe|software|microsoft basic|^none$/i.test(gpuName);
+
+            if (softwareRenderer) {
+              console.log('CybICS 3D: no hardware acceleration (' + gpuName + '), not building the scene');
+              container.innerHTML =
+                '<div style="display:flex;align-items:center;justify-content:center;' +
+                'height:100%;min-height:320px;padding:32px;text-align:center;' +
+                'font-family:sans-serif;color:#8fa4bb;line-height:1.6">' +
+                '<div><div style="font-size:18px;color:#dfe9f5;margin-bottom:8px">' +
+                '3D view needs hardware acceleration</div>' +
+                'This browser is rendering WebGL in software, where the scene runs ' +
+                'slowly enough to stall the page.<br>Everything it shows is on the ' +
+                '<b>Classic View</b> tab as well.' +
+                '<div style="font-size:12px;margin-top:12px;opacity:.7">renderer: ' +
+                gpuName + '</div></div></div>';
               return;
             }
 
@@ -592,24 +913,94 @@ def index_page():
             const canvas = document.createElement('canvas');
             const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
+            // Render at the display's own resolution, but never beyond 2x: the
+            // difference above that is invisible and the cost is quadratic.
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             renderer.sortObjects = true;
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Nothing that casts a shadow here ever moves -- the tanks, pipes,
+            // platform and floor are fixed, and the only animated things are
+            // the fan and the particles.  So the shadow maps are rendered once
+            // instead of four more full scene passes on every single frame.
+            renderer.shadowMap.autoUpdate = false;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.1;
+            // Exposure and the light intensities below were tuned against the
+            // broken linear output, which swallowed most of what they emitted.
+            // Correcting the encoding handed all of that back at once and the
+            // scene came out washed out -- the same lighting, now actually
+            // arriving.  A mid grey lit to 0.5 in linear space reads as 0.5
+            // when written straight to the canvas and as 0.74 once encoded, so
+            // roughly everything got brighter by half.
+            //
+            // Rebalanced rather than simply dimmed: the key light keeps its
+            // full strength, because that is what gives the vessels their shape
+            // and their shadows, and the ambient and fill terms come down
+            // hardest, because those are what flatten a scene when they are too
+            // strong.
+            renderer.toneMappingExposure = 0.75;
+            // The liquid in each vessel is a full-size body cut off at the
+            // surface by a clipping plane, which is what lets the level run
+            // into the dished heads instead of stopping at the cylinder.
+            renderer.localClippingEnabled = true;
             renderer.physicallyCorrectLights = true;
+            // Without this the image is written to the canvas in linear space
+            // while the tone mapper assumes it will be encoded, which is what
+            // made every surface look washed out and flat.
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            // setSize(..., false) leaves the CSS size alone, so the canvas is
+            // told here to fill its box and the observer above only has to
+            // keep the drawing buffer in step with it.
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.display = 'block';
             container.appendChild(canvas);
 
+            // An environment for the metals to reflect.
+            //
+            // MeshStandardMaterial is a physically based material: its
+            // metalness and roughness describe how a surface reflects its
+            // surroundings, and with no surroundings to reflect, every metal
+            // part resolves to flat grey no matter what those values say.  A
+            // small gradient -- bright sky, dark floor, warm horizon -- run
+            // through PMREM gives the tanks, pipes and frames something to
+            // pick up, which is the single biggest step towards looking like
+            // metal rather than plastic.  It is generated once.
+            (function buildEnvironment() {
+              if (softwareRenderer) { return; }
+              const c = document.createElement('canvas');
+              c.width = 64; c.height = 32;
+              const g = c.getContext('2d');
+              const grad = g.createLinearGradient(0, 0, 0, 32);
+              grad.addColorStop(0.00, '#dfe9f5');
+              grad.addColorStop(0.45, '#8fa4bb');
+              grad.addColorStop(0.55, '#6b5a4a');
+              grad.addColorStop(1.00, '#20242a');
+              g.fillStyle = grad; g.fillRect(0, 0, 64, 32);
+              const tex = new THREE.CanvasTexture(c);
+              tex.mapping = THREE.EquirectangularReflectionMapping;
+              const pmrem = new THREE.PMREMGenerator(renderer);
+              pmrem.compileEquirectangularShader();
+              scene.environment = pmrem.fromEquirectangular(tex).texture;
+              tex.dispose();
+              pmrem.dispose();
+            })();
+
             // Realistic industrial lighting setup
-            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.5);
+            // ambient lifts every surface equally, so it is the first thing to cut
+            const ambientLight = new THREE.AmbientLight(0x5a6a7a, 0.22);
             scene.add(ambientLight);
 
             // Main overhead directional light (soft daylight)
             const directionalLight = new THREE.DirectionalLight(0xfff8f0, 1.0);
             directionalLight.position.set(12, 20, 8);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 4096;
-            directionalLight.shadow.mapSize.height = 4096;
+            // 2048 over a 50-unit shadow camera is 41 texels per world unit,
+            // far finer than the screen resolves these objects at any sane
+            // camera distance.  4096 cost four times the memory and bandwidth
+            // for a difference nobody can see.
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
             directionalLight.shadow.camera.left = -25;
             directionalLight.shadow.camera.right = 25;
             directionalLight.shadow.camera.top = 25;
@@ -619,12 +1010,12 @@ def index_page():
             scene.add(directionalLight);
 
             // Soft fill light from side (subtle blue)
-            const fillLight = new THREE.DirectionalLight(0xa8c5dd, 0.35);
+            const fillLight = new THREE.DirectionalLight(0xa8c5dd, 0.22);
             fillLight.position.set(-15, 12, -8);
             scene.add(fillLight);
 
             // Warm accent light from opposite side (CybICS orange)
-            const accentLight = new THREE.DirectionalLight(0xff9955, 0.3);
+            const accentLight = new THREE.DirectionalLight(0xff9955, 0.18);
             accentLight.position.set(8, 10, -15);
             scene.add(accentLight);
 
@@ -632,9 +1023,11 @@ def index_page():
             const createSpotlight = (color, intensity, x, y, z, targetX, targetY, targetZ) => {
               const spotlight = new THREE.SpotLight(color, intensity, 50, Math.PI / 6, 0.5, 2);
               spotlight.position.set(x, y, z);
-              spotlight.castShadow = true;
-              spotlight.shadow.mapSize.width = 1024;
-              spotlight.shadow.mapSize.height = 1024;
+              // These three are accent lights: they exist to put a warm
+              // pool of light on each vessel, and the shadows they cast land
+              // inside shadows the main light has already drawn.  Three extra
+              // shadow passes per frame for an effect nobody would miss.
+              spotlight.castShadow = false;
 
               const target = new THREE.Object3D();
               target.position.set(targetX, targetY, targetZ);
@@ -645,9 +1038,9 @@ def index_page():
             };
 
             // Subtle equipment spotlights (realistic industrial lighting)
-            scene.add(createSpotlight(0xffffff, 0.8, -7, 12, 5, -7, 2, 0));    // GST
-            scene.add(createSpotlight(0xffffff, 0.8, 7, 12, 5, 7, 2, 0));     // HPT
-            scene.add(createSpotlight(0xffffff, 0.6, 0, 8, 3, 0, 1.5, 0));    // Compressor
+            scene.add(createSpotlight(0xffffff, 0.45, -7, 12, 5, -7, 2, 0));   // GST
+            scene.add(createSpotlight(0xffffff, 0.45, 7, 12, 5, 7, 2, 0));    // HPT
+            scene.add(createSpotlight(0xffffff, 0.35, 0, 8, 3, 0, 1.5, 0));   // Compressor
 
             // Industrial concrete floor
             const groundGeometry = new THREE.PlaneGeometry(60, 60);
@@ -751,6 +1144,8 @@ def index_page():
 
             scene.add(platformGroup);
 
+            await yieldToBrowser();   // built lighting, floor and platform
+
             // Orbit Controls for interactive camera
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -787,6 +1182,115 @@ def index_page():
               return sprite;
             }
 
+            await yieldToBrowser();   // built controls and helpers
+
+            // Liquid in a dished-end pressure vessel
+            //
+            // The fill used to be a plain cylinder scaled on Y, spanning only
+            // the cylindrical section.  Both vessels are a cylinder with a
+            // hemispherical head at each end, so that fill covered 8 of the
+            // 12.2 units you can see: a tank reading 255 of 255 drew its
+            // surface 66% of the way up, and a tank reading 0 left 2.1 units
+            // of empty dome below the line.  The two heads are 23.6% of the
+            // volume and were never drawn as filled at all.
+            //
+            // So the liquid is now the shape of the inside of the vessel, and
+            // a clipping plane cuts it at the surface.  The surface height
+            // comes from the volume rather than from the height, because the
+            // domes hold less per unit of height than the barrel does and a
+            // tank that looks half full should be half full.
+            const LIQUID_R = 1.85;
+            const LIQUID_H = 8.0;
+
+            function liquidVolume(y) {
+              const r = LIQUID_R, H = LIQUID_H;
+              const dome = 2 / 3 * Math.PI * r * r * r;
+              const cyl = Math.PI * r * r * H;
+              if (y <= -r) { return 0; }
+              if (y < 0) { const u = -y; return Math.PI * (2 * r * r * r / 3 - r * r * u + u * u * u / 3); }
+              if (y <= H) { return dome + Math.PI * r * r * y; }
+              if (y < H + r) { const h = y - H; return dome + cyl + Math.PI * (r * r * h - h * h * h / 3); }
+              return 2 * dome + cyl;
+            }
+
+            // Height at which the volume below equals `frac` of the whole.
+            // Bisection: the closed form needs a cubic root in the domes, this
+            // is thirty iterations of arithmetic twice a second.
+            function liquidLevel(frac) {
+              const total = liquidVolume(LIQUID_H + LIQUID_R);
+              const target = Math.max(0, Math.min(1, frac)) * total;
+              let lo = -LIQUID_R, hi = LIQUID_H + LIQUID_R;
+              for (let i = 0; i < 40; i++) {
+                const mid = (lo + hi) / 2;
+                if (liquidVolume(mid) < target) { lo = mid; } else { hi = mid; }
+              }
+              return (lo + hi) / 2;
+            }
+
+            // Inner radius at a given height, for the disc that shows the surface.
+            function liquidRadiusAt(y) {
+              const r = LIQUID_R, H = LIQUID_H;
+              if (y < 0) { return Math.sqrt(Math.max(0, r * r - y * y)); }
+              if (y <= H) { return r; }
+              return Math.sqrt(Math.max(0, r * r - (y - H) * (y - H)));
+            }
+
+            function makeLiquid(colour, emissive) {
+              const plane = new THREE.Plane(new THREE.Vector3(0, -1, 0), -LIQUID_R);
+              // depthWrite off, and that is not optional here.
+              //
+              // The clipped body is open at the cut, so it has to be
+              // DoubleSide or you look straight through the surface into
+              // nothing.  A transparent DoubleSide body that also writes depth
+              // has its back faces occlude its own front faces, and what you
+              // get is a volume that renders as very nearly invisible -- which
+              // is exactly what happened when this replaced the old fill: the
+              // surface disc still drew, the liquid under it did not.  The old
+              // fill escaped it by being FrontSide, which it could afford
+              // because a scaled cylinder is never cut open.
+              const body = new THREE.MeshStandardMaterial({
+                color: colour, transparent: true, opacity: 0.8,
+                roughness: 0.2, metalness: 0.0,
+                emissive: emissive, emissiveIntensity: 0.3,
+                side: THREE.DoubleSide, depthWrite: false,
+                clippingPlanes: [plane]
+              });
+              // The cut leaves the body open, so a disc rides at the surface.
+              const surface = new THREE.MeshStandardMaterial({
+                color: colour, transparent: true, opacity: 0.9,
+                roughness: 0.15, metalness: 0.0,
+                emissive: emissive, emissiveIntensity: 0.45
+              });
+
+              const group = new THREE.Group();
+              const cyl = new THREE.Mesh(
+                new THREE.CylinderGeometry(LIQUID_R, LIQUID_R, LIQUID_H, 32), body);
+              cyl.position.y = LIQUID_H / 2;
+              group.add(cyl);
+              const bottom = new THREE.Mesh(new THREE.SphereGeometry(
+                LIQUID_R, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), body);
+              group.add(bottom);
+              const top = new THREE.Mesh(new THREE.SphereGeometry(
+                LIQUID_R, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), body);
+              top.position.y = LIQUID_H;
+              group.add(top);
+
+              const disc = new THREE.Mesh(new THREE.CircleGeometry(LIQUID_R, 32), surface);
+              disc.rotation.x = -Math.PI / 2;
+              group.add(disc);
+
+              group.userData.setLevel = function (frac) {
+                const y = liquidLevel(frac);
+                plane.constant = y;
+                const rad = liquidRadiusAt(y);
+                disc.position.y = y;
+                disc.visible = rad > 0.02;
+                disc.scale.set(rad / LIQUID_R, rad / LIQUID_R, 1);
+              };
+              group.userData.setLevel(0);
+              return group;
+            }
+
             // GST Tank (left) - Realistic industrial pressure vessel
             const gstGroup = new THREE.Group();
             gstGroup.position.set(-7, 0, 0);
@@ -801,7 +1305,13 @@ def index_page():
                 envMapIntensity: 1.0,
                 transparent: true,
                 opacity: 0.3,
-                side: THREE.DoubleSide
+                side: THREE.DoubleSide,
+                // A transparent enclosure must not write depth.  If it does,
+                // its near surface fails the depth test for everything behind
+                // it -- which is the liquid it exists to let you see.  That is
+                // what emptied the tanks: the level arithmetic and the clipping
+                // were both right, the shell was simply drawn over them.
+                depthWrite: false
               })
             );
             gstBody.position.y = 4;
@@ -809,23 +1319,8 @@ def index_page():
             gstBody.receiveShadow = true;
             gstGroup.add(gstBody);
 
-            // GST fill level indicator (visible through transparent tank)
-            const gstFillGeometry = new THREE.CylinderGeometry(1.85, 1.85, 8, 32);
-            gstFillGeometry.translate(0, 4, 0);
-            const gstFill = new THREE.Mesh(
-              gstFillGeometry,
-              new THREE.MeshStandardMaterial({
-                color: 0x2196f3,
-                transparent: true,
-                opacity: 0.8,
-                roughness: 0.2,
-                metalness: 0.0,
-                emissive: 0x1976d2,
-                emissiveIntensity: 0.3
-              })
-            );
-            gstFill.position.y = 0;
-            gstFill.scale.y = 0.01;
+            // GST liquid
+            const gstFill = makeLiquid(0x2196f3, 0x1976d2);
             gstGroup.add(gstFill);
 
             // Add support legs to tank
@@ -1020,6 +1515,8 @@ def index_page():
 
             scene.add(gstGroup);
 
+            await yieldToBrowser();   // built the GST
+
             // HPT Tank (right) - Realistic industrial pressure vessel
             const hptGroup = new THREE.Group();
             hptGroup.position.set(7, 0, 0);
@@ -1034,7 +1531,13 @@ def index_page():
                 envMapIntensity: 1.0,
                 transparent: true,
                 opacity: 0.3,
-                side: THREE.DoubleSide
+                side: THREE.DoubleSide,
+                // A transparent enclosure must not write depth.  If it does,
+                // its near surface fails the depth test for everything behind
+                // it -- which is the liquid it exists to let you see.  That is
+                // what emptied the tanks: the level arithmetic and the clipping
+                // were both right, the shell was simply drawn over them.
+                depthWrite: false
               })
             );
             hptBody.position.y = 4;
@@ -1042,23 +1545,8 @@ def index_page():
             hptBody.receiveShadow = true;
             hptGroup.add(hptBody);
 
-            // HPT fill level indicator (visible through transparent tank)
-            const hptFillGeometry = new THREE.CylinderGeometry(1.85, 1.85, 8, 32);
-            hptFillGeometry.translate(0, 4, 0);
-            const hptFill = new THREE.Mesh(
-              hptFillGeometry,
-              new THREE.MeshStandardMaterial({
-                color: 0xf44336,
-                transparent: true,
-                opacity: 0.8,
-                roughness: 0.2,
-                metalness: 0.0,
-                emissive: 0xd32f2f,
-                emissiveIntensity: 0.3
-              })
-            );
-            hptFill.position.y = 0;
-            hptFill.scale.y = 0.01;
+            // HPT liquid
+            const hptFill = makeLiquid(0xf44336, 0xd32f2f);
             hptGroup.add(hptFill);
 
             // Add support legs to HPT tank
@@ -1161,6 +1649,8 @@ def index_page():
             hptGroup.add(hptLabel);
 
             scene.add(hptGroup);
+
+            await yieldToBrowser();   // built the HPT
 
             // Realistic industrial compressor
             const compressorGroup = new THREE.Group();
@@ -1322,6 +1812,8 @@ def index_page():
 
             scene.add(compressorGroup);
 
+            await yieldToBrowser();   // built the compressor
+
             // Pipes with flanges - realistic industrial piping
             const pipeMaterial = new THREE.MeshStandardMaterial({
               color: 0x9095a0,
@@ -1440,6 +1932,8 @@ def index_page():
             elbowHPT.castShadow = true;
             scene.add(elbowHPT);
 
+            await yieldToBrowser();   // built the pipework
+
             // Industrial Chimney Stack (beside HPT)
             const chimneyGroup = new THREE.Group();
             chimneyGroup.position.set(11, 0, 0);
@@ -1555,6 +2049,8 @@ def index_page():
             elbowChimneyInlet.castShadow = true;
             scene.add(elbowChimneyInlet);
 
+            await yieldToBrowser();   // built the chimney
+
             // System Cabinet (right of HPT)
             const cabinetGroup = new THREE.Group();
             cabinetGroup.position.set(13, 0, -3);
@@ -1622,6 +2118,8 @@ def index_page():
             scene.add(ledLabel4);
 
             scene.add(ledPanel);
+
+            await yieldToBrowser();   // built the cabinet
 
             // Particle system for gas flow (from compressor outlet pipe to HPT)
             const particleCount = 100;
@@ -1774,13 +2272,12 @@ def index_page():
                 const response = await fetch('/api/state');
                 const data = await response.json();
 
-                // Update tank fill levels (pressure values range 0-255)
-                const gstPercent = data.gst / 255;
-                const hptPercent = data.hpt / 255;
-
-                // Scale fill (geometry is anchored at bottom, so just scale)
-                gstFill.scale.y = Math.max(0.01, gstPercent);
-                hptFill.scale.y = Math.max(0.01, hptPercent);
+                // Tank levels.  The sensors report 0-255, and the surface is
+                // placed so the volume below it is that fraction of the whole
+                // vessel -- heads included.  Half the pressure is half the
+                // tank, which is what anyone reading the picture assumes.
+                gstFill.userData.setLevel(data.gst / 255);
+                hptFill.userData.setLevel(data.hpt / 255);
 
                 // Update compressor fan speed and lighting
                 targetFanSpeed = data.compressor ? 0.15 : 0;
@@ -1841,9 +2338,72 @@ def index_page():
               }
             }
 
+            // A handle for tuning the look without a rebuild.
+            //
+            // These numbers are a judgement about how a scene should appear and
+            // whoever is looking at it is better placed to make it than whoever
+            // wrote the defaults.  In the browser console:
+            //
+            //   CybICS3D.exposure(0.9)      brighter or darker overall
+            //   CybICS3D.ambient(0.3)       flatter or more contrasty
+            //   CybICS3D.report()           the current values, to paste back
+            window.CybICS3D = {
+              // The objects themselves, for poking at from the console.  Note
+              // that three.js puts render() on the instance rather than on
+              // WebGLRenderer.prototype, so patching the prototype to observe
+              // frames silently does nothing -- reach them through here.
+              scene: scene,
+              renderer: renderer,
+              camera: camera,
+              exposure: v => { renderer.toneMappingExposure = v; },
+              ambient: v => { ambientLight.intensity = v; },
+              fill: v => { fillLight.intensity = v; },
+              accent: v => { accentLight.intensity = v; },
+              report: () => ({
+                exposure: renderer.toneMappingExposure,
+                ambient: ambientLight.intensity,
+                fill: fillLight.intensity,
+                accent: accentLight.intensity,
+              }),
+            };
+
+            // Draw the shadow maps once, now that everything is in the scene.
+            renderer.shadowMap.needsUpdate = true;
+
             // Animation loop
-            function animate() {
+            //
+            // Two gates, both of which matter more than any single drawing
+            // trick in here.
+            //
+            // The scene lives in a tab.  Without a visibility check it kept
+            // rendering the whole thing at the display's refresh rate while
+            // the user was looking at the board photograph on the other tab --
+            // all of that work thrown away every frame.
+            //
+            // And it is capped to 30 fps.  Nothing here moves fast enough to
+            // need more: the fan eases, the particles drift, the data behind
+            // it arrives twice a second.  Uncapped, this pegged a core hard
+            // enough that NiceGUI's client could not answer its own handshake
+            // in time and reloaded the page out from under the scene, which is
+            // how the 3D tab managed to kill the session it was running in.
+            const FRAME_MS = 1000 / (softwareRenderer ? 12 : 30);
+            let lastFrame = 0;
+
+            function visible() {
+              return document.visibilityState === 'visible' && canvas.offsetParent !== null;
+            }
+
+            function animate(now) {
               requestAnimationFrame(animate);
+
+              // The first call comes from start-up rather than from rAF, so it
+              // arrives without a timestamp; leaving it undefined would poison
+              // every later comparison with NaN and the cap would never apply.
+              if (now === undefined) { now = performance.now(); }
+
+              if (!visible()) { return; }
+              if (now - lastFrame < FRAME_MS) { return; }
+              lastFrame = now;
 
               // Smooth fan rotation
               fanRotationSpeed += (targetFanSpeed - fanRotationSpeed) * 0.1;
@@ -1935,11 +2495,26 @@ def index_page():
             fetchData();
 
             // Handle resize
-            window.addEventListener('resize', function() {
-              camera.aspect = container.clientWidth / container.clientHeight;
+            //
+            // Watching the container rather than the window: it also changes
+            // when the tab is switched to, when the browser chrome grows or
+            // shrinks, and when the page is zoomed, none of which fire a
+            // window resize.  Without this the canvas kept whatever size it
+            // had when the scene was built and left a dead band around itself.
+            function fitToContainer() {
+              const w = container.clientWidth, h = container.clientHeight;
+              if (!w || !h) { return; }
+              camera.aspect = w / h;
               camera.updateProjectionMatrix();
-              renderer.setSize(container.clientWidth, container.clientHeight);
-            });
+              renderer.setSize(w, h, false);
+              renderer.shadowMap.needsUpdate = true;
+            }
+
+            if (window.ResizeObserver) {
+              new ResizeObserver(fitToContainer).observe(container);
+            }
+            window.addEventListener('resize', fitToContainer);
+            fitToContainer();
 
             // Start animation
             animate();
@@ -1960,8 +2535,13 @@ def index_page():
   async def update():
     global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
-    # Update display timer
-    DISPLAYoverlay2.set_text(str(timer))
+    # Update the LCD.  Both lines every tick, from one renderer, so the panel
+    # can never show half of one screen and half of another.  The boot
+    # animation owns the panel while it runs.
+    frame = boot_frame()
+    line0, line1 = frame if frame else lcd_render(displayScreen)
+    DISPLAYoverlay1.set_text(line0)
+    DISPLAYoverlay2.set_text(line1)
 
     # System Valve
     if systemValve > 0:
@@ -2311,6 +2891,10 @@ def index_page():
       ''')
     except:
       pass  # 3D visualization tab not loaded yet
+
+  # The panel boots the way the board does, for whoever opens the page first.
+  if boot_started_at is None:
+    boot_animation_start()
 
   # Create a timer to update every 20ms (50Hz to match OpenPLC cycle time)
   ui.timer(0.02, update)

@@ -19,4 +19,5 @@ target_sources(app PRIVATE
     src/main.c
     src/lcd_hd44780.c
     src/hw_version.c
+    src/ui_input.c
 )

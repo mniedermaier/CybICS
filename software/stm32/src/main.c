@@ -17,6 +17,7 @@
 #include "lcd_hd44780.h"
 #include "version.h"
 #include "hw_version.h"
+#include "ui_input.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include "proto/cybics.pb.h"
@@ -253,7 +254,6 @@ static const struct gpio_dt_spec d_d4 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d4), gpi
 static const struct gpio_dt_spec d_d5 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d5), gpios);
 static const struct gpio_dt_spec d_d6 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d6), gpios);
 static const struct gpio_dt_spec d_d7 = GPIO_DT_SPEC_GET(DT_NODELABEL(d_d7), gpios);
-static const struct gpio_dt_spec display_in = GPIO_DT_SPEC_GET(DT_NODELABEL(display_in), gpios);
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_NODELABEL(button), gpios);
 
 
@@ -289,203 +289,284 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 }
 
 /* Custom characters for startup animation */
-static const uint8_t char_logo_tl[8] = {0x00, 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x0F};  /* Top-left corner */
-static const uint8_t char_logo_tr[8] = {0x00, 0x00, 0x00, 0x10, 0x18, 0x1C, 0x1E, 0x1E};  /* Top-right corner */
-static const uint8_t char_logo_bl[8] = {0x0F, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00};  /* Bottom-left corner */
-static const uint8_t char_logo_br[8] = {0x1E, 0x1E, 0x1C, 0x18, 0x10, 0x00, 0x00, 0x00};  /* Bottom-right corner */
-static const uint8_t char_block_full[8] = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F};  /* Full block */
-static const uint8_t char_block_left[8] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10};  /* Left edge */
-static const uint8_t char_block_right[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}; /* Right edge */
-static const uint8_t char_gear[8] = {0x00, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x0E, 0x00};  /* Gear/cog */
-
-/**
- * @brief Play startup animation on LCD for ~10 seconds
+/*
+ * LCD screen text.
+ *
+ * These are the only strings the display ever shows, and the virtual plant in
+ * software/hwio-virtual/hardwareAbstraction.py reproduces them character for
+ * character so that a student sees the same 16x2 panel whether they are in
+ * front of the board or in front of the browser.
+ *
+ * tests/test_display_parity.py parses this block and the Python one and fails
+ * if the two drift apart, the same way test_plant_model_parity.py guards the
+ * plant model.  Change a string here and the test will tell you where its
+ * twin lives.
+ *
+ * LCD_SCREENS_BEGIN
  */
-static void play_startup_animation(struct lcd_hd44780 *lcd)
+#define LCD_SCREEN_COUNT            5
+/*
+ * Boot animation geometry and timing.  Shared because the virtual plant plays
+ * the same wave at the same speed; the captions are not, because the two wait
+ * for different peers and neither should claim otherwise.
+ *
+ * LCD_BOOT_BUMP is the pulse shape: entry i is the height, 0..8, at a distance
+ * of i eighths of a character from the crest.  It is a cos^2 bell trimmed at
+ * the first zero, so the pulse is about five characters wide.  As a string
+ * because that is a shape both a C file and a Python file can hold verbatim,
+ * and a shape that drifted between them would be a wave in two different
+ * speeds.
+ */
+#define LCD_BOOT_LEVELS             8
+#define LCD_BOOT_SUBSTEPS           8
+#define LCD_BOOT_BUMP               "8888777666554332221110"
+#define LCD_BOOT_SWEEP_MS           972
+#define LCD_FMT_OVERVIEW_L0         "CybICS %-9s"
+#define LCD_FMT_OVERVIEW_L1         "%16u"
+#define LCD_TXT_NET_STA_L0          "Wifi STA mode"
+#define LCD_FMT_NET_STA_L1          "IP: %-12s"
+#define LCD_TXT_NET_AP_L0           "AP mode: cybics-"
+#define LCD_FMT_NET_AP_L1           "%-16s"
+#define LCD_TXT_NET_ERR_L0          "WiFi error"
+#define LCD_TXT_NET_ERR_L1          ""
+#define LCD_TXT_PROCESS_L0          "Physical/real:  "
+#define LCD_FMT_PROCESS_L1          "GST:%03d HPT:%03d "
+#define LCD_TXT_STATUS_L0           "Status:"
+#define LCD_TXT_STATUS_BLOWOUT      "Danger! BlowOut"
+#define LCD_TXT_STATUS_OPERATIONAL  "Operational"
+#define LCD_TXT_STATUS_SV_CLOSED    "SV closed"
+#define LCD_TXT_STATUS_PRESS_HIGH   "Pressure high"
+#define LCD_TXT_STATUS_PRESS_LOW    "Pressure low"
+#define LCD_FMT_BUILD_L0            "Build %s"
+#define LCD_FMT_BUILD_L1            "%-8s HW %-4s"
+/* LCD_SCREENS_END */
+
+/*
+ * Boot animation.
+ *
+ * Eight characters, each a bar filled from the bottom to height 1..8.  An
+ * HD44780 cell is eight pixel rows tall, so these are every height it has, and
+ * they let the bottom row behave like a level meter.
+ *
+ * What travels along it is a pulse: a cos^2 bell whose crest moves in eighths
+ * of a character.  Sub-character motion is the one thing a character LCD can
+ * do that looks genuinely smooth, and doing it with heights rather than widths
+ * costs nothing extra -- the crest glides between cells because the two cells
+ * either side of it trade height, which is what a level meter does anyway.
+ *
+ * The previous version of this file spent about nine seconds on four unrelated
+ * effects -- a sweep, a fade, an expanding box, four gears taking turns being
+ * asterisks, a typewriter, a ping-pong bar and three clear-and-redraw flashes
+ * of "** READY **" -- and three of its eight glyphs were created and never
+ * drawn.
+ */
+#define LCD_COLS_ANIM 16
+#define WAVE_MAX_POS (LCD_COLS_ANIM * LCD_BOOT_SUBSTEPS)
+/*
+ * The furthest the crest goes while patrolling: the centre of the last cell,
+ * so it turns round on screen instead of half off the right-hand edge.
+ */
+#define WAVE_PATROL_MAX ((LCD_COLS_ANIM - 1) * LCD_BOOT_SUBSTEPS)
+
+/* Slot h holds a bar h+1 rows tall, measured up from the bottom. */
+static const uint8_t char_level[LCD_BOOT_LEVELS][8] = {
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F},
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F},
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x00, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+	{0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F},
+};
+
+static const char wave_bump[] = LCD_BOOT_BUMP;
+
+/*
+ * Height of cell `col` with the crest at `pos`, over a floor of `base` that
+ * has been laid as far as `floor_to`.
+ *
+ * Those are two different positions on purpose.  While the pulse is crossing
+ * for the first time the floor follows it, so pass the crest position; while it
+ * is patrolling the floor is already down across the whole row, so pass the
+ * end.  Tying the two together is what used to make the row empty itself every
+ * time the patrol came round again.
+ */
+static uint8_t wave_height(int col, int pos, uint8_t base, int floor_to)
 {
-	int i;
+	int dx = col * LCD_BOOT_SUBSTEPS - pos;
+	uint8_t h = 0;
 
-	/* Create custom characters */
-	lcd_create_char(lcd, 0, char_logo_tl);
-	lcd_create_char(lcd, 1, char_logo_tr);
-	lcd_create_char(lcd, 2, char_logo_bl);
-	lcd_create_char(lcd, 3, char_logo_br);
-	lcd_create_char(lcd, 4, char_block_full);
-	lcd_create_char(lcd, 5, char_block_left);
-	lcd_create_char(lcd, 6, char_block_right);
-	lcd_create_char(lcd, 7, char_gear);
-
-	/* Phase 1: Animated logo sequence (~5 seconds) */
-	lcd_clear(lcd);
-	k_msleep(300);
-
-	/* Sweep effect: lines coming from both sides */
-	for (i = 0; i < 8; i++) {
-		lcd_set_cursor(lcd, 0, i);
-		lcd_putc(lcd, '=');
-		lcd_set_cursor(lcd, 0, 15 - i);
-		lcd_putc(lcd, '=');
-		lcd_set_cursor(lcd, 1, i);
-		lcd_putc(lcd, '=');
-		lcd_set_cursor(lcd, 1, 15 - i);
-		lcd_putc(lcd, '=');
-		k_msleep(80);
-	}
-	k_msleep(200);
-
-	/* Clear with fade effect */
-	for (i = 0; i < 8; i++) {
-		lcd_set_cursor(lcd, 0, i);
-		lcd_putc(lcd, ' ');
-		lcd_set_cursor(lcd, 0, 15 - i);
-		lcd_putc(lcd, ' ');
-		lcd_set_cursor(lcd, 1, i);
-		lcd_putc(lcd, ' ');
-		lcd_set_cursor(lcd, 1, 15 - i);
-		lcd_putc(lcd, ' ');
-		k_msleep(50);
-	}
-	k_msleep(200);
-
-	/* Draw expanding box */
-	lcd_set_cursor(lcd, 0, 7);
-	lcd_putc(lcd, 0);  /* Top-left */
-	lcd_putc(lcd, 1);  /* Top-right */
-	lcd_set_cursor(lcd, 1, 7);
-	lcd_putc(lcd, 2);  /* Bottom-left */
-	lcd_putc(lcd, 3);  /* Bottom-right */
-	k_msleep(400);
-
-	/* Add horizontal lines expanding from center */
-	for (i = 1; i <= 5; i++) {
-		lcd_set_cursor(lcd, 0, 7 - i);
-		lcd_putc(lcd, '-');
-		lcd_set_cursor(lcd, 0, 8 + i);
-		lcd_putc(lcd, '-');
-		lcd_set_cursor(lcd, 1, 7 - i);
-		lcd_putc(lcd, '-');
-		lcd_set_cursor(lcd, 1, 8 + i);
-		lcd_putc(lcd, '-');
-		k_msleep(100);
-	}
-	k_msleep(300);
-
-	/* Add gear icons with animation */
-	lcd_set_cursor(lcd, 0, 1);
-	lcd_putc(lcd, 7);
-	k_msleep(150);
-	lcd_set_cursor(lcd, 0, 14);
-	lcd_putc(lcd, 7);
-	k_msleep(150);
-	lcd_set_cursor(lcd, 1, 1);
-	lcd_putc(lcd, 7);
-	k_msleep(150);
-	lcd_set_cursor(lcd, 1, 14);
-	lcd_putc(lcd, 7);
-	k_msleep(400);
-
-	/* Spinning effect on gears */
-	for (i = 0; i < 4; i++) {
-		lcd_set_cursor(lcd, 0, 1);
-		lcd_putc(lcd, (i % 2) ? 7 : '*');
-		lcd_set_cursor(lcd, 0, 14);
-		lcd_putc(lcd, (i % 2) ? '*' : 7);
-		lcd_set_cursor(lcd, 1, 1);
-		lcd_putc(lcd, (i % 2) ? '*' : 7);
-		lcd_set_cursor(lcd, 1, 14);
-		lcd_putc(lcd, (i % 2) ? 7 : '*');
-		k_msleep(200);
-	}
-	k_msleep(300);
-
-	/* Phase 2: Typewriter effect for "CybICS" */
-	lcd_clear(lcd);
-	k_msleep(200);
-	lcd_set_cursor(lcd, 0, 5);
-	const char *logo = "CybICS";
-	for (i = 0; logo[i] != '\0'; i++) {
-		lcd_putc(lcd, logo[i]);
-		k_msleep(200);
-	}
-	k_msleep(800);
-
-	/* Phase 3: Loading bar animation - loops until I2C message received */
-	lcd_clear(lcd);
-	lcd_set_cursor(lcd, 0, 1);
-	lcd_print(lcd, "Waiting for Pi");
-
-	/* Draw loading bar frame */
-	lcd_set_cursor(lcd, 1, 0);
-	lcd_print(lcd, "[              ]");
-
-	/* Animate loading bar until I2C message is received */
-	i = 0;
-	while (!i2c_first_message_received) {
-		/* Calculate position in the bar (ping-pong effect) */
-		int pos = i % 28;  /* 0-27 for back and forth */
-		if (pos >= 14) {
-			pos = 27 - pos;  /* Reverse direction */
-		}
-
-		/* Clear the bar */
-		lcd_set_cursor(lcd, 1, 1);
-		lcd_print(lcd, "              ");
-
-		/* Draw moving segment (3 chars wide) */
-		for (int j = 0; j < 3; j++) {
-			int p = pos + j;
-			if (p >= 0 && p < 14) {
-				lcd_set_cursor(lcd, 1, 1 + p);
-				lcd_putc(lcd, '=');
-			}
-		}
-
-		/* Animate dots on top line */
-		lcd_set_cursor(lcd, 0, 15);
-		lcd_putc(lcd, "\\|/-"[i % 4]);  /* Spinning indicator */
-
-		i++;
-		k_msleep(100);
+	if (dx < 0) {
+		dx = -dx;
 	}
 
-	/* Show connected message briefly */
-	lcd_clear(lcd);
-	lcd_set_cursor(lcd, 0, 2);
-	lcd_print(lcd, "Pi Connected!");
-	lcd_set_cursor(lcd, 1, 0);
-	lcd_print(lcd, "[==============]");
-	k_msleep(800);
-
-	/* Phase 4: System ready with flash effect */
-	for (int flash = 0; flash < 3; flash++) {
-		lcd_clear(lcd);
-		k_msleep(100);
-		lcd_set_cursor(lcd, 0, 2);
-		lcd_print(lcd, "** READY **");
-		lcd_set_cursor(lcd, 1, 5);
-		lcd_print(lcd, "CybICS");
-		k_msleep(300);
+	if (dx < (int)(sizeof(wave_bump) - 1)) {
+		h = (uint8_t)(wave_bump[dx] - '0');
 	}
 
-	/* Hold ready message */
-	k_msleep(500);
-	lcd_clear(lcd);
+	if (col * LCD_BOOT_SUBSTEPS <= floor_to && h < base) {
+		h = base;
+	}
+
+	return h;
 }
 
 /*
- * True while the display switch is pressed, on either board revision: the
- * v1.0 push-button reads high when pressed, the v1.1 navigation switch reads
- * low because its common is tied to GND.
+ * Draw the bottom row for one frame, writing only the cells whose height
+ * changed.  `shown` carries the last frame across calls: the pulse touches
+ * about five cells, so a step costs a handful of writes rather than a redraw
+ * of the row, which matters on a bit-banged 4-bit bus.
  */
-static bool display_switch_pressed(void)
+static void wave_draw(struct lcd_hd44780 *lcd, int pos, uint8_t base, int floor_to,
+		      uint8_t *shown)
 {
-	int level = gpio_pin_get_dt(&display_in);
+	for (int c = 0; c < LCD_COLS_ANIM; c++) {
+		uint8_t h = wave_height(c, pos, base, floor_to);
 
-	if (level < 0) {
-		return false;
+		if (h == shown[c]) {
+			continue;
+		}
+
+		lcd_set_cursor(lcd, 1, (uint8_t)c);
+		lcd_putc(lcd, h ? (char)(h - 1) : ' ');
+		shown[c] = h;
+	}
+}
+
+/* Flatten the row to one height, for the settle and the finish. */
+static void wave_flat(struct lcd_hd44780 *lcd, uint8_t height, uint8_t *shown)
+{
+	for (int c = 0; c < LCD_COLS_ANIM; c++) {
+		if (height == shown[c]) {
+			continue;
+		}
+
+		lcd_set_cursor(lcd, 1, (uint8_t)c);
+		lcd_putc(lcd, height ? (char)(height - 1) : ' ');
+		shown[c] = height;
+	}
+}
+
+/* Centre a string on a row, for the two captions this animation shows. */
+static void lcd_centre(struct lcd_hd44780 *lcd, uint8_t row, const char *text)
+{
+	size_t len = strlen(text);
+	uint8_t col = (len >= LCD_COLS_ANIM) ? 0 : (uint8_t)((LCD_COLS_ANIM - len) / 2);
+	char padded[LCD_COLS_ANIM + 1];
+
+	snprintf(padded, sizeof(padded), "%*s%-*s", col, "", LCD_COLS_ANIM - col, text);
+	lcd_set_cursor(lcd, row, 0);
+	lcd_print(lcd, padded);
+}
+
+/*
+ * Boot animation: one idea, about a second of it.
+ *
+ * A pulse runs the length of the bottom row, laying a floor down behind it,
+ * lands with a thump, and then keeps running for as long as the board is
+ * waiting for the Pi.  So the startup is one continuous motion, and the part
+ * that repeats is the part that carries information: if you are still watching
+ * the pulse, the Pi has not said hello.
+ */
+static void play_startup_animation(struct lcd_hd44780 *lcd)
+{
+	/* One sweep takes LCD_BOOT_SWEEP_MS, the figure the browser uses too. */
+	const int step_ms = LCD_BOOT_SWEEP_MS / (WAVE_MAX_POS + 1);
+	/* The floor the pulse lays down, and the quieter one it patrols over. */
+	const uint8_t floor_laid = 3;
+	const uint8_t floor_idle = 2;
+	uint8_t shown[LCD_COLS_ANIM];
+	bool said_waiting = false;
+
+	for (int i = 0; i < LCD_BOOT_LEVELS; i++) {
+		lcd_create_char(lcd, (uint8_t)i, char_level[i]);
 	}
 
-	return hw_version_switch_active_low() ? (level == 0) : (level != 0);
+	lcd_clear(lcd);
+	memset(shown, 0, sizeof(shown));
+	lcd_centre(lcd, 0, "CybICS " FIRMWARE_VERSION_STRING);
+
+	/* The pulse crosses, leaving the floor behind it. */
+	for (int p = 0; p <= WAVE_MAX_POS; p++) {
+		wave_draw(lcd, p, floor_laid, p, shown);
+		k_msleep(step_ms);
+	}
+
+	/*
+	 * It arrives.  The row jumps to full, overshoots back down and settles,
+	 * which is the whole flourish -- three frames rather than three
+	 * clear-and-redraw flashes.
+	 */
+	wave_flat(lcd, LCD_BOOT_LEVELS, shown);
+	k_msleep(90);
+	wave_flat(lcd, 4, shown);
+	k_msleep(60);
+	wave_flat(lcd, 6, shown);
+	k_msleep(120);
+
+	/*
+	 * Keep the pulse running until the Pi says hello.  On a healthy boot
+	 * this loop does not run at all; when it does, the caption says why the
+	 * board is sitting there.
+	 */
+	while (!i2c_first_message_received) {
+		if (!said_waiting) {
+			lcd_centre(lcd, 0, "Waiting for Pi");
+			said_waiting = true;
+			/* Step down to the patrol floor rather than drop to it. */
+			wave_flat(lcd, 4, shown);
+			k_msleep(60);
+			wave_flat(lcd, floor_idle, shown);
+			k_msleep(60);
+		}
+
+		/*
+		 * There and back, over a floor that stays where the first pass
+		 * left it.  A pulse that ran only left to right had to jump
+		 * back to the start, and with the floor following the crest
+		 * that meant fifteen of the sixteen cells changing in a single
+		 * frame, once a second, for as long as the Pi was missing.
+		 * This way the most that changes between two frames is three
+		 * cells, and nothing at all changes where one cycle meets the
+		 * next.
+		 */
+		for (int p = 0; p <= WAVE_PATROL_MAX && !i2c_first_message_received; p++) {
+			wave_draw(lcd, p, floor_idle, WAVE_MAX_POS, shown);
+			k_msleep(step_ms);
+		}
+		for (int p = WAVE_PATROL_MAX; p >= 0 && !i2c_first_message_received; p--) {
+			wave_draw(lcd, p, floor_idle, WAVE_MAX_POS, shown);
+			k_msleep(step_ms);
+		}
+	}
+
+	wave_flat(lcd, LCD_BOOT_LEVELS, shown);
+	lcd_centre(lcd, 0, "Pi connected");
+	k_msleep(600);
+	lcd_clear(lcd);
+}
+
+#define LCD_COLS 16
+
+/*
+ * Write a line only if it differs from what is already there.
+ *
+ * The old code rewrote both lines every second whether or not anything had
+ * changed, which is 32 characters of HD44780 bit-banging a second and a
+ * visible shimmer on the screen.  Now a static screen costs nothing.
+ */
+static void lcd_line(struct lcd_hd44780 *lcd, uint8_t row, char *shadow, const char *text)
+{
+	if (strncmp(shadow, text, LCD_COLS + 1) == 0) {
+		return;
+	}
+
+	strncpy(shadow, text, LCD_COLS);
+	shadow[LCD_COLS] = '\0';
+
+	lcd_set_cursor(lcd, row, 0);
+	lcd_print(lcd, shadow);
 }
 
 /* Thread: Display */
@@ -495,11 +576,14 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	uint8_t shifting = 0;
 	uint8_t displayScreen = 0;
-	uint32_t secondsAfterStart = 0;
 	uint8_t wifiPressed = 0;
-	char displayText[20];
+	char line0[LCD_COLS + 1];
+	char line1[LCD_COLS + 1];
+	/* What the panel is currently showing, so we only write what changed. */
+	char shown0[LCD_COLS + 1];
+	char shown1[LCD_COLS + 1];
+	int64_t uptime_base_ms;
 	int ret;
 
 	/* Wait for initialization to complete */
@@ -531,6 +615,14 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	play_startup_animation(&lcd);
 	LOG_INF("Display thread: startup animation complete");
 
+	/*
+	 * Uptime starts when the panel does, so the number on screen 0 is the
+	 * time the board has been showing something.  It used to be a count of
+	 * loop iterations labelled as seconds, which drifted by however long
+	 * the LCD writes took -- minutes a day.
+	 */
+	uptime_base_ms = k_uptime_get();
+
 	/* Get unique ID from STM32 UID registers (same as LL_GetUID_Word0/1/2) */
 	volatile uint32_t *uid_regs = (volatile uint32_t *)0x1FFF7590;
 
@@ -556,9 +648,36 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	LOG_INF("STM32 UID: %08lx %08lx %08lx -> SSID: %s",
 		(unsigned long)uid_regs[0], (unsigned long)uid_regs[1], (unsigned long)uid_regs[2], uid_hex);
 
-	LOG_INF("Display thread: starting main loop");
+	/* The animation cleared the panel, so nothing is on it yet. */
+	shown0[0] = '\0';
+	shown1[0] = '\0';
 
+	LOG_INF("Display thread: starting main loop, input is %s", ui_input_backend_name());
+
+	/*
+	 * The loop now runs at the input poll rate rather than once a second.
+	 * That is what makes a press land: the switch is sampled every 20 ms
+	 * and acted on after the 60 ms debounce, instead of being caught or
+	 * missed depending on where in a one-second sleep it happened to fall.
+	 *
+	 * Running fifty times a second costs almost nothing, because a line is
+	 * only written to the panel when its text changed -- on a static screen
+	 * the loop reads five pins, formats two strings and goes back to sleep.
+	 */
 	while (1) {
+		enum ui_event ev;
+		uint32_t uptime_s;
+
+		if (ui_input_poll(&ev)) {
+			if (ev == UI_EVENT_NEXT) {
+				displayScreen = (uint8_t)((displayScreen + 1) % LCD_SCREEN_COUNT);
+			} else {
+				displayScreen = (uint8_t)((displayScreen + LCD_SCREEN_COUNT - 1) %
+							  LCD_SCREEN_COUNT);
+			}
+			LOG_DBG("screen %u", displayScreen);
+		}
+
 		/* Switch between station and AP mode of Wifi */
 		if (gpio_pin_get_dt(&button)) {
 			if (!wifiPressed) {
@@ -571,108 +690,87 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 				}
 				encode_device_info();  /* Re-encode with new wifi_mode */
 				snprintf(rpiIP, sizeof(rpiIP), "%-15s", "Unknown");
-				shifting = 0;
 				wifiPressed = 1;
 			}
 		} else {
 			wifiPressed = 0;
 		}
 
-		/* Switch between displays if Display button is pressed */
-		if (display_switch_pressed()) {
-			displayScreen++;
-			if (displayScreen > 4) {
-				displayScreen = 0;
-			}
-		}
+		uptime_s = (uint32_t)((k_uptime_get() - uptime_base_ms) / 1000);
 
-		secondsAfterStart++;
+		line1[0] = '\0';
 
-		/* Display showing CybICS string and uptime */
-		if (displayScreen == 0) {
-			snprintf(displayText, sizeof(displayText), "CybICS %-9s", FIRMWARE_VERSION_STRING);
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "%16u", secondsAfterStart);
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
-		}
-		/* Display WiFi configuration */
-		else if (displayScreen == 1) {
+		switch (displayScreen) {
+		/* CybICS string and uptime */
+		case 0:
+			snprintf(line0, sizeof(line0), LCD_FMT_OVERVIEW_L0, FIRMWARE_VERSION_STRING);
+			snprintf(line1, sizeof(line1), LCD_FMT_OVERVIEW_L1, uptime_s);
+			break;
+
+		/* WiFi configuration */
+		case 1:
 			if (wifi_mode == 0) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Wifi STA mode");
-				lcd_set_cursor(&lcd, 0, 0);
-				lcd_print(&lcd, displayText);
-				snprintf(displayText, sizeof(displayText), "IP: %-12s", &rpiIP[shifting]);
-				lcd_set_cursor(&lcd, 1, 0);
-				lcd_print(&lcd, displayText);
-
-				if (strlen(rpiIP) > 12) {
-					shifting++;
-				}
-				if (shifting > 3) {
-					shifting = 0;
-				}
+				/*
+				 * "IP: " leaves twelve columns, and rpiIP is
+				 * padded to fifteen, so the address scrolls
+				 * through four positions.  Derived from the
+				 * uptime rather than counted per iteration:
+				 * the loop now runs four times a second, and a
+				 * counter would scroll four times as fast as
+				 * it used to.
+				 */
+				uint8_t shifting = (strlen(rpiIP) > 12) ? (uint8_t)(uptime_s % 4) : 0;
+				snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_NET_STA_L0);
+				snprintf(line1, sizeof(line1), LCD_FMT_NET_STA_L1, &rpiIP[shifting]);
 			} else if (wifi_mode == 1) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "AP mode: cybics-");
-				lcd_set_cursor(&lcd, 0, 0);
-				lcd_print(&lcd, displayText);
-				snprintf(displayText, sizeof(displayText), "%-16s", uid_hex);
-				lcd_set_cursor(&lcd, 1, 0);
-				lcd_print(&lcd, displayText);
+				snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_NET_AP_L0);
+				snprintf(line1, sizeof(line1), LCD_FMT_NET_AP_L1, uid_hex);
 			} else {
-				snprintf(displayText, sizeof(displayText), "%-16s", "WiFi error");
-				lcd_set_cursor(&lcd, 0, 0);
-				lcd_print(&lcd, displayText);
+				snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_NET_ERR_L0);
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_NET_ERR_L1);
 			}
-		}
-		/* Display showing real pressure values */
-		else if (displayScreen == 2) {
-			snprintf(displayText, sizeof(displayText), "%-16s", "Physical/real:  ");
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
-			snprintf(displayText, sizeof(displayText), "GST:%03d HPT:%03d ", GSTpressure, HPTpressure);
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
-		}
-		/* Display showing status */
-		else if (displayScreen == 3) {
-			snprintf(displayText, sizeof(displayText), "%-16s", "Status:");
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
-			if (BO_sen > 0) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Danger! BlowOut");
-			} else if ((HPTpressure > 50) && (HPTpressure < 100) && SV_green) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Operational");
-			} else if ((HPTpressure > 50) && (HPTpressure < 100)) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "SV closed");
-			} else if (HPTpressure > 100) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure high");
-			} else if (HPTpressure <= 50) {
-				snprintf(displayText, sizeof(displayText), "%-16s", "Pressure low");
+			break;
+
+		/* Tank pressures */
+		case 2:
+			snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_PROCESS_L0);
+			snprintf(line1, sizeof(line1), LCD_FMT_PROCESS_L1, GSTpressure, HPTpressure);
+			break;
+
+		/* Plant status */
+		case 3:
+			snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_STATUS_L0);
+			if (BO_red) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_BLOWOUT);
+			} else if (S_green) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_OPERATIONAL);
+			} else if (SV_red) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_SV_CLOSED);
+			} else if (HPT_critical || HPT_high) {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_PRESS_HIGH);
+			} else {
+				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_PRESS_LOW);
 			}
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
-		}
-		/* Display showing build and board information */
-		else if (displayScreen == 4) {
+			break;
+
+		/* Build and board information */
+		default:
 			/* BUILD_DATE and BUILD_TIME are defined by CMake */
-			snprintf(displayText, sizeof(displayText), "Build %s", BUILD_DATE);
-			lcd_set_cursor(&lcd, 0, 0);
-			lcd_print(&lcd, displayText);
+			snprintf(line0, sizeof(line0), LCD_FMT_BUILD_L0, BUILD_DATE);
 			/*
 			 * "HH:MM:SS HW v1.1" -- exactly the 16 columns. The board
 			 * revision belongs on this screen rather than screen 0,
-			 * because the virtual plant mirrors screen 0 and has no
-			 * PCB whose revision it could show.
+			 * because the virtual plant has no PCB whose revision it
+			 * could show.
 			 */
-			snprintf(displayText, sizeof(displayText), "%-8s HW %-4s",
-				 BUILD_TIME, hw_version_short());
-			lcd_set_cursor(&lcd, 1, 0);
-			lcd_print(&lcd, displayText);
+			snprintf(line1, sizeof(line1), LCD_FMT_BUILD_L1, BUILD_TIME, hw_version_short());
+			break;
 		}
 
-		k_msleep(1000);
+		lcd_line(&lcd, 0, shown0, line0);
+		lcd_line(&lcd, 1, shown1, line1);
+
+		k_msleep(UI_INPUT_POLL_INTERVAL_MS);
 	}
 }
 
@@ -1013,8 +1111,13 @@ void thread_uart(void *arg1, void *arg2, void *arg3)
 				case MENU_MCU:
 					LOG_INF("=== MCU Information ===");
 					LOG_INF("STM32G070RB on Zephyr RTOS");
-					LOG_INF("Board revision: %s (strap code %u)",
-						hw_version_name(), hw_version_code());
+					LOG_INF("Board revision: %s (strap code %u, %u of 5 straps fitted)",
+						hw_version_name(), hw_version_code(),
+						hw_version_straps_fitted());
+					if (hw_version_straps_missing()) {
+						LOG_INF("  straps unpopulated; revision taken from the PA8 probe");
+					}
+					LOG_INF("Front panel: %s", ui_input_backend_name());
 					showMenu = 1;
 					break;
 
@@ -1181,16 +1284,16 @@ int main(void)
 	if (configure_gpio_input(&c_sig, "c_sig") < 0) errors++;
 	if (configure_gpio_input(&sv_sig, "sv_sig") < 0) errors++;
 	if (configure_gpio_input(&gst_sig, "gst_sig") < 0) errors++;
+	if (configure_gpio_input(&button, "button") < 0) errors++;
+
 	/*
-	 * v1.0 drives this pin high through an external divider, v1.1 pulls it
-	 * low against GND.  Only the newer board wants the internal pull-up;
-	 * on v1.0 it would fight the divider.
+	 * The front panel configures itself: which pins exist, which way round
+	 * they read and whether they want the internal pull-up all depend on
+	 * the revision hw_version_init() just worked out.  See ui_input.c.
 	 */
-	if (configure_gpio_input_flags(&display_in, "display_in",
-				       hw_version_switch_active_low() ? GPIO_PULL_UP : 0) < 0) {
+	if (ui_input_init() < 0) {
 		errors++;
 	}
-	if (configure_gpio_input(&button, "button") < 0) errors++;
 
 	LOG_INF("========================================");
 	if (errors > 0) {
