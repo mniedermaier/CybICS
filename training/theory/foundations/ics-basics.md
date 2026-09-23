@@ -20,9 +20,9 @@ This is why the priorities are inverted compared to IT. A control system runs fo
                     36%{transform:translate(324px,38px)} 38%,88%{transform:translate(340px,0)}
                     90%{transform:translate(324px,38px)} 98%{transform:translate(16px,38px)}
                     100%{transform:translate(0,0)}}
-@keyframes p-left  {0%,25%{transform:translate(0,0)} 27%{transform:translate(-16px,-38px)}
-                    36%{transform:translate(-324px,-38px)} 38%,88%{transform:translate(-340px,0)}
-                    90%{transform:translate(-324px,-38px)} 98%{transform:translate(-16px,-38px)}
+@keyframes p-left  {0%,25%{transform:translate(0,0)} 27%{transform:translate(-16px,76px)}
+                    36%{transform:translate(-324px,76px)} 38%,88%{transform:translate(-340px,0)}
+                    90%{transform:translate(-324px,76px)} 98%{transform:translate(-16px,76px)}
                     100%{transform:translate(0,0)}}
 @keyframes p-it {0%,31%{opacity:1} 31.01%,94%{opacity:0} 94.01%,100%{opacity:1}}
 @keyframes p-ot {0%,31%{opacity:0} 31.01%,94%{opacity:1} 94.01%,100%{opacity:0}}
@@ -31,14 +31,14 @@ This is why the priorities are inverted compared to IT. A control system runs fo
   .pri-static {display:block;}
 }
 </style>
-<svg class="pri" viewBox="0 -4 520 134" role="img"
+<svg class="pri" viewBox="0 0 520 166" role="img"
      aria-label="The same three security goals in one row, ordered most important on the left. IT ranks them confidentiality, integrity, availability; OT swaps the outer two, so availability leads and confidentiality comes last.">
   <text class="lab-it" x="10" y="20" font-size="13" font-weight="bold">IT priorities</text>
   <text class="lab-ot" x="10" y="20" font-size="13" font-weight="bold" fill="#ff6b00">OT priorities</text>
 
   <text x="20" y="60" font-size="12" font-weight="bold" fill="#ff6b00">1.</text>
-  <text x="190" y="60" font-size="12" font-weight="bold" opacity="0.6">2.</text>
-  <text x="360" y="60" font-size="12" font-weight="bold" opacity="0.6">3.</text>
+  <text x="190" y="60" font-size="12" font-weight="bold" opacity="0.78">2.</text>
+  <text x="360" y="60" font-size="12" font-weight="bold" opacity="0.78">3.</text>
 
   <g class="swap-c">
     <rect x="34" y="38" width="136" height="30" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
@@ -52,8 +52,8 @@ This is why the priorities are inverted compared to IT. A control system runs fo
     <rect x="204" y="38" width="136" height="30" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
     <text x="272" y="58" font-size="12" text-anchor="middle">Integrity</text>
   </g>
-  <text x="102" y="122" font-size="11" opacity="0.7" text-anchor="middle">most important</text>
-  <text x="442" y="122" font-size="11" opacity="0.7" text-anchor="middle">least important</text>
+  <text x="102" y="160" font-size="13" opacity="0.7" text-anchor="middle">most important</text>
+  <text x="442" y="160" font-size="13" opacity="0.7" text-anchor="middle">least important</text>
 </svg>
 <svg class="pri-static" viewBox="0 0 520 134" role="img"
      aria-label="IT ranks the three goals confidentiality, integrity, availability. OT reverses the outer two: availability first, integrity second, confidentiality last.">
@@ -105,17 +105,17 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
 </style>
 <svg class="pur" viewBox="0 0 520 266" role="img"
      aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The DMZ boundary it crosses sits between Level 3 and the enterprise; CybICS has no such boundary: the plant components share one flat network, and the IDS watches from the host.">
-  <g font-size="12">
+  <g font-size="14">
     <rect x="70" y="10" width="440" height="40" rx="5" fill="currentColor" opacity="0.10" stroke="currentColor"/>
-    <text x="82" y="35">Level 4/5 &mdash; Enterprise IT (ERP, email, internet)</text>
+    <text x="82" y="35">Level 4/5 &mdash; Enterprise IT</text>
     <rect x="70" y="60" width="440" height="40" rx="5" fill="currentColor" opacity="0.14" stroke="currentColor"/>
-    <text x="82" y="85">Level 3 &mdash; Operations (historian, engineering workstation)</text>
+    <text x="82" y="85">Level 3 &mdash; Operations</text>
     <rect x="70" y="110" width="440" height="40" rx="5" fill="#ff6b00" opacity="0.30" stroke="#ff6b00"/>
     <text x="82" y="135">Level 2 &mdash; Supervisory (SCADA, HMI)</text>
     <rect x="70" y="160" width="440" height="40" rx="5" fill="#ff6b00" opacity="0.45" stroke="#ff6b00"/>
     <text x="82" y="185">Level 1 &mdash; Control (PLCs)</text>
     <rect x="70" y="210" width="440" height="40" rx="5" fill="#ff6b00" stroke="#ff6b00"/>
-    <text x="82" y="235" style="fill:#1a1a1a">Level 0 &mdash; Process (sensors, actuators, valves)</text>
+    <text x="82" y="235" style="fill:#1a1a1a">Level 0 &mdash; Process (sensors, valves)</text>
   </g>
 
   <line class="dmz" x1="70" y1="55" x2="510" y2="55" stroke="#ff6b00" stroke-dasharray="6 4"/>
@@ -126,7 +126,7 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
   </g>
 
 </svg>
-<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. An intruder that starts at the top reaches the process by descending all five levels, one protocol at a time. The descent is the point: each step meets a different service and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
+<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. An intruder that starts at the top reaches the process by descending all five levels. The descent is the point: each step meets a different service and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
 </figure>
 
 ## Where CybICS fits
@@ -145,14 +145,15 @@ On real hardware, Level 0 is not a container at all: the STM32 on the CybICS boa
 
 ## The process you are actually protecting
 
-Everything above exists to run one small plant. A compressor pumps gas from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open &mdash; but only while the compressor is off, because the model gives the plant one job per tick. Both readings are a single byte, 0 to 255, and OpenPLC is the thing that decides: it reads the HPT pressure out of register 1126 and drives the compressor on coil 1. That loop &mdash; sensor, controller, actuator, process, sensor again &mdash; is what makes this a *control* system rather than a machine.
+Everything above exists to run one small plant. A compressor pumps gas from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open &mdash; but only while the compressor is off, because the simulation puts the draw in the `else` of `if compressor > 0` and so gives the plant one job per tick. Both readings are a single byte, 0 to 255, and OpenPLC is the thing that decides: it reads the HPT pressure out of register 1126 and drives the compressor on coil 1. That loop &mdash; sensor, controller, actuator, process, sensor again &mdash; is what makes this a *control* system rather than a machine.
 
 Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the HPT falls below 60 and stops it at 90, so the pressure saws gently between the two, comfortably inside the 50-to-100 band in which the plant reports itself healthy. Nothing ever goes near the relief valve.
 
 <figure>
 <style>
 .plt {--t: 20s;}
-html.light-mode .plt .hpt {fill:#b34700; opacity:0.75;}
+html.light-mode .plt .hpt {fill:#b34700;}
+html.light-mode .plt .gst {opacity:0.55;}
 /* transform-box defaults to view-box for SVG, so `center bottom` would anchor
    at the bottom of the *viewBox*, not of the rect -- which put the fills
    outside their tanks entirely. fill-box anchors on the element's own box. */
@@ -183,8 +184,8 @@ html.light-mode .plt .hpt {fill:#b34700; opacity:0.75;}
                   94%,100%{transform:scaleY(0.784)}}
 @keyframes t-gst {0%{transform:scaleY(0.941)}  12%,24%{transform:scaleY(0.706)}
                   30%{transform:scaleY(0.588)} 62%{transform:scaleY(0.304)}
-                  78%{transform:scaleY(0.225)} 82%{transform:scaleY(0.245)}
-                  100%{transform:scaleY(0.60)}}
+                  78%{transform:scaleY(0.212)} 82%{transform:scaleY(0.216)}
+                  94%{transform:scaleY(0.875)} 100%{transform:scaleY(0.96)}}
 @keyframes t-comp {0%,12%{fill:#ff6b00; fill-opacity:1} 12.01%,24%{fill:currentColor; fill-opacity:0.18}
                    24.01%,82%{fill:#ff6b00; fill-opacity:1} 82.01%,100%{fill:currentColor; fill-opacity:0.18}}
 /* The label has to follow the box, or the dark ink sits on a dark panel. */
@@ -213,7 +214,7 @@ html.light-mode .plt .hpt {fill:#b34700; opacity:0.75;}
   <!-- storage tank; the fill is 126 units tall with its base at y=198, so a
        value v sits at y = 198 - 126*v/255 -->
   <rect x="24" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
-  <rect class="lvl gst" x="26" y="72" width="52" height="126" fill="currentColor" opacity="0.35"/>
+  <rect class="lvl gst" x="26" y="72" width="52" height="126" fill="currentColor" opacity="0.6"/>
   <text x="52" y="216" text-anchor="middle" font-size="13" font-weight="bold">GST</text>
   <g class="sup">
     <path d="M 52 36 L 52 62" stroke="#ff6b00" stroke-width="2"/>
@@ -232,15 +233,15 @@ html.light-mode .plt .hpt {fill:#b34700; opacity:0.75;}
   </g>
 
   <rect x="290" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
-  <rect class="lvl hpt" x="292" y="72" width="52" height="126" fill="#ff6b00" opacity="0.55"/>
+  <rect class="lvl hpt" x="292" y="72" width="52" height="126" fill="#ff6b00"/>
   <text x="318" y="216" text-anchor="middle" font-size="13" font-weight="bold">HPT</text>
   <g font-size="13">
     <line x1="288" y1="89" x2="348" y2="89" stroke="#ff6b00" stroke-dasharray="4 3"/>
-    <text x="354" y="86" fill="#ff6b00">220</text>
+    <text x="354" y="93" fill="#ff6b00">220</text>
     <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="354" y="96" opacity="0.75">200</text>
+    <text x="286" y="103" text-anchor="end" opacity="0.75">200</text>
     <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="354" y="152" opacity="0.75">100</text>
+    <text x="354" y="153" opacity="0.75">100</text>
     <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
     <text x="354" y="172" opacity="0.75">60</text>
   </g>
@@ -274,7 +275,7 @@ html.light-mode .plt .hpt {fill:#b34700; opacity:0.75;}
   <path d="M 120 129 L 130 135 L 120 141" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <text x="102" y="210" font-size="12" opacity="0.8">drives coil 1</text>
 
-  <text class="stuck" x="354" y="122" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
+  <text class="stuck" x="354" y="103" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
   <text class="ph-n" x="10" y="308" font-size="13" opacity="0.85">automatic: the loop holds 60 to 90</text>
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
 </svg>
@@ -295,6 +296,6 @@ For scale: draining two units of storage per unit of pressure, a completely full
 
 ## Why it matters for security
 
-Because these systems were built for reliability, not for hostile networks, most ICS protocols have **no authentication and no encryption**. OPC-UA, the newest thing on this plant, is the exception that shows the rule: it has sessions, certificates and users, and it is the only one of them that does. Any host that can reach a PLC can usually read and write its values. The rest of the Theory Path shows exactly how each protocol works, how that trust is abused, and how to detect and contain it.
+Most ICS protocols have **no authentication and no encryption**, and the reason is concrete rather than philosophical: they were designed for a serial cable running inside a locked cabinet, where the cabinet was the access control. Nothing about the protocol changed when that cable became a network. OPC-UA, the newest thing on this plant, is the exception that shows the rule: it has sessions, certificates and users, and it is the only one of them that does. Any host that can reach a PLC can usually read and write its values. The rest of the Theory Path shows exactly how each protocol works, how that trust is abused, and how to detect and contain it.
 
 > **Key idea:** in ICS security you are protecting a physical process. Every attack in the later modules ends in a real-world effect &mdash; a frozen reading, a forced valve, a tank driven past the pressure its relief valve can bleed off.
