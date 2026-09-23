@@ -57,7 +57,15 @@
         html.light-mode body { background:#f5f6f8; color:#1f2733; }
         html.light-mode header { background:#fff; }
         html.light-mode .article h1, html.light-mode .head-title { color:#b34700; }
+        /* The dark palette does not survive the light ground: the figcaptions
+           carry load-bearing explanation at 2.63:1 and the section headings sit
+           at 2.14:1. Both are on every theory page. */
+        html.light-mode .article h2 { color:#b34700; border-bottom-color:#e2e6ec; }
+        html.light-mode .article figcaption { color:#4a5260; }
         html.light-mode .article code { background:#eef1f5; }
+        /* `.article pre code` is (0,1,2) and loses to the rule above at (0,2,2),
+           which painted white pills inside the navy code blocks. */
+        html.light-mode .article pre code { background:none; }
         html.light-mode .article pre { background:#0f172a; }
         html.light-mode .article figure svg { background:#fff; border-color:#e2e6ec; color:#1f2733; }
         html.light-mode .article th { background:#eef1f5; color:#b34700; }
