@@ -28,8 +28,8 @@ A client (the "master") sends a request naming a **function code** and an addres
 .mb-x {--mb-dur: 9s;}
 .mb-x .pkt {animation: mb-fly var(--mb-dur) linear infinite;}
 .mb-x .ack {animation: mb-back var(--mb-dur) linear infinite;}
-.mb-x .old {opacity:0; animation: mb-fade var(--mb-dur) linear infinite;}
-.mb-x .new {animation: mb-show var(--mb-dur) linear infinite;}
+.mb-x .old {opacity:0; animation: mb-fade var(--mb-dur) steps(1,end) infinite;}
+.mb-x .new {animation: mb-show var(--mb-dur) steps(1,end) infinite;}
 .mb-x .hs  {animation: mb-blink var(--mb-dur) linear infinite;}
 @keyframes mb-fly  {0%,2%{transform:translateX(0);opacity:0}
                     5%{opacity:1} 19%{transform:translateX(134px);opacity:1}
@@ -49,13 +49,13 @@ A client (the "master") sends a request naming a **function code** and an addres
 }
 </style>
 <svg class="mb-x" viewBox="0 0 520 136" role="img"
-     aria-label="A Modbus write travels from client to PLC; the register changes on arrival and the PLC echoes it back. A TCP handshake preceded it, but no authentication did.">
+     aria-label="A Modbus write travels from client to PLC: function code 06 carrying register 1126 and the value 90. The register changes from 45 to 90 on arrival and the PLC echoes the write back. A TCP handshake preceded it, but no authentication did.">
   <rect x="20" y="30" width="120" height="56" rx="6" fill="#ff6b00"/>
   <text x="80" y="52" text-anchor="middle" font-size="12" fill="#1a1a1a" font-weight="bold">Client</text>
   <text x="80" y="68" text-anchor="middle" font-size="11" fill="#1a1a1a">hwio or attacker</text>
   <text x="80" y="80" text-anchor="middle" font-size="11" fill="#1a1a1a">first request ever</text>
 
-  <rect x="380" y="30" width="120" height="56" rx="6" fill="currentColor" opacity="0.2" stroke="currentColor"/>
+  <rect x="380" y="30" width="120" height="56" rx="6" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.55"/>
   <text x="440" y="50" text-anchor="middle" font-size="12" font-weight="bold">PLC : 502</text>
   <text x="440" y="66" text-anchor="middle" font-size="11">reg 1126 =</text>
   <text class="old" x="440" y="80" text-anchor="middle" font-size="13" font-weight="bold">45</text>
@@ -71,7 +71,7 @@ A client (the "master") sends a request naming a **function code** and an addres
     <text x="194" y="50" text-anchor="middle" font-size="11" fill="#1a1a1a">FC 06 · 1126 · 90</text>
   </g>
   <g class="ack">
-    <rect x="278" y="64" width="96" height="20" rx="3" fill="currentColor" opacity="0.2"/>
+    <rect x="278" y="64" width="96" height="20" rx="3" fill="currentColor" fill-opacity="0.28"/>
     <text x="326" y="78" text-anchor="middle" font-size="11">echo · 1126 · 90</text>
   </g>
 
@@ -96,24 +96,24 @@ It also does not last. Register 1126 is the HPT pressure reading, and `hwio` wri
 
 ## The frame
 
-A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide what happens.
+A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide whether the frame works.
 
 <figure>
 <svg viewBox="0 0 520 108" role="img"
      aria-label="The Modbus TCP frame: a seven-byte MBAP header holding transaction id, protocol id, length and unit id, followed by the PDU holding the function code and its data. The table below the figure says what each field does.">
   <g font-size="11" text-anchor="middle">
-    <rect x="10" y="30" width="80" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <rect x="10" y="30" width="80" height="42" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.55"/>
     <text x="50" y="22">2 B</text><text x="50" y="56">Transaction</text>
-    <rect x="90" y="30" width="80" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <rect x="90" y="30" width="80" height="42" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.55"/>
     <text x="130" y="22">2 B</text><text x="130" y="56">Protocol</text>
-    <rect x="170" y="30" width="80" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
-    <text x="210" y="22">2 B</text><text x="210" y="56">Length</text>
-    <rect x="250" y="30" width="40" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <rect x="170" y="30" width="80" height="42" fill="#ff6b00" stroke="#ff6b00"/>
+    <text x="210" y="22">2 B</text><text x="210" y="56" style="fill:#1a1a1a">Length</text>
+    <rect x="250" y="30" width="40" height="42" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.55"/>
     <text x="270" y="22">1 B</text><text x="270" y="56">Unit</text>
     <rect x="290" y="30" width="40" height="42" fill="#ff6b00" stroke="#ff6b00"/>
     <text x="310" y="22">1 B</text><text x="310" y="56" style="fill:#1a1a1a">Func</text>
-    <rect x="330" y="30" width="180" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
-    <text x="420" y="22">n B</text><text x="420" y="56">Data (address, values)</text>
+    <rect x="330" y="30" width="180" height="42" fill="#ff6b00" stroke="#ff6b00"/>
+    <text x="420" y="22">n B</text><text x="420" y="56" style="fill:#1a1a1a">Data (address, values)</text>
   </g>
 
   <!-- The header ends and the PDU begins at byte 7, between Unit and Func. -->
@@ -180,32 +180,33 @@ html.light-mode .mb-d {--hi:#b34700;}
 .mb-d .b7{animation: d-byt7 var(--d) steps(1,end) infinite;}
 .mb-d .k7{animation: d-chr7 var(--d) steps(1,end) infinite;}
 .mb-d .flag {animation: d-flag var(--d) steps(1,end) infinite;}
-@keyframes d-reg1{0.00%,6.36%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 6.37%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg1{0.00%,6.36%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 6.37%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt1{0%,2.73%{opacity:0} 2.74%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr1{0%,5.91%{opacity:0} 5.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg2{0%,8.18%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 8.18%,14.55%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 14.56%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg2{0%,8.18%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 8.18%,14.55%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 14.56%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt2{0%,10.91%{opacity:0} 10.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr2{0%,14.09%{opacity:0} 14.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg3{0%,16.36%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 16.36%,22.73%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 22.74%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg3{0%,16.36%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 16.36%,22.73%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 22.74%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt3{0%,19.09%{opacity:0} 19.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr3{0%,22.27%{opacity:0} 22.28%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg4{0%,24.55%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 24.55%,30.91%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 30.92%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg4{0%,24.55%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 24.55%,30.91%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 30.92%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt4{0%,27.27%{opacity:0} 27.28%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr4{0%,30.45%{opacity:0} 30.46%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg5{0%,32.73%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 32.73%,39.09%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 39.10%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg5{0%,32.73%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 32.73%,39.09%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 39.10%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt5{0%,35.45%{opacity:0} 35.46%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr5{0%,38.64%{opacity:0} 38.65%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg6{0%,40.91%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 40.91%,47.27%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 47.28%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg6{0%,40.91%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 40.91%,47.27%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 47.28%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt6{0%,43.64%{opacity:0} 43.65%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr6{0%,46.82%{opacity:0} 46.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg7{0%,49.09%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1} 49.09%,55.45%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 55.46%,100%{stroke:currentColor; stroke-opacity:0.35; stroke-width:1}}
+@keyframes d-reg7{0%,49.09%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 49.09%,55.45%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 55.46%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
 @keyframes d-byt7{0%,51.82%{opacity:0} 51.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-chr7{0%,55.00%{opacity:0} 55.01%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes d-flag{0%,60%{opacity:0} 64%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   .mb-d .byt,.mb-d .chr,.mb-d .flag{animation:none;opacity:1}
-  /* .reg is on the rects themselves, which carry opacity="0.18"; forcing
-     opacity:1 here would paint over the hex the figure exists to show. */
+  /* The rects get their resting look from their own fill-opacity and
+     stroke-opacity attributes, so nothing here needs to touch opacity --
+     forcing it would paint over the hex the figure exists to show. */
   .mb-d .reg{animation:none;stroke:currentColor}
 }
 </style>
@@ -217,70 +218,70 @@ html.light-mode .mb-d {--hi:#b34700;}
   </text>
 
   <g font-size="13" text-anchor="middle">
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.35" class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
   </g>
 
   <g font-size="11" text-anchor="middle">
     <g class="byt b1">
       <path d="M 47 92 L 47 98 M 30 98 L 64 98 M 30 98 L 30 102 M 64 98 L 64 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="14" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="14" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="30" y="117" font-family="monospace" font-size="12">43</text>
-      <rect x="48" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="48" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="64" y="117" font-family="monospace" font-size="12">79</text>
     </g>
     <g class="byt b2">
       <path d="M 119 92 L 119 98 M 102 98 L 136 98 M 102 98 L 102 102 M 136 98 L 136 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="86" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="86" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="102" y="117" font-family="monospace" font-size="12">62</text>
-      <rect x="120" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="120" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="136" y="117" font-family="monospace" font-size="12">49</text>
     </g>
     <g class="byt b3">
       <path d="M 191 92 L 191 98 M 174 98 L 208 98 M 174 98 L 174 102 M 208 98 L 208 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="158" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="158" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="174" y="117" font-family="monospace" font-size="12">43</text>
-      <rect x="192" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="192" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="208" y="117" font-family="monospace" font-size="12">53</text>
     </g>
     <g class="byt b4">
       <path d="M 263 92 L 263 98 M 246 98 L 280 98 M 246 98 L 246 102 M 280 98 L 280 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="230" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="230" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="246" y="117" font-family="monospace" font-size="12">28</text>
-      <rect x="264" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="264" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="280" y="117" font-family="monospace" font-size="12">6D</text>
     </g>
     <g class="byt b5">
       <path d="M 335 92 L 335 98 M 318 98 L 352 98 M 318 98 L 318 102 M 352 98 L 352 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="302" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="302" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="318" y="117" font-family="monospace" font-size="12">30</text>
-      <rect x="336" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="336" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="352" y="117" font-family="monospace" font-size="12">64</text>
     </g>
     <g class="byt b6">
       <path d="M 407 92 L 407 98 M 390 98 L 424 98 M 390 98 L 390 102 M 424 98 L 424 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="374" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="374" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="390" y="117" font-family="monospace" font-size="12">62</text>
-      <rect x="408" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="408" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="424" y="117" font-family="monospace" font-size="12">75</text>
     </g>
     <g class="byt b7">
       <path d="M 479 92 L 479 98 M 462 98 L 496 98 M 462 98 L 462 102 M 496 98 L 496 102"
-            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
-      <rect x="446" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
+      <rect x="446" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="462" y="117" font-family="monospace" font-size="12">24</text>
-      <rect x="480" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="480" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
       <text x="496" y="117" font-family="monospace" font-size="12">29</text>
     </g>
   </g>
@@ -320,7 +321,7 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
     <rect x="10" y="28" width="176" height="34" rx="4" fill="currentColor" opacity="0.2" stroke="currentColor"/>
     <text x="20" y="43">src 172.18.0.2</text>
     <text x="20" y="57" opacity="0.75">hwio &mdash; the plant bridge</text>
-    <rect x="194" y="28" width="316" height="34" rx="4" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-opacity="0.5"/>
+    <rect x="194" y="28" width="316" height="34" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
     <text x="352" y="49" text-anchor="middle" font-family="monospace" font-size="12">00 01 00 00 00 06 01 06 04 66 00 5a</text>
   </g>
 
@@ -328,7 +329,7 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
     <rect x="10" y="74" width="176" height="34" rx="4" fill="#ff6b00"/>
     <text x="20" y="89" style="fill:#1a1a1a">src 172.18.0.100</text>
     <text x="20" y="103" style="fill:#1a1a1a">attack machine</text>
-    <rect x="194" y="74" width="316" height="34" rx="4" fill="currentColor" opacity="0.12" stroke="currentColor" stroke-opacity="0.5"/>
+    <rect x="194" y="74" width="316" height="34" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
     <text x="352" y="95" text-anchor="middle" font-family="monospace" font-size="12">00 01 00 00 00 06 01 06 04 66 00 5a</text>
   </g>
 
@@ -340,14 +341,14 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
   <text x="98" y="132" text-anchor="middle" font-size="11" opacity="0.85">the only difference</text>
 
 </svg>
-<figcaption>A source address is identity you can forge, and that is the honest limit of rule 4's allowlist. Both frames write 0x5a (90) to register 0x0466 (1126). Even the transaction id is the attacker's to choose: <code>hwio</code> lets pymodbus count it up per request, and a forged frame simply picks one. This one is still on purpose:
+<figcaption>A source address is identity you can forge, and that is the honest limit of rule 4's allowlist. Both frames write 0x5a (90) to register 0x0466 (1126). Even the transaction id is the attacker's to choose: <code>hwio</code> lets pymodbus count it up per request, and a forged frame simply picks one.
 comparing two things is what eyes do well when both are visible at once, and sliding them past
 each other in turn would make it harder, not clearer. Nothing but <code>hwio</code> has any business writing 1126 &mdash; which is not the same as nothing else being able to.</figcaption>
 </figure>
 
 So the IDS cannot ask Modbus who is writing. It asks the IP header, and then asks how often and what:
 
-- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Its exemption list is `hwio`, `fuxa` and `openplc`, and only the first of those earns its place: `hwio` writes the plant registers at 50 Hz, `fuxa` writes a coil or a mode register when an operator clicks something, and `openplc` writes nothing at all &mdash; it is the *server* on 172.18.0.3, its `Slave_dev` table is empty, so it has no slave to poll and never originates a write at all. The Modbus rules would not have looked anyway: `check_packet` only runs them on traffic *towards* port 502, never on the replies coming back from it. The port-scan and ARP rules are not gated that way, which is why they still catch the neighbouring attacks. That entry exempts a host that was never going to trigger the rule. Allowlists accumulate entries like this, and nobody re-derives them.
+- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Its exemption list is `hwio`, `fuxa` and `openplc`, and only the first of those earns its place: `hwio` writes the plant registers at 50 Hz, `fuxa` writes a coil or a mode register when an operator clicks something, and `openplc` writes nothing at all &mdash; it is the *server* on 172.18.0.3, its `Slave_dev` table is empty, so it has no slave to poll and never originates a write at all. The Modbus rules would not have looked anyway: `check_packet` only runs them on traffic *towards* port 502, never on the replies coming back from it. The port-scan and ARP rules are not gated that way, which is why they still catch the neighbouring attacks. The `openplc` entry exempts a host that was never going to trigger the rule. Allowlists accumulate entries like this, and nobody re-derives them.
 - **Rule 4, unauthorised write** &mdash; 10 writes in 30 seconds from a source that is not `hwio` or `fuxa`. A narrower list than rule 3's, and note the threshold: a *single* write from the attack machine raises nothing at all.
 - **Rule 5, diagnostic** &mdash; function code 0x08 or 0x2B from anywhere.
 
