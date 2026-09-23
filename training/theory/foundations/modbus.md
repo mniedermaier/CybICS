@@ -39,7 +39,9 @@ A client (the "master") sends a request naming a **function code** and an addres
                     43%,100%{transform:translateX(-232px);opacity:0}}
 @keyframes mb-fade {0%,20%{opacity:1} 22%,92%{opacity:0} 94%,100%{opacity:1}}
 @keyframes mb-show {0%,20%{opacity:0} 22%,92%{opacity:1} 94%,100%{opacity:0}}
-@keyframes mb-blink{0%,45%{opacity:0} 48%,90%{opacity:1} 92%,100%{opacity:0}}
+/* Appears the instant the register flips, i.e. in the gap where a check
+   would have been, and stays for the long rest phase. */
+@keyframes mb-blink{0%,18%{opacity:0} 21%,92%{opacity:1} 94%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
   .mb-x .pkt,.mb-x .ack,.mb-x .old,.mb-x .new,.mb-x .hs {animation: none;}
   .mb-x .pkt,.mb-x .ack {opacity:1;}
@@ -74,9 +76,13 @@ A client (the "master") sends a request naming a **function code** and an addres
   </g>
 
   <g class="hs">
-    <text x="260" y="118" text-anchor="middle" font-size="11" fill="#ff6b00" font-weight="bold">
-      no authentication happened here
+    <rect x="150" y="96" width="228" height="24" rx="4" fill="none"
+          stroke="#ff6b00" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="264" y="112" text-anchor="middle" font-size="11" fill="#ff6b00" font-weight="bold">
+      nothing in here asked who was writing
     </text>
+    <path d="M 378 108 L 404 108 L 404 84" fill="none"
+          stroke="#ff6b00" stroke-width="1.5" stroke-dasharray="4 3"/>
   </g>
 </svg>
 <figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes
@@ -91,48 +97,48 @@ The value changed before anything asked who was writing. There is no session to 
 A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide what happens.
 
 <figure>
-<svg viewBox="0 0 520 250" role="img"
-     aria-label="The Modbus TCP frame: transaction id, protocol id, length, unit id, function code and data, each labelled with what it does and whether an attacker must get it right.">
+<svg viewBox="0 0 520 108" role="img"
+     aria-label="The Modbus TCP frame: a seven-byte MBAP header holding transaction id, protocol id, length and unit id, followed by the PDU holding the function code and its data. The table below the figure says what each field does.">
   <g font-size="11" text-anchor="middle">
-    <rect x="10" y="26" width="70" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-    <text x="45" y="18">2 B</text><text x="45" y="52">Transaction</text>
-    <rect x="80" y="26" width="70" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-    <text x="115" y="18">2 B</text><text x="115" y="52">Protocol</text>
-    <rect x="150" y="26" width="70" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
-    <text x="185" y="18">2 B</text><text x="185" y="52">Length</text>
-    <rect x="220" y="26" width="50" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
-    <text x="245" y="18">1 B</text><text x="245" y="52">Unit</text>
-    <rect x="270" y="26" width="60" height="42" fill="#ff6b00" opacity="0.75" stroke="#ff6b00"/>
-    <text x="300" y="18">1 B</text><text x="300" y="52" style="fill:#1a1a1a">Func</text>
-    <rect x="330" y="26" width="180" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
-    <text x="420" y="18">n B</text><text x="420" y="52">Data (address, values)</text>
+    <rect x="10" y="30" width="70" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <text x="45" y="22">2 B</text><text x="45" y="56">Transaction</text>
+    <rect x="80" y="30" width="70" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <text x="115" y="22">2 B</text><text x="115" y="56">Protocol</text>
+    <rect x="150" y="30" width="70" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
+    <text x="185" y="22">2 B</text><text x="185" y="56">Length</text>
+    <rect x="220" y="30" width="50" height="42" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+    <text x="245" y="22">1 B</text><text x="245" y="56">Unit</text>
+    <rect x="270" y="30" width="60" height="42" fill="#ff6b00" opacity="0.75" stroke="#ff6b00"/>
+    <text x="300" y="22">1 B</text><text x="300" y="56" style="fill:#1a1a1a">Func</text>
+    <rect x="330" y="30" width="180" height="42" fill="#ff6b00" opacity="0.4" stroke="#ff6b00"/>
+    <text x="420" y="22">n B</text><text x="420" y="56">Data (address, values)</text>
   </g>
 
-  <g stroke="currentColor" stroke-opacity="0.35" stroke-width="1">
-    <line x1="45" y1="68" x2="45" y2="96"/>   <line x1="45" y1="96" x2="26" y2="96"/>
-    <line x1="115" y1="68" x2="115" y2="116"/><line x1="115" y1="116" x2="26" y2="116"/>
-    <line x1="185" y1="68" x2="185" y2="136"/><line x1="185" y1="136" x2="26" y2="136"/>
-    <line x1="245" y1="68" x2="245" y2="156"/><line x1="245" y1="156" x2="26" y2="156"/>
-    <line x1="300" y1="68" x2="300" y2="176"/><line x1="300" y1="176" x2="26" y2="176"/>
-    <line x1="420" y1="68" x2="420" y2="196"/><line x1="420" y1="196" x2="26" y2="196"/>
-  </g>
-
-  <g font-size="11">
-    <text x="32" y="100"><tspan opacity="0.65">Transaction</tspan>  echoed back so a client can match replies. Any value works.</text>
-    <text x="32" y="120"><tspan opacity="0.65">Protocol</tspan>  always 0. Nothing ever checks it for anything useful.</text>
-    <text x="32" y="140"><tspan fill="#ff6b00">Length</tspan>  bytes that follow. Wrong here and the parse desynchronises.</text>
-    <text x="32" y="160"><tspan opacity="0.65">Unit</tspan>  addresses a device behind a serial gateway. Usually 1.</text>
-    <text x="32" y="180"><tspan fill="#ff6b00">Function</tspan>  read or write, bit or word. This the PLC acts on.</text>
-    <text x="32" y="200"><tspan fill="#ff6b00">Data</tspan>  the register address and the value. This changes the plant.</text>
-  </g>
-  <text x="10" y="228" font-size="11" opacity="0.7">MBAP header (7 bytes)</text>
-  <text x="420" y="228" font-size="11" opacity="0.7" text-anchor="middle">PDU</text>
-  <text x="10" y="244" font-size="11" opacity="0.85">Orange: the three fields a forged frame has to get right.</text>
+  <!-- The header ends and the PDU begins at byte 7, between Unit and Func. -->
+  <line x1="270" y1="24" x2="270" y2="96" stroke="currentColor" stroke-width="2"/>
+  <path d="M 10 80 L 10 88 L 270 88 L 270 80" fill="none" stroke="currentColor"
+        stroke-opacity="0.55"/>
+  <path d="M 270 80 L 270 88 L 510 88 L 510 80" fill="none" stroke="currentColor"
+        stroke-opacity="0.55"/>
+  <text x="140" y="102" text-anchor="middle" font-size="11" opacity="0.8">MBAP header, 7 bytes</text>
+  <text x="390" y="102" text-anchor="middle" font-size="11" opacity="0.8">PDU &mdash; what the PLC acts on</text>
 </svg>
-<figcaption>Six fields, three of which an attacker can fill with anything. This figure is
-deliberately still: the fields are a layout, not a sequence, so there is nothing for motion to
-show and six captions at once are read faster than six shown in turn.</figcaption>
+<figcaption>Orange marks the three fields a forged frame has to get right. The fields are a
+layout, not a sequence, so this figure stays still: six labels read at a glance beat six shown
+in turn.</figcaption>
 </figure>
+
+<table>
+<thead><tr><th>Field</th><th>Size</th><th>What it does</th><th>Has to be right?</th></tr></thead>
+<tbody>
+<tr><td>Transaction</td><td>2 B</td><td>Echoed back so a client can match a reply to its request.</td><td>No &mdash; any value works.</td></tr>
+<tr><td>Protocol</td><td>2 B</td><td>Always 0 for Modbus TCP. Nothing useful is ever checked here.</td><td>No.</td></tr>
+<tr><td>Length</td><td>2 B</td><td>Number of bytes that follow, from the unit id onwards.</td><td><strong>Yes</strong> &mdash; wrong and the parse desynchronises.</td></tr>
+<tr><td>Unit</td><td>1 B</td><td>Addresses a device behind a serial gateway. Usually 1.</td><td>No &mdash; unless a gateway is in the path.</td></tr>
+<tr><td>Function</td><td>1 B</td><td>Read or write, bit or word. This is what the PLC acts on.</td><td><strong>Yes.</strong></td></tr>
+<tr><td>Data</td><td>n B</td><td>The register address and the value. This is what changes the plant.</td><td><strong>Yes.</strong></td></tr>
+</tbody>
+</table>
 
 ## Reading a flag out of the registers
 
@@ -142,24 +148,32 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
 <style>
 .mb-d {--d: 11s;}
 .mb-d .reg  {animation: d-reg var(--d) steps(1,end) infinite;}
-.mb-d .chr  {opacity:0;    animation: d-chr var(--d) steps(1,end) infinite;}
-.mb-d .r1,.mb-d .k1{animation-delay:0s}    .mb-d .r2,.mb-d .k2{animation-delay:0.9s}
-.mb-d .r3,.mb-d .k3{animation-delay:1.8s}  .mb-d .r4,.mb-d .k4{animation-delay:2.7s}
-.mb-d .r5,.mb-d .k5{animation-delay:3.6s}  .mb-d .r6,.mb-d .k6{animation-delay:4.5s}
-.mb-d .r7,.mb-d .k7{animation-delay:5.4s}
+/* Each register is taken apart in three beats: the box is picked out, it
+   splits into its two bytes, and the bytes become their characters. That
+   sequence is the thing being taught, so the motion carries it rather than
+   merely revealing a finished picture. */
+.mb-d .byt  {opacity:0; animation: d-step var(--d) steps(1,end) infinite;}
+.mb-d .chr  {opacity:0; animation: d-step var(--d) steps(1,end) infinite;}
+.mb-d .r1{animation-delay:0.00s} .mb-d .b1{animation-delay:0.20s} .mb-d .k1{animation-delay:0.55s}
+.mb-d .r2{animation-delay:0.90s} .mb-d .b2{animation-delay:1.10s} .mb-d .k2{animation-delay:1.45s}
+.mb-d .r3{animation-delay:1.80s} .mb-d .b3{animation-delay:2.00s} .mb-d .k3{animation-delay:2.35s}
+.mb-d .r4{animation-delay:2.70s} .mb-d .b4{animation-delay:2.90s} .mb-d .k4{animation-delay:3.25s}
+.mb-d .r5{animation-delay:3.60s} .mb-d .b5{animation-delay:3.80s} .mb-d .k5{animation-delay:4.15s}
+.mb-d .r6{animation-delay:4.50s} .mb-d .b6{animation-delay:4.70s} .mb-d .k6{animation-delay:5.05s}
+.mb-d .r7{animation-delay:5.40s} .mb-d .b7{animation-delay:5.60s} .mb-d .k7{animation-delay:5.95s}
 .mb-d .flag {opacity:0; animation: d-flag var(--d) steps(1,end) infinite;}
 /* Highlight the box, never dim the hex the reader is meant to read. */
-@keyframes d-reg {0%,8%{stroke:#ff6b00; stroke-width:2.5}
-                  8.01%,100%{stroke:currentColor; stroke-width:1}}
-@keyframes d-chr {0%{opacity:0} 0.01%,92%{opacity:1} 92.01%,100%{opacity:0}}
-@keyframes d-flag{0%,58%{opacity:0} 62%,94%{opacity:1} 94.01%,100%{opacity:0}}
+@keyframes d-reg {0%,6%{stroke:#ff6b00; stroke-width:2.5}
+                  6.01%,100%{stroke:currentColor; stroke-width:1}}
+@keyframes d-step{0%{opacity:0} 0.01%,92%{opacity:1} 92.01%,100%{opacity:0}}
+@keyframes d-flag{0%,60%{opacity:0} 64%,94%{opacity:1} 94.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
-  .mb-d .reg,.mb-d .chr,.mb-d .flag{animation:none;opacity:1}
+  .mb-d .reg,.mb-d .byt,.mb-d .chr,.mb-d .flag{animation:none;opacity:1}
   .mb-d .reg{stroke:currentColor}
 }
 </style>
-<svg class="mb-d" viewBox="0 0 520 210" role="img"
-     aria-label="One Write Multiple Registers frame carries seven registers from address 1200. Each register splits into two ASCII characters, spelling the flag CybICS(m0dbu$).">
+<svg class="mb-d" viewBox="0 0 520 240" role="img"
+     aria-label="One Write Multiple Registers frame carries seven registers from address 1200. Each 16-bit register splits into a high and a low byte, and each byte is one ASCII character, together spelling the flag CybICS(m0dbu$).">
   <rect x="10" y="14" width="500" height="30" rx="4" fill="#ff6b00" opacity="0.75"/>
   <text x="260" y="34" text-anchor="middle" font-size="12" style="fill:#1a1a1a" font-weight="bold">
     one frame &mdash; FC 16 Write Multiple Registers, address 1200, 7 registers
@@ -175,24 +189,83 @@ The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth se
     <g class="reg r7"><rect x="446" y="62" width="66" height="30" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor"/><text x="479" y="82">0x2429</text></g>
   </g>
 
-  <g font-size="13" text-anchor="middle" font-weight="bold" fill="#ff6b00">
-    <text class="chr k1" x="47"  y="118">C y</text>
-    <text class="chr k2" x="119" y="118">b I</text>
-    <text class="chr k3" x="191" y="118">C S</text>
-    <text class="chr k4" x="263" y="118">( m</text>
-    <text class="chr k5" x="335" y="118">0 d</text>
-    <text class="chr k6" x="407" y="118">b u</text>
-    <text class="chr k7" x="479" y="118">$ )</text>
+  <g font-size="11" text-anchor="middle">
+    <g class="byt b1">
+      <path d="M 47 92 L 47 98 M 30 98 L 64 98 M 30 98 L 30 102 M 64 98 L 64 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="14" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="30" y="117" font-family="monospace">43</text>
+      <rect x="48" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="64" y="117" font-family="monospace">79</text>
+    </g>
+    <g class="byt b2">
+      <path d="M 119 92 L 119 98 M 102 98 L 136 98 M 102 98 L 102 102 M 136 98 L 136 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="86" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="102" y="117" font-family="monospace">62</text>
+      <rect x="120" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="136" y="117" font-family="monospace">49</text>
+    </g>
+    <g class="byt b3">
+      <path d="M 191 92 L 191 98 M 174 98 L 208 98 M 174 98 L 174 102 M 208 98 L 208 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="158" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="174" y="117" font-family="monospace">43</text>
+      <rect x="192" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="208" y="117" font-family="monospace">53</text>
+    </g>
+    <g class="byt b4">
+      <path d="M 263 92 L 263 98 M 246 98 L 280 98 M 246 98 L 246 102 M 280 98 L 280 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="230" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="246" y="117" font-family="monospace">28</text>
+      <rect x="264" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="280" y="117" font-family="monospace">6D</text>
+    </g>
+    <g class="byt b5">
+      <path d="M 335 92 L 335 98 M 318 98 L 352 98 M 318 98 L 318 102 M 352 98 L 352 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="302" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="318" y="117" font-family="monospace">30</text>
+      <rect x="336" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="352" y="117" font-family="monospace">64</text>
+    </g>
+    <g class="byt b6">
+      <path d="M 407 92 L 407 98 M 390 98 L 424 98 M 390 98 L 390 102 M 424 98 L 424 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="374" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="390" y="117" font-family="monospace">62</text>
+      <rect x="408" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="424" y="117" font-family="monospace">75</text>
+    </g>
+    <g class="byt b7">
+      <path d="M 479 92 L 479 98 M 462 98 L 496 98 M 462 98 L 462 102 M 496 98 L 496 102"
+            stroke="currentColor" stroke-opacity="0.5" fill="none"/>
+      <rect x="446" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="462" y="117" font-family="monospace">24</text>
+      <rect x="480" y="102" width="32" height="22" rx="3" fill="currentColor" opacity="0.1" stroke="currentColor" stroke-opacity="0.5"/>
+      <text x="496" y="117" font-family="monospace">29</text>
+    </g>
   </g>
 
-  <text x="260" y="142" text-anchor="middle" font-size="11" opacity="0.8">
+  <g font-size="13" text-anchor="middle" font-weight="bold" fill="#ff6b00">
+    <g class="chr k1"><text x="30" y="146">C</text><text x="64" y="146">y</text></g>
+    <g class="chr k2"><text x="102" y="146">b</text><text x="136" y="146">I</text></g>
+    <g class="chr k3"><text x="174" y="146">C</text><text x="208" y="146">S</text></g>
+    <g class="chr k4"><text x="246" y="146">(</text><text x="280" y="146">m</text></g>
+    <g class="chr k5"><text x="318" y="146">0</text><text x="352" y="146">d</text></g>
+    <g class="chr k6"><text x="390" y="146">b</text><text x="424" y="146">u</text></g>
+    <g class="chr k7"><text x="462" y="146">$</text><text x="496" y="146">)</text></g>
+  </g>
+
+  <text x="260" y="168" text-anchor="middle" font-size="11" opacity="0.8">
     high byte first, then low byte &mdash; 0x43 = 'C', 0x79 = 'y'
   </text>
   <g class="flag">
-    <rect x="150" y="156" width="220" height="30" rx="4" fill="#ff6b00"/>
-    <text x="260" y="176" text-anchor="middle" font-size="14" style="fill:#1a1a1a" font-weight="bold">CybICS(m0dbu$)</text>
+    <rect x="150" y="180" width="220" height="30" rx="4" fill="#ff6b00"/>
+    <text x="260" y="200" text-anchor="middle" font-size="14" style="fill:#1a1a1a" font-weight="bold">CybICS(m0dbu$)</text>
   </g>
-  <text x="260" y="202" text-anchor="middle" font-size="11" opacity="0.75">
+  <text x="260" y="230" text-anchor="middle" font-size="11" opacity="0.75">
     all of it in a single packet &mdash; find the FC 16 write to 1200, not a stream of small writes
   </text>
 </svg>
