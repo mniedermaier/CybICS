@@ -151,7 +151,8 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 
 <figure>
 <style>
-.plt {--t: 20s;}
+.plt {--t: 20s; --on:#ff6b00; --on-ink:#1a1a1a;}
+html.light-mode .plt {--on:#b34700; --on-ink:#ffffff;}
 html.light-mode .plt .hpt {fill:#b34700;}
 html.light-mode .plt .gst {opacity:0.55;}
 /* transform-box defaults to view-box for SVG, so `center bottom` would anchor
@@ -160,45 +161,48 @@ html.light-mode .plt .gst {opacity:0.55;}
 .plt .lvl {transform-box: fill-box; transform-origin: bottom;}
 .plt .gst {transform: scaleY(0.941);}
 .plt .hpt {transform: scaleY(0.235);}
-.plt .compt {fill:#1a1a1a;}
+.plt .compt {fill:var(--on-ink);}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
-.plt .comp{fill:#ff6b00; animation: t-comp var(--t) steps(1,end) infinite;}
+.plt .comp{fill:var(--on); animation: t-comp var(--t) steps(1,end) infinite;}
 .plt .compt{animation: t-compt var(--t) steps(1,end) infinite;}
 .plt .vent{opacity:0; animation: t-vent var(--t) steps(1,end) infinite;}
 .plt .man {opacity:0; animation: t-hold var(--t) steps(1,end) infinite;}
 .plt .sup {opacity:0; animation: t-man  var(--t) steps(1,end) infinite;}
 .plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .ph-a{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
+.plt .stuck{opacity:0; animation: t-stuck var(--t) steps(1,end) infinite;}
 .plt .sv-open{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .sv-shut{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
-.plt .stuck{opacity:0; animation: t-stuck var(--t) steps(1,end) infinite;}
-/* Every segment obeys the model: HPT can only fall while the compressor is off,
-   GST can only fall while it is on, and two units of GST buy one of HPT unless
-   the supply valve is feeding, which cuts the net drain to a quarter. The loop restarts
-   with a hard cut at the boundary rather than animating the pressure back
-   down, because nothing inside this loop can bring it down. */
-@keyframes t-hpt {0%{transform:scaleY(0.235)}  12%{transform:scaleY(0.353)}
-                  24%{transform:scaleY(0.235)} 30%{transform:scaleY(0.294)}
-                  62%{transform:scaleY(0.863)} 78%,82%{transform:scaleY(1)}
-                  94%,100%{transform:scaleY(0.784)}}
-@keyframes t-gst {0%{transform:scaleY(0.941)}  12%,24%{transform:scaleY(0.706)}
-                  30%{transform:scaleY(0.588)} 62%{transform:scaleY(0.304)}
-                  78%{transform:scaleY(0.212)} 82%{transform:scaleY(0.216)}
-                  94%{transform:scaleY(0.875)} 100%{transform:scaleY(0.96)}}
-@keyframes t-comp {0%,12%{fill:#ff6b00; fill-opacity:1} 12.01%,24%{fill:currentColor; fill-opacity:0.18}
-                   24.01%,82%{fill:#ff6b00; fill-opacity:1} 82.01%,100%{fill:currentColor; fill-opacity:0.18}}
-/* The label has to follow the box, or the dark ink sits on a dark panel. */
-@keyframes t-compt{0%,12%{fill:#1a1a1a} 12.01%,24%{fill:currentColor}
-                   24.01%,82%{fill:#1a1a1a} 82.01%,100%{fill:currentColor}}
-@keyframes t-vent {0%,61.9%{opacity:0} 62%,94%{opacity:1} 94.01%,100%{opacity:0}}
-@keyframes t-man  {0%,29.9%{opacity:0} 30%,100%{opacity:1}}
-/* The badge has to stop when the compressor does, at 82%. */
-@keyframes t-hold {0%,29.9%{opacity:0} 30%,82%{opacity:1} 82.01%,100%{opacity:0}}
-@keyframes t-phn  {0%,29.9%{opacity:1} 30%,100%{opacity:0}}
-@keyframes t-stuck{0%,93.9%{opacity:0} 94%,100%{opacity:1}}
+/* One clock for every segment. Simulated against physical_process_thread over
+   2000 seeds each: 30 + 30 + 15 + 145 + 124 + 10 + 110 + 15 = 478 ticks, so a
+   20 s loop runs at 23.9 ticks per second throughout. Without that the vent
+   segment ran twice as fast as the fill it is supposed to look half as steep
+   as, and the figure contradicted its own caption. */
+@keyframes t-hpt {0%{transform:scaleY(0.235)}     6.27%{transform:scaleY(0.353)}
+                  12.58%{transform:scaleY(0.235)} 15.72%{transform:scaleY(0.294)}
+                  46.05%{transform:scaleY(0.863)} 71.94%,74.03%{transform:scaleY(1)}
+                  96.97%,100%{transform:scaleY(0.784)}}
+@keyframes t-gst {0%{transform:scaleY(0.941)}     6.27%,12.58%{transform:scaleY(0.706)}
+                  15.72%{transform:scaleY(0.588)} 46.05%{transform:scaleY(0.304)}
+                  71.94%,74.03%{transform:scaleY(0.216)}
+                  96.97%{transform:scaleY(0.863)} 100%{transform:scaleY(0.941)}}
+@keyframes t-comp {0%,6.27%{fill:var(--on); fill-opacity:1}
+                   6.28%,12.58%{fill:currentColor; fill-opacity:0.18}
+                   12.59%,74.03%{fill:var(--on); fill-opacity:1}
+                   74.04%,100%{fill:currentColor; fill-opacity:0.18}}
+@keyframes t-compt{0%,6.27%{fill:var(--on-ink)} 6.28%,12.58%{fill:currentColor}
+                   12.59%,74.03%{fill:var(--on-ink)} 74.04%,100%{fill:currentColor}}
+@keyframes t-vent {0%,46.04%{opacity:0} 46.05%,96.97%{opacity:1} 96.98%,100%{opacity:0}}
+@keyframes t-man  {0%,15.71%{opacity:0} 15.72%,100%{opacity:1}}
+@keyframes t-hold {0%,15.71%{opacity:0} 15.72%,74.03%{opacity:1} 74.04%,100%{opacity:0}}
+@keyframes t-phn  {0%,15.71%{opacity:1} 15.72%,100%{opacity:0}}
+@keyframes t-stuck{0%,96.96%{opacity:0} 96.97%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) {
-  .plt .gst {animation:none; transform:scaleY(0.40);}
+  /* The frozen frame is the end state: compressor stopped, valve shut, the
+     pressure resting at 200 -- and the storage tank where 110 ticks of supply
+     actually leave it, which is 223, not the 103 this used to claim. */
+  .plt .gst {animation:none; transform:scaleY(0.875);}
   .plt .hpt {animation:none; transform:scaleY(0.784);}
   .plt .comp {animation:none; fill:currentColor; fill-opacity:0.18;}
   .plt .compt{animation:none; fill:currentColor;}
@@ -228,18 +232,18 @@ html.light-mode .plt .gst {opacity:0.55;}
   <path d="M 228 135 L 286 135" stroke="currentColor" stroke-width="2"/>
   <text x="179" y="176" text-anchor="middle" font-size="13" opacity="0.85">&minus;2 GST &rarr; +1 HPT</text>
   <g class="man">
-    <rect x="132" y="90" width="94" height="20" rx="3" fill="#ff6b00"/>
-    <text x="179" y="105" text-anchor="middle" font-size="13" style="fill:#1a1a1a" font-weight="bold">held on by hand</text>
+    <rect x="132" y="90" width="94" height="20" rx="3" fill="var(--on)"/>
+    <text x="179" y="105" text-anchor="middle" font-size="13" style="fill:var(--on-ink)" font-weight="bold">held on by hand</text>
   </g>
 
   <rect x="290" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
   <rect class="lvl hpt" x="292" y="72" width="52" height="126" fill="#ff6b00"/>
   <text x="318" y="216" text-anchor="middle" font-size="13" font-weight="bold">HPT</text>
-  <g font-size="13">
+  <g font-size="11">
     <line x1="288" y1="89" x2="348" y2="89" stroke="#ff6b00" stroke-dasharray="4 3"/>
     <text x="354" y="93" fill="#ff6b00">220</text>
     <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="286" y="103" text-anchor="end" opacity="0.75">200</text>
+    <text x="354" y="103" opacity="0.75">200</text>
     <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
     <text x="354" y="153" opacity="0.75">100</text>
     <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
@@ -275,7 +279,7 @@ html.light-mode .plt .gst {opacity:0.55;}
   <path d="M 120 129 L 130 135 L 120 141" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <text x="102" y="210" font-size="12" opacity="0.8">drives coil 1</text>
 
-  <text class="stuck" x="354" y="103" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
+  <text class="stuck" x="354" y="126" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
   <text class="ph-n" x="10" y="308" font-size="13" opacity="0.85">automatic: the loop holds 60 to 90</text>
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
 </svg>
