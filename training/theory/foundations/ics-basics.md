@@ -154,7 +154,11 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 <figure>
 <style>
 .plt {--t: 18s;}
-.plt .lvl {transform-origin: center bottom;}
+/* transform-box defaults to view-box for SVG, so `center bottom` would
+   anchor at the bottom of the *viewBox*, not of the rect -- which put
+   the fills outside their tanks entirely. fill-box anchors on the
+   element's own box, which is what a tank level needs. */
+.plt .lvl {transform-box: fill-box; transform-origin: bottom;}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
 .plt .comp{animation: t-comp var(--t) steps(1,end) infinite;}
