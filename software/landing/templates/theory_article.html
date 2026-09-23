@@ -39,6 +39,15 @@
            at about 3:1 — under the 4.5:1 floor. 26 of the 29 theory pages
            were affected. */
         .article figure svg text:not([fill]) { fill:currentColor; }
+        /* #ff6b00 is 6.45:1 on the dark figure ground but only 2.86:1 on the
+           light one, so the accent cannot be one colour. Orange *text* and
+           orange *strokes* are retinted for the light theme; filled orange
+           panels keep the brand colour, because the dark ink on them is
+           6.10:1 either way. `!important` is needed because several figures
+           set the colour through an inline style, which no plain rule beats. */
+        html.light-mode .article figure svg text[fill="#ff6b00"],
+        html.light-mode .article figure svg text[style*="#ff6b00"] { fill:#b34700 !important; }
+        html.light-mode .article figure svg [stroke="#ff6b00"] { stroke:#b34700; }
         .article figcaption { color:#999; font-size:0.82rem; margin-top:0.5rem; }
         .related { margin-top:2.5rem; border-top:1px solid #383838; padding-top:1rem; }
         .related h2 { font-size:1rem; color:#ff8c3a; margin-bottom:0.6rem; }
