@@ -15,7 +15,7 @@ A client does not simply connect and read. It opens a **secure channel**, create
    over 18 s. 18 is an exact multiple of 6, so a run never starts mid-sequence. */
 .article figure {overflow-x: auto;}
 .article figure svg.ua-h {min-width: 520px;}
-.ua-h {--m: 6s; --i: 18s;}
+.ua-h {--m: 8s; --i: 24s;}
 /* The base state is a complete run, not an empty diagram: a browser that drops
    animations (a print, a preview, a screenshot) gets the middle case, which is
    the one the challenge actually walks. */
@@ -30,11 +30,15 @@ A client does not simply connect and read. It opens a **secure channel**, create
 .ua-h .idA,.ua-h .vA {animation: ua-A var(--i) steps(1,end) infinite;}
 .ua-h .idB,.ua-h .vB {animation: ua-B var(--i) steps(1,end) infinite;}
 .ua-h .idC,.ua-h .vC {animation: ua-C var(--i) steps(1,end) infinite;}
-@keyframes ua-m1 {0%,4.9%{opacity:0}  5%,100%{opacity:1}}
-@keyframes ua-m2 {0%,24.9%{opacity:0} 25%,100%{opacity:1}}
-@keyframes ua-m3 {0%,44.9%{opacity:0} 45%,100%{opacity:1}}
-@keyframes ua-m4 {0%,64.9%{opacity:0} 65%,100%{opacity:1}}
-@keyframes ua-vd {0%,81.9%{opacity:0} 82%,100%{opacity:1}}
+/* The verdict is the only thing in this figure the prose cannot also tell
+   you, and it used to be on screen for 1.08 s in every 18. The four messages
+   are compressed into the first 46% of an 8 s cycle so the verdict gets the
+   remaining 4.3 s -- enough to read a 51-character line once. */
+@keyframes ua-m1 {0%,3.9%{opacity:0}  4%,100%{opacity:1}}
+@keyframes ua-m2 {0%,13.9%{opacity:0} 14%,100%{opacity:1}}
+@keyframes ua-m3 {0%,25.9%{opacity:0} 26%,100%{opacity:1}}
+@keyframes ua-m4 {0%,37.9%{opacity:0} 38%,100%{opacity:1}}
+@keyframes ua-vd {0%,45.9%{opacity:0} 46%,100%{opacity:1}}
 @keyframes ua-A {0%,33.32%{opacity:1} 33.33%,100%{opacity:0}}
 @keyframes ua-B {0%,33.32%{opacity:0} 33.33%,66.65%{opacity:1} 66.66%,100%{opacity:0}}
 @keyframes ua-C {0%,66.65%{opacity:0} 66.66%,100%{opacity:1}}
@@ -99,7 +103,9 @@ This matters because the two halves are genuinely independent. You can have an e
 
 On this server the roles come from `SimpleRoleRuleset`, whose own docstring is the clearest statement of the model: *admins alone can write, admins and users can read, and anonymous users can't do anything*. That last clause is not a formality. An anonymous client here does not get a read-only view; it is refused at `ActivateSession` with `BadUserAccessDenied` and never holds a session. Connecting anonymously against the running server returns exactly that.
 
-`software/opcua/opcua.py` offers two channel policies, `NoSecurity` and `Basic256Sha256_SignAndEncrypt`, and three identity tokens, `Anonymous`, `Username` and `Basic256Sha256` (certificate). Anonymous is accepted as a *token* and then denied every *action*, which is why the failure arrives one step later than you might expect.
+`software/opcua/opcua.py` offers two channel policies, `NoSecurity` and `Basic256Sha256_SignAndEncrypt`, and three identity tokens, `Anonymous`, `Username` and `Basic256Sha256` (certificate). Anonymous is on that list, so a client is free to offer it &mdash; and then `Pw_Cert_UserManager.get_user` finds no username in either database and no certificate, returns `None`, and the session is never activated. The ruleset's empty anonymous permission set is never consulted at all. Two independent parts of the configuration happen to agree here, which is a comfortable place to be and a fragile one: relax either and the other still looks like it is doing the work.
+
+The six process nodes are mirrors, refreshed from OpenPLC over Modbus by the server's own loop every two seconds. `GST` and `HPT` come from holding registers 1124 and 1126 &mdash; the same two words the *Modbus* and *Flood &amp; Overwrite* topics are about, republished under `http://opcua.cybics.github.io` with sessions and roles in front of them. Reading a node here is reading that register, one gateway removed. Worth knowing that the gateway is a place the truth can be lost as well: four of the six mirrors read an address that is one off, or in the wrong space entirely, having been transcribed from the HMI's one-based tag table into a zero-based client call.
 
 ## What an unencrypted channel actually leaks
 
@@ -111,24 +117,29 @@ The obvious conclusion is that a `None` channel hands a sniffer everything. Capt
 .ua-w {--w: 12s;}
 /* The playhead sweeps the four fields of the identity token in turn; the
    read-out underneath says what a sniffer gets from the field it is over. */
-.ua-w .ph {animation: uw-ph var(--w) steps(4,end) infinite;}
+.ua-w .ph {animation: uw-ph var(--w) steps(1,end) infinite;}
 .ua-w .r1 {opacity:0; animation: uw-r1 var(--w) steps(1,end) infinite;}
 .ua-w .r2 {opacity:0; animation: uw-r2 var(--w) steps(1,end) infinite;}
 .ua-w .r3 {opacity:1; animation: uw-r3 var(--w) steps(1,end) infinite;}
 .ua-w .r4 {opacity:0; animation: uw-r4 var(--w) steps(1,end) infinite;}
-.ua-w .f1 {animation: uw-f1 var(--w) steps(1,end) infinite;}
-.ua-w .f2 {animation: uw-f2 var(--w) steps(1,end) infinite;}
-.ua-w .f3 {animation: uw-f3 var(--w) steps(1,end) infinite;}
-.ua-w .f4 {animation: uw-f4 var(--w) steps(1,end) infinite;}
+
+
+
+
 /* Base state is the third field, the password -- the one the figure exists
    to make a point about. */
-.ua-w .ph {transform: translateX(216px);}
-.ua-w .f3 {stroke-width:3;}
-@keyframes uw-ph {0%{transform:translateX(0)} 100%{transform:translateX(432px)}}
-@keyframes uw-f1 {0%,24.9%{stroke-width:3} 25%,100%{stroke-width:0}}
-@keyframes uw-f2 {0%,24.9%{stroke-width:0} 25%,49.9%{stroke-width:3} 50%,100%{stroke-width:0}}
-@keyframes uw-f3 {0%,49.9%{stroke-width:0} 50%,74.9%{stroke-width:3} 75%,100%{stroke-width:0}}
-@keyframes uw-f4 {0%,74.9%{stroke-width:0} 75%,100%{stroke-width:3}}
+.ua-w .ph {transform: translateX(302px);}
+
+/* The marker apex is at x=10, so a translate of t puts it at 10+t; the four
+   field centres are 64, 180, 312 and 450. steps(4,end) over a linear 0..432
+   put it at 10, 118, 226 and 334 -- under the wrong box for three of the four
+   steps, and never under the last box at all. */
+@keyframes uw-ph {0%,24.9%{transform:translateX(54px)}  25%,49.9%{transform:translateX(170px)}
+                  50%,74.9%{transform:translateX(302px)} 75%,100%{transform:translateX(440px)}}
+
+
+
+
 @keyframes uw-r1 {0%,24.9%{opacity:1} 25%,100%{opacity:0}}
 @keyframes uw-r2 {0%,24.9%{opacity:0} 25%,49.9%{opacity:1} 50%,100%{opacity:0}}
 @keyframes uw-r3 {0%,49.9%{opacity:0} 50%,74.9%{opacity:1} 75%,100%{opacity:0}}
@@ -139,16 +150,16 @@ The obvious conclusion is that a `None` channel hands a sniffer everything. Capt
      aria-label="The four fields of an OPC-UA username identity token as they appear on an unencrypted channel. The policy identifier reads username in clear text. The user name reads user1 in clear text. The password is an RSA-OAEP ciphertext and reveals nothing. The fourth field names the algorithm, rsa-oaep, in clear text. A sniffer therefore harvests account names but not passwords.">
   <text x="10" y="22" font-size="13" font-weight="bold">UserNameIdentityToken, channel policy None</text>
   <g font-size="12">
-    <rect class="f1" x="10" y="38" width="108" height="40" rx="4" fill="#ff6b00" stroke="#1a1a1a" stroke-width="0"/>
+    <rect class="f1" x="10" y="38" width="108" height="40" rx="4" fill="#ff6b00"/>
     <text x="64" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">policyId</text>
     <text x="64" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">"username"</text>
-    <rect class="f2" x="126" y="38" width="108" height="40" rx="4" fill="#ff6b00" stroke="#1a1a1a" stroke-width="0"/>
+    <rect class="f2" x="126" y="38" width="108" height="40" rx="4" fill="#ff6b00"/>
     <text x="180" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">userName</text>
     <text x="180" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">"user1"</text>
-    <rect class="f3" x="242" y="38" width="140" height="40" rx="4" fill="currentColor" fill-opacity="0.18" stroke="#ff6b00" stroke-width="0"/>
+    <rect class="f3" x="242" y="38" width="140" height="40" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
     <text x="312" y="55" text-anchor="middle" font-size="11" opacity="0.85">password</text>
     <text x="312" y="71" text-anchor="middle" font-weight="bold" font-family="monospace">b7 2d 22 8f 3a &hellip;</text>
-    <rect class="f4" x="390" y="38" width="120" height="40" rx="4" fill="#ff6b00" stroke="#1a1a1a" stroke-width="0"/>
+    <rect class="f4" x="390" y="38" width="120" height="40" rx="4" fill="#ff6b00"/>
     <text x="450" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">encryptionAlgorithm</text>
     <text x="450" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">rsa-oaep</text>
   </g>
@@ -171,24 +182,27 @@ This is why the *OPC-UA* challenge brute-forces logins against the live server r
 
 ## The admin flag is written, not read
 
-The user-tier flag is an ordinary variable; a `User` session reads it directly. The admin-tier one is not a value sitting in the address space waiting to be found &mdash; it is empty until the server puts it there.
+The user-tier flag is an ordinary variable; a `User` session reads it directly. The admin-tier one is not a value sitting in the address space waiting to be found. On a running server it holds a prompt &mdash; `set the correct variable > 0` &mdash; which that same two-second loop rewrites on every pass, and goes on holding it until the trigger variable is above zero.
 
 <figure>
 <style>
-.article figure svg.ua-f {min-width: 520px;}
+.article figure svg.ua-f {min-width: 360px;}
 .ua-f {--f: 14s;}
-.ua-f .sweep {transform-origin: 72px 84px; animation: uf-sweep 2s linear infinite;}
-.ua-f .wr   {opacity:0; animation: uf-wr var(--f) steps(1,end) infinite;}
+.ua-f .sweep {transform-origin: 52px 74px; animation: uf-sweep 2s linear infinite;}
+/* Base state shows the accepted write, the trigger at 1 and the flag still
+   holding its prompt -- cause before effect, which is the frame that matches
+   the caption. Switching the animations off used to leave a populated flag
+   with no write anywhere on screen. */
+.ua-f .wr   {opacity:1; animation: uf-wr var(--f) steps(1,end) infinite;}
+.ua-f .deny {opacity:0; animation: uf-deny var(--f) steps(1,end) infinite;}
 .ua-f .z0   {opacity:0; animation: uf-z0 var(--f) steps(1,end) infinite;}
 .ua-f .z1   {opacity:1; animation: uf-z1 var(--f) steps(1,end) infinite;}
-.ua-f .fl0  {opacity:0; animation: uf-fl0 var(--f) steps(1,end) infinite;}
-.ua-f .fl1  {opacity:1; animation: uf-fl1 var(--f) steps(1,end) infinite;}
-.ua-f .deny {opacity:0; animation: uf-deny var(--f) steps(1,end) infinite;}
+.ua-f .fl0  {opacity:1; animation: uf-fl0 var(--f) steps(1,end) infinite;}
+.ua-f .fl1  {opacity:0; animation: uf-fl1 var(--f) steps(1,end) infinite;}
 @keyframes uf-sweep {to {transform: rotate(360deg);}}
-/* A User write is refused at 20%; the Admin write lands at 50%; the server's
-   own loop notices on its next pass, at 57%, and replaces the value. The gap
-   between 50% and 57% is the point -- nothing the client did changed the flag
-   node, the loop did. */
+/* A User write is refused at 20%. The Admin write lands at 50%. The loop
+   notices on its next pass -- `await asyncio.sleep(2)` -- and the flag changes
+   at 57%, one second of a 14 s loop later. That gap is the figure. */
 @keyframes uf-deny{0%,19.9%{opacity:0} 20%,39.9%{opacity:1} 40%,100%{opacity:0}}
 @keyframes uf-wr  {0%,49.9%{opacity:0} 50%,69.9%{opacity:1} 70%,100%{opacity:0}}
 @keyframes uf-z0  {0%,49.9%{opacity:1} 50%,100%{opacity:0}}
@@ -197,43 +211,41 @@ The user-tier flag is an ordinary variable; a `User` session reads it directly. 
 @keyframes uf-fl1 {0%,56.9%{opacity:0} 57%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) { .ua-f * {animation:none !important;} }
 </style>
-<svg class="ua-f" viewBox="0 0 520 210" role="img"
-     aria-label="The server's own loop drives the admin flag. A User session's write to the trigger variable is refused with BadUserAccessDenied. An Admin session's write sets the trigger from zero to one. On its next pass the server loop reads the trigger, finds it above zero, and replaces the admin flag node's text with the flag. The client never writes the flag node itself.">
-  <circle cx="72" cy="84" r="34" fill="none" stroke="currentColor" stroke-opacity="0.65" stroke-width="2"/>
-  <path class="sweep" d="M 72 50 A 34 34 0 0 1 106 84" fill="none" stroke="#ff6b00" stroke-width="3"/>
-  <text x="72" y="80" text-anchor="middle" font-size="12" font-weight="bold">server</text>
-  <text x="72" y="95" text-anchor="middle" font-size="12" font-weight="bold">loop</text>
-  <text x="72" y="140" text-anchor="middle" font-size="12" opacity="0.85">polls every pass</text>
-
-  <rect x="168" y="46" width="164" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-  <text x="250" y="64" text-anchor="middle" font-size="11" opacity="0.85">"Set &gt; 0 to obtain flag!"</text>
-  <text class="z0" x="250" y="82" text-anchor="middle" font-size="14" font-weight="bold" fill="#ff6b00">0</text>
-  <text class="z1" x="250" y="82" text-anchor="middle" font-size="14" font-weight="bold" fill="#ff6b00">1</text>
-
-  <rect x="358" y="46" width="152" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-  <text x="434" y="64" text-anchor="middle" font-size="11" opacity="0.85">adminFLAG</text>
-  <text class="fl0" x="434" y="82" text-anchor="middle" font-size="12">set the correct variable</text>
-  <text class="fl1" x="434" y="82" text-anchor="middle" font-size="12" font-weight="bold" fill="#ff6b00">CybICS(&hellip;)</text>
-
+<svg class="ua-f" viewBox="0 0 360 248" role="img"
+     aria-label="The server's own loop drives the admin flag. A User session's write to the trigger variable is refused with BadUserAccessDenied. An Admin session's write sets the trigger from zero to one. Up to two seconds later, on its next pass, the loop reads the trigger, finds it above zero, and replaces the admin flag node's text with the flag. The client never writes the flag node itself.">
   <defs><marker id="ua-b" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b00"/></marker></defs>
-  <line x1="108" y1="68" x2="164" y2="68" stroke="currentColor" stroke-opacity="0.65" stroke-width="2" marker-end="url(#ua-b)"/>
-  <line x1="336" y1="68" x2="354" y2="68" stroke="currentColor" stroke-opacity="0.65" stroke-width="2" marker-end="url(#ua-b)"/>
-  <text x="250" y="116" text-anchor="middle" font-size="11" opacity="0.85">the loop reads this &hellip;</text>
-  <text x="434" y="116" text-anchor="middle" font-size="11" opacity="0.85">&hellip; and writes this</text>
+  <circle cx="52" cy="74" r="34" fill="none" stroke="currentColor" stroke-opacity="0.65" stroke-width="2"/>
+  <path class="sweep" d="M 52 40 A 34 34 0 0 1 86 74" fill="none" stroke="#ff6b00" stroke-width="3"/>
+  <text x="52" y="70" text-anchor="middle" font-size="12" font-weight="bold">server</text>
+  <text x="52" y="85" text-anchor="middle" font-size="12" font-weight="bold">loop</text>
+  <text x="52" y="128" text-anchor="middle" font-size="12" opacity="0.85">every 2 s</text>
+
+  <rect x="118" y="26" width="228" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="222" y="44" text-anchor="middle" font-size="11" opacity="0.85">"Set &gt; 0 to obtain flag!"</text>
+  <text class="z0" x="222" y="62" text-anchor="middle" font-size="14" font-weight="bold" fill="#ff6b00">0</text>
+  <text class="z1" x="222" y="62" text-anchor="middle" font-size="14" font-weight="bold" fill="#ff6b00">1</text>
+  <line x1="88" y1="48" x2="114" y2="48" stroke="currentColor" stroke-opacity="0.65" stroke-width="2" marker-end="url(#ua-b)"/>
+  <text x="352" y="20" text-anchor="end" font-size="11" opacity="0.85">the loop reads this &hellip;</text>
+
+  <rect x="118" y="100" width="228" height="48" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="222" y="118" text-anchor="middle" font-size="11" opacity="0.85">adminFLAG</text>
+  <text class="fl0" x="222" y="136" text-anchor="middle" font-size="12">"set the correct variable &gt; 0"</text>
+  <text class="fl1" x="222" y="136" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff6b00">CybICS(&hellip;)</text>
+  <line x1="88" y1="122" x2="114" y2="122" stroke="currentColor" stroke-opacity="0.65" stroke-width="2" marker-end="url(#ua-b)"/>
+  <text x="352" y="164" text-anchor="end" font-size="11" opacity="0.85">&hellip; and writes this, up to 2 s later</text>
 
   <g class="wr">
-    <line x1="250" y1="172" x2="250" y2="96" stroke="#ff6b00" stroke-width="3" marker-end="url(#ua-b)"/>
-    <text x="264" y="168" font-size="13" font-weight="bold" fill="#ff6b00">Admin writes 1</text>
+    <line x1="222" y1="216" x2="222" y2="76" stroke="#ff6b00" stroke-width="3" marker-end="url(#ua-b)"/>
+    <text x="222" y="232" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff6b00">Admin writes 1</text>
   </g>
   <g class="deny">
-    <line x1="250" y1="172" x2="250" y2="140" stroke="currentColor" stroke-opacity="0.7" stroke-width="3"/>
-    <path d="M 240 138 L 260 122 M 240 122 L 260 138" stroke="currentColor" stroke-opacity="0.85" stroke-width="3"/>
-    <text x="264" y="162" font-size="13" font-weight="bold">User writes 1:</text>
-    <text x="264" y="177" font-size="13" font-weight="bold">BadUserAccessDenied</text>
+    <line x1="222" y1="216" x2="222" y2="190" stroke="currentColor" stroke-opacity="0.7" stroke-width="3"/>
+    <path d="M 212 188 L 232 172 M 212 172 L 232 188" stroke="currentColor" stroke-opacity="0.85" stroke-width="3"/>
+    <text x="222" y="228" text-anchor="middle" font-size="13" font-weight="bold">User writes 1:</text>
+    <text x="222" y="243" text-anchor="middle" font-size="13" font-weight="bold">BadUserAccessDenied</text>
   </g>
-  <text x="10" y="200" font-size="12" opacity="0.85">The client never touches the flag node &mdash; it sets one integer and waits.</text>
 </svg>
-<figcaption>Two writes to the same variable, one refused and one accepted, and then a pause before anything visible happens. That pause is the lesson: the write lands on a trigger, and the server's own loop is what replaces the flag text on its next pass. A client that writes the trigger and reads back instantly sees the old value and concludes it failed.</figcaption>
+<figcaption>Two writes to the same variable, one refused and one accepted, and then a pause before anything visible happens. That pause is the lesson: the write lands on a trigger, and the server's own loop &mdash; <code>await asyncio.sleep(2)</code> &mdash; is what replaces the flag text on its next pass. A client that writes the trigger and reads back immediately sees the old value and concludes it failed. With motion switched off the figure holds the moment after the accepted write and before the loop has noticed.</figcaption>
 </figure>
 
 Reaching `Admin` is not a matter of a better password. `admin_db` in `software/opcua/user_manager.py` is empty &mdash; its only entry is commented out &mdash; so no username and password combination reaches the admin role at all. Admin is bound to one certificate, registered at start-up by `add_admin("certificates/trusted/cert_admin.der")`, and that certificate and its private key are both in the repository. The challenge is a leaked-key exercise wearing the clothes of a password exercise, which is the more realistic of the two: keys leak more quietly than passwords, and nothing expires them here.
