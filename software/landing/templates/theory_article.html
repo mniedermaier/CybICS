@@ -27,7 +27,11 @@
         .article code { background:#2d2d2d; padding:0.1rem 0.35rem; border-radius:0.25rem; font-size:0.9em; }
         .article pre { background:#0f0f0f; border:1px solid #333; border-radius:0.5rem; padding:0.9rem; overflow-x:auto; }
         .article pre code { background:none; padding:0; }
-        .article table { border-collapse:collapse; margin:1rem 0; width:100%; }
+        /* A wide table burst the document sideways at phone width -- the
+           answer column of a nine-row rule table ended up off-screen with the
+           whole page scrolling. display:block lets it scroll inside itself,
+           the way the figures already do. */
+        .article table { border-collapse:collapse; margin:1rem 0; width:100%; display:block; overflow-x:auto; }
         .article th, .article td { border:1px solid #383838; padding:0.4rem 0.7rem; text-align:left; font-size:0.9rem; }
         .article th { background:#2d2d2d; color:#ff8c3a; }
         .article blockquote { border-left:3px solid #ff6b00; background:#2d2d2d; padding:0.6rem 1rem; margin:1rem 0; color:#cfcfcf; }
