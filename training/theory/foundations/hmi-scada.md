@@ -13,6 +13,15 @@ The HMI is not wired to a sensor. It is a Modbus client. Every number on the scr
 /* theory_article.html retints text, path and stroke for the light theme but
    never a circle, so this marker stayed #ff6b00 on white: 2.86:1. */
 html.light-mode .hm-c .cmd {fill:#b34700;}
+/* and it cannot reach a rect: the FUXA and OpenPLC panels and the wire panel
+   in figure 3 were all #ff6b00 on white, 2.86:1. Retinting a panel means
+   retinting the ink on it as well -- #1a1a1a is 6.10:1 on #ff6b00 but only
+   3.14:1 on #b34700, which is why the template deliberately leaves filled
+   panels alone. White is 5.48:1 there. */
+html.light-mode .hm-c rect[fill="#ff6b00"],
+html.light-mode .hm-a rect[fill="#ff6b00"] {fill:#b34700;}
+html.light-mode .hm-c text[style*="#1a1a1a"],
+html.light-mode .hm-a text[style*="#1a1a1a"] {fill:#ffffff !important;}
 /* Two clocks in phase: the command-and-value round trip replays every 6 s,
    and which link is under attack changes every 6 s, cycling through three
    over 18. The base state is the middle one, the man in the middle, because
@@ -79,12 +88,12 @@ html.light-mode .hm-c .cmd {fill:#b34700;}
       <text x="8" y="164" font-size="11" opacity="0.85">no login, no wire access</text>
     </g>
   </g>
-  <text x="8" y="194" font-size="11" opacity="0.85">Three challenges, three links, one chain.</text>
+  <text x="8" y="194" font-size="11" opacity="0.85">Three challenges, three depths, one chain.</text>
 </svg>
-<figcaption>Watch the round trip first: a command goes right and becomes a coil write, a measured value comes back left and becomes a number on a screen. Then watch where each of the three challenges cuts in. They are usually taught as separate exercises; they are the same chain attacked at three depths. Depth is not the same as stealth, though &mdash; the rightmost of the three is the loudest, because flooding a register is exactly what the IDS watches for. The quiet one is the middle. Guess the login and you inherit the HMI&rsquo;s credentials and its network path in one step. Sit on the wire and neither end can tell, because Modbus has no field in which to disagree. Pin the register and you need neither: just write the word more often than the sensor does.</figcaption>
+<figcaption>Watch the round trip first: a command goes right and becomes a coil write, a measured value comes back left and becomes a number on a screen. Then watch where each of the three challenges cuts in. They are usually taught as separate exercises; they are the same chain attacked at three depths. Depth is not the same as stealth, though, and the ranking here is not the obvious one. The flood raises <code>modbus_flood</code> at critical severity &mdash; but so does the man in the middle: <code>arp_spoof</code> is critical too, and it fires on the first ARP reply carrying a second MAC rather than after fifty writes. The MitM challenge will not award its flag unless that rule has fired. The quietest of the three is the login attempt, which raises <code>http_brute_force</code> at high severity, and against FUXA's own sign-in route raises nothing at all. Guess the login and you inherit the HMI&rsquo;s credentials and its network path in one step. Sit on the wire and neither end can tell, because Modbus has no field in which to disagree. Pin the register and you need neither: just write the word more often than the sensor does.</figcaption>
 </figure>
 
-FUXA's device entry says `openplc:502`, plain Modbus TCP, and its tag table is a list of register addresses: `GST`, `HPT`, `systemSen`, `boSen`, `stop`, `manual` as holding registers, and `heartbeat`, `compressor`, `systemValve`, `gstSig` as coils. Nothing in that list is authenticated. FUXA's own login &mdash; `operator` with an `operator` password, and a `viewer` account beside it &mdash; protects the *screen*, not the plant. Anyone who can reach port 502 skips the screen.
+FUXA's device entry says `openplc:502`, plain Modbus TCP, and its tag table is a list of register addresses: `GST`, `HPT`, `systemSen`, `boSen`, `stop`, `manual` as holding registers, and `heartbeat`, `compressor`, `systemValve`, `gstSig` as coils. Nothing in that list is authenticated. FUXA ships an `operator` account with `operator` as its password and a `viewer` beside it, though the *Password Attack* challenge goes after `admin`, on both FUXA and OpenPLC. Either way the login protects the *screen*, not the plant. Anyone who can reach port 502 skips the screen.
 
 ## The screen can contradict itself, and does
 
@@ -94,45 +103,49 @@ The most useful thing about an HMI for a defender is that it shows several value
 <style>
 .article figure svg.hm-t {min-width: 360px;}
 .hm-t {--t: 18s;}
-/* One 18 s loop over 210 s of plant time, so 1 s here is 11.7 s there. The
-   playhead runs below the axis rather than across the plot: at full height it
-   swept through both trace labels for half of every loop. */
+/* Each trace draws on its own dash length rather than a shared normalised
+   sweep. They used to share one, and because the HPT trace spends arc length
+   climbing its spikes, its pen ran up to 31 s of plant time behind the other
+   on a figure whose whole point is "same moment, two registers". */
 .hm-t .head {animation: ht-head var(--t) linear infinite;}
-.hm-t .hpt  {stroke-dasharray:1000; animation: ht-draw var(--t) linear infinite;}
-.hm-t .bo   {stroke-dasharray:1000; animation: ht-draw var(--t) linear infinite;}
+.hm-t .hpt  {stroke-dasharray:1400; animation: ht-hpt var(--t) linear infinite;}
+.hm-t .bo   {stroke-dasharray:1000; animation: ht-bo  var(--t) linear infinite;}
 .hm-t .alm  {opacity:1; animation: ht-alm var(--t) steps(1,end) infinite;}
 @keyframes ht-head {0%{transform:translateX(0)} 92%,100%{transform:translateX(292px)}}
-@keyframes ht-draw {0%{stroke-dashoffset:1000} 92%,100%{stroke-dashoffset:0}}
-@keyframes ht-alm  {0%,78.9%{opacity:0} 79%,100%{opacity:1}}
+@keyframes ht-hpt  {0%{stroke-dashoffset:1400} 92%,100%{stroke-dashoffset:0}}
+@keyframes ht-bo   {0%{stroke-dashoffset:1000} 92%,100%{stroke-dashoffset:0}}
+@keyframes ht-alm  {0%,43.4%{opacity:0} 43.5%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) { .hm-t * {animation:none !important;} }
 </style>
-<svg class="hm-t" viewBox="0 0 360 232" role="img"
-     aria-label="Two FUXA trends over two hundred and ten seconds of a register flood, measured on this stack from the plant's normal resting band. The HPT trend, which reads holding register 1126, sits at ten almost the whole time, with two single-sample spikes to the real pressure where a poll happened to land in the fraction of a millisecond before the next forged write. The blow-out flag, which reads holding register 1134 and is written by hwio from the true pressure, steps from zero to one at a hundred and eighty-one seconds. The operator's screen therefore shows a near-flat tank and a blow-out alarm at the same time, and the alarm is the honest one.">
-  <text x="8" y="18" font-size="12" font-weight="bold">FUXA, &ldquo;System values&rdquo;, during a flood</text>
+<svg class="hm-t" viewBox="0 0 360 240" role="img"
+     aria-label="Two FUXA trends over one run of three hundred and thirty seconds, flooding register 1126 from the plant's normal resting band. The HPT trend sits at ten almost throughout, with six single-sample spikes where a poll landed in the fraction of a millisecond before the next forged write. The spikes rise as the run goes on, from 131 at sixty-one seconds to 254 at two hundred and ninety-eight, because what escapes is the real pressure and the real pressure is climbing. The blow-out flag, read from register 1134 and written by hwio from that same real pressure, steps from zero to one at a hundred and fifty-six seconds.">
+  <text x="8" y="18" font-size="12" font-weight="bold">FUXA, &ldquo;System values&rdquo;, one flood, 330 s</text>
 
-  <text x="52" y="40" font-size="11" opacity="0.85">HPT &mdash; register 1126 &mdash; what the trend shows</text>
-  <polyline class="hpt" pathLength="1000" points="52,136 113,136 115,50 117,136 259,136 261,50 263,136 344,136" fill="none" stroke="#ff6b00" stroke-width="2.5" stroke-linejoin="round"/>
-  <text x="122" y="62" font-size="11" fill="#ff6b00" font-weight="bold">one poll in 75</text>
-  <text x="122" y="75" font-size="11" fill="#ff6b00">catches the truth</text>
+  <text x="52" y="38" font-size="11" opacity="0.85">HPT &mdash; register 1126 &mdash; what the trend shows</text>
+  <polyline class="hpt" pathLength="1400" points="52,136 104,136 106,93 108,136 108,136 110,93 112,136 164,136 166,71 168,136 200,136 202,60 204,136 220,136 222,57 224,136 314,136 316,50 318,136 344,136" fill="none" stroke="#ff6b00" stroke-width="2.5" stroke-linejoin="round"/>
+  <text x="114" y="88" font-size="11" fill="#ff6b00" font-weight="bold">131</text>
+  <text x="172" y="66" font-size="11" fill="#ff6b00" font-weight="bold">195</text>
+  <text x="228" y="52" font-size="11" fill="#ff6b00" font-weight="bold">234</text>
+  <text x="322" y="46" font-size="11" fill="#ff6b00" font-weight="bold">254</text>
   <text x="348" y="140" text-anchor="end" font-size="11" opacity="0.85">10</text>
 
-  <text x="52" y="156" font-size="11" opacity="0.85">boSen &mdash; register 1134 &mdash; the blow-out flag</text>
-  <polyline class="bo" pathLength="1000" points="52,188 304,188 304,164 344,164" fill="none" stroke="currentColor" stroke-width="2.5" stroke-opacity="0.85"/>
-  <text class="alm" x="344" y="160" text-anchor="end" font-size="11" font-weight="bold" fill="#ff6b00">alarm at 181 s</text>
+  <text x="52" y="158" font-size="11" opacity="0.85">boSen &mdash; register 1134 &mdash; the blow-out flag</text>
+  <polyline class="bo" pathLength="1000" points="52,190 190,190 190,166 344,166" fill="none" stroke="currentColor" stroke-width="2.5" stroke-opacity="0.85"/>
+  <text class="alm" x="344" y="162" text-anchor="end" font-size="11" font-weight="bold" fill="#ff6b00">alarm at 156 s</text>
 
-  <line x1="52" y1="196" x2="344" y2="196" stroke="currentColor" stroke-opacity="0.6"/>
-  <g class="head"><line x1="52" y1="196" x2="52" y2="206" stroke="currentColor" stroke-width="2"/></g>
+  <line x1="52" y1="198" x2="344" y2="198" stroke="currentColor" stroke-opacity="0.6"/>
+  <g class="head"><line x1="52" y1="198" x2="52" y2="208" stroke="currentColor" stroke-width="2"/></g>
   <g font-size="11" opacity="0.8">
-    <text x="52" y="218" text-anchor="middle">0 s</text>
-    <text x="191" y="218" text-anchor="middle">100</text>
-    <text x="330" y="218" text-anchor="middle">200</text>
+    <text x="52" y="220" text-anchor="middle">0 s</text>
+    <text x="185" y="220" text-anchor="middle">150</text>
+    <text x="318" y="220" text-anchor="middle">300</text>
   </g>
-  <text x="8" y="232" font-size="11" opacity="0.85">Same chart. Different registers. Only one is lying.</text>
+  <text x="8" y="236" font-size="11" opacity="0.85">The spikes climb. That is the tank, seen through the gaps.</text>
 </svg>
-<figcaption>Measured on this stack, starting from the plant&rsquo;s own resting band rather than a pre-charged tank: it takes about three minutes of flooding for the pressure to climb from the 60-to-90 band to the relief valve, and <code>boSen</code> went high at 181 s. Until then the operator sees nothing wrong at all. And the HPT trend is not quite the flat line it looks like &mdash; <code>hwio</code> puts the true pressure back every 20.7 ms and the next forged write buries it within about a millisecond, so a poll occasionally lands in that gap. Two of 150 polls at FUXA&rsquo;s one-per-second rate came back with the real value, 236 and 242. A single-sample spike on a trend reads as noise, which is exactly what it is not.</figcaption>
+<figcaption>One run, every number from it. Flooding register 1126 at about 830 writes a second from the plant&rsquo;s own resting band: <code>boSen</code> went high at 156 s, and six of 330 polls at FUXA&rsquo;s one-per-second rate came back with the real pressure instead of 10 &mdash; 131 and 133 within the first minute, then 195, 226, 234 and 254. <code>hwio</code> puts the true value back every 20.7 ms and the next forged write buries it about a millisecond later, so a poll occasionally lands in the gap; how often is a race, and six events is too few to quote a rate from. What matters is the shape: the spikes rise, because what escapes is the real pressure and the real pressure is climbing. A single sample out of line reads as noise. On this trend it is the only measurement on the screen.</figcaption>
 </figure>
 
-Why does the flag survive when the pressure does not? Because `hwio` never reads the pressure back. Its loop reads the four coils and nothing else, and then writes five register blocks; the true pressure lives as a local variable inside the plant model and reaches Modbus only on the way out. Flooding 1126 corrupts what the PLC and the HMI *see*; it cannot reach the number the model is computing from, and `boSen` is written from that number. The attacker owns the copy, not the original.
+Why does the flag survive when the pressure does not? Because `hwio` never reads the pressure back. Its loop reads the four coils and nothing else, and then writes five register blocks; the true pressure lives as a local variable inside the plant model and reaches Modbus only on the way out. Flooding 1126 cannot *write* the model's variable &mdash; but it drives it. The PLC reads the forged 10, latches the compressor on and shuts the system valve; `hwio` reads those four coils back, and the tank climbs for real. So the attacker owns what everyone reads and controls what actually happens, and the one thing out of reach is the model's own arithmetic. `boSen` is computed from that arithmetic, which is why the flag stays honest while the trend does not.
 
 That is the general defensive shape: **a value and its corroboration should not come down the same path.** Here they very nearly do &mdash; `HPT` and `boSen` are both holding registers from the same PLC, and FUXA fetches them in a single eleven-register response, so they arrive in the same frame. What separates them is only that one of them is a copy of something the attacker cannot reach. Real corroboration means a different sensor, a different protocol, or a different network. The *Detect Modbus Flooding* module takes the other route again: it does not compare values at all, it watches the wire for the flood itself.
 
@@ -142,34 +155,34 @@ One practical trap, and it is the reason a learner's first Modbus client usually
 
 <figure>
 <style>
-.article figure svg.hm-a {min-width: 400px;}
+.article figure svg.hm-a {min-width: 360px;}
 .hm-a {--a: 9s;}
 /* The base state is the settled one: the tag number has arrived and become
    the register number. Without it both texts sat at x=304 with opacity 1 and
    printed over each other -- "register 112" with a 6 and a 7 in the same
    place -- in the reduced-motion frame and with animations simply off. */
-.hm-a .slide {opacity:0; transform: translateX(-96px);
+.hm-a .slide {opacity:0; transform: translateX(-86px);
               animation: ha-slide var(--a) cubic-bezier(.4,0,.2,1) infinite;}
 .hm-a .off   {opacity:1; animation: ha-off var(--a) steps(1,end) infinite;}
 @keyframes ha-slide {0%,22%{opacity:1; transform:translateX(0)}
-                     43.9%{opacity:1; transform:translateX(-96px)}
-                     44%,100%{opacity:0; transform:translateX(-96px)}}
+                     43.9%{opacity:1; transform:translateX(-86px)}
+                     44%,100%{opacity:0; transform:translateX(-86px)}}
 @keyframes ha-off   {0%,43.9%{opacity:0} 44%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) { .hm-a * {animation:none !important;} }
 </style>
-<svg class="hm-a" viewBox="0 0 400 176" role="img"
+<svg class="hm-a" viewBox="0 0 360 176" role="img"
      aria-label="FUXA lists the HPT tag at address 1127 and the GST tag at 1125. Those are one-based Modbus addresses. On the wire the same words are holding registers 1126 and 1124, which is what the PLC program declares as percent MW 102 and percent MW 100. The tag address slides down by one to become the register address. Every coil is offset the same way: FUXA's compressor at 2 is coil 1.">
   <text x="8" y="18" font-size="12" font-weight="bold">The same word, counted twice</text>
-  <rect x="8" y="34" width="176" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-  <text x="96" y="52" text-anchor="middle" font-size="11" opacity="0.85">FUXA tag table</text>
-  <text x="96" y="70" text-anchor="middle" font-size="13" font-weight="bold">HPT &rarr; address 1127</text>
+  <rect x="8" y="34" width="158" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="87" y="52" text-anchor="middle" font-size="11" opacity="0.85">FUXA tag table</text>
+  <text x="87" y="70" text-anchor="middle" font-size="13" font-weight="bold">HPT &rarr; address 1127</text>
 
-  <rect x="216" y="34" width="176" height="44" rx="5" fill="#ff6b00"/>
-  <text x="304" y="52" text-anchor="middle" font-size="11" style="fill:#1a1a1a">on the wire</text>
-  <text class="slide" x="304" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1127</text>
-  <text class="off" x="304" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1126</text>
+  <rect x="194" y="34" width="158" height="44" rx="5" fill="#ff6b00"/>
+  <text x="273" y="52" text-anchor="middle" font-size="11" style="fill:#1a1a1a">on the wire</text>
+  <text class="slide" x="273" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1127</text>
+  <text class="off" x="273" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1126</text>
 
-  <text class="off" x="200" y="100" text-anchor="middle" font-size="12" fill="#ff6b00" font-weight="bold">&minus;1</text>
+  <text class="off" x="180" y="100" text-anchor="middle" font-size="12" fill="#ff6b00" font-weight="bold">&minus;1</text>
   <text x="8" y="128" font-size="12" opacity="0.9">FUXA counts from one. The protocol counts from zero.</text>
   <text x="8" y="146" font-size="12" opacity="0.9">&#37;MW102 &rarr; 1024 + 102 = 1126, listed as 1127.</text>
   <text x="8" y="168" font-size="11" opacity="0.85">Coils too: compressor at 2 is coil 1.</text>
