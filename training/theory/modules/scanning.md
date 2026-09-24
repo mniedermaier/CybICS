@@ -8,7 +8,7 @@ Reconnaissance comes first. A scan maps which hosts answer and which industrial 
 
 <figure>
 <style>
-.article figure svg.sc-r {min-width: 340px;}
+.article figure svg.sc-r {min-width: 368px;}
 .sc-r {--r: 14s;}
 /* One response, two ports, two verdicts. Both verdicts stay once reached, so
    the figure ends holding the comparison rather than alternating between its
@@ -58,7 +58,7 @@ The other half of this module is that the scan is meant to be caught. Rule 1 in 
 
 <figure>
 <style>
-.article figure svg.sc-d {min-width: 340px;}
+.article figure svg.sc-d {min-width: 368px;}
 .sc-d {--d: 14s;}
 /* The template retints text, strokes and path fills but not a rect, and these
    bars are the data rather than a backdrop: #ff6b00 on white is 2.86:1, and

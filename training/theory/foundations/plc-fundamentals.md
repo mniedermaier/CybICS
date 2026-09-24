@@ -13,8 +13,8 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
    max-width and the figure scrolls instead of shrinking. The selector must be
    at least as specific as the template's, or it loses without a warning. */
 .article figure {overflow-x: auto;}
-.article figure svg.pl-c {min-width: 440px;}
-.article figure svg.pl-t, .article figure svg.pl-r {min-width: 520px;}
+.article figure svg.pl-c {min-width: 468px;}
+.article figure svg.pl-t, .article figure svg.pl-r {min-width: 548px;}
 /* The base state is the end of the story, not a blank rung. A browser that
    simply drops animations -- a print, a screenshot, a preview -- used to get
    a ladder with every contact open, no caption and a rail ending in nothing.

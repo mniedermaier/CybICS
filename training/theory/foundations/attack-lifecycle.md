@@ -8,7 +8,7 @@ The usual moral is that the stages get louder as they go, so a defender who watc
 
 <figure>
 <style>
-.article figure svg.al-w {min-width: 400px;}
+.article figure svg.al-w {min-width: 428px;}
 .al-w {--w: 20s;}
 /* One marker, five stages, and the alert each stage actually produces. The
    stage highlight and the alert row share the clock, because the point is
@@ -94,7 +94,7 @@ That gap is worth more than the embarrassment. It is the clearest example on the
 
 <figure>
 <style>
-.article figure svg.al-f {min-width: 400px;}
+.article figure svg.al-f {min-width: 428px;}
 .al-f {--f: 10s; --pkt-ink:#141414;}
 /* The grey packet is filled with currentColor, so its fill flips with the
    theme while a fixed ink on it would not: #141414 on the light-mode fill

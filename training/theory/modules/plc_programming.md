@@ -8,7 +8,7 @@ Most CTF flags are a string you find. This one is not: `check_plc_program.py` as
 
 <figure>
 <style>
-.article figure svg.pg-f {min-width: 360px;}
+.article figure svg.pg-f {min-width: 388px;}
 .pg-f {--f: 18s;}
 /* Three states, because the check is a conjunction and the interesting frame
    is the one in the middle: a new file that was never started. A two-state
@@ -66,7 +66,7 @@ There is a trap in the order, and it is worth meeting on a page rather than in a
 
 <figure>
 <style>
-.article figure svg.pg-o {min-width: 360px;}
+.article figure svg.pg-o {min-width: 388px;}
 .pg-o {--o: 16s;}
 /* One marker walks two orderings of the same two tasks. The rest state shows
    both rows and both verdicts, because the figure's whole content is the

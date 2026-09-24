@@ -10,7 +10,7 @@ The *Network Segmentation* challenge asks you to stop the attack machine reachin
 
 <figure>
 <style>
-.article figure svg.dh-p {min-width: 360px;}
+.article figure svg.dh-p {min-width: 388px;}
 .dh-p {--p: 18s;}
 /* The verdicts accumulate rather than replacing each other, so the figure
    ends on the whole comparison -- which is also what a reader gets when the
@@ -77,7 +77,7 @@ The challenge's *Steps* do not have this problem: they tell you to write `iptabl
 
 <figure>
 <style>
-.article figure svg.dh-v {min-width: 360px;}
+.article figure svg.dh-v {min-width: 388px;}
 .dh-v {--v: 14s;}
 /* The scanner walks the rule table line by line and stops on the first line
    that satisfies it. Running it over two different tables, one after the

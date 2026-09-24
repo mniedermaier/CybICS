@@ -173,12 +173,17 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 <style>
 /* `.article figure svg` is capped at max-width:100%, so on a 390 px screen a
    520-unit viewBox rendered its 13-unit labels at 7.9 CSS px. min-width beats
-   max-width, so each figure keeps one viewBox unit per pixel and scrolls
+   max-width, so each figure keeps one viewBox unit per CSS pixel and scrolls
    inside its own figure instead of shrinking below readability. The selector
    has to be at least as specific as the template's `.article figure svg`: a
    bare `svg.plt` is one step weaker and loses, silently. */
 .article figure svg.pri, .article figure svg.pri-static,
-.article figure svg.pur {min-width: 520px;}
+.article figure svg.pur {min-width: 548px;}
+/* 460 + 28 would be one unit per CSS pixel, but this figure is wide enough
+   that on a phone the extra 88 px all become horizontal scroll -- and its
+   right-hand column carries the thresholds and the valve state. 400 renders
+   its labels at 0.81 of their size and keeps them on screen, which is the
+   better half of a bad trade for this one figure. */
 .article figure svg.plt {min-width: 400px;}
 .plt {--t: 20s; --on:#ff6b00; --on-ink:#1a1a1a;}
 html.light-mode .plt {--on:#b34700; --on-ink:#ffffff;}

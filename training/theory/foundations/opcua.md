@@ -14,7 +14,7 @@ A client does not simply connect and read. It opens a **secure channel**, create
    identity cycles through three over 24 s. 24 is an exact multiple of 8, so a
    run never starts mid-sequence. */
 .article figure {overflow-x: auto;}
-.article figure svg.ua-h {min-width: 400px;}
+.article figure svg.ua-h {min-width: 428px;}
 .ua-h {--m: 8s; --i: 24s;}
 /* The base state is a complete run, not an empty diagram: a browser that drops
    animations (a print, a preview, a screenshot) gets the middle case, which is
@@ -113,7 +113,7 @@ The obvious conclusion is that a `None` channel hands a sniffer everything. Capt
 
 <figure>
 <style>
-.article figure svg.ua-w {min-width: 400px;}
+.article figure svg.ua-w {min-width: 428px;}
 .ua-w {--w: 12s;}
 /* The playhead sweeps the four fields of the identity token in turn; the
    read-out underneath says what a sniffer gets from the field it is over. */
@@ -180,7 +180,7 @@ The user-tier flag is an ordinary variable; a `User` session reads it directly. 
 
 <figure>
 <style>
-.article figure svg.ua-f {min-width: 360px;}
+.article figure svg.ua-f {min-width: 388px;}
 .ua-f {--f: 14s;}
 .ua-f .sweep {transform-origin: 52px 74px; animation: uf-sweep 2s linear infinite;}
 /* Base state shows the accepted write, the trigger at 1 and the flag still

@@ -10,7 +10,7 @@ What it gets is a copy, and the copy is cut short.
 
 <figure>
 <style>
-.article figure svg.dm-s {min-width: 400px;}
+.article figure svg.dm-s {min-width: 428px;}
 .dm-s {--s: 11s;}
 /* The frame stays put; what moves is the capture, taking its fixed-length
    bite and stopping. Sliding the frame in from off-canvas would have put half
@@ -61,7 +61,7 @@ The dispatch is an `if`/`elif` chain on the destination port. That is not the sa
 
 <figure>
 <style>
-.article figure svg.dm-d {min-width: 400px;}
+.article figure svg.dm-d {min-width: 428px;}
 .dm-d {--d: 16s;}
 /* Five beats: four ports that each take a branch, and then one that matches
    nothing and drops out of the bottom. The fifth is the frame the still
@@ -129,7 +129,7 @@ Every rate rule carries a sliding window &mdash; how many events in how long &md
 
 <figure>
 <style>
-.article figure svg.dm-c {min-width: 400px;}
+.article figure svg.dm-c {min-width: 428px;}
 .dm-c {--c: 15s;}
 /* Writes arrive at a steady rate; the window count climbs to ten and fires;
    the cooldown then swallows everything for thirty plant-seconds while the
