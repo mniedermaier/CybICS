@@ -32,15 +32,19 @@ html.light-mode .pl-c .dot {fill:#b34700;}
 .pl-c .car2 {opacity:1;}
 .pl-c .ph1,.pl-c .ph3 {stroke-width:0;}
 .pl-c .ph2 {stroke-width:3;}
-.pl-c .dot {transform: translate(65.8px,114px);}
+.pl-c .dot {transform: translate(-65.8px,114px);}
 .pl-c .car1{animation: c-p1t var(--c) steps(1,end) infinite;}
 .pl-c .car2{animation: c-p2t var(--c) steps(1,end) infinite;}
 .pl-c .car3{animation: c-p3t var(--c) steps(1,end) infinite;}
 .pl-c .atk {opacity:0; animation: c-atk var(--c) steps(1,end) infinite;}
 .pl-c .gone{opacity:1; animation: c-gone var(--c) steps(1,end) infinite;}
+/* The coil's value was never drawn, so "the attacker's value is gone" was
+   asserted in text three times and never shown. It is a lamp now: dark while
+   the forged write stands, lit again the moment phase 2 recomputes it. */
+.pl-c .lamp{fill-opacity:1; animation: c-lamp var(--c) steps(1,end) infinite;}
 .pl-c .ph2 {animation: c-p2 var(--c) steps(1,end) infinite;}
 .pl-c .ph3 {animation: c-p3 var(--c) steps(1,end) infinite;}
-@keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(38px,10.2px)} 16.67%{transform:translate(65.8px,38px)} 25%{transform:translate(76px,76px)} 33.33%{transform:translate(65.8px,114px)} 41.67%{transform:translate(38px,141.8px)} 50%{transform:translate(0px,152px)} 58.33%{transform:translate(-38px,141.8px)} 66.67%{transform:translate(-65.8px,114px)} 75%{transform:translate(-76px,76px)} 83.33%{transform:translate(-65.8px,38px)} 91.67%{transform:translate(-38px,10.2px)} 100%{transform:translate(-0px,0px)}}
+@keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(-38px,10.2px)} 16.67%{transform:translate(-65.8px,38px)} 25%{transform:translate(-76px,76px)} 33.33%{transform:translate(-65.8px,114px)} 41.67%{transform:translate(-38px,141.8px)} 50%{transform:translate(0px,152px)} 58.33%{transform:translate(38px,141.8px)} 66.67%{transform:translate(65.8px,114px)} 75%{transform:translate(76px,76px)} 83.33%{transform:translate(65.8px,38px)} 91.67%{transform:translate(38px,10.2px)} 100%{transform:translate(0px,0px)}}
 /* The active phase is marked with an outline, not by dimming the others: an
    orange panel at 0.55 opacity puts its dark label at 2.57:1. */
 @keyframes c-p1{0%,16.7%{stroke-width:3} 16.71%,83.2%{stroke-width:0} 83.3%,100%{stroke-width:3}}
@@ -49,15 +53,16 @@ html.light-mode .pl-c .dot {fill:#b34700;}
 @keyframes c-p1t{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-p2t{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @keyframes c-p3t{0%,50%{opacity:0} 50.01%,83.2%{opacity:1} 83.3%,100%{opacity:0}}
-/* The write cannot land inside phase 2. main.cpp:184 takes `bufferLock`,
-   runs `config_run__` at :205 and releases at :207; modbus.cpp:542-547 takes
-   the same mutex, so a coil write is serialised to before or after the program,
-   never alongside it. It lands in the gap at the end of a scan and survives
-   phase 1, which is why `c-atk` wraps the 100%/0% boundary. And nothing
-   "overwrites" it in phase 3: the program's own assignment in `cybICS.st:62-66`
-   recomputes the coil, inside phase 2. */
+/* main.cpp:184 takes `bufferLock`, runs `config_run__` at :205 and releases
+   at :207; blank.cpp's updateBuffersIn and updateBuffersOut each take the same
+   mutex around their own bodies; modbus.cpp:542-547 takes it too. Every phase
+   holds it, so the only open window is the sleep between scans -- which is why
+   `c-atk` wraps the 100%/0% boundary. And nothing "overwrites" the value in
+   phase 3: the program's own assignment in `cybICS.st:62-66` recomputes the
+   coil, inside phase 2. */
 @keyframes c-atk{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-gone{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
+@keyframes c-lamp{0%,16.7%{fill-opacity:0.15} 16.71%,83.2%{fill-opacity:1} 83.3%,100%{fill-opacity:0.15}}
 @media (prefers-reduced-motion: reduce){
   /* Everything this used to declare is now the base state, so only the
      switch-off is left. The frame it lands on is phase 2 recomputing the
@@ -73,23 +78,25 @@ html.light-mode .pl-c .dot {fill:#b34700;}
     </marker>
   </defs>
   <circle cx="220" cy="140" r="76" fill="none" stroke="currentColor" stroke-opacity="0.65" stroke-width="2"/>
-  <path d="M 239.7 66.6 A76 76 0 0 1 293.4 159.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
-  <path d="M 273.7 193.7 A76 76 0 0 1 166.3 193.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
-  <path d="M 146.6 159.7 A76 76 0 0 1 200.3 66.6" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
+  <path d="M 200.3 66.6 A76 76 0 0 0 146.6 159.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
+  <path d="M 166.3 193.7 A76 76 0 0 0 273.7 193.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
+  <path d="M 293.4 159.7 A76 76 0 0 0 239.7 66.6" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
 
   <g font-size="12" text-anchor="middle">
     <rect class="ph1" x="152" y="10" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
     <text x="220" y="31" style="fill:#1a1a1a" font-weight="bold">1. Read inputs</text>
     <text x="220" y="46" style="fill:#1a1a1a" font-size="11">sensors &rarr; memory</text>
-    <rect class="ph2" x="300" y="176" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
-    <text x="368" y="197" style="fill:#1a1a1a" font-weight="bold">2. Run program</text>
-    <text x="368" y="212" style="fill:#1a1a1a" font-size="11">logic on the values</text>
-    <rect class="ph3" x="4" y="176" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
-    <text x="72" y="197" style="fill:#1a1a1a" font-weight="bold">3. Write outputs</text>
-    <text x="72" y="212" style="fill:#1a1a1a" font-size="11">memory &rarr; actuators</text>
+    <rect class="ph2" x="4" y="176" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
+    <text x="72" y="197" style="fill:#1a1a1a" font-weight="bold">2. Run program</text>
+    <text x="72" y="212" style="fill:#1a1a1a" font-size="11">logic on the values</text>
+    <rect class="ph3" x="300" y="176" width="136" height="44" rx="6" fill="#ff6b00" stroke="currentColor" stroke-width="0"/>
+    <text x="368" y="197" style="fill:#1a1a1a" font-weight="bold">3. Write outputs</text>
+    <text x="368" y="212" style="fill:#1a1a1a" font-size="11">memory &rarr; actuators</text>
   </g>
 
   <circle class="dot" cx="220" cy="64" r="7" fill="#ff6b00" stroke="#1a1a1a" stroke-width="1"/>
+  <circle class="lamp" cx="192" cy="108" r="8" fill="#ff6b00" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="208" y="113" font-size="12" opacity="0.85">coil 1</text>
   <g text-anchor="middle" font-size="12">
     <text class="car1" x="220" y="136" fill="#ff6b00" font-weight="bold">hpt = 75, put there by hwio</text>
     <text class="car2" x="220" y="136" fill="#ff6b00" font-weight="bold">decides: keep it on</text>
@@ -101,7 +108,7 @@ html.light-mode .pl-c .dot {fill:#b34700;}
     <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 2 recomputes the coil, here</text>
   </g>
 </svg>
-<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land in the gap between two scans, survive phase 1 untouched, and cease to exist the moment phase 2 recomputes the coil from the program &mdash; that is the whole of the next section in one turn of the ring. What it cannot do is land inside phase 2: OpenPLC holds one mutex across the whole program phase, and a Modbus write waits for it. Phase 1 runs outside that mutex, so a write can arrive there too &mdash; it simply makes no difference, because phase 2 is still to come.</figcaption>
+<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land in the gap between two scans, survive phase 1 untouched, and cease to exist the moment phase 2 recomputes the coil from the program &mdash; that is the whole of the next section in one turn of the ring. It cannot land anywhere else either, and that is stronger than it looks. Phase 1 takes <code>bufferLock</code> for its whole body, the scan takes it again across the input copy, the program and the output copy, and phase 3 takes it a third time. A Modbus write waits for whichever hold is current. The one window genuinely open is the sleep between scans &mdash; which is exactly where the ring puts it.</figcaption>
 </figure>
 
 Why a loop at all, rather than reacting to events? Because a machine that can crush someone has to have a worst case you can state. A fixed scan gives one: every input is acted on within one period, the program always sees a consistent snapshot rather than values shifting under it mid-calculation, and there is no scheduler deciding what runs when. Determinism is bought with the loop.
@@ -112,7 +119,7 @@ Each phase does something the next one depends on, and they never overlap:
 2. **The whole program runs on that frozen snapshot.** Two lines that both read `hpt` are guaranteed to see the same `hpt`.
 3. **Only now do the outputs reach the plant, all at once.** An output your program set on line 10 does not physically move anything until the scan ends.
 
-The second point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies. Note it is phase 2 that does this, not phase 3. Phase 3 only carries the already-computed value outward, and in the Docker testbed it does not even do that: the container runs the `blank_linux` driver, which is `software/OpenPLC/OpenPLC_v3/webserver/core/hardware_layers/blank.cpp`, and whose `updateBuffersOut()` is a lock, a commented-out block of I/O and an unlock. The plant is driven by `hwio` over Modbus instead.
+The second point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies. Note it is phase 2 that does this, not phase 3. Phase 3 only carries the already-computed value outward, and in the Docker testbed it does not even do that: the container runs the `blank_linux` driver, which lives in `OpenPLC_v3/webserver/core/` as `hardware_layers/blank.cpp`, and whose `updateBuffersOut()` is a lock, a commented-out block of I/O and an unlock. The plant is driven by `hwio` over Modbus instead.
 
 CybICS bends phase 1, and the way it bends it is the reason this page has a second half. `cybICS.st` declares no `%I` address of any kind: every located variable in it is a `%QX` output or a `%MW` memory word. `hpt` is not a sensor the PLC samples, it is a memory word that `hwio` pushes in from outside over Modbus. Phase 1 has nothing local to read. That is exactly why a value the program treats as a pressure reading is something a stranger on the network can set.
 
@@ -127,7 +134,7 @@ Both values snap back, but for opposite reasons and on different clocks &mdash; 
 
 <figure>
 <style>
-.pl-t {--t: 14s;}
+.pl-t {--t: 8s;}
 html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
 /* The two bars end where their owner's next tick falls. The 20 ms side is
    the nominal period: hwio's loop also does a read and five writes before
@@ -171,7 +178,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
   <text x="10" y="52" font-size="13" font-weight="bold">coil 1</text>
   <text x="10" y="66" font-size="13" opacity="0.75">the scan</text>
   <text x="10" y="79" font-size="13" opacity="0.75">owns it</text>
-  <line x1="90" y1="40" x2="500" y2="40" stroke="currentColor" stroke-opacity="0.2"/>
+  <line x1="90" y1="40" x2="500" y2="40" stroke="currentColor" stroke-opacity="0.45"/>
   <g stroke="currentColor" stroke-opacity="0.65">
     <line x1="90"    y1="34" x2="90"    y2="74"/><line x1="192.5" y1="34" x2="192.5" y2="74"/>
     <line x1="295"   y1="34" x2="295"   y2="74"/><line x1="397.5" y1="34" x2="397.5" y2="74"/>
@@ -184,7 +191,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
   <text x="10" y="122" font-size="13" font-weight="bold">reg 1126</text>
   <text x="10" y="136" font-size="13" opacity="0.75">hwio &ge;20 ms</text>
   <text x="10" y="149" font-size="13" opacity="0.75">owns it</text>
-  <line x1="90" y1="110" x2="500" y2="110" stroke="currentColor" stroke-opacity="0.2"/>
+  <line x1="90" y1="110" x2="500" y2="110" stroke="currentColor" stroke-opacity="0.45"/>
   <g stroke="currentColor" stroke-opacity="0.65">
     <line x1="90"  y1="104" x2="90"  y2="144"/><line x1="131" y1="104" x2="131" y2="144"/>
     <line x1="172" y1="104" x2="172" y2="144"/><line x1="213" y1="104" x2="213" y2="144"/>
@@ -199,7 +206,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
   <!-- the attacker's single write -->
   <g class="shot">
     <line x1="151.5" y1="26" x2="151.5" y2="160" stroke="#ff6b00" stroke-width="2" stroke-dasharray="4 3"/>
-    <text x="151.5" y="20" text-anchor="middle" font-size="13" fill="#ff6b00" font-weight="bold">one write, t = 30 ms</text>
+    <text x="90" y="20" font-size="13" fill="#ff6b00" font-weight="bold">one write, t = 30 ms</text>
   </g>
 
 </svg>
@@ -310,7 +317,7 @@ html.light-mode .pl-r {--w:#b34700;}
     <text class="rd3" x="26" y="204" fill="#ff6b00">HPT 95 &mdash; neither branch conducts, it stops</text>
   </g>
 </svg>
-<figcaption>One rung, two branches, one coil &mdash; which is what <code>cybICS.st</code> lines 47 to 53 say. The upper branch can only start the compressor while it is off; the lower one can only hold it while it is on. Between 60 and 90 neither condition changes, so the compressor stays as it is: that gap is the hysteresis, and the parallel junction is the part ladder shows better than the <code>IF/ELSIF</code> it compiles from. A separate rung at line 62 copies <code>compressorState</code> to the real output coil <code>compressor</code>. One liberty is taken here: a real editor draws every contact at the same width and highlights the conducting path instead. The gap that opens and closes above is a teaching device, not IEC 61131-3 notation.</figcaption>
+<figcaption>One rung, two branches, one coil &mdash; which is what <code>cybICS.st</code> lines 47 to 53 say. The upper branch can only start the compressor while it is off; the lower one can only hold it while it is on. Between 60 and 90 neither condition changes, so the compressor stays as it is: that gap is the hysteresis, and the parallel junction is the part ladder shows better than the <code>IF/ELSIF</code> it compiles from. A separate rung at line 62 copies <code>compressorState</code> to the real output coil <code>compressor</code>. One liberty is taken here: a real editor draws every contact at the same width and highlights the conducting path instead. The gap that opens and closes above is a teaching device, not IEC 61131-3 notation. And <code>gst &gt; 50</code>, which the ST repeats in both branches, is drawn once as a series contact before the junction &mdash; which is also why it never opens in any of the three readings.</figcaption>
 </figure>
 
 ## How the outside world reaches the PLC
