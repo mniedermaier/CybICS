@@ -1,5 +1,25 @@
 # Virtual Hardware I/O Simulator
 
+## File layout
+
+| File | |
+|---|---|
+| `hardwareAbstraction.py` | the service: plant model, Modbus bridge, UI wiring |
+| `static/plant3d.html` | the 3D plant scene -- HTML, CSS and Three.js |
+| `static/js/` | the vendored Three.js and OrbitControls |
+
+The scene used to sit inside `hardwareAbstraction.py` as a 2500-line string
+literal, which made the module 3606 lines and left an editor treating the whole
+scene as one opaque block. It is read once at import, so a missing asset fails
+at startup with a clear path rather than on the first page load.
+
+`physical_process_thread` stays in `hardwareAbstraction.py`. It mutates eleven
+module-level globals that the UI also reads, so moving it would mean
+introducing a state object and rewiring every reader -- a behavioural change
+rather than a move, and one worth doing on its own. It is the function
+`tests/test_plant_model_parity.py` parses and the one that must stay in step
+with `thread_physical` in `software/stm32/src/main.c`.
+
 ## Overview
 The virtual hardware I/O component (`hwio-virtual`) is a Python-based simulation of the CybICS physical process. It provides a software alternative to the physical STM32-based hardware, making it easy to run the complete CybICS training environment without physical hardware.
 

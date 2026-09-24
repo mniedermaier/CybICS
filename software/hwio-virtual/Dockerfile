@@ -17,5 +17,6 @@ COPY pics/CybICS_logo.png pics/CybICS_logo.png
 COPY pics/favicon.ico pics/favicon.ico
 COPY pics/pcb.png pics/pcb.png
 COPY static/js/*.js static/js/
+COPY static/plant3d.html static/
 
 CMD [ "python", "-u", "./hardwareAbstraction.py" ]

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Render one section of the CybICS scene on its own, at several parameter values.
 
-This is the tool that ends arguments.  The scene is 1800 lines of JavaScript in
-a Python string, and reasoning about a single material from that is how three
+This is the tool that ends arguments.  The scene is 2500 lines of JavaScript with
+no module boundaries, and reasoning about a single material from that is how three
 wrong diagnoses of an invisible tank fill happened in a row.  Rendering the
 subject alone, side by side at several values, answered it in one screenshot --
 and a two-by-two matrix then narrowed it to one material property.
 
-The section is lifted *verbatim* out of hardwareAbstraction.py by matching the
+The section is lifted *verbatim* out of static/plant3d.html by matching the
 comments already in the file, never copied.  A harness that holds its own copy
 of the code under test drifts from it, and then it lies.
 
@@ -31,7 +31,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-SOURCE = os.path.join(ROOT, "software/hwio-virtual/hardwareAbstraction.py")
+SOURCE = os.path.join(ROOT, "software/hwio-virtual/static/plant3d.html")
 THREE_JS = os.path.join(ROOT, "software/hwio-virtual/static/js/three.min.js")
 
 sys.path.insert(0, HERE)
@@ -106,7 +106,7 @@ PAGE = """<!doctype html>
               background: rgba(0,0,0,.6); border-radius: 3px; }
   .err { color: #ff6b6b; padding: 12px; white-space: pre-wrap; }
 </style>
-<h1>%(title)s <span>&mdash; lifted verbatim from hardwareAbstraction.py lines %(lines)s</span></h1>
+<h1>%(title)s <span>&mdash; lifted verbatim from plant3d.html lines %(lines)s</span></h1>
 <div id="grid"></div>
 <script src="three.min.js"></script>
 <script>
