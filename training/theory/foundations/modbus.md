@@ -1,6 +1,6 @@
 # Modbus TCP
 
-**Modbus** is the lingua franca of industrial automation. It was designed in 1979 for serial links and later wrapped in TCP/IP as **Modbus TCP** on port **502**. It is simple, open, and everywhere &mdash; and it has no authentication, no encryption, and no *cryptographic* integrity. (There is error detection: a CRC on serial lines, the TCP checksum here. It catches a corrupted frame, not a forged one.) Whoever can reach port 502 can read and write the controller.
+**Modbus** is the lingua franca of industrial automation. It was designed in 1979 for serial links and later wrapped in TCP/IP as **Modbus TCP** on port **502**. It is simple, open, and everywhere &mdash; and it has no authentication, no encryption, and no *cryptographic* integrity. (There is error detection: a CRC in RTU mode and an LRC in ASCII mode, the TCP checksum here. It catches a corrupted frame, not a forged one.) Whoever can reach port 502 can read and write the controller.
 
 That is not an oversight. In 1979 the "network" was a shielded cable running a few metres inside a locked cabinet. Physical access *was* the authentication. When that cable became Ethernet, and Ethernet reached the office LAN, the protocol did not notice. A secure variant does exist &mdash; Modbus/TCP Security, TLS on port 802, published in 2018 &mdash; and almost nobody deploys it, because the installed base is measured in decades and a controller from 2004 will not learn TLS.
 
@@ -26,10 +26,15 @@ A client (the "master") sends a request naming a **function code** and an addres
 /* A long cycle with most of it at rest: the motion makes its point and then
    leaves the reader alone with the paragraph, instead of looping tightly. */
 /* min-width beats the template's max-width, so each figure keeps its own
-   scale on a narrow screen and scrolls instead of shrinking to 6.7 px. */
-.article figure svg, .article table {min-width: 520px;}
-.article figure, .article table {overflow-x: auto;}
+   scale on a narrow screen and scrolls instead of shrinking to 6.7 px. It must
+   not go on a table: min-width there grows the scroll container itself rather
+   than its contents, which pushed the whole document to 544 px at a 390 px
+   viewport. Markdown tables reflow fine on their own. 548 rather than 520
+   because box-sizing is border-box and the svg carries 0.8rem of padding plus
+   a border, so 520 would render at 0.947 of a pixel per unit. */
+.article figure svg {min-width: 548px;}
 .mb-x {--mb-dur: 9s;}
+.mb-x .rm {opacity:0;}
 .mb-x .pkt {animation: mb-fly var(--mb-dur) linear infinite;}
 .mb-x .ack {animation: mb-back var(--mb-dur) linear infinite;}
 .mb-x .old {opacity:0; animation: mb-fade var(--mb-dur) steps(1,end) infinite;}
@@ -49,7 +54,11 @@ A client (the "master") sends a request naming a **function code** and an addres
 @media (prefers-reduced-motion: reduce) {
   .mb-x .pkt,.mb-x .ack,.mb-x .old,.mb-x .new,.mb-x .hs {animation: none;}
   .mb-x .pkt,.mb-x .ack {opacity:1;}
-  .mb-x .old {opacity:0;} .mb-x .new {opacity:1;} .mb-x .hs {opacity:1;}
+  /* .old and .new occupy the same spot, so the still cannot show both. It
+     gets its own label instead: a reader who never sees the animation still
+     learns what the write changed. */
+  .mb-x .old {opacity:0;} .mb-x .new {opacity:0;} .mb-x .hs {opacity:1;}
+  .mb-x .rm {opacity:1;}
 }
 </style>
 <svg class="mb-x" viewBox="0 0 520 136" role="img"
@@ -63,12 +72,13 @@ A client (the "master") sends a request naming a **function code** and an addres
   <text x="440" y="50" text-anchor="middle" font-size="12" font-weight="bold">PLC : 502</text>
   <text x="440" y="66" text-anchor="middle" font-size="11">reg 1126 =</text>
   <text class="old" x="440" y="80" text-anchor="middle" font-size="13" font-weight="bold">45</text>
-  <g class="new"><rect x="420" y="67" width="40" height="18" rx="3" fill="#ff6b00"/><text x="440" y="81" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">90</text></g>
+  <g class="new"><rect x="420" y="70" width="40" height="18" rx="3" fill="#ff6b00"/><text x="440" y="84" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">90</text></g>
+  <g class="rm"><rect x="406" y="70" width="68" height="18" rx="3" fill="#ff6b00"/><text x="440" y="84" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">45 &rarr; 90</text></g>
 
   <line x1="144" y1="46" x2="376" y2="46" stroke="currentColor" stroke-width="1"
-        stroke-dasharray="3 4" opacity="0.3"/>
+        stroke-dasharray="3 4" opacity="0.55"/>
   <line x1="144" y1="74" x2="376" y2="74" stroke="currentColor" stroke-width="1"
-        stroke-dasharray="3 4" opacity="0.3"/>
+        stroke-dasharray="3 4" opacity="0.55"/>
 
   <g class="pkt">
     <rect x="146" y="36" width="96" height="20" rx="3" fill="#ff6b00"/>
@@ -224,13 +234,13 @@ html.light-mode .mb-d {--hi:#b34700;}
   </text>
 
   <g font-size="13" text-anchor="middle">
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.45" class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
+    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
   </g>
 
   <g font-size="11" text-anchor="middle">
@@ -315,11 +325,11 @@ the Data field of that one frame is the whole challenge.</figcaption>
 
 ## What the IDS has to work with instead
 
-Here is the same write, sent twice: once by `hwio`, the bridge that is supposed to write the plant's registers, and once by the attack machine. Stacked and aligned, the Modbus frames are the same bytes. Only the IP header outside them differs.
+Here is the same write, sent twice: once by `hwio`, the bridge that is supposed to write the plant's registers, and once by the attack machine. Ten of the twelve Modbus bytes are identical. The two that differ are the transaction id, and they differ only because neither side has any reason to agree &mdash; captured on the bridge, `hwio` counts its up per request (`0a ed`, `0a ee`, and on), while an attacker picks whatever it likes, including `hwio`'s next one.
 
 <figure>
 <svg viewBox="0 0 520 146" role="img"
-     aria-label="Two identical Modbus frames stacked and aligned, one from hwio at 172.18.0.2 and one from the attack machine at 172.18.0.100. Every Modbus byte matches; only the source address in the IP header differs.">
+     aria-label="Two Modbus frames stacked and aligned, one from hwio at 172.18.0.2 and one from the attack machine at 172.18.0.100. Ten of the twelve bytes match exactly. The first two, the transaction id, differ: hwio counts its up per request while the attacker chose one freely. Nothing in the protocol or the rule checks either, so the attacker could have copied hwio's.">
   <text x="10" y="18" font-size="11" opacity="0.75">outside the Modbus frame</text>
   <text x="200" y="18" font-size="11" opacity="0.75">the Modbus frame itself</text>
 
@@ -328,7 +338,8 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
     <text x="20" y="43">src 172.18.0.2</text>
     <text x="20" y="57" opacity="0.75">hwio &mdash; the plant bridge</text>
     <rect x="194" y="28" width="316" height="34" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-    <text x="352" y="49" text-anchor="middle" font-family="monospace" font-size="12">00 01 00 00 00 06 01 06 04 66 00 5a</text>
+    <text x="226" y="49" font-family="monospace" font-size="12" fill="#ff6b00" font-weight="bold">0a ed</text>
+    <text x="269" y="49" font-family="monospace" font-size="12">00 00 00 06 01 06 04 66 00 5a</text>
   </g>
 
   <g font-size="11">
@@ -336,20 +347,19 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
     <text x="20" y="89" style="fill:#1a1a1a">src 172.18.0.100</text>
     <text x="20" y="103" style="fill:#1a1a1a">attack machine</text>
     <rect x="194" y="74" width="316" height="34" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-    <text x="352" y="95" text-anchor="middle" font-family="monospace" font-size="12">00 01 00 00 00 06 01 06 04 66 00 5a</text>
+    <text x="226" y="95" font-family="monospace" font-size="12" fill="#ff6b00" font-weight="bold">00 01</text>
+    <text x="269" y="95" font-family="monospace" font-size="12">00 00 00 06 01 06 04 66 00 5a</text>
   </g>
 
   <line x1="194" y1="116" x2="510" y2="116" stroke="#ff6b00" stroke-width="1" stroke-dasharray="4 4"/>
   <text x="352" y="132" text-anchor="middle" font-size="11" fill="#ff6b00" font-weight="bold">
-    byte for byte the same request
+    ten of twelve bytes identical &mdash; the rest need not be
   </text>
-  <line x1="10" y1="116" x2="186" y2="116" stroke="currentColor" stroke-opacity="0.4" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="10" y1="116" x2="186" y2="116" stroke="currentColor" stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4 4"/>
   <text x="98" y="132" text-anchor="middle" font-size="11" opacity="0.85">the only difference</text>
 
 </svg>
-<figcaption>A source address is identity you can forge, and that is the honest limit of rule 4's allowlist. Both frames write 0x5a (90) to register 0x0466 (1126). Even the transaction id is the attacker's to choose: <code>hwio</code> lets pymodbus count it up per request, and a forged frame simply picks one.
-comparing two things is what eyes do well when both are visible at once, and sliding them past
-each other in turn would make it harder, not clearer. Nothing but <code>hwio</code> has any business writing 1126 &mdash; which is not the same as nothing else being able to.</figcaption>
+<figcaption>A source address is identity you can forge, and that is the honest limit of the allowlist the IDS uses. Both frames write 0x5a (90) to register 0x0466 (1126), and both would be applied. The transaction id is the only field either side chooses freely &mdash; <code>hwio</code> lets pymodbus count it up, an attacker picks one, and neither the protocol nor any rule compares them. Nothing but <code>hwio</code> has any business writing 1126, which is not the same as nothing else being able to.</figcaption>
 </figure>
 
 So the IDS cannot ask Modbus who is writing. It asks the IP header, and then asks how often and what:
@@ -369,7 +379,15 @@ That rule 4 threshold is not a detail. Three writes five seconds apart stay unde
 - **8** diagnostics &mdash; specified for serial lines. OpenPLC does *not* implement it: `processModbusMessage()` falls through to `ERR_ILLEGAL_FUNCTION` and answers with exception 0x01
 - **43 (0x2B)** encapsulated transport / device identification &mdash; likewise refused
 
-Those last two are worth dwelling on. The PLC rejecting a function code does not make the attempt harmless or invisible: the *Fuzzing Modbus* challenge passes when the IDS's `modbus_diagnostic` rule fires, which happens because the **request crossed the wire**, not because anything replied. `check_fuzzing_attack.py` asks the IDS, not the PLC. Detection has to sit on the network precisely because a refusal at the endpoint leaves no trace the endpoint will tell you about.
+Those two are worth dwelling on. The PLC rejecting a function code does not make the attempt harmless or invisible: the *Fuzzing Modbus* challenge passes when the IDS's `modbus_diagnostic` rule fires, which happens because the **request crossed the wire**, not because anything replied. `check_fuzzing_attack.py` asks the IDS, not the PLC. Detection has to sit on the network precisely because a refusal at the endpoint leaves no trace the endpoint will tell you about.
+
+And there is a third group, which is the more uncomfortable one:
+
+- **0x41&ndash;0x45** OpenPLC's own additions &mdash; debug info, set trace, get trace, get list, program MD5
+
+These are not in the Modbus specification; OpenPLC invented them, and it answers them. Sent live to this stack, function code 0x08 came back as exception 0x01 and 0x41 came back as `00 05 00 00 00 02 01 41 00 00` &mdash; an answer. `debugSetTrace()` behind 0x43 calls `set_trace(varidx, flag, value)`, which forces an internal program variable, on the same unauthenticated port 502.
+
+The IDS watches `{0x08, 0x2B}` and nothing else. So this page's two examples are the two codes the controller refuses and the detector notices, and the five it accepts are five nobody is watching. That asymmetry is the argument of this section in one line: what gets detected is what somebody thought to write a rule for, and the rule was written for the specification rather than for this implementation.
 
 ## Security relevance
 
