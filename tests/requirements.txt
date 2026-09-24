@@ -6,3 +6,7 @@ asyncua==1.1.8
 requests==2.33.0
 python-dotenv==1.2.3
 grpcio-tools==1.76.0
+# tests/test_ctf_flags.py imports software/landing/modules/ctf_manager.py,
+# which pulls in markdown at module level. Pinned to the landing container's
+# version so the tests exercise what actually ships.
+markdown==3.9
