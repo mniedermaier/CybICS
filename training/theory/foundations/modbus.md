@@ -25,6 +25,10 @@ A client (the "master") sends a request naming a **function code** and an addres
 <style>
 /* A long cycle with most of it at rest: the motion makes its point and then
    leaves the reader alone with the paragraph, instead of looping tightly. */
+/* min-width beats the template's max-width, so each figure keeps its own
+   scale on a narrow screen and scrolls instead of shrinking to 6.7 px. */
+.article figure svg, .article table {min-width: 520px;}
+.article figure, .article table {overflow-x: auto;}
 .mb-x {--mb-dur: 9s;}
 .mb-x .pkt {animation: mb-fly var(--mb-dur) linear infinite;}
 .mb-x .ack {animation: mb-back var(--mb-dur) linear infinite;}
@@ -59,7 +63,7 @@ A client (the "master") sends a request naming a **function code** and an addres
   <text x="440" y="50" text-anchor="middle" font-size="12" font-weight="bold">PLC : 502</text>
   <text x="440" y="66" text-anchor="middle" font-size="11">reg 1126 =</text>
   <text class="old" x="440" y="80" text-anchor="middle" font-size="13" font-weight="bold">45</text>
-  <text class="new" x="440" y="80" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff6b00">90</text>
+  <g class="new"><rect x="420" y="67" width="40" height="18" rx="3" fill="#ff6b00"/><text x="440" y="81" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">90</text></g>
 
   <line x1="144" y1="46" x2="376" y2="46" stroke="currentColor" stroke-width="1"
         stroke-dasharray="3 4" opacity="0.3"/>
@@ -96,6 +100,8 @@ It also does not last. Register 1126 is the HPT pressure reading, and `hwio` wri
 
 ## The frame
 
+Note what CybICS does with that table. The pressure reading at 1126 is a *holding* register &mdash; read/write &mdash; not an input register. Nothing about Modbus required that choice, and the entire *Flood &amp; Overwrite* challenge lives in the space it opens: a sensor value an attacker is allowed to write.
+
 A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide whether the frame works.
 
 <figure>
@@ -106,13 +112,13 @@ A Modbus TCP message is a 7-byte **MBAP header** followed by the function code a
     <text x="50" y="22">2 B</text><text x="50" y="56">Transaction</text>
     <rect x="90" y="30" width="80" height="42" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.55"/>
     <text x="130" y="22">2 B</text><text x="130" y="56">Protocol</text>
-    <rect x="170" y="30" width="80" height="42" fill="#ff6b00" stroke="#ff6b00"/>
+    <rect x="170" y="30" width="80" height="42" fill="#ff6b00" stroke="#1a1a1a"/>
     <text x="210" y="22">2 B</text><text x="210" y="56" style="fill:#1a1a1a">Length</text>
     <rect x="250" y="30" width="40" height="42" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-opacity="0.55"/>
     <text x="270" y="22">1 B</text><text x="270" y="56">Unit</text>
-    <rect x="290" y="30" width="40" height="42" fill="#ff6b00" stroke="#ff6b00"/>
+    <rect x="290" y="30" width="40" height="42" fill="#ff6b00" stroke="#1a1a1a"/>
     <text x="310" y="22">1 B</text><text x="310" y="56" style="fill:#1a1a1a">Func</text>
-    <rect x="330" y="30" width="180" height="42" fill="#ff6b00" stroke="#ff6b00"/>
+    <rect x="330" y="30" width="180" height="42" fill="#ff6b00" stroke="#1a1a1a"/>
     <text x="420" y="22">n B</text><text x="420" y="56" style="fill:#1a1a1a">Data (address, values)</text>
   </g>
 
@@ -318,7 +324,7 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
   <text x="200" y="18" font-size="11" opacity="0.75">the Modbus frame itself</text>
 
   <g font-size="11">
-    <rect x="10" y="28" width="176" height="34" rx="4" fill="currentColor" opacity="0.2" stroke="currentColor"/>
+    <rect x="10" y="28" width="176" height="34" rx="4" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.7"/>
     <text x="20" y="43">src 172.18.0.2</text>
     <text x="20" y="57" opacity="0.75">hwio &mdash; the plant bridge</text>
     <rect x="194" y="28" width="316" height="34" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
