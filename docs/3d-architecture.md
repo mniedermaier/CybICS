@@ -3,8 +3,8 @@
 A map of the Three.js scene in the `hwio` container: what it is made of, what
 drives it, what it costs, and the traps that are specific to this one.
 
-Read this before changing the scene. It exists because the code is 1800 lines of
-JavaScript living inside a Python string, with no build step, no module
+Read this before changing the scene. It exists because the code is 2500 lines of
+JavaScript in one HTML file, with no build step, no module
 boundaries and no type checking — the structure is real, but nothing in the file
 announces it.
 
@@ -12,8 +12,8 @@ announces it.
 
 | | |
 |---|---|
-| Source | `software/hwio-virtual/hardwareAbstraction.py`, lines ~731–2534 |
-| Form | a JavaScript string passed to `ui.add_body_html()` / `ui.run_javascript()` |
+| Source | `software/hwio-virtual/static/plant3d.html` |
+| Form | read at import by `hardwareAbstraction.py` and passed to `ui.add_body_html()`; live updates go through `ui.run_javascript()` |
 | Served by | NiceGUI, `hwio` container, <http://127.0.0.1:8090/> |
 | Three.js | **r128**, vendored at `software/hwio-virtual/static/js/three.min.js` |
 | Rebuild | `docker compose -f .devcontainer/virtual/docker-compose.yml up -d --build hwio` |
