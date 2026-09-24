@@ -8,6 +8,18 @@ A PLC does not run like a normal program that starts, does work, and exits. It r
 
 <figure>
 <style>
+/* `.article figure svg` caps figures at max-width:100%, so on a 390 px screen
+   a 520-unit viewBox drew its 13-unit labels at 7.7 CSS px. min-width beats
+   max-width and the figure scrolls instead of shrinking. The selector must be
+   at least as specific as the template's, or it loses without a warning. */
+.article figure {overflow-x: auto;}
+.article figure svg.pl-c {min-width: 440px;}
+.article figure svg.pl-t, .article figure svg.pl-r {min-width: 520px;}
+/* The base state is the end of the story, not a blank rung. A browser that
+   simply drops animations -- a print, a screenshot, a preview -- used to get
+   a ladder with every contact open, no caption and a rail ending in nothing.
+   The animations override these while they run; the reduced-motion blocks
+   below now only have to switch them off. */
 .pl-c {--c: 6s;}
 html.light-mode .pl-c .dot {fill:#b34700;}
 /* The marker is moved with transform:translate along the ring that is actually
@@ -16,12 +28,16 @@ html.light-mode .pl-c .dot {fill:#b34700;}
    off-canvas for most of every loop. */
 .pl-c .dot {animation: c-run var(--c) linear infinite;}
 .pl-c .ph1 {animation: c-p1 var(--c) steps(1,end) infinite;}
-.pl-c .car1,.pl-c .car2,.pl-c .car3 {opacity:0;}
+.pl-c .car1,.pl-c .car3 {opacity:0;}
+.pl-c .car2 {opacity:1;}
+.pl-c .ph1,.pl-c .ph3 {stroke-width:0;}
+.pl-c .ph2 {stroke-width:3;}
+.pl-c .dot {transform: translate(65.8px,114px);}
 .pl-c .car1{animation: c-p1t var(--c) steps(1,end) infinite;}
 .pl-c .car2{animation: c-p2t var(--c) steps(1,end) infinite;}
 .pl-c .car3{animation: c-p3t var(--c) steps(1,end) infinite;}
 .pl-c .atk {opacity:0; animation: c-atk var(--c) steps(1,end) infinite;}
-.pl-c .gone{opacity:0; animation: c-gone var(--c) steps(1,end) infinite;}
+.pl-c .gone{opacity:1; animation: c-gone var(--c) steps(1,end) infinite;}
 .pl-c .ph2 {animation: c-p2 var(--c) steps(1,end) infinite;}
 .pl-c .ph3 {animation: c-p3 var(--c) steps(1,end) infinite;}
 @keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(38px,10.2px)} 16.67%{transform:translate(65.8px,38px)} 25%{transform:translate(76px,76px)} 33.33%{transform:translate(65.8px,114px)} 41.67%{transform:translate(38px,141.8px)} 50%{transform:translate(0px,152px)} 58.33%{transform:translate(-38px,141.8px)} 66.67%{transform:translate(-65.8px,114px)} 75%{transform:translate(-76px,76px)} 83.33%{transform:translate(-65.8px,38px)} 91.67%{transform:translate(-38px,10.2px)} 100%{transform:translate(-0px,0px)}}
@@ -33,18 +49,20 @@ html.light-mode .pl-c .dot {fill:#b34700;}
 @keyframes c-p1t{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-p2t{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @keyframes c-p3t{0%,50%{opacity:0} 50.01%,83.2%{opacity:1} 83.3%,100%{opacity:0}}
-@keyframes c-atk{0%,16.7%{opacity:0} 16.71%,66%{opacity:1} 66.01%,100%{opacity:0}}
-@keyframes c-gone{0%,66.9%{opacity:0} 67%,83%{opacity:1} 83.01%,100%{opacity:0}}
+/* The write cannot land inside phase 2. main.cpp:184 takes `bufferLock`,
+   runs `config_run__` at :205 and releases at :207; modbus.cpp:542-547 takes
+   the same mutex, so a coil write is serialised to before or after the program,
+   never alongside it. It lands in the gap at the end of a scan and survives
+   phase 1, which is why `c-atk` wraps the 100%/0% boundary. And nothing
+   "overwrites" it in phase 3: the program's own assignment in `cybICS.st:62-66`
+   recomputes the coil, inside phase 2. */
+@keyframes c-atk{0%,16.7%{opacity:1} 16.71%,79.9%{opacity:0} 80%,100%{opacity:1}}
+@keyframes c-gone{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
-  /* Four of the nine animations were left running, so the captions kept
-     flashing; and the frozen state asserted phase 1 alongside a finished
-     phase-3 overwrite. Freeze on the end of the story instead. */
+  /* Everything this used to declare is now the base state, so only the
+     switch-off is left. The frame it lands on is phase 2 recomputing the
+     coil, which is the point of the figure. */
   .pl-c * {animation:none !important;}
-  .pl-c .ph1,.pl-c .ph2{stroke-width:0}
-  .pl-c .ph3{stroke-width:3}
-  .pl-c .dot{transform:translate(-65.8px,114px)}
-  .pl-c .car3,.pl-c .gone{opacity:1}
-  .pl-c .car1,.pl-c .car2,.pl-c .atk{opacity:0}
 }
 </style>
 <svg class="pl-c" viewBox="0 0 440 244" role="img"
@@ -54,7 +72,7 @@ html.light-mode .pl-c .dot {fill:#b34700;}
       <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/>
     </marker>
   </defs>
-  <circle cx="220" cy="140" r="76" fill="none" stroke="currentColor" stroke-opacity="0.4" stroke-width="2"/>
+  <circle cx="220" cy="140" r="76" fill="none" stroke="currentColor" stroke-opacity="0.65" stroke-width="2"/>
   <path d="M 239.7 66.6 A76 76 0 0 1 293.4 159.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
   <path d="M 273.7 193.7 A76 76 0 0 1 166.3 193.7" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
   <path d="M 146.6 159.7 A76 76 0 0 1 200.3 66.6" fill="none" stroke="#ff6b00" stroke-width="2" marker-end="url(#ah)"/>
@@ -73,18 +91,20 @@ html.light-mode .pl-c .dot {fill:#b34700;}
 
   <circle class="dot" cx="220" cy="64" r="7" fill="#ff6b00" stroke="#1a1a1a" stroke-width="1"/>
   <g text-anchor="middle" font-size="12">
-    <text class="car1" x="220" y="136" fill="#ff6b00" font-weight="bold">reads hpt = 75</text>
+    <text class="car1" x="220" y="136" fill="#ff6b00" font-weight="bold">hpt = 75, put there by hwio</text>
     <text class="car2" x="220" y="136" fill="#ff6b00" font-weight="bold">decides: keep it on</text>
     <text class="car3" x="220" y="136" fill="#ff6b00" font-weight="bold">writes coil 1 = on</text>
     <text x="220" y="156" opacity="0.7" font-size="11">one scan, 50 ms</text>
   </g>
   <g font-size="11">
-    <text class="atk" x="4" y="236" fill="#ff6b00" font-weight="bold">attacker: FC 05 sets coil 1 = off</text>
-    <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 3 has just overwritten it</text>
+    <text class="atk" x="4" y="236" fill="#ff6b00" font-weight="bold">attacker: FC 05 sets coil 1 = off, between scans</text>
+    <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 2 recomputes the coil, here</text>
   </g>
 </svg>
-<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land during the program phase and be erased when phase 3 writes the outputs &mdash; that is the whole of the next section in one turn of the ring.</figcaption>
+<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land in the gap between two scans, survive phase 1 untouched, and cease to exist the moment phase 2 recomputes the coil from the program &mdash; that is the whole of the next section in one turn of the ring. It cannot land any later: OpenPLC holds one mutex across the whole of phase 2, and a Modbus write waits for it.</figcaption>
 </figure>
+
+Why a loop at all, rather than reacting to events? Because a machine that can crush someone has to have a worst case you can state. A fixed scan gives one: every input is acted on within one period, the program always sees a consistent snapshot rather than values shifting under it mid-calculation, and there is no scheduler deciding what runs when. Determinism is bought with the loop.
 
 Each phase does something the next one depends on, and they never overlap:
 
@@ -92,7 +112,7 @@ Each phase does something the next one depends on, and they never overlap:
 2. **The whole program runs on that frozen snapshot.** Two lines that both read `hpt` are guaranteed to see the same `hpt`.
 3. **Only now do the outputs reach the plant, all at once.** An output your program set on line 10 does not physically move anything until the scan ends.
 
-That last point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies.
+The second point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies. Note it is phase 2 that does this, not phase 3. Phase 3 only carries the already-computed value outward, and in the Docker testbed it does not even do that: the container runs the `blank_linux` driver, whose `updateBuffersOut()` is a lock, a commented-out block of I/O and an unlock. The plant is driven by `hwio` over Modbus instead.
 
 CybICS bends phase 1, and the way it bends it is the reason this page has a second half. `cybICS.st` declares no `%I` address of any kind: every located variable in it is a `%QX` output or a `%MW` memory word. `hpt` is not a sensor the PLC samples, it is a memory word that `hwio` pushes in from outside over Modbus. Phase 1 has nothing local to read. That is exactly why a value the program treats as a pressure reading is something a stranger on the network can set.
 
@@ -116,9 +136,11 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
 .pl-t .barA, .pl-t .barB {transform-box: fill-box; transform-origin: left;}
 .pl-t .barA {animation: t-barA var(--t) linear infinite;}
 .pl-t .barB {animation: t-barB var(--t) linear infinite;}
-.pl-t .fixA {opacity:0; animation: t-fixA var(--t) steps(1,end) infinite;}
-.pl-t .fixB {opacity:0; animation: t-fixB var(--t) steps(1,end) infinite;}
-.pl-t .shot {opacity:0; animation: t-shot var(--t) steps(1,end) infinite;}
+.pl-t .head {transform: translateX(410px);}
+.pl-t .barA, .pl-t .barB {transform: scaleX(1);}
+.pl-t .fixA {opacity:1; animation: t-fixA var(--t) steps(1,end) infinite;}
+.pl-t .fixB {opacity:1; animation: t-fixB var(--t) steps(1,end) infinite;}
+.pl-t .shot {opacity:1; animation: t-shot var(--t) steps(1,end) infinite;}
 @keyframes t-head{0%{transform:translateX(0)} 70%,100%{transform:translateX(410px)}}
 @keyframes t-shot{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes t-barA{0%,10.5%{transform:scaleX(0)} 17.5%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
@@ -126,10 +148,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
 @keyframes t-fixA{0%,17.4%{opacity:0} 17.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes t-fixB{0%,13.9%{opacity:0} 14%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
-  .pl-t .head{animation:none; transform:translateX(410px)}
-  .pl-t .barA,.pl-t .barB{animation:none; transform:scaleX(1)}
-  .pl-t .shot{animation:none; opacity:1}
-  .pl-t .fixA,.pl-t .fixB{animation:none; opacity:1}
+  .pl-t .head,.pl-t .barA,.pl-t .barB,.pl-t .shot,.pl-t .fixA,.pl-t .fixB{animation:none}
 }
 </style>
 <svg class="pl-t" viewBox="0 0 520 210" role="img"
@@ -153,20 +172,20 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
   <text x="10" y="66" font-size="13" opacity="0.75">the scan</text>
   <text x="10" y="79" font-size="13" opacity="0.75">owns it</text>
   <line x1="90" y1="40" x2="500" y2="40" stroke="currentColor" stroke-opacity="0.2"/>
-  <g stroke="currentColor" stroke-opacity="0.45">
+  <g stroke="currentColor" stroke-opacity="0.65">
     <line x1="90"    y1="34" x2="90"    y2="74"/><line x1="192.5" y1="34" x2="192.5" y2="74"/>
     <line x1="295"   y1="34" x2="295"   y2="74"/><line x1="397.5" y1="34" x2="397.5" y2="74"/>
     <line x1="500"   y1="34" x2="500"   y2="74"/>
   </g>
   <rect class="barA" x="151.5" y="44" width="41" height="22" rx="3" fill="#ff6b00"/>
-  <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="200" y="40" font-size="13" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
+  <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="200" y="30" font-size="13" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
 
   <!-- row B: hwio, one write every 20 ms -->
   <text x="10" y="122" font-size="13" font-weight="bold">reg 1126</text>
-  <text x="10" y="136" font-size="13" opacity="0.75">hwio</text>
+  <text x="10" y="136" font-size="13" opacity="0.75">hwio &ge;20 ms</text>
   <text x="10" y="149" font-size="13" opacity="0.75">owns it</text>
   <line x1="90" y1="110" x2="500" y2="110" stroke="currentColor" stroke-opacity="0.2"/>
-  <g stroke="currentColor" stroke-opacity="0.45">
+  <g stroke="currentColor" stroke-opacity="0.65">
     <line x1="90"  y1="104" x2="90"  y2="144"/><line x1="131" y1="104" x2="131" y2="144"/>
     <line x1="172" y1="104" x2="172" y2="144"/><line x1="213" y1="104" x2="213" y2="144"/>
     <line x1="254" y1="104" x2="254" y2="144"/><line x1="295" y1="104" x2="295" y2="144"/>
@@ -175,7 +194,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
     <line x1="500" y1="104" x2="500" y2="144"/>
   </g>
   <rect class="barB" x="151.5" y="114" width="20.5" height="22" rx="3" fill="#ff6b00"/>
-  <g class="fixB"><path d="M 172 114 L 167.5 106 L 176.5 106 Z" fill="#ff6b00"/><text x="180" y="110" font-size="13" fill="#ff6b00" font-weight="bold">hwio puts it back</text></g>
+  <g class="fixB"><path d="M 172 114 L 167.5 106 L 176.5 106 Z" fill="#ff6b00"/><text x="180" y="100" font-size="13" fill="#ff6b00" font-weight="bold">hwio puts it back</text></g>
 
   <!-- the attacker's single write -->
   <g class="shot">
@@ -197,7 +216,7 @@ Setting `manual` is the door. The inner `IF` has no `ELSE`, so in manual mode no
 
 PLC programs are written in the languages standardised by **IEC 61131-3**. The one you actually meet in CybICS is **Structured Text (ST)**, a Pascal-like textual language: `cybICS.st` is ST from top to bottom, and the *PLC Programming* challenge has you compile and upload a modified copy of it.
 
-**Ladder Diagram (LD)** is the notation you will meet everywhere else in industry, so it is worth being able to read one rung. Below is the compressor rule from `cybICS.st` drawn the way an electrician would have wired it. It is two statements, not one: `IF hpt < 60 AND compressorState = 0 AND gst > 50` starts the compressor, and `ELSIF hpt < 90 AND compressorState = 1 AND gst > 50` keeps it running. (`gst` is the low-pressure storage tank the compressor draws from; below 50 there is nothing left to pump.)
+**Ladder Diagram (LD)** is the notation you will meet everywhere else in industry, so it is worth being able to read one rung. Below is the compressor rule from `cybICS.st` drawn the way an electrician would have wired it. It is one statement with two branches: `IF hpt < 60 AND compressorState = 0 AND gst > 50` starts the compressor, and `ELSIF hpt < 90 AND compressorState = 1 AND gst > 50` keeps it running. (`gst` is the gas storage tank the compressor draws from &mdash; the same GST the HMI shows; below 50 there is nothing left to pump.)
 
 <figure>
 <style>
@@ -218,8 +237,12 @@ html.light-mode .pl-r {--w:#b34700;}
 .pl-r .wb2 {animation: r-wb2 var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wt {animation: r-wt var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
 .pl-r .wc {animation: r-wc var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
-.pl-r .coil > * {animation: r-coil var(--r) steps(1,end) infinite;}
-.pl-r .rd1 {opacity:0; animation: r-rd1 var(--r) steps(1,end) infinite;}
+.pl-r .coil > * {animation: r-coil var(--r) steps(1,end) infinite, r-flow 1.2s linear infinite;}
+.pl-r .a1,.pl-r .a2,.pl-r .b1,.pl-r .c3 {transform: translateX(34px);}
+.pl-r .wa1,.pl-r .wa2,.pl-r .wb1,.pl-r .wt,.pl-r .wc,
+.pl-r .coil > * {stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4;}
+.pl-r .wb2 {stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none;}
+.pl-r .rd1 {opacity:1; animation: r-rd1 var(--r) steps(1,end) infinite;}
 .pl-r .rd2 {opacity:0; animation: r-rd2 var(--r) steps(1,end) infinite;}
 .pl-r .rd3 {opacity:0; animation: r-rd3 var(--r) steps(1,end) infinite;}
 @keyframes r-flow{to{stroke-dashoffset:-56}}
@@ -240,11 +263,6 @@ html.light-mode .pl-r {--w:#b34700;}
 @keyframes r-rd3{0%,33.32%{opacity:0} 33.33%,66.66%{opacity:0} 66.67%,99.99%{opacity:1}}
 @media (prefers-reduced-motion: reduce){
   .pl-r * {animation:none !important;}
-  .pl-r .a1,.pl-r .a2,.pl-r .b1,.pl-r .c3 {transform:translateX(34px);}
-  .pl-r .wa1,.pl-r .wa2,.pl-r .wb1,.pl-r .wt,.pl-r .wc,.pl-r .coil > * {stroke:var(--w); stroke-opacity:1; stroke-dasharray:6 4;}
-  .pl-r .wb2 {stroke:currentColor; stroke-opacity:0.55; stroke-dasharray:none;}
-  .pl-r .coil > * {stroke-dasharray:none;}
-  .pl-r .rd1 {opacity:1;}
 }
 </style>
 <svg class="pl-r" viewBox="0 0 520 214" role="img"
@@ -276,11 +294,11 @@ html.light-mode .pl-r {--w:#b34700;}
   <line class="seg wb1" x1="144" y1="130" x2="210" y2="130" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   <line class="seg wb2" x1="254" y1="130" x2="330" y2="130" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   <line class="seg wt" x1="330" y1="100" x2="360" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
-  <line class="seg wc" x1="404" y1="100" x2="430" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+  <line class="seg wc" x1="404" y1="100" x2="412" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   <g class="coil">
     <path d="M430 84 A18 16 0 0 0 430 116" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
     <path d="M462 84 A18 16 0 0 1 462 116" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
-    <line x1="462" y1="100" x2="500" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
+    <line x1="480" y1="100" x2="500" y2="100" stroke="currentColor" stroke-opacity="0.55" stroke-width="2"/>
   </g>
   <text x="446" y="60" text-anchor="middle" font-size="13" fill="#ff6b00">compressorState</text>
   <text x="26" y="36" font-size="12" opacity="0.7">start branch</text>
@@ -292,13 +310,13 @@ html.light-mode .pl-r {--w:#b34700;}
     <text class="rd3" x="26" y="204" fill="#ff6b00">HPT 95 &mdash; neither branch conducts, it stops</text>
   </g>
 </svg>
-<figcaption>One rung, two branches, one coil &mdash; which is what <code>cybICS.st</code> lines 47 to 53 say. The upper branch can only start the compressor while it is off; the lower one can only hold it while it is on. Between 60 and 90 neither condition changes, so the compressor stays as it is: that gap is the hysteresis, and the parallel junction is the part ladder shows better than the <code>IF/ELSIF</code> it compiles from. A separate rung at line 62 copies <code>compressorState</code> to the real output coil <code>compressor</code>.</figcaption>
+<figcaption>One rung, two branches, one coil &mdash; which is what <code>cybICS.st</code> lines 47 to 53 say. The upper branch can only start the compressor while it is off; the lower one can only hold it while it is on. Between 60 and 90 neither condition changes, so the compressor stays as it is: that gap is the hysteresis, and the parallel junction is the part ladder shows better than the <code>IF/ELSIF</code> it compiles from. A separate rung at line 62 copies <code>compressorState</code> to the real output coil <code>compressor</code>. One liberty is taken here: a real editor draws every contact at the same width and highlights the conducting path instead. The gap that opens and closes above is a teaching device, not IEC 61131-3 notation.</figcaption>
 </figure>
 
 ## How the outside world reaches the PLC
 
 The program's variables are bound to memory addresses in their declarations: `%QX0.1` for the compressor output, `%MW102` for the HPT reading. OpenPLC exposes those over industrial protocols, with `%QX0.0`&ndash;`%QX0.3` appearing as Modbus coils 0&ndash;3 and each `%MW`*n* as holding register 1024 + *n*. That offset is OpenPLC's own convention, not anything Modbus requires &mdash; carry it to a Siemens or a Schneider controller and it will be wrong. That is why HPT, declared `%MW102`, is register **1126** &mdash; the same arithmetic gives 1124 for GST, and 1132 and 1134 for `systemSen` and `boSen` &mdash; system-operational and blow-out.
 
-OpenPLC publishes the same memory over Modbus, S7comm, DNP3 and EtherNet/IP simultaneously, which is convenient for integration and equally convenient for an attacker: as deployed here, none of them authenticate. Blocking one port does not close the door, because the same memory is reachable through the next protocol along. *Modbus Firewall Rules* filters port 502. *Network Segmentation* does not test a port at all &mdash; its check greps each container's `iptables -L INPUT` for any rule naming the attack machine with DROP or REJECT. Follow its Steps, which say `iptables -A INPUT -s 172.18.0.100 -j DROP`, and you close everything including S7comm. Follow its Solution, which writes one rule per port, and you pass the check with the same memory word still writable through OpenPLC's S7 server on 102 &mdash; where it is not register 1126 at all, but word 102 of DB1002.
+OpenPLC publishes the same memory over Modbus, S7comm, DNP3 and EtherNet/IP simultaneously, which is convenient for integration and equally convenient for an attacker: as deployed here, none of them authenticate. Blocking one port does not close the door, because the same memory is reachable through the next protocol along. *Modbus Firewall Rules* filters port 502. *Network Segmentation* does not test a port at all &mdash; its check greps each container's `iptables -L INPUT` for any rule naming the attack machine with DROP or REJECT. Follow its Steps, which say `iptables -A INPUT -s 172.18.0.100 -j DROP`, and you close everything including S7comm. Follow its Solution, which writes one rule per port, and you pass the check with the same memory word still writable through OpenPLC's S7 server on 102 &mdash; where it is not register 1126 at all, but `DB1002.DBW204`. S7 addresses a data block by byte, so the word index 102 is byte 204; typing `DB1002.DBW102` reads word 51 and gets zero. Verified live against this stack: Modbus 1126 and DB1002 byte 204 return the same value.
 
 Uploading a **new program** to a running controller is one of the most impactful actions in ICS: it changes how the process behaves, permanently, and no amount of watching register values will reveal it. That is exactly the *PLC Programming* challenge, and it maps to MITRE ATT&CK for ICS **T0843 Program Download**.
