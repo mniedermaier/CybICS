@@ -11,6 +11,9 @@ services:
     mem_limit: 48m
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      # hwio reads the board revision straps at startup and publishes them
+      # here; the landing page mounts the same volume read-only.
+      - cybics_state:/var/lib/cybics
     devices:
       - "/dev/i2c-1:/dev/i2c-1"
       - "/dev/gpiochip0:/dev/gpiochip0"
@@ -87,6 +90,7 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - cybics_state:/var/lib/cybics:ro
 
   stm32:
     image: cybics-stm32:latest
@@ -152,5 +156,6 @@ networks:
           gateway: 172.18.0.1
 
 volumes:
+  cybics_state:
   fuxa_data:
   nginx-certs:
