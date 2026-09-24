@@ -31,7 +31,12 @@
         .article th, .article td { border:1px solid #383838; padding:0.4rem 0.7rem; text-align:left; font-size:0.9rem; }
         .article th { background:#2d2d2d; color:#ff8c3a; }
         .article blockquote { border-left:3px solid #ff6b00; background:#2d2d2d; padding:0.6rem 1rem; margin:1rem 0; color:#cfcfcf; }
-        .article figure { margin:1.4rem 0; text-align:center; }
+        /* Figures that set their own min-width (to keep one viewBox unit per
+           CSS pixel instead of shrinking labels to 8px on a phone) need a
+           scroll container. This belongs here rather than in one page's
+           scoped style block, where deleting that figure would silently let
+           every other figure on the page burst the document. */
+        .article figure { margin:1.4rem 0; text-align:center; overflow-x:auto; }
         .article figure svg { max-width:100%; height:auto; background:#141414; border:1px solid #333; border-radius:0.5rem; padding:0.8rem; color:#e8e8e8; }
         /* Only supply a colour where the figure did not choose one. A bare
            `fill:currentColor` here beats the figures' own fill attributes,

@@ -50,15 +50,15 @@ This is why the priorities are inverted compared to IT. A control system runs fo
   <text x="360" y="60" font-size="12" font-weight="bold" opacity="0.78">3.</text>
 
   <g class="swap-c">
-    <rect x="34" y="38" width="136" height="30" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <rect x="34" y="38" width="136" height="30" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor"/>
     <text x="102" y="58" font-size="12" text-anchor="middle">Confidentiality</text>
   </g>
   <g class="swap-a">
-    <rect x="374" y="38" width="136" height="30" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <rect x="374" y="38" width="136" height="30" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor"/>
     <text x="442" y="58" font-size="12" text-anchor="middle">Availability</text>
   </g>
   <g>
-    <rect x="204" y="38" width="136" height="30" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
+    <rect x="204" y="38" width="136" height="30" rx="4" fill="currentColor" fill-opacity="0.28" stroke="currentColor"/>
     <text x="272" y="58" font-size="12" text-anchor="middle">Integrity</text>
   </g>
   <text x="102" y="160" font-size="13" opacity="0.7" text-anchor="middle">most important</text>
@@ -69,20 +69,20 @@ This is why the priorities are inverted compared to IT. A control system runs fo
   <g font-size="12">
     <text x="10" y="20" font-size="13" font-weight="bold">IT priorities</text>
     <text x="4" y="45" font-size="12" font-weight="bold" fill="#ff6b00">1.</text>
-    <rect x="22" y="28" width="148" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <rect x="22" y="28" width="148" height="26" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor"/>
     <text x="96" y="45" text-anchor="middle">Confidentiality</text>
-    <rect x="180" y="28" width="160" height="26" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
+    <rect x="180" y="28" width="160" height="26" rx="4" fill="currentColor" fill-opacity="0.28" stroke="currentColor"/>
     <text x="260" y="45" text-anchor="middle">2. Integrity</text>
-    <rect x="350" y="28" width="160" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <rect x="350" y="28" width="160" height="26" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor"/>
     <text x="430" y="45" text-anchor="middle">3. Availability</text>
 
     <text x="10" y="86" font-size="13" font-weight="bold" fill="#ff6b00">OT priorities</text>
     <text x="4" y="111" font-size="12" font-weight="bold" fill="#ff6b00">1.</text>
-    <rect x="22" y="94" width="148" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <rect x="22" y="94" width="148" height="26" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor"/>
     <text x="96" y="111" text-anchor="middle">Availability</text>
-    <rect x="180" y="94" width="160" height="26" rx="4" fill="currentColor" opacity="0.28" stroke="currentColor"/>
+    <rect x="180" y="94" width="160" height="26" rx="4" fill="currentColor" fill-opacity="0.28" stroke="currentColor"/>
     <text x="260" y="111" text-anchor="middle">2. Integrity</text>
-    <rect x="350" y="94" width="160" height="26" rx="4" fill="currentColor" opacity="0.18" stroke="currentColor"/>
+    <rect x="350" y="94" width="160" height="26" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor"/>
     <text x="430" y="111" text-anchor="middle">3. Confidentiality</text>
   </g>
 </svg>
@@ -103,6 +103,9 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
    light theme but cannot reach a circle, so the intruder marker stayed at
    #ff6b00 on white: 2.86:1. */
 html.light-mode .pur .intr {fill:#b34700;}
+/* and the glyph on it: #1a1a1a was 6.10:1 on #ff6b00 but only 3.16:1 once the
+   circle became #b34700. White is 5.50:1 there. */
+html.light-mode .pur .intr-t {fill:#ffffff !important;}
 .pur .dmz  {animation: u-dmz  var(--u) linear infinite;}
 @keyframes u-walk {0%,6%{transform:translateY(0)}      14%,22%{transform:translateY(0)}
                    30%,38%{transform:translateY(50px)}  46%,54%{transform:translateY(100px)}
@@ -139,7 +142,7 @@ html.light-mode .pur .intr {fill:#b34700;}
 
   <g class="walk">
     <circle class="intr" cx="40" cy="30" r="10" fill="#ff6b00"/>
-    <text x="40" y="34" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">!</text>
+    <text class="intr-t" x="40" y="34" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">!</text>
   </g>
 
 </svg>
@@ -174,10 +177,9 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
    inside its own figure instead of shrinking below readability. The selector
    has to be at least as specific as the template's `.article figure svg`: a
    bare `svg.plt` is one step weaker and loses, silently. */
-.article figure {overflow-x: auto;}
 .article figure svg.pri, .article figure svg.pri-static,
 .article figure svg.pur {min-width: 520px;}
-.article figure svg.plt {min-width: 460px;}
+.article figure svg.plt {min-width: 400px;}
 .plt {--t: 20s; --on:#ff6b00; --on-ink:#1a1a1a;}
 html.light-mode .plt {--on:#b34700; --on-ink:#ffffff;}
 html.light-mode .plt .hpt {fill:#b34700;}
@@ -188,7 +190,11 @@ html.light-mode .plt .gst {opacity:0.55;}
 .plt .lvl {transform-box: fill-box; transform-origin: bottom;}
 .plt .gst {transform: scaleY(0.941);}
 .plt .hpt {transform: scaleY(0.235);}
-.plt .compt {fill:var(--on-ink);}
+/* The template sets `.article figure svg text:not([fill])` at (0,2,3); a bare
+   `.plt .compt` is (0,2,0) and loses to it, so with animations switched off
+   this label rendered light grey on orange at 2.34:1. Only the running
+   keyframes were holding it dark. */
+.article figure svg text.compt {fill:var(--on-ink);}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
 .plt .comp{fill:var(--on); animation: t-comp var(--t) steps(1,end) infinite;}
@@ -287,16 +293,16 @@ html.light-mode .plt .gst {opacity:0.55;}
   <g font-size="11">
     <line x1="288" y1="89" x2="348" y2="89" stroke="currentColor" stroke-width="2" stroke-dasharray="5 5"/>
     <line x1="288" y1="89" x2="348" y2="89" stroke="var(--on-ink)" stroke-width="2" stroke-dasharray="5 5" stroke-dashoffset="5"/>
-    <text x="354" y="85" fill="#ff6b00" font-weight="bold">220</text>
+    <text x="284" text-anchor="end" y="85" fill="#ff6b00" font-weight="bold">220</text>
     <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
     <line x1="288" y1="99" x2="348" y2="99" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
-    <text x="354" y="111" opacity="0.75">200</text>
+    <text x="284" text-anchor="end" y="111" opacity="0.75">200</text>
     <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
     <line x1="288" y1="149" x2="348" y2="149" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
-    <text x="354" y="153" opacity="0.75">100</text>
+    <text x="284" text-anchor="end" y="153" opacity="0.75">100</text>
     <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
     <line x1="288" y1="168" x2="348" y2="168" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
-    <text x="354" y="172" opacity="0.75">60</text>
+    <text x="284" text-anchor="end" y="172" opacity="0.75">60</text>
   </g>
   <g class="vent">
     <path d="M 318 62 L 318 36" stroke="#ff6b00" stroke-width="2"/>
@@ -323,12 +329,12 @@ html.light-mode .plt .gst {opacity:0.55;}
   <text x="250" y="278" text-anchor="middle" font-size="13" opacity="0.8">on below 60, off at 90</text>
   <path d="M 346 198 L 428 198 L 428 264 L 346 264" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <path d="M 354 258 L 344 264 L 354 270" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="424" y="250" font-size="14" opacity="0.8" text-anchor="end">reads 1126</text>
+  <text x="336" y="236" font-size="14" opacity="0.8" text-anchor="end">reads 1126</text>
   <path d="M 160 264 L 96 264 L 96 135 L 128 135" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <path d="M 120 129 L 130 135 L 120 141" fill="none" stroke="currentColor" stroke-width="1.5"/>
   <text x="102" y="210" font-size="12" opacity="0.8">drives coil 1</text>
 
-  <text class="stuck" x="354" y="126" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
+  <text class="stuck" x="284" y="112" text-anchor="end" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
   <text class="ph-n" x="10" y="308" font-size="13" opacity="0.85">automatic: the loop holds 60 to 90</text>
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
   <text class="rst" x="450" y="308" font-size="13" text-anchor="end" font-weight="bold" fill="#ff6b00">loop restarts &mdash; the plant does not</text>
@@ -346,7 +352,7 @@ All of this is in two files that must agree: `physical_process_thread` in `softw
 
 **The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure has fallen back to 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
 
-The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units of storage for every one and a half the supply valve puts back, and the tank is down to about 76 &mdash; still clear of the `gst >= 50` floor, but losing half a unit a tick. It reaches the floor about two fifths of the way up the vent, and from there the compressor stalls whenever the tank is momentarily empty, waiting on the supply. Averaged over the whole climb that is roughly one tick in ten. So the stretch above 220 runs at about a third of the rate below it: half of that is the vent, the rest is a compressor increasingly unable to find gas to move. Neither of them stops it.
+The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units of storage for every one and a half the supply valve puts back, and the tank is down to about 76 &mdash; still clear of the `gst >= 50` floor, but losing half a unit a tick. It reaches the floor about two fifths of the way up the vent, and from there the compressor stalls whenever the tank is momentarily empty, waiting on the supply. Averaged over the whole climb that is roughly one tick in ten. So the stretch above 220 runs at about two fifths of the rate below it, and the two causes are not equal partners. Simulated over 4000 seeds: one unit a tick below the valve, 0.51 with the valve open and storage unlimited, 0.41 with the real `gst >= 50` floor as well. The valve does 84 per cent of the slowing and the empty tank the remaining 16 &mdash; which is what a stall rate of one tick in ten ought to cost, and a useful check on the arithmetic. Neither of them stops it.
 
 **And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help either. The valve is shut because the operator shut it, and handing the plant back to OpenPLC does not reopen it: the automatic rule only opens the valve between 50 and 100, and the tank is sitting at 200. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
 
