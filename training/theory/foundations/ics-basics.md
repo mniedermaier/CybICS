@@ -15,7 +15,15 @@ This is why the priorities are inverted compared to IT. A control system runs fo
 .pri .swap-a {animation: p-left  var(--p) ease-in-out infinite;}
 .pri .lab-it {animation: p-it    var(--p) steps(1,end) infinite;}
 .pri .lab-ot {opacity:0; animation: p-ot var(--p) steps(1,end) infinite;}
-.pri-static {display:none;}
+/* Inverted: the static two-row version is the default, so a browser that
+   simply drops animations gets both orderings rather than the IT row alone
+   with no hint that anything was meant to move. */
+.pri {display:none;}
+.pri-static {display:block;}
+@media (prefers-reduced-motion: no-preference) {
+  .pri {display:block;}
+  .pri-static {display:none;}
+}
 @keyframes p-right {0%,25%{transform:translate(0,0)} 27%{transform:translate(16px,38px)}
                     36%{transform:translate(324px,38px)} 38%,88%{transform:translate(340px,0)}
                     90%{transform:translate(324px,38px)} 98%{transform:translate(16px,38px)}
@@ -29,6 +37,7 @@ This is why the priorities are inverted compared to IT. A control system runs fo
 @media (prefers-reduced-motion: reduce) {
   .pri {display:none;}
   .pri-static {display:block;}
+  /* kept explicit: the no-preference block above must not win here */
 }
 </style>
 <svg class="pri" viewBox="0 0 520 166" role="img"
@@ -90,14 +99,22 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
 /* The intruder walks down the levels. The boundary it crosses is the one the
    DMZ is supposed to occupy, so the crossing is the moment worth watching. */
 .pur .walk {animation: u-walk var(--u) ease-in-out infinite;}
+/* theory_article.html retints text[fill], path[fill] and [stroke] for the
+   light theme but cannot reach a circle, so the intruder marker stayed at
+   #ff6b00 on white: 2.86:1. */
+html.light-mode .pur .intr {fill:#b34700;}
 .pur .dmz  {animation: u-dmz  var(--u) linear infinite;}
 @keyframes u-walk {0%,6%{transform:translateY(0)}      14%,22%{transform:translateY(0)}
                    30%,38%{transform:translateY(50px)}  46%,54%{transform:translateY(100px)}
                    62%,70%{transform:translateY(150px)} 78%,94%{transform:translateY(200px)}
                    100%{transform:translateY(0)}}
-@keyframes u-dmz  {0%,24%{stroke-opacity:0.5; stroke-width:1.5}
+/* The resting state was 0.5 opacity, which blends to 2.47:1 on the dark
+   ground and 2.21:1 on the light one -- under the 3:1 a meaningful graphic
+   needs, for 92 per cent of the loop, on the one line the caption calls the
+   point of the figure. The pulse still reads as a pulse at 0.75. */
+@keyframes u-dmz  {0%,24%{stroke-opacity:0.75; stroke-width:2}
                    26%,34%{stroke-opacity:1; stroke-width:3}
-                   36%,100%{stroke-opacity:0.5; stroke-width:1.5}}
+                   36%,100%{stroke-opacity:0.75; stroke-width:2}}
 @media (prefers-reduced-motion: reduce) {
   .pur .walk {animation:none; transform:translateY(200px);}
   .pur .dmz  {animation:none;}
@@ -121,7 +138,7 @@ ICS networks are traditionally described with the **Purdue Enterprise Reference 
   <line class="dmz" x1="70" y1="55" x2="510" y2="55" stroke="#ff6b00" stroke-dasharray="6 4"/>
 
   <g class="walk">
-    <circle cx="40" cy="30" r="10" fill="#ff6b00"/>
+    <circle class="intr" cx="40" cy="30" r="10" fill="#ff6b00"/>
     <text x="40" y="34" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">!</text>
   </g>
 
@@ -316,7 +333,7 @@ html.light-mode .plt .gst {opacity:0.55;}
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
   <text class="rst" x="450" y="308" font-size="13" text-anchor="end" font-weight="bold" fill="#ff6b00">loop restarts &mdash; the plant does not</text>
 </svg>
-<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90 with the system valve open, then with an operator in manual mode who has shut that valve. When the compressor finally stops, the pressure falls to 200 and no further. With reduced motion the figure holds that end state instead of animating: valve shut, compressor stopped, the tank resting at 200 with the storage tank filled to its supply cap.</figcaption>
+<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90 with the system valve open, then with an operator in manual mode who has shut that valve. When the compressor finally stops, the pressure falls to 200 and no further. With reduced motion the figure holds that end state instead of animating: valve shut, compressor stopped, the tank resting at 200 with the storage tank filled to its supply cap. One tick is one pass of the simulation's `delay > 50` gate over a 20 ms sleep, so it is about a second of plant time: the twenty seconds here are roughly eight and a half minutes on the plant.</figcaption>
 </figure>
 
 The attack is the second half of that loop, and it is not a network attack at all. The *Physical Process* challenge has you log in to the FUXA HMI as `operator:operator`, press **Manual / Automatic**, close the system valve and run the compressor. Every step is a legitimate operator action; the damage comes from the combination &mdash; a shut valve with a running compressor.
@@ -325,9 +342,11 @@ Three details make it work, and each of them is a design decision rather than a 
 
 **Manual mode does not fail safe, it freezes.** The whole automatic block is wrapped in `IF manual < 1`, and the inner block has no `ELSE`. In manual mode OpenPLC stops assigning the compressor, the system valve and the supply valve entirely &mdash; they keep whatever value they had at the instant the operator switched over, and the panel hands all three to the operator. The `Comp.`, `SV` and `GST` buttons in FUXA write those same three coils, and each is gated on manual mode being on. The operator opens the supply deliberately &mdash; unless manual mode was entered during the tank's own refill window, in which case `gstSig` freezes on and the supply is already feeding. Either way it matters, because of the budget at the end of this section.
 
+All of this is in two files that must agree: `physical_process_thread` in `software/hwio-virtual/hardwareAbstraction.py` is what runs in Docker, and `thread_physical` in `software/stm32/src/main.c` is the reference it mirrors. The control logic is `software/OpenPLC/cybICS.st`.
+
 **The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure has fallen back to 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
 
-The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units out of storage for every one it delivers, and the storage tank is down at the `gst >= 50` floor. From there the compressor stalls on roughly one tick in ten, waiting for the supply valve to put back what it just took. The climb above 220 runs at about a third of its earlier rate &mdash; half of that from the vent, the rest from a compressor that can no longer find gas to move. Neither of them stops it.
+The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units of storage for every one and a half the supply valve puts back, and the tank is down to about 76 &mdash; still clear of the `gst >= 50` floor, but losing half a unit a tick. It reaches the floor about two fifths of the way up the vent, and from there the compressor stalls whenever the tank is momentarily empty, waiting on the supply. Averaged over the whole climb that is roughly one tick in ten. So the stretch above 220 runs at about a third of the rate below it: half of that is the vent, the rest is a compressor increasingly unable to find gas to move. Neither of them stops it.
 
 **And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help either. The valve is shut because the operator shut it, and handing the plant back to OpenPLC does not reopen it: the automatic rule only opens the valve between 50 and 100, and the tank is sitting at 200. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
 
