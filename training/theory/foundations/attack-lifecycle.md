@@ -19,11 +19,11 @@ The usual moral is that the stages get louder as they go, so a defender who watc
 .al-w .s3 {animation: aw-s3 var(--w) steps(1,end) infinite;}
 .al-w .s4 {animation: aw-s4 var(--w) steps(1,end) infinite;}
 .al-w .s5 {animation: aw-s5 var(--w) steps(1,end) infinite;}
-.al-w .a1 {opacity:0; animation: aw-s1 var(--w) steps(1,end) infinite;}
-.al-w .a2 {opacity:0; animation: aw-s2 var(--w) steps(1,end) infinite;}
-.al-w .a3 {opacity:0; animation: aw-s3 var(--w) steps(1,end) infinite;}
-.al-w .a4 {opacity:0; animation: aw-s4 var(--w) steps(1,end) infinite;}
-.al-w .a5 {opacity:0; animation: aw-s5 var(--w) steps(1,end) infinite;}
+.al-w .a1 {opacity:0; animation: aw-o1 var(--w) steps(1,end) infinite;}
+.al-w .a2 {opacity:0; animation: aw-o2 var(--w) steps(1,end) infinite;}
+.al-w .a3 {opacity:0; animation: aw-o3 var(--w) steps(1,end) infinite;}
+.al-w .a4 {opacity:0; animation: aw-o4 var(--w) steps(1,end) infinite;}
+.al-w .a5 {opacity:0; animation: aw-o5 var(--w) steps(1,end) infinite;}
 /* Base state is stage 3, the one that produces nothing -- the frame worth
    landing on when the animation is switched off. */
 .al-w .s3 {stroke-width:3;}
@@ -33,11 +33,21 @@ The usual moral is that the stages get louder as they go, so a defender who watc
 @keyframes aw-mk {0%,19.9%{transform:translateX(0)}    20%,39.9%{transform:translateX(76px)}
                   40%,59.9%{transform:translateX(152px)} 60%,79.9%{transform:translateX(228px)}
                   80%,100%{transform:translateX(304px)}}
-@keyframes aw-s1 {0%,19.9%{stroke-width:3; opacity:1} 20%,100%{stroke-width:0; opacity:0}}
-@keyframes aw-s2 {0%,19.9%{stroke-width:0; opacity:0} 20%,39.9%{stroke-width:3; opacity:1} 40%,100%{stroke-width:0; opacity:0}}
-@keyframes aw-s3 {0%,39.9%{stroke-width:0; opacity:0} 40%,59.9%{stroke-width:3; opacity:1} 60%,100%{stroke-width:0; opacity:0}}
-@keyframes aw-s4 {0%,59.9%{stroke-width:0; opacity:0} 60%,79.9%{stroke-width:3; opacity:1} 80%,100%{stroke-width:0; opacity:0}}
-@keyframes aw-s5 {0%,79.9%{stroke-width:0; opacity:0} 80%,100%{stroke-width:3; opacity:1}}
+/* The panels animate stroke-width only. They used to animate `opacity` too,
+   which faded the orange rect out from under its own dark labels and left
+   them at 1.06:1 on the figure ground -- four of the five stage captions were
+   ghosts while the animation ran, and legible only when it stopped. The alert
+   rows below carry the opacity on their own keyframes. */
+@keyframes aw-s1 {0%,19.9%{stroke-width:3} 20%,100%{stroke-width:0}}
+@keyframes aw-s2 {0%,19.9%{stroke-width:0} 20%,39.9%{stroke-width:3} 40%,100%{stroke-width:0}}
+@keyframes aw-s3 {0%,39.9%{stroke-width:0} 40%,59.9%{stroke-width:3} 60%,100%{stroke-width:0}}
+@keyframes aw-s4 {0%,59.9%{stroke-width:0} 60%,79.9%{stroke-width:3} 80%,100%{stroke-width:0}}
+@keyframes aw-s5 {0%,79.9%{stroke-width:0} 80%,100%{stroke-width:3}}
+@keyframes aw-o1 {0%,19.9%{opacity:1} 20%,100%{opacity:0}}
+@keyframes aw-o2 {0%,19.9%{opacity:0} 20%,39.9%{opacity:1} 40%,100%{opacity:0}}
+@keyframes aw-o3 {0%,39.9%{opacity:0} 40%,59.9%{opacity:1} 60%,100%{opacity:0}}
+@keyframes aw-o4 {0%,59.9%{opacity:0} 60%,79.9%{opacity:1} 80%,100%{opacity:0}}
+@keyframes aw-o5 {0%,79.9%{opacity:0} 80%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) { .al-w * {animation:none !important;} }
 </style>
 <svg class="al-w" viewBox="0 0 400 214" role="img"
@@ -70,10 +80,10 @@ The usual moral is that the stages get louder as they go, so a defender who watc
     <text class="a2" x="8" y="160">One IP claiming two MAC addresses.</text>
     <text class="a3" x="8" y="160">The rule looks for &ldquo;login&rdquo; or &ldquo;auth&rdquo;. FUXA&rsquo;s endpoint is /api/signin.</text>
     <text class="a4" x="8" y="160">No rule watches a program upload at all.</text>
-    <text class="a5" x="8" y="160">Fifty writes in five seconds, from a host that is not hwio.</text>
+    <text class="a5" x="8" y="160">Fifty writes in five seconds, from a host outside the exempt three.</text>
   </g>
-  <text x="8" y="190" font-size="11" opacity="0.85">The loudest stages are the first and the last.</text>
-  <text x="8" y="206" font-size="11" opacity="0.85">The silence is in the middle, where an attacker takes control.</text>
+  <text x="8" y="190" font-size="11" opacity="0.85">Both ends raise something. The two silent stages are in the middle,</text>
+  <text x="8" y="206" font-size="11" opacity="0.85">which is where an attacker takes control.</text>
 </svg>
 <figcaption>Measured against the running IDS, not read off a diagram. Eight failed logins against OpenPLC&rsquo;s <code>/login</code> produced a HIGH <code>http_brute_force</code> alert on the fifth; eight against FUXA&rsquo;s <code>/api/signin</code> produced nothing, because <code>_check_http_brute</code> only proceeds when the first 200 bytes of the POST contain <code>login</code> or <code>auth</code>. The received wisdom is that a campaign gets louder as it advances. On this plant it is loud at both ends and quiet in the middle, which is exactly the wrong shape.</figcaption>
 </figure>
@@ -134,7 +144,7 @@ html.light-mode .al-f {--pkt-ink:#ffffff;}
 <figcaption>The rule in <code>software/ids/rules.py</code> is a rate rule wearing a string match: it counts POSTs per source and port, but only ones whose first 200 bytes contain <code>login</code> or <code>auth</code>. FUXA&rsquo;s sign-in route contains neither, so its attempts are never counted and the rate it is counting never rises. The <em>Password Attack</em> module&rsquo;s own instructions point the learner at that route.</figcaption>
 </figure>
 
-There is a second reason a signature can be blind here, and it is in the same file: the capture runs with `tcpdump -s 128`, so only the first 128 bytes of each frame reach the rules. About seventy of those are payload. A rule that needs to see something further into a request cannot, whatever it matches on.
+There is a second reason a signature can be blind here, and it is in the same file: the capture runs with `tcpdump -s 128`, so only the first 128 bytes of each frame reach the rules. About sixty of those are payload. A rule that needs to see something further into a request cannot, whatever it matches on.
 
 ## The stages, with CybICS challenges
 
