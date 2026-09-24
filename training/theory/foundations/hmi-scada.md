@@ -1,41 +1,176 @@
 # HMI and SCADA
 
-The **Human-Machine Interface (HMI)** is the screen an operator watches: tank levels, pressures, pumps, alarms, and the buttons to start and stop the process. **SCADA** (Supervisory Control and Data Acquisition) is the wider system that gathers data from many controllers and presents it. In CybICS the HMI is **FUXA**, a web-based SCADA/HMI.
+The **Human-Machine Interface (HMI)** is the screen an operator watches: tank levels, pressures, pumps, alarms, and the buttons to start and stop the process. **SCADA** (Supervisory Control and Data Acquisition) is the wider system that gathers that data from many controllers and presents it. In CybICS the HMI is **FUXA**, a web-based SCADA/HMI on port 1881.
 
-## Where the HMI sits
+## The operator sees nothing directly
 
-The HMI does not talk to sensors directly. It reads and writes the PLC's registers over an industrial protocol, and the PLC drives the process. The operator's "start pump" click becomes a Modbus write.
+The HMI is not wired to a sensor. It is a Modbus client. Every number on the screen is a register it polled from OpenPLC, and every button is a register it writes back. The operator's picture of the plant is an inference, three hops from the gas.
 
 <figure>
-<svg viewBox="0 0 520 150" role="img" aria-label="Operator to process data flow">
-  <defs><marker id="h" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/></marker></defs>
-  <g text-anchor="middle" font-size="11">
-    <rect x="10" y="50" width="90" height="44" rx="6" fill="currentColor" opacity="0.18" stroke="currentColor"/>
-    <text x="55" y="70">Operator</text><text x="55" y="85" font-size="11">eyes &amp; hands</text>
-    <rect x="140" y="50" width="90" height="44" rx="6" fill="#ff6b00" opacity="0.8"/>
-    <text x="185" y="70" fill="#1a1a1a">HMI</text><text x="185" y="85" font-size="11" fill="#1a1a1a">FUXA</text>
-    <rect x="270" y="50" width="90" height="44" rx="6" fill="#ff6b00" opacity="0.6"/>
-    <text x="315" y="70" fill="#1a1a1a">PLC</text><text x="315" y="85" font-size="11" fill="#1a1a1a">OpenPLC</text>
-    <rect x="400" y="50" width="100" height="44" rx="6" fill="#ff6b00" opacity="0.4"/>
-    <text x="450" y="70">Process</text><text x="450" y="85" font-size="11">tanks, valves</text>
+<style>
+.article figure svg.hm-c {min-width: 400px;}
+.hm-c {--p: 6s; --k: 18s;}
+/* Two clocks in phase: the command-and-value round trip replays every 6 s,
+   and which link is under attack changes every 6 s, cycling through three
+   over 18. The base state is the middle one, the man in the middle, because
+   it is the link a reader is least likely to think of unprompted. */
+.hm-c .cmd {animation: hc-cmd var(--p) ease-in-out infinite;}
+.hm-c .val {animation: hc-val var(--p) ease-in-out infinite;}
+.hm-c .k1,.hm-c .k3 {opacity:0;}
+.hm-c .k2 {opacity:1;}
+.hm-c .k1 {animation: hc-k1 var(--k) steps(1,end) infinite;}
+.hm-c .k2 {animation: hc-k2 var(--k) steps(1,end) infinite;}
+.hm-c .k3 {animation: hc-k3 var(--k) steps(1,end) infinite;}
+@keyframes hc-cmd {0%{transform:translateX(0);   opacity:0}
+                   4%{transform:translateX(0);   opacity:1}
+                   40%{transform:translateX(196px); opacity:1}
+                   46%,100%{transform:translateX(196px); opacity:0}}
+@keyframes hc-val {0%,50%{transform:translateX(0); opacity:0}
+                   54%{transform:translateX(0); opacity:1}
+                   90%{transform:translateX(-196px); opacity:1}
+                   96%,100%{transform:translateX(-196px); opacity:0}}
+@keyframes hc-k1 {0%,33.32%{opacity:1} 33.33%,100%{opacity:0}}
+@keyframes hc-k2 {0%,33.32%{opacity:0} 33.33%,66.65%{opacity:1} 66.66%,100%{opacity:0}}
+@keyframes hc-k3 {0%,66.65%{opacity:0} 66.66%,100%{opacity:1}}
+@media (prefers-reduced-motion: reduce) { .hm-c * {animation:none !important;} }
+</style>
+<svg class="hm-c" viewBox="0 0 400 204" role="img"
+     aria-label="Four boxes in a row: operator, HMI FUXA on port 1881, PLC OpenPLC on Modbus port 502, and the plant. A command travels left to right from the operator to the plant; a measured value travels right to left back to the operator's screen. Three attacks cut the chain at three different links: a dictionary attack on the FUXA login, a man in the middle on the Modbus connection between HMI and PLC, and a register flood at the PLC end. Each breaks a different link of the same chain of trust.">
+  <g font-size="12" text-anchor="middle">
+    <rect x="8" y="30" width="84" height="40" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+    <text x="50" y="48" font-weight="bold">Operator</text><text x="50" y="62" font-size="11" opacity="0.85">eyes &amp; hands</text>
+    <rect x="106" y="30" width="84" height="40" rx="5" fill="#ff6b00"/>
+    <text x="148" y="48" font-weight="bold" style="fill:#1a1a1a">FUXA</text><text x="148" y="62" font-size="11" style="fill:#1a1a1a">:1881</text>
+    <rect x="204" y="30" width="84" height="40" rx="5" fill="#ff6b00"/>
+    <text x="246" y="48" font-weight="bold" style="fill:#1a1a1a">OpenPLC</text><text x="246" y="62" font-size="11" style="fill:#1a1a1a">:502</text>
+    <rect x="302" y="30" width="90" height="40" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+    <text x="347" y="48" font-weight="bold">the plant</text><text x="347" y="62" font-size="11" opacity="0.85">tanks, valves</text>
   </g>
-  <line x1="100" y1="72" x2="138" y2="72" stroke="#ff6b00" stroke-width="2" marker-end="url(#h)"/>
-  <line x1="230" y1="72" x2="268" y2="72" stroke="#ff6b00" stroke-width="2" marker-end="url(#h)"/>
-  <text x="250" y="44" text-anchor="middle" font-size="11">Modbus</text>
-  <line x1="360" y1="72" x2="398" y2="72" stroke="#ff6b00" stroke-width="2" marker-end="url(#h)"/>
-  <text x="55" y="120" font-size="11" opacity="0.7">Trust flows right; consequences flow left as displayed values.</text>
+  <g stroke="currentColor" stroke-opacity="0.65" stroke-width="2">
+    <line x1="92" y1="50" x2="104" y2="50"/><line x1="190" y1="50" x2="202" y2="50"/><line x1="288" y1="50" x2="300" y2="50"/>
+  </g>
+  <text x="197" y="22" text-anchor="middle" font-size="11" opacity="0.85">Modbus TCP &mdash; the same writes anyone else can send</text>
+
+  <circle class="cmd" cx="98" cy="86" r="6" fill="#ff6b00"/>
+  <text x="98" y="104" text-anchor="middle" font-size="11" fill="#ff6b00" font-weight="bold">command</text>
+  <circle class="val" cx="294" cy="86" r="6" fill="currentColor" fill-opacity="0.85"/>
+  <text x="294" y="104" text-anchor="middle" font-size="11" opacity="0.85">measured value</text>
+
+  <g font-size="12" font-weight="bold">
+    <g class="k1">
+      <path d="M 148 122 L 148 78" stroke="#ff6b00" stroke-width="3"/>
+      <path d="M 140 88 L 156 104 M 140 104 L 156 88" stroke="#ff6b00" stroke-width="3"/>
+      <text x="8" y="146" fill="#ff6b00">Password Attack &mdash; guess the login, become the operator</text>
+      <text x="8" y="164" font-size="11" opacity="0.85">credentials and a path, in one step</text>
+    </g>
+    <g class="k2">
+      <path d="M 197 122 L 197 60" stroke="#ff6b00" stroke-width="3"/>
+      <path d="M 189 76 L 205 92 M 189 92 L 205 76" stroke="#ff6b00" stroke-width="3"/>
+      <text x="8" y="146" fill="#ff6b00">Man in the Middle &mdash; sit on the wire, edit both directions</text>
+      <text x="8" y="164" font-size="11" opacity="0.85">neither end can tell</text>
+    </g>
+    <g class="k3">
+      <path d="M 246 122 L 246 78" stroke="#ff6b00" stroke-width="3"/>
+      <path d="M 238 88 L 254 104 M 238 104 L 254 88" stroke="#ff6b00" stroke-width="3"/>
+      <text x="8" y="146" fill="#ff6b00">Flood &amp; Overwrite &mdash; pin the register the HMI reads</text>
+      <text x="8" y="164" font-size="11" opacity="0.85">no login, no wire access</text>
+    </g>
+  </g>
+  <text x="8" y="194" font-size="11" opacity="0.85">Three challenges, three links, one chain.</text>
 </svg>
-<figcaption>The operator sees the process only through the HMI. Fool the HMI, or the data feeding it, and you control what the operator believes.</figcaption>
+<figcaption>Watch the round trip first: a command goes right and becomes a coil write, a measured value comes back left and becomes a number on a screen. Then watch where each of the three challenges cuts in. They are usually taught as separate exercises; they are the same chain attacked at three depths, and the further right you get the less the operator can do about it. Guess the login and you inherit the HMI&rsquo;s credentials and its network path in one step. Sit on the wire and neither end can tell, because Modbus has no field in which to disagree. Pin the register and you need neither: just write the word more often than the sensor does.</figcaption>
+</figure>
+
+FUXA's device entry says `openplc:502`, plain Modbus TCP, and its tag table is a list of register addresses: `GST`, `HPT`, `systemSen`, `boSen`, `stop`, `manual` as holding registers, and `heartbeat`, `compressor`, `systemValve`, `gstSig` as coils. Nothing in that list is authenticated. FUXA's own login &mdash; `operator` with an `operator` password, and a `viewer` account beside it &mdash; protects the *screen*, not the plant. Anyone who can reach port 502 skips the screen.
+
+## The screen can contradict itself, and does
+
+The most useful thing about an HMI for a defender is that it shows several values from several sources. The most dangerous is that the operator reads them as one picture.
+
+<figure>
+<style>
+.article figure svg.hm-t {min-width: 400px;}
+.hm-t {--t: 16s;}
+/* The playhead and the two traces share one 16 s clock across a 60 s span,
+   so 1 s of plant time is 0.267 s here. The alarm step is at t = 32 s, which
+   is 53.3% of the span -- the measured moment, not a convenient one. */
+.hm-t .head {animation: ht-head var(--t) linear infinite;}
+.hm-t .hpt  {stroke-dasharray:1000; animation: ht-draw var(--t) linear infinite;}
+.hm-t .bo   {stroke-dasharray:1000; animation: ht-draw var(--t) linear infinite;}
+.hm-t .alm  {opacity:1; animation: ht-alm var(--t) steps(1,end) infinite;}
+@keyframes ht-head {0%{transform:translateX(0)} 90%,100%{transform:translateX(288px)}}
+@keyframes ht-draw {0%{stroke-dashoffset:1000} 90%,100%{stroke-dashoffset:0}}
+@keyframes ht-alm  {0%,47.9%{opacity:0} 48%,100%{opacity:1}}
+@media (prefers-reduced-motion: reduce) { .hm-t * {animation:none !important;} }
+</style>
+<svg class="hm-t" viewBox="0 0 400 200" role="img"
+     aria-label="Two FUXA trends over sixty seconds during a register flood, measured on this stack. The HPT trend, which reads holding register 1126, stays flat at ten for the whole minute. The blow-out flag, which reads holding register 1134 and is written by hwio from the true pressure, steps from zero to one at thirty-two seconds. The operator's screen therefore shows a calm tank and a blow-out alarm at the same time, and the alarm is the honest one.">
+  <text x="8" y="18" font-size="12" font-weight="bold">FUXA, &ldquo;System values&rdquo;, during a flood</text>
+  <line x1="60" y1="150" x2="356" y2="150" stroke="currentColor" stroke-opacity="0.6"/>
+  <line x1="60" y1="34" x2="60" y2="150" stroke="currentColor" stroke-opacity="0.6"/>
+  <g font-size="11" opacity="0.8">
+    <text x="60" y="166" text-anchor="middle">0 s</text>
+    <text x="208" y="166" text-anchor="middle">30</text>
+    <text x="356" y="166" text-anchor="middle">60</text>
+  </g>
+
+  <polyline class="hpt" pathLength="1000" points="60,128 356,128" fill="none" stroke="#ff6b00" stroke-width="3" stroke-linecap="round"/>
+  <text x="66" y="120" font-size="12" fill="#ff6b00" font-weight="bold">HPT &mdash; register 1126 &mdash; flat at 10</text>
+
+  <polyline class="bo" pathLength="1000" points="60,80 218,80 218,50 356,50" fill="none" stroke="currentColor" stroke-width="3" stroke-opacity="0.85"/>
+  <text x="66" y="72" font-size="12" font-weight="bold">boSen &mdash; register 1134 &mdash; blow-out</text>
+  <text class="alm" x="352" y="42" text-anchor="end" font-size="12" font-weight="bold" fill="#ff6b00">alarm at 32 s</text>
+
+  <g class="head"><line x1="60" y1="30" x2="60" y2="154" stroke="currentColor" stroke-width="2"/></g>
+  <text x="8" y="188" font-size="11" opacity="0.85">Same chart. Different registers. Only one is lying.</text>
+</svg>
+<figcaption>Measured on this stack: with a flood pinning register 1126 at 10, FUXA's HPT trend held a flat 10 for the whole minute while <code>boSen</code> went high at thirty-two seconds. The operator is looking at one chart showing a quiet tank and an alarm that says it is venting. Nothing on the screen says which to believe &mdash; but the two values arrived by different routes, and that difference is the only evidence there is.</figcaption>
+</figure>
+
+That is the general defensive shape: **a value and its corroboration should not come down the same path.** `HPT` and `boSen` are both Modbus holding registers from the same PLC over the same socket, so this is a weak version of it &mdash; the attacker simply did not think to flood the second one. Real corroboration means a different sensor, a different protocol, or a different network. The *Detect Modbus Flooding* module takes the other route again: it does not compare values at all, it watches the wire for the flood itself.
+
+## The address on the screen is not the address on the wire
+
+One practical trap, and it is the reason a learner's first Modbus client usually reads the wrong word.
+
+<figure>
+<style>
+.article figure svg.hm-a {min-width: 400px;}
+.hm-a {--a: 9s;}
+.hm-a .slide {animation: ha-slide var(--a) cubic-bezier(.4,0,.2,1) infinite;}
+.hm-a .off   {opacity:1; animation: ha-off var(--a) steps(1,end) infinite;}
+@keyframes ha-slide {0%,22%{transform:translateX(0)} 44%,100%{transform:translateX(-96px)}}
+@keyframes ha-off   {0%,43.9%{opacity:0} 44%,100%{opacity:1}}
+@media (prefers-reduced-motion: reduce) { .hm-a * {animation:none !important;} }
+</style>
+<svg class="hm-a" viewBox="0 0 400 176" role="img"
+     aria-label="FUXA lists the HPT tag at address 1127 and the GST tag at 1125. Those are one-based Modbus addresses. On the wire the same words are holding registers 1126 and 1124, which is what the PLC program declares as percent MW 102 and percent MW 100. The tag address slides down by one to become the register address. Every coil is offset the same way: FUXA's compressor at 2 is coil 1.">
+  <text x="8" y="18" font-size="12" font-weight="bold">The same word, counted twice</text>
+  <rect x="8" y="34" width="176" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="96" y="52" text-anchor="middle" font-size="11" opacity="0.85">FUXA tag table</text>
+  <text x="96" y="70" text-anchor="middle" font-size="13" font-weight="bold">HPT &rarr; address 1127</text>
+
+  <rect x="216" y="34" width="176" height="44" rx="5" fill="#ff6b00"/>
+  <text x="304" y="52" text-anchor="middle" font-size="11" style="fill:#1a1a1a">on the wire</text>
+  <text class="slide" x="304" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1127</text>
+  <text class="off" x="304" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1126</text>
+
+  <text class="off" x="200" y="100" text-anchor="middle" font-size="12" fill="#ff6b00" font-weight="bold">&minus;1</text>
+  <text x="8" y="128" font-size="12" opacity="0.9">FUXA counts from one. The protocol counts from zero.</text>
+  <text x="8" y="146" font-size="12" opacity="0.9">&#37;MW102 &rarr; 1024 + 102 = 1126, listed as 1127.</text>
+  <text x="8" y="168" font-size="11" opacity="0.85">Coils too: compressor at 2 is coil 1.</text>
+</svg>
+<figcaption>FUXA shows one-based addresses, the wire carries zero-based ones, and the two tables sit in different files. Coils are offset the same way, so FUXA&rsquo;s compressor at address 2 is coil 1 &mdash; read coil 2 and you get the system valve, which will also look like a plausible answer. Copy a number out of the HMI into a Modbus client and you read the neighbouring word &mdash; which usually holds something plausible, so nothing announces the mistake. This platform contains a live example: <code>software/opcua/opcua.py</code> mirrors six PLC values into its address space, and four of the six read the HMI&rsquo;s number rather than the wire&rsquo;s.</figcaption>
 </figure>
 
 ## Why the HMI is a high-value target
 
-- It holds **valid credentials** and network paths to the controllers.
-- It can **command** the process directly.
-- The operator **trusts what it shows**. The Stuxnet worm famously replayed normal readings to the HMI while sabotaging the centrifuges underneath &mdash; a lie in the supervisory layer.
+- It holds **valid credentials** and a working network path to the controllers. Compromising it skips the hard part.
+- It can **command** the process, and its commands look exactly like an engineer's, because they are the same writes.
+- The operator **trusts what it shows**. Stuxnet replayed recorded normal readings to the operator's screen while the centrifuges tore themselves apart underneath &mdash; the sabotage was in the process, but the *cover* was in the supervisory layer, and it is the cover that bought the time.
 
-In CybICS the FUXA login is a dictionary-attack target (the *password attack* challenge), and the man-in-the-middle challenge sits on the HMI-to-PLC link to alter what each side sees.
+In CybICS the FUXA login is the *Password Attack* target, the *Man in the Middle* challenge sits on the HMI-to-PLC link, and *Flood &amp; Overwrite* pins the register the HMI reads. Three different depths, one screen.
 
 ## Security relevance
 
-Protecting the supervisory layer means strong HMI authentication, restricting who can reach it, and protecting the integrity of the HMI-to-PLC traffic. When that traffic can be altered undetected, the operator's screen becomes untrustworthy &mdash; the most dangerous failure in a control room.
+Protecting the supervisory layer means strong authentication on the HMI, restricting who can reach it *and who can reach past it*, and giving the operator at least one value whose path is independent of the others. The last one is the hardest and the most valuable: when every number on the screen came down the same wire, an attacker who owns that wire owns the operator's reality, and the screen will look completely normal while it happens.
