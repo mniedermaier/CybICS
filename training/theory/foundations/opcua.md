@@ -10,11 +10,11 @@ A client does not simply connect and read. It opens a **secure channel**, create
 
 <figure>
 <style>
-/* Two clocks that stay in phase: the four messages replay every 6 s, the
-   identity being offered changes every 6 s as well but cycles through three
-   over 18 s. 18 is an exact multiple of 6, so a run never starts mid-sequence. */
+/* Two clocks that stay in phase: the four messages replay every 8 s and the
+   identity cycles through three over 24 s. 24 is an exact multiple of 8, so a
+   run never starts mid-sequence. */
 .article figure {overflow-x: auto;}
-.article figure svg.ua-h {min-width: 520px;}
+.article figure svg.ua-h {min-width: 400px;}
 .ua-h {--m: 8s; --i: 24s;}
 /* The base state is a complete run, not an empty diagram: a browser that drops
    animations (a print, a preview, a screenshot) gets the middle case, which is
@@ -48,51 +48,51 @@ A client does not simply connect and read. It opens a **secure channel**, create
   .ua-h * {animation:none !important;}
 }
 </style>
-<svg class="ua-h" viewBox="0 0 520 252" role="img"
+<svg class="ua-h" viewBox="0 0 400 252" role="img"
      aria-label="An OPC-UA session being established four messages at a time. Hello and Acknowledge, then OpenSecureChannel, then CreateSession, all of which succeed for every client. The fourth message, ActivateSession, carries the user identity, and only there is the client accepted or refused. An anonymous identity is refused with BadUserAccessDenied; the username user1 is accepted with the User role, which may read but not write; the registered admin certificate is accepted with the Admin role, which may also write.">
-  <rect x="10" y="12" width="104" height="40" rx="6" fill="#ff6b00"/>
-  <text x="62" y="37" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">Client</text>
-  <rect x="406" y="12" width="104" height="40" rx="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-  <text x="458" y="31" text-anchor="middle" font-size="13" font-weight="bold">CybICS server</text>
-  <text x="458" y="46" text-anchor="middle" font-size="12" opacity="0.85">:4840</text>
+  <rect x="8" y="12" width="88" height="40" rx="6" fill="#ff6b00"/>
+  <text x="52" y="37" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">Client</text>
+  <rect x="296" y="12" width="96" height="40" rx="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="344" y="31" text-anchor="middle" font-size="12" font-weight="bold">CybICS server</text>
+  <text x="344" y="46" text-anchor="middle" font-size="12" opacity="0.85">:4840</text>
   <defs>
     <marker id="ua-a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b00"/></marker>
   </defs>
   <g font-size="12">
     <g class="m1">
-      <line x1="114" y1="82" x2="404" y2="82" stroke="#ff6b00" stroke-width="2" marker-end="url(#ua-a)"/>
-      <text x="259" y="76" text-anchor="middle">1. HEL / ACK &mdash; agree on buffer sizes</text>
+      <line x1="96" y1="82" x2="294" y2="82" stroke="#ff6b00" stroke-width="2" marker-end="url(#ua-a)"/>
+      <text x="198" y="76" text-anchor="middle">1. HEL / ACK &mdash; agree on buffer sizes</text>
     </g>
     <g class="m2">
-      <line x1="114" y1="114" x2="404" y2="114" stroke="#ff6b00" stroke-width="2" marker-end="url(#ua-a)"/>
-      <text x="259" y="108" text-anchor="middle">2. OpenSecureChannel &mdash; pick a policy</text>
+      <line x1="96" y1="114" x2="294" y2="114" stroke="#ff6b00" stroke-width="2" marker-end="url(#ua-a)"/>
+      <text x="198" y="108" text-anchor="middle">2. OpenSecureChannel &mdash; pick a policy</text>
     </g>
     <g class="m3">
-      <line x1="114" y1="146" x2="404" y2="146" stroke="#ff6b00" stroke-width="2" marker-end="url(#ua-a)"/>
-      <text x="259" y="140" text-anchor="middle">3. CreateSession &mdash; still nobody has said who they are</text>
+      <line x1="96" y1="146" x2="294" y2="146" stroke="#ff6b00" stroke-width="2" marker-end="url(#ua-a)"/>
+      <text x="198" y="140" text-anchor="middle">3. CreateSession &mdash; nobody has said who they are yet</text>
     </g>
     <g class="m4">
-      <line x1="114" y1="182" x2="404" y2="182" stroke="#ff6b00" stroke-width="3" marker-end="url(#ua-a)"/>
-      <text x="259" y="176" text-anchor="middle" font-weight="bold">4. ActivateSession &mdash; the identity travels here</text>
+      <line x1="96" y1="182" x2="294" y2="182" stroke="#ff6b00" stroke-width="3" marker-end="url(#ua-a)"/>
+      <text x="198" y="176" text-anchor="middle" font-weight="bold">4. ActivateSession &mdash; the identity travels here</text>
       <g font-size="12" font-weight="bold">
-        <text class="idA" x="259" y="200" text-anchor="middle" fill="#ff6b00">identity: Anonymous</text>
-        <text class="idB" x="259" y="200" text-anchor="middle" fill="#ff6b00">identity: user1 + password</text>
-        <text class="idC" x="259" y="200" text-anchor="middle" fill="#ff6b00">identity: the admin certificate</text>
+        <text class="idA" x="198" y="200" text-anchor="middle" fill="#ff6b00">identity: Anonymous</text>
+        <text class="idB" x="198" y="200" text-anchor="middle" fill="#ff6b00">identity: user1 + password</text>
+        <text class="idC" x="198" y="200" text-anchor="middle" fill="#ff6b00">identity: the admin certificate</text>
       </g>
     </g>
   </g>
   <g class="vd" font-size="12">
     <g class="vA">
-      <rect x="86" y="216" width="348" height="26" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="260" y="234" text-anchor="middle" font-weight="bold">refused here: BadUserAccessDenied &mdash; no session at all</text>
+      <rect x="28" y="216" width="344" height="26" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+      <text x="200" y="234" text-anchor="middle" font-weight="bold">refused at step 4 &mdash; BadUserAccessDenied</text>
     </g>
     <g class="vB">
-      <rect x="86" y="216" width="348" height="26" rx="4" fill="#ff6b00"/>
-      <text x="260" y="234" text-anchor="middle" font-weight="bold" style="fill:#1a1a1a">role User &mdash; may read every node, may write none</text>
+      <rect x="28" y="216" width="344" height="26" rx="4" fill="#ff6b00"/>
+      <text x="200" y="234" text-anchor="middle" font-weight="bold" style="fill:#1a1a1a">role User &mdash; may read every node, may write none</text>
     </g>
     <g class="vC">
-      <rect x="86" y="216" width="348" height="26" rx="4" fill="#ff6b00"/>
-      <text x="260" y="234" text-anchor="middle" font-weight="bold" style="fill:#1a1a1a">role Admin &mdash; may read and write</text>
+      <rect x="28" y="216" width="344" height="26" rx="4" fill="#ff6b00"/>
+      <text x="200" y="234" text-anchor="middle" font-weight="bold" style="fill:#1a1a1a">role Admin &mdash; may read and write</text>
     </g>
   </g>
 </svg>
@@ -101,11 +101,11 @@ A client does not simply connect and read. It opens a **secure channel**, create
 
 This matters because the two halves are genuinely independent. You can have an encrypted channel carrying an anonymous user, or a completely unencrypted channel carrying an administrator's certificate. "We use OPC-UA with encryption" answers only one of the two questions.
 
-On this server the roles come from `SimpleRoleRuleset`, whose own docstring is the clearest statement of the model: *admins alone can write, admins and users can read, and anonymous users can't do anything*. That last clause is not a formality. An anonymous client here does not get a read-only view; it is refused at `ActivateSession` with `BadUserAccessDenied` and never holds a session. Connecting anonymously against the running server returns exactly that.
+On this server the roles come from `SimpleRoleRuleset`, whose own docstring is the clearest statement of the model: *admins alone can write, admins and users can read, and anonymous users can't do anything*. That last clause is not a formality. An anonymous client here does not get a read-only view. Its `CreateSession` succeeds &mdash; the server hands it a session &mdash; and then `ActivateSession` is refused with `BadUserAccessDenied`, so it holds a session it can never use. Connecting anonymously against the running server returns exactly that.
 
 `software/opcua/opcua.py` offers two channel policies, `NoSecurity` and `Basic256Sha256_SignAndEncrypt`, and three identity tokens, `Anonymous`, `Username` and `Basic256Sha256` (certificate). Anonymous is on that list, so a client is free to offer it &mdash; and then `Pw_Cert_UserManager.get_user` finds no username in either database and no certificate, returns `None`, and the session is never activated. The ruleset's empty anonymous permission set is never consulted at all. Two independent parts of the configuration happen to agree here, which is a comfortable place to be and a fragile one: relax either and the other still looks like it is doing the work.
 
-The six process nodes are mirrors, refreshed from OpenPLC over Modbus by the server's own loop every two seconds. `GST` and `HPT` come from holding registers 1124 and 1126 &mdash; the same two words the *Modbus* and *Flood &amp; Overwrite* topics are about, republished under `http://opcua.cybics.github.io` with sessions and roles in front of them. Reading a node here is reading that register, one gateway removed. Worth knowing that the gateway is a place the truth can be lost as well: four of the six mirrors read an address that is one off, or in the wrong space entirely, having been transcribed from the HMI's one-based tag table into a zero-based client call.
+The six process nodes are mirrors, refreshed from OpenPLC over Modbus by the server's own loop every two seconds. `GST` and `HPT` come from holding registers 1124 and 1126 &mdash; the same two words the *Modbus* and *Flood &amp; Overwrite* topics are about, republished under `http://opcua.cybics.github.io` with sessions and roles in front of them. Reading a node here is reading that register, one gateway removed. Worth knowing that the gateway is a place the truth can be lost as well. Four of the six mirrors read the wrong register. `stop` and `manual` are one too high &mdash; 1129 and 1131 against the 1128 and 1130 that `%MW104` and `%MW106` map to. `systemSen` and `boSen` are not close at all: they read holding registers **2** and **3**, which the program declares nowhere and which are therefore always zero. You can watch that one: register 1132 reads 1 while the OPC-UA `systemSen` node reads 0.
 
 ## What an unencrypted channel actually leaks
 
@@ -113,7 +113,7 @@ The obvious conclusion is that a `None` channel hands a sniffer everything. Capt
 
 <figure>
 <style>
-.article figure svg.ua-w {min-width: 520px;}
+.article figure svg.ua-w {min-width: 400px;}
 .ua-w {--w: 12s;}
 /* The playhead sweeps the four fields of the identity token in turn; the
    read-out underneath says what a sniffer gets from the field it is over. */
@@ -123,22 +123,16 @@ The obvious conclusion is that a `None` channel hands a sniffer everything. Capt
 .ua-w .r3 {opacity:1; animation: uw-r3 var(--w) steps(1,end) infinite;}
 .ua-w .r4 {opacity:0; animation: uw-r4 var(--w) steps(1,end) infinite;}
 
-
-
-
 /* Base state is the third field, the password -- the one the figure exists
    to make a point about. */
-.ua-w .ph {transform: translateX(302px);}
+.ua-w .ph {transform: translateX(249px);}
 
 /* The marker apex is at x=10, so a translate of t puts it at 10+t; the four
-   field centres are 64, 180, 312 and 450. steps(4,end) over a linear 0..432
-   put it at 10, 118, 226 and 334 -- under the wrong box for three of the four
-   steps, and never under the last box at all. */
-@keyframes uw-ph {0%,24.9%{transform:translateX(54px)}  25%,49.9%{transform:translateX(170px)}
-                  50%,74.9%{transform:translateX(302px)} 75%,100%{transform:translateX(440px)}}
-
-
-
+   field centres are 55, 155, 259 and 354, so each translate is that minus
+   ten. An even four-step sweep put the marker under the wrong box for three
+   of the four steps and never reached the last box at all. */
+@keyframes uw-ph {0%,24.9%{transform:translateX(45px)}  25%,49.9%{transform:translateX(145px)}
+                  50%,74.9%{transform:translateX(249px)} 75%,100%{transform:translateX(344px)}}
 
 @keyframes uw-r1 {0%,24.9%{opacity:1} 25%,100%{opacity:0}}
 @keyframes uw-r2 {0%,24.9%{opacity:0} 25%,49.9%{opacity:1} 50%,100%{opacity:0}}
@@ -146,34 +140,34 @@ The obvious conclusion is that a `None` channel hands a sniffer everything. Capt
 @keyframes uw-r4 {0%,74.9%{opacity:0} 75%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) { .ua-w * {animation:none !important;} }
 </style>
-<svg class="ua-w" viewBox="0 0 520 186" role="img"
+<svg class="ua-w" viewBox="0 0 400 186" role="img"
      aria-label="The four fields of an OPC-UA username identity token as they appear on an unencrypted channel. The policy identifier reads username in clear text. The user name reads user1 in clear text. The password is an RSA-OAEP ciphertext and reveals nothing. The fourth field names the algorithm, rsa-oaep, in clear text. A sniffer therefore harvests account names but not passwords.">
-  <text x="10" y="22" font-size="13" font-weight="bold">UserNameIdentityToken, channel policy None</text>
+  <text x="8" y="22" font-size="13" font-weight="bold">UserNameIdentityToken, channel policy None</text>
   <g font-size="12">
-    <rect class="f1" x="10" y="38" width="108" height="40" rx="4" fill="#ff6b00"/>
-    <text x="64" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">policyId</text>
-    <text x="64" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">"username"</text>
-    <rect class="f2" x="126" y="38" width="108" height="40" rx="4" fill="#ff6b00"/>
-    <text x="180" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">userName</text>
-    <text x="180" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">"user1"</text>
-    <rect class="f3" x="242" y="38" width="140" height="40" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-    <text x="312" y="55" text-anchor="middle" font-size="11" opacity="0.85">password</text>
-    <text x="312" y="71" text-anchor="middle" font-weight="bold" font-family="monospace">b7 2d 22 8f 3a &hellip;</text>
-    <rect class="f4" x="390" y="38" width="120" height="40" rx="4" fill="#ff6b00"/>
-    <text x="450" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">encryptionAlgorithm</text>
-    <text x="450" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">rsa-oaep</text>
+    <rect class="f1" x="8" y="38" width="94" height="40" rx="4" fill="#ff6b00"/>
+    <text x="55" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">policyId</text>
+    <text x="55" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">"username"</text>
+    <rect class="f2" x="108" y="38" width="94" height="40" rx="4" fill="#ff6b00"/>
+    <text x="155" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">userName</text>
+    <text x="155" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">"user1"</text>
+    <rect class="f3" x="208" y="38" width="102" height="40" rx="4" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+    <text x="259" y="55" text-anchor="middle" font-size="11" opacity="0.85">password</text>
+    <text x="259" y="71" text-anchor="middle" font-weight="bold" font-family="monospace">b7 2d 22 &hellip;</text>
+    <rect class="f4" x="316" y="38" width="76" height="40" rx="4" fill="#ff6b00"/>
+    <text x="354" y="55" text-anchor="middle" style="fill:#1a1a1a" font-size="11">algorithm</text>
+    <text x="354" y="71" text-anchor="middle" style="fill:#1a1a1a" font-weight="bold">rsa-oaep</text>
   </g>
   <g class="ph"><path d="M 6 84 L 14 84 L 10 92 Z" fill="#ff6b00"/><line x1="10" y1="92" x2="10" y2="100" stroke="#ff6b00" stroke-width="2"/></g>
-  <text x="10" y="126" font-size="13" font-weight="bold" opacity="0.85">what a capture gives you:</text>
+  <text x="8" y="126" font-size="13" font-weight="bold" opacity="0.85">what a capture gives you:</text>
   <g font-size="13" font-weight="bold">
-    <text class="r1" x="10" y="148" fill="#ff6b00">the token type &mdash; this client is using a password</text>
-    <text class="r2" x="10" y="148" fill="#ff6b00">the account name &mdash; "user1", in clear text</text>
-    <text class="r3" x="10" y="148" fill="#ff6b00">nothing: RSA-OAEP under the server's public key</text>
-    <text class="r4" x="10" y="148" fill="#ff6b00">the algorithm that protected it</text>
+    <text class="r1" x="8" y="148" fill="#ff6b00">the token type &mdash; this client is using a password</text>
+    <text class="r2" x="8" y="148" fill="#ff6b00">the account name &mdash; "user1", in clear text</text>
+    <text class="r3" x="8" y="148" fill="#ff6b00">nothing: RSA-OAEP under the server's public key</text>
+    <text class="r4" x="8" y="148" fill="#ff6b00">the algorithm that protected it</text>
   </g>
-  <text x="10" y="172" font-size="12" opacity="0.85">Channel policy: None throughout. The password still never appeared.</text>
+  <text x="8" y="172" font-size="12" opacity="0.85">Channel policy None throughout. The password never appeared.</text>
 </svg>
-<figcaption>Four fields, swept left to right, with the read-out underneath saying what each one yields. The token encrypts its own password with the server's certificate whatever the channel does, so an unencrypted OPC-UA session leaks account names and leaks no passwords. That is a narrower hole than Modbus has, and it is still a hole: a name is half a credential, and knowing the account exists is what makes guessing worth starting.</figcaption>
+<figcaption>Four fields, swept left to right, with the read-out underneath saying what each one yields. The reason is not that tokens always protect themselves. Each endpoint pairs a channel policy with a policy for each identity token, and this server's two endpoints pair them in opposite directions: on the <code>None</code> channel the <code>username</code> token carries <code>Basic256Sha256</code>, so the client encrypts the password under the server&rsquo;s certificate; on the <code>Basic256Sha256</code> channel the same token carries <code>None</code>, because the channel is already doing it. Somebody chose that. A server that leaves the token policy at <code>None</code> over a <code>None</code> channel puts the password on the wire in clear. That is a narrower hole than Modbus has, and it is still a hole: a name is half a credential, and knowing the account exists is what makes guessing worth starting.</figcaption>
 </figure>
 
 Measured, not assumed: in a capture of a full `user1` login taken on the container bridge, the string `user1` appears in clear text inside the `ActivateSessionRequest`, the password `test` appears **zero** times anywhere in the capture, and the token carries `http://www.w3.org/2001/04/xmlenc#rsa-oaep` immediately after it. The channel in the same capture negotiated `http://opcfoundation.org/UA/SecurityPolicy#None`.
@@ -222,20 +216,20 @@ The user-tier flag is an ordinary variable; a `User` session reads it directly. 
 
   <rect x="118" y="26" width="228" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
   <text x="222" y="44" text-anchor="middle" font-size="11" opacity="0.85">"Set &gt; 0 to obtain flag!"</text>
-  <text class="z0" x="222" y="62" text-anchor="middle" font-size="14" font-weight="bold" fill="#ff6b00">0</text>
-  <text class="z1" x="222" y="62" text-anchor="middle" font-size="14" font-weight="bold" fill="#ff6b00">1</text>
+  <text class="z0" x="222" y="62" text-anchor="middle" font-size="14" font-weight="bold">0</text>
+  <text class="z1" x="222" y="62" text-anchor="middle" font-size="14" font-weight="bold">1</text>
   <line x1="88" y1="48" x2="114" y2="48" stroke="currentColor" stroke-opacity="0.65" stroke-width="2" marker-end="url(#ua-b)"/>
   <text x="352" y="20" text-anchor="end" font-size="11" opacity="0.85">the loop reads this &hellip;</text>
 
   <rect x="118" y="100" width="228" height="48" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
   <text x="222" y="118" text-anchor="middle" font-size="11" opacity="0.85">adminFLAG</text>
   <text class="fl0" x="222" y="136" text-anchor="middle" font-size="12">"set the correct variable &gt; 0"</text>
-  <text class="fl1" x="222" y="136" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff6b00">CybICS(&hellip;)</text>
+  <text class="fl1" x="222" y="136" text-anchor="middle" font-size="13" font-weight="bold">CybICS(&hellip;)</text>
   <line x1="88" y1="122" x2="114" y2="122" stroke="currentColor" stroke-opacity="0.65" stroke-width="2" marker-end="url(#ua-b)"/>
   <text x="352" y="164" text-anchor="end" font-size="11" opacity="0.85">&hellip; and writes this, up to 2 s later</text>
 
   <g class="wr">
-    <line x1="222" y1="216" x2="222" y2="76" stroke="#ff6b00" stroke-width="3" marker-end="url(#ua-b)"/>
+    <path d="M 222 216 L 104 216 L 104 60 L 114 60" fill="none" stroke="#ff6b00" stroke-width="3" marker-end="url(#ua-b)"/>
     <text x="222" y="232" text-anchor="middle" font-size="13" font-weight="bold" fill="#ff6b00">Admin writes 1</text>
   </g>
   <g class="deny">
@@ -248,12 +242,12 @@ The user-tier flag is an ordinary variable; a `User` session reads it directly. 
 <figcaption>Two writes to the same variable, one refused and one accepted, and then a pause before anything visible happens. That pause is the lesson: the write lands on a trigger, and the server's own loop &mdash; <code>await asyncio.sleep(2)</code> &mdash; is what replaces the flag text on its next pass. A client that writes the trigger and reads back immediately sees the old value and concludes it failed. With motion switched off the figure holds the moment after the accepted write and before the loop has noticed.</figcaption>
 </figure>
 
-Reaching `Admin` is not a matter of a better password. `admin_db` in `software/opcua/user_manager.py` is empty &mdash; its only entry is commented out &mdash; so no username and password combination reaches the admin role at all. Admin is bound to one certificate, registered at start-up by `add_admin("certificates/trusted/cert_admin.der")`, and that certificate and its private key are both in the repository. The challenge is a leaked-key exercise wearing the clothes of a password exercise, which is the more realistic of the two: keys leak more quietly than passwords, and nothing expires them here.
+Reaching `Admin` is not a matter of a better password. `admin_db` in `software/opcua/user_manager.py` is empty &mdash; its only entry is commented out &mdash; so no username and password combination reaches the admin role at all. Admin is bound to one certificate, registered at start-up by `add_admin("certificates/trusted/cert_admin.der", name='test_admin')`, and that certificate and its private key are both in the repository. The challenge is a leaked-key exercise wearing the clothes of a password exercise, which is the more realistic of the two: keys leak more quietly than passwords, and nothing expires them here.
 
 ## Where it goes wrong in general
 
-- **SecurityPolicy None** &mdash; the channel is neither signed nor encrypted. Reads, writes and node names are all in the clear, and a sniffer learns the address space for free. The password token is a separate mechanism and survives this; nothing else does.
-- **Anonymous access** &mdash; harmless on this server because the ruleset gives anonymous no permissions, and dangerous on a server that gives it read access, which is the common default.
+- **SecurityPolicy None** &mdash; the channel is neither signed nor encrypted. Reads, writes and node names are all in the clear, and a sniffer learns the address space for free. Whether the password survives it is a separate setting, not a separate guarantee: this server attaches `Basic256Sha256` to the username token on that endpoint, and a server that does not puts the credential in the clear alongside everything else.
+- **Anonymous access** &mdash; refused outright here, because the user manager returns no user at all for it, and dangerous on a server that admits it with read access, which is the common default.
 - **Certificates trusted too broadly, or leaked.** A certificate in a repository is a credential in a repository.
 
 ## Detection
