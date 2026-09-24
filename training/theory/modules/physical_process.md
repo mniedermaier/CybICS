@@ -10,7 +10,7 @@ The simulation advances in ticks. A tick is one pass of the `if delay > 50` gate
 
 <figure>
 <style>
-.article figure svg.pp-b {min-width: 360px;}
+.article figure svg.pp-b {min-width: 388px;}
 .pp-b {--b: 16s;}
 /* The template retints text, strokes and path fills but not a rect, and this
    level is the figure's primary data mark: #ff6b00 on white is 2.86:1. It
@@ -67,7 +67,7 @@ That last comparison is the one people get wrong. The valve does not hold the pr
 
 <figure>
 <style>
-.article figure svg.pp-l {min-width: 360px;}
+.article figure svg.pp-l {min-width: 388px;}
 .pp-l {--l: 14s;}
 /* The trace and the latch state share one clock, because the whole point is
    which one changes first: the latch opens the tick after 220 is passed and

@@ -8,7 +8,7 @@ On this plant that produces two answers, from two different servers, and neither
 
 <figure>
 <style>
-.article figure svg.s7-t {min-width: 360px;}
+.article figure svg.s7-t {min-width: 388px;}
 .s7-t {--t: 16s;}
 /* The probe visits each endpoint in turn and its answer stays on screen, so
    the figure ends holding both identities side by side -- which is the
@@ -57,7 +57,7 @@ The second lesson takes three requests, and it is not the one you might expect.
 
 <figure>
 <style>
-.article figure svg.s7-s {min-width: 360px;}
+.article figure svg.s7-s {min-width: 388px;}
 .s7-s {--s: 15s;}
 /* Three different questions and one identical answer, drawn as three arrivals
    at one reply. The point is that the reply never changes, so the figure has

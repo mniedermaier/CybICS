@@ -8,7 +8,7 @@ The HMI is not wired to a sensor. It is a Modbus client. Every number on the scr
 
 <figure>
 <style>
-.article figure svg.hm-c {min-width: 360px;}
+.article figure svg.hm-c {min-width: 388px;}
 .hm-c {--p: 6s; --k: 18s;}
 /* theory_article.html retints text, path and stroke for the light theme but
    never a circle, so this marker stayed #ff6b00 on white: 2.86:1. */
@@ -101,7 +101,7 @@ The most useful thing about an HMI for a defender is that it shows several value
 
 <figure>
 <style>
-.article figure svg.hm-t {min-width: 360px;}
+.article figure svg.hm-t {min-width: 388px;}
 .hm-t {--t: 18s;}
 /* Each trace draws on its own dash length rather than a shared normalised
    sweep. They used to share one, and because the HPT trace spends arc length
@@ -155,7 +155,7 @@ One practical trap, and it is the reason a learner's first Modbus client usually
 
 <figure>
 <style>
-.article figure svg.hm-a {min-width: 360px;}
+.article figure svg.hm-a {min-width: 388px;}
 .hm-a {--a: 9s;}
 /* The base state is the settled one: the tag number has arrived and become
    the register number. Without it both texts sat at x=304 with opacity 1 and
