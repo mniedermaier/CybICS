@@ -151,6 +151,16 @@ Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the 
 
 <figure>
 <style>
+/* `.article figure svg` is capped at max-width:100%, so on a 390 px screen a
+   520-unit viewBox rendered its 13-unit labels at 7.9 CSS px. min-width beats
+   max-width, so each figure keeps one viewBox unit per pixel and scrolls
+   inside its own figure instead of shrinking below readability. The selector
+   has to be at least as specific as the template's `.article figure svg`: a
+   bare `svg.plt` is one step weaker and loses, silently. */
+.article figure {overflow-x: auto;}
+.article figure svg.pri, .article figure svg.pri-static,
+.article figure svg.pur {min-width: 520px;}
+.article figure svg.plt {min-width: 460px;}
 .plt {--t: 20s; --on:#ff6b00; --on-ink:#1a1a1a;}
 html.light-mode .plt {--on:#b34700; --on-ink:#ffffff;}
 html.light-mode .plt .hpt {fill:#b34700;}
@@ -172,41 +182,59 @@ html.light-mode .plt .gst {opacity:0.55;}
 .plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .ph-a{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
 .plt .stuck{opacity:0; animation: t-stuck var(--t) steps(1,end) infinite;}
+.plt .rst  {opacity:0; animation: t-rst   var(--t) steps(1,end) infinite;}
 .plt .sv-open{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .sv-shut{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
-/* One clock for every segment. Simulated against physical_process_thread over
-   2000 seeds each: 30 + 30 + 15 + 145 + 124 + 10 + 110 + 15 = 478 ticks, so a
-   20 s loop runs at 23.9 ticks per second throughout. Without that the vent
-   segment ran twice as fast as the fill it is supposed to look half as steep
-   as, and the figure contradicted its own caption. */
-@keyframes t-hpt {0%{transform:scaleY(0.235)}     6.27%{transform:scaleY(0.353)}
-                  12.58%{transform:scaleY(0.235)} 15.72%{transform:scaleY(0.294)}
-                  46.05%{transform:scaleY(0.863)} 71.94%,74.03%{transform:scaleY(1)}
-                  96.97%,100%{transform:scaleY(0.784)}}
-@keyframes t-gst {0%{transform:scaleY(0.941)}     6.27%,12.58%{transform:scaleY(0.706)}
-                  15.72%{transform:scaleY(0.588)} 46.05%{transform:scaleY(0.304)}
-                  71.94%,74.03%{transform:scaleY(0.216)}
-                  96.97%{transform:scaleY(0.863)} 100%{transform:scaleY(0.941)}}
-@keyframes t-comp {0%,6.27%{fill:var(--on); fill-opacity:1}
-                   6.28%,12.58%{fill:currentColor; fill-opacity:0.18}
-                   12.59%,74.03%{fill:var(--on); fill-opacity:1}
-                   74.04%,100%{fill:currentColor; fill-opacity:0.18}}
-@keyframes t-compt{0%,6.27%{fill:var(--on-ink)} 6.28%,12.58%{fill:currentColor}
-                   12.59%,74.03%{fill:var(--on-ink)} 74.04%,100%{fill:currentColor}}
-@keyframes t-vent {0%,46.04%{opacity:0} 46.05%,96.97%{opacity:1} 96.98%,100%{opacity:0}}
-@keyframes t-man  {0%,15.71%{opacity:0} 15.72%,100%{opacity:1}}
-@keyframes t-hold {0%,15.71%{opacity:0} 15.72%,74.03%{opacity:1} 74.04%,100%{opacity:0}}
-@keyframes t-phn  {0%,15.71%{opacity:1} 15.72%,100%{opacity:0}}
-@keyframes t-stuck{0%,96.96%{opacity:0} 96.97%,100%{opacity:1}}
+/* One clock for every segment, from a single chained run of
+   physical_process_thread over 3000 seeds -- one scenario start to finish, not
+   eight independent segments, so the state each segment hands to the next is
+   the state the model actually produces:
+     A  30  auto, compressor on,  60 -> 90     E   93  venting, 221 -> 255
+     B  30  auto, compressor off, 90 -> 60     F   10  pinned at the 255 cap
+     C  15  auto, compressor on,  60 -> 75     G  109  vent only, 255 -> 200
+     D 147  manual, valve shut,   75 -> 221    H   20  supply fills GST to 251
+     + 55 ticks of dwell = 509 ticks over 20 s = 25.4 ticks per second.
+   The vent segment used to be drawn at 124 ticks, a third too long, which made
+   the climb above 220 look 3.6x slower than the fill below it where the model
+   gives 2.7x. The extra slowdown is not the spring: by then the compressor is
+   duty-cycling on the `gst >= 50` guard about nine ticks in ten. The dwell is
+   real -- with the compressor off, the valve shut and the vent latch released
+   at 200 nothing moves the pressure, and once GST reaches the 251 supply cap
+   nothing moves that either. It is a genuine fixed point, which is the whole
+   point of the figure, so it now gets 2.9 s instead of 0.6 s. */
+@keyframes t-hpt {0%{transform:scaleY(0.235)}     5.90%{transform:scaleY(0.353)}
+                  11.84%{transform:scaleY(0.235)} 14.85%{transform:scaleY(0.294)}
+                  43.78%{transform:scaleY(0.867)} 61.98%,63.94%{transform:scaleY(1)}
+                  85.31%,100%{transform:scaleY(0.784)}}
+@keyframes t-gst {0%{transform:scaleY(0.941)}     5.90%,11.84%{transform:scaleY(0.706)}
+                  14.85%{transform:scaleY(0.588)} 43.78%{transform:scaleY(0.298)}
+                  61.98%{transform:scaleY(0.212)} 63.94%{transform:scaleY(0.236)}
+                  85.31%{transform:scaleY(0.871)} 89.19%,100%{transform:scaleY(0.984)}}
+@keyframes t-comp {0%,5.90%{fill:var(--on); fill-opacity:1}
+                   5.91%,11.84%{fill:currentColor; fill-opacity:0.18}
+                   11.85%,63.94%{fill:var(--on); fill-opacity:1}
+                   63.95%,100%{fill:currentColor; fill-opacity:0.18}}
+@keyframes t-compt{0%,5.90%{fill:var(--on-ink)} 5.91%,11.84%{fill:currentColor}
+                   11.85%,63.94%{fill:var(--on-ink)} 63.95%,100%{fill:currentColor}}
+@keyframes t-vent {0%,43.77%{opacity:0} 43.78%,85.31%{opacity:1} 85.32%,100%{opacity:0}}
+@keyframes t-man  {0%,14.84%{opacity:0} 14.85%,100%{opacity:1}}
+@keyframes t-hold {0%,14.84%{opacity:0} 14.85%,63.94%{opacity:1} 63.95%,100%{opacity:0}}
+@keyframes t-phn  {0%,14.84%{opacity:1} 14.85%,100%{opacity:0}}
+@keyframes t-stuck{0%,85.30%{opacity:0} 85.31%,100%{opacity:1}}
+/* The loop restart snaps the pressure from 200 back to 60, which silently
+   undoes the damage three paragraphs say cannot be undone. Naming it stops the
+   restart from reading as recovery. */
+@keyframes t-rst  {0%,97.49%{opacity:0} 97.50%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) {
   /* The frozen frame is the end state: compressor stopped, valve shut, the
-     pressure resting at 200 -- and the storage tank where 110 ticks of supply
-     actually leave it, which is 223, not the 103 this used to claim. */
-  .plt .gst {animation:none; transform:scaleY(0.875);}
+     pressure resting at 200 -- and the storage tank at 251, where the supply
+     valve's own `gst < 251` guard stops it. */
+  .plt .gst {animation:none; transform:scaleY(0.984);}
   .plt .hpt {animation:none; transform:scaleY(0.784);}
   .plt .comp {animation:none; fill:currentColor; fill-opacity:0.18;}
   .plt .compt{animation:none; fill:currentColor;}
   .plt .sup,.plt .ph-a,.plt .stuck,.plt .sv-shut {animation:none; opacity:1;}
+  .plt .rst {animation:none; opacity:0;}
   .plt .sv-open{animation:none; opacity:0;}
   .plt .man {animation:none; opacity:0;}
   .plt .vent{animation:none; opacity:0;}
@@ -240,13 +268,17 @@ html.light-mode .plt .gst {opacity:0.55;}
   <rect class="lvl hpt" x="292" y="72" width="52" height="126" fill="#ff6b00"/>
   <text x="318" y="216" text-anchor="middle" font-size="13" font-weight="bold">HPT</text>
   <g font-size="11">
-    <line x1="288" y1="89" x2="348" y2="89" stroke="#ff6b00" stroke-dasharray="4 3"/>
-    <text x="354" y="93" fill="#ff6b00">220</text>
-    <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
-    <text x="354" y="103" opacity="0.75">200</text>
-    <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <line x1="288" y1="89" x2="348" y2="89" stroke="currentColor" stroke-width="2" stroke-dasharray="5 5"/>
+    <line x1="288" y1="89" x2="348" y2="89" stroke="var(--on-ink)" stroke-width="2" stroke-dasharray="5 5" stroke-dashoffset="5"/>
+    <text x="354" y="85" fill="#ff6b00" font-weight="bold">220</text>
+    <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
+    <line x1="288" y1="99" x2="348" y2="99" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
+    <text x="354" y="111" opacity="0.75">200</text>
+    <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
+    <line x1="288" y1="149" x2="348" y2="149" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
     <text x="354" y="153" opacity="0.75">100</text>
-    <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+    <line x1="288" y1="168" x2="348" y2="168" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
+    <line x1="288" y1="168" x2="348" y2="168" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
     <text x="354" y="172" opacity="0.75">60</text>
   </g>
   <g class="vent">
@@ -282,8 +314,9 @@ html.light-mode .plt .gst {opacity:0.55;}
   <text class="stuck" x="354" y="126" font-size="13" fill="#ff6b00" font-weight="bold">stuck here</text>
   <text class="ph-n" x="10" y="308" font-size="13" opacity="0.85">automatic: the loop holds 60 to 90</text>
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
+  <text class="rst" x="450" y="308" font-size="13" text-anchor="end" font-weight="bold" fill="#ff6b00">loop restarts &mdash; the plant does not</text>
 </svg>
-<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90 with the system valve open, then with an operator in manual mode who has shut that valve. When the compressor finally stops, the pressure falls to 200 and no further. Without motion the figure shows that end state: valve shut, compressor stopped, the tank resting at 200.</figcaption>
+<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90 with the system valve open, then with an operator in manual mode who has shut that valve. When the compressor finally stops, the pressure falls to 200 and no further. With reduced motion the figure holds that end state instead of animating: valve shut, compressor stopped, the tank resting at 200 with the storage tank filled to its supply cap.</figcaption>
 </figure>
 
 The attack is the second half of that loop, and it is not a network attack at all. The *Physical Process* challenge has you log in to the FUXA HMI as `operator:operator`, press **Manual / Automatic**, close the system valve and run the compressor. Every step is a legitimate operator action; the damage comes from the combination &mdash; a shut valve with a running compressor.
@@ -294,12 +327,14 @@ Three details make it work, and each of them is a design decision rather than a 
 
 **The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure has fallen back to 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
 
+The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units out of storage for every one it delivers, and the storage tank is down at the `gst >= 50` floor. From there the compressor stalls on roughly one tick in ten, waiting for the supply valve to put back what it just took. The climb above 220 runs at about a third of its earlier rate &mdash; half of that from the vent, the rest from a compressor that can no longer find gas to move. Neither of them stops it.
+
 **And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help either. The valve is shut because the operator shut it, and handing the plant back to OpenPLC does not reopen it: the automatic rule only opens the valve between 50 and 100, and the tank is sitting at 200. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
 
 For scale: draining two units of storage per unit of pressure, a completely full storage tank buys 103 units of pressure before the compressor stalls at the `gst >= 50` guard. That is not enough to reach 220 from the normal band on its own, which is exactly why the supply valve matters.
 
 ## Why it matters for security
 
-Most ICS protocols have **no authentication and no encryption**, and the reason is concrete rather than philosophical: they were designed for a serial cable running inside a locked cabinet, where the cabinet was the access control. Nothing about the protocol changed when that cable became a network. OPC-UA, the newest thing on this plant, is the exception that shows the rule: it has sessions, certificates and users, and it is the only one of them that does. Any host that can reach a PLC can usually read and write its values. The rest of the Theory Path shows exactly how each protocol works, how that trust is abused, and how to detect and contain it.
+Most ICS protocols have **no authentication and no encryption**, and the reason is concrete rather than philosophical: they were designed for a serial cable running inside a locked cabinet, where the cabinet was the access control. Nothing about the protocol changed when that cable became a network. OPC-UA, the newest thing on this plant, is the exception that shows the rule: it has sessions, certificates and users, and it is the only one of them that does. Having them is not the same as using them, though &mdash; the CybICS server offers `Anonymous` and `NoSecurity` alongside its signed-and-encrypted policy, which is precisely why the OPC-UA challenge on this platform is solvable at all. Any host that can reach a PLC can usually read and write its values. The rest of the Theory Path shows exactly how each protocol works, how that trust is abused, and how to detect and contain it.
 
 > **Key idea:** in ICS security you are protecting a physical process. Every attack in the later modules ends in a real-world effect &mdash; a frozen reading, a forced valve, a tank driven past the pressure its relief valve can bleed off.
