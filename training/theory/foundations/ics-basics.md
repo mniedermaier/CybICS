@@ -126,13 +126,13 @@ html.light-mode .pur .intr-t {fill:#ffffff !important;}
 <svg class="pur" viewBox="0 0 520 266" role="img"
      aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The DMZ boundary it crosses sits between Level 3 and the enterprise; CybICS has no such boundary: the plant components share one flat network, and the IDS watches from the host.">
   <g font-size="14">
-    <rect x="70" y="10" width="440" height="40" rx="5" fill="currentColor" opacity="0.10" stroke="currentColor"/>
+    <rect x="70" y="10" width="440" height="40" rx="5" fill="currentColor" fill-opacity="0.10" stroke="currentColor"/>
     <text x="82" y="35">Level 4/5 &mdash; Enterprise IT</text>
-    <rect x="70" y="60" width="440" height="40" rx="5" fill="currentColor" opacity="0.14" stroke="currentColor"/>
+    <rect x="70" y="60" width="440" height="40" rx="5" fill="currentColor" fill-opacity="0.14" stroke="currentColor"/>
     <text x="82" y="85">Level 3 &mdash; Operations</text>
-    <rect x="70" y="110" width="440" height="40" rx="5" fill="#ff6b00" opacity="0.30" stroke="#ff6b00"/>
+    <rect x="70" y="110" width="440" height="40" rx="5" fill="#ff6b00" fill-opacity="0.30" stroke="#ff6b00"/>
     <text x="82" y="135">Level 2 &mdash; Supervisory (SCADA, HMI)</text>
-    <rect x="70" y="160" width="440" height="40" rx="5" fill="#ff6b00" opacity="0.45" stroke="#ff6b00"/>
+    <rect x="70" y="160" width="440" height="40" rx="5" fill="#ff6b00" fill-opacity="0.45" stroke="#ff6b00"/>
     <text x="82" y="185">Level 1 &mdash; Control (PLCs)</text>
     <rect x="70" y="210" width="440" height="40" rx="5" fill="#ff6b00" stroke="#ff6b00"/>
     <text x="82" y="235" style="fill:#1a1a1a">Level 0 &mdash; Process (sensors, valves)</text>
@@ -204,6 +204,10 @@ html.light-mode .plt .gst {opacity:0.55;}
 .plt .sup {opacity:0; animation: t-man  var(--t) steps(1,end) infinite;}
 .plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .ph-a{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
+/* "stuck here" lands on the 200 rule, which is the point, and therefore on
+   the "200" label, which is not. The number steps aside while the phrase is
+   up; by then the figure has said 200 four times. */
+.plt .lbl200{animation: t-n200 var(--t) steps(1,end) infinite;}
 .plt .stuck{opacity:0; animation: t-stuck var(--t) steps(1,end) infinite;}
 .plt .rst  {opacity:0; animation: t-rst   var(--t) steps(1,end) infinite;}
 .plt .sv-open{animation: t-phn var(--t) steps(1,end) infinite;}
@@ -244,6 +248,7 @@ html.light-mode .plt .gst {opacity:0.55;}
 @keyframes t-hold {0%,14.84%{opacity:0} 14.85%,63.94%{opacity:1} 63.95%,100%{opacity:0}}
 @keyframes t-phn  {0%,14.84%{opacity:1} 14.85%,100%{opacity:0}}
 @keyframes t-stuck{0%,85.30%{opacity:0} 85.31%,100%{opacity:1}}
+@keyframes t-n200 {0%,85.30%{opacity:0.75} 85.31%,100%{opacity:0}}
 /* The loop restart snaps the pressure from 200 back to 60, which silently
    undoes the damage three paragraphs say cannot be undone. Naming it stops the
    restart from reading as recovery. */
@@ -255,8 +260,12 @@ html.light-mode .plt .gst {opacity:0.55;}
   .plt .gst {animation:none; transform:scaleY(0.984);}
   .plt .hpt {animation:none; transform:scaleY(0.784);}
   .plt .comp {animation:none; fill:currentColor; fill-opacity:0.18;}
-  .plt .compt{animation:none; fill:currentColor;}
+  /* Must match the specificity of the base rule above, which was raised to
+     beat the template. `.plt .compt` is (0,2,0) and loses to (0,2,3), which
+     left this label at 1.53:1 in exactly the frame the caption advertises. */
+  .article figure svg text.compt {animation:none; fill:currentColor;}
   .plt .sup,.plt .ph-a,.plt .stuck,.plt .sv-shut {animation:none; opacity:1;}
+  .plt .lbl200 {animation:none; opacity:0;}
   .plt .rst {animation:none; opacity:0;}
   .plt .sv-open{animation:none; opacity:0;}
   .plt .man {animation:none; opacity:0;}
@@ -265,7 +274,7 @@ html.light-mode .plt .gst {opacity:0.55;}
 }
 </style>
 <svg class="plt" viewBox="0 0 460 320" role="img"
-     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1, holding the pressure between 60 and 90 while the system valve lets the downstream process draw from it. An operator then switches to manual mode, shuts the system valve and runs the compressor; the pressure climbs past 220, the relief valve opens but only halves the rate of rise, and when the compressor finally stops the pressure settles at 200 and stays there, because the shut valve leaves no consumer.">
+     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1, holding the pressure between 60 and 90 while the system valve lets the downstream process draw from it. An operator then switches to manual mode, shuts the system valve and runs the compressor; the pressure climbs past 220 and the relief valve opens, which slows the rise to about two fifths of its earlier rate, and when the compressor finally stops the pressure settles at 200 and stays there, because the shut valve leaves no consumer.">
   <!-- storage tank; the fill is 126 units tall with its base at y=198, so a
        value v sits at y = 198 - 126*v/255 -->
   <rect x="24" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
@@ -296,7 +305,7 @@ html.light-mode .plt .gst {opacity:0.55;}
     <text x="284" text-anchor="end" y="85" fill="#ff6b00" font-weight="bold">220</text>
     <line x1="288" y1="99" x2="348" y2="99" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
     <line x1="288" y1="99" x2="348" y2="99" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
-    <text x="284" text-anchor="end" y="111" opacity="0.75">200</text>
+    <text class="lbl200" x="284" text-anchor="end" y="111" opacity="0.75">200</text>
     <line x1="288" y1="149" x2="348" y2="149" stroke="currentColor" stroke-dasharray="5 5" stroke-opacity="0.8"/>
     <line x1="288" y1="149" x2="348" y2="149" stroke="var(--on-ink)" stroke-dasharray="5 5" stroke-dashoffset="5" stroke-opacity="0.8"/>
     <text x="284" text-anchor="end" y="153" opacity="0.75">100</text>
@@ -324,7 +333,7 @@ html.light-mode .plt .gst {opacity:0.55;}
     <text x="372" y="226" text-anchor="middle" font-size="13" fill="#ff6b00" font-weight="bold">shut</text>
   </g>
 
-  <rect x="160" y="242" width="180" height="44" rx="5" fill="currentColor" opacity="0.15" stroke="currentColor"/>
+  <rect x="160" y="242" width="180" height="44" rx="5" fill="currentColor" fill-opacity="0.15" stroke="currentColor"/>
   <text x="250" y="262" text-anchor="middle" font-size="13" font-weight="bold">OpenPLC</text>
   <text x="250" y="278" text-anchor="middle" font-size="13" opacity="0.8">on below 60, off at 90</text>
   <path d="M 346 198 L 428 198 L 428 264 L 346 264" fill="none" stroke="currentColor" stroke-width="1.5"/>
@@ -352,7 +361,7 @@ All of this is in two files that must agree: `physical_process_thread` in `softw
 
 **The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure has fallen back to 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
 
-The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units of storage for every one and a half the supply valve puts back, and the tank is down to about 76 &mdash; still clear of the `gst >= 50` floor, but losing half a unit a tick. It reaches the floor about two fifths of the way up the vent, and from there the compressor stalls whenever the tank is momentarily empty, waiting on the supply. Averaged over the whole climb that is roughly one tick in ten. So the stretch above 220 runs at about two fifths of the rate below it, and the two causes are not equal partners. Simulated over 4000 seeds: one unit a tick below the valve, 0.51 with the valve open and storage unlimited, 0.41 with the real `gst >= 50` floor as well. The valve does 84 per cent of the slowing and the empty tank the remaining 16 &mdash; which is what a stall rate of one tick in ten ought to cost, and a useful check on the arithmetic. Neither of them stops it.
+The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units of storage for every one and a half the supply valve puts back, and the tank is down to about 76 &mdash; still clear of the `gst >= 50` floor, but losing half a unit a tick. It reaches the floor a little past halfway up the vent &mdash; 4000 runs of the model put the first stall at 55 per cent of the segment, median 52 &mdash; and from there the compressor stalls whenever the tank is momentarily empty, waiting on the supply. Averaged over the whole climb that is roughly one tick in ten. It is not even certain: in about one run in five the tank never quite reaches the guard before the pressure caps out. So the stretch above 220 runs at about two fifths of the rate below it, and the two causes are not equal partners. Simulated over 4000 seeds: one unit a tick below the valve, 0.51 with the valve open and storage unlimited, 0.41 with the real `gst >= 50` floor as well. The valve does 84 per cent of the slowing and the empty tank the remaining 16 &mdash; which is what a stall rate of one tick in ten ought to cost, and a useful check on the arithmetic. Neither of them stops it.
 
 **And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help either. The valve is shut because the operator shut it, and handing the plant back to OpenPLC does not reopen it: the automatic rule only opens the valve between 50 and 100, and the tank is sitting at 200. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
 
