@@ -56,7 +56,7 @@ html.light-mode .pl-c .dot {fill:#b34700;}
    phase 1, which is why `c-atk` wraps the 100%/0% boundary. And nothing
    "overwrites" it in phase 3: the program's own assignment in `cybICS.st:62-66`
    recomputes the coil, inside phase 2. */
-@keyframes c-atk{0%,16.7%{opacity:1} 16.71%,79.9%{opacity:0} 80%,100%{opacity:1}}
+@keyframes c-atk{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-gone{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
   /* Everything this used to declare is now the base state, so only the
@@ -66,7 +66,7 @@ html.light-mode .pl-c .dot {fill:#b34700;}
 }
 </style>
 <svg class="pl-c" viewBox="0 0 440 244" role="img"
-     aria-label="The PLC scan cycle as a ring. A marker travels clockwise past three boxes in turn: read inputs, run program, write outputs, and back to the start. Meanwhile an attacker writes coil 1 off with Modbus function code 5 during the program phase, and phase 3 overwrites it before the scan ends.">
+     aria-label="The PLC scan cycle as a ring. A marker travels clockwise past three boxes in turn: read inputs, run program, write outputs, and back to the start. Meanwhile an attacker writes coil 1 off with Modbus function code 5. The write lands between two scans and survives the read-inputs phase untouched; then the program phase recomputes the coil from the logic and the attacker's value is gone.">
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
       <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/>
@@ -101,7 +101,7 @@ html.light-mode .pl-c .dot {fill:#b34700;}
     <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 2 recomputes the coil, here</text>
   </g>
 </svg>
-<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land in the gap between two scans, survive phase 1 untouched, and cease to exist the moment phase 2 recomputes the coil from the program &mdash; that is the whole of the next section in one turn of the ring. It cannot land any later: OpenPLC holds one mutex across the whole of phase 2, and a Modbus write waits for it.</figcaption>
+<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land in the gap between two scans, survive phase 1 untouched, and cease to exist the moment phase 2 recomputes the coil from the program &mdash; that is the whole of the next section in one turn of the ring. What it cannot do is land inside phase 2: OpenPLC holds one mutex across the whole program phase, and a Modbus write waits for it. Phase 1 runs outside that mutex, so a write can arrive there too &mdash; it simply makes no difference, because phase 2 is still to come.</figcaption>
 </figure>
 
 Why a loop at all, rather than reacting to events? Because a machine that can crush someone has to have a worst case you can state. A fixed scan gives one: every input is acted on within one period, the program always sees a consistent snapshot rather than values shifting under it mid-calculation, and there is no scheduler deciding what runs when. Determinism is bought with the loop.
@@ -112,7 +112,7 @@ Each phase does something the next one depends on, and they never overlap:
 2. **The whole program runs on that frozen snapshot.** Two lines that both read `hpt` are guaranteed to see the same `hpt`.
 3. **Only now do the outputs reach the plant, all at once.** An output your program set on line 10 does not physically move anything until the scan ends.
 
-The second point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies. Note it is phase 2 that does this, not phase 3. Phase 3 only carries the already-computed value outward, and in the Docker testbed it does not even do that: the container runs the `blank_linux` driver, whose `updateBuffersOut()` is a lock, a commented-out block of I/O and an unlock. The plant is driven by `hwio` over Modbus instead.
+The second point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies. Note it is phase 2 that does this, not phase 3. Phase 3 only carries the already-computed value outward, and in the Docker testbed it does not even do that: the container runs the `blank_linux` driver, which is `software/OpenPLC/OpenPLC_v3/webserver/core/hardware_layers/blank.cpp`, and whose `updateBuffersOut()` is a lock, a commented-out block of I/O and an unlock. The plant is driven by `hwio` over Modbus instead.
 
 CybICS bends phase 1, and the way it bends it is the reason this page has a second half. `cybICS.st` declares no `%I` address of any kind: every located variable in it is a `%QX` output or a `%MW` memory word. `hpt` is not a sensor the PLC samples, it is a memory word that `hwio` pushes in from outside over Modbus. Phase 1 has nothing local to read. That is exactly why a value the program treats as a pressure reading is something a stranger on the network can set.
 
@@ -120,7 +120,7 @@ CybICS bends phase 1, and the way it bends it is the reason this page has a seco
 
 Write a value into the PLC from outside &mdash; over Modbus, say &mdash; and whether it sticks depends entirely on **who owns that address**. This is the single most useful thing to understand about attacking a PLC, and it is easy to get backwards.
 
-- **Coil 1 is the compressor**, declared `compressor AT %QX0.1` and assigned on every scan by `IF compressorState = 1 THEN compressor := TRUE; ELSE compressor := FALSE;`. The program computes it, so the program owns it. Force it with Modbus FC 05 and the next scan puts back whatever the logic says &mdash; within 50 ms, every time.
+- **Coil 1 is the compressor**, declared `compressor AT %QX0.1` and assigned on every scan in automatic mode by `IF compressorState = 1 THEN compressor := TRUE; ELSE compressor := FALSE;`. The program computes it, so the program owns it. Force it with Modbus FC 05 and the next scan puts back whatever the logic says &mdash; within 50 ms, every time.
 - **Register 1126 is the HPT pressure**, declared `hpt AT %MW102`. The program only ever *reads* it: it appears in comparisons and is never on the left of an assignment. Nothing in the scan restores it. What restores it is `hwio`, the bridge standing in for the sensor. Its loop reads the coils, writes five register blocks and then sleeps 20 ms, so the true pressure comes back roughly every 20 ms and a little more &mdash; and note the asymmetry: the PLC's 50 ms is a scheduled task interval, `hwio`'s 20 ms is a sleep at the bottom of a serial loop.
 
 Both values snap back, but for opposite reasons and on different clocks &mdash; and an attacker who confuses the two will build the wrong attack.
@@ -148,7 +148,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
 @keyframes t-fixA{0%,17.4%{opacity:0} 17.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @keyframes t-fixB{0%,13.9%{opacity:0} 14%,96%{opacity:1} 96.01%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){
-  .pl-t .head,.pl-t .barA,.pl-t .barB,.pl-t .shot,.pl-t .fixA,.pl-t .fixB{animation:none}
+  .pl-t * {animation:none !important;}
 }
 </style>
 <svg class="pl-t" viewBox="0 0 520 210" role="img"
@@ -178,7 +178,7 @@ html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
     <line x1="500"   y1="34" x2="500"   y2="74"/>
   </g>
   <rect class="barA" x="151.5" y="44" width="41" height="22" rx="3" fill="#ff6b00"/>
-  <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="200" y="30" font-size="13" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
+  <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="210" y="24" font-size="13" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
 
   <!-- row B: hwio, one write every 20 ms -->
   <text x="10" y="122" font-size="13" font-weight="bold">reg 1126</text>
