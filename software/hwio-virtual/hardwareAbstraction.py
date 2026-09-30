@@ -120,7 +120,7 @@ LCD_COLS = 16
 # The firmware's screen 0 prints FIRMWARE_VERSION_STRING from
 # software/stm32/src/version.h.  That header is the source of truth; this copy
 # has to be bumped alongside it.
-FIRMWARE_VERSION_STRING = "v1.2.2"
+FIRMWARE_VERSION_STRING = "v1.2.3"
 
 # There is no PCB here, so there is no revision strap to read.  Four characters,
 # because that is all the firmware's build screen leaves for it.
