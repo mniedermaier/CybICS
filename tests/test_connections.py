@@ -17,6 +17,8 @@ import requests
 import subprocess
 import time
 import os
+import socket
+import struct
 import pytest_asyncio
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
@@ -244,6 +246,44 @@ def test_write_single_register(modbus_client):
         pytest.fail(f"Modbus protocol exception during write operation: {e}")
     except ConnectionException as e:
         pytest.fail(f"Modbus connection failed during write: {e}")
+
+def test_modbus_concurrent_connections():
+    """
+    Test that every Modbus client gets its own answers when several connect at once.
+
+    OpenPLC used to hand each new client thread a pointer to an array on the
+    accept loop's stack. A client that connected before the previous thread
+    had read it took that thread's socket: one connection was never answered
+    and the other had two threads splitting its byte stream. It surfaced as
+    test_write_single_register hanging for minutes on a transaction id
+    mismatch. Opening a burst of connections at once hit it in every round.
+
+    Raw sockets rather than pymodbus, so each connection is opened at a known
+    moment and a reply is checked byte for byte.
+    """
+    connections, rounds = 8, 3
+    for round_no in range(rounds):
+        socks = [socket.create_connection((SERVER_IP, MODBUS_SERVER_PORT),
+                                          timeout=READ_TIMEOUT)
+                 for _ in range(connections)]
+        try:
+            # FC3, read one holding register, unit 1; the transaction id says
+            # which connection a reply belongs to.
+            for tid, sock in enumerate(socks, start=1):
+                sock.sendall(struct.pack(">HHHBBHH", tid, 0, 6, 1, 3, 1, 1))
+            for tid, sock in enumerate(socks, start=1):
+                try:
+                    reply = sock.recv(256)
+                except socket.timeout:
+                    pytest.fail(f"Round {round_no + 1}: connection {tid} of {connections} "
+                                f"got no reply within {READ_TIMEOUT}s")
+                assert len(reply) == 11 and struct.unpack(">H", reply[:2])[0] == tid, (
+                    f"Round {round_no + 1}: connection {tid} got a reply that is not "
+                    f"its own: {reply.hex(' ')}"
+                )
+        finally:
+            for sock in socks:
+                sock.close()
 
 # ===============================================================================
 # OPC-UA Protocol Tests
