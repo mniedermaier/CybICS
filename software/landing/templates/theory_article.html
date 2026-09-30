@@ -27,13 +27,37 @@
         .article code { background:#2d2d2d; padding:0.1rem 0.35rem; border-radius:0.25rem; font-size:0.9em; }
         .article pre { background:#0f0f0f; border:1px solid #333; border-radius:0.5rem; padding:0.9rem; overflow-x:auto; }
         .article pre code { background:none; padding:0; }
-        .article table { border-collapse:collapse; margin:1rem 0; width:100%; }
+        /* A wide table burst the document sideways at phone width -- the
+           answer column of a nine-row rule table ended up off-screen with the
+           whole page scrolling. display:block lets it scroll inside itself,
+           the way the figures already do. */
+        .article table { border-collapse:collapse; margin:1rem 0; width:100%; display:block; overflow-x:auto; }
         .article th, .article td { border:1px solid #383838; padding:0.4rem 0.7rem; text-align:left; font-size:0.9rem; }
         .article th { background:#2d2d2d; color:#ff8c3a; }
         .article blockquote { border-left:3px solid #ff6b00; background:#2d2d2d; padding:0.6rem 1rem; margin:1rem 0; color:#cfcfcf; }
-        .article figure { margin:1.4rem 0; text-align:center; }
+        /* Figures that set their own min-width (to keep one viewBox unit per
+           CSS pixel instead of shrinking labels to 8px on a phone) need a
+           scroll container. This belongs here rather than in one page's
+           scoped style block, where deleting that figure would silently let
+           every other figure on the page burst the document. */
+        .article figure { margin:1.4rem 0; text-align:center; overflow-x:auto; }
         .article figure svg { max-width:100%; height:auto; background:#141414; border:1px solid #333; border-radius:0.5rem; padding:0.8rem; color:#e8e8e8; }
-        .article figure svg text { fill:currentColor; }
+        /* Only supply a colour where the figure did not choose one. A bare
+           `fill:currentColor` here beats the figures' own fill attributes,
+           which turned every dark label on an orange panel into light grey
+           at about 3:1 — under the 4.5:1 floor. 26 of the 29 theory pages
+           were affected. */
+        .article figure svg text:not([fill]) { fill:currentColor; }
+        /* #ff6b00 is 6.45:1 on the dark figure ground but only 2.86:1 on the
+           light one, so the accent cannot be one colour. Orange *text* and
+           orange *strokes* are retinted for the light theme; filled orange
+           panels keep the brand colour, because the dark ink on them is
+           6.10:1 either way. `!important` is needed because several figures
+           set the colour through an inline style, which no plain rule beats. */
+        html.light-mode .article figure svg text[fill="#ff6b00"],
+        html.light-mode .article figure svg text[style*="#ff6b00"] { fill:#b34700 !important; }
+        html.light-mode .article figure svg [stroke="#ff6b00"] { stroke:#b34700; }
+        html.light-mode .article figure svg path[fill="#ff6b00"] { fill:#b34700; }
         .article figcaption { color:#999; font-size:0.82rem; margin-top:0.5rem; }
         .related { margin-top:2.5rem; border-top:1px solid #383838; padding-top:1rem; }
         .related h2 { font-size:1rem; color:#ff8c3a; margin-bottom:0.6rem; }
@@ -42,7 +66,20 @@
         html.light-mode body { background:#f5f6f8; color:#1f2733; }
         html.light-mode header { background:#fff; }
         html.light-mode .article h1, html.light-mode .head-title { color:#b34700; }
+        /* The dark palette does not survive the light ground: the figcaptions
+           carry load-bearing explanation at 2.63:1 and the section headings sit
+           at 2.14:1. Both are on every theory page. */
+        html.light-mode .article h2 { color:#b34700; border-bottom-color:#e2e6ec; }
+        html.light-mode .article figcaption { color:#4a5260; }
         html.light-mode .article code { background:#eef1f5; }
+        /* `.article pre code` is (0,1,2) and loses to the rule above at (0,2,2),
+           which painted white pills inside the navy code blocks. */
+        html.light-mode .article pre code { background:none; }
+        /* The navy block keeps its background in light mode but nothing set a
+           colour, so the ink stayed at the body's #1f2733: 1.19:1, which hid
+           every command on every theory page. */
+        html.light-mode .article pre,
+        html.light-mode .article pre code { color:#e8eaed; }
         html.light-mode .article pre { background:#0f172a; }
         html.light-mode .article figure svg { background:#fff; border-color:#e2e6ec; color:#1f2733; }
         html.light-mode .article th { background:#eef1f5; color:#b34700; }
