@@ -131,6 +131,9 @@ services:
       - landing
     volumes:
       - nginx-certs:/etc/nginx/certs
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.12
 
   ids:
     image: cybics-ids:latest
