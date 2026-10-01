@@ -3083,7 +3083,7 @@
                 </div>
                 <div class="setting-item">
                     <span class="setting-label">Container Management</span>
-                    <button class="action-btn" onclick="restartContainers()">
+                    <button class="action-btn" onclick="restartContainers(this)">
                         🔄 Restart All Containers
                     </button>
                 </div>
@@ -3407,44 +3407,52 @@
         }
 
         // Restart Containers
-        function restartContainers() {
-            if (!confirm('Are you sure you want to restart all containers? This may cause temporary service interruption.')) {
+        function restartContainers(button) {
+            if (!confirm('Restart all CybICS services? The lab, including this page, is unavailable for about a minute.')) {
                 return;
             }
 
-            const button = event.target;
             const originalText = button.textContent;
             button.textContent = '⏳ Restarting...';
             button.disabled = true;
+            const fail = (message) => {
+                button.textContent = '✗ Failed';
+                alert('Error restarting containers: ' + message);
+                button.disabled = false;
+                setTimeout(() => { button.textContent = originalText; }, 2000);
+            };
 
-            fetch('/api/settings/containers/restart', {
-                method: 'POST'
-            })
+            fetch('/api/settings/containers/restart', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    button.textContent = '✓ Restarted Successfully';
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                        button.disabled = false;
-                    }, 3000);
-                } else {
-                    button.textContent = '✗ Failed';
-                    alert('Error restarting containers: ' + (data.error || 'Unknown error'));
-                    button.disabled = false;
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 2000);
+                if (!data.success) {
+                    fail(data.error || 'Unknown error');
+                    return;
                 }
+                // The landing page restarts last, so this page goes away too.
+                // Its outage is shorter than the poll interval, so wait for a
+                // new boot ID rather than for it to stop answering.
+                button.textContent = `⏳ Restarting ${data.containers.length} services...`;
+                const started = Date.now();
+                const poll = () => {
+                    if (Date.now() - started > 300000) {
+                        fail('The lab did not come back within 5 minutes. Check ./cybics.sh status.');
+                        return;
+                    }
+                    fetch('/api/settings/containers/restart',
+                          { cache: 'no-store', signal: AbortSignal.timeout(5000) })
+                    .then(r => r.json())
+                    .then(status => {
+                        if (status.boot_id && status.boot_id !== data.boot_id) location.reload();
+                        else setTimeout(poll, 2000);
+                    })
+                    .catch(() => setTimeout(poll, 2000));
+                };
+                setTimeout(poll, 2000);
             })
             .catch(error => {
                 console.error('Error:', error);
-                button.textContent = '✗ Failed';
-                alert('Error restarting containers: ' + error.message);
-                button.disabled = false;
-                setTimeout(() => {
-                    button.textContent = originalText;
-                }, 2000);
+                fail(error.message);
             });
         }
 
