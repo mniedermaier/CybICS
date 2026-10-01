@@ -1,6 +1,7 @@
-"""Restart the CybICS containers from the settings page.
+"""Find and restart the CybICS containers for the settings page.
 
-The scope comes from the compose project the landing container belongs to.
+The scope of "Restart All Containers" and of the log download comes from the
+compose project the landing container belongs to.
 landing runs with host networking, so its hostname is the host's and cannot
 be used to look the container up: the old code tried that, never found the
 project, and fell back to restarting every container on the host. The
@@ -88,6 +89,15 @@ def plan_restart(run=subprocess.run, mountinfo=MOUNTINFO):
         raise RestartError("The landing container is not in its own project listing; "
                            "not restarting anything")
     return project, others, own
+
+
+def project_containers(run=subprocess.run, mountinfo=MOUNTINFO):
+    """The running containers of landing's compose project, landing last.
+
+    Returns (project, names). Raises RestartError like plan_restart().
+    """
+    project, others, own = plan_restart(run, mountinfo)
+    return project, others + [own]
 
 
 def _restart_all(others, own, run):

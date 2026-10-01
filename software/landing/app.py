@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import configuration and utilities
 from utils.config import *
 from utils.hardware import read_hardware_version  # noqa: E402
-from utils.restart import RestartError, restart_status, start_restart  # noqa: E402
+from utils.restart import RestartError, project_containers, restart_status, start_restart  # noqa: E402
 from utils.logger import logger
 
 # Import modules
@@ -545,56 +545,16 @@ def download_logs():
     import subprocess
     import tempfile
     from datetime import datetime
-    import socket
 
     try:
         logger.info('Generating docker logs')
 
-        # Get current container's hostname (which is the container ID)
-        hostname = socket.gethostname()
-        logger.info(f'Current container hostname: {hostname}')
-
-        # Get the docker-compose project name from our own container
-        inspect_result = subprocess.run(
-            ['docker', 'inspect', '--format', '{{index .Config.Labels "com.docker.compose.project"}}', hostname],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-
-        project_name = inspect_result.stdout.strip()
-        if not project_name or inspect_result.returncode != 0:
-            logger.warning(f'Could not detect compose project name, using hostname: {hostname}')
-            # Fallback: try to detect from container name patterns
-            project_name = None
-
-        # Get list of all CybICS containers using docker-compose label
-        if project_name:
-            logger.info(f'Using docker-compose project: {project_name}')
-            ps_result = subprocess.run(
-                ['docker', 'ps', '--filter', f'label=com.docker.compose.project={project_name}', '--format', '{{.Names}}'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-        else:
-            logger.info('Using all containers as fallback')
-            ps_result = subprocess.run(
-                ['docker', 'ps', '--format', '{{.Names}}'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-
-        if ps_result.returncode != 0:
-            logger.error(f'Failed to list containers: {ps_result.stderr}')
-            return jsonify({'error': 'Failed to list containers'}), 500
-
-        containers = [c for c in ps_result.stdout.strip().split('\n') if c]
-
-        if not containers:
-            logger.warning('No containers found')
-            return jsonify({'error': 'No containers found'}), 404
+        # Only this compose project's containers; see utils/restart.py.
+        try:
+            project_name, containers = project_containers()
+        except RestartError as e:
+            logger.warning(f'Log download refused: {e}')
+            return jsonify({'error': str(e)}), 409
 
         logger.info(f'Found {len(containers)} containers: {containers}')
 

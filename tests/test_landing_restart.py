@@ -143,3 +143,9 @@ def test_status_reports_this_process_and_whether_a_restart_runs():
     status = restart.restart_status()
     assert status == {"boot_id": restart.BOOT_ID, "running": False}
     assert len(restart.BOOT_ID) == 32
+
+
+def test_log_download_covers_the_same_containers(tmp_path):
+    project, names = restart.project_containers(FakeDocker(), mountinfo(tmp_path, OWN_ID))
+    assert project == "virtual"
+    assert names == ["virtual-openplc-1", "virtual-hwio-1", "virtual-landing-1"]
