@@ -126,7 +126,9 @@ class CTFManager:
             return {'success': False, 'message': f'Verification module not found: {verify_module}', 'checks': []}
         except Exception as e:
             logger.error(f"Error running defense check {verify_module}: {e}", exc_info=True)
-            return {'success': False, 'message': f'Verification error: {str(e)}', 'checks': []}
+            # Detail is logged above with exc_info; the client gets a generic
+            # message so an exception string never reaches the HTTP response.
+            return {'success': False, 'message': 'Verification failed due to an internal error', 'checks': []}
 
     def reset_progress(self):
         """Reset all progress"""
