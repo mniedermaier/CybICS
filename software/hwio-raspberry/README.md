@@ -22,7 +22,7 @@ against the internal pull-up: **fitted = 0, omitted = 1**.
 
 `hw_version.py` reads them once at startup and writes the result to
 `/var/lib/cybics/hardware.json` on a volume the landing page mounts read-only,
-so the revision shows up under *Settings -> Board Revision*. A file rather than
+so the revision shows up under *Settings -> System -> Board revision*. A file rather than
 an HTTP endpoint keeps this container inside its 48 MB limit and adds no
 listening socket to a privileged process.
 

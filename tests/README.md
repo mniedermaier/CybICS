@@ -26,6 +26,10 @@ pytest -v test_training.py
   fake server (no stack needed)
 - **`test_ctf_uplink.py`** - hwio-raspberry's management of the USB Wi-Fi uplink, with a fake nmcli
   (no stack needed)
+- **`test_landing_settings.py`** - The settings view (`/settings`) and the scope of its restart and
+  log download, without restarting anything
+- **`test_landing_restart.py`** - Which containers Settings -> Restart covers, with a fake docker
+  (no stack needed)
 
 ## Remote Testing
 

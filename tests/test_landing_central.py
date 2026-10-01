@@ -30,8 +30,8 @@ def test_snapshot_never_contains_the_token():
 
 
 def test_settings_page_offers_the_section():
-    page = requests.get(BASE + "/", timeout=READ_TIMEOUT).text
-    assert 'id="centralSection"' in page
+    page = requests.get(BASE + "/settings", timeout=READ_TIMEOUT).text
+    assert 'id="section-event"' in page and 'id="joinForm"' in page
     assert requests.get(BASE + "/static/js/central.js", timeout=READ_TIMEOUT).status_code == 200
 
 

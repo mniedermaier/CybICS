@@ -547,6 +547,15 @@ def serve_challenge_doc_asset(filename):
 
 # ========== SETTINGS ROUTES ==========
 
+@app.route('/settings')
+def settings_page():
+    """Settings view, loaded in the dashboard's iframe like /stats and /ctf.
+
+    Board-only sections are left out here rather than hidden in the browser.
+    """
+    return render_template('settings.html', platform=CYBICS_PLATFORM)
+
+
 @app.route('/api/settings/theme', methods=['GET', 'POST'])
 def theme_settings():
     """Get or set theme preference"""
@@ -697,7 +706,14 @@ def restart_containers():
     this process's boot ID, which the page polls to see landing come back.
     """
     if request.method == 'GET':
-        return jsonify(restart_status())
+        status = restart_status()
+        if request.args.get('plan'):
+            # What a restart would cover, for the confirmation in the page.
+            try:
+                status['project'], status['containers'] = project_containers()
+            except RestartError as e:
+                status['error'] = str(e)
+        return jsonify(status)
     try:
         project, others, own = start_restart()
     except RestartError as e:
