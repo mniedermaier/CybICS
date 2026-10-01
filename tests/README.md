@@ -20,6 +20,8 @@ pytest -v test_training.py
 
 - **`test_connections.py`** - Protocol connectivity tests (Modbus TCP, OPC-UA, S7, HTTP)
 - **`test_training.py`** - Training exercise validation (flood attacks, password attacks)
+- **`test_landing_restart.py`** - Which containers Settings -> Restart covers, with a fake docker
+  (no stack needed)
 
 ## Remote Testing
 
