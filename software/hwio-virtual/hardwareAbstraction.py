@@ -94,7 +94,7 @@ LCD_SCREEN_COUNT           = 5
 LCD_BOOT_LEVELS            = 8
 LCD_BOOT_SUBSTEPS          = 8
 LCD_BOOT_BUMP              = "8888777666554332221110"
-LCD_BOOT_SWEEP_MS          = 972
+LCD_BOOT_SWEEP_MS          = 2500
 LCD_FMT_OVERVIEW_L0        = "CybICS %-9s"
 LCD_FMT_OVERVIEW_L1        = "%16u"
 LCD_TXT_NET_STA_L0         = "Wifi STA mode"
@@ -186,7 +186,7 @@ def virtual_ip():
 #
 # The same one the firmware plays: the name, then a bar sweeping across the
 # bottom row, and that same bar is what says the plant is waiting for its
-# controller.  Same 972 ms sweep, same five sub-pixel steps per character.
+# controller.  Same 2500 ms sweep, same five sub-pixel steps per character.
 #
 # The one thing that cannot be identical is the caption: the board waits for the
 # Raspberry Pi over I2C and this waits for OpenPLC over Modbus, so each names

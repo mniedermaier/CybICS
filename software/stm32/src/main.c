@@ -320,7 +320,7 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 #define LCD_BOOT_LEVELS             8
 #define LCD_BOOT_SUBSTEPS           8
 #define LCD_BOOT_BUMP               "8888777666554332221110"
-#define LCD_BOOT_SWEEP_MS           972
+#define LCD_BOOT_SWEEP_MS           2500
 #define LCD_FMT_OVERVIEW_L0         "CybICS %-9s"
 #define LCD_FMT_OVERVIEW_L1         "%16u"
 #define LCD_TXT_NET_STA_L0          "Wifi STA mode"
