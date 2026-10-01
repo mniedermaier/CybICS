@@ -20,6 +20,24 @@ THEORY_CONFIG_FILE = os.path.join(BASE_DIR, 'theory_config.json')
 # Ensure directories exist
 os.makedirs(DATA_DIR, exist_ok=True)
 
+# Central CTF server (optional, off until the user joins an event from the
+# settings). The state file holds the instance token, so it lives next to the
+# progress file on the landing data volume.
+CENTRAL_STATE_FILE = os.path.join(DATA_DIR, 'central_ctf.json')
+# 'physical' on the Raspberry Pi image, 'virtual' everywhere else.
+CYBICS_PLATFORM = os.environ.get('CYBICS_PLATFORM', 'virtual')
+# The USB Wi-Fi dongle that connects a board to the event network. It carries
+# only the central server's traffic, so it is kept out of the packet capture
+# and the bandwidth figures. The name is pinned by a udev rule in the image.
+UPLINK_INTERFACE = os.environ.get('CYBICS_UPLINK_IFACE', 'ctfwlan0')
+# Written by hwio-raspberry: the board's STM32 UID (read-only volume).
+DEVICE_STATE_FILE = os.environ.get('CYBICS_DEVICE_STATE', '/var/lib/cybics/device.json')
+# Shared with hwio-raspberry, which owns nmcli: landing drops the uplink Wi-Fi
+# settings here, hwio applies them and reports back.
+UPLINK_DIR = os.environ.get('CYBICS_UPLINK_DIR', '/var/lib/cybics-uplink')
+# Copied into the image from software/stm32/src/version.h, the source of truth.
+VERSION_HEADER = os.path.join(BASE_DIR, 'version.h')
+
 # Service Configurations
 # 'tls_port' is the port the nginx-proxy sidecar serves the same service on over
 # HTTPS.  It is always port + 10000.  The dashboard needs it because the service

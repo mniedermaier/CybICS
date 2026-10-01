@@ -1,0 +1,39 @@
+# Uplink to a central CybICS-CTF server, through a USB Wi-Fi dongle.
+#
+# The onboard radio stays wlan0 (training AP or station). 70-cybics-wifi.rules
+# names any USB Wi-Fi adapter ctfwlan0, and cybics-ctf-uplink.nft keeps it
+# isolated: nothing is forwarded to or from it, and nothing on the board
+# accepts new connections from it.
+#
+# autoconnect is off until someone enters the event network on the landing
+# page (Settings -> Central CTF server); hwio-raspberry then sets ssid, psk and
+# autoconnect. hwio never brings this profile up on wlan0: it skips every
+# profile named cybics-ctf-*.
+#
+# never-default keeps the uplink from becoming the default route. Otherwise the
+# AP's NAT (ipv4.method=shared in cybics-ap) would carry participants' traffic
+# into the event network. The CTF server has to be on the event network's own
+# subnet, or reachable through a route the event DHCP server pushes.
+#
+# Keyfiles only allow comments on lines of their own.
+[connection]
+id=cybics-ctf-uplink
+type=wifi
+interface-name=ctfwlan0
+autoconnect=false
+
+[wifi]
+mode=infrastructure
+ssid=cybics-ctf
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=change-me-please
+
+[ipv4]
+method=auto
+never-default=true
+route-metric=600
+
+[ipv6]
+method=disabled

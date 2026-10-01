@@ -1,0 +1,16 @@
+# Keep the onboard radio on wlan0 when a USB Wi-Fi dongle is plugged in.
+#
+# wlan0 is hard-coded in hwio-raspberry, both wlan0 NetworkManager profiles and
+# NetworkManager.conf. The kernel hands out wlanN in probe order, so a dongle
+# that is probed before the SDIO chip would take wlan0 and the training AP would
+# come up on the wrong radio.
+#
+# Any USB Wi-Fi adapter becomes ctfwlan0, the uplink to a central CTF server
+# (cybics-ctf-uplink.nmconnection, cybics-ctf-uplink.nft). The name is outside
+# the kernel's wlanN namespace, so this rename can never collide with the
+# onboard radio's. Only one dongle is supported: a second would collide here.
+#
+# Runs before 73-usb-net-by-mac.rules and 80-net-setup-link.rules, which only
+# set a name when none is set yet.
+SUBSYSTEM=="net", ACTION=="add", ENV{DEVTYPE}=="wlan", SUBSYSTEMS=="sdio", NAME="wlan0"
+SUBSYSTEM=="net", ACTION=="add", ENV{DEVTYPE}=="wlan", SUBSYSTEMS=="usb", NAME="ctfwlan0"

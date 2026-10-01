@@ -22,6 +22,7 @@ import threading
 
 from cybics_pb2 import PressureData, DeviceInfo, IPAddress
 import hw_version
+import ctf_uplink
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -238,6 +239,10 @@ def detect_station_connection():
     for conn in nmcli.connection():
       if conn.conn_type != 'wifi' or conn.name == AP_CONNECTION:
         continue
+      # The USB dongle's uplink to a central CTF server is a Wi-Fi profile
+      # too. Bringing it up on wlan0 would drop the training network.
+      if ctf_uplink.is_uplink_connection(conn):
+        continue
       if conn.name == SHIPPED_STATION_CONNECTION:
         shipped = conn.name
         continue
@@ -310,6 +315,8 @@ def thread_network():
       logging.info("Waiting for the STM32 ID over i2c before configuring WiFi")
       time.sleep(1)
       continue
+
+    publish_device_uid(id)
 
     # Simple check, if correct dataID was received
     if dataID[12] in ['0', '1']:
@@ -416,6 +423,30 @@ STATE_DIR = os.environ.get("CYBICS_STATE_DIR", "/var/lib/cybics")
 HARDWARE_STATE = os.path.join(STATE_DIR, "hardware.json")
 
 
+DEVICE_STATE = os.path.join(STATE_DIR, "device.json")
+published_uid = None
+
+
+def publish_device_uid(uid):
+  """Publish the STM32 UID for the landing page.
+
+  A board enrols with a central CTF server under this ID, the same one its
+  cybics-<id> SSID shows. Written only when it changes.
+  """
+  global published_uid
+  if uid == published_uid or not uid or uid == "unknown":
+    return
+  try:
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = DEVICE_STATE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+      json.dump({"device_uid": uid}, fh)
+    os.replace(tmp, DEVICE_STATE)
+    published_uid = uid
+  except OSError as error:
+    logging.warning("Network : could not write %s: %s", DEVICE_STATE, error)
+
+
 def publish_hardware_version():
   """Read the board revision straps and write them where the UI can find them.
 
@@ -448,16 +479,23 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
   
   publish_hardware_version()
+  # Once for every thread: the container has nmcli but no sudo.
+  nmcli.disable_use_sudo()
 
   try:
     logging.info("Main    : before creating threads")
     openplcX = threading.Thread(target=thread_openplc, args=())
     i2cX = threading.Thread(target=thread_i2c, args=())
     networkX = threading.Thread(target=thread_network, args=())
+    # A daemon, and left out of the liveness loop below: it is optional, and
+    # it must not keep the process (and so the container) alive once the
+    # threads the plant depends on have died.
+    uplinkX = threading.Thread(target=ctf_uplink.Uplink(nmcli).run, args=(), daemon=True)
     logging.info("Main    : before running threads")
     openplcX.start()
     i2cX.start()
     networkX.start()
+    uplinkX.start()
     logging.info("Main    : after starting threads")
 
     # Continuously check if threads are active

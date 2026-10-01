@@ -8,7 +8,7 @@ from datetime import datetime
 from collections import deque
 
 from utils.logger import logger
-from utils.config import HISTORY_MAX_LENGTH, STATS_COLLECTION_INTERVAL, DOCKER_STATS_INTERVAL
+from utils.config import HISTORY_MAX_LENGTH, STATS_COLLECTION_INTERVAL, DOCKER_STATS_INTERVAL, UPLINK_INTERFACE
 
 class StatsCollector:
     """Collect and store system and Docker container statistics"""
@@ -74,8 +74,9 @@ class StatsCollector:
             bytes_sent = 0
 
             for interface, stats in net_io_per_nic.items():
-                # Skip loopback and docker interfaces
-                if interface.startswith(('lo', 'docker', 'br-', 'veth')):
+                # Skip loopback and docker interfaces, and the uplink to the
+                # central CTF server, which is not part of the training network
+                if interface.startswith(('lo', 'docker', 'br-', 'veth')) or interface == UPLINK_INTERFACE:
                     continue
 
                 bytes_recv += stats.bytes_recv

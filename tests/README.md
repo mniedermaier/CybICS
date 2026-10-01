@@ -21,6 +21,10 @@ pytest -v test_training.py
 - **`test_connections.py`** - Protocol connectivity tests (Modbus TCP, OPC-UA, S7, HTTP)
 - **`test_training.py`** - Training exercise validation (flood attacks, password attacks)
 - **`test_landing_restart.py`** - Which containers Settings -> Restart covers, with a fake docker
+- **`test_landing_central.py`** - Settings -> Central CTF Server routes on the running landing page
+- **`test_central_ctf.py`** - The landing page's glue to the central CTF client, with an in-process
+  fake server (no stack needed)
+- **`test_ctf_uplink.py`** - hwio-raspberry's management of the USB Wi-Fi uplink, with a fake nmcli
   (no stack needed)
 
 ## Remote Testing

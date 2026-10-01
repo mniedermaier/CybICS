@@ -15,3 +15,6 @@ smemstat
 python3-serial
 network-manager
 i2c-tools
+# nft for cybics-ctf-uplink-firewall.service, which isolates the USB Wi-Fi
+# uplink to a central CTF server. Docker's iptables-nft does not ship the CLI.
+nftables

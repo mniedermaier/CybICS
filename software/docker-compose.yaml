@@ -9,6 +9,12 @@ services:
     mem_limit: 48m
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      # hwio publishes the board revision and the STM32 UID here; the landing
+      # page mounts the same volume read-only.
+      - cybics_state:/var/lib/cybics
+      # The landing page asks for uplink Wi-Fi settings here (central CTF
+      # server); hwio applies them with nmcli, see ctf_uplink.py.
+      - cybics_uplink:/var/lib/cybics-uplink
     devices:
       - "/dev/i2c-1:/dev/i2c-1"
       - "/dev/gpiochip0:/dev/gpiochip0"
@@ -85,6 +91,13 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - cybics_state:/var/lib/cybics:ro
+      - cybics_uplink:/var/lib/cybics-uplink
+      # CTF progress and the central CTF enrolment survive an update.
+      - landing_data:/CybICS/data
+    environment:
+      # Enrol with a central CTF server as a board, identified by its STM32 UID.
+      - CYBICS_PLATFORM=physical
 
   # Single proxy in front of the landing page: 8082 is a raw TCP passthrough
   # that reaches the host-networked landing service from other machines even
@@ -168,6 +181,9 @@ networks:
           gateway: 172.18.0.1
 
 volumes:
+  cybics_state:
+  cybics_uplink:
+  landing_data:
   fuxa_data:
   ollama_models:
   nginx-certs:

@@ -44,6 +44,8 @@ AP = ("cybics", "wifi")
 SHIPPED = ("cybics-station", "wifi")
 USER = ("MyHomeNetwork", "wifi")
 ETHERNET = ("Wired connection 1", "ethernet")
+# The USB dongle's uplink to a central CTF server (ctf_uplink.py).
+UPLINK = ("cybics-ctf-uplink", "wifi")
 
 
 @pytest.mark.parametrize("listed, expected", [
@@ -60,6 +62,12 @@ ETHERNET = ("Wired connection 1", "ethernet")
     ([AP, USER, SHIPPED], "MyHomeNetwork"),
     # Ethernet is not a candidate.
     ([AP, ETHERNET, SHIPPED], "cybics-station"),
+    # Neither is the CTF uplink: it belongs to the dongle, and bringing it up
+    # on wlan0 would take the board off its training network. Listed before
+    # the placeholder, it used to win as "a profile the user added".
+    ([AP, UPLINK, SHIPPED], "cybics-station"),
+    ([AP, UPLINK], None),
+    ([AP, UPLINK, USER, SHIPPED], "MyHomeNetwork"),
 ])
 def test_picks_the_right_profile(hwio, listed, expected):
     with mock.patch.object(hwio.nmcli, "connection", return_value=connections(*listed)):
@@ -82,3 +90,12 @@ def test_a_broken_nmcli_yields_no_profile(hwio):
     """nmcli failing must not take the network thread down with it."""
     with mock.patch.object(hwio.nmcli, "connection", side_effect=RuntimeError("nmcli is unhappy")):
         assert hwio.detect_station_connection() is None
+
+
+def test_a_user_profile_active_on_the_dongle_is_not_the_station(hwio):
+    """A profile someone created by hand for the dongle, under any name, is
+    recognised by the device it is active on."""
+    listed = connections(AP, SHIPPED) + [
+        SimpleNamespace(name="EventWifi", conn_type="wifi", device="ctfwlan0")]
+    with mock.patch.object(hwio.nmcli, "connection", return_value=listed):
+        assert hwio.detect_station_connection() == "cybics-station"

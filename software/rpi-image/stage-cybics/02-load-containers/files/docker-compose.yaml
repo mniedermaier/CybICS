@@ -28,8 +28,12 @@ services:
     volumes:
       - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
       # hwio reads the board revision straps at startup and publishes them
-      # here; the landing page mounts the same volume read-only.
+      # here, together with the STM32 UID; the landing page mounts the same
+      # volume read-only.
       - cybics_state:/var/lib/cybics
+      # The landing page asks for uplink Wi-Fi settings here (central CTF
+      # server); hwio applies them with nmcli, see ctf_uplink.py.
+      - cybics_uplink:/var/lib/cybics-uplink
     devices:
       - "/dev/i2c-1:/dev/i2c-1"
       - "/dev/gpiochip0:/dev/gpiochip0"
@@ -107,6 +111,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - cybics_state:/var/lib/cybics:ro
+      - cybics_uplink:/var/lib/cybics-uplink
+      # CTF progress and the central CTF enrolment survive an update.
+      - landing_data:/CybICS/data
+    environment:
+      # Enrol with a central CTF server as a board, identified by its STM32 UID.
+      - CYBICS_PLATFORM=physical
 
   stm32:
     image: cybics-stm32:latest
@@ -176,5 +186,7 @@ networks:
 
 volumes:
   cybics_state:
+  cybics_uplink:
+  landing_data:
   fuxa_data:
   nginx-certs:

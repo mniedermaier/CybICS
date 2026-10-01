@@ -1,0 +1,39 @@
+#!/usr/sbin/nft -f
+#
+# Isolate the USB Wi-Fi uplink (ctfwlan0) that connects a CybICS board to a
+# central CTF server. It must carry the board's own connection to that server
+# and nothing else:
+#
+# * Every board runs OpenPLC, Modbus, S7, OPC-UA, FUXA and the rest on purpose
+#   unprotected, and Docker-published ports plus the host-networked landing
+#   page and IDS listen on all interfaces. Without this, the whole event
+#   network could attack every other team's board. So: no new inbound
+#   connections, neither to the host (input) nor to published ports (forward,
+#   after Docker's DNAT).
+# * The training AP NATs its clients out (ipv4.method=shared). Without this,
+#   participants on a board's AP could reach the event network. So: nothing is
+#   forwarded out of the uplink.
+#
+# The rules match the interface by name, so they are valid before a dongle is
+# plugged in. A table of its own sits next to Docker's iptables-nft tables
+# without touching them; a drop in any base chain is final. Loaded by
+# cybics-ctf-uplink-firewall.service. The first two lines make reloading
+# idempotent.
+table inet cybics_ctf_uplink
+delete table inet cybics_ctf_uplink
+
+table inet cybics_ctf_uplink {
+    chain input {
+        type filter hook input priority filter - 10; policy accept;
+        iifname "ctfwlan0" ct state established,related accept
+        # DHCP answers to the board's own lease request.
+        iifname "ctfwlan0" udp sport 67 udp dport 68 accept
+        iifname "ctfwlan0" counter drop
+    }
+
+    chain forward {
+        type filter hook forward priority filter - 10; policy accept;
+        iifname "ctfwlan0" counter drop
+        oifname "ctfwlan0" counter drop
+    }
+}

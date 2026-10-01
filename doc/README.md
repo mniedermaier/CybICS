@@ -242,6 +242,41 @@ First **connect in AP mode** to access the different applications running on the
 
 The same web interfaces are available as in the virtual environment, but accessed through the device's IP address instead of localhost.
 
+## Joining a Central CTF Event (optional)
+
+In a workshop, the organiser can run [CybICS-CTF](https://github.com/mniedermaier/CybICS-CTF), a
+central server with a shared scoreboard. Virtual and physical CybICS instances join the same event,
+and every challenge solved on an instance shows up on the scoreboard. Without it, nothing changes:
+flags are checked locally either way, and an instance that never joins makes no network calls.
+
+**Virtual instance:**
+
+1. Open **Settings -> Central CTF Server** on the landing page.
+2. Enter the server address, the join code from the organiser, a team name and a team password.
+   A new team needs a password of at least 8 characters; teammates enter the same team name and
+   password on their own instance.
+3. Press **Test connection**, then **Join event**. The panel then shows the event state, your
+   score and rank, pending reports and announcements.
+
+**CybICS board:** the board reaches the event network through a **USB Wi-Fi adapter** plugged into
+the Raspberry Pi. The onboard radio stays the training network (`cybics-XXXXXX`).
+
+1. Plug in the adapter. It comes up as `ctfwlan0`, whatever order the radios are detected in.
+2. In **Settings -> Central CTF Server -> Event Wi-Fi**, enter the event network's name and
+   password and press **Connect**. The panel shows when the adapter has an address.
+3. Join the event as above. The board enrols under its STM32 ID, the one in its SSID.
+
+The adapter only carries the board's own connection to the server. Nothing is forwarded between the
+training network and the event network, and nothing on the board accepts new connections from the
+event network, so other teams cannot reach your OpenPLC, Modbus or S7. The uplink never becomes the
+default route: the CTF server must be on the event network's own subnet (or reachable through a route
+its DHCP server pushes). Avoid `10.0.0.0/24` for the event network, every board uses it for its
+training AP.
+
+Solves made before joining stay local. Solves made while the server is unreachable are queued and
+reported when it comes back. **Leave event** stops reporting; resetting the local progress does not
+remove anything from the scoreboard.
+
 ## Troubleshooting
 
 ### Services Not Starting

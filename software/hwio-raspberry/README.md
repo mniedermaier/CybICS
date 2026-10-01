@@ -38,6 +38,27 @@ newest revision it does know, because codes are only assigned going forward;
 falling back to v1.0 would be the damaging guess, since v1.0 is the one
 revision whose front panel wiring differs.
 
+## Central CTF Uplink
+
+A board can join a central [CybICS-CTF](https://github.com/mniedermaier/CybICS-CTF) event through a
+USB Wi-Fi adapter. `ctf_uplink.py` manages it, so nmcli access stays in this one service:
+
+- The landing page writes `request.json` (network name, password, on/off) to the
+  `cybics_uplink` volume at `/var/lib/cybics-uplink`. hwio applies it to the
+  `cybics-ctf-uplink` NetworkManager profile, deletes the request (it holds the
+  password) and answers in `status.json`.
+- If the profile is missing, it is created with the same settings as the
+  image's keyfile, including `ipv4.never-default`.
+- `detect_station_connection()` skips every profile named `cybics-ctf-*` or
+  active on the adapter, so station mode never brings the uplink up on `wlan0`.
+- The STM32 UID is published to `/var/lib/cybics/device.json`; the landing page
+  enrols the board under it.
+
+The image names the adapter `ctfwlan0` (`70-cybics-wifi.rules`) and isolates it
+with nftables (`cybics-ctf-uplink.nft`); both are in
+`software/rpi-image/stage-cybics/01-configure-system/files/`, and
+`installRPI.sh` installs the same files.
+
 ## Architecture
 
 ### Communication Interfaces

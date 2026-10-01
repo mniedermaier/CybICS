@@ -230,6 +230,37 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
+### Uplink to a central CTF server (USB Wi-Fi dongle)
+###
+# Same files as the SD image (rpi-image/stage-cybics/01-configure-system/files):
+# keep the onboard radio on wlan0, name the dongle ctfwlan0, isolate it with
+# nftables and ship its NetworkManager profile with autoconnect off.
+echo -ne "${GREEN}# Prepare the central CTF uplink ... \n${ENDCOLOR}"
+UPLINK_FILES="$GIT_ROOT/software/rpi-image/stage-cybics/01-configure-system/files"
+scp "$UPLINK_FILES"/70-cybics-wifi.rules \
+    "$UPLINK_FILES"/cybics-ctf-uplink.nmconnection \
+    "$UPLINK_FILES"/cybics-ctf-uplink.nft \
+    "$UPLINK_FILES"/cybics-ctf-uplink-firewall.service \
+    "$DEVICE_USER"@"$DEVICE_IP":/tmp/
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
+    set -e
+    command -v nft > /dev/null || sudo apt-get install -y nftables
+    sudo install -m 644 /tmp/70-cybics-wifi.rules /etc/udev/rules.d/70-cybics-wifi.rules
+    sudo install -d -m 755 /etc/cybics
+    sudo install -m 644 /tmp/cybics-ctf-uplink.nft /etc/cybics/cybics-ctf-uplink.nft
+    sudo install -m 644 /tmp/cybics-ctf-uplink-firewall.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now cybics-ctf-uplink-firewall.service
+    # Keep a profile that was already configured from the landing page.
+    if [ ! -f /etc/NetworkManager/system-connections/cybics-ctf-uplink.nmconnection ]; then
+        sudo install -m 600 /tmp/cybics-ctf-uplink.nmconnection /etc/NetworkManager/system-connections/
+        sudo nmcli connection reload
+    fi
+    rm -f /tmp/70-cybics-wifi.rules /tmp/cybics-ctf-uplink.nmconnection \
+          /tmp/cybics-ctf-uplink.nft /tmp/cybics-ctf-uplink-firewall.service
+EOF
+
+###
 ### Enable I2C
 ###
 echo -ne "${GREEN}# Enable I2C on the RPi ... \n${ENDCOLOR}"
