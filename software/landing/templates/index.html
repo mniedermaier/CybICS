@@ -2291,7 +2291,8 @@
             'ctf': { path: '/ctf' },
             'stats': { path: '/stats' },
             'network': { path: '/network' },
-            'webshell': { path: '/webshell' }
+            'webshell': { path: '/webshell' },
+            'settings': { path: '/settings' }
         };
 
         // Build a service URL that matches the scheme the dashboard is served
@@ -2377,7 +2378,15 @@
             if (!iframe) return;
             const cur = iframe.getAttribute('src');
             if (cur && cur !== 'about:blank') {
-                iframe.setAttribute('data-last-src', cur); // remember for restore
+                // Remember where the page actually is, not where it started:
+                // the src attribute misses navigation inside the iframe, such
+                // as the settings section the view keeps in its hash.
+                let last = cur;
+                try {
+                    const loc = iframe.contentWindow.location;
+                    if (loc.origin === window.location.origin) last = loc.pathname + loc.search + loc.hash;
+                } catch (e) { /* cross-origin service: keep the src */ }
+                iframe.setAttribute('data-last-src', last); // remember for restore
             }
             iframe.src = 'about:blank';
         }
@@ -2555,7 +2564,7 @@
                 const iframe = document.getElementById("settings-iframe");
                 if (iframe) iframe.setAttribute("data-last-src", "/settings#" + data.section);
                 const hash = "#settings:" + data.section;
-                if (location.hash !== hash) history.replaceState({ view: "settings" }, "", hash);
+                if (location.hash !== hash) history.replaceState({ view: "settings", section: data.section }, "", hash);
             }
         });
 
@@ -2572,6 +2581,10 @@
         window.addEventListener('popstate', (event) => {
             if (event.state) {
                 const view = event.state.view || 'all';
+                if (view === 'settings' && event.state.section) {
+                    const iframe = document.getElementById("settings-iframe");
+                    if (iframe) iframe.setAttribute("data-last-src", "/settings#" + event.state.section);
+                }
                 _origUpdateView(view);
                 if (view === 'ctf' && event.state.ctfUrl) {
                     const ctfIframe = document.getElementById("ctf-iframe");
@@ -2591,7 +2604,7 @@
                     const iframe = document.getElementById("settings-iframe");
                     if (iframe) iframe.setAttribute("data-last-src", "/settings#" + hash.slice(9));
                     _origUpdateView('settings');
-                    history.replaceState({ view: 'settings' }, '', location.hash);
+                    history.replaceState({ view: 'settings', section: hash.slice(9) }, '', location.hash);
                 } else if (hash.startsWith('ctf:')) {
                     _origUpdateView('ctf');
                     const ctfUrl = hash.slice(4);

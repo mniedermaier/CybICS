@@ -7,6 +7,8 @@ its maintenance actions stay inside the CybICS compose project. Nothing here
 restarts anything: the restart is only planned, never started.
 """
 import re
+import shutil
+import subprocess
 
 import pytest
 import requests
@@ -40,6 +42,34 @@ def test_dashboard_opens_settings_as_a_view():
     assert "updateView('settings')" in page
     # The old modal and its handlers are gone, not just hidden.
     assert 'id="settingsModal"' not in page and "openSettings(" not in page
+
+
+def render(path):
+    """The DOM of a page after its scripts ran, from headless Chrome.
+
+    The checks above only see the HTML the server sends. A script that throws
+    on load leaves that HTML intact and the view stuck on its spinners, so
+    the sections are checked once more after the browser ran them.
+    """
+    browser = next(filter(None, map(shutil.which, (
+        "google-chrome", "google-chrome-stable", "chromium", "chromium-browser"))), None)
+    if browser is None:
+        pytest.skip("no Chrome or Chromium on this host to run the view's scripts")
+    result = subprocess.run(
+        [browser, "--headless=new", "--disable-gpu", "--no-sandbox",
+         "--virtual-time-budget=10000", "--dump-dom", BASE + path],
+        capture_output=True, text=True, timeout=90)
+    assert result.returncode == 0, result.stderr[-2000:]
+    return result.stdout
+
+
+def test_settings_scripts_fill_the_sections():
+    # central.js fills the event section, settings.js the system section.
+    event = render("/settings#event")
+    assert re.search(r'<p [^>]*id="eventLoading"[^>]*hidden', event), "event section stuck loading"
+    system = render("/settings#system")
+    assert 'id="systemFacts" aria-busy="false"' in system, "system section stuck loading"
+    assert "<dt>Platform</dt>" in system
 
 
 def test_board_only_parts_follow_the_platform():

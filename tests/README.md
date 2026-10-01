@@ -28,8 +28,6 @@ pytest -v test_training.py
   (no stack needed)
 - **`test_landing_settings.py`** - The settings view (`/settings`) and the scope of its restart and
   log download, without restarting anything
-- **`test_landing_restart.py`** - Which containers Settings -> Restart covers, with a fake docker
-  (no stack needed)
 
 ## Remote Testing
 

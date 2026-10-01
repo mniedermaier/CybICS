@@ -257,9 +257,11 @@
             : `Switching to ${name}…`);
         let ok = false;
         try {
-            const data = await post('/api/agent/model', {model: name});
-            ok = data.downloading ? await waitForModel(name) : true;
-            if (!data.downloading) models = await request('/api/agent/model');
+            // The agent answers once the model is pulled and active, so this
+            // can take minutes. Only a proxy timeout leaves it unfinished.
+            await post('/api/agent/model', {model: name});
+            models = await request('/api/agent/model');
+            ok = true;
         } catch (e) {
             if (e.status === 504) ok = await waitForModel(name);
             else setMsg('modelMsg', `Could not switch to ${name}.`, 'error', e.message);
@@ -373,6 +375,7 @@
         const poll = async () => {
             if (Date.now() - started > 5 * 60 * 1000) {
                 setBusy(restartNow, false);
+                restartBox.querySelector('[data-action="confirm-cancel"]').disabled = false;
                 setMsg('restartMsg', 'The lab did not come back within 5 minutes. Check ./cybics.sh status on the host.', 'error');
                 return;
             }
