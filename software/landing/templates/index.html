@@ -1558,37 +1558,6 @@
             }
         }
 
-        /* Settings Modal */
-        .settings-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .settings-modal.active {
-            display: flex;
-        }
-
-        .settings-content {
-            background: var(--surface);
-            border: 1px solid var(--border-strong);
-            border-radius: 0.6rem;
-            padding: 2rem;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: var(--shadow-pop);
-        }
-
         /* ---- Physical Process / Network Topology / Systems Access dropdown panels ---
            Anchored directly under their trigger button (position set via JS) and
            unfurl downward from that button, rather than a page-covering modal. */
@@ -1759,153 +1728,6 @@
             transform: scale(1.1);
         }
 
-        .settings-section {
-            margin-bottom: 2rem;
-        }
-
-        .settings-section h3 {
-            color: #ff6b00;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-        }
-
-        .setting-item {
-            background: var(--surface-2);
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border);
-        }
-
-        .setting-label {
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            display: block;
-            font-weight: 500;
-        }
-
-        .theme-toggle {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .theme-option {
-            flex: 1;
-            padding: 0.75rem;
-            background: rgba(255, 107, 0, 0.1);
-            border: 2px solid rgba(255, 107, 0, 0.3);
-            border-radius: 0.5rem;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .theme-option:hover {
-            background: rgba(255, 107, 0, 0.2);
-        }
-
-        .theme-option.active {
-            background: rgba(255, 107, 0, 0.4);
-            border-color: #ff6b00;
-            box-shadow: 0 0 15px rgba(255, 107, 0, 0.3);
-        }
-
-        .model-select {
-            width: 100%;
-            padding: 0.75rem;
-            background: rgba(45, 45, 55, 0.8);
-            border: 2px solid rgba(255, 107, 0, 0.3);
-            border-radius: 0.5rem;
-            color: #fff;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ff6b00' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            padding-right: 2.5rem;
-        }
-
-        .model-select:hover {
-            border-color: rgba(255, 107, 0, 0.5);
-            background-color: rgba(45, 45, 55, 0.9);
-        }
-
-        .model-select:focus {
-            outline: none;
-            border-color: #ff6b00;
-            box-shadow: 0 0 10px rgba(255, 107, 0, 0.3);
-        }
-
-        .model-select:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            border-color: rgba(255, 107, 0, 0.2);
-        }
-
-        .model-select option {
-            background: #2d2d37;
-            color: #fff;
-            padding: 0.5rem;
-        }
-
-        body.light-mode .model-select {
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            border-color: rgba(255, 107, 0, 0.3);
-        }
-
-        body.light-mode .model-select option {
-            background: #fff;
-            color: #333;
-        }
-
-        body.light-mode .model-select:disabled {
-            opacity: 0.5;
-        }
-
-        .action-btn {
-            width: 100%;
-            padding: 0.75rem;
-            background: rgba(255, 107, 0, 0.2);
-            border: 1px solid rgba(255, 107, 0, 0.4);
-            border-radius: 0.5rem;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1rem;
-            font-weight: 500;
-        }
-
-        .action-btn:hover {
-            background: rgba(255, 107, 0, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
-        }
-
-        .action-btn:active {
-            transform: translateY(0);
-        }
-
-        .system-info {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 0.5rem 1rem;
-            font-size: 0.9rem;
-        }
-
-        .system-info-label {
-            color: var(--text-subtle);
-            font-weight: 500;
-        }
-
-        .system-info-value {
-            color: var(--text);
-        }
-
         /* ---- Light Mode: override the tokens; everything themed via var() flips
            automatically. Only element-specific tweaks live below. ------------- */
         body.light-mode {
@@ -1991,22 +1813,9 @@
             color: #111827;
         }
 
-        body.light-mode .settings-content {
-            background: rgba(255, 255, 255, 0.98);
-            color: #333;
-        }
-
         body.light-mode .dropdown-panel {
             background: rgba(255, 255, 255, 0.98);
             color: #333;
-        }
-
-        body.light-mode .setting-item {
-            background: rgba(245, 245, 245, 0.8);
-        }
-
-        body.light-mode .setting-label {
-            color: #666;
         }
 
         body.light-mode ::-webkit-scrollbar-track {
@@ -2031,43 +1840,8 @@
             background: rgba(255, 107, 0, 0.2);
         }
 
-        body.light-mode .settings-modal {
-            background: rgba(0, 0, 0, 0.6);
-        }
-
         body.light-mode .settings-header h2 {
             color: #b45400;
-        }
-
-        body.light-mode .settings-section h3 {
-            color: #b45400;
-        }
-
-        body.light-mode .theme-option {
-            background: rgba(255, 107, 0, 0.1);
-            border-color: rgba(255, 107, 0, 0.3);
-            color: #333;
-        }
-
-        body.light-mode .theme-option:hover {
-            background: rgba(255, 107, 0, 0.2);
-        }
-
-        body.light-mode .theme-option.active {
-            background: rgba(255, 107, 0, 0.3);
-            border-color: #ff6b00;
-            color: #ff6b00;
-        }
-
-        body.light-mode .action-btn {
-            background: rgba(255, 107, 0, 0.2);
-            border-color: rgba(255, 107, 0, 0.4);
-            color: #ff6b00;
-        }
-
-        body.light-mode .action-btn:hover {
-            background: rgba(255, 107, 0, 0.3);
-            color: #ff6b00;
         }
 
         body.light-mode .close-btn {
@@ -2078,14 +1852,6 @@
 
         body.light-mode .close-btn:hover {
             background: rgba(255, 107, 0, 0.3);
-        }
-
-        body.light-mode .system-info-label {
-            color: #666;
-        }
-
-        body.light-mode .system-info-value {
-            color: #333;
         }
 
         body.light-mode .home-header h2 {
@@ -2127,7 +1893,6 @@
         /* Chat Widget Styles */
     </style>
     <link rel="stylesheet" href="/static/css/chat.css">
-    <link rel="stylesheet" href="/static/css/central.css">
     <!-- Markdown + sanitizer (chat.js depends on these) -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -2278,7 +2043,7 @@
             </button>
 
             <!-- Settings (pinned to bottom) -->
-            <button class="nav-button settings-btn" onclick="openSettings()" title="Settings">
+            <button id="settings-btn" class="nav-button settings-btn" onclick="updateView('settings')" title="Settings">
                 <svg class="nav-icon settings-icon"><use href="#i-settings"/></svg><span class="nav-label">Settings</span>
             </button>
         </nav>
@@ -2475,6 +2240,17 @@
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                 ></iframe>
             </div>
+
+            <!-- Settings Card -->
+            <div id="settings-card" class="service-card hidden">
+                <iframe
+                    id="settings-iframe"
+                    class="service-iframe"
+                    data-src="/settings"
+                    title="Settings"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
+                ></iframe>
+            </div>
         </div>
     </main>
 
@@ -2494,7 +2270,7 @@
         // Store service IDs in a JavaScript array
         const serviceIds = [{% for service_id in services.keys() %}'{{ service_id }}',{% endfor %}];
         // Additional view IDs for CTF and Tools
-        const additionalViewIds = ['theory', 'ctf', 'stats', 'network', 'webshell'];
+        const additionalViewIds = ['theory', 'ctf', 'stats', 'network', 'webshell', 'settings'];
         const allViewIds = [...serviceIds, ...additionalViewIds];
 
         // Track current view
@@ -2515,7 +2291,8 @@
             'ctf': { path: '/ctf' },
             'stats': { path: '/stats' },
             'network': { path: '/network' },
-            'webshell': { path: '/webshell' }
+            'webshell': { path: '/webshell' },
+            'settings': { path: '/settings' }
         };
 
         // Build a service URL that matches the scheme the dashboard is served
@@ -2601,7 +2378,15 @@
             if (!iframe) return;
             const cur = iframe.getAttribute('src');
             if (cur && cur !== 'about:blank') {
-                iframe.setAttribute('data-last-src', cur); // remember for restore
+                // Remember where the page actually is, not where it started:
+                // the src attribute misses navigation inside the iframe, such
+                // as the settings section the view keeps in its hash.
+                let last = cur;
+                try {
+                    const loc = iframe.contentWindow.location;
+                    if (loc.origin === window.location.origin) last = loc.pathname + loc.search + loc.hash;
+                } catch (e) { /* cross-origin service: keep the src */ }
+                iframe.setAttribute('data-last-src', last); // remember for restore
             }
             iframe.src = 'about:blank';
         }
@@ -2764,6 +2549,25 @@
             }
         });
 
+        // Messages from the settings view (templates/settings.html).
+        window.addEventListener("message", (event) => {
+            if (event.origin !== window.location.origin || !event.data) return;
+            const data = event.data;
+            if (data.type === "reload") {
+                location.reload();
+            } else if (data.type === "agent-enabled") {
+                showChatWidget(data.enabled);
+            } else if (data.type === "agent-model-changed") {
+                if (typeof checkAgentStatus === "function") checkAgentStatus();
+            } else if (data.type === "settings-section" && currentView === "settings") {
+                // Reopen the same section, and make it linkable: #settings:system.
+                const iframe = document.getElementById("settings-iframe");
+                if (iframe) iframe.setAttribute("data-last-src", "/settings#" + data.section);
+                const hash = "#settings:" + data.section;
+                if (location.hash !== hash) history.replaceState({ view: "settings", section: data.section }, "", hash);
+            }
+        });
+
         // Push state when switching top-level views (called from button onclick)
         const _origUpdateView = updateView;
         updateView = function(view, skipHistory) {
@@ -2777,6 +2581,10 @@
         window.addEventListener('popstate', (event) => {
             if (event.state) {
                 const view = event.state.view || 'all';
+                if (view === 'settings' && event.state.section) {
+                    const iframe = document.getElementById("settings-iframe");
+                    if (iframe) iframe.setAttribute("data-last-src", "/settings#" + event.state.section);
+                }
                 _origUpdateView(view);
                 if (view === 'ctf' && event.state.ctfUrl) {
                     const ctfIframe = document.getElementById("ctf-iframe");
@@ -2792,7 +2600,12 @@
         (function() {
             const hash = location.hash.slice(1);
             if (hash) {
-                if (hash.startsWith('ctf:')) {
+                if (hash.startsWith('settings:')) {
+                    const iframe = document.getElementById("settings-iframe");
+                    if (iframe) iframe.setAttribute("data-last-src", "/settings#" + hash.slice(9));
+                    _origUpdateView('settings');
+                    history.replaceState({ view: 'settings', section: hash.slice(9) }, '', location.hash);
+                } else if (hash.startsWith('ctf:')) {
                     _origUpdateView('ctf');
                     const ctfUrl = hash.slice(4);
                     const ctfIframe = document.getElementById("ctf-iframe");
@@ -3024,114 +2837,6 @@
     </script>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="settings-modal">
-        <div class="settings-content">
-            <div class="settings-header">
-                <h2>⚙️ Settings</h2>
-                <button class="close-btn" onclick="closeSettings()">✕</button>
-            </div>
-
-            <!-- AI Agent Section -->
-            <div class="settings-section">
-                <h3>🤖 AI Assistant</h3>
-                <div class="setting-item">
-                    <span class="setting-label">CybICS Agent</span>
-                    <div class="theme-toggle">
-                        <div class="theme-option" data-agent="enabled" onclick="setAgentEnabled(true)">
-                            ✅ Enabled
-                        </div>
-                        <div class="theme-option" data-agent="disabled" onclick="setAgentEnabled(false)">
-                            ❌ Disabled
-                        </div>
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label" style="font-size: 0.9rem; color: #999;">
-                        AI assistant for CybICS help and support
-                    </span>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">AI Model</span>
-                    <select id="agentModelSelect" class="model-select" onchange="changeAgentModel(this.value)">
-                        <option value="">Loading models...</option>
-                    </select>
-                </div>
-                <div class="setting-item">
-                    <span id="modelInfo" class="setting-label" style="font-size: 0.85rem; color: #999;">
-                        Select a model above
-                    </span>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label" style="font-size: 0.75rem; color: #666; font-style: italic;">
-                        ℹ️ Models without ✓ will be downloaded on first use (may take 5-30 minutes depending on size and connection speed)
-                    </span>
-                </div>
-                <div class="setting-item" id="modelDownloadStatus" style="display: none;">
-                    <span class="setting-label" style="color: #4ade80;">
-                        <span id="downloadMessage"></span>
-                    </span>
-                </div>
-            </div>
-
-            <!-- Central CTF Server Section (optional; static/js/central.js) -->
-            <div class="settings-section" id="centralSection">
-                <h3>🏁 Central CTF Server</h3>
-                <div class="setting-item" id="centralPanel"></div>
-                <div class="setting-item" id="centralUplink" hidden>
-                    <span class="setting-label">Event Wi-Fi (USB Wi-Fi adapter)</span>
-                    <p class="central-intro">
-                        A CybICS board reaches the central server through a USB Wi-Fi adapter.
-                        It only carries the server's traffic: the board's own training network
-                        stays separate, and nothing on the board accepts connections from the
-                        event network.
-                    </p>
-                    <dl class="central-grid" id="centralUplinkStatus"></dl>
-                    <div class="central-form">
-                        <label>Network name (SSID)
-                            <input id="centralUplinkSsid" type="text" placeholder="cybics-ctf" autocomplete="off">
-                        </label>
-                        <label>Wi-Fi password
-                            <input id="centralUplinkPsk" type="password" placeholder="from the organiser" autocomplete="off">
-                        </label>
-                        <div class="central-buttons">
-                            <button class="action-btn" type="button" id="centralUplinkConnect">📶 Connect</button>
-                            <button class="action-btn" type="button" id="centralUplinkOff">⏏️ Switch off</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="central-message" id="centralMessage" role="status"></div>
-            </div>
-
-            <!-- System Actions Section -->
-            <div class="settings-section">
-                <h3>🔧 System Actions</h3>
-                <div class="setting-item">
-                    <span class="setting-label">Docker Logs</span>
-                    <button class="action-btn" onclick="downloadLogs()">
-                        📥 Download Compose Logs
-                    </button>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">Container Management</span>
-                    <button class="action-btn" onclick="restartContainers(this)">
-                        🔄 Restart All Containers
-                    </button>
-                </div>
-            </div>
-
-            <!-- System Information Section -->
-            <div class="settings-section">
-                <h3>ℹ️ System Information</h3>
-                <div class="setting-item">
-                    <div class="system-info" id="systemInfo">
-                        <div class="system-info-label">Loading...</div>
-                        <div class="system-info-value"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Physical Process Modal -->
     <div id="physicalProcessModal" class="dropdown-panel process-modal-content">
             <div class="settings-header">
@@ -3262,27 +2967,6 @@
 
     <!-- Settings JavaScript -->
     <script>
-        // Settings functionality
-        function openSettings() {
-            document.getElementById('settingsModal').classList.add('active');
-            loadSystemInfo();
-            loadAgentPreference();
-            loadAvailableModels();
-            window.centralCtf.start();
-        }
-
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('active');
-            window.centralCtf.stop();
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('settingsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeSettings();
-            }
-        });
-
         // Physical Process / Network Topology / Systems Access dropdown panels.
         // Each panel is anchored directly under its trigger button and unfurls
         // downward from there, rather than covering the page as a modal.
@@ -3422,380 +3106,17 @@
             loadThemePreference();
         });
 
-        // Download Logs
-        function downloadLogs() {
-            const button = event.target;
-            const originalText = button.textContent;
-            button.textContent = '⏳ Generating logs...';
-            button.disabled = true;
-
-            window.location.href = '/api/settings/logs/download';
-
-            // Re-enable button after delay
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.disabled = false;
-            }, 3000);
+        // The chat button follows the per-session switch in Settings -> AI
+        // Assistant; the settings view reports changes with a postMessage.
+        function showChatWidget(enabled) {
+            const chatWidget = document.getElementById('chatWidget');
+            if (chatWidget) chatWidget.style.display = enabled ? 'flex' : 'none';
         }
-
-        // Restart Containers
-        function restartContainers(button) {
-            if (!confirm('Restart all CybICS services? The lab, including this page, is unavailable for about a minute.')) {
-                return;
-            }
-
-            const originalText = button.textContent;
-            button.textContent = '⏳ Restarting...';
-            button.disabled = true;
-            const fail = (message) => {
-                button.textContent = '✗ Failed';
-                alert('Error restarting containers: ' + message);
-                button.disabled = false;
-                setTimeout(() => { button.textContent = originalText; }, 2000);
-            };
-
-            fetch('/api/settings/containers/restart', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    fail(data.error || 'Unknown error');
-                    return;
-                }
-                // The landing page restarts last, so this page goes away too.
-                // Its outage is shorter than the poll interval, so wait for a
-                // new boot ID rather than for it to stop answering.
-                button.textContent = `⏳ Restarting ${data.containers.length} services...`;
-                const started = Date.now();
-                const poll = () => {
-                    if (Date.now() - started > 300000) {
-                        fail('The lab did not come back within 5 minutes. Check ./cybics.sh status.');
-                        return;
-                    }
-                    fetch('/api/settings/containers/restart',
-                          { cache: 'no-store', signal: AbortSignal.timeout(5000) })
-                    .then(r => r.json())
-                    .then(status => {
-                        if (status.boot_id && status.boot_id !== data.boot_id) location.reload();
-                        else setTimeout(poll, 2000);
-                    })
-                    .catch(() => setTimeout(poll, 2000));
-                };
-                setTimeout(poll, 2000);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                fail(error.message);
-            });
-        }
-
-        // Load System Information
-        function loadSystemInfo() {
-            const infoDiv = document.getElementById('systemInfo');
-            infoDiv.innerHTML = '<div class="system-info-label">Loading...</div>';
-
-            fetch('/api/settings/system/info')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        infoDiv.innerHTML = `
-                            <div class="system-info-label">Error:</div>
-                            <div class="system-info-value">${data.error}</div>
-                        `;
-                        return;
-                    }
-
-                    infoDiv.innerHTML = `
-                        <div class="system-info-label">Platform:</div>
-                        <div class="system-info-value">${data.platform}</div>
-                        <div class="system-info-label">Python Version:</div>
-                        <div class="system-info-value">${data.python_version}</div>
-                        <div class="system-info-label">Docker Version:</div>
-                        <div class="system-info-value">${data.docker_version}</div>
-                        <div class="system-info-label">Compose Version:</div>
-                        <div class="system-info-value">${data.compose_version}</div>
-                        <div class="system-info-label">Running Containers:</div>
-                        <div class="system-info-value">${data.running_containers}</div>
-                        <div class="system-info-label">Board Revision:</div>
-                        <div class="system-info-value">${
-                            data.hardware && data.hardware.detected
-                                ? data.hardware.revision + (data.hardware.straps_present ? '' : ' (straps not fitted)')
-                                : (data.hardware ? data.hardware.description : 'unknown')
-                        }</div>
-                    `;
-                })
-                .catch(error => {
-                    console.error('Error loading system info:', error);
-                    infoDiv.innerHTML = `
-                        <div class="system-info-label">Error:</div>
-                        <div class="system-info-value">${error.message}</div>
-                    `;
-                });
-        }
-
-        // ========== AI AGENT FUNCTIONS ==========
-
-        function setAgentEnabled(enabled) {
-            // Update UI
-            document.querySelectorAll('[data-agent]').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            document.querySelector(`[data-agent="${enabled ? 'enabled' : 'disabled'}"]`).classList.add('active');
-
-            // Save to server
-            fetch('/api/settings/agent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ enabled: enabled })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Agent setting saved:', data);
-                // Update chat widget visibility
-                const chatWidget = document.getElementById('chatWidget');
-                if (chatWidget) {
-                    chatWidget.style.display = enabled ? 'flex' : 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error saving agent setting:', error);
-            });
-        }
-
-        function loadAgentPreference() {
+        window.addEventListener('DOMContentLoaded', () => {
             fetch('/api/settings/agent')
                 .then(response => response.json())
-                .then(data => {
-                    const enabled = data.enabled !== undefined ? data.enabled : true;
-                    // Apply setting without saving again
-                    document.querySelectorAll('[data-agent]').forEach(opt => {
-                        opt.classList.remove('active');
-                    });
-                    document.querySelector(`[data-agent="${enabled ? 'enabled' : 'disabled'}"]`).classList.add('active');
-
-                    // Show/hide chat widget
-                    const chatWidget = document.getElementById('chatWidget');
-                    if (chatWidget) {
-                        chatWidget.style.display = enabled ? 'flex' : 'none';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading agent preference:', error);
-                });
-        }
-
-        function loadAvailableModels() {
-            fetch('/api/agent/model')
-                .then(response => {
-                    if (!response.ok) throw new Error('Agent service unavailable');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.error) throw new Error(data.error);
-
-                    const select = document.getElementById('agentModelSelect');
-                    const modelInfo = document.getElementById('modelInfo');
-
-                    if (!select) return;
-
-                    // Clear existing options
-                    select.innerHTML = '';
-
-                    // Get recommended models
-                    const recommendedModels = data.recommended_models || [];
-                    const availableModels = data.available_models || [];
-                    const currentModel = data.current_model || '';
-
-                    // Add options
-                    recommendedModels.forEach(model => {
-                        const option = document.createElement('option');
-                        option.value = model.name;
-                        option.textContent = `${model.name} (${model.size})${model.recommended ? ' ⭐ Recommended' : ''}`;
-                        option.dataset.size = model.size;
-                        option.dataset.quality = model.quality;
-                        option.dataset.description = model.description;
-
-                        // Mark if downloaded
-                        if (availableModels.includes(model.name)) {
-                            option.textContent += ' ✓';
-                        }
-
-                        // Select current model
-                        if (model.name === currentModel) {
-                            option.selected = true;
-                        }
-
-                        select.appendChild(option);
-                    });
-
-                    // Update model info
-                    updateModelInfo(currentModel);
-                })
-                .catch(error => {
-                    console.error('Error loading models:', error);
-                    const select = document.getElementById('agentModelSelect');
-                    if (select) {
-                        select.innerHTML = '<option value="">Error loading models</option>';
-                    }
-                });
-        }
-
-        function updateModelInfo(modelName) {
-            const select = document.getElementById('agentModelSelect');
-            const modelInfo = document.getElementById('modelInfo');
-
-            if (!select || !modelInfo) return;
-
-            const selectedOption = select.querySelector(`option[value="${modelName}"]`);
-
-            if (selectedOption) {
-                const size = selectedOption.dataset.size;
-                const quality = selectedOption.dataset.quality;
-                const description = selectedOption.dataset.description;
-                const stars = '⭐'.repeat(parseInt(quality));
-
-                modelInfo.innerHTML = `${description} | Size: ${size} | Quality: ${stars}`;
-            } else {
-                modelInfo.innerHTML = `Current: ${modelName}`;
-            }
-        }
-
-        function changeAgentModel(modelName) {
-            if (!modelName) return;
-
-            const select = document.getElementById('agentModelSelect');
-            const modelInfo = document.getElementById('modelInfo');
-            const downloadStatus = document.getElementById('modelDownloadStatus');
-            const downloadMessage = document.getElementById('downloadMessage');
-
-            // Get model info to check if it needs downloading
-            const selectedOption = select.querySelector(`option[value="${modelName}"]`);
-            const needsDownload = selectedOption && !selectedOption.textContent.includes('✓');
-
-            // Get estimated download time based on model size
-            let downloadEstimate = '';
-            if (needsDownload && selectedOption) {
-                const size = selectedOption.dataset.size || '';
-                if (size.includes('600MB')) {
-                    downloadEstimate = ' (~2-5 minutes on average connection)';
-                } else if (size.includes('2.3GB') || size.includes('2GB')) {
-                    downloadEstimate = ' (~5-15 minutes on average connection)';
-                } else if (size.includes('4.1GB') || size.includes('4.7GB')) {
-                    downloadEstimate = ' (~10-30 minutes on average connection)';
-                }
-            }
-
-            // Show appropriate loading message
-            if (modelInfo) {
-                if (needsDownload) {
-                    modelInfo.innerHTML = `📥 Downloading model...${downloadEstimate} Please wait.`;
-                    modelInfo.style.color = '#fbbf24';
-                } else {
-                    modelInfo.innerHTML = '⏳ Switching model...';
-                    modelInfo.style.color = '#fbbf24';
-                }
-            }
-
-            // Disable dropdown during change
-            select.disabled = true;
-
-            fetch('/api/agent/model', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ model: modelName })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Re-enable dropdown
-                select.disabled = false;
-
-                if (data.success) {
-                    // Model changed successfully
-                    if (modelInfo) {
-                        if (data.downloaded) {
-                            modelInfo.innerHTML = '✅ Model downloaded and activated successfully!';
-                        } else {
-                            modelInfo.innerHTML = '✅ Model changed successfully!';
-                        }
-                        modelInfo.style.color = '#4ade80';
-                    }
-
-                    setTimeout(() => {
-                        updateModelInfo(modelName);
-                        if (modelInfo) {
-                            modelInfo.style.color = '';
-                        }
-                        checkAgentStatus();
-                        loadAvailableModels(); // Refresh to show checkmark
-                    }, 2000);
-                } else if (data.downloading) {
-                    // Model is being downloaded
-                    if (downloadStatus) {
-                        downloadStatus.style.display = 'block';
-                    }
-                    if (downloadMessage) {
-                        downloadMessage.innerHTML = `📥 ${data.message}`;
-                    }
-                    if (modelInfo) {
-                        modelInfo.innerHTML = '⏳ Downloading model... This may take several minutes.';
-                        modelInfo.style.color = '#fbbf24';
-                    }
-
-                    // Poll for download completion (optional)
-                    setTimeout(() => {
-                        if (downloadStatus) {
-                            downloadStatus.style.display = 'none';
-                        }
-                        updateModelInfo(modelName);
-                        if (modelInfo) {
-                            modelInfo.style.color = '';
-                        }
-                        loadAvailableModels();
-                    }, 30000); // Hide after 30 seconds
-                } else {
-                    // Error
-                    if (modelInfo) {
-                        modelInfo.innerHTML = `❌ ${data.error || data.message || 'Failed to change model'}`;
-                        modelInfo.style.color = '#f87171';
-                    }
-
-                    setTimeout(() => {
-                        updateModelInfo(modelName);
-                        if (modelInfo) {
-                            modelInfo.style.color = '';
-                        }
-                    }, 5000);
-                }
-            })
-            .catch(error => {
-                console.error('Error changing model:', error);
-                // Re-enable dropdown
-                select.disabled = false;
-
-                if (modelInfo) {
-                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                        modelInfo.innerHTML = `❌ Agent service unavailable. Please ensure the agent is running.`;
-                    } else {
-                        modelInfo.innerHTML = `❌ Error: ${error.message}`;
-                    }
-                    modelInfo.style.color = '#f87171';
-                }
-
-                setTimeout(() => {
-                    updateModelInfo(modelName);
-                    if (modelInfo) {
-                        modelInfo.style.color = '';
-                    }
-                }, 5000);
-            });
-        }
-
-        // Load settings on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadAgentPreference();
+                .then(data => showChatWidget(data.enabled !== false))
+                .catch(() => {});
         });
 
         // Chat widget functions moved to static/js/chat.js
@@ -3836,7 +3157,6 @@
 
     <!-- Chat widget logic (defer ensures DOM is ready) -->
     <script defer src="/static/js/chat.js"></script>
-    <script src="/static/js/central.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.title or 'CybICS - Settings' }}</title>
+    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/css/settings.css">
+</head>
+<body data-platform="{{ platform }}">
+<div class="shell">
+    <header class="page-head">
+        <h1>Settings</h1>
+        <p class="lede">These settings apply to this whole CybICS {{ 'board' if platform == 'physical' else 'instance' }}, unless one says otherwise.</p>
+    </header>
+
+    <div class="layout">
+        <nav class="subnav" aria-label="Settings sections">
+            <a class="subnav-link" href="#event" data-section="event">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V4m0 0h12l-2 4 2 4H4"/></svg>
+                <span>Central CTF</span>
+                <span class="nav-pill" id="eventNavPill" hidden></span>
+            </a>
+            <a class="subnav-link" href="#assistant" data-section="assistant">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg>
+                <span>AI Assistant</span>
+            </a>
+            <a class="subnav-link" href="#system" data-section="system">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg>
+                <span>System</span>
+            </a>
+        </nav>
+
+        <main>
+            <!-- ================= Central CTF Server (static/js/central.js) ================= -->
+            <section class="section" id="section-event" aria-labelledby="event-title" hidden>
+                <div class="section-head">
+                    <h2 id="event-title">Central CTF Server</h2>
+                    <p>Optional. In a workshop, the organiser runs a central CTF server with a shared
+                       scoreboard. Join its event to report the challenges you solve here. Flags are
+                       still checked locally, and CybICS keeps working if the server is unreachable.</p>
+                </div>
+
+                <div class="event-flow" id="eventFlow" aria-busy="true">
+                    <p class="loading" id="eventLoading"><span class="spinner" aria-hidden="true"></span>Loading…</p>
+
+                    <!-- Enrolled: what the team cares about first. -->
+                    <article class="card status-card" id="eventStatus" hidden>
+                        <div class="status-top">
+                            <div>
+                                <p class="eyebrow">Joined event</p>
+                                <h3 data-field="event"></h3>
+                                <p class="muted">as team <strong data-field="team"></strong></p>
+                            </div>
+                            <span class="state-pill" data-field="state"></span>
+                        </div>
+                        <div class="metrics">
+                            <div class="metric"><span class="metric-value" data-field="score">–</span><span class="metric-label">points</span></div>
+                            <div class="metric"><span class="metric-value" data-field="rank">–</span><span class="metric-label">rank</span></div>
+                            <div class="metric"><span class="metric-value" data-field="pending">0</span><span class="metric-label">reports waiting</span></div>
+                        </div>
+                        <dl class="facts">
+                            <dt>Server</dt><dd class="mono" data-field="server"></dd>
+                            <dt>Last contact</dt><dd data-field="contact"></dd>
+                            <dt data-row="error" hidden>Problem</dt><dd data-row="error" class="text-danger" data-field="error" hidden></dd>
+                        </dl>
+                        <div class="announcements" data-row="news" hidden>
+                            <h4>Announcements</h4>
+                            <ul data-field="news"></ul>
+                        </div>
+                        <div class="card-foot">
+                            <div class="confirm" data-confirm="leave">
+                                <button type="button" class="btn btn-danger-ghost" data-action="leave-ask">Leave event</button>
+                                <div class="confirm-box" hidden>
+                                    <p>Leave the event? Your local progress stays here, and solves already reported stay on the scoreboard.</p>
+                                    <div class="btn-row">
+                                        <button type="button" class="btn btn-danger" data-action="leave">Leave event</button>
+                                        <button type="button" class="btn" data-action="confirm-cancel">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="msg" id="statusMsg" role="status"></p>
+                        </div>
+                    </article>
+
+                    {% if platform == 'physical' %}
+                    <!-- Board only: the USB Wi-Fi adapter that reaches the event network. -->
+                    <article class="card step" id="uplinkCard" hidden>
+                        <h3><span class="step-no" aria-hidden="true"></span>Event Wi-Fi</h3>
+                        <p class="muted">The board reaches the central server through a USB Wi-Fi adapter. It only
+                           carries the server's traffic: the training network stays separate, and nothing on
+                           the board accepts connections from the event network.</p>
+                        <dl class="facts" id="uplinkFacts">
+                            <dt>Adapter</dt><dd data-field="adapter">–</dd>
+                            <dt>Network</dt><dd data-field="network">–</dd>
+                            <dt>Connection</dt><dd data-field="connection">–</dd>
+                            <dt data-row="ip" hidden>Address</dt><dd data-row="ip" class="mono" data-field="ip" hidden></dd>
+                            <dt data-row="uerror" hidden>Problem</dt><dd data-row="uerror" class="text-danger" data-field="uerror" hidden></dd>
+                        </dl>
+                        <form class="form" id="uplinkForm" novalidate>
+                            <div class="field">
+                                <label for="uplinkSsid">Network name (SSID)</label>
+                                <input id="uplinkSsid" name="ssid" type="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="cybics-ctf">
+                            </div>
+                            <div class="field">
+                                <label for="uplinkPsk">Wi-Fi password</label>
+                                <input id="uplinkPsk" name="psk" type="password" autocomplete="off" maxlength="63" placeholder="from the organiser">
+                            </div>
+                            <div class="btn-row">
+                                <button type="submit" class="btn btn-primary" data-action="uplink-on">Connect</button>
+                                <button type="button" class="btn" data-action="uplink-off">Switch off</button>
+                            </div>
+                            <p class="hint" id="uplinkHint" hidden>Plug a USB Wi-Fi adapter into the board first.</p>
+                            <p class="msg" id="uplinkMsg" role="status"></p>
+                        </form>
+                    </article>
+                    {% endif %}
+
+                    <!-- Not enrolled: reach the server, then join with a team. -->
+                    <article class="card step" id="serverCard" hidden>
+                        <h3><span class="step-no" aria-hidden="true"></span>Server</h3>
+                        <form class="form" id="serverForm" novalidate>
+                            <div class="field">
+                                <label for="serverUrl">Server address</label>
+                                <div class="input-row">
+                                    <input id="serverUrl" name="server_url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://10.10.0.1:8000" aria-describedby="serverMsg">
+                                    <button type="submit" class="btn" data-action="test">Test connection</button>
+                                </div>
+                            </div>
+                            <p class="msg" id="serverMsg" role="status"></p>
+                        </form>
+                    </article>
+
+                    <article class="card step" id="teamCard" hidden>
+                        <h3><span class="step-no" aria-hidden="true"></span>Team</h3>
+                        <p class="notice notice-danger" id="revokedNote" hidden>The organiser removed this
+                           instance from the event. Your solves are kept and are reported once you join again.</p>
+                        <form class="form" id="joinForm" novalidate>
+                            <div class="field">
+                                <label for="joinCode">Join code</label>
+                                <input id="joinCode" name="join_code" type="text" autocomplete="off" spellcheck="false" maxlength="64" placeholder="from the organiser">
+                            </div>
+                            <div class="field-pair">
+                                <div class="field">
+                                    <label for="teamName">Team name</label>
+                                    <input id="teamName" name="team_name" type="text" autocomplete="off" maxlength="64" placeholder="a new or an existing team">
+                                </div>
+                                <div class="field">
+                                    <label for="teamPassword">Team password</label>
+                                    <input id="teamPassword" name="team_password" type="password" autocomplete="off" placeholder="at least 8 characters" aria-describedby="teamPasswordHint">
+                                </div>
+                            </div>
+                            <p class="hint" id="teamPasswordHint">A new team is created with this password. Teammates enter the same team name and password on their own instance.</p>
+                            <div class="btn-row">
+                                <button type="submit" class="btn btn-primary" data-action="join">Join event</button>
+                            </div>
+                            <p class="msg" id="joinMsg" role="status"></p>
+                        </form>
+                    </article>
+                </div>
+            </section>
+
+            <!-- ================= AI Assistant ================= -->
+            <section class="section" id="section-assistant" aria-labelledby="assistant-title" hidden>
+                <div class="section-head">
+                    <h2 id="assistant-title">AI Assistant</h2>
+                    <p>The CybICS assistant answers questions about the lab, ICS security and the training modules.</p>
+                </div>
+
+                <article class="card">
+                    <div class="switch-row">
+                        <div>
+                            <h3 id="agentSwitchLabel">Chat button</h3>
+                            <p class="muted" id="agentSwitchHint">Shows the assistant's chat button in the corner of the dashboard. Applies to this browser only.</p>
+                        </div>
+                        <button type="button" class="switch" role="switch" id="agentSwitch" aria-checked="true"
+                                aria-labelledby="agentSwitchLabel" aria-describedby="agentSwitchHint" data-action="agent-toggle">
+                            <span class="switch-thumb" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <h3>Model</h3>
+                    <p class="muted">Applies to everyone using this instance. A model that is not on the instance yet is
+                       downloaded when you pick it; that takes a few minutes to half an hour, depending on its size.</p>
+                    <p class="loading" id="modelLoading"><span class="spinner" aria-hidden="true"></span>Asking the assistant…</p>
+                    <p class="notice" id="modelUnavailable" hidden>The assistant service is not running, so the model
+                       cannot be changed. It only runs when CybICS is started in full mode
+                       (<code>./cybics.sh start</code> without <code>--mode minimal</code> or <code>withoutai</code>).</p>
+                    <fieldset class="models" id="modelList" hidden>
+                        <legend class="sr-only">Model</legend>
+                    </fieldset>
+                    <p class="msg" id="modelMsg" role="status"></p>
+                </article>
+            </section>
+
+            <!-- ================= System ================= -->
+            <section class="section" id="section-system" aria-labelledby="system-title" hidden>
+                <div class="section-head">
+                    <h2 id="system-title">System</h2>
+                    <p>Versions, logs and maintenance.</p>
+                </div>
+
+                <article class="card">
+                    <h3>Information</h3>
+                    <dl class="facts" id="systemFacts" aria-busy="true">
+                        <dt>Loading…</dt><dd></dd>
+                    </dl>
+                </article>
+
+                <article class="card">
+                    <h3>Logs</h3>
+                    <p class="muted">One text file with the logs of every CybICS container, for a bug report.</p>
+                    <div class="btn-row">
+                        <a class="btn" href="/api/settings/logs/download" download data-action="logs">Download logs</a>
+                    </div>
+                    <p class="msg" id="logsMsg" role="status"></p>
+                </article>
+
+                <article class="card card-danger">
+                    <h3>Danger zone</h3>
+                    <div class="danger-row">
+                        <div>
+                            <h4>Restart all CybICS services</h4>
+                            <p class="muted">Every CybICS container restarts, this page last. The lab is unavailable for
+                               about a minute, and running attacks or captures stop. CTF progress is kept.</p>
+                        </div>
+                        <div class="confirm" data-confirm="restart">
+                            <button type="button" class="btn btn-danger-ghost" data-action="restart-ask">Restart services…</button>
+                            <div class="confirm-box" hidden>
+                                <p id="restartPlan">Checking which containers would restart…</p>
+                                <div class="btn-row">
+                                    <button type="button" class="btn btn-danger" data-action="restart" disabled>Restart now</button>
+                                    <button type="button" class="btn" data-action="confirm-cancel">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="msg" id="restartMsg" role="status"></p>
+                </article>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script src="/static/js/settings.js"></script>
+<script src="/static/js/central.js"></script>
+</body>
+</html>
