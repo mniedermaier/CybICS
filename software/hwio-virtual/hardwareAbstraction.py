@@ -66,7 +66,14 @@ import threading
 import random
 
 # Connect to OpenPLC
-client = ModbusTcpClient(host="openplc",port=502)  # Create client object
+client = ModbusTcpClient(host=os.getenv("OPENPLC_HOST", "openplc"), port=502)  # Create client object
+
+# HWIO_MODE selects what this container does with the plant state:
+#   "simulate" (default) -- run the physical process model and write it to OpenPLC.
+#   "display"            -- read the real values another node (hwio-raspberry on a
+#                           board) wrote to OpenPLC and only render them.  Same UI,
+#                           same image; the data source is the only difference.
+HWIO_MODE = os.getenv("HWIO_MODE", "simulate").strip().lower()
 # Don't connect yet - will connect in background thread to avoid blocking
 
 # ---------------------------------------------------------------------------
@@ -367,6 +374,23 @@ def physical_process_thread():
           # Only log reconnection failures every 100 attempts
           if consecutive_failures % 100 == 0:
             logging.error(f"Physical process: Failed to reconnect - {str(reconnect_error)}")
+
+    # Display mode: mirror the real plant.  The hardware bridge
+    # (hwio-raspberry) writes the live sensor values and the PLC writes the
+    # coils; here we only read them back and render -- no simulation, no writes,
+    # so this container never fights the real I/O for the registers.
+    if HWIO_MODE == "display":
+      try:
+        regs = client.read_holding_registers(1124, count=11, device_id=1)
+        gst, hpt = regs.registers[0], regs.registers[2]      # 1124, 1126
+        sysSen, boSen = regs.registers[8], regs.registers[10]  # 1132, 1134
+        consecutive_failures = 0
+      except Exception as e:
+        consecutive_failures += 1
+        if consecutive_failures == 1 or consecutive_failures % 50 == 0:
+          logging.error("Display: read from OpenPLC failed - " + str(e))
+      time.sleep(0.1)
+      continue
 
     # Physical simulation logic.
     #

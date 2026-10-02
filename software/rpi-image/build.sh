@@ -149,6 +149,7 @@ TARBALL_DIR="$PIGEN_DIR/work/stage-cybics/containers"
 
 CONTAINERS=(
     "cybics-hwio-raspberry"
+    "cybics-hwio"
     "cybics-openplc"
     "cybics-opcua"
     "cybics-s7com"
