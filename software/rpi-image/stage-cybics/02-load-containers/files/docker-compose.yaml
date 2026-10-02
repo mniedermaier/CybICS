@@ -1,6 +1,22 @@
 # CybICS Docker Compose for Pi-Gen Image
 # Uses local image names (loaded from tarballs on first boot)
 services:
+  # The virtual 3D/classic plant view, reused on the board in display mode:
+  # it reads the live values hwio (the bridge) wrote to OpenPLC and only
+  # renders them. Same image as the virtual stack; HWIO_MODE picks the source.
+  hwio-view:
+    image: cybics-hwio:latest
+    depends_on:
+    - openplc
+    restart: always
+    mem_limit: 192m
+    environment:
+    - HWIO_MODE=display
+    ports:
+    - 8090:8090
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.13
   hwio:
     image: cybics-hwio-raspberry:latest
     depends_on:

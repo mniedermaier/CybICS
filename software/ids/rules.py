@@ -36,6 +36,7 @@ KNOWN_SERVICES = {
     "172.18.0.10": "engineeringws",
     "172.18.0.11": "cybicsagent",
     "172.18.0.12": "nginx-proxy",
+    "172.18.0.13": "hwio-view",
     "172.18.0.100": "attack-machine",
 }
 
