@@ -1519,7 +1519,7 @@
               flowMaterial
             );
             inletPipe.position.set(-3.25, 1.5, -0.5);
-            inletPipe.rotation.z = Math.PI / 2;
+            inletPipe.rotation.z = -Math.PI / 2;  // flow runs GST -> compressor -> HPT (+X)
             inletPipe.castShadow = true;
             inletPipe.receiveShadow = true;
             scene.add(inletPipe);
@@ -1534,7 +1534,7 @@
               flowMaterial
             );
             outletPipe.position.set(3.25, 1.2, 0.5);
-            outletPipe.rotation.z = Math.PI / 2;
+            outletPipe.rotation.z = -Math.PI / 2;  // flow runs GST -> compressor -> HPT (+X)
             outletPipe.castShadow = true;
             outletPipe.receiveShadow = true;
             scene.add(outletPipe);
