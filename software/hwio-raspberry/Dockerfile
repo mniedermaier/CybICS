@@ -25,6 +25,7 @@ COPY hwio-raspberry/requirements.txt ./
 # Install Python packages - RPi.GPIO and smbus-cffi need compilation
 RUN pip install --no-cache-dir -r requirements.txt
 COPY hwio-raspberry/hardwareIO.py ./
+COPY hwio-raspberry/hw_version.py ./
 COPY --from=protobuf-builder /build/cybics_pb2.py ./
 
 CMD [ "python", "./hardwareIO.py" ]
