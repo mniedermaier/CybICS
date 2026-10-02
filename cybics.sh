@@ -417,6 +417,8 @@ done
 
 # Export version for docker-compose
 export CYBICS_VERSION
+# Reported to a central CTF server by the landing page, if the user joins one
+export CYBICS_MODE
 
 # Set COMPOSE_PROFILES based on mode
 case "$CYBICS_MODE" in

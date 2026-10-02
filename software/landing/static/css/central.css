@@ -1,0 +1,131 @@
+/* Settings -> Central CTF server. Uses the design tokens of index.html. */
+
+.central-intro {
+    color: var(--text-subtle);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    margin: 0 0 0.75rem 0;
+}
+
+.central-form {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.central-form label {
+    display: grid;
+    gap: 0.25rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.central-form input {
+    padding: 0.6rem 0.75rem;
+    background: var(--surface-inset);
+    border: 1px solid var(--border-strong);
+    border-radius: 0.4rem;
+    color: var(--text);
+    font: inherit;
+}
+
+.central-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.central-buttons {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+}
+
+.central-buttons .action-btn {
+    flex: 1;
+}
+
+.central-buttons .action-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+    transform: none;
+}
+
+.central-message {
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    min-height: 1.2em;
+    color: var(--text-muted);
+}
+
+.central-message.error {
+    border-left: 3px solid var(--signal-danger);
+    padding-left: 0.5rem;
+}
+
+.central-message.ok {
+    border-left: 3px solid var(--signal-ok);
+    padding-left: 0.5rem;
+}
+
+.central-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.35rem 1rem;
+    margin: 0 0 0.6rem 0;
+    font-size: 0.9rem;
+}
+
+.central-grid dt {
+    color: var(--text-subtle);
+}
+
+.central-grid dd {
+    margin: 0;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+.central-grid .mono {
+    font-family: var(--font-mono);
+}
+
+.central-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.central-state::before {
+    content: '';
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--text-subtle);
+}
+
+.central-state.running::before { background: var(--signal-ok); }
+.central-state.paused::before,
+.central-state.draft::before { background: var(--signal-info); }
+.central-state.error::before { background: var(--signal-danger); }
+
+.central-announcements {
+    list-style: none;
+    margin: 0.75rem 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.central-announcements li {
+    background: var(--accent-softer);
+    border-left: 3px solid var(--accent);
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.central-announcements time {
+    display: block;
+    color: var(--text-subtle);
+    font-size: 0.75rem;
+}

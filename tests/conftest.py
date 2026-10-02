@@ -220,6 +220,13 @@ except ImportError:
     warnings.warn("grpcio-tools is not installed; protobuf tests will skip")
 
 
+# hardwareIO.py imports its sibling modules (hw_version, ctf_uplink) by name,
+# as it does in the container where they share a directory. The tests load it
+# by file path, so put that directory on the path once, here, rather than
+# relying on whichever test module happened to add it first.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "software" / "hwio-raspberry"))
+
+
 def protobuf_available():
     """Whether the generated bindings could be produced, for skipif."""
     return (_PB_DIR / "cybics_pb2.py").exists()

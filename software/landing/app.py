@@ -4,6 +4,7 @@ Main Flask Application (Refactored)
 """
 from flask import Flask, render_template, jsonify, request, session, send_from_directory, abort
 from werkzeug.utils import safe_join
+import logging
 import os
 import sys
 
@@ -22,6 +23,9 @@ from modules.network_capture import NetworkCapture
 from modules.ctf_manager import CTFManager
 from modules.theory_manager import TheoryManager
 from modules.network_routes import register_network_routes
+from modules.central_ctf import CTFClient
+from modules.central_routes import register_central_routes
+from utils.central import read_progress_strict, collect_status
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -47,8 +51,21 @@ network_capture = NetworkCapture()
 ctf_manager = CTFManager()
 theory_manager = TheoryManager()
 
+# Optional central CTF server. Sleeps until the user joins an event from the
+# settings; no network traffic while disabled. See modules/central_routes.py.
+logging.getLogger('central_ctf').handlers = logger.handlers
+logging.getLogger('central_ctf').setLevel(logging.INFO)
+central = CTFClient(
+    state_path=CENTRAL_STATE_FILE,
+    local_solves=read_progress_strict,
+    flag_for=lambda cid: (ctf_manager.get_challenge(cid)[0] or {}).get('flag'),
+    status=lambda: collect_status(stats_collector.get_docker_containers(),
+                                  ctf_manager.load_progress()['solved_challenges']),
+)
+
 # Start background collection
 stats_collector.start()
+central.start()
 
 # ========== UTILITY FUNCTIONS ==========
 
@@ -149,6 +166,7 @@ def network_page():
 
 # Register network-specific routes
 register_network_routes(app, network_capture)
+register_central_routes(app, central)
 
 # ========== WEBSHELL ROUTES ==========
 
@@ -414,6 +432,8 @@ def verify_defense(challenge_id):
                 'total_points': session['total_points']
             })
             result['points'] = submit_result['points']
+            # Never raises or blocks; queued for the central server if enrolled.
+            central.report_solve(challenge_id, result['flag'])
             result['message'] = f"{result['message']} You earned {submit_result['points']} points!"
 
     return jsonify(result)
@@ -442,6 +462,8 @@ def submit_flag():
             'total_points': session['total_points']
         }
         ctf_manager.save_progress(progress)
+        # Never raises or blocks; queued for the central server if enrolled.
+        central.report_solve(challenge_id, submitted_flag)
 
     return jsonify(result)
 

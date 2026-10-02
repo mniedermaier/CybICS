@@ -1,0 +1,17 @@
+[Unit]
+Description=CybICS: isolate the central CTF uplink (ctfwlan0)
+Documentation=file:///etc/cybics/cybics-ctf-uplink.nft
+# Before any interface comes up, so the uplink is never open, not even briefly.
+DefaultDependencies=no
+Before=network-pre.target
+Wants=network-pre.target
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/cybics/cybics-ctf-uplink.nft
+ExecStop=/usr/sbin/nft delete table inet cybics_ctf_uplink
+
+[Install]
+WantedBy=sysinit.target

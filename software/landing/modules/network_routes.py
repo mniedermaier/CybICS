@@ -7,6 +7,7 @@ from datetime import datetime
 import io
 import struct
 
+from utils.config import UPLINK_INTERFACE
 from utils.logger import logger
 
 def register_network_routes(app, network_capture):
@@ -18,8 +19,9 @@ def register_network_routes(app, network_capture):
         try:
             interfaces_list = []
             for interface in netifaces.interfaces():
-                # Skip loopback only
-                if interface.startswith('lo'):
+                # Skip loopback, and the board's uplink to the central CTF
+                # server: participants must not capture the event network.
+                if interface.startswith('lo') or interface == UPLINK_INTERFACE:
                     continue
 
                 addrs = netifaces.ifaddresses(interface)
@@ -56,6 +58,8 @@ def register_network_routes(app, network_capture):
             data = request.get_json() or {}
             interface = data.get('interface', 'all')
             filter_str = data.get('filter', '')
+            if interface == UPLINK_INTERFACE:
+                return jsonify({'error': 'This interface cannot be captured'}), 403
 
             if network_capture.active:
                 logger.info("Capture start requested while active - stopping current capture")

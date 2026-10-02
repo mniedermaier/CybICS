@@ -2127,6 +2127,7 @@
         /* Chat Widget Styles */
     </style>
     <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="/static/css/central.css">
     <!-- Markdown + sanitizer (chat.js depends on these) -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -3072,6 +3073,35 @@
                 </div>
             </div>
 
+            <!-- Central CTF Server Section (optional; static/js/central.js) -->
+            <div class="settings-section" id="centralSection">
+                <h3>🏁 Central CTF Server</h3>
+                <div class="setting-item" id="centralPanel"></div>
+                <div class="setting-item" id="centralUplink" hidden>
+                    <span class="setting-label">Event Wi-Fi (USB Wi-Fi adapter)</span>
+                    <p class="central-intro">
+                        A CybICS board reaches the central server through a USB Wi-Fi adapter.
+                        It only carries the server's traffic: the board's own training network
+                        stays separate, and nothing on the board accepts connections from the
+                        event network.
+                    </p>
+                    <dl class="central-grid" id="centralUplinkStatus"></dl>
+                    <div class="central-form">
+                        <label>Network name (SSID)
+                            <input id="centralUplinkSsid" type="text" placeholder="cybics-ctf" autocomplete="off">
+                        </label>
+                        <label>Wi-Fi password
+                            <input id="centralUplinkPsk" type="password" placeholder="from the organiser" autocomplete="off">
+                        </label>
+                        <div class="central-buttons">
+                            <button class="action-btn" type="button" id="centralUplinkConnect">📶 Connect</button>
+                            <button class="action-btn" type="button" id="centralUplinkOff">⏏️ Switch off</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="central-message" id="centralMessage" role="status"></div>
+            </div>
+
             <!-- System Actions Section -->
             <div class="settings-section">
                 <h3>🔧 System Actions</h3>
@@ -3238,10 +3268,12 @@
             loadSystemInfo();
             loadAgentPreference();
             loadAvailableModels();
+            window.centralCtf.start();
         }
 
         function closeSettings() {
             document.getElementById('settingsModal').classList.remove('active');
+            window.centralCtf.stop();
         }
 
         // Close modal when clicking outside
@@ -3804,6 +3836,7 @@
 
     <!-- Chat widget logic (defer ensures DOM is ready) -->
     <script defer src="/static/js/chat.js"></script>
+    <script src="/static/js/central.js"></script>
 
 </body>
 </html>

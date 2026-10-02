@@ -48,3 +48,8 @@ cat > /etc/dhcpcd.conf << 'EOF'
 # Don't manage wlan0 - NetworkManager handles it
 denyinterfaces wlan0
 EOF
+
+# Isolate the central CTF uplink (ctfwlan0) before any interface comes up.
+# Only this table is loaded: Debian's nftables.service would flush the whole
+# ruleset, including Docker's, so it stays disabled.
+systemctl enable cybics-ctf-uplink-firewall.service
