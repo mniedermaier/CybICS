@@ -1,5 +1,5 @@
 // Settings view (templates/settings.html): section navigation, the AI
-// assistant and the system section. The Central CTF section is in central.js
+// assistant and the system section. The CybICS-mgmt section is in mgmt.js
 // and uses the helpers exported at the bottom.
 //
 // The page runs in the dashboard's iframe. It tells the dashboard which
@@ -8,12 +8,12 @@
 (function () {
     'use strict';
 
-    const SECTIONS = ['event', 'assistant', 'system'];
+    const SECTIONS = ['mgmt', 'assistant', 'system'];
     const loaded = new Set();
     const loaders = {};
     const $ = id => document.getElementById(id);
 
-    // ---------- helpers shared with central.js ----------
+    // ---------- helpers shared with mgmt.js ----------
 
     function el(tag, attrs, children) {
         const node = document.createElement(tag);
@@ -81,7 +81,7 @@
     }
 
     function show(name, fromUser) {
-        // Section ids are prefixed, so #event never makes the browser jump to an anchor.
+        // Section ids are prefixed, so #mgmt never makes the browser jump to an anchor.
         SECTIONS.forEach(section => { $('section-' + section).hidden = section !== name; });
         document.querySelectorAll('.subnav-link').forEach(link => {
             if (link.dataset.section === name) link.setAttribute('aria-current', 'page');

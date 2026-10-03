@@ -240,6 +240,9 @@ main { max-width: 760px; }
 .state-pill::before { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; }
 .state-pill.running { background: var(--ok-soft); color: var(--ok); }
 .state-pill.paused, .state-pill.draft { background: var(--warn-soft); color: var(--warn); }
+.state-pill.ok, .state-pill.done { background: var(--ok-soft); color: var(--ok); }
+.state-pill.warn, .state-pill.refused { background: var(--warn-soft); color: var(--warn); }
+.state-pill.failed { background: var(--danger-soft); color: var(--danger); }
 
 .metrics {
     display: grid;
@@ -269,6 +272,24 @@ main { max-width: 760px; }
 .announcements time { display: block; font-size: 0.75rem; color: var(--text-subtle); }
 
 .card-foot { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+/* CybICS-mgmt: allowed actions and job history */
+.action-list { display: flex; flex-direction: column; margin-top: 0.75rem; }
+.action-list .switch-row { padding: 0.65rem 0; border-top: 1px solid var(--border); }
+.action-list .switch-row h4 { margin-bottom: 0.15rem; }
+.job-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.job-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.15rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.45rem;
+    background: var(--surface-2);
+    overflow-wrap: anywhere;
+}
+.job-action { font-weight: 600; font-family: var(--font-mono); font-size: 0.85rem; }
+.job-detail { grid-column: 1 / 3; color: var(--text-subtle); font-size: 0.85rem; }
+.job-time { font-size: 0.75rem; color: var(--text-subtle); }
 
 /* ---------- forms ---------- */
 

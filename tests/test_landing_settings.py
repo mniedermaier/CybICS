@@ -17,7 +17,7 @@ from conftest import NGINX_PROXY_PORT, READ_TIMEOUT, SERVER_IP
 
 pytestmark = pytest.mark.usefixtures("stack_ready")
 
-# Through the reverse proxy, like test_landing_central.
+# Through the reverse proxy, like test_landing_mgmt.
 BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
 
 
@@ -29,9 +29,9 @@ def get(path, **kwargs):
 def test_settings_view_has_its_sections_and_assets():
     response = get("/settings")
     assert response.status_code == 200
-    for section in ("event", "assistant", "system"):
+    for section in ("mgmt", "assistant", "system"):
         assert f'<section class="section" id="section-{section}"' in response.text
-    for asset in ("/static/js/settings.js", "/static/js/central.js", "/static/css/settings.css"):
+    for asset in ("/static/js/settings.js", "/static/js/mgmt.js", "/static/css/settings.css"):
         assert asset in response.text
         assert get(asset).status_code == 200
 
@@ -64,16 +64,16 @@ def render(path):
 
 
 def test_settings_scripts_fill_the_sections():
-    # central.js fills the event section, settings.js the system section.
-    event = render("/settings#event")
-    assert re.search(r'<p [^>]*id="eventLoading"[^>]*hidden', event), "event section stuck loading"
+    # mgmt.js fills the CybICS-mgmt section, settings.js the system section.
+    section = render("/settings#mgmt")
+    assert re.search(r'<p [^>]*id="mgmtLoading"[^>]*hidden', section), "CybICS-mgmt section stuck loading"
     system = render("/settings#system")
     assert 'id="systemFacts" aria-busy="false"' in system, "system section stuck loading"
     assert "<dt>Platform</dt>" in system
 
 
 def test_board_only_parts_follow_the_platform():
-    platform = get("/api/settings/central").json()["platform"]
+    platform = get("/api/settings/mgmt").json()["platform"]
     page = get("/settings").text
     assert ('id="uplinkCard"' in page) == (platform == "physical")
 
