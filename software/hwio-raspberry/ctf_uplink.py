@@ -1,12 +1,12 @@
-"""Manage the board's uplink to a central CTF server.
+"""Manage the board's uplink to a CybICS-mgmt server.
 
-A USB Wi-Fi dongle joins the event network that the organiser's CybICS-CTF
+A USB Wi-Fi dongle joins the event network that the organiser's CybICS-mgmt
 server sits on. The onboard radio stays what it always was: wlan0, the
 training access point (or station). The image pins the dongle's name with a
 udev rule (70-cybics-wifi.rules), installs the NetworkManager profile
-cybics-ctf-uplink with autoconnect off, and isolates the interface with
-nftables (cybics-ctf-uplink.nft): no forwarding to or from it, and no new
-inbound connections.
+cybics-ctf-uplink for the default network cybics-mgmt with autoconnect on, and
+isolates the interface with nftables (cybics-ctf-uplink.nft): no forwarding to
+or from it, and no new inbound connections.
 
 The landing page asks for changes by writing request.json into a directory
 shared with this container; this module applies it with nmcli and answers in
@@ -32,14 +32,16 @@ REQUEST = 'request.json'
 STATUS = 'status.json'
 
 # Kept in step with the keyfile the image ships
-# (software/rpi-image/stage-cybics/01-configure-system/files/). Used when the
-# profile is missing, e.g. on a device set up with installRPI.sh before this
-# existed.
+# (software/rpi-image/stage-cybics/01-configure-system/files/), autoconnect
+# included. Used when the profile is missing, e.g. on a device set up with
+# installRPI.sh before this existed.
+PROFILE_AUTOCONNECT = True
 PROFILE_OPTIONS = {
     'wifi.mode': 'infrastructure',
-    'wifi.ssid': 'cybics-ctf',
+    # The default network of the CybICS-mgmt Raspberry Pi image.
+    'wifi.ssid': 'cybics-mgmt',
     'wifi-sec.key-mgmt': 'wpa-psk',
-    'wifi-sec.psk': 'change-me-please',
+    'wifi-sec.psk': 'cybics-mgmt',
     'ipv4.method': 'auto',
     # Reach the CTF server's subnet only. Without this the uplink would become
     # the default route, and the training AP's NAT (ipv4.method=shared) would
@@ -92,7 +94,7 @@ class Uplink:
             return
         logger.info('Uplink  : creating the %s profile', UPLINK_CONNECTION)
         self.nmcli.connection.add('wifi', PROFILE_OPTIONS, self.interface,
-                                  UPLINK_CONNECTION, False)
+                                  UPLINK_CONNECTION, PROFILE_AUTOCONNECT)
 
     def apply(self, request):
         """Configure the profile as asked. Raises on an nmcli failure."""

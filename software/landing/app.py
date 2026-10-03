@@ -7,6 +7,7 @@ from werkzeug.utils import safe_join
 import logging
 import os
 import sys
+import threading
 
 # Add current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -14,7 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import configuration and utilities
 from utils.config import *
 from utils.hardware import read_hardware_version  # noqa: E402
-from utils.restart import RestartError, project_containers, restart_status, start_restart  # noqa: E402
+from utils.restart import (RestartError, logs_bundle, project_containers,  # noqa: E402
+                           restart_service, restart_status, start_restart)
 from utils.logger import logger
 
 # Import modules
@@ -23,9 +25,10 @@ from modules.network_capture import NetworkCapture
 from modules.ctf_manager import CTFManager
 from modules.theory_manager import TheoryManager
 from modules.network_routes import register_network_routes
-from modules.central_ctf import CTFClient
-from modules.central_routes import register_central_routes
-from utils.central import read_progress_strict, collect_status
+from modules.cybics_mgmt import MgmtClient
+from modules.mgmt_routes import register_mgmt_routes
+from utils.mgmt import (AutoEnrol, Banners, collect_status, device_info, device_label,
+                        make_handlers, read_progress_strict)
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -51,21 +54,35 @@ network_capture = NetworkCapture()
 ctf_manager = CTFManager()
 theory_manager = TheoryManager()
 
-# Optional central CTF server. Sleeps until the user joins an event from the
-# settings; no network traffic while disabled. See modules/central_routes.py.
-logging.getLogger('central_ctf').handlers = logger.handlers
-logging.getLogger('central_ctf').setLevel(logging.INFO)
-central = CTFClient(
-    state_path=CENTRAL_STATE_FILE,
+# Optional CybICS-mgmt server. Sleeps until the user connects from the
+# settings (or a board joins the default network, see AutoEnrol); no network
+# traffic while disabled. See modules/mgmt_routes.py and utils/mgmt.py.
+logging.getLogger('cybics_mgmt').handlers = logger.handlers
+logging.getLogger('cybics_mgmt').setLevel(logging.INFO)
+mgmt_banners = Banners()
+# Each action runs only if the user switched it on in the settings.
+mgmt_handlers = make_handlers(lambda: device_label(mgmt), mgmt_banners,
+                              reset_progress=ctf_manager.reset_progress,
+                              restart_all=start_restart,
+                              restart_service=restart_service,
+                              logs_text=logs_bundle)
+mgmt = MgmtClient(
+    state_path=MGMT_STATE_FILE,
+    device_info=device_info,
     local_solves=read_progress_strict,
     flag_for=lambda cid: (ctf_manager.get_challenge(cid)[0] or {}).get('flag'),
     status=lambda: collect_status(stats_collector.get_docker_containers(),
-                                  ctf_manager.load_progress()['solved_challenges']),
+                                  ctf_manager.load_progress()['solved_challenges'],
+                                  cpu_percent=(stats_collector.get_history()['cpu'] or [None])[-1]),
+    handlers=mgmt_handlers,
 )
 
 # Start background collection
 stats_collector.start()
-central.start()
+mgmt.start()
+if CYBICS_PLATFORM == 'physical':
+    # Enrols the board on its own only while its uplink is on cybics-mgmt.
+    threading.Thread(target=AutoEnrol(mgmt).run, name='cybics-mgmt-autoenrol', daemon=True).start()
 
 # ========== UTILITY FUNCTIONS ==========
 
@@ -166,7 +183,7 @@ def network_page():
 
 # Register network-specific routes
 register_network_routes(app, network_capture)
-register_central_routes(app, central)
+register_mgmt_routes(app, mgmt, mgmt_banners)
 
 # ========== WEBSHELL ROUTES ==========
 
@@ -432,8 +449,8 @@ def verify_defense(challenge_id):
                 'total_points': session['total_points']
             })
             result['points'] = submit_result['points']
-            # Never raises or blocks; queued for the central server if enrolled.
-            central.report_solve(challenge_id, result['flag'])
+            # Never raises or blocks; queued for CybICS-mgmt while in an event.
+            mgmt.report_solve(challenge_id, result['flag'])
             result['message'] = f"{result['message']} You earned {submit_result['points']} points!"
 
     return jsonify(result)
@@ -462,8 +479,8 @@ def submit_flag():
             'total_points': session['total_points']
         }
         ctf_manager.save_progress(progress)
-        # Never raises or blocks; queued for the central server if enrolled.
-        central.report_solve(challenge_id, submitted_flag)
+        # Never raises or blocks; queued for CybICS-mgmt while in an event.
+        mgmt.report_solve(challenge_id, submitted_flag)
 
     return jsonify(result)
 
@@ -576,70 +593,23 @@ def download_logs():
     import subprocess
     import tempfile
     from datetime import datetime
+    from flask import send_file
 
     try:
         logger.info('Generating docker logs')
-
-        # Only this compose project's containers; see utils/restart.py.
+        # Only this compose project's containers; see utils/restart.py. The
+        # same text is what a CybICS-mgmt collect_logs job uploads.
         try:
-            project_name, containers = project_containers()
+            text = logs_bundle()
         except RestartError as e:
             logger.warning(f'Log download refused: {e}')
             return jsonify({'error': str(e)}), 409
 
-        logger.info(f'Found {len(containers)} containers: {containers}')
-
-        # Get container versions
-        container_versions = {}
-        for container in containers:
-            version_result = subprocess.run(
-                ['docker', 'inspect', '--format', '{{.Config.Image}}', container],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if version_result.returncode == 0:
-                container_versions[container] = version_result.stdout.strip()
-            else:
-                container_versions[container] = 'unknown'
-
-        # Collect logs from all containers
-        all_logs = []
-        for container in containers:
-            logs_result = subprocess.run(
-                ['docker', 'logs', '--timestamps', container],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            all_logs.append(f"{'='*80}\nContainer: {container}\n{'='*80}\n{logs_result.stdout}")
-            if logs_result.stderr:
-                all_logs.append(f"\nSTDERR:\n{logs_result.stderr}")
-            all_logs.append(f"\n\n")
-
-        # Create a temporary file with logs
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'cybics_logs_{timestamp}.txt'
-
-        # Write logs to temporary file
+        filename = f"cybics_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
-            f.write(f"CybICS Docker Logs\n")
-            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Containers: {len(containers)}\n")
-            f.write("="*80 + "\n\n")
-
-            # Write container versions
-            f.write("CONTAINER VERSIONS\n")
-            f.write("="*80 + "\n")
-            for container, version in sorted(container_versions.items()):
-                f.write(f"{container}: {version}\n")
-            f.write("="*80 + "\n\n")
-
-            f.write('\n'.join(all_logs))
+            f.write(text)
             temp_path = f.name
 
-        # Send file
-        from flask import send_file
         return send_file(
             temp_path,
             as_attachment=True,

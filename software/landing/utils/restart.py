@@ -1,7 +1,8 @@
 """Find and restart the CybICS containers for the settings page.
 
-The scope of "Restart All Containers" and of the log download comes from the
-compose project the landing container belongs to.
+The scope of "Restart All Containers", of restarting a single service (a
+CybICS-mgmt job) and of the log download comes from the compose project the
+landing container belongs to.
 landing runs with host networking, so its hostname is the host's and cannot
 be used to look the container up: the old code tried that, never found the
 project, and fell back to restarting every container on the host. The
@@ -23,6 +24,7 @@ import re
 import subprocess
 import threading
 import uuid
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -140,3 +142,79 @@ def start_restart(run=subprocess.run, mountinfo=MOUNTINFO):
     threading.Thread(target=_restart_all, args=(others, own, run),
                      name="restart-containers", daemon=True).start()
     return project, others, own
+
+
+def resolve_service(service, project, names):
+    """The container of `names` that `service` means, or None.
+
+    `service` is either a container's full name, as the landing page reports
+    it to CybICS-mgmt, or a compose service name: compose names containers
+    <project>-<service>-<n>. Anything else, including a container of another
+    project, matches nothing.
+    """
+    if not isinstance(service, str) or not service:
+        return None
+    if service in names:
+        return service
+    pattern = re.compile(re.escape(f"{project}-{service}-") + r"\d+")
+    matches = [name for name in names if pattern.fullmatch(name)]
+    return matches[0] if len(matches) == 1 else None
+
+
+def restart_service(service, run=subprocess.run, mountinfo=MOUNTINFO):
+    """Restart one container of landing's compose project.
+
+    Returns a short result text. Raises RestartError if `service` is not a
+    running container of the project, or while a full restart runs. landing
+    itself restarts from a background thread, like in start_restart().
+    """
+    project, others, own = plan_restart(run, mountinfo)
+    name = resolve_service(service, project, others + [own])
+    if name is None:
+        raise RestartError(f"{service!r} is not a running container of {project}")
+    if not _running.acquire(blocking=False):
+        raise RestartError("A restart is already in progress")
+    if name == own:
+        logger.info("Restarting %s (this container)", own)
+        threading.Thread(target=_restart_all, args=([], own, run),
+                         name="restart-containers", daemon=True).start()
+        return f"restarting {own}"
+    try:
+        _docker(run, "restart", name, timeout=90)
+    finally:
+        _running.release()
+    logger.info("Restarted %s", name)
+    return f"restarted {name}"
+
+
+def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
+    """The text of Settings -> Download logs: every project container's logs.
+
+    Raises RestartError if the project cannot be determined, and
+    subprocess.TimeoutExpired if docker hangs.
+    """
+    project, containers = project_containers(run, mountinfo)
+    versions = {}
+    for container in containers:
+        result = run(["docker", "inspect", "--format", "{{.Config.Image}}", container],
+                     capture_output=True, text=True, timeout=5)
+        versions[container] = result.stdout.strip() if result.returncode == 0 else "unknown"
+    parts = []
+    for container in containers:
+        result = run(["docker", "logs", "--timestamps", container],
+                     capture_output=True, text=True, timeout=30)
+        parts.append(f"{'=' * 80}\nContainer: {container}\n{'=' * 80}\n{result.stdout}")
+        if result.stderr:
+            parts.append(f"\nSTDERR:\n{result.stderr}")
+        parts.append("\n\n")
+    head = [
+        "CybICS Docker Logs",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Containers: {len(containers)}",
+        "=" * 80, "",
+        "CONTAINER VERSIONS",
+        "=" * 80,
+        *(f"{name}: {image}" for name, image in sorted(versions.items())),
+        "=" * 80, "", "",
+    ]
+    return "\n".join(head) + "\n".join(parts)

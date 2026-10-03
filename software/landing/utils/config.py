@@ -20,14 +20,24 @@ THEORY_CONFIG_FILE = os.path.join(BASE_DIR, 'theory_config.json')
 # Ensure directories exist
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Central CTF server (optional, off until the user joins an event from the
-# settings). The state file holds the instance token, so it lives next to the
-# progress file on the landing data volume.
-CENTRAL_STATE_FILE = os.path.join(DATA_DIR, 'central_ctf.json')
+# CybICS-mgmt, the optional central server (off until the user connects from
+# the settings, or a board joins the default network below). The state file
+# holds the device token, so it lives next to the progress file on the landing
+# data volume.
+MGMT_STATE_FILE = os.path.join(DATA_DIR, 'cybics_mgmt.json')
+# Exists while the user has disconnected on purpose: a board then no longer
+# enrols on its own on the default network. Connecting by hand removes it.
+MGMT_OPTOUT_FILE = os.path.join(DATA_DIR, 'cybics_mgmt_optout')
+# The default network the CybICS-mgmt Raspberry Pi image hosts. A board whose
+# USB Wi-Fi uplink is connected to exactly this SSID enrols with the default
+# code on its own; on any other network it never calls out by itself.
+MGMT_DEFAULT_SSID = 'cybics-mgmt'
+MGMT_DEFAULT_URL = 'http://10.42.0.1'
+MGMT_DEFAULT_CODE = 'CYBICS-BOARDS'
 # 'physical' on the Raspberry Pi image, 'virtual' everywhere else.
 CYBICS_PLATFORM = os.environ.get('CYBICS_PLATFORM', 'virtual')
 # The USB Wi-Fi dongle that connects a board to the event network. It carries
-# only the central server's traffic, so it is kept out of the packet capture
+# only the CybICS-mgmt server's traffic, so it is kept out of the packet capture
 # and the bandwidth figures. The name is pinned by a udev rule in the image.
 UPLINK_INTERFACE = os.environ.get('CYBICS_UPLINK_IFACE', 'ctfwlan0')
 # Written by hwio-raspberry: the board's STM32 UID (read-only volume).

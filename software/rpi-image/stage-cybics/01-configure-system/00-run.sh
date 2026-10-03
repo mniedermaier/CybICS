@@ -19,9 +19,10 @@ install -m 600 files/cybics-ap.nmconnection "${ROOTFS_DIR}/etc/NetworkManager/sy
 # the STM32 mode button; without it the switch has nothing to switch to.
 install -m 600 files/cybics-station.nmconnection "${ROOTFS_DIR}/etc/NetworkManager/system-connections/"
 
-# Uplink to a central CTF server through a USB Wi-Fi dongle: keep the onboard
-# radio on wlan0 and name the dongle ctfwlan0, ship its profile (autoconnect
-# off until it is configured from the landing page), and isolate it.
+# Uplink to a CybICS-mgmt server through a USB Wi-Fi dongle: keep the onboard
+# radio on wlan0 and name the dongle ctfwlan0, ship its profile (the default
+# network cybics-mgmt, autoconnect on; changeable from the landing page), and
+# isolate it.
 install -d -m 755 "${ROOTFS_DIR}/etc/udev/rules.d"
 install -m 644 files/70-cybics-wifi.rules "${ROOTFS_DIR}/etc/udev/rules.d/70-cybics-wifi.rules"
 install -m 600 files/cybics-ctf-uplink.nmconnection "${ROOTFS_DIR}/etc/NetworkManager/system-connections/"

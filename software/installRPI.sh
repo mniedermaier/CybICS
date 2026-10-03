@@ -230,12 +230,13 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
 EOF
 
 ###
-### Uplink to a central CTF server (USB Wi-Fi dongle)
+### Uplink to a CybICS-mgmt server (USB Wi-Fi dongle)
 ###
 # Same files as the SD image (rpi-image/stage-cybics/01-configure-system/files):
 # keep the onboard radio on wlan0, name the dongle ctfwlan0, isolate it with
-# nftables and ship its NetworkManager profile with autoconnect off.
-echo -ne "${GREEN}# Prepare the central CTF uplink ... \n${ENDCOLOR}"
+# nftables and ship its NetworkManager profile for the default network
+# cybics-mgmt. A profile that already exists is kept as it is.
+echo -ne "${GREEN}# Prepare the CybICS-mgmt uplink ... \n${ENDCOLOR}"
 UPLINK_FILES="$GIT_ROOT/software/rpi-image/stage-cybics/01-configure-system/files"
 scp "$UPLINK_FILES"/70-cybics-wifi.rules \
     "$UPLINK_FILES"/cybics-ctf-uplink.nmconnection \

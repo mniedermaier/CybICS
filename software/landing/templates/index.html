@@ -1890,6 +1890,67 @@
             border-color: rgba(255, 107, 0, 0.3);
         }
 
+        /* ---- CybICS-mgmt banners (identify and message jobs, static/js/mgmt-banner.js) */
+        .mgmt-banners {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            width: min(640px, calc(100vw - 2rem));
+            pointer-events: none;
+        }
+
+        .mgmt-banner {
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.9rem;
+            padding: 0.9rem 1rem 0.9rem 1.1rem;
+            border-radius: 0.6rem;
+            border: 1px solid var(--border-accent);
+            border-left: 4px solid var(--accent);
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow-pop);
+            overflow-wrap: anywhere;
+        }
+
+        .mgmt-banner-body { flex: 1; min-width: 0; }
+
+        .mgmt-banner-kicker {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            margin-bottom: 0.2rem;
+        }
+
+        .mgmt-banner-text { font-size: 1rem; line-height: 1.45; white-space: pre-line; }
+
+        .mgmt-banner.identify { border: 2px solid var(--accent); border-left-width: 6px; }
+        .mgmt-banner.identify .mgmt-banner-text { font-size: 1.6rem; font-weight: 700; color: var(--heading); }
+
+        .mgmt-banner-close {
+            flex-shrink: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 1.1rem;
+            line-height: 1;
+            padding: 0.2rem 0.35rem;
+            border-radius: 0.3rem;
+            cursor: pointer;
+            opacity: 0.75;
+        }
+
+        .mgmt-banner-close:hover, .mgmt-banner-close:focus-visible { opacity: 1; background: var(--accent-soft); }
+
         /* Chat Widget Styles */
     </style>
     <link rel="stylesheet" href="/static/css/chat.css">
@@ -1899,6 +1960,8 @@
     <script>marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });</script>
 </head>
 <body>
+    <!-- Banners from CybICS-mgmt jobs (identify, message); filled by static/js/mgmt-banner.js. -->
+    <div class="mgmt-banners" id="mgmtBanners" aria-live="polite"></div>
     <!-- Restore the saved sidebar collapse state before paint (avoids flash). -->
     <script>
         try {
@@ -3157,6 +3220,7 @@
 
     <!-- Chat widget logic (defer ensures DOM is ready) -->
     <script defer src="/static/js/chat.js"></script>
+    <script defer src="/static/js/mgmt-banner.js"></script>
 
 </body>
 </html>
