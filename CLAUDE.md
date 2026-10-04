@@ -81,7 +81,8 @@ Do not open a PR with a suite you did not run.
   once silently never ran in CI.
 - `TEST_SERVER_IP` and `TEST_<SERVICE>_PORT` point the suite at a remote or
   relocated stack. `test_ids_rules.py`, `test_plant_model_parity.py`,
-  `test_central_ctf.py` and `test_ctf_uplink.py` need no stack and are a quick
+  `test_cybics_mgmt.py`, `test_ctf_uplink.py` and `test_landing_restart.py` need
+  no stack and are a quick
   check, not a substitute.
 
 Firmware (Zephyr v4.3.0, SDK 0.17.4, board `nucleo_g070rb`):
@@ -122,10 +123,18 @@ Nine workflows in `.github/workflows/` must stay green. Two are unusual:
   verified from that webshell. Do not bump it in passing.
 - Python dependencies are pinned exactly and managed by Dependabot. Only
   `training/requirements.txt` is intentionally unpinned.
-- **Central CTF client.** `software/landing/modules/central_ctf.py` is a verbatim
-  copy of `client/cybics_ctf_client.py` from
-  [CybICS-CTF](https://github.com/mniedermaier/CybICS-CTF). Never edit it here;
+- **CybICS-mgmt client.** `software/landing/modules/cybics_mgmt.py` is a verbatim
+  copy of `client/cybics_mgmt_client.py` from
+  [CybICS-mgmt](https://github.com/mniedermaier/CybICS-mgmt). Never edit it here;
   change it there and copy it over. Its API contract is that repo's `docs/API.md`.
+  `tests/test_cybics_mgmt.py` compares the two when a CybICS-mgmt checkout sits
+  next to this one or `CYBICS_MGMT_REPO` points at one; it skips otherwise.
+- **The default network `cybics-mgmt`.** The uplink keyfile
+  `cybics-ctf-uplink.nmconnection`, `PROFILE_OPTIONS` in `ctf_uplink.py` and
+  `MGMT_DEFAULT_SSID`/`MGMT_DEFAULT_URL`/`MGMT_DEFAULT_CODE` in
+  `software/landing/utils/config.py` must match what the CybICS-mgmt Raspberry
+  Pi image hosts (SSID and password `cybics-mgmt`, server `http://10.42.0.1`,
+  enrolment code `CYBICS-BOARDS`). `test_ctf_uplink.py` checks the SSID.
 - **The CTF uplink interface name** `ctfwlan0` appears in
   `70-cybics-wifi.rules`, `cybics-ctf-uplink.nft`, `cybics-ctf-uplink.nmconnection`
   (all in `software/rpi-image/stage-cybics/01-configure-system/files/`),
@@ -200,8 +209,9 @@ fork PRs fall back to anonymous pulls. Keep it that way.
 
 `landing` and `ids` run with host networking and `NET_ADMIN`/`NET_RAW`; the
 landing page also mounts the Docker socket. Changes there affect the host, not
-only the container. On a board, the USB Wi-Fi uplink to a central CTF server
-(`ctfwlan0`) connects all of that to a shared event network; it stays usable
+only the container. On a board, the USB Wi-Fi uplink to a CybICS-mgmt server
+(`ctfwlan0`) connects all of that to a shared event network, by default the
+`cybics-mgmt` network whenever it is in range; it stays usable
 only because `cybics-ctf-uplink.nft` drops new inbound connections and all
 forwarding on it. Do not open ports on it. Use the smallest capability that
 does the job and mention the blast radius in the PR.

@@ -242,40 +242,78 @@ First **connect in AP mode** to access the different applications running on the
 
 The same web interfaces are available as in the virtual environment, but accessed through the device's IP address instead of localhost.
 
-## Joining a Central CTF Event (optional)
+## Connecting to CybICS-mgmt (optional)
 
-In a workshop, the organiser can run [CybICS-CTF](https://github.com/mniedermaier/CybICS-CTF), a
-central server with a shared scoreboard. Virtual and physical CybICS instances join the same event,
-and every challenge solved on an instance shows up on the scoreboard. Without it, nothing changes:
-flags are checked locally either way, and an instance that never joins makes no network calls.
+In a workshop, the organiser can run [CybICS-mgmt](https://github.com/mniedermaier/CybICS-mgmt), a
+central server with a shared scoreboard and an overview of every CybICS instance in the room.
+Virtual and physical instances connect to it, join an event as a team, and every challenge solved
+on an instance shows up on the scoreboard. Without it, nothing changes: flags are checked locally
+either way, and an instance that never connects makes no network calls.
 
-**Virtual instance:**
+Everything is in **Settings -> CybICS-mgmt** on the landing page.
 
-1. Open **Settings -> Central CTF Server** on the landing page.
-2. Enter the server address, the join code from the organiser, a team name and a team password.
-   A new team needs a password of at least 8 characters; teammates enter the same team name and
-   password on their own instance.
-3. Press **Test connection**, then **Join event**. The panel then shows the event state, your
-   score and rank, pending reports and announcements.
+**Connect.** Enter the server address and the code from the organiser (an enrolment code, or the
+join code of an event), optionally a label such as "Table 4", press **Test connection**, then
+**Connect**. The panel then shows the device's label and group, the last contact and the server's
+**key fingerprint**; the organiser sees the same fingerprint on the device's page, so the two can
+be compared.
+
+**Join an event.** Once connected, enter the join code, a team name and a team password and press
+**Join event**. A new team needs a password of at least 8 characters; teammates enter the same team
+name and password on their own instance. The organiser can also put a device into a team; it then
+shows up in the panel by itself. The panel shows the event state, your score and rank, pending
+reports and announcements. Solves made before joining stay local. Solves made while the server is
+unreachable are queued and reported when it comes back. **Leave event** stops reporting but keeps
+the device connected; resetting the local progress does not remove anything from the scoreboard.
+
+**Allowed actions.** The organiser can ask a connected device to do a few fixed things, each only
+if you switched it on here (all are off after connecting), and only with jobs signed by the server
+the device connected to:
+
+| Action | What the device does |
+|---|---|
+| Identify | Shows a banner "This is &lt;label&gt;" on the dashboard for a few seconds to minutes. |
+| Messages | Shows a message from the organiser on the dashboard. |
+| Restart services | Restarts one CybICS container, or all of them (the landing page last). |
+| Reset CTF progress | Clears the local CTF progress, like the reset on the CTF page. |
+| Collect logs | Sends the text of **System -> Download logs** to the organiser. |
+
+Switching everything off stops all remote actions. The job history lists every job that arrived and
+what came of it. A warning about a job with an invalid signature means somebody other than the
+server tried to send the device a command; tell the organiser.
+
+**Disconnect** retires the device on the server and leaves its event. Your local progress stays.
 
 **CybICS board:** the board reaches the event network through a **USB Wi-Fi adapter** plugged into
-the Raspberry Pi. The onboard radio stays the training network (`cybics-XXXXXX`).
+the Raspberry Pi. The onboard radio stays the training network (`cybics-XXXXXX`). The adapter comes
+up as `ctfwlan0`, whatever order the radios are detected in.
 
-1. Plug in the adapter. It comes up as `ctfwlan0`, whatever order the radios are detected in.
-2. In **Settings -> Central CTF Server -> Event Wi-Fi**, enter the event network's name and
-   password and press **Connect**. The panel shows when the adapter has an address.
-3. Join the event as above. The board enrols under its STM32 ID, the one in its SSID.
+- **The default network `cybics-mgmt`.** The
+  [CybICS-mgmt Raspberry Pi image](https://github.com/mniedermaier/CybICS-mgmt) hosts a Wi-Fi network
+  `cybics-mgmt` (password `cybics-mgmt`) with the server at `http://10.42.0.1`. A board with an
+  adapter joins that network whenever it is in range and then connects to the server on its own,
+  with the enrolment code `CYBICS-BOARDS` and the label `cybics-<board ID>`. It does that only on
+  this network, never on another one. Connecting on its own allows no action and joins no event:
+  the organiser puts the board into a team, and you switch actions on at the board. If the
+  organiser has disabled the code, the board tries again only after the Wi-Fi reconnects or the
+  landing page restarts.
+- **Another network.** In **Settings -> CybICS-mgmt -> Event Wi-Fi**, enter the event network's
+  name and password and press **Connect**; the panel shows when the adapter has an address. Then
+  connect to the server as above. The board enrols under its STM32 ID, the one in its SSID.
+- **Opting out.** **Disconnect** also stops the board from connecting to the `cybics-mgmt` server
+  on its own; connecting by hand switches that back on. **Switch off** in the Event Wi-Fi card
+  keeps the adapter off any network.
+
+Boards set up with `installRPI.sh` before this release keep their existing uplink profile; the
+default network only comes with a freshly flashed image, or after entering `cybics-mgmt` in the
+Event Wi-Fi card.
 
 The adapter only carries the board's own connection to the server. Nothing is forwarded between the
 training network and the event network, and nothing on the board accepts new connections from the
 event network, so other teams cannot reach your OpenPLC, Modbus or S7. The uplink never becomes the
-default route: the CTF server must be on the event network's own subnet (or reachable through a route
+default route: the server must be on the event network's own subnet (or reachable through a route
 its DHCP server pushes). Avoid `10.0.0.0/24` for the event network, every board uses it for its
 training AP.
-
-Solves made before joining stay local. Solves made while the server is unreachable are queued and
-reported when it comes back. **Leave event** stops reporting; resetting the local progress does not
-remove anything from the scoreboard.
 
 ## Troubleshooting
 

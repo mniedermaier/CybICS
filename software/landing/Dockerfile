@@ -34,8 +34,8 @@ COPY software/landing/templates/ templates/
 COPY software/landing/static/ static/
 COPY software/landing/utils/ utils/
 COPY software/landing/modules/ modules/
-# The release number reported to the central CTF server; version.h is the
-# source of truth (see utils/central.py).
+# The release number reported to CybICS-mgmt; version.h is the source of
+# truth (see utils/mgmt.py).
 COPY software/stm32/src/version.h ./
 
 # Copy training content from root

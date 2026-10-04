@@ -1,8 +1,9 @@
-"""Settings -> Central CTF server, against the running landing page.
+"""Settings -> CybICS-mgmt, against the running landing page.
 
-These never enrol the stack with a server: they check that the feature is
+These never connect the stack to a server: they check that the feature is
 reachable, keeps the token to itself and answers bad input with a message
-rather than a 500. The enrolment itself is covered by test_central_ctf.py.
+rather than a 500. Connecting, joining and jobs are covered by
+test_cybics_mgmt.py.
 """
 import pytest
 import requests
@@ -21,18 +22,25 @@ def post(path, body):
 
 
 def test_snapshot_never_contains_the_token():
-    response = requests.get(BASE + "/api/settings/central", timeout=READ_TIMEOUT)
+    response = requests.get(BASE + "/api/settings/mgmt", timeout=READ_TIMEOUT)
     assert response.status_code == 200
     snap = response.json()
     assert snap["platform"] in ("virtual", "physical")
-    assert "enabled" in snap and "pending" in snap
-    assert "token" not in snap and "baseline" not in snap
+    assert "enabled" in snap and "pending" in snap["ctf"]
+    assert sorted(snap["available"]) == ["collect_logs", "identify", "message", "reset_progress", "restart"]
+    assert "token" not in snap and "signing_key" not in snap and "baseline" not in snap["ctf"]
+
+
+def test_banners_are_served():
+    response = requests.get(BASE + "/api/mgmt/banners", timeout=READ_TIMEOUT)
+    assert response.status_code == 200
+    assert isinstance(response.json()["banners"], list)
 
 
 def test_settings_page_offers_the_section():
     page = requests.get(BASE + "/settings", timeout=READ_TIMEOUT).text
-    assert 'id="section-event"' in page and 'id="joinForm"' in page
-    assert requests.get(BASE + "/static/js/central.js", timeout=READ_TIMEOUT).status_code == 200
+    assert 'id="section-mgmt"' in page and 'id="connectForm"' in page and 'id="joinForm"' in page
+    assert requests.get(BASE + "/static/js/mgmt.js", timeout=READ_TIMEOUT).status_code == 200
 
 
 @pytest.mark.parametrize("url, code", [
@@ -41,7 +49,7 @@ def test_settings_page_offers_the_section():
     ("http://127.0.0.1:9", "unreachable"),
 ])
 def test_connection_test_reports_problems(url, code):
-    response = post("/api/settings/central/test", {"server_url": url})
+    response = post("/api/settings/mgmt/test", {"server_url": url})
     assert response.status_code == 400
     body = response.json()
     assert body["success"] is False and body["code"] == code
@@ -50,19 +58,24 @@ def test_connection_test_reports_problems(url, code):
 
 @pytest.mark.parametrize("body", [
     {},
-    {"server_url": "http://127.0.0.1:9", "join_code": "X", "team_name": "T"},
-    {"server_url": "http://127.0.0.1:9", "join_code": "X", "team_name": "T", "team_password": 12345678},
-    {"server_url": ["x"], "join_code": None, "team_name": {}, "team_password": "password1"},
+    {"server_url": "http://127.0.0.1:9"},
+    {"server_url": ["x"], "code": None, "label": {}},
 ])
-def test_enrol_rejects_incomplete_input(body):
-    response = post("/api/settings/central/enroll", body)
+def test_connect_rejects_incomplete_input(body):
+    response = post("/api/settings/mgmt/connect", body)
     assert response.status_code in (400, 409)
     assert response.json()["success"] is False
 
 
+def test_join_needs_a_team():
+    response = post("/api/settings/mgmt/join", {"join_code": "X", "team_name": "T"})
+    assert response.status_code == 400
+    assert response.json()["success"] is False
+
+
 def test_uplink_only_exists_on_a_board():
-    platform = requests.get(BASE + "/api/settings/central", timeout=READ_TIMEOUT).json()["platform"]
-    response = post("/api/settings/central/uplink", {"enabled": False})
+    platform = requests.get(BASE + "/api/settings/mgmt", timeout=READ_TIMEOUT).json()["platform"]
+    response = post("/api/settings/mgmt/uplink", {"enabled": False})
     if platform == "virtual":
         assert response.status_code == 404
         assert response.json()["code"] == "not_physical"

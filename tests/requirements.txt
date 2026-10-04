@@ -10,3 +10,6 @@ grpcio-tools==1.76.0
 # which pulls in markdown at module level. Pinned to the landing container's
 # version so the tests exercise what actually ships.
 markdown==3.9
+# tests/test_cybics_mgmt.py drives the landing page's CybICS-mgmt settings
+# routes through Flask's test client. Pinned to the landing container's version.
+flask==3.1.3

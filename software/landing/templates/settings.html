@@ -17,10 +17,10 @@
 
     <div class="layout">
         <nav class="subnav" aria-label="Settings sections">
-            <a class="subnav-link" href="#event" data-section="event">
+            <a class="subnav-link" href="#mgmt" data-section="mgmt">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V4m0 0h12l-2 4 2 4H4"/></svg>
-                <span>Central CTF</span>
-                <span class="nav-pill" id="eventNavPill" hidden></span>
+                <span>CybICS-mgmt</span>
+                <span class="nav-pill" id="mgmtNavPill" hidden></span>
             </a>
             <a class="subnav-link" href="#assistant" data-section="assistant">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg>
@@ -33,49 +33,48 @@
         </nav>
 
         <main>
-            <!-- ================= Central CTF Server (static/js/central.js) ================= -->
-            <section class="section" id="section-event" aria-labelledby="event-title" hidden>
+            <!-- ================= CybICS-mgmt (static/js/mgmt.js) ================= -->
+            <section class="section" id="section-mgmt" aria-labelledby="mgmt-title" hidden>
                 <div class="section-head">
-                    <h2 id="event-title">Central CTF Server</h2>
-                    <p>Optional. In a workshop, the organiser runs a central CTF server with a shared
-                       scoreboard. Join its event to report the challenges you solve here. Flags are
-                       still checked locally, and CybICS keeps working if the server is unreachable.</p>
+                    <h2 id="mgmt-title">CybICS-mgmt</h2>
+                    <p>Optional. In a workshop, the organiser runs CybICS-mgmt: a central server with a shared
+                       scoreboard and an overview of every CybICS {{ 'board' if platform == 'physical' else 'instance' }}.
+                       Connect to report the challenges you solve here. Flags are still checked locally, CybICS keeps
+                       working if the server is unreachable, and the server can only do what you allow below.</p>
                 </div>
 
-                <div class="event-flow" id="eventFlow" aria-busy="true">
-                    <p class="loading" id="eventLoading"><span class="spinner" aria-hidden="true"></span>Loading…</p>
+                <div class="event-flow" id="mgmtFlow" aria-busy="true">
+                    <p class="loading" id="mgmtLoading"><span class="spinner" aria-hidden="true"></span>Loading…</p>
 
-                    <!-- Enrolled: what the team cares about first. -->
-                    <article class="card status-card" id="eventStatus" hidden>
+                    <!-- Connected: the device as the server knows it. -->
+                    <article class="card status-card" id="mgmtStatus" hidden>
                         <div class="status-top">
                             <div>
-                                <p class="eyebrow">Joined event</p>
-                                <h3 data-field="event"></h3>
-                                <p class="muted">as team <strong data-field="team"></strong></p>
+                                <p class="eyebrow">Connected to CybICS-mgmt</p>
+                                <h3 data-field="label"></h3>
+                                <p class="muted" data-row="group" hidden>in group <strong data-field="group"></strong></p>
                             </div>
-                            <span class="state-pill" data-field="state"></span>
+                            <span class="state-pill" data-field="link"></span>
                         </div>
-                        <div class="metrics">
-                            <div class="metric"><span class="metric-value" data-field="score">–</span><span class="metric-label">points</span></div>
-                            <div class="metric"><span class="metric-value" data-field="rank">–</span><span class="metric-label">rank</span></div>
-                            <div class="metric"><span class="metric-value" data-field="pending">0</span><span class="metric-label">reports waiting</span></div>
-                        </div>
+                        <p class="notice notice-danger" id="forgedNote" hidden>A job with an invalid signature was
+                           ignored. Somebody other than this server tried to send this device a command. Tell the
+                           organiser, and compare the key fingerprint below with the one on the server's device page.</p>
                         <dl class="facts">
                             <dt>Server</dt><dd class="mono" data-field="server"></dd>
                             <dt>Last contact</dt><dd data-field="contact"></dd>
+                            <dt>Key fingerprint</dt><dd class="mono" data-field="fingerprint"></dd>
                             <dt data-row="error" hidden>Problem</dt><dd data-row="error" class="text-danger" data-field="error" hidden></dd>
                         </dl>
-                        <div class="announcements" data-row="news" hidden>
-                            <h4>Announcements</h4>
-                            <ul data-field="news"></ul>
-                        </div>
                         <div class="card-foot">
-                            <div class="confirm" data-confirm="leave">
-                                <button type="button" class="btn btn-danger-ghost" data-action="leave-ask">Leave event</button>
+                            <div class="confirm" data-confirm="disconnect">
+                                <button type="button" class="btn btn-danger-ghost" data-action="disconnect-ask">Disconnect</button>
                                 <div class="confirm-box" hidden>
-                                    <p>Leave the event? Your local progress stays here, and solves already reported stay on the scoreboard.</p>
+                                    <p>Disconnect from CybICS-mgmt? The device is retired on the server and leaves its
+                                       event; your local progress stays here. {% if platform == 'physical' %}The board
+                                       also stops connecting to the default network's server by itself, until you
+                                       connect by hand again.{% endif %}</p>
                                     <div class="btn-row">
-                                        <button type="button" class="btn btn-danger" data-action="leave">Leave event</button>
+                                        <button type="button" class="btn btn-danger" data-action="disconnect">Disconnect</button>
                                         <button type="button" class="btn" data-action="confirm-cancel">Cancel</button>
                                     </div>
                                 </div>
@@ -84,13 +83,96 @@
                         </div>
                     </article>
 
+                    <!-- Connected: the CTF event. -->
+                    <article class="card" id="eventCard" hidden>
+                        <div data-row="in-event" hidden>
+                            <div class="status-top">
+                                <div>
+                                    <p class="eyebrow">Event</p>
+                                    <h3 data-field="event"></h3>
+                                    <p class="muted">as team <strong data-field="team"></strong></p>
+                                </div>
+                                <span class="state-pill" data-field="state"></span>
+                            </div>
+                            <p class="notice notice-danger" data-row="removed" hidden>The organiser took this device out
+                               of the event. Your solves are kept and are reported once it is back in a team.</p>
+                            <div class="metrics">
+                                <div class="metric"><span class="metric-value" data-field="score">–</span><span class="metric-label">points</span></div>
+                                <div class="metric"><span class="metric-value" data-field="rank">–</span><span class="metric-label">rank</span></div>
+                                <div class="metric"><span class="metric-value" data-field="pending">0</span><span class="metric-label">reports waiting</span></div>
+                            </div>
+                            <div class="announcements" data-row="news" hidden>
+                                <h4>Announcements</h4>
+                                <ul data-field="news"></ul>
+                            </div>
+                            <div class="card-foot">
+                                <div class="confirm" data-confirm="leave">
+                                    <button type="button" class="btn btn-danger-ghost" data-action="leave-ask">Leave event</button>
+                                    <div class="confirm-box" hidden>
+                                        <p>Leave the event? The device stays connected, your local progress stays here,
+                                           and solves already reported stay on the scoreboard.</p>
+                                        <div class="btn-row">
+                                            <button type="button" class="btn btn-danger" data-action="leave">Leave event</button>
+                                            <button type="button" class="btn" data-action="confirm-cancel">Cancel</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="msg" id="eventMsg" role="status"></p>
+                            </div>
+                        </div>
+                        <div data-row="no-event" hidden>
+                            <h3>Join an event</h3>
+                            <p class="muted">Enter what the organiser gave you. The organiser can also put this device
+                               into a team; it then shows up here by itself.</p>
+                            <form class="form" id="joinForm" novalidate>
+                                <div class="field">
+                                    <label for="joinCode">Join code</label>
+                                    <input id="joinCode" name="join_code" type="text" autocomplete="off" spellcheck="false" maxlength="64" placeholder="from the organiser">
+                                </div>
+                                <div class="field-pair">
+                                    <div class="field">
+                                        <label for="teamName">Team name</label>
+                                        <input id="teamName" name="team_name" type="text" autocomplete="off" maxlength="64" placeholder="a new or an existing team">
+                                    </div>
+                                    <div class="field">
+                                        <label for="teamPassword">Team password</label>
+                                        <input id="teamPassword" name="team_password" type="password" autocomplete="off" placeholder="at least 8 characters" aria-describedby="teamPasswordHint">
+                                    </div>
+                                </div>
+                                <p class="hint" id="teamPasswordHint">A new team is created with this password. Teammates enter the same team name and password on their own instance.</p>
+                                <div class="btn-row">
+                                    <button type="submit" class="btn btn-primary" data-action="join">Join event</button>
+                                </div>
+                                <p class="msg" id="joinMsg" role="status"></p>
+                            </form>
+                        </div>
+                    </article>
+
+                    <!-- Connected: what the server may ask this device to do. -->
+                    <article class="card" id="actionsCard" hidden>
+                        <h3>Allowed actions</h3>
+                        <p class="muted">The organiser can ask this device to do only what you switch on here, and only
+                           with jobs signed by the server it connected to. Everything is off after connecting;
+                           switching everything off stops all remote actions.</p>
+                        <div class="action-list" id="actionList"></div>
+                        <p class="msg" id="actionsMsg" role="status"></p>
+                    </article>
+
+                    <article class="card" id="jobsCard" hidden>
+                        <h3>Job history</h3>
+                        <p class="muted" id="jobsEmpty">No job has arrived yet.</p>
+                        <p class="hint" id="jobsQueued" hidden></p>
+                        <ul class="job-list" id="jobList"></ul>
+                    </article>
+
                     {% if platform == 'physical' %}
                     <!-- Board only: the USB Wi-Fi adapter that reaches the event network. -->
                     <article class="card step" id="uplinkCard" hidden>
                         <h3><span class="step-no" aria-hidden="true"></span>Event Wi-Fi</h3>
-                        <p class="muted">The board reaches the central server through a USB Wi-Fi adapter. It only
-                           carries the server's traffic: the training network stays separate, and nothing on
-                           the board accepts connections from the event network.</p>
+                        <p class="muted">The board reaches CybICS-mgmt through a USB Wi-Fi adapter. It only carries the
+                           server's traffic: the training network stays separate, and nothing on the board accepts
+                           connections from the event network. Out of the box it joins <code>cybics-mgmt</code>, the
+                           network of the CybICS-mgmt Raspberry Pi, and connects to its server by itself.</p>
                         <dl class="facts" id="uplinkFacts">
                             <dt>Adapter</dt><dd data-field="adapter">–</dd>
                             <dt>Network</dt><dd data-field="network">–</dd>
@@ -101,7 +183,7 @@
                         <form class="form" id="uplinkForm" novalidate>
                             <div class="field">
                                 <label for="uplinkSsid">Network name (SSID)</label>
-                                <input id="uplinkSsid" name="ssid" type="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="cybics-ctf">
+                                <input id="uplinkSsid" name="ssid" type="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="cybics-mgmt">
                             </div>
                             <div class="field">
                                 <label for="uplinkPsk">Wi-Fi password</label>
@@ -117,14 +199,19 @@
                     </article>
                     {% endif %}
 
-                    <!-- Not enrolled: reach the server, then join with a team. -->
+                    <!-- Not connected: reach the server, then connect with a code. -->
                     <article class="card step" id="serverCard" hidden>
                         <h3><span class="step-no" aria-hidden="true"></span>Server</h3>
+                        <p class="notice notice-danger" id="revokedNote" hidden>The organiser retired this device on
+                           the server. Your solves are kept; connect again to continue.</p>
+                        <p class="notice" id="optedOutNote" hidden>You disconnected this board on purpose, so it does
+                           not connect to the server on the <code>cybics-mgmt</code> network by itself. Connecting by
+                           hand below switches that back on.</p>
                         <form class="form" id="serverForm" novalidate>
                             <div class="field">
                                 <label for="serverUrl">Server address</label>
                                 <div class="input-row">
-                                    <input id="serverUrl" name="server_url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://10.10.0.1:8000" aria-describedby="serverMsg">
+                                    <input id="serverUrl" name="server_url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://10.42.0.1" aria-describedby="serverMsg">
                                     <button type="submit" class="btn" data-action="test">Test connection</button>
                                 </div>
                             </div>
@@ -132,30 +219,24 @@
                         </form>
                     </article>
 
-                    <article class="card step" id="teamCard" hidden>
-                        <h3><span class="step-no" aria-hidden="true"></span>Team</h3>
-                        <p class="notice notice-danger" id="revokedNote" hidden>The organiser removed this
-                           instance from the event. Your solves are kept and are reported once you join again.</p>
-                        <form class="form" id="joinForm" novalidate>
-                            <div class="field">
-                                <label for="joinCode">Join code</label>
-                                <input id="joinCode" name="join_code" type="text" autocomplete="off" spellcheck="false" maxlength="64" placeholder="from the organiser">
-                            </div>
+                    <article class="card step" id="connectCard" hidden>
+                        <h3><span class="step-no" aria-hidden="true"></span>Connect</h3>
+                        <form class="form" id="connectForm" novalidate>
                             <div class="field-pair">
                                 <div class="field">
-                                    <label for="teamName">Team name</label>
-                                    <input id="teamName" name="team_name" type="text" autocomplete="off" maxlength="64" placeholder="a new or an existing team">
+                                    <label for="mgmtCode">Code</label>
+                                    <input id="mgmtCode" name="code" type="text" autocomplete="off" spellcheck="false" maxlength="64" placeholder="from the organiser" aria-describedby="mgmtCodeHint">
                                 </div>
                                 <div class="field">
-                                    <label for="teamPassword">Team password</label>
-                                    <input id="teamPassword" name="team_password" type="password" autocomplete="off" placeholder="at least 8 characters" aria-describedby="teamPasswordHint">
+                                    <label for="mgmtLabel">Label (optional)</label>
+                                    <input id="mgmtLabel" name="label" type="text" autocomplete="off" maxlength="40" placeholder="e.g. Table 4">
                                 </div>
                             </div>
-                            <p class="hint" id="teamPasswordHint">A new team is created with this password. Teammates enter the same team name and password on their own instance.</p>
+                            <p class="hint" id="mgmtCodeHint">An enrolment code, or the join code of an event. Joining a team is the next step.</p>
                             <div class="btn-row">
-                                <button type="submit" class="btn btn-primary" data-action="join">Join event</button>
+                                <button type="submit" class="btn btn-primary" data-action="connect">Connect</button>
                             </div>
-                            <p class="msg" id="joinMsg" role="status"></p>
+                            <p class="msg" id="connectMsg" role="status"></p>
                         </form>
                     </article>
                 </div>
@@ -246,6 +327,6 @@
 </div>
 
 <script src="/static/js/settings.js"></script>
-<script src="/static/js/central.js"></script>
+<script src="/static/js/mgmt.js"></script>
 </body>
 </html>

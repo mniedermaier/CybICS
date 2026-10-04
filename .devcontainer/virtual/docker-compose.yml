@@ -119,11 +119,11 @@ services:
       - NET_RAW
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      # CTF progress and the central CTF enrolment survive an update.
+      # CTF progress and the CybICS-mgmt connection survive an update.
       - landing_data:/CybICS/data
     environment:
       - CYBICS_PLATFORM=virtual
-      # Reported to a central CTF server, if the user joins one.
+      # Reported to a CybICS-mgmt server, if the user connects to one.
       - CYBICS_MODE=${CYBICS_MODE:-}
     depends_on:
     - openplc

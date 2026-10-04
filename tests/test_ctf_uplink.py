@@ -1,4 +1,4 @@
-"""The board's uplink to a central CTF server, as hwio-raspberry manages it.
+"""The board's uplink to a CybICS-mgmt server, as hwio-raspberry manages it.
 
 The landing page writes request.json into a directory shared with hwio;
 software/hwio-raspberry/ctf_uplink.py applies it with nmcli and answers in
@@ -7,6 +7,7 @@ and nothing needs a Pi or a running stack.
 """
 import json
 import os
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -19,7 +20,8 @@ class FakeNmcli:
 
     def __init__(self, profile=True, dongle=True, active=False):
         self.calls = []
-        self.profile = {'802-11-wireless.ssid': 'cybics-ctf', 'connection.autoconnect': 'no'} if profile else None
+        # As the image ships it: the default network, autoconnect on.
+        self.profile = {'802-11-wireless.ssid': 'cybics-mgmt', 'connection.autoconnect': 'yes'} if profile else None
         self.dongle = dongle
         self.active = active
         self.fail = None
@@ -145,7 +147,27 @@ def test_a_missing_profile_is_created_isolated(shared):
     add = next(c for c in nm.calls if c[0] == 'add')
     assert add[3] == 'ctfwlan0' and add[4] == ctf_uplink.UPLINK_CONNECTION
     assert add[2]['ipv4.never-default'] == 'yes'
-    assert add[5] is False
+    assert add[5] is True
+
+
+def test_the_default_profile_reports_the_default_network(shared):
+    """Without any request, a board with a dongle is on its way to cybics-mgmt;
+    the landing page enrols it on its own only there."""
+    nm = FakeNmcli(active=True)
+    ctf_uplink.Uplink(nm, str(shared)).poll()
+    answer = status(shared)
+    assert nm.calls == []
+    assert answer['ssid'] == 'cybics-mgmt'
+    assert answer['enabled'] is True
+    assert answer['state'] == 'connected' and answer['ip'] == '10.42.0.17'
+
+
+def test_switching_off_survives_the_default(shared):
+    """Switch off in the landing page turns autoconnect off for good, default or not."""
+    nm = FakeNmcli()
+    request(shared, {'enabled': False})
+    ctf_uplink.Uplink(nm, str(shared)).poll()
+    assert status(shared)['enabled'] is False
 
 
 @pytest.mark.parametrize('payload, message', [
@@ -227,8 +249,20 @@ def test_the_shipped_keyfile_matches_the_fallback_profile():
 
     assert sections['connection']['id'] == ctf_uplink.UPLINK_CONNECTION
     assert sections['connection']['interface-name'] == ctf_uplink.UPLINK_INTERFACE
-    assert sections['connection']['autoconnect'] == 'false'
+    assert sections['connection']['autoconnect'] == ('true' if ctf_uplink.PROFILE_AUTOCONNECT else 'false')
     assert sections['ipv4']['never-default'] == 'true'
     assert sections['ipv6']['method'] == ctf_uplink.PROFILE_OPTIONS['ipv6.method']
     assert sections['wifi']['ssid'] == ctf_uplink.PROFILE_OPTIONS['wifi.ssid']
     assert sections['wifi-security']['psk'] == ctf_uplink.PROFILE_OPTIONS['wifi-sec.psk']
+
+
+def test_the_default_network_matches_the_landing_page():
+    """The image joins cybics-mgmt, and landing enrols on its own only on the
+    SSID in MGMT_DEFAULT_SSID. If the two drift apart, boards never enrol."""
+    config = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          'software', 'landing', 'utils', 'config.py')
+    with open(config, encoding='utf-8') as fh:
+        ssid = re.search(r"^MGMT_DEFAULT_SSID = '([^']+)'", fh.read(), re.M).group(1)
+    assert ssid == 'cybics-mgmt'
+    assert ctf_uplink.PROFILE_OPTIONS['wifi.ssid'] == ssid
+    assert ctf_uplink.PROFILE_AUTOCONNECT is True

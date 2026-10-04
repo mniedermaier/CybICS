@@ -149,3 +149,96 @@ def test_log_download_covers_the_same_containers(tmp_path):
     project, names = restart.project_containers(FakeDocker(), mountinfo(tmp_path, OWN_ID))
     assert project == "virtual"
     assert names == ["virtual-openplc-1", "virtual-hwio-1", "virtual-landing-1"]
+
+
+# ---------- one service, for a CybICS-mgmt restart job ----------
+
+def _wait_until_idle():
+    for _ in range(100):
+        if not restart._running.locked():
+            return
+        threading.Event().wait(0.05)
+    raise AssertionError("the restart lock was never released")
+
+
+@pytest.mark.parametrize("service, expected", [
+    ("virtual-openplc-1", "virtual-openplc-1"),     # the name landing reports to CybICS-mgmt
+    ("openplc", "virtual-openplc-1"),               # the compose service
+    ("hwio", "virtual-hwio-1"),
+    ("landing", "virtual-landing-1"),
+    ("sshd", None),
+    ("virtual", None),
+    ("open", None),
+    ("cybics-ctf-server-1", None),                  # another project's container
+    ("", None),
+    (None, None),
+])
+def test_resolve_service(service, expected):
+    names = ["virtual-openplc-1", "virtual-hwio-1", "virtual-landing-1"]
+    assert restart.resolve_service(service, "virtual", names) == expected
+
+
+def test_restart_one_service(tmp_path):
+    docker = FakeDocker()
+    assert restart.restart_service("openplc", docker, mountinfo(tmp_path, OWN_ID)) == \
+        "restarted virtual-openplc-1"
+    assert docker.restarted == ["virtual-openplc-1"]
+    assert not restart._running.locked()
+
+
+def test_restart_of_an_unknown_service_is_refused(tmp_path):
+    docker = FakeDocker()
+    with pytest.raises(restart.RestartError, match="not a running container"):
+        restart.restart_service("sshd", docker, mountinfo(tmp_path, OWN_ID))
+    assert docker.restarted == []
+    assert not restart._running.locked()
+
+
+def test_a_failed_service_restart_releases_the_lock(tmp_path):
+    docker = FakeDocker(fail_restart={"virtual-openplc-1"})
+    with pytest.raises(restart.RestartError):
+        restart.restart_service("openplc", docker, mountinfo(tmp_path, OWN_ID))
+    assert not restart._running.locked()
+
+
+def test_restarting_landing_alone_runs_in_the_background(tmp_path):
+    docker = FakeDocker()
+    assert restart.restart_service("landing", docker, mountinfo(tmp_path, OWN_ID)) == \
+        "restarting virtual-landing-1"
+    assert docker.done.wait(5)
+    assert docker.restarted == ["virtual-landing-1"]
+    _wait_until_idle()
+
+
+def test_no_project_restarts_no_service(tmp_path):
+    docker = FakeDocker()
+    with pytest.raises(restart.RestartError):
+        restart.restart_service("openplc", docker, mountinfo(tmp_path))
+    assert docker.restarted == []
+
+
+class LoggingDocker(FakeDocker):
+    """Also answers the image lookup and the logs of the log bundle."""
+
+    def __call__(self, cmd, **kwargs):
+        if cmd[1] == "inspect" and cmd[-1] != OWN_ID:
+            return SimpleNamespace(returncode=0, stdout=f"mniedermaier1337/{cmd[-1]}:1.2.4\n", stderr="")
+        if cmd[1] == "logs":
+            return SimpleNamespace(returncode=0, stdout=f"log of {cmd[-1]}\n",
+                                   stderr="warning\n" if cmd[-1] == "virtual-hwio-1" else "")
+        return super().__call__(cmd, **kwargs)
+
+
+def test_logs_bundle_is_the_text_of_the_download(tmp_path):
+    text = restart.logs_bundle(LoggingDocker(), mountinfo(tmp_path, OWN_ID))
+    assert text.startswith("CybICS Docker Logs\n")
+    assert "Containers: 3\n" in text
+    assert "virtual-openplc-1: mniedermaier1337/virtual-openplc-1:1.2.4" in text
+    for name in ("virtual-openplc-1", "virtual-hwio-1", "virtual-landing-1"):
+        assert f"Container: {name}\n" in text and f"log of {name}" in text
+    assert "STDERR:\nwarning" in text
+
+
+def test_logs_bundle_needs_the_project(tmp_path):
+    with pytest.raises(restart.RestartError):
+        restart.logs_bundle(LoggingDocker(), mountinfo(tmp_path))
