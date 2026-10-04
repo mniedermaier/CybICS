@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import configuration and utilities
 from utils.config import *
 from utils.hardware import read_hardware_version  # noqa: E402
-from utils.restart import (RestartError, logs_bundle, project_containers,  # noqa: E402
+from utils.restart import (RestartError, logs_bundle, project_containers, public_message,  # noqa: E402
                            restart_service, restart_status, start_restart)
 from utils.logger import logger
 
@@ -603,7 +603,7 @@ def download_logs():
             text = logs_bundle()
         except RestartError as e:
             logger.warning(f'Log download refused: {e}')
-            return jsonify({'error': str(e)}), 409
+            return jsonify({'error': public_message(e)}), 409
 
         filename = f"cybics_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
@@ -682,13 +682,14 @@ def restart_containers():
             try:
                 status['project'], status['containers'] = project_containers()
             except RestartError as e:
-                status['error'] = str(e)
+                logger.warning(f'Restart plan unavailable: {e}')
+                status['error'] = public_message(e)
         return jsonify(status)
     try:
         project, others, own = start_restart()
     except RestartError as e:
         logger.warning(f'Container restart refused: {e}')
-        return jsonify({'success': False, 'error': str(e)}), 409
+        return jsonify({'success': False, 'error': public_message(e)}), 409
     except Exception as e:
         logger.error(f'Error starting container restart: {e}', exc_info=True)
         return jsonify({'success': False, 'error': 'Internal server error'}), 500

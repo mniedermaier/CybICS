@@ -242,3 +242,31 @@ def test_logs_bundle_is_the_text_of_the_download(tmp_path):
 def test_logs_bundle_needs_the_project(tmp_path):
     with pytest.raises(restart.RestartError):
         restart.logs_bundle(LoggingDocker(), mountinfo(tmp_path))
+
+
+# ---------- what a browser is told ----------
+
+def test_refusals_carry_a_reason_with_a_fixed_public_message(tmp_path):
+    def failing(cmd, **_kwargs):
+        return SimpleNamespace(returncode=1, stdout="", stderr="permission denied on /var/run/docker.sock")
+
+    cases = [
+        (lambda: restart.plan_restart(failing, mountinfo(tmp_path, OWN_ID)), "docker_failed"),
+        (lambda: restart.plan_restart(FakeDocker(), str(tmp_path / "missing")), "no_container"),
+        (lambda: restart.plan_restart(FakeDocker(project=""), mountinfo(tmp_path, OWN_ID)), "no_project"),
+        (lambda: restart.restart_service("nope", FakeDocker(), mountinfo(tmp_path, OWN_ID)), "unknown_service"),
+    ]
+    for call, reason in cases:
+        with pytest.raises(restart.RestartError) as err:
+            call()
+        assert err.value.reason == reason
+        assert restart.public_message(err.value) == restart.PUBLIC_MESSAGES[reason]
+    assert "docker.sock" not in restart.public_message(restart.RestartError("x: docker.sock", "docker_failed"))
+
+
+def test_public_messages_never_carry_the_detail():
+    error = restart.RestartError("'x' is not a running container of my-secret-project", "unknown_service")
+    assert "my-secret-project" not in restart.public_message(error)
+    assert "my-secret-project" in str(error)        # still in the log
+    assert restart.public_message(ValueError("boom")) == restart.PUBLIC_MESSAGES["docker_failed"]
+    assert restart.public_message(restart.RestartError("x", "made-up")) == restart.PUBLIC_MESSAGES["docker_failed"]
