@@ -40,7 +40,33 @@ BOOT_ID = uuid.uuid4().hex
 
 
 class RestartError(Exception):
-    """The restart was refused; the message is safe to show to the user."""
+    """The restart was refused.
+
+    The message is for the log (and a CybICS-mgmt job result, which only the
+    organiser sees): it may name the compose project or carry docker's
+    error output. `reason` picks the fixed text a browser gets, see
+    public_message().
+    """
+
+    def __init__(self, message, reason="docker_failed"):
+        super().__init__(message)
+        self.reason = reason
+
+
+# What a browser is told for each reason. Fixed strings only: nothing of the
+# exception (project names, docker output) reaches an HTTP response.
+PUBLIC_MESSAGES = {
+    "busy": "A restart is already in progress.",
+    "no_container": "Cannot identify the landing container, so nothing was restarted.",
+    "no_project": "The landing container is not part of a compose project, so nothing was restarted.",
+    "unknown_service": "That is not a running container of this CybICS installation.",
+    "docker_failed": "Docker refused the request; the landing log has the details.",
+}
+
+
+def public_message(error):
+    """The fixed text for a RestartError that may be shown in the browser."""
+    return PUBLIC_MESSAGES.get(getattr(error, "reason", None), PUBLIC_MESSAGES["docker_failed"])
 
 
 def own_container_id(mountinfo=MOUNTINFO):
@@ -71,12 +97,12 @@ def plan_restart(run=subprocess.run, mountinfo=MOUNTINFO):
     """
     own_id = own_container_id(mountinfo)
     if not own_id:
-        raise RestartError("Cannot identify the landing container; not restarting anything")
+        raise RestartError("Cannot identify the landing container; not restarting anything", "no_container")
     project = _docker(run, "inspect", "--format",
                       '{{index .Config.Labels "%s"}}' % PROJECT_LABEL, own_id)
     if not project:
         raise RestartError("The landing container is not part of a compose project; "
-                           "not restarting anything")
+                           "not restarting anything", "no_project")
     listing = _docker(run, "ps", "--filter", f"label={PROJECT_LABEL}={project}",
                       "--format", "{{.ID}} {{.Names}}")
     others, own = [], None
@@ -89,7 +115,7 @@ def plan_restart(run=subprocess.run, mountinfo=MOUNTINFO):
             others.append(name)
     if own is None:
         raise RestartError("The landing container is not in its own project listing; "
-                           "not restarting anything")
+                           "not restarting anything", "no_container")
     return project, others, own
 
 
@@ -132,7 +158,7 @@ def start_restart(run=subprocess.run, mountinfo=MOUNTINFO):
     refused, including while another restart is still running.
     """
     if not _running.acquire(blocking=False):
-        raise RestartError("A restart is already in progress")
+        raise RestartError("A restart is already in progress", "busy")
     try:
         project, others, own = plan_restart(run, mountinfo)
     except Exception:
@@ -171,9 +197,9 @@ def restart_service(service, run=subprocess.run, mountinfo=MOUNTINFO):
     project, others, own = plan_restart(run, mountinfo)
     name = resolve_service(service, project, others + [own])
     if name is None:
-        raise RestartError(f"{service!r} is not a running container of {project}")
+        raise RestartError(f"{service!r} is not a running container of {project}", "unknown_service")
     if not _running.acquire(blocking=False):
-        raise RestartError("A restart is already in progress")
+        raise RestartError("A restart is already in progress", "busy")
     if name == own:
         logger.info("Restarting %s (this container)", own)
         threading.Thread(target=_restart_all, args=([], own, run),
