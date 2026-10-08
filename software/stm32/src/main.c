@@ -1006,7 +1006,7 @@ static const uint8_t led_brightness_v1_1[LED_COLOURS] = {
 	[LED_GREEN] = 10,
 	[LED_RED] = 40,
 	[LED_YELLOW] = 50,
-	[LED_WHITE] = 20,
+	[LED_WHITE] = 15,
 };
 
 struct pwm_led {
