@@ -23,11 +23,12 @@ import threading
 from cybics_pb2 import PressureData, DeviceInfo, IPAddress
 import hw_version
 import ctf_uplink
+import status_led
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(8, GPIO.OUT) # compressor
-GPIO.setup(4, GPIO.OUT) # heartbeat
+GPIO.setup(4, GPIO.OUT) # heartbeat, driven through heartbeat_led below
 GPIO.setup(7, GPIO.OUT) # systemValve
 GPIO.setup(20, GPIO.OUT) # gstSig
 GPIO.setup(1, GPIO.IN) # System sensor
@@ -55,6 +56,9 @@ data = [] # Data received over i2c from the STM32
 # characters: a filled-in placeholder would read as a valid mode 0 and put
 # the device into station mode before the STM32 has said anything.
 dataID = "" # dataID received over i2c from the STM32 (12 hex + mode)
+
+# Set in __main__ once the board revision is known, before any thread starts.
+heartbeat_led = None
 
 
 def unframe(data, message, required=()):
@@ -170,7 +174,7 @@ def thread_openplc():
     # read coils from OpenPLC
     try:
       plcCoils=client.read_coils(0,count=4, device_id=1)
-      GPIO.output(4, plcCoils.bits[0])   # heartbeat
+      heartbeat_led.set(plcCoils.bits[0])  # heartbeat
       GPIO.output(8, plcCoils.bits[1])   # compressor
       GPIO.output(7, plcCoils.bits[2])   # systemValve
       GPIO.output(20, plcCoils.bits[3])  # gstSig
@@ -452,12 +456,14 @@ def publish_hardware_version():
 
   Never fatal: on a board without the straps, or with no usable GPIO at all,
   the platform still runs -- it just cannot name its own revision.
+
+  Returns the revision name, or None when the straps could not be read.
   """
   try:
     code, name, present = hw_version.read(GPIO)
   except Exception as error:
     logging.warning("Main    : could not read the board revision straps: %s", error)
-    return
+    return None
 
   logging.info("Main    : board revision %s", hw_version.describe(code, name, present))
 
@@ -471,6 +477,7 @@ def publish_hardware_version():
     os.replace(tmp, HARDWARE_STATE)
   except OSError as error:
     logging.warning("Main    : could not write %s: %s", HARDWARE_STATE, error)
+  return name
 
 
 if __name__ == "__main__":
@@ -478,7 +485,10 @@ if __name__ == "__main__":
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
   
-  publish_hardware_version()
+  revision = publish_hardware_version()
+  dim = status_led.dims(revision)
+  logging.info("Main    : heartbeat LED %s", "dimmed through the pull-down" if dim else "driven directly")
+  heartbeat_led = status_led.HeartbeatLed(GPIO, 4, dim)
   # Once for every thread: the container has nmcli but no sudo.
   nmcli.disable_use_sudo()
 
