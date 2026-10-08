@@ -93,6 +93,8 @@ uint8_t HPT_high = 0;
 uint8_t HPT_normal = 0;
 uint8_t HPT_low = 0;
 uint8_t HPT_empty = 0;
+/* Toggled by thread_heartbeat, driven onto the LED by thread_write_output. */
+static uint8_t heartbeat_on = 0;
 
 /* Device handles */
 static const struct device *uart_dev;
@@ -283,7 +285,7 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Starting thread_heartbeat");
 
 	while (1) {
-		gpio_pin_toggle_dt(&heartbeat_led);
+		heartbeat_on = !heartbeat_on;
 		k_msleep(1000);
 	}
 }
@@ -949,6 +951,91 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
 	}
 }
 
+/*
+ * LED brightness.
+ *
+ * Every LED on the board is lit through its own resistor from 3V3 and sinks
+ * into its STM32 pin, so it is on while the pin is low.  thread_write_output
+ * dims them with software PWM: each LED is switched on at the start of a
+ * period and off again once its colour's share of the period has passed.
+ *
+ * The share depends on the board revision, because the LEDs themselves do.
+ * v1.0 carried a green that was far dimmer than its red, yellow and blue, so
+ * the original firmware left the greens fully on and ran the others at about
+ * one fifteenth.  v1.1 replaced every LED with a JLCPCB Basic part, and its
+ * green, C2297, is an order of magnitude more efficient than the one before
+ * -- left fully on, it outshone everything else on the board, while the
+ * others, still at one fifteenth, looked faint.  The v1.1 resistors were
+ * meant to make all four colours similar at equal current (hardware commit
+ * 69268e4), but on a real board they are not, so v1.1 has its own table, set
+ * by eye.
+ *
+ * Values are percent of LED_PWM_PERIOD_US, 0 (never lit) to 100 (never
+ * dimmed).  The kernel ticks at 10 kHz, so one percent of a 10 ms period is
+ * exactly one tick; finer values would just round up.
+ *
+ * Two greens are not driven from here.  The Raspberry Pi's heartbeat, D12,
+ * is dimmed by the Pi itself, see software/hwio-raspberry/status_led.py.  The
+ * power LED, D13, is wired straight to 3V3 and cannot be dimmed at all.
+ */
+#define LED_PWM_PERIOD_US 10000
+
+enum led_colour {
+	LED_GREEN,
+	LED_RED,
+	LED_YELLOW,
+	LED_WHITE,	/* blue on v1.0 */
+	LED_COLOURS,
+};
+
+/* What the firmware always did on v1.0: greens full, the rest at 1 ms of 15. */
+static const uint8_t led_brightness_v1_0[LED_COLOURS] = {
+	[LED_GREEN] = 100,
+	[LED_RED] = 7,
+	[LED_YELLOW] = 7,
+	[LED_WHITE] = 7,
+};
+
+/*
+ * v1.1 and anything newer.  Tuned by eye on a v1.1 board under room light,
+ * adjusting the shares live until no colour stood out.  The green needs far
+ * less than its resistor calculation predicted (about 39 mcd at full duty,
+ * against 28 for red), and the white far less than the red and yellow.
+ */
+static const uint8_t led_brightness_v1_1[LED_COLOURS] = {
+	[LED_GREEN] = 10,
+	[LED_RED] = 40,
+	[LED_YELLOW] = 50,
+	[LED_WHITE] = 20,
+};
+
+struct pwm_led {
+	const struct gpio_dt_spec *spec;
+	const uint8_t *state;	/* non-zero = lit */
+	enum led_colour colour;
+};
+
+/* Colours per the schematic, D1-D19 without the power LED D13 and D12 on the Pi. */
+static const struct pwm_led pwm_leds[] = {
+	{ &gst_low_led,      &GST_low,      LED_RED },	/* D1 */
+	{ &gst_normal_led,   &GST_normal,   LED_GREEN },	/* D2 */
+	{ &gst_full_led,     &GST_full,     LED_WHITE },	/* D3 */
+	{ &c_on_led,         &C_on,         LED_GREEN },	/* D4 */
+	{ &c_off_led,        &C_off,        LED_RED },	/* D5 */
+	{ &hpt_critical_led, &HPT_critical, LED_RED },	/* D6 */
+	{ &hpt_high_led,     &HPT_high,     LED_YELLOW },	/* D7 */
+	{ &hpt_normal_led,   &HPT_normal,   LED_GREEN },	/* D8 */
+	{ &hpt_low_led,      &HPT_low,      LED_YELLOW },	/* D9 */
+	{ &hpt_empty_led,    &HPT_empty,    LED_WHITE },	/* D10 */
+	{ &heartbeat_led,    &heartbeat_on, LED_GREEN },	/* D11 */
+	{ &bo_red_led,       &BO_red,       LED_RED },	/* D14 */
+	{ &bo_green_led,     &BO_green,     LED_GREEN },	/* D15 */
+	{ &s_red_led,        &S_red,        LED_RED },	/* D16 */
+	{ &s_green_led,      &S_green,      LED_GREEN },	/* D17 */
+	{ &sv_red_led,       &SV_red,       LED_RED },	/* D18 */
+	{ &sv_green_led,     &SV_green,     LED_GREEN },	/* D19 */
+};
+
 /* Thread: Write Output (LED control with PWM) */
 void thread_write_output(void *arg1, void *arg2, void *arg3)
 {
@@ -960,44 +1047,61 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&init_sem, K_FOREVER);
 	k_sem_give(&init_sem);
 
-	LOG_INF("Starting thread_write_output");
+	/* An unknown revision is newer hardware, see hw_version.h. */
+	const uint8_t *brightness = hw_version_get() == HW_REV_1_0
+		? led_brightness_v1_0 : led_brightness_v1_1;
+
+	/*
+	 * The colours in the order they switch off within a period, dimmest
+	 * first, so a period needs one wake-up per colour rather than one per
+	 * percent.
+	 */
+	enum led_colour order[LED_COLOURS];
+	for (int i = 0; i < LED_COLOURS; i++) {
+		int j = i;
+		while (j > 0 && brightness[order[j - 1]] > brightness[i]) {
+			order[j] = order[j - 1];
+			j--;
+		}
+		order[j] = (enum led_colour)i;
+	}
+
+	LOG_INF("Starting thread_write_output, LED brightness green %u%%, red %u%%, "
+		"yellow %u%%, white %u%%",
+		brightness[LED_GREEN], brightness[LED_RED],
+		brightness[LED_YELLOW], brightness[LED_WHITE]);
 
 	while (1) {
-		// Clear (turn off) most LEDs
-		gpio_pin_set_dt(&gst_full_led, 1);
-		gpio_pin_set_dt(&gst_low_led, 1);
-		gpio_pin_set_dt(&c_off_led, 1);
-		gpio_pin_set_dt(&hpt_critical_led, 1);
-		gpio_pin_set_dt(&hpt_high_led, 1);
-		gpio_pin_set_dt(&hpt_low_led, 1);
-		gpio_pin_set_dt(&hpt_empty_led, 1);
-		gpio_pin_set_dt(&bo_red_led, 1);
-		gpio_pin_set_dt(&sv_red_led, 1);
-		gpio_pin_set_dt(&s_red_led, 1);
+		/* Start of the period: every LED that should be lit goes on. */
+		for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
+			const struct pwm_led *led = &pwm_leds[i];
+			bool lit = *led->state && brightness[led->colour] > 0;
 
-		k_msleep(14);
-
-		// Update outputs based on state variables
-		gpio_pin_set_dt(&c_on_led, C_on ? 0 : 1);
-		gpio_pin_set_dt(&c_off_led, C_off ? 0 : 1);
-		gpio_pin_set_dt(&sv_red_led, SV_red ? 0 : 1);
-		gpio_pin_set_dt(&sv_green_led, SV_green ? 0 : 1);
-		gpio_pin_set_dt(&gst_full_led, GST_full ? 0 : 1);
-		gpio_pin_set_dt(&gst_normal_led, GST_normal ? 0 : 1);
-		gpio_pin_set_dt(&gst_low_led, GST_low ? 0 : 1);
-		gpio_pin_set_dt(&hpt_critical_led, HPT_critical ? 0 : 1);
-		gpio_pin_set_dt(&hpt_high_led, HPT_high ? 0 : 1);
-		gpio_pin_set_dt(&hpt_normal_led, HPT_normal ? 0 : 1);
-		gpio_pin_set_dt(&hpt_low_led, HPT_low ? 0 : 1);
-		gpio_pin_set_dt(&hpt_empty_led, HPT_empty ? 0 : 1);
-		gpio_pin_set_dt(&s_red_led, S_red ? 0 : 1);
-		gpio_pin_set_dt(&s_green_led, S_green ? 0 : 1);
+			gpio_pin_set_dt(led->spec, lit ? 0 : 1);
+		}
 		gpio_pin_set_dt(&s_sen_pin, S_sen ? 1 : 0); // Sensor outputs not inverted
-		gpio_pin_set_dt(&bo_red_led, BO_red ? 0 : 1);
-		gpio_pin_set_dt(&bo_green_led, BO_green ? 0 : 1);
 		gpio_pin_set_dt(&bo_sen_pin, BO_sen ? 1 : 0); // Sensor outputs not inverted
 
-		k_msleep(1);
+		/* Then each colour goes off once its share has passed. */
+		uint32_t elapsed_us = 0;
+
+		for (int c = 0; c < LED_COLOURS; c++) {
+			uint32_t off_us = LED_PWM_PERIOD_US / 100 * brightness[order[c]];
+
+			if (off_us >= LED_PWM_PERIOD_US) {
+				break;	/* this colour and all after it stay on */
+			}
+			if (off_us > elapsed_us) {
+				k_usleep(off_us - elapsed_us);
+				elapsed_us = off_us;
+			}
+			for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
+				if (pwm_leds[i].colour == order[c]) {
+					gpio_pin_set_dt(pwm_leds[i].spec, 1);
+				}
+			}
+		}
+		k_usleep(LED_PWM_PERIOD_US - elapsed_us);
 	}
 }
 
