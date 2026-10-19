@@ -85,4 +85,7 @@ In MITRE ATT&CK for ICS this is **T0859 Valid Accounts**: once you hold a workin
 
 - [OPC-UA](/theory/opcua-protocol): nodes, sessions, security policies and certificates.
 - [Password attacks](/theory/password_attack): how guessing with a word list works.
+
+Later on the path:
+
 - [Detection and monitoring](/theory/detection-monitoring): how the IDS notices you.

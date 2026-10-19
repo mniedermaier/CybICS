@@ -1,21 +1,24 @@
 # Asset inventory, risk and IEC 62443
 
-You cannot protect what you do not know you have, and you cannot protect everything equally well. This article walks through the three questions every OT security programme starts with: what is on the network, which risks matter most, and how to split the network so that one compromised device does not mean a compromised plant.
+You cannot protect what you do not know you have, and you cannot protect everything equally well. Every OT security programme starts with three questions: what is on the network, which risks matter most, and how to split the network so that one compromised device does not mean a compromised plant.
 
 ## Step 1: know what you have
 
-An **asset inventory** is a list of every device and service in the plant: what it is, where it sits on the network, which protocols it speaks, who maintains it and what it controls. It sounds like paperwork, but almost every later decision depends on it. A firewall rule for a PLC you do not know about is a rule nobody writes.
-
-There are two ways to build the list.
+An **asset inventory** lists every device and service in the plant: what it is, where it sits on the network, which protocols it speaks and what it controls. Almost every later decision depends on it: a firewall rule for a PLC you do not know about is a rule nobody writes. There are two ways to build it.
 
 - **Passive discovery** listens. A sensor on a mirror port of a switch records which addresses talk to which, on which ports, using which protocols. It sends nothing, so it cannot disturb the process. Its weakness: a device that stays silent stays invisible.
 - **Active discovery** asks. A scanner such as nmap sends packets to every address and port and reads the answers. It is fast and finds silent devices, but it puts unusual traffic on the network.
 
 <div class="callout warning" markdown="1">
-**Why active scanning is risky in OT:** many controllers run small, old network stacks that were only ever tested with the traffic their vendor expected. A burst of half-open connections or a malformed probe can make such a device hang or reboot, and a rebooting PLC stops controlling its process. NIST SP 800-82, the US guide to OT security, therefore recommends passive methods first and active scans only with care, coordination with operations and ideally on a test system.
+**Why active scanning is risky in OT:** many controllers run small, old network stacks that were only tested with the traffic their vendor expected. An unusual probe can make such a device hang or reboot, and a rebooting PLC stops controlling its process. So: listen passively first, and scan actively only with care and in agreement with operations.
 </div>
 
-In practice teams combine both: passive listening for the baseline, then carefully scoped active queries, often using the device's own protocol (for example a single identity request) instead of a full port scan.
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: what the guidance says about scanning</summary>
+
+What breaks fragile stacks is typically a burst of half-open connections or a malformed probe. NIST SP 800-82, the US guide to OT security, recommends passive methods first and active scans only with care, coordination with operations and ideally on a test system. In practice teams combine both: passive listening for the baseline, then carefully scoped active queries, often using the device's own protocol (for example a single identity request) instead of a full port scan.
+
+</details>
 
 <div data-widget="checkpoint" data-id="passive"></div>
 
@@ -25,14 +28,14 @@ A **risk** is a bad thing that could happen, together with an estimate of how ba
 
 **risk = likelihood × impact**
 
-- **Likelihood:** how probable is it that the scenario happens? Think about how reachable the target is, how much skill it takes and whether tools exist.
-- **Impact:** how bad is it if it does happen? In OT, impact is measured first in harm to people and the environment, then in damage to equipment, then in lost production and only then in data.
+- **Likelihood:** how probable is the scenario? How reachable is the target, how much skill does it take, do tools exist?
+- **Impact:** how bad is it if it happens? In OT, impact is measured first in harm to people and the environment, then in damaged equipment, then lost production and only then in data.
 
-Teams usually score both on a simple scale, for example 1 (very low) to 5 (very high), and multiply. The numbers are not measurements. They are a structured way to argue about priorities and to write down why.
+Teams score both from 1 (very low) to 5 (very high) and multiply. The numbers are not measurements, but a structured way to argue about priorities.
 
 ### A worked example on CybICS
 
-Here are four scenarios for the CybICS gas plant, scored on that 1 to 5 scale. The scores are a teaching example: your class may well argue for different ones, and that discussion is the point.
+Four scenarios for the CybICS gas plant. The scores are a teaching example: your class may argue for different ones, and that discussion is the point.
 
 | Scenario | Likelihood | Impact | Risk |
 |---|---|---|---|
@@ -41,15 +44,15 @@ Here are four scenarios for the CybICS gas plant, scored on that 1 to 5 scale. T
 | Someone reads values from the S7 server on port 1102 | 5: no authentication | 2: information only | **10** |
 | Someone with physical access connects to the board's serial console (UART) | 2: needs to be in the room | 4: device-level access | **8** |
 
-The top row wins clearly, and it tells you where to spend effort first. Now ask what a control would change. Blocking every host except FUXA, OPC-UA and `hwio` from reaching port 502 does not make an overpressure any less dangerous, so impact stays at 5. It makes the scenario much harder to reach, so likelihood might drop to 2, and the risk to 10. Most network controls work this way: they lower likelihood. Lowering impact needs changes to the plant itself, such as a separate safety system (see [Safety systems](/theory/safety-systems)).
+The top row is where to spend effort first. Now ask what a control would change. Letting only FUXA, OPC-UA and `hwio` reach port 502 does not make an overpressure less dangerous, so impact stays at 5. But the scenario gets much harder to reach: likelihood might drop to 2, the risk to 10. Most network controls lower likelihood; lowering impact needs changes to the plant, such as a separate safety system (see [Safety systems](/theory/safety-systems)).
 
 <div data-widget="checkpoint" data-id="factor"></div>
 
 ## Step 3: zones and conduits with IEC 62443
 
-**IEC 62443** is the international series of standards for the security of Industrial Automation and Control Systems (IACS). It covers everyone involved: the asset owner, the system integrator and the product vendor. Three of its ideas are worth knowing from day one.
+**IEC 62443** is the international series of standards for the security of Industrial Automation and Control Systems (IACS). Three of its ideas are worth knowing from day one.
 
-**Zones and conduits.** A **zone** is a group of assets that share the same security requirements, for example "all controllers of the compression unit". A **conduit** is the path that connects two zones, together with the rules for what may travel along it. Instead of protecting every device separately, you protect the borders of each zone and keep conduits as narrow as possible.
+**Zones and conduits.** A **zone** is a group of assets with the same security requirements, for example "all controllers of the compression unit". A **conduit** is the path between two zones, together with the rules for what may travel along it. You protect the borders of each zone and keep conduits narrow.
 
 <div class="callout analogy" markdown="1">
 **Analogy:** a zone is a room with a locked door; a conduit is a hatch in the wall with a guard who only lets certain parcels through. Someone who gets into the office does not automatically get into the control room.
@@ -68,11 +71,11 @@ The top row wins clearly, and it tells you where to spend effort first. Now ask 
 
 ## Applied to the CybICS network
 
-Explore the CybICS hosts on the Purdue levels. Click a host to see its address, its ports and the attacks that target it. That is a small asset inventory.
+Click a host to see its address, its ports and the attacks that target it: a small asset inventory.
 
 <div data-widget="purdue-explorer"></div>
 
-Today all CybICS containers share one flat network, `172.18.0.0/24`. In IEC 62443 terms that is a single zone with no conduits: the attack machine at `.100` can talk to the PLC exactly as freely as the HMI can. A zone model for the plant could look like this:
+Today all CybICS containers share one flat network, `172.18.0.0/24`: a single zone with no conduits. The attack machine at `.100` talks to the PLC as freely as the HMI does. A zone model could look like this:
 
 | Zone | Members | Allowed conduits in |
 |---|---|---|
@@ -81,10 +84,12 @@ Today all CybICS containers share one flat network, `172.18.0.0/24`. In IEC 6244
 | Engineering | Engineering workstation `.10` | Maintenance access to the PLC's web interface on 8080, during planned changes |
 | Untrusted | Attack machine `.100`, standing in for any office host | None into the control zone |
 
-The *Network segmentation* defence challenge asks you to build the most important part of that last row: stop the attack machine from reaching the PLC and the OPC-UA server. When you solve it, rescore the first row of the risk table and see what changed.
+The *Network segmentation* challenge asks you to build the key part of the last row: stop the attack machine from reaching the PLC and the OPC-UA server. Then rescore the first row of the risk table.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: which part of IEC 62443 says what</summary>
+
+IEC 62443 covers everyone involved: the asset owner, the system integrator and the product vendor.
 
 The series is split into four groups. Parts 1-x define concepts and terms. Parts 2-x are for the asset owner: how to run a security programme and manage patches. Parts 3-x are about the system: **IEC 62443-3-2** describes the risk assessment that divides a system into zones and conduits and sets a target security level for each, and **IEC 62443-3-3** lists the system requirements per foundational requirement and security level. Parts 4-x are for product vendors: **4-1** for a secure development process and **4-2** for the requirements on individual components such as a PLC.
 

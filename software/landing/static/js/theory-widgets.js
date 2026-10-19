@@ -403,7 +403,7 @@
         { level: 'Level 2', name: 'Supervisory control', hint: 'HMI, SCADA, gateways', hosts: [
             { id: 'fuxa', name: 'FUXA HMI', ip: '172.18.0.4', ports: '1881 (web HMI)',
               role: 'The operators\' screen. It polls the PLC over Modbus and writes set points when an operator presses a button.',
-              attacks: ['password_attack', 'mitm'], ids: 'Expected Modbus writer: its writes raise no alert. Watched for HTTP login brute force.' },
+              attacks: ['password_attack', 'mitm'], ids: 'Expected Modbus writer: its writes raise no alert. Its sign-in (/api/signin) does not match the http_brute_force rule, so password guessing against it raises no alert.' },
             { id: 'opcua', name: 'OPC-UA server', ip: '172.18.0.5', ports: '4840 (OPC-UA)',
               role: 'A gateway that offers the plant values to other systems over OPC-UA, a modern protocol with built-in security options.',
               attacks: ['opcua'], ids: 'OPC-UA sessions from hosts that are not expected clients raise an alert.' },
@@ -420,9 +420,9 @@
             { id: 'hwio', name: 'Plant simulation (hwio)', ip: '172.18.0.2', ports: '8090 (3D view)',
               role: 'Simulates the tanks, the compressor and the valves, and writes the sensor values into the PLC about 50 times a second.',
               attacks: ['physical_process'], ids: 'Expected Modbus writer: its writes raise no alert.' },
-            { id: 'stm32', name: 'STM32 (on the board)', ip: '172.18.0.7', ports: 'UART, I²C',
+            { id: 'stm32', name: 'STM32 (on the board)', ip: 'no IP address', ports: 'none: it talks I²C to the Raspberry Pi, plus a UART console',
               role: 'On the real board, the microcontroller that runs the physical model and drives the LEDs and the display.',
-              attacks: ['uart_basic'], ids: 'Named in the IDS host table, but exempt from no rule. The UART is a wire on the board, so the network IDS never sees it.' },
+              attacks: ['uart_basic'], ids: 'Not on the network at all, so the network IDS never sees it. Its UART console is a wire on the board.' },
         ] },
     ];
     const ATTACKER = { id: 'attack', name: 'Attack machine', ip: '172.18.0.100', ports: '6081 (noVNC)',
@@ -597,11 +597,14 @@
         const verdict = el('p', { class: 'w-note' });
         body.append(controls, timeline, legend, score, verdict);
         const cfg = { scenario: 'flood', n: 10, w: 30, allow: false };
+        // Like the IDS: once a rule has fired for a host, it stays quiet for
+        // that host for 30 s, whatever the window.
+        const COOLDOWN = 30;
         function alerts(times) {
             const out = []; let last = -Infinity;
-            times.forEach(function (t, i) {
-                const inWindow = times.filter(x => x <= t && x > t - cfg.w).length;
-                if (inWindow >= cfg.n && t - last >= cfg.w) { out.push(t); last = t; }
+            times.forEach(function (t) {
+                const inWindow = times.filter(x => x <= t && x >= t - cfg.w).length;
+                if (inWindow >= cfg.n && t - last >= COOLDOWN) { out.push(t); last = t; }
             });
             return out;
         }
@@ -614,7 +617,7 @@
             const atkAlerts = alerts(atk);
             const engAlerts = cfg.allow ? [] : alerts(ENGINEER);
             const x = t => (t / 120 * 100).toFixed(2) + '%';
-            timeline.innerHTML = [...atkAlerts, ...engAlerts].map(t => `<div class="alarm" style="left:${x(t)};width:${x(Math.min(cfg.w, 120 - t))}"></div>`).join('') +
+            timeline.innerHTML = [...atkAlerts, ...engAlerts].map(t => `<div class="alarm" style="left:${x(t)};width:${x(Math.min(COOLDOWN, 120 - t))}"></div>`).join('') +
                 ENGINEER.map(t => `<div class="ev hmi" style="left:${x(t)}"></div>`).join('') +
                 atk.map(t => `<div class="ev atk" style="left:${x(t)}"></div>`).join('');
             const detected = atkAlerts.length > 0;
@@ -1125,5 +1128,76 @@
         controls.addEventListener('input', paint);
         controls.addEventListener('change', paint);
         paint();
+    });
+
+    // ------------------------------------------------------------------
+    // plant-predict: say what the plant will do, then watch it happen
+    // ------------------------------------------------------------------
+    // Read-only, like plant-live: the reader predicts from the state of the
+    // compressor and the valve, and the real plant answers.
+    const PREDICT_SECONDS = 20;
+    register('plant-predict', function (node) {
+        const { body } = frame(node, 'Predict, then watch the real plant',
+            `Look at the plant as it is now and predict what the HPT pressure will do over the next ${PREDICT_SECONDS} seconds. Then the live plant gives the answer.`);
+        const now = el('div', { class: 'score', 'aria-live': 'polite' }, '<div><b>…</b>connecting</div>');
+        const choices = el('div', { class: 'w-row' });
+        [['up', 'It will rise'], ['down', 'It will fall'], ['flat', 'It will stay about the same']].forEach(function ([k, label]) {
+            const b = el('button', { class: 't-btn', type: 'button', 'data-k': k }, label);
+            choices.appendChild(b);
+        });
+        const out = el('p', { 'aria-live': 'polite' });
+        body.append(now, choices, out);
+        let start = null, timer = null;
+        const read = () => fetch('/theory/api/plant').then(r => r.json()).then(d => { if (!d.ok) throw new Error('offline'); return d.values; });
+        const pill = (on, a, b) => `<span class="w-pill ${on ? 'on' : 'off'}">${on ? a : b}</span>`;
+        function show(v) {
+            now.innerHTML = `<div><b>${v.hpt} bar</b>HPT now</div><div><b>${pill(v.compressor, 'running', 'off')}</b>compressor</div>` +
+                `<div><b>${pill(v.systemValve, 'open', 'closed')}</b>system valve</div><div><b>${v.gst} bar</b>GST</div>`;
+        }
+        function refresh() {
+            if (start) return;
+            read().then(show).catch(function () {
+                now.innerHTML = '<div><b>–</b>plant not reachable</div>';
+                out.textContent = 'This needs the running CybICS stack.';
+            });
+        }
+        refresh();
+        timer = setInterval(refresh, 2000);
+        window.addEventListener('pagehide', () => clearInterval(timer));
+        choices.addEventListener('click', function (e) {
+            const guess = e.target.dataset && e.target.dataset.k;
+            if (!guess || start) return;
+            read().then(function (v) {
+                start = v;
+                show(v);
+                choices.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.toggle('primary', b === e.target); });
+                let left = PREDICT_SECONDS;
+                out.textContent = `Watching… ${left} s`;
+                const tick = setInterval(function () {
+                    left -= 1;
+                    if (left > 0) { out.textContent = `Watching… ${left} s`; return; }
+                    clearInterval(tick);
+                    read().then(function (end) {
+                        show(end);
+                        const delta = end.hpt - start.hpt;
+                        const real = delta >= 3 ? 'up' : delta <= -3 ? 'down' : 'flat';
+                        const why = start.compressor
+                            ? 'The compressor was running, so it pushed gas from the GST into the HPT, about 1 bar a second.'
+                            : start.systemValve
+                                ? 'The compressor was off and the system valve open, so the consumer drew gas out of the HPT, about 1 bar a second on average.'
+                                : 'The compressor was off and the system valve closed, so nothing put gas in or took it out.';
+                        out.innerHTML = `<b class="${real === guess ? 'w-ok' : 'w-err'}">${real === guess ? 'Right.' : 'Not this time.'}</b> ` +
+                            `The HPT went from ${start.hpt} to ${end.hpt} bar. ${escapeHtml(why)} ` +
+                            (end.compressor !== start.compressor ? `Meanwhile the PLC switched the compressor ${end.compressor ? 'on' : 'off'}: the pressure crossed one of its limits (below 60 it starts, at 90 it stops). ` : '') +
+                            '<button class="t-btn" type="button" data-again>Try again</button>';
+                        out.querySelector('[data-again]').addEventListener('click', function () {
+                            start = null; out.textContent = '';
+                            choices.querySelectorAll('button').forEach(b => { b.disabled = false; b.classList.remove('primary'); });
+                            refresh();
+                        });
+                    }).catch(function () { out.textContent = 'The plant stopped answering.'; start = null; });
+                }, 1000);
+            }).catch(function () { out.textContent = 'The plant is not reachable; this needs the running CybICS stack.'; });
+        });
     });
 })();

@@ -138,4 +138,7 @@ Defences that stop or limit the attack:
 
 - [Modbus TCP](/theory/modbus) for registers and write function codes.
 - [The gas pressure process](/theory/physical_process) for how the plant reacts.
+
+Later on the path:
+
 - [Detection and monitoring](/theory/detection-monitoring) for how rate rules work.

@@ -57,7 +57,7 @@ The CybICS challenges are arranged along the same arc. Doing them in order is a 
 | Collection | T0830 Adversary-in-the-Middle | [Man-in-the-Middle](/ctf/challenge/mitm) |
 | Persistence, Lateral Movement | T0859 Valid Accounts | [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password attacks |
 | Lateral Movement, Persistence | T0843 Program Download, T0889 Modify Program | [PLC Programming](/ctf/challenge/plc_programming) |
-| Impair Process Control | T0836 Modify Parameter, T0806 Brute Force I/O | [Flood & Overwrite](/ctf/challenge/flood_overwrite) |
+| Impair Process Control | T0806 Brute Force I/O, T1692.001 Unauthorized Message: Command Message | [Flood & Overwrite](/ctf/challenge/flood_overwrite) |
 | Impact | T0831 Manipulation of Control | [Physical Process](/ctf/challenge/physical_process) |
 
 Read the table as a story. You scan the network from the attack machine and find the PLC. You listen to its Modbus traffic and learn which register carries the high-pressure tank (HPT) value. You get into the web interface with a guessed password. Finally, you change values the controller relies on, and the compressor and valves do things the operator never asked for.

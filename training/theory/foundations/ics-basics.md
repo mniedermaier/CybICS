@@ -342,10 +342,10 @@ That cycle of **sensor, controller, actuator, process, sensor again** is the **c
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
   <text class="rst" x="450" y="308" font-size="13" text-anchor="end" font-weight="bold" fill="#ff6b00">loop restarts &mdash; the plant does not</text>
 </svg>
-<figcaption>The same plant twice. First OpenPLC holds the HPT between 60 and 90. Then an operator in manual mode shuts the system valve and keeps the compressor running: the pressure passes 220, the blow-out valve vents, and the tank ends stuck at 200 (the frame shown with reduced motion).</figcaption>
+<figcaption>The same plant twice. First OpenPLC holds the HPT between 60 and 90. Then an operator in manual mode shuts the system valve and keeps the compressor running while the storage tank is refilled: the pressure passes 220, the blow-out valve vents, and the tank ends stuck at 200 (the frame shown with reduced motion).</figcaption>
 </figure>
 
-Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over from the controller: with the system valve shut and the compressor running, gas has nowhere to go. The blow-out valve opens above 220, but it vents more slowly than the compressor pumps, so it only slows the rise.
+Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over from the controller: with the system valve shut, the compressor running and the storage tank being refilled, gas has nowhere to go. The blow-out valve opens above 220, but it vents more slowly than the compressor pumps, so it only slows the rise.
 
 No network attack is needed: each step is allowed; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) has you reproduce it through the operator's own screen.
 

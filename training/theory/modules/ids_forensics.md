@@ -80,4 +80,7 @@ In the MITRE D3FEND catalogue of defensive techniques this work falls under Netw
 
 - [Detection and monitoring](/theory/detection-monitoring): what an IDS is and how its rules work
 - [Intrusion detection](/theory/ids_challenge): the CybICS IDS and its nine rules
+
+Later on the path:
+
 - [Incident response in OT](/theory/incident-response): what happens with your findings next

@@ -1,10 +1,10 @@
 # Incident response in OT
 
-Sooner or later an alarm turns out to be real. What you do in the next hour decides whether a security incident stays a security incident or becomes a safety incident. This article explains the standard response phases, why the usual IT reflex of "unplug it" can be the worst move in a plant, and where you find evidence in CybICS.
+Sooner or later an alarm turns out to be real. What you do in the next hour decides whether a security incident stays a security incident or becomes a safety incident. This article covers the response phases, why "unplug it" can be the worst move in a plant, and where you find evidence in CybICS.
 
 ## The six phases
 
-Most incident response plans follow the same cycle. The version below, with six phases, is the one taught by SANS; the US guide NIST SP 800-61 groups the same work into fewer, larger phases. The names matter less than the order.
+Most incident response plans follow the same six-phase cycle. The names matter less than the order.
 
 <figure>
 <svg viewBox="0 0 520 220" role="img" aria-label="The incident response cycle as six boxes in a loop: preparation, identification, containment, eradication, recovery and lessons learned. An arrow leads from lessons learned back to preparation, showing that each incident improves the preparation for the next.">
@@ -30,7 +30,7 @@ Most incident response plans follow the same cycle. The version below, with six 
 <figcaption>The incident response cycle. Lessons learned feed back into preparation, so each incident makes the next response better.</figcaption>
 </figure>
 
-1. **Preparation.** Before anything happens: a written plan, a contact list, an up-to-date asset inventory, known-good backups of PLC programs, monitoring that records evidence, and practice.
+1. **Preparation.** Before anything happens: a written plan, known-good backups of PLC programs, agreed safe actions, monitoring that records evidence, and practice.
 2. **Identification.** Is the alert real, and what is affected? Compare what the alarm says with what the plant is actually doing.
 3. **Containment.** Stop the attacker from doing more damage, without making the plant less safe.
 4. **Eradication.** Remove what the attacker left behind: changed programs, new accounts, malware, stolen passwords.
@@ -39,7 +39,7 @@ Most incident response plans follow the same cycle. The version below, with six 
 
 ## Why OT is different: you cannot just pull the plug
 
-In an office, a standard containment move is to disconnect an infected laptop. It loses a few hours of work. In a plant, every device you disconnect or switch off was doing something, and the process does not pause while you investigate.
+In an office, you disconnect an infected laptop and lose a few hours of work. In a plant, every device you switch off was doing something, and the process does not pause while you investigate.
 
 <div class="callout analogy" markdown="1">
 **Analogy:** if a pilot suspects a problem with the autopilot, they do not switch off the engines. They take manual control first, keep the plane flying, and only then work out what went wrong.
@@ -47,23 +47,21 @@ In an office, a standard containment move is to disconnect an infected laptop. I
 
 Three things shape every decision in OT incident response:
 
-- **Safety comes first.** The first question is never "how do we stop the attacker?" but "is the process safe right now, and will it stay safe after what we are about to do?" Operations staff and safety engineers belong in the room from the start.
-- **Containment has side effects.** Stopping a PLC usually drops its outputs to a default state. Cutting the network between the HMI and the PLC blinds the operators. Both can be worse than the attack. A good plan defines in advance which actions are safe for which part of the plant.
-- **Manual operation is a real option.** Plants often keep the ability to run by hand. After the 2015 attack on the Ukrainian power grid, operators restored power by switching substations manually (see [the Ukraine case study](/theory/ukraine-grid)).
+- **Safety comes first.** The first question is not "how do we stop the attacker?" but "is the process safe now, and will it stay safe after what we do next?" Operations and safety staff belong in the room from the start.
+- **Containment has side effects.** Stopping a PLC drops its outputs to a default state; cutting the HMI off from the PLC blinds the operators. Both can be worse than the attack, so the plan says in advance which actions are safe.
+- **Manual operation is a real option.** After the 2015 attack on the Ukrainian grid, operators restored power by switching substations by hand (see [the Ukraine case study](/theory/ukraine-grid)).
 
-The reverse also happens. In 2021 Colonial Pipeline shut down its pipeline as a precaution after ransomware hit its business IT network, because it could no longer be sure the operational side was unaffected (see [the Colonial Pipeline case study](/theory/colonial-pipeline)). Containment can mean stopping the process on purpose, in a controlled way, rather than letting it be stopped for you.
+The reverse also happens. In 2021 Colonial Pipeline shut its pipeline down as a precaution after ransomware hit its business IT network, because it could not be sure the operational side was unaffected (see [the Colonial Pipeline case study](/theory/colonial-pipeline)). Containment can mean stopping the process on purpose, in a controlled way.
 
 <div data-widget="checkpoint" data-id="plug"></div>
 
 ## Evidence: collect it before it disappears
 
-Evidence answers who did what, when and how. In OT much of it is **volatile**: it lives in memory and is gone after a restart. Rebooting a controller "to be safe" can wipe the very thing that shows what the attacker changed. Collect first, then act, unless safety demands otherwise.
+Evidence answers who did what, when and how. In OT much of it is **volatile**: it lives in memory and is gone after a restart. Rebooting a controller "to be safe" can wipe what shows the attacker's changes. Collect first, then act, unless safety demands otherwise.
 
-Good habits:
-
-- Write down what you do and when, with times. Your own actions become part of the record.
+- Write down what you do and when; your own actions become part of the record.
 - Copy logs and captures off the affected system before changing it.
-- Compare the running PLC program with a known-good backup, rather than trusting what it looks like.
+- Compare the running PLC program with a known-good backup.
 
 ## Evidence sources in CybICS
 
@@ -76,7 +74,7 @@ CybICS gives you four places to look.
 | **PLC logs** | The runtime log on the OpenPLC dashboard (port 8080), and the container logs via `./cybics.sh logs` | When protocol servers started and when clients connected and disconnected | The clients' addresses and what they wrote |
 | **Process data** | The FUXA HMI and the registers, for example HPT in holding register 1126 | What the plant actually did | Why it did it |
 
-Two details matter when you collect. First, the IDS keeps only its 500 most recent alerts, and only in memory: a restart of the IDS, or a call to its clear endpoint, erases them. Export the alerts early. Second, no single source is enough. An IDS alert says "unauthorised Modbus writes from `172.18.0.100`"; the capture shows which coil was written; the process data shows whether the HPT pressure actually rose. Together they tell the story.
+The IDS keeps only its 500 most recent alerts, and only in memory: a restart or a call to its clear endpoint erases them, so export them early. And no single source is enough: the alert names the sender, the capture shows which coil was written, the process data shows whether the HPT pressure rose.
 
 <div data-widget="checkpoint" data-id="volatile"></div>
 
@@ -84,20 +82,20 @@ Two details matter when you collect. First, the IDS keeps only its 500 most rece
 
 Imagine the IDS raises `modbus_unauth_write` from `172.18.0.100`, the attack machine.
 
-1. **Identification.** Open the HMI. Is the HPT pressure still between 60 and 90 bar? Is the compressor cycling normally? Pull the alert details from the IDS and start a capture.
-2. **Containment.** Keep the PLC running: it is what holds the pressure in range. Instead, close the conduit the attacker uses, for example a firewall rule on the PLC container that drops traffic from `172.18.0.100`. If the pressure is already rising, an operator can switch the HMI to manual and stop the compressor.
-3. **Eradication.** Check that the PLC program still matches the known-good `cybICS.st` and that no settings changed. Change any password the attacker could have seen.
-4. **Recovery.** Return to automatic mode and watch the pressure and the IDS for a while before you call it over.
-5. **Lessons learned.** Should the IDS threshold be lower? Should the segmentation rule be permanent? Write it down.
+1. **Identification.** Is the HPT pressure on the HMI still between 60 and 90 bar? Pull the alert details from the IDS and start a capture.
+2. **Containment.** Keep the PLC running: it holds the pressure in range. Instead, drop traffic from `172.18.0.100` at the PLC with a firewall rule. If the pressure is already rising, an operator can switch the HMI to manual and stop the compressor.
+3. **Eradication.** Check that the PLC program still matches the known-good backup, and change any password the attacker could have seen.
+4. **Recovery.** Return to automatic mode and watch the pressure and the IDS for a while.
+5. **Lessons learned.** Should the IDS threshold be lower, the firewall rule permanent? Write it down.
 
-The *IDS forensics* challenge trains the identification step: you query the IDS for its alert history and answer who was most active, which rule fired most and when the activity started. Read [Detection and monitoring](/theory/detection-monitoring) first if you have not.
-
-Now a different alarm. Sort the response to it into the six phases.
+The *IDS forensics* challenge trains identification; read [Detection and monitoring](/theory/detection-monitoring) first. Now a different alarm: sort the response into the six phases.
 
 <div data-widget="sequence" data-id="response"></div>
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: plans, playbooks and the OT-specific guidance</summary>
+
+The six-phase version of the cycle is the one taught by SANS; NIST SP 800-61 groups the same work into fewer, larger phases. A full Preparation phase also includes a contact list and an up-to-date asset inventory. In the CybICS walk-through, the known-good program is `cybICS.st`, and eradication also checks that no PLC settings changed. The *IDS forensics* challenge has you query the IDS for its alert history and work out who was most active, which rule fired most and when the activity started.
 
 NIST SP 800-61 is the general US guide to incident handling. Its 2024 revision (Rev. 3) aligns the response activities with the NIST Cybersecurity Framework 2.0 functions rather than presenting a separate lifecycle. For OT, NIST SP 800-82 Rev. 3 adds the points this article stresses: involve operations and safety staff, plan containment actions per system in advance, and prefer manual or degraded operation over abrupt shutdown where it is safe.
 

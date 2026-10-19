@@ -166,7 +166,7 @@ These are the IDS rules, in plain words.
 | `modbus_unauth_write` | 10 Modbus writes within 30 s from a host other than `hwio` or FUXA | high | a host that should never write is writing |
 | `modbus_diagnostic` | any Modbus diagnostic (0x08) or device-identification (0x2B) request | medium | someone is fingerprinting the PLC |
 | `s7_enumeration` | any S7comm data to port 102 or 1102 | medium | someone is talking Siemens S7 to the plant |
-| `http_brute_force` | 5 login attempts to a web interface (8080 or 1881) within 30 s | high | password guessing |
+| `http_brute_force` | 5 POSTs mentioning `login` or `auth` to port 8080 or 1881 within 30 s (OpenPLC's login, not FUXA's `/api/signin`) | high | password guessing |
 | `arp_spoof` | one IP address shows up with more than one hardware (MAC) address | critical | a man-in-the-middle is redirecting traffic |
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low | an unexpected client is browsing the OPC-UA server |
 

@@ -52,7 +52,7 @@
         "T0831 Manipulation of Control"
       ],
       "answer": 0,
-      "explanation": "You only listened, so it is Network Sniffing. Remote System Discovery means finding hosts, for example with a scan, which you did before. Modify Parameter would be the next step, when you actually write a value to the register."
+      "explanation": "You only listened, so it is Network Sniffing. Remote System Discovery means finding hosts, for example with a scan, which you did before. Modify Parameter means changing a setting of the controller, such as a set point; you have not written anything yet."
     },
     {
       "type": "multi",
@@ -124,7 +124,7 @@
         {
           "text": "Write a low value to register 1126 over and over, so the PLC believes the HPT is nearly empty.",
           "label": "Impair Process Control",
-          "explain": "Only now do you know which register to attack. Changing a value the controller relies on is Impair Process Control (T0836 Modify Parameter, T0806 Brute Force I/O); it is also what the modbus_flood rule catches."
+          "explain": "Only now do you know which register to attack. Overwriting a value the controller relies on, again and again, is Impair Process Control (T0806 Brute Force I/O, sent as T1692.001 Unauthorized Message: Command Message); it is also what the modbus_flood rule catches."
         },
         {
           "text": "The compressor keeps pumping although the real HPT pressure is already above its normal range.",

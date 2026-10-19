@@ -165,5 +165,8 @@ The file name is assigned at upload, so re-uploading an unchanged copy of the sh
 ## Before you start
 
 - [PLCs and the scan cycle](/theory/plc-fundamentals) for how the controller runs its program.
+
+Later on the path:
+
 - [The gas pressure process](/theory/physical_process) for what the program controls.
 - [Stuxnet (2010)](/theory/stuxnet) for the real-world version of this attack.

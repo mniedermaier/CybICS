@@ -29,6 +29,10 @@ You can watch those values live here:
 
 <div data-widget="plant-live" data-fields="gst,hpt,compressor,systemValve,gstSig,boSen"></div>
 
+Now use what you see. From the compressor and the system valve alone you can tell where the pressure is heading:
+
+<div data-widget="plant-predict"></div>
+
 The compressor has an exchange rate, and it matters. Each tick it takes two bar out of the GST and adds one to the HPT, and only while the GST still holds at least 50.
 
 <figure class="wide">

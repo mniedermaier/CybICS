@@ -65,7 +65,7 @@ Each challenge has its own flag, shown once you are logged in with the right acc
 
 ## Detect and defend
 
-Guessing is noisy: it produces many failed logins from one source in a short time. The CybICS IDS has an `http_brute_force` rule that counts POST requests to port 8080 or 1881 whose first bytes mention `login` or `auth`. Five within thirty seconds from one source raise a high-severity alert. Web servers usually log failed logins too, which gives a second place to look.
+Guessing is noisy: it produces many failed logins from one source in a short time. The CybICS IDS has an `http_brute_force` rule that counts POST requests to port 8080 or 1881 whose first bytes mention `login` or `auth`. Five within thirty seconds from one source raise a high-severity alert. OpenPLC's login form matches; FUXA's `/api/signin` contains neither word, so guessing at FUXA raises no alert from this rule. Web servers usually log failed logins too, which gives a second place to look.
 
 Defences, roughly from most to least important:
 
@@ -78,5 +78,8 @@ Defences, roughly from most to least important:
 ## Before you start
 
 - [HMI and SCADA](/theory/hmi-scada) for what FUXA is and why its login matters.
+
+Later on the path:
+
 - [The ICS attack lifecycle](/theory/attack-lifecycle) for where initial access fits.
 - [Ukraine power grid (2015, 2016, 2022)](/theory/ukraine-grid) for what attackers did with stolen operator logins.

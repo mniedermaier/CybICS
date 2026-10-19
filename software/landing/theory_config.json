@@ -23,23 +23,6 @@
           "core": true
         },
         {
-          "id": "physical_process",
-          "title": "The gas pressure process",
-          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blowout.",
-          "content": "training/theory/modules/physical_process.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "physical_process",
-              "label": "Understanding the Physical Process"
-            }
-          ],
-          "prerequisites": [
-            "ics-basics"
-          ],
-          "core": true
-        },
-        {
           "id": "networking",
           "title": "Network basics",
           "summary": "IP addresses, subnets, ports, packets and the TCP handshake, shown on the CybICS lab network and its Docker containers.",
@@ -152,6 +135,23 @@
           "prerequisites": [
             "plc-fundamentals"
           ]
+        },
+        {
+          "id": "physical_process",
+          "title": "The gas pressure process",
+          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blowout.",
+          "content": "training/theory/modules/physical_process.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "physical_process",
+              "label": "Understanding the Physical Process"
+            }
+          ],
+          "prerequisites": [
+            "hmi-scada"
+          ],
+          "core": true
         }
       ]
     },

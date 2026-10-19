@@ -60,7 +60,7 @@ Try it: compare an eight-character password of random letters with a passphrase 
 
 A changed password stops the easy guess. These measures stop the rest:
 
-- **Monitor logins.** The CybICS IDS rule `http_brute_force` watches login requests to ports 8080 and 1881 and alerts when one source sends five within 30 seconds. A burst of failed logins is a clear signal.
+- **Monitor logins.** The CybICS IDS rule `http_brute_force` counts POST requests to ports 8080 and 1881 that mention `login` or `auth`, and alerts when one source sends five within 30 seconds. OpenPLC's login matches; FUXA's sign-in (`/api/signin`) does not, so guessing at FUXA stays invisible to this rule. A signature that misses one login form is a reason to also read the web server's own log of failed logins.
 - **Slow guessing down.** Rate limits or short delays after failed attempts make wordlist attacks impractical. Full account lockout is used carefully in OT, because it can lock out an operator during an emergency.
 - **Remove what you do not need.** Delete unused accounts and give each person their own login, so actions can be traced back.
 - **Limit who can reach the login.** A web interface that only the engineering network can reach cannot be guessed at from elsewhere; see [Host firewalling](/theory/defense_firewall).

@@ -76,8 +76,9 @@ Every module article uses the same section headings, in this order:
 5. `## How to approach it`: the mental model and the tools, as steps, without
    the solution.
 6. `## Detect and defend`: how a defender notices it and what stops it.
-7. `## Before you start`: links to the foundation articles to read first, as
-   `[Modbus TCP](/theory/modbus)`.
+7. `## Before you start`: links to the articles to read first, as
+   `[Modbus TCP](/theory/modbus)`. They must come earlier on the path; links
+   to lessons that come later go after a line `Later on the path:`.
 
 Aim for 500 to 900 words of prose. That is roughly five minutes.
 
@@ -176,6 +177,7 @@ reached.
 | Alert log | `<div data-widget="alert-log"></div>` | A made-up morning of CybICS IDS alerts to filter and count, with four triage questions. Not the data of the IDS Forensics challenge. |
 | OPC-UA security | `<div data-widget="opcua-security"></div>` | Choose the channel policy and the identity; shows what the CybICS server accepts, the role, what a listener sees and what the IDS reports. |
 | Sequence | `<div data-widget="sequence" data-id="attack"></div>` | Put the steps of a story in order and label each one (an ATT&CK tactic, an incident-response phase). The steps come from `exercises` in the sidecar. |
+| Plant prediction | `<div data-widget="plant-predict"></div>` | The reader predicts from the live compressor and valve state whether the HPT will rise, fall or stay over 20 seconds, then the live plant answers. Read-only; needs the stack. |
 | Rate planner | `<div data-widget="rate-planner"></div>` | Plan a number of Modbus writes and their spacing against the two write rules of the IDS over a two-minute window, with imprecise timing and a stray scan as options. |
 | UART frame | `<div data-widget="uart-frame"></div>` | One character as start bit, eight data bits (lowest first) and stop bit, and what a receiver at the wrong baud rate reads instead. |
 | Checkpoint | `<div data-widget="checkpoint" data-id="frame"></div>` | One question in the middle of the text, taken from `checkpoints` in the sidecar. |

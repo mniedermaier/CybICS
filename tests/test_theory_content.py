@@ -22,7 +22,7 @@ WIDGETS = {
     "plant-live", "modbus-frame", "s7-layers", "register-decoder",
     "purdue-explorer", "scan-cycle", "ids-threshold", "firewall-rules",
     "arp-spoof", "keyspace", "alert-log", "opcua-security", "sequence",
-    "rate-planner", "uart-frame",
+    "rate-planner", "uart-frame", "plant-predict",
     "checkpoint",
 }
 LEVELS = {"beginner", "intermediate", "advanced"}
@@ -377,6 +377,9 @@ def test_rate_planner_uses_the_ids_thresholds():
     assert int(windows["modbus_unauth_write"]) == real["MODBUS_WRITE_WINDOW"]
     assert int(planned["modbus_flood"]) == real["MODBUS_FLOOD_THRESHOLD"]
     assert int(windows["modbus_flood"]) == real["MODBUS_FLOOD_WINDOW"]
+    # Both rate widgets keep a rule quiet for the IDS cooldown after it fires.
+    assert f"const COOLDOWN = {real['ALERT_COOLDOWN']};" in js
+    assert f"x - last >= {real['ALERT_COOLDOWN']}" in js
 
 
 @pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
@@ -479,3 +482,46 @@ def test_ids_rule_tables_match_rules_py(topic):
         for word in ("low", "medium", "high", "critical"):
             if word in row[1:]:
                 assert word == severity[name], f"{topic['id']}: {name} is {severity[name]}, the table says {word}"
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_before_you_start_points_back(topic):
+    """What a lesson tells the reader to read first comes earlier on the path."""
+    section = re.search(r"^## Before you start\n(.*?)(?=^## |\Z)", article(topic), re.S | re.M)
+    if not section:
+        return
+    here = TOPIC_IDS.index(topic["id"])
+    first = section.group(1).split("Later on the path:", 1)[0]
+    for target in re.findall(r"\]\(/theory/([^)#\s]+)", first):
+        assert TOPIC_IDS.index(target) < here, f"{topic['id']} asks to read {target} first, which comes later"
+
+
+def test_fuxa_password_guessing_is_not_claimed_as_detected():
+    """http_brute_force only counts requests that mention login or auth, and
+    FUXA's /api/signin mentions neither. Claims about the rule must say so."""
+    with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
+        rules = f.read()
+    keywords = re.findall(r'b"(\w+)" not in payload_lower', rules)
+    assert keywords and not any(k in "/api/signin" for k in keywords), "the rule now matches FUXA; update this test and the lessons"
+    for topic in TOPICS:
+        for row in table_rows(article(topic)):
+            text = " ".join(row)
+            if "http_brute_force" in text and ("1881" in text or "FUXA" in text):
+                assert "signin" in text, f"{topic['id']}: {text}"
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        fuxa = re.search(r"\{ id: 'fuxa',.*?ids: '((?:[^'\\]|\\.)*)' \}", f.read(), re.S).group(1)
+    assert "brute" not in fuxa or "no alert" in fuxa, fuxa
+
+
+MAX_MINUTES = 8
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_lesson_reads_in_eight_minutes(topic):
+    """The main text, as the page renders and times it, stays within the
+    limit in AUTHORING.md; deep dives are optional and do not count."""
+    import sys
+    sys.path.insert(0, LANDING)
+    from modules.theory_manager import TheoryManager
+    rendered = TheoryManager._render_article(None, os.path.join(ROOT, topic["content"]))
+    assert rendered["minutes"] <= MAX_MINUTES, f"{topic['id']}: {rendered['minutes']} min of main text"

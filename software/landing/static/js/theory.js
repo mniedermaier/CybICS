@@ -151,9 +151,18 @@
         const result = document.getElementById('quiz-result');
         // The page has no answers: the board grades the attempt, records it
         // and only then sends back the right answers and the explanations.
+        let warned = false;
+        holder.addEventListener('change', function () { warned = false; });
         check.addEventListener('click', function () {
             const unanswered = boxes.filter(b => !b.querySelector('input:checked')).length;
-            if (unanswered && !confirm(`${unanswered} question(s) have no answer yet. Check anyway?`)) return;
+            if (unanswered && !warned) {
+                // Ask once, in the page; a second press checks anyway.
+                warned = true;
+                result.className = 'quiz-result bad';
+                result.textContent = `${unanswered} question${unanswered > 1 ? 's have' : ' has'} no answer yet. Press “Check my answers” again to check anyway.`;
+                return;
+            }
+            warned = false;
             const answers = boxes.map(selected);
             check.disabled = true;
             fetch(`/theory/api/progress/${encodeURIComponent(DATA.topic)}`, {
@@ -253,11 +262,16 @@
             }
         });
         let pop = null;
-        function close() { if (pop) { pop.owner.setAttribute('aria-expanded', 'false'); pop.remove(); pop = null; } }
+        function close(refocus) {
+            if (!pop) return;
+            const owner = pop.owner;
+            owner.setAttribute('aria-expanded', 'false'); pop.remove(); pop = null;
+            if (refocus) owner.focus();
+        }
         function open(button) {
             close();
             const entry = DATA.glossary.find(e => e.term === button.dataset.term);
-            pop = el('div', { class: 'term-pop', role: 'tooltip' },
+            pop = el('div', { class: 'term-pop', role: 'dialog', 'aria-label': entry.term, tabindex: '-1' },
                 `<strong>${escapeHtml(entry.term)}</strong>${inline(entry.definition)}` +
                 (entry.link ? `<br><a href="${escapeHtml(entry.link)}">Read more &rarr;</a>` : ''));
             pop.owner = button;
@@ -267,6 +281,7 @@
             pop.style.left = Math.max(8, left) + 'px';
             pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
             button.setAttribute('aria-expanded', 'true');
+            pop.focus();
         }
         article.addEventListener('click', function (e) {
             const button = e.target.closest('.term');
@@ -275,7 +290,8 @@
             if (pop && pop.owner === button) close(); else open(button);
         });
         document.addEventListener('click', e => { if (pop && !pop.contains(e.target)) close(); });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') close(true); });
+        document.addEventListener('focusin', e => { if (pop && !pop.contains(e.target) && e.target !== pop.owner) close(); });
     }
 
     // ---- Figures that are wider than the screen say so ----

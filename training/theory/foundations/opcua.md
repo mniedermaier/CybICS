@@ -1,32 +1,32 @@
 # OPC-UA
 
-**OPC Unified Architecture (OPC-UA)** is the modern, vendor-neutral standard for exchanging industrial data. Unlike [Modbus](/theory/modbus) and classic [S7comm](/theory/s7comm), it was designed with security built in: logins, certificates, signing and encryption. It is the one protocol on the CybICS plant that *can* be secured, and this article shows why "can" is not the same as "is".
+**OPC Unified Architecture (OPC-UA)** is the modern, vendor-neutral standard for exchanging industrial data. Unlike [Modbus](/theory/modbus) and classic [S7comm](/theory/s7comm), it has security built in: logins, certificates, signing and encryption. It is the one CybICS protocol that *can* be secured, and "can" is not the same as "is".
 
 ## Two separate questions
 
-When a client connects to an OPC-UA server, two different things are decided. It helps to keep them apart from the start:
+When a client connects to an OPC-UA server, two different things are decided:
 
-1. **Is the line protected?** This is the **security policy** of the *secure channel*, the connection between client and server. With policy `None` everything travels in readable form. With a policy like `Basic256Sha256` and the mode *SignAndEncrypt*, every message is **signed** (the receiver can tell whether it was changed) and **encrypted** (an eavesdropper sees only scrambled bytes).
-2. **Who are you?** This is the **user identity token** the client presents. It can be *Anonymous* (no identity at all), a *username and password*, or an *X.509 certificate*, a digital ID card backed by a secret key that only its owner holds.
+1. **Is the line protected?** This is the **security policy** of the *secure channel* between client and server. With policy `None` everything travels in readable form. With `Basic256Sha256` and the mode *SignAndEncrypt*, every message is **signed** (changes are detected) and **encrypted** (an eavesdropper sees only scrambled bytes).
+2. **Who are you?** This is the **user identity token** the client presents: *Anonymous* (no identity), a *username and password*, or an *X.509 certificate*, a digital ID card backed by a secret key only its owner holds.
 
 <div class="callout analogy" markdown="1">
-**Analogy:** the security policy is the envelope: open postcard or sealed, tamper-evident letter. The identity token is the ID card you show at the door. A sealed envelope tells you nothing about who wrote the letter, and showing an ID card does not stop anyone from reading your postcard.
+**Analogy:** the security policy is the envelope: open postcard or sealed, tamper-evident letter. The identity token is the ID card you show at the door. A sealed envelope says nothing about who wrote the letter, and an ID card does not stop anyone reading your postcard.
 </div>
 
-The two are independent. You can have an encrypted channel carrying an anonymous user, or an unencrypted channel carrying an administrator's certificate. So "we use OPC-UA with encryption" answers only the first question.
+The two are independent: an encrypted channel can carry an anonymous user. So "we use OPC-UA with encryption" answers only the first question.
 
-The CybICS server (`software/opcua/opcua.py`, port **4840**) offers:
+The CybICS server (port **4840**) offers:
 
 | Question | What the server offers |
 |---|---|
 | Security policy | `None`, and `Basic256Sha256` with SignAndEncrypt |
 | Identity token | Anonymous, Username and password, Certificate |
 
-Offering a token type is not the same as accepting every client who uses it. Which identities are actually let in is decided by the server's user manager (`software/opcua/user_manager.py`), as the next section shows.
+Offering a token type is not the same as accepting every client who uses it. The server's *user manager* decides which identities are let in.
 
 ## The handshake
 
-A client does not simply connect and read. It opens the secure channel, creates a **session**, and then *activates* that session with its identity. Only that last step asks who you are.
+A client opens the secure channel, creates a **session**, and then *activates* that session with its identity. Only that last step asks who you are.
 
 <figure class="wide">
 <style>
@@ -114,12 +114,12 @@ A client does not simply connect and read. It opens the secure channel, creates 
     </g>
   </g>
 </svg>
-<figcaption>The first three steps run the same for every client, even one that is refused a moment later. Identity is checked only at step 4, ActivateSession. Channel security and identity are separate decisions, and the identity decision comes last.</figcaption>
+<figcaption>The first three steps run the same for every client, even one refused a moment later. Identity is checked only at step 4, ActivateSession.</figcaption>
 </figure>
 
 ## Roles: what each identity may do
 
-Once a session is active, every request is checked against the user's **role**. CybICS uses the library's standard rule set (`SimpleRoleRuleset`), which has three levels:
+Once a session is active, every request is checked against the user's **role**:
 
 | Identity | Result on CybICS | Role | May read | May write |
 |---|---|---|---|---|
@@ -127,13 +127,20 @@ Once a session is active, every request is checked against the user's **role**. 
 | Username `user1` with the right password | accepted | User | yes | no |
 | The registered admin certificate | accepted | Admin | yes | yes |
 
-The anonymous case deserves a closer look. The server *advertises* the Anonymous token, so a client may offer it, and the first three steps succeed. Then the user manager finds no username and no certificate, returns no user, and `ActivateSession` fails with `BadUserAccessDenied`. An anonymous client gets no read-only view; it gets nothing.
+The server *advertises* the Anonymous token, so the first three steps succeed, but then the user manager finds no user and `ActivateSession` fails with `BadUserAccessDenied`. An anonymous client gets nothing, not even a read-only view.
 
-No username and password reaches the Admin role: the admin password list in `user_manager.py` is empty. The only way to Admin is a certificate that the server registered as an administrator when it started. A certificate is only as safe as its private key, so the key file must never leave the machine that owns it.
+No username and password reaches Admin: the admin password list is empty. The only way in is the certificate the server registered as administrator at start-up. A certificate is only as safe as its private key, so the key must never leave its owner's machine.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: where this lives in the code</summary>
+
+The server is `software/opcua/opcua.py`. Which identities are let in is decided by `software/opcua/user_manager.py`, whose admin password list is empty. The roles come from the library's standard rule set, `SimpleRoleRuleset`, which has three levels.
+
+</details>
 
 <div data-widget="checkpoint" data-id="roles"></div>
 
-Try the combinations yourself. Keep the two questions apart: the channel decides what a listener gets, the identity decides what the server lets you do.
+Try the combinations yourself: the channel decides what a listener gets, the identity decides what the server lets you do.
 
 <div data-widget="opcua-security"></div>
 
@@ -141,12 +148,16 @@ Try the combinations yourself. Keep the two questions apart: the channel decides
 
 OPC-UA organises data as **nodes** in a tree, the **address space**, much like files in folders. The CybICS server has one folder, `CybICS Variables`, with these nodes:
 
-- `GST` and `HPT`: the two tank pressures. Every two seconds the server reads holding registers 1124 and 1126 from OpenPLC over Modbus and copies them into these nodes. Reading `HPT` over OPC-UA is reading Modbus register 1126 through a gateway that adds logins in front.
-- `systemSen`, `boSen`, `STOP` and `manual`: more plant values copied the same way.
+- `GST`, `HPT` and more plant values, copied every two seconds from OpenPLC over Modbus. The server is a gateway that puts logins in front of Modbus.
 - `userFLAG`: readable by any User session.
-- A trigger variable named `Set > 0 to obtain flag!`, and `adminFLAG`, which only changes after that trigger has been written.
+- A trigger variable, and `adminFLAG`, which only changes after that trigger has been written.
 
-The admin part of the challenge is therefore a *write*, and only an Admin may write:
+The admin part of the challenge is therefore a *write*, and only an Admin may write.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the nodes and the server loop</summary>
+
+`GST` and `HPT` are holding registers 1124 and 1126 on OpenPLC, so reading `HPT` over OPC-UA is reading Modbus register 1126 through the gateway. `systemSen`, `boSen`, `STOP` and `manual` are copied the same way. The trigger variable is named `Set > 0 to obtain flag!`.
 
 <figure class="wide">
 <style>
@@ -211,9 +222,11 @@ The admin part of the challenge is therefore a *write*, and only an Admin may wr
 <figcaption>Two writes to the same trigger variable: a User session is refused, an Admin session is accepted. The flag text does not change at once. The server's own loop checks the trigger every two seconds and only then fills in <code>adminFLAG</code>, so read it again after a moment. With motion switched off, the figure shows the moment after the accepted write.</figcaption>
 </figure>
 
+</details>
+
 ## What an unencrypted channel leaks
 
-You might expect a `None` channel to hand an eavesdropper everything, passwords included. On this server it does not, and the reason teaches you something about OPC-UA.
+You might expect a `None` channel to hand an eavesdropper everything, passwords included. On this server it does not.
 
 <figure class="wide">
 <style>
@@ -273,13 +286,27 @@ You might expect a `None` channel to hand an eavesdropper everything, passwords 
 <figcaption>The four fields of a username token on an unencrypted channel. The token type, the user name and the algorithm are readable; the password is encrypted with the server's public key because this endpoint's token policy asks for it. A server whose token policy is also <code>None</code> would send the password in readable form.</figcaption>
 </figure>
 
-Each endpoint can attach its own security policy to the identity token, separate from the channel. On the CybICS `None` endpoint the username token asks for `Basic256Sha256`, so a well-behaved client encrypts the password with the server's public key before sending it. The user name, however, travels in readable form. On the encrypted endpoint the channel already protects everything, so the token needs no extra policy.
+The identity token can carry its own security policy, separate from the channel. On the CybICS `None` endpoint the username token asks for `Basic256Sha256`, so the client encrypts the password with the server's public key. The user name still travels in readable form.
 
-That is still a gap: a captured user name is half of a credential, and a server configured differently would put the password in readable form too. It also explains why the *OPC-UA* challenge guesses passwords against the live server instead of cracking a captured one. Every guess is a round trip the network can see.
+That is still a gap: a captured user name is half of a credential, and a server configured differently would send the password readably too. It is also why the *OPC-UA* challenge guesses passwords against the live server: every guess is a round trip the network can see.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: token policies per endpoint</summary>
+
+Each endpoint attaches its own security policy to the identity token. On the encrypted endpoint the channel already protects everything, so the token needs no extra policy.
+
+</details>
 
 ## Detect and defend
 
-The CybICS IDS watches OPC-UA with one simple rule. **Rule 9** (`opcua_access`) raises a low-severity alert when a host other than `hwio`, `fuxa`, `openplc` or `opcua` itself sends traffic to port 4840. It does not try to tell a login from a read, or a good certificate from a bad one. It only asks: is this host supposed to speak OPC-UA at all? Like the other rules it reports each source at most once every 30 seconds, so a long password-guessing run shows up as a slow trickle of alerts.
+The CybICS IDS watches OPC-UA with one simple rule. **Rule 9** (`opcua_access`) raises a low-severity alert when a host other than `hwio`, `fuxa`, `openplc` or `opcua` itself sends traffic to port 4840. It does not tell a login from a read; it only asks whether this host should speak OPC-UA at all.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: how often the rule fires</summary>
+
+Like the other rules, Rule 9 reports each source at most once every 30 seconds, so a long password-guessing run shows up as a slow trickle of alerts rather than one alert per guess.
+
+</details>
 
 To defend a real OPC-UA server:
 
