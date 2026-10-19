@@ -202,6 +202,13 @@ That cycle of **sensor, controller, actuator, process, sensor again** is the **c
 
 ## When someone takes over
 
+Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over: with the system valve shut and the compressor forced on, gas has nowhere to go. The blow-out valve opens at a high pressure, but it vents more slowly than a compressor that is forced on fills the tank.
+
+No network attack is needed. Each step is allowed; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) has you do it from the operator's own screen.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the overpressure run in numbers</summary>
+
 <figure class="wide">
 <style>
 .plt {--t: 20s; --on:#ff6b00; --on-ink:#1a1a1a;}
@@ -342,13 +349,6 @@ That cycle of **sensor, controller, actuator, process, sensor again** is the **c
 <figcaption>OpenPLC holds the HPT between 60 and 90. Then an operator shuts the system valve and holds the compressor on: the tank climbs past 220 to 255. Once the compressor is off, the blow-out valve vents it to 200, where it stays.</figcaption>
 </figure>
 
-Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over: with the system valve shut and the compressor on, gas has nowhere to go. The blow-out valve opens above 220 but vents more slowly than the compressor fills.
-
-No network attack is needed. Each step is allowed; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) has you do it from the operator's own screen.
-
-<details class="deep-dive" markdown="1">
-<summary>Deep dive: why the damage does not undo itself</summary>
-
 In the figure the storage tank is also being refilled, so the compressor never runs dry; the frame shown with reduced motion is the end state.
 
 Each pressure is stored as a whole number from 0 to 255, so it fits in a single byte. The plant model lives in two files that must agree: `thread_physical` in `software/stm32/src/main.c` (the reference, running on the real board) and `physical_process_thread` in `software/hwio-virtual/hardwareAbstraction.py` (its mirror in Docker). In each tick:
@@ -366,8 +366,6 @@ On the physical CybICS board, Level 0 is not a container at all. The STM32 micro
 ## Why ICS security is different
 
 Most industrial protocols, such as [Modbus](/theory/modbus) and [S7comm](/theory/s7comm), have **no authentication and no encryption**. They were designed for a cable inside a locked cabinet. The cable became a network, but the protocols stayed the same: anyone who reaches a controller can usually read and write its values.
-
-[OPC-UA](/theory/opcua-protocol) is the exception: it has users, passwords and certificates. The CybICS server lists an `Anonymous` login, but it refuses every anonymous session.
 
 <div class="callout cybics" markdown="1">
 **In CybICS:** every attack in the later modules ends in a physical effect: a frozen reading, a forced valve, an overfilled tank. The gas plant is what you are protecting.

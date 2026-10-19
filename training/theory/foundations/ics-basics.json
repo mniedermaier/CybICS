@@ -10,8 +10,8 @@
     "An ICS acts on the physical world, so a wrong value can open a valve or burst a tank, not just corrupt a file.",
     "OT ranks availability above integrity and confidentiality, and safety above all three.",
     "The Purdue model stacks the network from enterprise IT (Level 4/5) down to the physical process (Level 0); the key wall belongs between the office and everything below it.",
-    "In CybICS, OpenPLC starts the compressor when the HPT pressure drops below 60 and stops it at 90; the blow-out valve opens above 220.",
-    "Modbus and S7comm have no authentication; OPC-UA does, and the CybICS server refuses anonymous sessions even though it lists the option."
+    "In CybICS, OpenPLC starts the compressor when the HPT pressure drops below 60 and stops it at 90; the blow-out valve opens at a high pressure but cannot keep up with a compressor that is forced on.",
+    "Modbus and S7comm have no authentication or encryption: anyone who reaches a controller can usually read and write its values."
   ],
   "checkpoints": [
     {
@@ -56,7 +56,7 @@
         "It closes the system valve"
       ],
       "answer": 2,
-      "explanation": "The compressor starts below 60 and runs until 90. 'Nothing' is tempting because 55 is inside the 50 to 100 band, but that band only governs the system valve, which stays open; the compressor has its own 60/90 thresholds. The blow-out valve only opens above 220."
+      "explanation": "The compressor starts below 60 and runs until 90. 'Nothing' is tempting because 55 is inside the 50 to 100 band, but that band only governs the system valve, which stays open; the compressor has its own 60/90 thresholds. The blow-out valve only opens at a pressure far above the healthy band."
     },
     {
       "type": "multi",
@@ -81,18 +81,6 @@
       ],
       "answer": 1,
       "explanation": "Modbus simply has no login and no encryption to switch on; it trusted the locked cabinet around the cable. A default password sounds plausible from IT, but there is no password to change, which is exactly what makes Modbus dangerous on a network."
-    },
-    {
-      "type": "single",
-      "question": "The CybICS OPC-UA server lists 'Anonymous' among its login options. Can you open a session without any credentials?",
-      "options": [
-        "Yes, any login option a server lists is one it accepts",
-        "No, its user manager refuses sessions with no user or certificate",
-        "Yes, as long as you also pick the NoSecurity policy",
-        "No, the OPC-UA standard has no anonymous login"
-      ],
-      "answer": 1,
-      "explanation": "Advertising an option is not accepting it: the user manager returns no user for a session without a username or certificate, so it is refused. The standard does define anonymous login, which is why 'the standard has none' is wrong, and the security policy does not change the user check."
     }
   ]
 }

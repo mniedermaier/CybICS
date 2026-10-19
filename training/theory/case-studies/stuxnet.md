@@ -1,14 +1,19 @@
 # Stuxnet (2010)
 
-Stuxnet was the first widely known piece of malware built to damage physical machines. It changed the program inside industrial controllers so that uranium centrifuges spun at harmful speeds, and while it did so it showed the operators readings that looked perfectly normal. Almost every idea in it can be tried, in small, on the CybICS gas plant.
+Stuxnet was the first widely known malware built to damage physical machines. It changed the program inside industrial controllers so that uranium centrifuges spun at harmful speeds, while the operators saw readings that looked perfectly normal. Almost every idea in it can be tried, in small, on the CybICS gas plant.
 
 ## What happened
 
-Stuxnet was found in June 2010 by VirusBlokAda, a small antivirus company in Belarus, after a customer's Windows computers kept rebooting. Over the following months researchers at Symantec, at the German firm Langner Communications and elsewhere took it apart. Symantec's "W32.Stuxnet Dossier" (final version February 2011) and Ralph Langner's analysis are still the main public sources.
+Stuxnet was found in June 2010 by VirusBlokAda, a small antivirus company in Belarus, after a customer's Windows computers kept rebooting. Researchers at Symantec, Langner Communications and elsewhere then took it apart.
 
-What they found was unusual. The Windows part of the worm was only a carrier. The real payload was code for Siemens Step 7, the software engineers use to program Siemens S7 Programmable Logic Controllers (PLCs). It only became active on a very specific setup: S7-300 controllers driving frequency converters (the electronics that set how fast a motor spins) from two particular vendors, and S7-417 controllers in a matching cascade layout.
+The Windows part of the worm was only a carrier. The real payload was code for Siemens Step 7, the software engineers use to program Siemens S7 Programmable Logic Controllers (PLCs). It only became active on a very specific setup: S7 controllers driving frequency converters (the electronics that set how fast a motor spins) from two particular vendors.
 
-That setup matched the uranium enrichment plant at Natanz in Iran. Reports by the International Atomic Energy Agency (IAEA), analysed by the Institute for Science and International Security, show that Iran removed a large number of centrifuges at Natanz in late 2009 and early 2010. Most researchers link this to Stuxnet, although Iran never published its own account.
+That setup matched the uranium enrichment plant at Natanz in Iran. Reports by the International Atomic Energy Agency (IAEA) show that Iran removed a large number of centrifuges at Natanz in late 2009 and early 2010. Most researchers link this to Stuxnet, although Iran never published its own account.
+
+Nobody has officially claimed Stuxnet. Journalists, most prominently David Sanger in the New York Times in 2012, reported that it was a joint United States and Israeli operation. Treat that as well-sourced reporting, not as a confirmed fact.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the timeline and the sources</summary>
 
 <figure class="wide">
 <svg viewBox="0 0 560 150" role="img" aria-label="Timeline of Stuxnet. Around 2007: an early version that attacked valves is already in circulation. 2009: newer versions spread and attack centrifuge drives. Late 2009 to early 2010: Iran replaces many centrifuges at Natanz. June 2010: VirusBlokAda discovers the worm. February 2011: Symantec publishes the final version of its dossier.">
@@ -25,11 +30,13 @@ That setup matched the uranium enrichment plant at Natanz in Iran. Reports by th
 <figcaption>The attack ran for years before anyone noticed. The early valve-attacking version was described by Symantec in 2013 ("Stuxnet 0.5"); exact start dates are not public.</figcaption>
 </figure>
 
-Nobody has officially claimed Stuxnet. Journalists, most prominently David Sanger in the New York Times in 2012, reported that it was a joint United States and Israeli operation. Treat that as well-sourced reporting, not as a confirmed fact.
+Symantec's "W32.Stuxnet Dossier" (final version February 2011) and Ralph Langner's analysis are still the main public sources. The IAEA figures on the removed centrifuges were analysed by the Institute for Science and International Security.
+
+</details>
 
 ## How the attack worked
 
-Think of Stuxnet as a burglar who not only steals, but also replaces the security camera feed with a recording of an empty room. The MITRE ATT&CK for ICS knowledge base, a catalogue of attacker techniques against Industrial Control Systems (ICS), lists the steps.
+Think of Stuxnet as a burglar who also replaces the security camera feed with a recording of an empty room. The MITRE ATT&CK for ICS knowledge base, a catalogue of attacker techniques against Industrial Control Systems (ICS), lists the steps.
 
 | Step | What Stuxnet did | ATT&CK for ICS |
 |---|---|---|
@@ -41,14 +48,14 @@ Think of Stuxnet as a burglar who not only steals, but also replaces the securit
 | Changing the process | Ordered the drives to unusual speeds, far above and far below normal | T0836 Modify Parameter, T0831 Manipulation of Control |
 | Fooling the operators | Recorded normal sensor values and played them back to the monitoring systems | T0835 Manipulate I/O Image, T0832 Manipulation of View |
 
-The driver files were signed with certificates stolen from two Taiwanese hardware companies, so Windows trusted them. Stuxnet also used a hard-coded database password in Siemens' WinCC supervisory software.
-
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: the speed attack in numbers</summary>
+<summary>Deep dive: stolen certificates and the speed attack in numbers</summary>
+
+The driver files were signed with certificates stolen from two Taiwanese hardware companies, so Windows trusted them. Stuxnet also used a hard-coded database password in Siemens' WinCC supervisory software.
 
 According to Symantec, the drive attack waited for the motors to run between 807 Hz and 1210 Hz, then pushed them to 1410 Hz, back to 1064 Hz, later down to 2 Hz, and back again, with weeks of quiet in between. Running a centrifuge rotor through these speeds stresses it mechanically. The long pauses kept the failures looking like ordinary bad luck rather than an attack.
 
-The older S7-417 attack targeted the valves that protect a cascade of centrifuges, raising the pressure inside them. Langner describes this as the more aggressive of the two attacks.
+The targeted setup was S7-300 controllers driving the frequency converters, plus S7-417 controllers in a matching cascade layout. The older S7-417 attack targeted the valves that protect a cascade of centrifuges, raising the pressure inside them. Langner describes this as the more aggressive of the two attacks.
 
 </details>
 
@@ -58,32 +65,36 @@ Check that you can retell the attack, from the USB stick to the damaged centrifu
 
 ## Why it worked
 
-**The PLC trusted whoever programmed it.** An S7 controller of that time accepted new code from any Step 7 installation that could reach it. There was no check of who wrote the code or whether it had changed.
+**The PLC trusted whoever programmed it.** An S7 controller of that time accepted new code from any Step 7 installation that could reach it, with no check of who wrote it.
 
-**The engineers trusted their tools.** If the engineering software says the program is unchanged, people believe it. Stuxnet attacked exactly that tool.
+**The engineers trusted their tools.** If Step 7 says the program is unchanged, people believe it. Stuxnet attacked exactly that tool.
 
-**The operators trusted their screens.** Operators watch the process through a Human-Machine Interface (HMI). When the values on it are a recording, the operator sees a calm plant while the machines are being damaged.
+**The operators trusted their screens.** Operators watch the process through a Human-Machine Interface (HMI). When its values are a recording, they see a calm plant while the machines are damaged.
 
-**An air gap is not a wall.** The plant was isolated from the internet, but people carried data in on USB sticks. Isolation slowed the attack down; it did not stop it.
+**An air gap is not a wall.** The plant was isolated from the internet, but people carried data in on USB sticks. Isolation slowed the attack; it did not stop it.
 
 ## What it means for CybICS
 
-You can recreate the two halves of Stuxnet on the CybICS gas plant.
+You can recreate the two halves of Stuxnet on the CybICS gas plant. Read [PLCs and the scan cycle](/theory/plc-fundamentals) first.
 
-The first half is changing the PLC logic. The CybICS OpenPLC program decides when the compressor runs: it starts when the high-pressure tank (HPT) drops below 60 bar and stops at 90, but only while the gas storage tank (GST) holds more than 50. In the [PLC programming challenge](/ctf/challenge/plc_programming) you change that program and upload it through the OpenPLC web interface on port 8080 of `172.18.0.3`. The engineering workstation at `172.18.0.10` runs the OpenPLC Editor, just as Natanz's engineers ran Step 7. Read [PLCs and the scan cycle](/theory/plc-fundamentals) first.
+**Changing the PLC logic.** The CybICS OpenPLC program decides when the compressor runs, from the pressures in the high-pressure tank (HPT) and the gas storage tank (GST). In the [PLC programming challenge](/ctf/challenge/plc_programming) you change that program and upload it through the OpenPLC web interface on port 8080 of `172.18.0.3`. The engineering workstation at `172.18.0.10` plays the role of Natanz's Step 7 computers.
 
-The second half is lying to the operators. The FUXA HMI at `172.18.0.4` reads the plant values from the PLC over Modbus TCP, which has no authentication and no integrity check. In the [Flood & Overwrite challenge](/ctf/challenge/flood_overwrite) you overwrite the HPT pressure value in holding register 1126, so the PLC and the HMI work with a number that is not the real pressure. The [Man-in-the-Middle challenge](/ctf/challenge/mitm) goes one step further and lets you change the values on their way between the PLC and the HMI.
+**Lying to the operators.** The FUXA HMI at `172.18.0.4` reads the plant values from the PLC over Modbus TCP, which has no authentication and no integrity check. In the [Flood & Overwrite challenge](/ctf/challenge/flood_overwrite) you overwrite the HPT pressure value in holding register 1126. The [Man-in-the-Middle challenge](/ctf/challenge/mitm) lets you change the values on their way between the PLC and the HMI.
 
 <div class="callout cybics" markdown="1">
-**On the plant:** when you overwrite the HPT value, look at the FUXA screen and ask what an operator would conclude from it. Then ask which independent measurement could have told them the truth. That question is the whole lesson of Natanz.
+**On the plant:** when you overwrite the HPT value, look at the FUXA screen. What would an operator conclude, and which independent measurement could have told them the truth? That question is the lesson of Natanz.
 </div>
 
 <div data-widget="checkpoint" data-id="view"></div>
 
 ## Lessons for defenders
 
-- **Know what program your PLC is running.** Keep a known-good copy of every controller program and compare it regularly. A change nobody planned is an incident. See [Defence in depth](/theory/defense-hardening).
-- **Protect the engineering workstation.** It holds the keys to every controller. Limit who can use it, what can be plugged into it and which networks it reaches.
-- **Do not rely on one view of the process.** Independent measurements, such as a separate pressure gauge or a protection system that does not trust the PLC, catch what a hacked HMI hides.
 - **Control removable media.** Scan or block USB sticks; the air gap only helps if people do not bridge it.
-- **Watch for programming traffic.** Program uploads and downloads are rare in normal operation, so they are worth an alert. See [Detection and monitoring](/theory/detection-monitoring) and the [ICS attack lifecycle](/theory/attack-lifecycle).
+- **Protect the engineering workstation.** It holds the keys to every controller. Limit who uses it, what is plugged into it and which networks it reaches.
+- **Watch for programming traffic.** Program downloads to a PLC are rare in normal operation, so each one is worth an alert. See [Detection and monitoring](/theory/detection-monitoring) and the [ICS attack lifecycle](/theory/attack-lifecycle).
+- **Know what program your PLC is running.** Keep a known-good copy of every controller program and compare it regularly, with a tool you trust. A change nobody planned is an incident. See [Defence in depth](/theory/defense-hardening).
+- **Do not rely on one view of the process.** An independent measurement, such as a separate speed or pressure gauge that does not go through the PLC, shows what a fooled HMI hides.
+
+Each of these defences fits one moment of the attack; match them up.
+
+<div data-widget="sequence" data-id="defend"></div>

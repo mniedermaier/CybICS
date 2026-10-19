@@ -12,7 +12,10 @@ MITRE ATT&CK for ICS calls this *Network Sniffing* (T0842). It is completely pas
 
 ## How it looks on CybICS
 
-Two devices talk Modbus constantly. The `hwio` container (172.18.0.2), which simulates the physical plant, writes the sensor values into OpenPLC (172.18.0.3, port 502) many times a second, and reads back the actuator coils. FUXA, the HMI, polls OpenPLC for the values it displays.
+Several programs talk Modbus to OpenPLC (172.18.0.3, port 502) all the time. The busiest is the `hwio` container (172.18.0.2), which simulates the plant: it writes the sensor values many times a second and reads back the actuator coils. The others only read: the FUXA HMI, the OPC-UA server and, while you have a lesson with a live plant view open, this landing page.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: who talks to the PLC, and how often</summary>
 
 <figure class="wide">
 <svg viewBox="0 0 520 150" role="img" aria-label="The hwio container sends Modbus write requests to OpenPLC on port 502. A capture point on the network path copies every packet to Wireshark, which shows the function code, the start register and the register values in plain text.">
@@ -30,6 +33,13 @@ Two devices talk Modbus constantly. The `hwio` container (172.18.0.2), which sim
 <figcaption>Modbus requests carry the function code, the register address and the values in readable form. A capture point anywhere on the path sees all of it.</figcaption>
 </figure>
 
+- **hwio** (172.18.0.2) writes the pressures and sensor values about every 20 milliseconds and reads the coils that switch the compressor and the valves.
+- **FUXA** (172.18.0.4), the HMI, reads the values it displays once a second.
+- **The OPC-UA server** (172.18.0.5) reads six registers every two seconds and offers them to OPC-UA clients.
+- **The landing page** reads the plant registers once a second, but only while a lesson with a live plant widget is open. It runs on the host, so its packets come from 172.18.0.1, the host's address on the container network.
+
+</details>
+
 Here is what one of those writes looks like on the wire. Change the fields and watch the bytes change:
 
 <div data-widget="modbus-frame" data-fc="6" data-address="1126" data-value="75"></div>
@@ -46,11 +56,11 @@ Where you capture matters. A network switch forwards each packet only to its des
 
 ## How to approach it
 
-1. Start a capture from one of the positions above and let it run for 30 to 60 seconds. The plant writes constantly, so you will get plenty.
-2. Open the capture in Wireshark. You will see thousands of packets, most of them reads and writes between the same two hosts.
+1. Start a capture from one of the positions above and let it run for 30 to 60 seconds. The plant talks constantly, so you will get plenty.
+2. Open the capture in Wireshark. You will see thousands of packets, most of them between `hwio` and OpenPLC.
 3. Narrow it down with a display filter. `modbus` shows only Modbus; a filter on `modbus.func_code` shows one kind of request. Think about which function codes *write* data.
-4. Look for the odd one out: writes that go to unusual register addresses or carry values that do not look like pressures.
-5. Decode those values. Convert each register to two bytes and read the bytes as text.
+4. Learn what normal looks like: who talks to whom, how often, and which registers they use. Whatever you cannot explain deserves a closer look.
+5. Remember that a register is only a number until you know how to read it. The decoder above shows one way to read it.
 
 <div data-widget="checkpoint" data-id="filter"></div>
 

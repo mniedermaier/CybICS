@@ -24,6 +24,17 @@ Then it starts again. The CybICS PLC scans **every 50 milliseconds, twenty times
 
 <div data-widget="scan-cycle"></div>
 
+<div data-widget="checkpoint" data-id="scan"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: why a loop, where the 50 ms come from and when a write lands</summary>
+
+Why a loop instead of reacting to events? A machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
+
+The program sets its own rhythm in its configuration, `TASK TaskMain(INTERVAL := T#50ms, ...)` in `software/OpenPLC/cybICS.st`.
+
+Inside OpenPLC, every phase of the scan, and every Modbus request, takes the same lock (`bufferLock`) on the shared memory. A Modbus write therefore cannot land in the middle of the program; it waits for the gap between scans. That is why the figure below shows the attacker's write arriving between two scans.
+
 <figure class="wide">
 <style>
 /* The base state is the end of the story (phase 2 recomputing the coil), so a
@@ -100,17 +111,6 @@ Then it starts again. The CybICS PLC scans **every 50 milliseconds, twenty times
 <figcaption>One scan: read all inputs, run the program on that snapshot, write all outputs, repeat 50 ms later. The lamp is coil 1, the compressor: an attacker switches it off between two scans, and phase 2 switches it straight back on.</figcaption>
 </figure>
 
-<div data-widget="checkpoint" data-id="scan"></div>
-
-<details class="deep-dive" markdown="1">
-<summary>Deep dive: why a loop, where the 50 ms come from and when a write lands</summary>
-
-Why a loop instead of reacting to events? A machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
-
-The program sets its own rhythm in its configuration, `TASK TaskMain(INTERVAL := T#50ms, ...)` in `software/OpenPLC/cybICS.st`.
-
-Inside OpenPLC, every phase of the scan, and every Modbus request, takes the same lock (`bufferLock`) on the shared memory. A Modbus write therefore cannot land in the middle of the program; it waits for the gap between scans. That is why the figure above shows the attacker's write arriving between two scans.
-
 </details>
 
 ## The compressor rule
@@ -127,14 +127,14 @@ ELSE
 END_IF;
 ```
 
-In words: start the compressor when the high-pressure tank (HPT) drops below 60, keep it running until 90, and never run it when the gas storage tank (GST) holds 50 or less, because there is nothing left to pump. A later line copies `compressorState` to the real output, `compressor`.
+In words: start the compressor when the high-pressure tank (HPT) drops below 60, keep it running until 90, and never run it when the gas storage tank (GST) holds 50 or less, because there is nothing left to pump.
 
 Why two thresholds? With a single limit of 75, the compressor would flick on and off as the pressure wobbled around it. The gap between 60 and 90 is called **hysteresis**; your home thermostat uses the same trick.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the other rules and the two guards</summary>
 
-The program has three more rules:
+A later line copies `compressorState` to the real output, `compressor`. The program has three more rules:
 
 | Output | Rule in automatic mode |
 |---|---|

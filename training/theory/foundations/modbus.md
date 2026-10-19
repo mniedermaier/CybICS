@@ -1,12 +1,12 @@
 # Modbus TCP
 
-Modbus is the protocol the CybICS PLC speaks most, and the one you will meet most often in real plants. It is simple, open and trusts everyone: whoever reaches the PLC on port 502 can read and change its values.
+Modbus is the protocol the CybICS PLC speaks most, and the most common one in real plants. It trusts everyone: whoever reaches the PLC on port 502 can read and change its values.
 
 ## Why Modbus trusts everyone
 
 Modbus was designed in 1979 for a serial cable. Its network version, **Modbus TCP**, listens on TCP port **502**. A port is like a door number: the address finds the machine, the port finds the program.
 
-Modbus has no login, no encryption and no way to check who sent a message. In 1979 the cable sat in a locked cabinet, so touching it *was* the permission. The cable became Ethernet; the protocol stayed the same.
+Modbus has no login, no encryption and no check of who sent a message. In 1979 the cable sat in a locked cabinet, so touching it *was* the permission. The cable became Ethernet; the protocol stayed the same.
 
 <div class="callout warning" markdown="1">
 **No authentication:** Modbus notices a frame that was damaged in transit, but nothing notices a frame that someone *forged*.
@@ -22,10 +22,10 @@ Serial Modbus RTU carries its own checksum; Modbus TCP relies on the one in TCP.
 ## The data model
 
 <div class="callout analogy" markdown="1">
-**Analogy:** think of the PLC as a wall of numbered mailboxes. A Modbus client names a mailbox number and either looks inside or puts a new value in. Nobody at the wall checks ID.
+**Analogy:** think of the PLC as a wall of numbered mailboxes. A client names a mailbox and either looks inside or puts a new value in. Nobody at the wall checks ID.
 </div>
 
-Modbus has four tables of mailboxes. Two hold single bits (on or off), two hold 16-bit numbers (0 to 65535):
+Modbus has four tables: two of single bits (on or off), two of 16-bit numbers (0 to 65535):
 
 | Table | Holds | Access | Typical use |
 |---|---|---|---|
@@ -34,32 +34,30 @@ Modbus has four tables of mailboxes. Two hold single bits (on or off), two hold 
 | Holding registers | 16 bits | read and write | setpoints, counters |
 | Input registers | 16 bits | read only | sensor readings |
 
-In CybICS the plant's values live in **holding registers** and **coils**:
+CybICS keeps the plant's values in **holding registers** and **coils**:
 
 | Address | Table | Meaning |
 |---|---|---|
 | 1124 | holding register | GST: pressure in the gas storage tank |
 | 1126 | holding register | HPT: pressure in the high-pressure tank |
-| 1132 | holding register | system sensor |
-| 1134 | holding register | blow-out sensor |
 | 0 to 3 | coils | heartbeat, compressor, system valve, GST signal |
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: the two tank pressures, live</summary>
+<summary>Deep dive: more registers, and the tank pressures live</summary>
 
-These are the values in registers 1124 and 1126 right now, read from the PLC:
+Two more holding registers carry sensors: 1132 the system sensor and 1134 the blow-out sensor. These are the values in registers 1124 and 1126 right now, read from the PLC:
 
 <div data-widget="plant-live" data-fields="gst,hpt"></div>
 
 </details>
 
-The HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register. Anyone may write it, and the *Flood &amp; Overwrite* challenge uses exactly that.
+The HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register, so anyone may write it. The *Flood &amp; Overwrite* challenge does exactly that.
 
 <div data-widget="checkpoint" data-id="holding"></div>
 
 ## Request and response
 
-The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code** (what to do) and an address (where). There is no login, so the very first request can already be a write.
+The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code** (what to do) and an address (where).
 
 <figure class="wide">
 <style>
@@ -130,7 +128,7 @@ The **client** (older texts say "master") sends a request; the **server** (the P
 <figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes it back. Nothing asked who sent it.</figcaption>
 </figure>
 
-The forged value does not last, though. The `hwio` container, which simulates the plant, writes the real HPT pressure back into 1126 about fifty times a second. So the *Flood &amp; Overwrite* attack is a loop, not a single packet.
+The forged value does not last: the `hwio` container, which simulates the plant, writes the real HPT pressure back into 1126 about fifty times a second. So *Flood &amp; Overwrite* needs a loop, not one packet.
 
 ## The frame
 
@@ -140,7 +138,7 @@ Every Modbus TCP message starts with a 7-byte **MBAP header** (Modbus Applicatio
 **New to hex?** A **byte** is 8 bits and holds a number from 0 to 255. Network tools write bytes in **hexadecimal** (base 16): the digits 0 to 9, then A to F for 10 to 15. Every byte is two hex digits: `0a` is 10, `5a` is 5 &times; 16 + 10 = 90, `ff` is 255. A 16-bit register takes two bytes, high byte first: 1126 is `04 66`.
 </div>
 
-Only three fields have to be right: the **length** (how many bytes follow), the **function code** and the **data** (address and value). The transaction, protocol and unit fields can hold almost anything.
+Only three fields have to be right: the **length** (how many bytes follow), the **function code** and the **data** (address and value). The rest can hold almost anything.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: every field of the frame</summary>
@@ -184,7 +182,7 @@ Only three fields have to be right: the **length** (how many bytes follow), the 
 
 </details>
 
-Try it. The builder starts with the write from the figure. Change a field and watch the bytes, or paste bytes to decode them.
+Try it: change a field and watch the bytes, or paste bytes to decode.
 
 <div data-widget="modbus-frame" data-fc="6" data-address="1126" data-value="90"></div>
 
@@ -192,7 +190,7 @@ Try it. The builder starts with the write from the figure. Change a field and wa
 
 ## Function codes
 
-The function code picks the table and the direction. These are the everyday ones:
+The function code picks the table and the direction:
 
 | Code | Meaning |
 |---|---|
@@ -223,7 +221,7 @@ Modbus only knows numbers, but a 16-bit register can carry two text characters: 
 
 ## What the IDS can see
 
-Modbus carries no identity, so a forged write and a real one are the same bytes. The IDS can only judge traffic to port 502 by the sender's IP address, by *how often* it writes and by *which* function code it uses.
+A forged write and a real one are the same bytes, so the IDS can only judge traffic to port 502 by the sender's IP address, how *often* it writes and *which* function code it uses.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the three Modbus rules</summary>
@@ -274,7 +272,7 @@ Compare the same write sent by `hwio` and by the attack machine:
 
 </details>
 
-Writing slowly stays below the write rules (the *IDS Evasion* challenge), and an IP address is easy to fake. The real defence is to keep untrusted hosts away from port 502, as [Defence in depth](/theory/defense-hardening) shows. Next, compare [S7comm](/theory/s7comm), and [OPC-UA](/theory/opcua-protocol), which adds the login Modbus lacks.
+Slow writes stay below the write rules (the *IDS Evasion* challenge), and an IP address is easy to fake. The real defence is to keep untrusted hosts away from port 502, as [Defence in depth](/theory/defense-hardening) shows. Compare [S7comm](/theory/s7comm) and [OPC-UA](/theory/opcua-protocol), which adds the login Modbus lacks.
 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>

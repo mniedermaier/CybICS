@@ -84,7 +84,8 @@ Aim for 500 to 900 words of prose. That is roughly five minutes.
 
 The reading time on a page counts the text outside deep dives (170 words a
 minute, plus half a minute per figure or widget); deep dives show as extra
-optional minutes. Keep a foundation lesson at eight minutes or less: move
+optional minutes. Keep every lesson at eight minutes or less, and a lesson on
+the core path at seven (six where possible); tests enforce both caps: move
 detail, numbers that only matter in a challenge, and source paths into deep
 dives rather than into the main text.
 

@@ -1,22 +1,22 @@
 # Detection and monitoring
 
-Most industrial protocols, Modbus among them, never ask a client who it is. So a defender cannot check "is this client allowed?". The question becomes "does this traffic look like the plant running normally?", and the tool that keeps asking it is an **Intrusion Detection System (IDS)**.
+Most industrial protocols, Modbus among them, never ask a client who it is. So a defender cannot ask "is this client allowed?", only "does this traffic look like the plant running normally?". The tool that keeps asking is an **Intrusion Detection System (IDS)**.
 
 ## What an IDS does
 
 Think of a smoke detector. It does not put out fires; it only watches the air and shouts when something looks wrong. An IDS does the same for network traffic: it watches a copy of the packets and raises an **alert** when a rule matches.
 
-Its big brother, the Intrusion **Prevention** System (IPS), also blocks traffic it does not like. In a plant, a wrongly blocked packet could mean the controller stops hearing a pressure sensor, which is a safety problem. That is why operational technology (OT) networks prefer passive monitoring: it can be wrong without hurting the process.
+Its big brother, the Intrusion **Prevention** System (IPS), also blocks traffic it does not like. In a plant, a wrongly blocked packet could cut the controller off from a pressure sensor: a safety problem. That is why operational technology (OT) networks prefer passive monitoring: it can be wrong without hurting the process.
 
 ## Where the CybICS IDS sits
 
 In a real plant, a network switch copies all traffic to a **mirror port** (also called a SPAN port), and the IDS listens there. CybICS does the same in software:
 
-- The `ids` container records a copy of everything on the `172.18.0.0/24` plant network. Its only open port is its dashboard on **8443**.
+- The `ids` container records a copy of everything on the `172.18.0.0/24` plant network.
 - It drops traffic it knows is normal before any rule sees it: the steady Modbus polling between OpenPLC and the plant simulation `hwio` or the FUXA HMI.
 
 <div class="callout cybics" markdown="1">
-**On CybICS:** open the IDS dashboard at port 8443 while you attack from the attack machine (172.18.0.100). Watching your own alerts appear is the fastest way to learn the rules.
+**On CybICS:** open the IDS dashboard on port **8443** while you attack from the attack machine (172.18.0.100). Watching your own alerts appear is the fastest way to learn the rules.
 </div>
 
 <details class="deep-dive" markdown="1">
@@ -108,6 +108,9 @@ Too many false positives and operators ignore the dashboard; too many false nega
 
 Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per rule and source address. Until it runs out, the rule stays silent for that source, so hundreds of writes produce one alert every thirty seconds, not hundreds.
 
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the window and the cooldown, step by step</summary>
+
 <figure class="wide">
 <style>
 .dm-c {--c: 15s;}
@@ -146,6 +149,8 @@ Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per r
 <figcaption>The window decides whether the behaviour counts as an attack; the cooldown decides how often you are told. That is also why the number of alerts on the dashboard is not the number of attack packets.</figcaption>
 </figure>
 
+</details>
+
 ## The nine CybICS rules
 
 *Signature* rules match something known to be bad, such as a diagnostic request; the counting *anomaly* rules flag far more of something than normal.
@@ -179,7 +184,7 @@ Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per r
 
 </details>
 
-Notice how often a rule depends on *who* sends the traffic. The IDS trusts the plant services by IP address: a reasonable shortcut, and exactly what an attacker exploits. The [IDS Evasion](/ctf/challenge/ids_evasion) challenge is about staying below the rules or looking like someone they trust.
+Many rules depend on *who* sends the traffic. The IDS trusts the plant services by IP address: a reasonable shortcut, and exactly what an attacker exploits. The [IDS Evasion](/ctf/challenge/ids_evasion) challenge is about staying below the rules or looking like someone they trust.
 
 <div data-widget="checkpoint" data-id="which-rule"></div>
 

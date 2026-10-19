@@ -1,12 +1,17 @@
 # TRITON/TRISIS (2017)
 
-A Safety Instrumented System (SIS) is the last automatic line of defence in a plant. When pressure or temperature leaves the safe range, it shuts the process down, whatever the normal control system is doing. In 2017 attackers tried to reprogram one. It is the first known malware built to switch off the part of a plant that exists to keep people alive, and it was only found because it made a mistake.
+A Safety Instrumented System (SIS) is the last automatic line of defence in a plant. When pressure or temperature leaves the safe range, it shuts the process down, whatever the normal control system is doing. In 2017 attackers tried to reprogram one, with the first known malware built against the part of a plant that keeps people alive. It was only found because it made a mistake.
 
 ## What happened
 
-In 2017 a petrochemical plant, widely reported to be in Saudi Arabia, shut down unexpectedly. Its safety controllers, Triconex Tricon units made by Schneider Electric, had stopped the process and gone into their fail-safe state. While investigating, the plant's staff and later the security company FireEye (now Mandiant) found malware on the engineering workstation used to program those safety controllers.
+In 2017 a petrochemical plant, widely reported to be in Saudi Arabia, shut down unexpectedly. Its safety controllers, Triconex Tricon units made by Schneider Electric, had stopped the process and gone into their fail-safe state. Investigating the shutdown, the plant's staff and later the security company FireEye (now Mandiant) found malware on the engineering workstation that programs those controllers.
 
-On 14 December 2017 FireEye and Dragos published their analyses on the same day. FireEye called the malware **TRITON**, Dragos called it **TRISIS**; both names are in use. The United States Cybersecurity and Infrastructure Security Agency (CISA, then still the ICS-CERT) and Schneider Electric issued advisories as well.
+On 14 December 2017 FireEye and Dragos published their analyses on the same day. FireEye called the malware **TRITON**, Dragos called it **TRISIS**; both names are in use.
+
+**Who was behind it.** FireEye linked the tools to a Russian state research institute, and the United States later sanctioned the institute and charged one of its employees. These findings have not been tested in court.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the timeline and the attribution</summary>
 
 <figure class="wide">
 <svg viewBox="0 0 560 150" role="img" aria-label="Timeline of TRITON. 2017: attackers reach the safety engineering workstation of a petrochemical plant. 2017: the safety controllers trip and shut the plant down, prompting an investigation. December 2017: FireEye and Dragos publish their analyses. October 2018: FireEye links the tools to a Russian research institute. 2020 and 2022: the United States sanctions the institute and charges one of its employees.">
@@ -23,7 +28,11 @@ On 14 December 2017 FireEye and Dragos published their analyses on the same day.
 <figcaption>The attack was noticed because the safety system did what it was designed to do: when something went wrong inside it, it shut the plant down.</figcaption>
 </figure>
 
-**Who was behind it.** In October 2018 FireEye linked the tools to the Central Scientific Research Institute of Chemistry and Mechanics (TsNIIKhM), a Russian state research institute. The US Treasury sanctioned that institute in 2020, and in 2022 the US Department of Justice charged one of its employees. Dragos tracks the group as XENOTIME and reported in 2019 that it had started probing electric utilities in North America. These are the findings of companies and one government; they have not been tested in court.
+In October 2018 FireEye linked the tools to the Central Scientific Research Institute of Chemistry and Mechanics (TsNIIKhM) in Russia. The US Treasury sanctioned that institute in 2020, and in 2022 the US Department of Justice charged one of its employees. Dragos tracks the group as XENOTIME and reported in 2019 that it had started probing electric utilities in North America. These are the findings of companies and one government; they have not been tested in court.
+
+The United States Cybersecurity and Infrastructure Security Agency (CISA, then still the ICS-CERT) and Schneider Electric issued advisories as well.
+
+</details>
 
 ## How the attack worked
 
@@ -56,24 +65,21 @@ Check that you can retell the attack, from the office network to the unexpected 
 
 ## Why it worked
 
-**The safety system was reachable.** Good practice keeps the SIS on its own isolated network. Here the attackers could get from the engineering workstation to the safety controllers over the network.
+**The safety system was reachable.** Good practice keeps the SIS on its own isolated network. Here the attackers got from the office network to the safety controllers.
 
-**The engineering workstation was the gateway.** Whoever controls the computer that programs the SIS controls the SIS. Its security mattered as much as the controller's.
+**The engineering workstation was the gateway.** Whoever controls the computer that programs the SIS controls the SIS.
 
-**A lock was left open.** The controller's mode switch is a physical barrier against exactly this kind of attack, and it only works if it is in the locked position.
+**A lock was left open.** Reports indicate the controller's physical mode switch allowed programming over the network. That switch is a barrier against exactly this attack, but only in the locked position.
 
-**It failed safe.** The good news is in the mistake: when the injected code misbehaved, the controllers detected a fault and stopped the plant. A safe shutdown is expensive, but nobody was hurt.
+**It failed safe.** When the injected code misbehaved, the controllers detected a fault and stopped the plant. A safe shutdown is expensive, but nobody was hurt.
 
 ## What it means for CybICS
 
-CybICS has no separate SIS. Its last line of defence is the **blow-out valve** on the high-pressure tank (HPT), and it is built very differently from a programmable safety controller. The valve is part of the physical process simulation, not of the OpenPLC program: it opens when the HPT goes above 220 bar and stays open until the pressure is back at 200. No Modbus write and no PLC program change can disable it, just as a real spring-loaded relief valve does not care what the software says.
+CybICS has no separate SIS. Its last line of defence is the **blow-out valve** on the high-pressure tank (HPT). The valve is part of the physical process simulation, not of the OpenPLC program: it opens when the HPT goes above 220 bar and stays open until the pressure is back at 200. No Modbus write and no PLC program change can disable it, just as a spring-loaded relief valve ignores the software.
 
-The valve has a limit, though. It vents more slowly than the compressor fills, so a compressor that keeps running drives the tank into a state the valve cannot recover. In the [physical process challenge](/ctf/challenge/physical_process) you work out what triggers the blow-out and how the HMI reports it. Read [Safety systems](/theory/safety-systems) first to see where an SIS would sit in this plant.
+The valve has a limit, though. It vents more slowly than the compressor fills, so a compressor that keeps running drives the tank into a state the valve cannot recover. In the [physical process challenge](/ctf/challenge/physical_process) you work out what triggers the blow-out and how the HMI reports it. Read [Safety systems](/theory/safety-systems) first.
 
-Other parts of TRITON map onto the lab as well:
-
-- The engineering workstation at `172.18.0.10` runs the OpenPLC Editor. Like the Triconex workstation, whoever controls it can produce new controller code.
-- OpenPLC's web interface on port 8080 can stop and start the PLC program, a software version of the Tricon's mode switch (T0858 Change Operating Mode). There is no physical key to lock it.
+Two more parallels: like the Triconex workstation, the engineering workstation at `172.18.0.10` can produce new controller code. OpenPLC's web interface on port 8080 can stop and start the PLC program, a software version of the mode switch (T0858 Change Operating Mode), with no physical key to lock it.
 
 <div data-widget="checkpoint" data-id="barrier"></div>
 
@@ -81,6 +87,10 @@ Other parts of TRITON map onto the lab as well:
 
 - **Keep the safety system separate.** Put the SIS and its engineering workstation on their own network, with no path from the office network. See [Defence in depth](/theory/defense-hardening).
 - **Use the physical locks.** Keep controller mode switches in the run position and remove the key. A physical barrier cannot be hacked from the network.
-- **Treat every unexpected trip as a possible attack.** The plant investigated a shutdown and found TRITON. Shutdowns without a process reason deserve a security look. See [Incident response](/theory/incident-response).
+- **Treat every unexpected trip as a possible attack.** The plant investigated a shutdown and found TRITON. See [Incident response](/theory/incident-response).
 - **Layer your protection.** Keep at least one safety barrier, such as a mechanical relief valve, that no software can switch off. See [Risk assessment](/theory/risk-assessment).
-- **Watch engineering traffic.** Programming a safety controller is rare. Any TriStation-style programming session outside a planned change is worth an alert. See [Detection and monitoring](/theory/detection-monitoring).
+- **Watch engineering traffic.** Programming a safety controller is rare, so any session outside a planned change is worth an alert. See [Detection and monitoring](/theory/detection-monitoring).
+
+Now place the defences on the attack: which one fits each moment?
+
+<div data-widget="sequence" data-id="defend"></div>

@@ -18,7 +18,41 @@ ARP has no proof of identity. When a host hears "172.18.0.3 is at my MAC", it si
 
 FUXA (`172.18.0.4`) polls OpenPLC (`172.18.0.3`) once a second over Modbus TCP on port 502. Your attack machine is `172.18.0.100` on the same Docker network, so you can reach both.
 
-The challenge folder contains `mitm.py`, a small Modbus **proxy**: a program that accepts FUXA's connection on port 5020, opens its own connection to the PLC, and relays every request and answer. In between, it can change bytes. Out of the box it is set up to forge the readings of GST, HPT, the system sensor and the manual-mode flag.
+The challenge folder contains `mitm.py`, a small Modbus **proxy**: a program that sits in the conversation, relays every request and answer, and can change bytes in between. Out of the box it forges the readings of GST, HPT, the system sensor and the manual-mode flag.
+
+To forge a reading, the proxy must know where it is. A Modbus read answer carries only values, in order, with no addresses, so the proxy remembers from the request which slot holds which register.
+
+The forged values look consistent. An HPT of 95 lies inside the 50-to-100 band in which the plant reports "operational", and the system sensor is forged to match, so the operator sees a calm, healthy plant.
+
+Step through the attack yourself. Watch both ARP caches, the path of the frames and what the IDS notices.
+
+<div data-widget="arp-spoof"></div>
+
+<div data-widget="checkpoint" data-id="slots"></div>
+
+## How to approach it
+
+1. **Map the conversation.** Note the addresses of FUXA and OpenPLC and confirm the polling with a short `tcpdump` or Wireshark capture.
+2. **Let traffic pass through you.** Turn on IP forwarding on the attack machine. Otherwise you swallow every packet and the HMI goes dark, which is noticed at once.
+3. **Poison both ARP caches.** Tell FUXA that the PLC's IP is at your MAC, and the PLC the same about FUXA, and keep both running. Tools: `arpspoof`, `ettercap` or a small `scapy` script.
+4. **Watch the traffic cross your machine.** A capture on the attack machine should now show FUXA's polls.
+5. **Rewrite, if you want to see the deception.** Read the settings of `mitm.py` and run it. Poisoning alone does not hand it the traffic; the deep dive below says why.
+6. **Verify on the challenge page.** It asks the IDS whether it saw the ARP poisoning.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: getting the traffic into the proxy</summary>
+
+`mitm.py` accepts FUXA's connection on port 5020, opens its own connection to the PLC and relays between the two. It needs the PLC's address as its upstream.
+
+The poisoned frames now reach your machine, but they are still addressed to port 502, where nothing of yours listens. The proxy only sees them if one of two things is true:
+
+- FUXA's device is pointed at the proxy instead of the PLC. That needs FUXA admin rights, and no ARP reply is sent at all.
+- Your machine redirects incoming port 502 traffic to port 5020, for example with an `iptables` redirect rule.
+
+</details>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: why the proxy patches by position</summary>
 
 <figure class="wide">
 <style>
@@ -93,26 +127,6 @@ The challenge folder contains `mitm.py`, a small Modbus **proxy**: a program tha
 <figcaption>FUXA asks for eleven holding registers starting at 1124 in one request. The answer carries only values, in order, with no addresses, so the proxy must remember from the request which slot holds which register.</figcaption>
 </figure>
 
-The forged values were chosen to look consistent. An HPT of 95 lies inside the 50-to-100 band in which the plant reports "operational", and the system sensor is forged to match, so the operator sees a calm, healthy plant.
-
-Step through the attack yourself. Watch both ARP caches, the path the frames take and what the IDS notices.
-
-<div data-widget="arp-spoof"></div>
-
-<div data-widget="checkpoint" data-id="slots"></div>
-
-## How to approach it
-
-1. **Map the conversation.** Note the IP addresses of FUXA and OpenPLC and confirm that FUXA talks to port 502. A short capture with `tcpdump` or Wireshark shows the polling.
-2. **Let traffic pass through you.** Turn on IP forwarding on the attack machine. Otherwise you would swallow every packet and the HMI would simply go dark, which is noticed at once.
-3. **Poison both ARP caches.** Tell FUXA that the PLC's IP is at your MAC, and tell the PLC the same about FUXA. Tools: `arpspoof` (from the dsniff package), `ettercap` or a small `scapy` script. Keep both directions running.
-4. **Watch the traffic cross your machine.** A capture on the attack machine should now show FUXA's polls.
-5. **Rewrite, if you want to see the deception.** Run `mitm.py`. Read its settings first: it listens on port 5020 and needs the PLC's address as its upstream. The poisoned traffic still goes to port 502, so the proxy only sees it if FUXA is pointed at the proxy (that needs FUXA admin rights) or you redirect port 502 to 5020 on your machine.
-6. **Verify on the challenge page.** It asks the IDS whether it saw the ARP poisoning.
-
-<details class="deep-dive" markdown="1">
-<summary>Deep dive: why the proxy patches by position</summary>
-
 A Modbus read request says "start at 1124, give me 11 registers". The answer says only "22 bytes follow" and then the values, two bytes each, high byte first. Nothing in the answer says which number is the pressure.
 
 So the proxy does its bookkeeping on the way out. It parses the request, works out that GST will be in slot 0, HPT in slot 2 and so on, and puts that map on a queue. When the answer comes back it takes the map off the queue and overwrites those slots. Because the proxy relays one request, then its answer, then the next request, the queue never holds more than one entry.
@@ -122,6 +136,17 @@ The same trick works for coils, where each value is a single bit inside a byte.
 </details>
 
 ## Detect and defend
+
+- **Watch ARP.** An IP address that suddenly changes its MAC is the classic sign of poisoning. The CybICS IDS rule `arp_spoof` does not see the interception itself; it notices one IP address announced with more than one MAC address.
+- **Fix the mapping.** Static ARP entries for critical devices, or switches with Dynamic ARP Inspection, refuse forged replies.
+- **Segment the network.** If the attacker never shares a network segment with the HMI and the PLC, ARP tricks cannot reach them.
+- **Authenticate the messages.** Protocols that sign their messages, such as OPC-UA with a secure policy or Modbus/TCP Security over TLS, make a rewritten answer detectable.
+- **Cross-check the process.** An independent gauge or a second sensor path shows when the screen and the tank disagree.
+
+In MITRE ATT&CK for ICS this is **T0830 Adversary-in-the-Middle**; forging the readings is **T1692.002 Unauthorized Message: Reporting Message** (formerly T0856 Spoof Reporting Message).
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: what the IDS remembers</summary>
 
 <figure class="wide">
 <style>
@@ -157,13 +182,7 @@ The same trick works for coils, where each value is a single bit inside a byte.
 <figcaption>The CybICS IDS rule <code>arp_spoof</code> does not see the interception itself. It notices that one IP address has been announced with more than one MAC address.</figcaption>
 </figure>
 
-- **Watch ARP.** An IP address that suddenly changes its MAC is the classic sign of poisoning, and it is what the CybICS IDS reports.
-- **Fix the mapping.** Static ARP entries for critical devices, or switches with Dynamic ARP Inspection, refuse forged replies.
-- **Segment the network.** If the attacker never shares a network segment with the HMI and the PLC, ARP tricks cannot reach them.
-- **Authenticate the messages.** Protocols that sign their messages, such as OPC-UA with a secure policy or Modbus/TCP Security over TLS, make a rewritten answer detectable.
-- **Cross-check the process.** An independent gauge or a second sensor path shows when the screen and the tank disagree.
-
-In MITRE ATT&CK for ICS this is **T0830 Adversary-in-the-Middle**; forging the readings is **T1692.002 Unauthorized Message: Reporting Message** (formerly T0856 Spoof Reporting Message).
+</details>
 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>

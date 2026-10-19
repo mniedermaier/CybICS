@@ -43,9 +43,9 @@ The four hosts you meet first:
 
 ## Ports: which program
 
-An IP address finds the computer, but one computer runs many programs. The **port**, a number from 0 to 65535, says which one a message is for, like an office number in a large building. A program waiting for messages on a port **listens** on it.
+An IP address finds the computer, but one computer runs many programs. The **port**, a number from 0 to 65535, says which one a message is for, like an office number in a building. A program waiting for messages on a port **listens** on it.
 
-Industrial protocols have well-known ports, so a scanner can guess what a device is from its open ports. The main ones in CybICS:
+Industrial protocols have well-known ports, so a scanner can guess a device from its open ports. The main ones in CybICS:
 
 | Port | Service | Runs on |
 |---|---|---|
@@ -102,15 +102,13 @@ Data travels in **packets**, small pieces that each carry their own addresses. E
 <figcaption>One Modbus request from the attack machine to the PLC: Ethernet (MAC addresses) crosses the local segment, IP finds the computer, TCP (ports) the program.</figcaption>
 </figure>
 
-Each layer only reads its own envelope: the network card checks the MAC address, the operating system the IP address and the port, and only the Modbus program opens the innermost one.
-
 Every network card also has a **MAC address** (Media Access Control address). It only works on the local segment, like the name on a door bell once the postman has found the house.
 
 To find the MAC address for an IP address, a computer asks the segment "who has 172.18.0.3?". That is the **Address Resolution Protocol (ARP)**. Nobody checks the answers, so an attacker can lie ([man-in-the-middle](/theory/mitm)).
 
 ## TCP: a handshake first
 
-The envelope with the ports belongs to the **Transmission Control Protocol (TCP)**. TCP turns loose packets into a reliable **connection**: it numbers them, resends lost ones and keeps them in order. Modbus TCP, S7comm and OPC-UA all use it. Before any data flows, the two sides shake hands:
+The envelope with the ports belongs to the **Transmission Control Protocol (TCP)**. TCP turns loose packets into a reliable **connection**: it numbers them, resends lost ones and keeps them in order. Modbus TCP, S7comm and OPC-UA all use it. Before any data flows, both sides shake hands:
 
 <figure>
 <svg viewBox="0 0 360 200" role="img"
@@ -133,20 +131,27 @@ The envelope with the ports belongs to the **Transmission Control Protocol (TCP)
     <text x="180" y="179" fill="#1a1a1a" font-weight="bold">now: Modbus data</text>
   </g>
 </svg>
-<figcaption>The three-way handshake. SYN asks for a connection, SYN-ACK accepts it, ACK confirms. Only then does the first Modbus byte travel.</figcaption>
+<figcaption>The three-way handshake. SYN asks for a connection, SYN-ACK accepts it, ACK confirms.</figcaption>
 </figure>
 
-If nothing listens on the port, the computer answers the SYN with a reset (**RST**): "no one here". A port scanner sends a SYN to each port: SYN-ACK means open, RST means closed, silence often means a firewall. Many scanners never send the final ACK.
+If nothing listens on the port, the computer answers the SYN with a reset (**RST**): "no one here". A port scanner sends a SYN to each port: SYN-ACK means open, RST means closed, silence often means a firewall.
+
+<div data-widget="checkpoint" data-id="handshake"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: who opens which envelope, and UDP</summary>
+
+Each layer only reads its own envelope: the network card checks the MAC address, the operating system the IP address and the port, and only the Modbus program opens the innermost one.
 
 The **User Datagram Protocol (UDP)** skips the handshake: faster, but nothing guarantees delivery.
 
-<div data-widget="checkpoint" data-id="handshake"></div>
+</details>
 
 ## The CybICS lab network
 
 In the virtual lab, each service runs in its own **container**: a small, sealed box that shares the host computer's operating system. Each has its own network card and IP address, so openplc and fuxa look like separate computers.
 
-All containers plug into one virtual switch, a Docker **bridge network** with the subnet `172.18.0.0/24`. The attack machine sits on it too, with no router or firewall in between: the network is **flat**.
+All containers plug into one virtual switch, a Docker **bridge network** on the subnet `172.18.0.0/24`. The attack machine sits on it too, with no router or firewall in between: the network is **flat**.
 
 The landing page and the IDS use **host networking** instead: they share the host computer's network. That lets the IDS listen on the bridge, which every packet between two containers crosses.
 
@@ -162,7 +167,7 @@ The map from [What is an ICS?](/theory/ics-basics) again. Click a host to see it
 </details>
 
 <div class="callout cybics" markdown="1">
-**In CybICS:** the [Service Scanning challenge](/ctf/challenge/scanning) asks you to map this network yourself. Check your results against the tables above.
+**In CybICS:** the [Service Scanning challenge](/ctf/challenge/scanning) has you map this network yourself. Check your results against the tables above.
 </div>
 
 <details class="deep-dive" markdown="1">

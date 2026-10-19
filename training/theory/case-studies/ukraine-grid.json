@@ -132,6 +132,40 @@
           "explain": "This was Industroyer2 in April 2022, found by CERT-UA and ESET. It was built to send the same kind of breaker commands, so its goal was still Impair Process Control."
         }
       ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the Ukrainian grid attacks. Give each one the defence from the lesson that would most directly have stopped it, revealed it or limited the damage at that point.",
+      "labels": [
+        "Multi-factor authentication",
+        "Security monitoring",
+        "Restricting who may send commands",
+        "Manual operation and offline backups"
+      ],
+      "steps": [
+        {
+          "text": "In 2015 the attackers log in to the control network over the companies' VPN with stolen user names and passwords.",
+          "label": "Multi-factor authentication",
+          "explain": "The VPN asked for nothing but a password, so stolen passwords were enough. A second factor would have made them useless on their own."
+        },
+        {
+          "text": "For months before the outage, BlackEnergy sits in the networks while the attackers study the control systems.",
+          "label": "Security monitoring",
+          "explain": "Nothing is switched off yet, so there is nothing to block. The quiet phase still leaves traces, such as new accounts, unusual logins and scans, and watching for them is how a defender notices it."
+        },
+        {
+          "text": "In 2016 Industroyer, running on a computer that is not the control centre, sends IEC 104 commands to substation equipment.",
+          "label": "Restricting who may send commands",
+          "explain": "IEC 104 does not check who sent a command, so the protocol cannot help. Only allowing known control hosts to send commands to the equipment, and alerting on any other sender, takes that away."
+        },
+        {
+          "text": "Broken converter firmware and wiped computers stop the control centres from switching substations back on remotely.",
+          "label": "Manual operation and offline backups",
+          "explain": "At this point the damage is done. Staff who can run substations by hand, and spare firmware and backups kept offline, decide how long the outage lasts; that is how Ukraine restored power."
+        }
+      ]
     }
   }
 }

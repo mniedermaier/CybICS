@@ -122,6 +122,40 @@
           "explain": "This was the company's own decision, taken because it could not be sure where the attack stopped. It still counts as an impact of the attack: MITRE's ICS technique T0828 Loss of Productivity and Revenue uses exactly this example."
         }
       ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the Colonial Pipeline incident. Give each one the defence from the lesson that would most directly have stopped it or shortened the outage at that point.",
+      "labels": [
+        "Closing forgotten access",
+        "Provable IT/OT segmentation",
+        "Mapping business dependencies",
+        "Offline backups"
+      ],
+      "steps": [
+        {
+          "text": "The attackers log in through a legacy VPN profile that was no longer meant to be in use, with nothing but its password.",
+          "label": "Closing forgotten access",
+          "explain": "An inventory of remote access would have found the profile and removed it, and multi-factor authentication on the remaining accounts would have made a password alone useless."
+        },
+        {
+          "text": "Ransomware leaves the office IT systems encrypted, and they have to be brought back.",
+          "label": "Offline backups",
+          "explain": "Backups the ransomware cannot reach, with restores that have been practised, bring the systems back faster than any payment. Colonial paid on the first day and still needed days to restart."
+        },
+        {
+          "text": "Colonial cannot tell whether the attackers might also reach the control systems, so it stops the pipeline.",
+          "label": "Provable IT/OT segmentation",
+          "explain": "A boundary between IT and OT that can be shown to hold, in the middle of an incident, lets an operator say the attack is in IT and keep OT running."
+        },
+        {
+          "text": "Press reports say the billing system was hit, and the pipeline could not deliver fuel without it.",
+          "label": "Mapping business dependencies",
+          "explain": "Colonial never confirmed this report. Either way, if operations cannot run without an IT system, listing that dependency in advance and planning how to work without it keeps the process going."
+        }
+      ]
     }
   }
 }

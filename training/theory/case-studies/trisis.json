@@ -134,6 +134,40 @@
           "explain": "The faulty backdoor code tripped the controllers, which is how the attack was found. The shutdown cost production and was not the attackers' goal, but a stopped plant is still an Impact; the intended one was Loss of Safety (T0880)."
         }
       ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the TRITON attack. Give each one the defence from the lesson that would most directly have stopped it or limited the harm at that point.",
+      "labels": [
+        "Separate safety network",
+        "Physical key switch",
+        "Investigating unexpected trips",
+        "Mechanical safety barrier"
+      ],
+      "steps": [
+        {
+          "text": "Over remote desktop jump hosts and poorly configured firewalls, the attackers get from the office network to the safety engineering workstation.",
+          "label": "Separate safety network",
+          "explain": "Good practice puts the SIS and its engineering workstation on their own network, with no path from the office network. Without that path, the jump hosts lead nowhere."
+        },
+        {
+          "text": "With the workstation in their hands, the attackers write their own code into the safety controllers over the network.",
+          "label": "Physical key switch",
+          "explain": "The workstation is already lost, so a network boundary no longer helps. A mode switch in the run position stops the controllers from accepting new code over the network, whatever the workstation sends."
+        },
+        {
+          "text": "The plant shuts down although nothing was wrong with the process.",
+          "label": "Investigating unexpected trips",
+          "explain": "This is the moment TRITON was caught: the plant looked into the shutdown and found the malware. A trip without a process reason deserves a security look, not just a restart."
+        },
+        {
+          "text": "Had the attack succeeded, the safety controllers would no longer have responded when pressure left the safe range.",
+          "label": "Mechanical safety barrier",
+          "explain": "The intended impact was Loss of Safety; the exact final plan is not known. A barrier no software can switch off, such as a mechanical relief valve, still protects people when the programmable one is compromised."
+        }
+      ]
     }
   }
 }

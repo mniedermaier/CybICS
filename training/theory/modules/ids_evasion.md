@@ -1,10 +1,10 @@
 # IDS evasion
 
-In this challenge you switch sides again: you write to the PLC over Modbus while the Intrusion Detection System (IDS) watches, and the goal is that it never raises an alarm. Real attackers study a detector before they act. Doing the same shows you exactly where a simple rule-based IDS is blind, and that is the knowledge a defender needs to close the gap.
+In this challenge you write to the PLC over Modbus while the Intrusion Detection System (IDS) watches, and the goal is that it never raises an alarm. Real attackers study a detector before they act. Doing the same shows you where a simple rule-based IDS is blind, which is what a defender needs to know to close the gap.
 
 ## The idea
 
-Picture a speed camera that only flashes when a car passes more than ten times in thirty seconds. A driver who knows the rule simply passes three times, slowly, and is never photographed. The camera is working perfectly; it just measures the wrong thing.
+Picture a speed camera that only flashes when a car passes more than ten times in thirty seconds. A driver who knows the rule passes three times, slowly, and is never photographed. The camera works perfectly; it just measures the wrong thing.
 
 Many IDS rules are **rate rules** like that camera. They keep a count of events inside a **sliding window**, a stretch of time that moves forward with the clock, and alert only when the count reaches a **threshold**. Old events drop out of the left edge of the window as time passes, so the count can fall again without the attacker doing anything.
 
@@ -79,7 +79,12 @@ You work from the attack machine (`172.18.0.100`) and talk Modbus TCP to OpenPLC
 
 The Modbus rules read just one byte of each request: the function code, which says whether it is a read or a write. They ignore the register and the value. Writes from `hwio` and `fuxa` are trusted and never counted.
 
-The challenge keeps its own score. You open a two-minute **evasion window** at `/api/evasion/start` and ask `/api/evasion/check` how you are doing.
+The challenge keeps its own score. You open a two-minute **evasion window** on the IDS, act, and then ask it how you did.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: how the evasion window is scored</summary>
+
+The IDS opens the window at `/api/evasion/start` and reports on it at `/api/evasion/check`.
 
 <style>
 .ev-c {--d: 12s; --on: #ff6b00;}
@@ -127,6 +132,8 @@ The challenge keeps its own score. You open a two-minute **evasion window** at `
 </svg>
 <figcaption>The check wants a small number of writes and zero new alerts while the window is open. The row being scored is the empty one: an absence of alerts, which a rate rule cannot tell apart from a quiet network.</figcaption>
 </figure>
+
+</details>
 
 Try a plan before you try the network. The planner uses the two Modbus write rules of the CybICS IDS and the challenge's two-minute window.
 

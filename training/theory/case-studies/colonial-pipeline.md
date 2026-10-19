@@ -1,10 +1,15 @@
 # Colonial Pipeline (2021)
 
-Colonial Pipeline is the largest pipeline for refined fuel in the United States. In May 2021 a ransomware gang encrypted computers in its office network. As far as is publicly known, the attackers never touched the systems that control the pipeline. The pipeline still stopped for five days, and parts of the US East Coast ran short of fuel. This case is about why an IT attack can stop OT, the Operational Technology that runs physical processes.
+Colonial Pipeline is the largest pipeline for refined fuel in the United States. In May 2021 a ransomware gang encrypted computers in its office network. As far as is publicly known, the attackers never touched the systems that control the pipeline, yet it stopped for five days. This case is about why an IT attack can stop OT, the Operational Technology that runs physical processes.
 
 ## What happened
 
 On 7 May 2021 an employee found a ransom note on an IT computer. The same morning Colonial shut the whole pipeline down as a precaution, for the first time in its history. It paid the ransom that evening and began restarting on 12 May.
+
+Many petrol stations in the south-eastern United States ran dry, partly because people rushed to fill up.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the full timeline and the scale of the outage</summary>
 
 <figure class="wide">
 <svg viewBox="0 0 560 150" role="img" aria-label="Timeline of the Colonial Pipeline incident in 2021. 7 May: ransom note found, pipeline shut down as a precaution. 7 May, evening: ransom of 75 bitcoin paid. 10 May: FBI names DarkSide. 12 May: restart begins. 7 June: Department of Justice recovers 63.7 bitcoin. 8 June: CEO testifies to the Senate.">
@@ -22,11 +27,6 @@ On 7 May 2021 an employee found a ransom note on an IT computer. The same mornin
 <figcaption>The pipeline was off for about five days, although the attack was confined to the office IT network.</figcaption>
 </figure>
 
-During those days, many petrol stations in the south-eastern United States ran dry, partly because people rushed to fill up.
-
-<details class="deep-dive" markdown="1">
-<summary>Deep dive: the full timeline and the scale of the outage</summary>
-
 Colonial's pipeline runs about 5,500 miles from Texas to the New York area and, by the company's own figures, carries around 45 per cent of the fuel used on the East Coast. During the outage several states declared emergencies, and federal agencies temporarily relaxed rules on fuel transport by road.
 
 | Date (2021) | Event |
@@ -42,7 +42,7 @@ Colonial's pipeline runs about 5,500 miles from Texas to the New York area and, 
 
 ## How the attack worked
 
-Ransomware is malware that encrypts files so their owner cannot use them, and demands money for the key. DarkSide, the group the FBI named, ran "ransomware as a service": it wrote the ransomware and rented it to others, who broke in and shared the ransom. The table uses MITRE ATT&CK for Enterprise, the IT catalogue, for the IT steps and ATT&CK for ICS for the effect on operations.
+Ransomware is malware that encrypts files so their owner cannot use them, and demands money for the key. DarkSide, the group the Federal Bureau of Investigation (FBI) named, ran "ransomware as a service": it wrote the ransomware and rented it to others, who broke in and shared the ransom. The table uses MITRE ATT&CK for Enterprise, the IT catalogue, for the IT steps and ATT&CK for ICS for the effect on operations.
 
 | Step | What happened | ATT&CK |
 |---|---|---|
@@ -68,12 +68,12 @@ Now retell the incident, from the forgotten VPN account to the stopped pipeline.
 
 **One password was enough.** The forgotten VPN account had no second factor, and nobody was watching an account nobody thought was in use.
 
-**Nobody could be sure where the attack stopped.** Colonial said it shut down to contain the attack. If you do not know whether the attacker can reach your control systems, stopping the process is the safe choice. The separation between IT and OT could not be proven when it mattered.
+**Nobody could be sure where the attack stopped.** Colonial said it shut down to contain the attack. If you do not know whether the attacker can reach your control systems, stopping is the safe choice: the separation between IT and OT could not be proven when it mattered.
 
 **The business depended on IT.** A pipeline also has to track whose fuel it carries and bill for it. CNN reported, citing people briefed on the matter, that the billing system was hit and that this kept the pipeline off; Colonial did not confirm that. Either way: if a process cannot run without an IT system, that IT system is part of the process.
 
 <div class="callout analogy" markdown="1">
-**Analogy:** a bakery's ovens work fine, but the till and the order system are down. You could bake, but you would not know who ordered what or how to get paid. Many bakeries would close for the day.
+**Analogy:** a bakery's ovens work fine, but the till and the order system are down. You could bake, but you would not know who ordered what or how to get paid.
 </div>
 
 <details class="deep-dive" markdown="1">
@@ -91,7 +91,7 @@ The [Network Segmentation challenge](/ctf/challenge/defense_network_segmentation
 
 <div data-widget="purdue-explorer"></div>
 
-The explorer places the CybICS hosts on the Purdue levels, the usual model for separating plant and business networks. For each host, ask: which hosts must it reach to do its job, and if it were encrypted tomorrow, would the plant have to stop?
+The explorer places the CybICS hosts on the Purdue levels, the usual model for separating plant and business networks. For each host, ask: which hosts must it reach, and if it were encrypted tomorrow, would the plant have to stop?
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the CybICS host that plays the billing system</summary>
@@ -107,5 +107,8 @@ The OPC-UA server reads the tank pressures from the PLC and offers them to other
 - **Find and close forgotten access.** Inventory every remote access path and account, remove what is unused, and require multi-factor authentication on the rest. See [Defence in depth](/theory/defense-hardening).
 - **Segment, and be able to prove it.** A boundary between IT and OT only helps if you can show, in the middle of an incident, that the attacker cannot cross it. See [Network segmentation](/theory/defense_network).
 - **Map business dependencies.** List the IT systems operations cannot run without, such as billing, and plan how to work without them. See [Risk assessment](/theory/risk-assessment).
-- **Decide in advance when to stop.** A precautionary shutdown is a valid choice, but it should be a planned one, with criteria and a restart plan. See [Incident response](/theory/incident-response).
-- **Prepare for ransomware.** Offline backups and practised restores shorten an outage more than any payment does.
+- **Prepare for ransomware.** Offline backups and practised restores shorten an outage more than any payment does. Decide in advance when to stop the process and how to restart it. See [Incident response](/theory/incident-response).
+
+Which of these defences fits each moment of the incident?
+
+<div data-widget="sequence" data-id="defend"></div>

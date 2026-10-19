@@ -129,6 +129,46 @@
           "explain": "The removals came after months of stressful speed changes. Damaged machines are the physical result the attack aimed at, and that result is the Impact tactic."
         }
       ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the Stuxnet attack. Give each one the defence from the lesson that would most directly have stopped or revealed the attack at that point.",
+      "labels": [
+        "Removable-media control",
+        "Engineering workstation protection",
+        "Alert on programming traffic",
+        "Program integrity checks",
+        "Independent measurement"
+      ],
+      "steps": [
+        {
+          "text": "Someone plugs a USB stick from outside into a computer inside the plant.",
+          "label": "Removable-media control",
+          "explain": "Natanz had no internet connection, so the USB stick was the bridge across the air gap. Scanning or blocking removable media closes that bridge before the worm is inside."
+        },
+        {
+          "text": "The worm spreads over the plant network until it reaches the computers that run Step 7.",
+          "label": "Engineering workstation protection",
+          "explain": "The Step 7 computers hold the keys to every PLC. Limiting which networks they reach and who uses them keeps a worm on an ordinary office PC away from them."
+        },
+        {
+          "text": "An infected Step 7 computer sends new code blocks to a PLC on a day when nobody planned a change.",
+          "label": "Alert on programming traffic",
+          "explain": "Program downloads are rare in normal operation, so an alert on each one catches this moment as it happens. Comparing programs would find the blocks too, but only at the next check, not when they arrive."
+        },
+        {
+          "text": "For months the PLC runs code that differs from the approved program, while Step 7 shows the engineers a clean one.",
+          "label": "Program integrity checks",
+          "explain": "A known-good copy of the program, compared regularly with a tool the attacker has not tampered with, shows a difference that the hooked Step 7 library hides."
+        },
+        {
+          "text": "The control room screens show normal readings while the drives run far above and far below their normal speed.",
+          "label": "Independent measurement",
+          "explain": "The HMI only showed a recording. A measurement that does not pass through the PLC, such as a separate speed or pressure gauge, would have disagreed with the screens."
+        }
+      ]
     }
   }
 }

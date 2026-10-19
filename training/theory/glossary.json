@@ -202,7 +202,7 @@
   },
   {
     "term": "blow-out valve",
-    "definition": "The CybICS relief valve. It opens when the HPT pressure goes above 220 and closes again below 200, so the tank does not burst.",
+    "definition": "The CybICS relief valve. It opens when the HPT pressure goes above 220 bar and closes again when it is back at 200. It vents more slowly than a running compressor fills, so it cannot stop a compressor that is forced on.",
     "link": "/theory/safety-systems",
     "aliases": [
       "relief valve"
@@ -251,7 +251,7 @@
   {
     "term": "segmentation",
     "definition": "Splitting a network into separate parts with controlled connections between them, so an intruder in one part cannot reach everything.",
-    "link": "/theory/risk-assessment",
+    "link": "/theory/defense-hardening",
     "aliases": [
       "network segmentation"
     ]
@@ -326,7 +326,7 @@
   {
     "term": "man-in-the-middle",
     "definition": "An attacker who sits between two parties and can read or change everything they send each other.",
-    "link": "/ctf/challenge/mitm",
+    "link": "/theory/mitm",
     "aliases": [
       "MITM",
       "man in the middle"
@@ -335,7 +335,7 @@
   {
     "term": "ARP spoofing",
     "definition": "Sending forged ARP replies so that other hosts send their traffic for an IP address to the attacker's machine.",
-    "link": "/ctf/challenge/mitm",
+    "link": "/theory/mitm",
     "aliases": [
       "ARP poisoning"
     ]
@@ -343,12 +343,12 @@
   {
     "term": "fuzzing",
     "definition": "Sending large amounts of malformed or unexpected input to a program to find crashes and bugs.",
-    "link": "/ctf/challenge/fuzzingMB"
+    "link": "/theory/fuzzingMB"
   },
   {
     "term": "brute force",
     "definition": "Guessing passwords by trying many candidates, often from a wordlist.",
-    "link": "/ctf/challenge/password_attack",
+    "link": "/theory/password_attack",
     "aliases": [
       "dictionary attack"
     ]
@@ -356,12 +356,12 @@
   {
     "term": "UART",
     "definition": "Universal Asynchronous Receiver-Transmitter: a simple serial interface found on most circuit boards, often left open as a debug console.",
-    "link": "/ctf/challenge/uart_basic"
+    "link": "/theory/uart_basic"
   },
   {
     "term": "PCAP",
     "definition": "A packet capture file, as written by Wireshark or tcpdump.",
-    "link": "/ctf/challenge/wireshark_capture",
+    "link": "/theory/wireshark_capture",
     "aliases": [
       "packet capture"
     ]
@@ -369,12 +369,12 @@
   {
     "term": "Wireshark",
     "definition": "A free tool that captures network traffic and decodes it protocol by protocol.",
-    "link": "/ctf/challenge/wireshark_capture"
+    "link": "/theory/wireshark_capture"
   },
   {
     "term": "nmap",
     "definition": "A free network scanner that finds hosts and open ports and can identify the services behind them.",
-    "link": "/ctf/challenge/scanning"
+    "link": "/theory/scanning"
   },
   {
     "term": "incident response",

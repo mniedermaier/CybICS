@@ -260,7 +260,7 @@ def test_glossary_is_well_formed():
         for name in [entry["term"], *entry.get("aliases", [])]:
             assert name.lower() not in seen, f"glossary term twice: {name}"
             seen.add(name.lower())
-        for target in re.findall(r"/theory/([a-z0-9_-]+)", entry.get("link", "")):
+        for target in re.findall(r"/theory/([A-Za-z0-9_-]+)", entry.get("link", "")):
             assert target in TOPIC_IDS, f"glossary link to unknown topic {target}"
 
 
@@ -571,3 +571,22 @@ def test_questions_do_not_repeat_the_select_all_hint(topic):
     data = sidecar(topic)
     for question in data.get("quiz", []) + data.get("checkpoints", []):
         assert "select all" not in question["question"].lower(), f"{topic['id']}: {question['question']}"
+
+
+def test_glossary_links_lead_to_a_lesson():
+    """A term's "Read more" opens the lesson that teaches it, not a challenge."""
+    for entry in load_json(GLOSSARY):
+        link = entry.get("link")
+        if link:
+            assert link.startswith("/theory/"), f"{entry['term']}: {link}"
+            assert link.split("/theory/", 1)[1].split("#")[0] in TOPIC_IDS, f"{entry['term']}: {link}"
+
+
+@pytest.mark.parametrize("topic", [t for t in TOPICS if t.get("core")], ids=[t["id"] for t in TOPICS if t.get("core")])
+def test_core_lessons_stay_short(topic):
+    """The core path is the first thing a beginner reads: seven minutes at most."""
+    import sys
+    sys.path.insert(0, LANDING)
+    from modules.theory_manager import TheoryManager
+    rendered = TheoryManager._render_article(None, os.path.join(ROOT, topic["content"]))
+    assert rendered["minutes"] <= 7, f"{topic['id']}: {rendered['minutes']} min of main text"

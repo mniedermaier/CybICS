@@ -100,7 +100,7 @@ The FUXA login protects the *screen*, not the plant. Anyone who can reach port 5
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: how FUXA is wired up in CybICS</summary>
 
-FUXA runs in the container at `172.18.0.4`, with an `operator` account for running the plant and a `viewer` account for watching it. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it.
+FUXA runs in the container at `172.18.0.4`, with one account for running the plant and one for only watching it. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it.
 
 </details>
 
@@ -222,7 +222,7 @@ The key rule: **a value and the evidence that confirms it should not travel the 
 
 Three habits protect this layer:
 
-1. **Strong authentication on the HMI.** Default accounts like `operator`/`operator` are convenient in a lab and dangerous in a plant.
+1. **Strong authentication on the HMI.** Default accounts are convenient in a lab and dangerous in a plant.
 2. **Restrict who can reach the HMI and who can reach past it.** If only the HMI may talk Modbus to the PLC, a flood from anywhere else stands out. See [Defence in depth](/theory/defense-hardening).
 3. **Give the operator at least one independent value.** When every number comes down the same wire, whoever owns that wire owns the operator's picture.
 
