@@ -64,6 +64,10 @@ Read the table as a story. You scan the network from the attack machine (172.18.
 
 Notice that several techniques belong to more than one tactic. A stolen password (T0859 Valid Accounts) both lets an attacker move to a new machine and lets them come back later. ATT&CK is a catalogue, not a strict timeline.
 
+Now try it yourself. Each step below needs something the one before it found out, so there is only one order that works.
+
+<div data-widget="sequence" data-id="arc"></div>
+
 ## What a defender hears
 
 CybICS has a small Intrusion Detection System (IDS) that watches the network and raises alerts. The figure walks one campaign past it, stage by stage, and shows which alert each stage raises. The details of every rule are in [Detection and monitoring](/theory/detection-monitoring).

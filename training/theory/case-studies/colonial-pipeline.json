@@ -82,5 +82,46 @@
       "answer": 1,
       "explanation": "False. CNN reported this, citing people briefed on the matter, but Colonial said it shut down to contain the attack. The dependency lesson holds either way."
     }
-  ]
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the incident in order",
+      "intro": "The intrusion stayed in Colonial's office IT network, so the labels are MITRE ATT&CK for Enterprise tactics. Put the steps in order and label each one.",
+      "labels": [
+        "Resource Development",
+        "Initial Access",
+        "Exfiltration",
+        "Impact",
+        "Lateral Movement"
+      ],
+      "steps": [
+        {
+          "text": "The DarkSide group wrote the ransomware and rented it out to others who would do the break-ins.",
+          "label": "Resource Development",
+          "explain": "Under ransomware as a service, the tool exists before any victim is chosen. Building or obtaining capabilities for later use is the Resource Development tactic."
+        },
+        {
+          "text": "A password for an old VPN account with no multi-factor authentication let the attackers log in.",
+          "label": "Initial Access",
+          "explain": "This was the way into Colonial's network. Logging in through External Remote Services with Valid Accounts (T1133, T1078) is Initial Access."
+        },
+        {
+          "text": "According to press reports, about 100 gigabytes of data were copied out of the network.",
+          "label": "Exfiltration",
+          "explain": "The data was reportedly taken before the encryption, to add pressure: pay, or it gets published. Stealing data out of the network is Exfiltration."
+        },
+        {
+          "text": "Ransomware encrypted IT systems, and an employee found the ransom note.",
+          "label": "Impact",
+          "explain": "Encryption is the attack's payload, so it comes after the attackers have what they need. Data Encrypted for Impact (T1486) belongs to the Impact tactic."
+        },
+        {
+          "text": "Colonial shut down the whole pipeline as a precaution, although its control systems were not attacked.",
+          "label": "Impact",
+          "explain": "This was the company's own decision, taken because it could not be sure where the attack stopped. It still counts as an impact of the attack: MITRE's ICS technique T0828 Loss of Productivity and Revenue uses exactly this example."
+        }
+      ]
+    }
+  }
 }

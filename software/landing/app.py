@@ -405,6 +405,7 @@ def theory_topic(topic_id):
         logger.warning(f'Theory topic not found: {topic_id}')
         return "Topic not found", 404
     before, after = theory_manager.neighbours(topic_id)
+    core_before, core_after = theory_manager.neighbours(topic_id, core=True)
     prerequisites = [theory_manager.get_topic(p)[0] for p in topic.get('prerequisites', [])]
     return render_template('theory_article.html',
                            topic=topic, section=section,
@@ -415,6 +416,8 @@ def theory_topic(topic_id):
                                        for ch in cat['challenges']},
                            prerequisites=[p for p in prerequisites if p],
                            before=before, after=after,
+                           core_before=core_before, core_after=core_after,
+                           core_total=len(theory_manager.core),
                            total=len(theory_manager.topics),
                            progress=theory_manager.progress.load(),
                            solved=session['solved_challenges'],

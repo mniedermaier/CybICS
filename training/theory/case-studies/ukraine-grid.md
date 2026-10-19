@@ -53,6 +53,10 @@ A 2019 Dragos reassessment by Joe Slowik argued that the 2016 attack aimed at mo
 
 </details>
 
+Check that you can tell the three attacks apart and retell them in order.
+
+<div data-widget="sequence" data-id="attack"></div>
+
 ## Why it worked
 
 **The attackers had legitimate access.** In 2015 they did not break the control system; they logged in to it with real accounts over a VPN that had no second factor. To the system, they *were* the operators.

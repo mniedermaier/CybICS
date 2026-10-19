@@ -85,7 +85,7 @@ The challenge keeps its own score. You open a two-minute **evasion window** at `
 .ev-c {--d: 12s; --on: #ff6b00;}
 .ev-c .run {transform-box: fill-box; transform-origin: left; transform: scaleX(0.12);
             animation: c-run var(--d) linear 20 forwards;}
-.ev-c .w {transform-box: fill-box; transform-origin: bottom;
+.ev-c .wbar {transform-box: fill-box; transform-origin: bottom;
           animation-duration:var(--d); animation-timing-function:steps(1,end);
           animation-iteration-count:20; animation-fill-mode:forwards;}
 .ev-c .w1{animation-name:c-w1} .ev-c .w2{animation-name:c-w2} .ev-c .w3{animation-name:c-w3}
@@ -99,7 +99,7 @@ The challenge keeps its own score. You open a two-minute **evasion window** at `
 @keyframes c-gone{0%,92%{opacity:0} 92.01%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce){
   .ev-c *{animation:none !important}
-  .ev-c .run{transform:scaleX(0.12)} .ev-c .w{transform:scaleY(1)}
+  .ev-c .run{transform:scaleX(0.12)} .ev-c .wbar{transform:scaleY(1)}
   .ev-c .ok{opacity:1} .ev-c .gone{opacity:0}
 }
 </style>
@@ -120,9 +120,9 @@ The challenge keeps its own score. You open a two-minute **evasion window** at `
   <text class="gone" x="8" y="146" font-size="13" opacity="0.8">window expired &mdash; start a new attempt</text>
   </g>
   <line x1="96" y1="92" x2="396" y2="92" stroke="currentColor" stroke-opacity="0.45"/>
-  <line class="w w1" x1="96" y1="72" x2="96" y2="92" stroke="var(--on)" stroke-width="4"/>
-  <line class="w w2" x1="108.5" y1="72" x2="108.5" y2="92" stroke="var(--on)" stroke-width="4"/>
-  <line class="w w3" x1="121" y1="72" x2="121" y2="92" stroke="var(--on)" stroke-width="4"/>
+  <line class="wbar w1" x1="96" y1="72" x2="96" y2="92" stroke="var(--on)" stroke-width="4"/>
+  <line class="wbar w2" x1="108.5" y1="72" x2="108.5" y2="92" stroke="var(--on)" stroke-width="4"/>
+  <line class="wbar w3" x1="121" y1="72" x2="121" y2="92" stroke="var(--on)" stroke-width="4"/>
   <line x1="96" y1="126" x2="396" y2="126" stroke="currentColor" stroke-opacity="0.45"/>
 </svg>
 <figcaption>The check wants a small number of writes and zero new alerts while the window is open. The row being scored is the empty one: an absence of alerts, which a rate rule cannot tell apart from a quiet network.</figcaption>

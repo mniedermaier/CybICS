@@ -87,5 +87,51 @@
       "answer": 1,
       "explanation": "CERT-UA and ESET found Industroyer2 on the target network and prevented the planned outage. The Kyiv blackout was the 2016 attack with the first Industroyer, and the attempt to disable SIPROTEC protection relays belonged to 2016 as well, where it failed."
     }
-  ]
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the attacks in order",
+      "intro": "These steps span the 2015, 2016 and 2022 attacks. Put them in the order they happened and give each one its MITRE ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Lateral Movement",
+        "Impair Process Control",
+        "Inhibit Response Function",
+        "Collection"
+      ],
+      "steps": [
+        {
+          "text": "Office documents with malicious macros installed BlackEnergy 3 in the companies' office networks.",
+          "label": "Initial Access",
+          "explain": "This happened months before the 2015 outage and gave the attackers their first foothold. Spearphishing Attachment (T0865) is an Initial Access technique."
+        },
+        {
+          "text": "Stolen user names and passwords, used over the companies' own VPN, opened the way into the control network.",
+          "label": "Lateral Movement",
+          "explain": "From the office network the attackers moved on to the control systems by logging in as real users. Using Valid Accounts (T0859) to reach new systems is Lateral Movement."
+        },
+        {
+          "text": "Remotely controlled operator HMIs opened breakers, and about 225,000 customers lost power.",
+          "label": "Impair Process Control",
+          "explain": "With operator access in hand, the attackers clicked the breakers open on 23 December 2015. Manipulation of Control (T0831) belongs to Impair Process Control."
+        },
+        {
+          "text": "Broken converter firmware and wiped computers kept operators from switching power back on remotely.",
+          "label": "Inhibit Response Function",
+          "explain": "This step only makes sense once the power is off: it slowed the repair. Destroying firmware and data (T1693.001, T0809) to stop the defenders responding is Inhibit Response Function."
+        },
+        {
+          "text": "Malware speaking four grid protocols switched off a transmission substation near Kyiv for about an hour.",
+          "label": "Impair Process Control",
+          "explain": "This was Industroyer in December 2016, a year after the manual attack. Sending commands straight to the equipment (T1692.001 Unauthorized Message: Command Message) is Impair Process Control."
+        },
+        {
+          "text": "Malware speaking only IEC 104, with a hard-coded list of target devices, was stopped before any outage.",
+          "label": "Impair Process Control",
+          "explain": "This was Industroyer2 in April 2022, found by CERT-UA and ESET. It was built to send the same kind of breaker commands, so its goal was still Impair Process Control."
+        }
+      ]
+    }
+  }
 }

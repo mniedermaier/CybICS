@@ -133,6 +133,10 @@ No username and password reaches the Admin role: the admin password list in `use
 
 <div data-widget="checkpoint" data-id="roles"></div>
 
+Try the combinations yourself. Keep the two questions apart: the channel decides what a listener gets, the identity decides what the server lets you do.
+
+<div data-widget="opcua-security"></div>
+
 ## In CybICS: the address space
 
 OPC-UA organises data as **nodes** in a tree, the **address space**, much like files in folders. The CybICS server has one folder, `CybICS Variables`, with these nodes:
@@ -286,11 +290,3 @@ To defend a real OPC-UA server:
 
 In MITRE ATT&amp;CK for ICS, logging in with a guessed password or a stolen certificate is **T0859 Valid Accounts**: the attacker uses a real identity the server accepts. The IDS rule maps OPC-UA access from an unexpected host to **T0846 Remote System Discovery**. The [Defence and hardening](/theory/defense-hardening) article covers these measures in more depth.
 
-<details class="instructor" markdown="1">
-<summary>Instructor notes</summary>
-
-- The OPC-UA mirrors of some plant values do not match the PLC: `systemSen` and `boSen` are read from holding registers 2 and 3 (not 1132 and 1134) and stay at 0, and `STOP` and `manual` are read from 1129 and 1131 rather than 1128 and 1130 (`%MW104`, `%MW106`). `GST` and `HPT` are correct. Students comparing OPC-UA with Modbus may notice this.
-- `training/opcua/README.md` says the passwords of the brute-force run can be read in plaintext in Wireshark. With the asyncua server used here, the `None` endpoint asks clients to encrypt the password, so whether it appears depends on the client honouring the token policy. Let students check their own capture.
-- `training/README.md` maps the challenge to T0859 and T0866. T0859 fits well; T0866 (Exploitation of Remote Services) describes exploiting a software flaw, which the challenge does not do.
-
-</details>

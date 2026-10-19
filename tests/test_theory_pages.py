@@ -65,6 +65,23 @@ def test_lesson_renders_with_its_parts(topic):
     assert article.count("data-widget=") == source.count("data-widget=")
 
 
+def test_instructor_notes_never_reach_the_page():
+    for topic in TOPICS:
+        with open(os.path.join(ROOT, topic["content"]), encoding="utf-8") as f:
+            if 'class="instructor"' not in f.read():
+                continue
+        html = get(f"/theory/{topic['id']}").text
+        assert 'class="instructor"' not in html, topic["id"]
+        assert "Instructor notes" not in html, topic["id"]
+
+
+def test_core_lessons_offer_the_core_path_onwards():
+    core = [t for t in TOPICS if t.get("core")]
+    html = get(f"/theory/{core[0]['id']}").text
+    pager = html.split('id="pager-core"', 1)[1].split("</nav>", 1)[0]
+    assert f'href="/theory/{core[1]["id"]}"' in pager
+
+
 def test_lesson_links_onwards_and_to_its_challenges():
     first, second = TOPICS[0], TOPICS[1]
     html = get(f"/theory/{first['id']}").text

@@ -85,5 +85,53 @@
       "answer": 1,
       "explanation": "Engineers upload programs too, through the same web interface, so the traffic looks the same. It is neither encrypted nor hidden in Modbus. Catching it needs other controls, for example comparing the running program with a known-good copy, or watching who logs in to the engineering interface."
     }
-  ]
+  ],
+  "exercises": {
+    "arc": {
+      "type": "sequence",
+      "title": "Put one campaign in order",
+      "intro": "Each row is one step of an attack on the CybICS gas plant. Use the arrows to put the steps in the order an attacker has to take them, and give each one its ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Discovery",
+        "Lateral Movement",
+        "Collection",
+        "Inhibit Response Function",
+        "Impair Process Control",
+        "Impact"
+      ],
+      "steps": [
+        {
+          "text": "Open the attack machine's desktop in your browser; it sits inside the plant network at 172.18.0.100.",
+          "label": "Initial Access",
+          "explain": "Nothing can happen before the attacker has a foothold inside the network. Reaching an inside host through a remote-access service is Initial Access (T0822 External Remote Services); in CybICS that foothold is handed to you."
+        },
+        {
+          "text": "Scan the 172.18.0.0/24 network with nmap and find 172.18.0.3 with ports 502 and 8080 open.",
+          "label": "Discovery",
+          "explain": "From the foothold you have to find out what is on the network before you can target anything. Finding hosts and their open ports is Discovery (T0846 Remote System Discovery)."
+        },
+        {
+          "text": "Log in to the OpenPLC web interface on port 8080 with a guessed password.",
+          "label": "Lateral Movement",
+          "explain": "You need the scan to know the web interface exists. Using a working login to get onto another system is T0859 Valid Accounts, which ATT&CK lists under Lateral Movement (and Persistence, since the password still works tomorrow)."
+        },
+        {
+          "text": "Read the running PLC program and work out which register holds the HPT pressure.",
+          "label": "Collection",
+          "explain": "Reading the program needs the login. Learning which point in the controller means what is T0861 Point & Tag Identification, a Collection technique: you gather knowledge, you change nothing yet."
+        },
+        {
+          "text": "Write a low value to register 1126 over and over, so the PLC believes the HPT is nearly empty.",
+          "label": "Impair Process Control",
+          "explain": "Only now do you know which register to attack. Changing a value the controller relies on is Impair Process Control (T0836 Modify Parameter, T0806 Brute Force I/O); it is also what the modbus_flood rule catches."
+        },
+        {
+          "text": "The compressor keeps pumping although the real HPT pressure is already above its normal range.",
+          "label": "Impact",
+          "explain": "This is the consequence in the physical world, so it can only come last. The plant doing something the operator never asked for is Impact (T0831 Manipulation of Control)."
+        }
+      ]
+    }
+  }
 }

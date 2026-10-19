@@ -29,7 +29,7 @@ You can watch those values live here:
 
 <div data-widget="plant-live" data-fields="gst,hpt,compressor,systemValve,gstSig,boSen"></div>
 
-The compressor has an exchange rate, and it matters. Each tick it takes two units out of the GST and adds one to the HPT, and only while the GST still holds at least 50.
+The compressor has an exchange rate, and it matters. Each tick it takes two bar out of the GST and adds one to the HPT, and only while the GST still holds at least 50.
 
 <figure class="wide">
 <style>
@@ -80,7 +80,7 @@ The compressor has an exchange rate, and it matters. Each tick it takes two unit
 1. Open FUXA on port 1881 and log in with the operator account given in the challenge material.
 2. Open the system view and switch from automatic to manual. Three buttons appear: compressor, system valve and GST supply. Each one writes its coil directly.
 3. Before you press anything, ask three questions. What adds gas to the HPT? What takes gas out of it? What can stop the thing that adds gas?
-4. Make your changes and watch the HPT, the GST and the blowout indicator over a few minutes. The plant changes by about one unit a second, so be patient.
+4. Make your changes and watch the HPT, the GST and the blowout indicator over a few minutes. The plant changes by about one bar a second, so be patient.
 5. When the blowout valve opens, the HMI rewards you. Switch back to automatic afterwards.
 
 The blowout valve itself is worth understanding, because it does not behave like a ceiling.
@@ -118,7 +118,7 @@ The blowout valve itself is worth understanding, because it does not behave like
   <text x="8" y="176" font-size="11" opacity="0.85">It opens above 220, closes at 200, removes the excess</text>
   <text x="8" y="192" font-size="11" opacity="0.85">and nothing removes the rest. 200 is where the plant stops.</text>
 </svg>
-<figcaption>The relief valve latches open above 220 and stays open until the pressure is back at 200. It vents about half a unit per tick, more slowly than a running compressor fills, so it cannot win against a compressor that never stops. Once it closes, the tank stays near 200 until something else drains it.</figcaption>
+<figcaption>The relief valve latches open above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, more slowly than a running compressor fills, so it cannot win against a compressor that never stops. Once it closes, the tank stays near 200 until something else drains it.</figcaption>
 </figure>
 
 <details class="deep-dive" markdown="1">

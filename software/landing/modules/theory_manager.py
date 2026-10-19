@@ -77,6 +77,10 @@ ALLOWED_ATTRIBUTES = {
 }
 
 _STYLE_BLOCK = re.compile(r'<style>(.*?)</style>', re.S | re.I)
+# Instructor notes stay in the Markdown next to the text they are about, but
+# never reach a student: some of them say how a challenge can be passed
+# without doing it. They are read in the source.
+_INSTRUCTOR_NOTE = re.compile(r'\n?<details class="instructor"[^>]*>.*?</details>\n?', re.S)
 _UNSAFE_CSS = re.compile(r'@import|url\s*\(|expression\s*\(|</', re.I)
 
 
@@ -119,6 +123,8 @@ class TheoryManager:
                 self.topics.append({**topic, 'section_id': section_id})
         for number, topic in enumerate(self.topics, start=1):
             topic['number'] = number
+            topic['briefing'] = '/modules/' in topic.get('content', '')
+        self.core = [t for t in self.topics if t.get('core')]
         self._by_id = {t['id']: t for t in self.topics}
         self._articles = _Cached(self._render_article)
         self._sidecars = _Cached(lambda p: self._load_json(p, {}))
@@ -145,10 +151,15 @@ class TheoryManager:
             return None, None
         return topic, self.sections[topic['section_id']]
 
-    def neighbours(self, topic_id):
-        index = self.topics.index(self._by_id[topic_id])
-        before = self.topics[index - 1] if index > 0 else None
-        after = self.topics[index + 1] if index + 1 < len(self.topics) else None
+    def neighbours(self, topic_id, core=False):
+        """The lessons before and after this one on the full path, or on the core path."""
+        path = self.core if core else self.topics
+        topic = self._by_id[topic_id]
+        if topic not in path:
+            return None, None
+        index = path.index(topic)
+        before = path[index - 1] if index > 0 else None
+        after = path[index + 1] if index + 1 < len(path) else None
         return before, after
 
     def _path(self, relative):
@@ -174,6 +185,7 @@ class TheoryManager:
             sidecar = self.sidecar(topic)
             cards[topic['id']] = {
                 'number': topic['number'],
+                'briefing': topic['briefing'],
                 'minutes': self.article(topic)['minutes'],
                 'level': sidecar.get('level', 'beginner'),
                 'questions': len(sidecar.get('quiz', [])),
@@ -196,6 +208,7 @@ class TheoryManager:
             else:
                 css.append(block.strip())
         source = _STYLE_BLOCK.sub('', source)
+        source = _INSTRUCTOR_NOTE.sub('\n', source)
         # Markdown inside these blocks is only parsed when md_in_html is told to.
         source = re.sub(r'<(details|summary|div|figcaption)(?![^>]*\bmarkdown=)([^>]*)>',
                         r'<\1\2 markdown="1">', source)

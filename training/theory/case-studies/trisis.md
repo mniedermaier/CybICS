@@ -50,6 +50,10 @@ Reports also indicate that the controllers' physical key switch had been left in
 
 </details>
 
+Check that you can retell the attack, from the office network to the unexpected shutdown.
+
+<div data-widget="sequence" data-id="attack"></div>
+
 ## Why it worked
 
 **The safety system was reachable.** Good practice keeps the SIS on its own isolated network. Here the attackers could get from the engineering workstation to the safety controllers over the network.

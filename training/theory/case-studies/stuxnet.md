@@ -52,6 +52,10 @@ The older S7-417 attack targeted the valves that protect a cascade of centrifuge
 
 </details>
 
+Check that you can retell the attack, from the USB stick to the damaged centrifuges.
+
+<div data-widget="sequence" data-id="attack"></div>
+
 ## Why it worked
 
 **The PLC trusted whoever programmed it.** An S7 controller of that time accepted new code from any Step 7 installation that could reach it. There was no check of who wrote the code or whether it had changed.

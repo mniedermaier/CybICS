@@ -47,6 +47,8 @@ Everything else, including the attack machine at `172.18.0.100`, has no business
 
 When you press **Verify Defense**, the check looks for a `DROP` or `REJECT` rule on the container and then tries to connect to port 502 from the CybICS host itself. That host is not on your list, so the connection has to fail.
 
+One side effect: the live plant views in these lessons also read the PLC from the CybICS host (`172.18.0.1`). Once your firewall is in place they show "plant not reachable". That is the firewall working, and a good reminder to list every reader before you block port 502 in a real plant.
+
 ## How to approach it
 
 Try the order of rules here first. Move the rules around and watch which CybICS connections pass:

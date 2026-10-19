@@ -108,10 +108,9 @@ Defenders therefore rely on process and integrity controls:
 - **Access control.** Change the default OpenPLC login and restrict who can reach port 8080. See [Hardening credentials](/theory/defense_password) and [Host firewalling](/theory/defense_firewall).
 - **Process monitoring.** A plant that behaves differently after a change, such as a valve that never opens, is a clue even when the screens look normal.
 
-<details class="instructor" markdown="1">
-<summary>Instructor notes</summary>
-
-The plc_programming verifier needs the default `openplc` login to read the dashboard, and the OpenPLC credential-hardening challenge passes only once that login no longer works. Students who harden first will see "Cannot log into OpenPLC to verify the loaded program."
+<div class="callout tip" markdown="1">
+**Tip:** do this challenge before you harden the OpenPLC password. The check for this challenge logs in to OpenPLC with the default login to see which program is loaded. Once you have changed that password, it can no longer look.
+</div>
 
 <figure class="wide">
 <style>
@@ -155,6 +154,9 @@ The plc_programming verifier needs the default `openplc` login to read the dashb
 </svg>
 <figcaption>The order matters: download first, harden afterwards. The coupling mirrors real change audits, where the evidence that a change happened often depends on the access the change was meant to remove.</figcaption>
 </figure>
+
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
 
 The file name is assigned at upload, so re-uploading an unchanged copy of the shipped program also passes. The check proves that a new upload is loaded and running, not that the logic differs. A good discussion question: how would you prove that it does?
 

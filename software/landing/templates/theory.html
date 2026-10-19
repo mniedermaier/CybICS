@@ -8,12 +8,15 @@
     <link rel="stylesheet" href="/static/css/theory.css">
 </head>
 <body>
-    {% set ns = namespace(done=0, next=None, total=0, core=0, core_minutes=0) %}
+    {% set ns = namespace(done=0, next=None, next_core=None, total=0, core=0, core_minutes=0) %}
     {% for key, section in sections.items() %}{% for topic in section.topics %}
         {% set ns.total = ns.total + 1 %}
         {% if topic.core %}{% set ns.core = ns.core + 1 %}{% set ns.core_minutes = ns.core_minutes + cards[topic.id].minutes %}{% endif %}
         {% if progress.get(topic.id, {}).get('passed') %}{% set ns.done = ns.done + 1 %}
-        {% elif ns.next is none %}{% set ns.next = topic %}{% endif %}
+        {% else %}
+            {% if ns.next is none %}{% set ns.next = topic %}{% endif %}
+            {% if topic.core and ns.next_core is none %}{% set ns.next_core = topic %}{% endif %}
+        {% endif %}
     {% endfor %}{% endfor %}
     <header class="t-header">
         <div class="t-header-inner">
@@ -27,16 +30,16 @@
     <main class="t-wrap">
         <p class="t-intro">{{ config.description }}</p>
 
-        {% if ns.next %}
-        <div class="t-continue">
+        {% for next, path in ((ns.next, 'full'), (ns.next_core, 'core')) if next %}
+        <div class="t-continue" data-path="{{ path }}"{{ ' hidden' if path == 'core' }}>
             <div class="what">
-                <div class="eyebrow">{{ 'Start here' if ns.done == 0 else 'Continue with' }}</div>
-                <div class="name">{{ ns.next.title }}</div>
-                <div class="t-card-summary">{{ ns.next.summary }}</div>
+                <div class="eyebrow">{{ 'Start here' if ns.done == 0 else 'Continue with' }}{{ ' (core path)' if path == 'core' }}</div>
+                <div class="name">{{ next.title }}</div>
+                <div class="t-card-summary">{{ next.summary }}</div>
             </div>
-            <a class="t-btn primary" href="/theory/{{ ns.next.id }}">{{ 'Start the first lesson' if ns.done == 0 else 'Continue' }} &rarr;</a>
+            <a class="t-btn primary" href="/theory/{{ next.id }}">{{ 'Start the first lesson' if ns.done == 0 else 'Continue' }} &rarr;</a>
         </div>
-        {% endif %}
+        {% endfor %}
 
         <div class="t-tools">
             <label class="sr-only" for="search">Search lessons</label>
@@ -64,6 +67,7 @@
                         <div class="t-card-summary">{{ topic.summary }}</div>
                         <div class="t-meta">
                             {% if topic.core %}<span class="t-core">&#11088; core</span>{% endif %}
+                            {% if card.briefing %}<span class="t-brief">&#127937; challenge briefing</span>{% endif %}
                             <span class="t-level {{ card.level }}">{{ card.level }}</span>
                             <span>{{ card.minutes }} min</span>
                             {% if card.questions %}<span>{{ card.questions }}-question quiz</span>{% endif %}
@@ -89,6 +93,9 @@
                 const q = search.value.trim().toLowerCase();
                 core.setAttribute('aria-pressed', String(coreOnly));
                 core.classList.toggle('primary', coreOnly);
+                document.querySelectorAll('.t-continue').forEach(function (box) {
+                    box.hidden = (box.dataset.path === 'core') !== coreOnly;
+                });
                 let shown = 0;
                 document.querySelectorAll('.t-section').forEach(function (section) {
                     let inSection = 0;

@@ -428,5 +428,116 @@
     "term": "engineering workstation",
     "definition": "The PC an engineer uses to write and download PLC programs. Whoever controls it can change how the plant behaves.",
     "link": "/theory/ics-basics"
+  },
+  {
+    "term": "IP address",
+    "definition": "Internet Protocol address: four numbers from 0 to 255, such as 172.18.0.3, that identify a device on a network. Every packet carries the address of its sender and its receiver.",
+    "link": "/theory/networking",
+    "aliases": [
+      "IP addresses",
+      "IP"
+    ]
+  },
+  {
+    "term": "subnet",
+    "definition": "A group of addresses that share the same first part, written like 172.18.0.0/24. Devices on one subnet talk to each other directly; everything else goes through a gateway.",
+    "link": "/theory/networking",
+    "aliases": [
+      "subnets",
+      "subnetwork"
+    ]
+  },
+  {
+    "term": "gateway",
+    "definition": "The router a device sends a packet to when the receiver is not on its own subnet. In the CybICS lab network it is 172.18.0.1, the host computer.",
+    "link": "/theory/networking",
+    "aliases": [
+      "default gateway"
+    ]
+  },
+  {
+    "term": "port",
+    "definition": "A number from 0 to 65535 that says which program on a computer a message is for. Modbus TCP uses 502, OPC-UA 4840.",
+    "link": "/theory/networking",
+    "aliases": [
+      "ports"
+    ]
+  },
+  {
+    "term": "packet",
+    "definition": "A small piece of data sent over a network, wrapped in layers that each add addresses: MAC addresses, IP addresses, then ports.",
+    "link": "/theory/networking",
+    "aliases": [
+      "packets"
+    ]
+  },
+  {
+    "term": "TCP",
+    "definition": "Transmission Control Protocol: opens a connection with a handshake, numbers the packets and resends lost ones, so data arrives complete and in order. Modbus TCP, S7comm and OPC-UA run over it.",
+    "link": "/theory/networking",
+    "aliases": [
+      "Transmission Control Protocol"
+    ]
+  },
+  {
+    "term": "UDP",
+    "definition": "User Datagram Protocol: sends single packets without a connection or a delivery check. Faster than TCP, but nothing guarantees a packet arrives.",
+    "link": "/theory/networking",
+    "aliases": [
+      "User Datagram Protocol"
+    ]
+  },
+  {
+    "term": "three-way handshake",
+    "definition": "How TCP opens a connection: the client sends SYN, the server answers SYN-ACK, the client confirms with ACK. A SYN-ACK tells a port scanner that a port is open.",
+    "link": "/theory/networking",
+    "aliases": [
+      "handshake",
+      "TCP handshake",
+      "SYN",
+      "SYN-ACK"
+    ]
+  },
+  {
+    "term": "MAC address",
+    "definition": "Media Access Control address: the hardware name of a network card, six pairs of hex digits such as 02:42:ac:12:00:03. It is only used on the local network segment.",
+    "link": "/theory/networking",
+    "aliases": [
+      "MAC addresses"
+    ]
+  },
+  {
+    "term": "ARP",
+    "definition": "Address Resolution Protocol: a device asks the local network which MAC address belongs to an IP address. Nobody checks the answers, which makes ARP spoofing possible.",
+    "link": "/theory/mitm",
+    "aliases": [
+      "Address Resolution Protocol"
+    ]
+  },
+  {
+    "term": "container",
+    "definition": "A sealed box with its own programs, files and network address that shares the host's operating system. Each CybICS service runs in its own Docker container.",
+    "link": "/theory/networking",
+    "aliases": [
+      "containers",
+      "Docker container"
+    ]
+  },
+  {
+    "term": "bridge network",
+    "definition": "A virtual switch inside the host computer that connects Docker containers. The CybICS containers share the bridge virt-cybics with the subnet 172.18.0.0/24.",
+    "link": "/theory/networking",
+    "aliases": [
+      "Docker bridge network",
+      "Docker bridge"
+    ]
+  },
+  {
+    "term": "host networking",
+    "definition": "A Docker mode in which a container gets no address of its own and uses the host computer's network directly. The CybICS landing page and IDS run this way.",
+    "link": "/theory/networking",
+    "aliases": [
+      "host network"
+    ]
   }
 ]

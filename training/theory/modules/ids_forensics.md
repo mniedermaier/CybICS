@@ -41,6 +41,10 @@ Severity is one of `low`, `medium`, `high` or `critical`. Each rule always uses 
 
 <div data-widget="checkpoint" data-id="field"></div>
 
+Before you query the real IDS, practise on a made-up morning of alerts. The questions are different from the challenge's, but the moves are the same: filter, count, and read the fields carefully.
+
+<div data-widget="alert-log"></div>
+
 ## How to approach it
 
 1. **Check readiness.** Ask `/api/forensics` whether the evidence threshold is met.

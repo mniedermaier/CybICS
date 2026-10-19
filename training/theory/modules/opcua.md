@@ -39,13 +39,15 @@ The OPC-UA server runs in the `opcua` container at `172.18.0.5` and listens on T
 
 | What the server offers | What it means for you |
 |---|---|
-| Security policies `None` and `Basic256Sha256` | You can connect without encryption, so everything you send, including a password, travels in clear text. |
+| Security policies `None` and `Basic256Sha256` | You can connect without encryption. Your requests, the values and your user name then travel readable; the password itself is still encrypted with the server's key, because this server asks for that. |
 | Identity tokens: anonymous, username/password, certificate | All three are advertised, but the server refuses anonymous sessions. You must prove who you are. |
 | Roles: user and admin | A user can browse and read; only an admin can write. |
 
 <div class="callout cybics" markdown="1">
 **On CybICS:** the endpoint advertising "anonymous" does not mean anonymous login works. Reading what a server *offers* and testing what it *accepts* are two different steps, and attackers do both.
 </div>
+
+<div data-widget="opcua-security"></div>
 
 <div data-widget="checkpoint" data-id="anonymous"></div>
 
@@ -63,7 +65,7 @@ The OPC-UA server runs in the `opcua` container at `172.18.0.5` and listens on T
 
 OPC-UA has two separate layers. The **secure channel** decides whether messages are signed and encrypted; its security policy (`None`, `Basic256Sha256` and others) is negotiated with the server's application certificate. The **session** then carries a user identity token: anonymous, username and password, or an X.509 user certificate.
 
-The two are independent. A client can open an unencrypted channel and still present a password, which then crosses the network readable by anyone running Wireshark. A client can also use a certificate as its user identity; the server maps that certificate to a role. Disabling the `None` policy and rejecting passwords on unencrypted channels closes the first gap; protecting private keys closes the second.
+The two are independent. A client can open an unencrypted channel and still present a password. Whether that password crosses the network readable depends on the endpoint's token policy: the CybICS server asks clients to encrypt it with the server's public key, so a capture shows the user name but not the password. A server configured differently would expose both, see [OPC-UA](/theory/opcua-protocol). A client can also use a certificate as its user identity; the server maps that certificate to a role. Disabling the `None` policy and rejecting passwords on unencrypted channels closes the first gap; protecting private keys closes the second.
 
 </details>
 

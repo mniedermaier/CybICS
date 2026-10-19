@@ -48,6 +48,10 @@ MITRE's own description of T0828 uses Colonial as its example: the pipeline coul
 
 How exactly the attackers obtained the password is not public. Investigators told reporters that it may have been reused and leaked elsewhere; treat that as unconfirmed.
 
+Check that you can retell the incident, from the forgotten VPN account to the stopped pipeline.
+
+<div data-widget="sequence" data-id="attack"></div>
+
 ## Why it worked
 
 **One password was enough.** The forgotten VPN account had no second factor, so a stolen password opened the door. Nobody was watching an account nobody thought was in use.

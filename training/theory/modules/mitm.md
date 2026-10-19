@@ -95,6 +95,10 @@ The challenge folder contains `mitm.py`, a small Modbus **proxy**: a program tha
 
 The forged values were chosen to look consistent. An HPT of 95 lies inside the 50-to-100 band in which the plant reports "operational", and the system sensor is forged to match, so the operator sees a calm, healthy plant.
 
+Step through the attack yourself. Watch both ARP caches, the path the frames take and what the IDS notices.
+
+<div data-widget="arp-spoof"></div>
+
 <div data-widget="checkpoint" data-id="slots"></div>
 
 ## How to approach it

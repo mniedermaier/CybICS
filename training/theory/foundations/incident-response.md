@@ -92,6 +92,10 @@ Imagine the IDS raises `modbus_unauth_write` from `172.18.0.100`, the attack mac
 
 The *IDS forensics* challenge trains the identification step: you query the IDS for its alert history and answer who was most active, which rule fired most and when the activity started. Read [Detection and monitoring](/theory/detection-monitoring) first if you have not.
 
+Now a different alarm. Sort the response to it into the six phases.
+
+<div data-widget="sequence" data-id="response"></div>
+
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: plans, playbooks and the OT-specific guidance</summary>
 

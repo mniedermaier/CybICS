@@ -192,7 +192,7 @@ All of this exists to run one small plant. It has five parts you will meet again
 - **System valve:** lets the downstream process draw gas from the HPT.
 - **Blow-out valve:** a relief valve that opens when the HPT pressure gets dangerously high.
 
-Each reading is a single byte, from 0 to 255. The controller, OpenPLC, reads the HPT pressure and switches the compressor. It starts the compressor when the pressure drops below 60 and stops it at 90. It opens the system valve while the pressure is between 50 and 100, the band in which the plant reports itself healthy.
+Each pressure is given in bar and stored as a whole number from 0 to 255, so it fits in a single byte. The controller, OpenPLC, reads the HPT pressure and switches the compressor. It starts the compressor when the pressure drops below 60 and stops it at 90. It opens the system valve while the pressure is between 50 and 100, the band in which the plant reports itself healthy.
 
 That cycle of **sensor, controller, actuator, process, sensor again** is the **control loop**. It is what makes this a *control* system rather than just a machine. You will see exactly how the controller makes its decisions in [PLCs and the scan cycle](/theory/plc-fundamentals).
 
@@ -347,7 +347,7 @@ The plant model lives in two files that must agree: `thread_physical` in `softwa
 
 - With the compressor on, and only while the GST holds at least 50, the GST loses 2 and the HPT gains 1.
 - With the compressor off and the system valve open, the downstream process draws a random 0 to 2 from the HPT.
-- Above 220 the blow-out valve opens and stays open until the HPT falls to 200. It vents a random 0 or 1 per tick, so on average half a unit against the compressor's steady one.
+- Above 220 the blow-out valve opens and stays open until the HPT falls to 200. It vents a random 0 or 1 per tick, so on average half a bar against the compressor's steady one.
 
 Once the compressor stops, the only thing removing gas is the blow-out valve, and it closes again at 200. The downstream process cannot help, because the valve is shut. Handing the plant back to automatic mode does not reopen it either: OpenPLC only opens the system valve while the pressure is between 50 and 100. The tank sits at 200 until a person deliberately opens the valve by hand. That is typical of real incidents: the controller's own logic does not bring the plant back, and the recovery happens on the plant floor, not in the network capture.
 

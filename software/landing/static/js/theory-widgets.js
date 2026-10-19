@@ -168,7 +168,20 @@
         if (word(2) !== 0) throw new Error(`Protocol ID is ${hex(word(2), 4)}, not 0000, so this is not Modbus.`);
         if (word(4) !== b.length - 6) throw new Error(`The length field says ${word(4)} bytes follow, but ${b.length - 6} do.`);
         const f = { tid: word(0), unit: b[6], fc: b[7], address: 0, count: 1, value: 0, values: [] };
+        if (f.fc >= 0x80) throw new Error(`This is an error reply from the PLC: function code ${hex(f.fc, 2)} is ${hex(f.fc - 0x80, 2)} + 80, and exception code ${hex(b[8] ?? 0, 2)} says why (01 = function not supported, 02 = bad address, 03 = bad value). This builder takes requests; paste the request that came before it.`);
         if (!FUNCTION_CODES[f.fc]) throw new Error(`Function code ${hex(f.fc, 2)} is valid Modbus, but this example only explains 01, 03, 05, 06 and 10.`);
+        // A read reply is function code, byte count, data. Say so rather than
+        // failing on it: replies are half of every capture.
+        if (FUNCTION_CODES[f.fc].kind === 'read' && b[8] === b.length - 9 && b.length !== 12) {
+            const data = b.slice(9);
+            const shown = f.fc === 3 && data.length % 2 === 0
+                ? 'register values ' + Array.from({ length: data.length / 2 }, (_, i) => (data[2 * i] << 8) | data[2 * i + 1]).join(', ')
+                : 'data bytes ' + data.map(x => hex(x, 2)).join(' ');
+            throw new Error(`This is the PLC's reply, not a request: function code ${hex(f.fc, 2)}, then a byte count of ${b[8]}, then the ${shown}. A reply has no address, so match it to its request by the transaction ID (${word(0)}). This builder takes requests.`);
+        }
+        if (f.fc === 16 && b.length === 12) {
+            throw new Error(`This is the PLC's reply to a write: it confirms ${word(10)} register(s) written from address ${word(8)}. This builder takes requests.`);
+        }
         if (b.length < 12) throw new Error('The PDU is too short for this function code.');
         f.address = word(8);
         const kind = FUNCTION_CODES[f.fc].kind;
@@ -217,7 +230,7 @@
             form.querySelectorAll('[data-k]').forEach(function (input) {
                 if (document.activeElement !== input) input.value = f[input.dataset.k];
             });
-            if (fc.kind === 'coil') form.querySelector('[data-k=value]').max = 1;
+            form.querySelector('[data-k=value]').max = fc.kind === 'coil' ? 1 : 65535;
             const groups = modbusGroups(f);
             strip.replaceChildren(byteStrip(groups, explain));
             if (!fromHex) hexOut.value = groups.flatMap(g => g.bytes).map(x => hex(x, 2)).join(' ');
@@ -379,15 +392,18 @@
         { level: 'Level 3', name: 'Operations', hint: 'Engineering, historians, site services', hosts: [
             { id: 'engineeringws', name: 'Engineering workstation', ip: '172.18.0.10', ports: '6080 (noVNC), 5901 (VNC)',
               role: 'The PC an engineer uses to program the PLC and look at the plant. Whoever controls it can change the PLC program.',
-              attacks: ['plc_programming'], ids: 'Allowlisted as a known host.' },
+              attacks: ['plc_programming'], ids: 'Named in the IDS host table, but not an expected Modbus writer or OPC-UA client: its writes, scans and OPC-UA sessions raise alerts like anyone else\'s.' },
             { id: 'cybicsagent', name: 'AI assistant', ip: '172.18.0.11', ports: '5000 (web), 11434 (Ollama)',
               role: 'The CybICS help assistant. Not part of a real plant, but it shows that every extra service on the network is one more thing to protect.',
-              attacks: [], ids: 'Allowlisted as a known host.' },
+              attacks: [], ids: 'Named in the IDS host table, but exempt from no rule.' },
+            { id: 'nginx-proxy', name: 'Web proxy', ip: '172.18.0.12', ports: '80 (8082 on the host), 443 and further web ports',
+              role: 'Forwards the web interfaces of the other containers to ports on the CybICS host, so a browser can reach them. Lab plumbing rather than part of a plant.',
+              attacks: [], ids: 'Named in the IDS host table, but exempt from no rule.' },
         ] },
         { level: 'Level 2', name: 'Supervisory control', hint: 'HMI, SCADA, gateways', hosts: [
             { id: 'fuxa', name: 'FUXA HMI', ip: '172.18.0.4', ports: '1881 (web HMI)',
               role: 'The operators\' screen. It polls the PLC over Modbus and writes set points when an operator presses a button.',
-              attacks: ['password_attack', 'mitm'], ids: 'Known Modbus writer: its writes are expected. Watched for HTTP login brute force.' },
+              attacks: ['password_attack', 'mitm'], ids: 'Expected Modbus writer: its writes raise no alert. Watched for HTTP login brute force.' },
             { id: 'opcua', name: 'OPC-UA server', ip: '172.18.0.5', ports: '4840 (OPC-UA)',
               role: 'A gateway that offers the plant values to other systems over OPC-UA, a modern protocol with built-in security options.',
               attacks: ['opcua'], ids: 'OPC-UA sessions from hosts that are not expected clients raise an alert.' },
@@ -403,15 +419,15 @@
         { level: 'Level 0', name: 'Physical process', hint: 'Sensors, actuators, the plant itself', hosts: [
             { id: 'hwio', name: 'Plant simulation (hwio)', ip: '172.18.0.2', ports: '8090 (3D view)',
               role: 'Simulates the tanks, the compressor and the valves, and writes the sensor values into the PLC about 50 times a second.',
-              attacks: ['physical_process'], ids: 'Known Modbus writer.' },
+              attacks: ['physical_process'], ids: 'Expected Modbus writer: its writes raise no alert.' },
             { id: 'stm32', name: 'STM32 (on the board)', ip: '172.18.0.7', ports: 'UART, I²C',
               role: 'On the real board, the microcontroller that runs the physical model and drives the LEDs and the display.',
-              attacks: ['uart_basic'], ids: 'Allowlisted as a known host.' },
+              attacks: ['uart_basic'], ids: 'Named in the IDS host table, but exempt from no rule. The UART is a wire on the board, so the network IDS never sees it.' },
         ] },
     ];
     const ATTACKER = { id: 'attack', name: 'Attack machine', ip: '172.18.0.100', ports: '6081 (noVNC)',
         role: 'Your Kali machine, playing a compromised office PC. It sits on the same flat network as everything else, so it can reach every level directly. That is the most important lesson of this picture.',
-        attacks: ['scanning', 'mitm', 'flood_overwrite'], ids: 'A known host, but not an expected Modbus writer or OPC-UA client, so its writes and sessions are flagged.' };
+        attacks: ['scanning', 'mitm', 'flood_overwrite'], ids: 'Named in the IDS host table, but not an expected Modbus writer or OPC-UA client, so its writes and sessions are flagged.' };
     register('purdue-explorer', function (node) {
         const { body } = frame(node, 'Purdue explorer: the CybICS network',
             'The Purdue model sorts the devices of a plant into levels, from the physical process (0) up to the business network (4 and 5). Click a host to see what it does and how it is attacked.');
@@ -450,7 +466,7 @@
             wrap.appendChild(row);
         });
         body.append(wrap, detail);
-        show(PURDUE[2].hosts[0], buttons[5]);
+        show(PURDUE[2].hosts[0], buttons[6]);
     });
 
     // ------------------------------------------------------------------
@@ -491,7 +507,7 @@
         });
         const actions = el('div', { class: 'w-row' });
         const stepBtn = el('button', { class: 't-btn primary', type: 'button' }, 'Next step');
-        const autoBtn = el('button', { class: 't-btn', type: 'button' }, 'Run 20 scans');
+        const autoBtn = el('button', { class: 't-btn', type: 'button' }, 'Run 60 seconds');
         const reset = el('button', { class: 't-btn', type: 'button' }, 'Reset');
         actions.append(stepBtn, autoBtn, reset);
         const log = el('p', { class: 'w-note', 'aria-live': 'polite' });
@@ -525,19 +541,27 @@
             paintControls();
         });
         stepBtn.addEventListener('click', step);
-        // A crude plant so 20 scans show the hysteresis: the compressor fills the
-        // HPT and drains the GST, the consumer drains the HPT.
+        // The plant at the average rates of hwio-virtual, which updates the
+        // pressures about once a second: a running compressor moves 2 bar out
+        // of the GST and 1 into the HPT; otherwise the consumer takes 0-2 bar
+        // from the HPT while the system valve is open; the refill adds 0-3.
+        // The PLC scans 20 times in each of those seconds, but sees the same
+        // pressures, so one scan per second decides the same.
         autoBtn.addEventListener('click', function () {
-            const lines = [];
-            for (let i = 0; i < 20; i++) {
+            const marks = [];
+            for (let t = 0; t < 60; t++) {
                 const r = plcScan(inputs, state); state = r.state;
-                inputs.hpt = Math.max(0, Math.min(250, inputs.hpt + (r.outputs.compressor ? 3 : 0) - (r.outputs.systemValve ? 1 : 0)));
-                inputs.gst = Math.max(0, Math.min(250, inputs.gst - (r.outputs.compressor ? 1 : 0) + (r.outputs.gstSig ? 4 : 0)));
-                lines.push(r.outputs.compressor ? '▲' : '·');
+                if (r.outputs.compressor) {
+                    if (inputs.hpt < 255 && inputs.gst >= 50) { inputs.gst -= 2; inputs.hpt += 1; }
+                } else if (r.outputs.systemValve) {
+                    inputs.hpt = Math.max(0, inputs.hpt - [0, 1, 2][t % 3]);
+                }
+                if (r.outputs.gstSig && inputs.gst < 251) inputs.gst = Math.min(255, inputs.gst + [0, 1, 2, 3][t % 4]);
+                marks.push(r.outputs.compressor ? '▲' : '·');
             }
             phase = 2; snapshot = { ...inputs }; result = plcScan(inputs, state);
             paintControls(); paint();
-            log.textContent = `20 scans (1 second of PLC time): compressor ${lines.join('')} → HPT is now ${inputs.hpt}. ▲ = compressor on.`;
+            log.textContent = `60 seconds (about 1200 scans): compressor ${marks.join('')} → HPT is now ${inputs.hpt}, GST ${inputs.gst}. ▲ = compressor on during that second.`;
         });
         reset.addEventListener('click', function () {
             inputs = { hpt: 75, gst: 180, stop: false }; state = { compressorState: 0, gstState: 0 };
@@ -554,7 +578,7 @@
     // 120 s of Modbus writes. The engineer downloads a recipe in two bursts;
     // the attacker either floods or writes "low and slow".
     const IDS_SCENARIOS = {
-        flood: { name: 'Attacker floods the HPT register', attacker: Array.from({ length: 40 }, (_, i) => 70 + i * 0.25) },
+        flood: { name: 'Attacker writes the HPT register in a fast burst', attacker: Array.from({ length: 40 }, (_, i) => 70 + i * 0.25) },
         slow: { name: 'Attacker writes low and slow', attacker: Array.from({ length: 12 }, (_, i) => 10 + i * 9) },
     };
     const ENGINEER = [...Array.from({ length: 8 }, (_, i) => 25 + i * 0.6), ...Array.from({ length: 6 }, (_, i) => 95 + i * 0.8)];
@@ -666,10 +690,10 @@
             const rows = FW_FLOWS.map(function (f) {
                 const d = decide(f);
                 const right = d.pass === f.needed; good += right;
-                return `<tr class="${right ? '' : (f.needed ? 'good-miss' : 'bad-miss')}"><td>${escapeHtml(FW_HOSTS[f.src])}</td><td>${f.port}</td><td>${escapeHtml(f.what)}</td>` +
-                    `<td>${f.needed ? 'needed' : 'not needed'}</td><td class="verdict ${d.pass ? 'pass' : 'block'}">${d.pass ? 'passes' : 'blocked'}</td><td class="w-note">${d.by}</td></tr>`;
+                return `<tr class="${right ? '' : (f.needed ? 'good-miss' : 'bad-miss')}"><td>${escapeHtml(FW_HOSTS[f.src])} &rarr; ${f.port}<br><small class="w-note">${escapeHtml(f.what)}</small></td>` +
+                    `<td class="verdict ${d.pass ? 'pass' : 'block'}">${d.pass ? 'passes' : 'blocked'}<br><small class="w-note">${d.by}</small></td><td>${f.needed ? 'needed' : 'not needed'}</td></tr>`;
             });
-            table.innerHTML = `<table class="flows"><tr><th>From</th><th>Port</th><th>What</th><th>Should it pass?</th><th>Result</th><th>Decided by</th></tr>${rows.join('')}</table>`;
+            table.innerHTML = `<table class="flows"><tr><th>Connection</th><th>Result</th><th>Should it pass?</th></tr>${rows.join('')}</table>`;
             const brokeNeeded = FW_FLOWS.some(f => f.needed && !decide(f).pass);
             verdict.innerHTML = good === FW_FLOWS.length
                 ? '<b class="w-ok">All eight connections are handled correctly.</b> Notice that you allowed what is needed and denied the rest, rather than trying to list every bad host: that is “default deny”.'
@@ -682,6 +706,322 @@
             paint();
         });
         add.querySelector('[data-a=policy]').addEventListener('change', function (e) { policy = e.target.value; paint(); });
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // sequence: put the steps of a story in order, and name each one
+    // ------------------------------------------------------------------
+    // The steps come from "exercises" in the lesson's sidecar, in the right
+    // order; the reader gets them shuffled.
+    register('sequence', function (node) {
+        const ex = window.TheoryWidgets.exercises[node.dataset.id];
+        if (!ex || !ex.steps) throw new Error('no exercise ' + node.dataset.id);
+        const labels = ex.labels || [];
+        const { body } = frame(node, ex.title || 'Put the steps in order', inline(ex.intro || 'Move the steps into the right order with the arrows.'));
+        const steps = ex.steps.map((st, i) => ({ ...st, key: i, chosen: '' }));
+        let order = steps.slice();
+        do {
+            for (let i = order.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [order[i], order[j]] = [order[j], order[i]];
+            }
+        } while (order.length > 2 && order.every((st, i) => st.key === i));
+        const list = el('ol', { class: 'rules seq' });
+        const actions = el('div', { class: 'w-row' });
+        const check = el('button', { class: 't-btn primary', type: 'button' }, 'Check');
+        const solve = el('button', { class: 't-btn', type: 'button', hidden: '' }, 'Show the answer');
+        actions.append(check, solve);
+        const verdict = el('p', { 'aria-live': 'polite' });
+        body.append(list, actions, verdict);
+        let graded = false;
+        function paint() {
+            list.innerHTML = '';
+            order.forEach(function (st, i) {
+                const li = el('li', { class: 'rule' });
+                const posOk = st.key === i, labelOk = !labels.length || st.chosen === st.label;
+                if (graded) li.classList.add(posOk && labelOk ? 'ok' : 'bad');
+                li.appendChild(el('span', { class: 'mono' }, String(i + 1)));
+                li.appendChild(el('span', { class: 'grow' }, inline(st.text)));
+                if (labels.length) {
+                    const select = el('select', { 'aria-label': `Label for step ${i + 1}` },
+                        `<option value="">choose…</option>` + labels.map(l => `<option${l === st.chosen ? ' selected' : ''}>${escapeHtml(l)}</option>`).join(''));
+                    select.addEventListener('change', function () { st.chosen = select.value; graded = false; verdict.textContent = ''; paint(); });
+                    li.appendChild(select);
+                }
+                [['↑', -1, 'Move up'], ['↓', 1, 'Move down']].forEach(function ([label, dir, aria]) {
+                    const b = el('button', { type: 'button', 'aria-label': `${aria}: step ${i + 1}` }, label);
+                    b.disabled = (dir < 0 && i === 0) || (dir > 0 && i === order.length - 1);
+                    b.addEventListener('click', function () {
+                        const j = i + dir; [order[i], order[j]] = [order[j], order[i]];
+                        graded = false; verdict.textContent = ''; paint();
+                        list.children[j].querySelectorAll('button')[dir < 0 ? 0 : 1].focus();
+                    });
+                    li.appendChild(b);
+                });
+                if (graded) {
+                    const why = posOk && labelOk ? '' : !posOk ? 'Not in this position. ' : `Right place, but not “${escapeHtml(st.chosen || 'no label')}”. `;
+                    li.appendChild(el('div', { class: 'seq-why' }, (why ? `<b>${why}</b>` : '') + (posOk && labelOk ? inline(st.explain || '') : '')));
+                }
+                list.appendChild(li);
+            });
+        }
+        check.addEventListener('click', function () {
+            graded = true;
+            const right = order.filter((st, i) => st.key === i && (!labels.length || st.chosen === st.label)).length;
+            verdict.innerHTML = right === order.length
+                ? `<b class="w-ok">All ${order.length} steps are right.</b> Read the explanations under each step.`
+                : `<b>${right} of ${order.length} right.</b> The marked steps need another look; the explanation appears once a step is right.`;
+            solve.hidden = right === order.length;
+            paint();
+        });
+        solve.addEventListener('click', function () {
+            order = steps.slice().sort((a, b) => a.key - b.key);
+            order.forEach(st => { st.chosen = st.label || ''; });
+            graded = true; solve.hidden = true;
+            verdict.innerHTML = '<b>This is the order the lesson describes.</b> Read why each step comes where it does.';
+            paint();
+        });
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // arp-spoof: how an attacker gets between the HMI and the PLC
+    // ------------------------------------------------------------------
+    const ARP_HOSTS = {
+        fuxa: { name: 'FUXA HMI', ip: '172.18.0.4', mac: '3a:5e:91:0c:27:b1' },
+        attacker: { name: 'Attack machine', ip: '172.18.0.100', mac: 'c6:76:2b:3f:44:40' },
+        plc: { name: 'OpenPLC', ip: '172.18.0.3', mac: 'd6:10:7c:61:8a:64' },
+    };
+    const ARP_STEPS = [
+        { title: 'Normal operation', poisonFuxa: false, poisonPlc: false,
+          text: 'FUXA polls the PLC once a second. Each host has learned the other\'s MAC address and keeps it in its ARP cache. The frames go straight from one to the other.' },
+        { title: 'Poison FUXA', poisonFuxa: true, poisonPlc: false,
+          text: 'The attacker sends FUXA an ARP reply nobody asked for: “172.18.0.3 is at c6:76:2b:3f:44:40”. FUXA believes the last reply it heard and overwrites its cache. Its requests now go to the attacker, but the PLC\'s answers still go straight back.' },
+        { title: 'Poison the PLC', poisonFuxa: true, poisonPlc: true,
+          text: 'The same lie to the PLC, about FUXA\'s address. Now both directions pass the attack machine. The IP addresses in the packets have not changed, so neither side sees anything unusual.' },
+        { title: 'Relay or rewrite', poisonFuxa: true, poisonPlc: true, relay: true,
+          text: 'The attacker has to pass the traffic on, or the HMI goes dark and someone notices at once. With forwarding on, a proxy can also rewrite the answers on their way back.' },
+    ];
+    register('arp-spoof', function (node) {
+        const { body } = frame(node, 'ARP spoofing, step by step',
+            'Step through the attack and watch the ARP caches, the path of the traffic and what the IDS sees.');
+        const stage = el('div', { class: 'arp' });
+        const story = el('div', { class: 'explain', 'aria-live': 'polite' });
+        const relayRow = el('div', { class: 'w-row' }, `<label><input type="checkbox" data-k="forward" checked> IP forwarding on the attack machine</label>
+            <label><input type="checkbox" data-k="rewrite"> rewrite the HPT reading on its way back</label>`);
+        const nav = el('div', { class: 'w-row' });
+        const prev = el('button', { class: 't-btn', type: 'button' }, '← Back');
+        const next = el('button', { class: 't-btn primary', type: 'button' }, 'Next step →');
+        const where = el('span', { class: 'w-note' });
+        nav.append(prev, next, where);
+        body.append(stage, story, relayRow, nav);
+        let i = 0;
+        const cfg = { forward: true, rewrite: false };
+        const cache = (rows) => '<table class="flows arp-cache"><tr><th>IP</th><th>MAC in the cache</th></tr>' +
+            rows.map(([ip, mac, bad]) => `<tr><td class="mono">${ip}</td><td class="mono${bad ? ' arp-bad' : ''}">${mac}${bad ? ' ⚠' : ''}</td></tr>`).join('') + '</table>';
+        function paint() {
+            const st = ARP_STEPS[i];
+            const H = ARP_HOSTS;
+            const viaReq = st.poisonFuxa, viaResp = st.poisonPlc;
+            const broken = st.relay && !cfg.forward;
+            const forged = st.relay && cfg.forward && cfg.rewrite;
+            stage.innerHTML = `
+                <div class="arp-host"><b>${H.fuxa.name}</b><small class="mono">${H.fuxa.ip}</small>${cache([[H.plc.ip, st.poisonFuxa ? H.attacker.mac : H.plc.mac, st.poisonFuxa]])}</div>
+                <div class="arp-host attacker"><b>${H.attacker.name}</b><small class="mono">${H.attacker.ip} &middot; ${H.attacker.mac}</small>
+                    <div class="w-note">${!viaReq ? 'Not involved yet.' : broken ? 'Receives the frames and drops them.' : viaResp ? (st.relay ? 'Relays every frame' + (cfg.rewrite ? ' and changes the HPT value in the answers.' : '.') : 'Sees both directions.') : 'Sees FUXA\'s requests.'}</div></div>
+                <div class="arp-host"><b>${H.plc.name}</b><small class="mono">${H.plc.ip}</small>${cache([[H.fuxa.ip, st.poisonPlc ? H.attacker.mac : H.fuxa.mac, st.poisonPlc]])}</div>
+                <div class="arp-path"><b>Request</b> FUXA → ${viaReq ? (broken ? '<span class="arp-bad">attacker ✕</span>' : 'attacker → ') : ''}${broken ? '' : 'PLC'}
+                    &nbsp;&middot;&nbsp; <b>Answer</b> ${broken ? '<span class="w-note">none</span>' : `PLC → ${viaResp ? 'attacker → ' : ''}FUXA`}
+                    &nbsp;&middot;&nbsp; <b>HMI shows</b> ${broken ? '<span class="arp-bad">no connection</span>' : forged ? 'HPT 75 bar <span class="arp-bad">(forged: the proxy sends 75, whatever the tank really holds)</span>' : 'the real HPT pressure'}</div>
+                <div class="arp-ids"><b>IDS (arp_spoof)</b> ${st.poisonFuxa
+                    ? `<span class="w-pill alert">alert</span> 172.18.0.3 seen with ${H.plc.mac} and ${H.attacker.mac}${st.poisonPlc ? '; 172.18.0.4 with two MACs as well' : ''}`
+                    : '<span class="w-pill off">quiet</span> every IP address has one MAC'}</div>`;
+            story.innerHTML = `<b>${i + 1}. ${escapeHtml(st.title)}.</b> ${escapeHtml(st.text)}` +
+                (broken ? ' <b>Forwarding is off: the attacker swallows the frames and the HMI loses its connection.</b>' : '');
+            relayRow.hidden = !st.relay;
+            prev.disabled = i === 0; next.disabled = i === ARP_STEPS.length - 1;
+            where.textContent = `Step ${i + 1} of ${ARP_STEPS.length}`;
+        }
+        prev.addEventListener('click', () => { i = Math.max(0, i - 1); paint(); });
+        next.addEventListener('click', () => { i = Math.min(ARP_STEPS.length - 1, i + 1); paint(); });
+        relayRow.addEventListener('change', function (e) { cfg[e.target.dataset.k] = e.target.checked; paint(); });
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // keyspace: how long it takes to guess a password
+    // ------------------------------------------------------------------
+    const CHARSETS = [['lower', 'a-z', 26], ['upper', 'A-Z', 26], ['digits', '0-9', 10], ['symbols', 'symbols', 33]];
+    const SPEEDS = [
+        ['online', 'Online, at a web login', 10, '10'],
+        ['parallel', 'Online, many connections', 1000, '1,000'],
+        ['slowhash', 'Offline, stolen bcrypt hash', 1e4, '10,000'],
+        ['fasthash', 'Offline, stolen MD5 hash', 1e10, '10 billion'],
+    ];
+    const sci = n => n.toExponential(1).replace(/e\+(\d+)/, ' × 10<sup>$1</sup>');
+    function duration(seconds) {
+        if (seconds < 1) return 'less than a second';
+        const units = [['year', 31557600], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+        for (const [name, size] of units) {
+            if (seconds >= size) {
+                const n = seconds / size;
+                if (name === 'year' && n >= 1e6) return `${sci(n)} years`;
+                const r = n >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+                return `${r.toLocaleString('en')} ${name}${r === 1 ? '' : 's'}`;
+            }
+        }
+    }
+    register('keyspace', function (node) {
+        const { body } = frame(node, 'How long does guessing take?',
+            'Choose what a password is made of and how fast the attacker can try. The result is how long it takes to try every possibility; on average the right one turns up after half of that.');
+        const controls = el('div');
+        controls.innerHTML = `
+            <div class="w-row"><label><input type="radio" name="ks-kind" value="random" checked> random characters</label>
+                <label><input type="radio" name="ks-kind" value="word"> a word from a leaked password list</label>
+                <label><input type="radio" name="ks-kind" value="default"> the vendor's default password</label></div>
+            <div class="w-row" data-show="random">${CHARSETS.map(([k, n, size]) => `<label><input type="checkbox" data-c="${k}"${k === 'lower' ? ' checked' : ''}> ${n} (${size})</label>`).join('')}</div>
+            <div class="w-row" data-show="random"><label for="ks-len">Length <b data-o="len"></b> characters</label><input id="ks-len" type="range" min="1" max="20" value="6" data-k="len"></div>
+            <div class="w-row"><label>Attacker <select data-k="speed">${SPEEDS.map(([k, n, , label]) => `<option value="${k}">${n}: ~${label} per second</option>`).join('')}</select></label></div>
+            <p class="w-note">Online guesses each wait for the server's answer. Offline, the attacker has stolen the stored hash of the password and tests guesses on a graphics card (GPU) as fast as it can compute; bcrypt is built to be slow, MD5 is not.</p>`;
+        const score = el('div', { class: 'score', 'aria-live': 'polite' });
+        const verdict = el('p', { class: 'w-note' });
+        body.append(controls, score, verdict);
+        function paint() {
+            const kind = controls.querySelector('[name=ks-kind]:checked').value;
+            controls.querySelectorAll('[data-show=random]').forEach(r => { r.hidden = kind !== 'random'; });
+            const len = Number(controls.querySelector('[data-k=len]').value);
+            controls.querySelector('[data-o=len]').textContent = len;
+            const pool = CHARSETS.filter(([k]) => controls.querySelector(`[data-c=${k}]`).checked).reduce((n, c) => n + c[2], 0);
+            const [, speedName, rate] = SPEEDS.find(sp => sp[0] === controls.querySelector('[data-k=speed]').value);
+            const total = kind === 'default' ? 1 : kind === 'word' ? 14e6 : Math.pow(pool || 0, len);
+            const seconds = total / rate;
+            const big = total >= 1e6 ? sci(total) : Math.round(total).toLocaleString('en');
+            score.innerHTML = `<div><b>${pool || kind !== 'random' ? big : '0'}</b>${total === 1 ? 'possibility' : 'possibilities'}</div><div><b>${duration(seconds)}</b>to try them all</div><div><b>${duration(seconds / 2)}</b>on average</div>`;
+            verdict.innerHTML = kind === 'default' ? '<b>One guess.</b> Default passwords are printed in the manual and collected in public lists. No length helps if nobody changed it.'
+                : kind === 'word' ? '<b>A leaked list has about 14 million real passwords</b> (the RockYou list). Attackers try it first, so a password that is on it falls fast even if it looks long.'
+                : !pool ? 'Pick at least one kind of character.'
+                : seconds < 86400 ? '<b>Too short.</b> Every extra character multiplies the work; a bigger character set helps less than a longer password.'
+                : rate <= 1000 ? '<b>Safe against online guessing</b>, especially with a lockout after a few failures. Now switch to an offline attacker with a stolen hash.'
+                : '<b>Holds up even offline.</b> Length did most of that work.';
+        }
+        controls.addEventListener('input', paint);
+        controls.addEventListener('change', paint);
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // alert-log: triage a morning of IDS alerts
+    // ------------------------------------------------------------------
+    // A made-up morning in the CybICS IDS, in its own message formats
+    // (software/ids/rules.py). Not the data of the IDS Forensics challenge.
+    const ALERT_LOG = [
+        ['09:58:40', 'low', 'opcua_access', '172.18.0.11', '172.18.0.5', 'OPC-UA access from non-service host 172.18.0.11'],
+        ['10:02:11', 'medium', 'port_scan', '172.18.0.100', '172.18.0.3', 'Port scan detected: 5 ports probed on 172.18.0.3'],
+        ['10:02:47', 'medium', 'port_scan', '172.18.0.100', '172.18.0.6', 'Port scan detected: 5 ports probed on 172.18.0.6'],
+        ['10:03:30', 'medium', 's7_enumeration', '172.18.0.100', '172.18.0.6', 'S7comm access from 172.18.0.100 to port 1102'],
+        ['10:06:10', 'high', 'http_brute_force', '172.18.0.100', '172.18.0.3', 'Brute force on OpenPLC: 9 login attempts in 30s'],
+        ['10:09:47', 'high', 'modbus_unauth_write', '172.18.0.10', '172.18.0.3', 'Unauthorized Modbus writes from 172.18.0.10 (10 in 30s)'],
+        ['10:12:15', 'medium', 'modbus_diagnostic', '172.18.0.100', '172.18.0.3', 'Modbus diagnostic function 0x08 from 172.18.0.100'],
+        ['10:14:03', 'critical', 'arp_spoof', '172.18.0.3', '', "ARP spoofing: IP 172.18.0.3 seen with multiple MACs: {'d6:10:7c:61:8a:64', 'c6:76:2b:3f:44:40'}"],
+        ['10:16:20', 'high', 'modbus_unauth_write', '172.18.0.100', '172.18.0.3', 'Unauthorized Modbus writes from 172.18.0.100 (10 in 30s)'],
+        ['10:16:24', 'critical', 'modbus_flood', '172.18.0.100', '172.18.0.3', 'Modbus write flood: 50 writes in 5s'],
+        ['10:16:55', 'critical', 'modbus_flood', '172.18.0.100', '172.18.0.3', 'Modbus write flood: 50 writes in 5s'],
+        ['10:17:30', 'high', 'syn_flood', '172.18.0.100', '172.18.0.3', 'SYN flood detected: 100 SYN packets in 10s'],
+    ];
+    const ALERT_QUESTIONS = [
+        { q: 'Which host is the attacker?', options: ['172.18.0.100', '172.18.0.3', '172.18.0.10', '172.18.0.11'], answer: 0,
+          why: 'It raises most of the alerts and they follow the arc of an attack: scan, enumerate, guess passwords, then write to the PLC.' },
+        { q: 'What did the attacker do first?', options: ['Flooded the PLC with Modbus writes', 'Scanned for open ports', 'Poisoned ARP caches', 'Guessed the OpenPLC password'], answer: 1,
+          why: 'The two port_scan alerts at 10:02 are its first. Discovery comes before the attack itself, which is why scans are worth an alert.' },
+        { q: 'The arp_spoof alert names 172.18.0.3, the PLC, as its source. What does that tell you?', options: ['The PLC is attacking the network', 'Someone claimed to be 172.18.0.3; the second MAC shows who', 'The IDS has made a mistake and the alert can be ignored'], answer: 1,
+          why: 'An ARP alert is about the address that was impersonated. c6:76:2b:3f:44:40 is the attack machine\'s MAC, so the source column alone would have pointed you at the victim.' },
+        { q: 'Which alerts would you check with the plant staff before calling them hostile?', options: ['Those from 172.18.0.10 and 172.18.0.11', 'All alerts from 172.18.0.100', 'Only the critical ones'], answer: 0,
+          why: 'The engineering workstation and the AI assistant are known hosts that do odd things for good reasons, such as a maintenance download. Check first; an attacker who took over one of them would look the same.' },
+    ];
+    register('alert-log', function (node) {
+        const { body } = frame(node, 'Triage an IDS alert log',
+            'A morning of alerts from the CybICS IDS. Filter them, look at the counts, and answer the questions below the log.');
+        const sources = [...new Set(ALERT_LOG.map(a => a[3]))];
+        const rulesSeen = [...new Set(ALERT_LOG.map(a => a[2]))];
+        const sevs = ['critical', 'high', 'medium', 'low'];
+        const filters = el('div', { class: 'w-row' });
+        const opt = (k, list) => `<select data-f="${k}"><option value="">all</option>${list.map(v => `<option>${v}</option>`).join('')}</select>`;
+        filters.innerHTML = `<label>Source ${opt('src', sources)}</label><label>Rule ${opt('rule', rulesSeen)}</label><label>Severity ${opt('sev', sevs)}</label>
+            <label>Text <input type="text" data-f="text" placeholder="e.g. 0x08"></label>`;
+        const summary = el('div', { class: 'score' });
+        const log = el('ol', { class: 'alog' });
+        const quiz = el('div', { class: 'alog-q' });
+        body.append(filters, summary, log, quiz);
+        function paint() {
+            const f = {};
+            filters.querySelectorAll('[data-f]').forEach(i => { f[i.dataset.f] = i.value.trim().toLowerCase(); });
+            const rows = ALERT_LOG.filter(a => (!f.src || a[3] === f.src) && (!f.rule || a[2] === f.rule) && (!f.sev || a[1] === f.sev) &&
+                (!f.text || a.join(' ').toLowerCase().includes(f.text)));
+            const count = (i) => rows.reduce((m, a) => (m[a[i]] = (m[a[i]] || 0) + 1, m), {});
+            const top = Object.entries(count(3)).sort((a, b) => b[1] - a[1])[0];
+            summary.innerHTML = `<div><b>${rows.length}</b>alerts shown</div><div><b>${Object.keys(count(2)).length}</b>different rules</div>` +
+                `<div><b>${count(1).critical || 0}</b>critical</div><div><b class="mono">${top ? top[0] : '–'}</b>most alerts${top ? ` (${top[1]})` : ''}</div>`;
+            log.innerHTML = rows.map(a => `<li class="sev-${a[1]}"><span class="mono">${a[0]}</span> <span class="w-pill">${a[1]}</span> <b>${a[2]}</b>` +
+                `<br><span class="mono">${a[3]}${a[4] ? ' → ' + a[4] : ''}</span><br><span class="w-note">${escapeHtml(a[5])}</span></li>`).join('') ||
+                '<li class="w-note">No alert matches these filters.</li>';
+        }
+        ALERT_QUESTIONS.forEach(function (q, n) {
+            const box = el('div', { class: 'q' });
+            box.innerHTML = `<div class="q-text">${escapeHtml(q.q)}</div>`;
+            const row = el('div', { class: 'w-row' });
+            const select = el('select', { 'aria-label': q.q }, '<option value="">choose…</option>' + q.options.map((o, i) => `<option value="${i}">${escapeHtml(o)}</option>`).join(''));
+            const fb = el('div', { class: 'q-feedback', 'aria-live': 'polite' });
+            select.addEventListener('change', function () {
+                if (select.value === '') { fb.className = 'q-feedback'; return; }
+                const ok = Number(select.value) === q.answer;
+                fb.className = 'q-feedback show ' + (ok ? 'ok' : 'bad');
+                fb.innerHTML = ok ? `<b>Correct.</b>${escapeHtml(q.why)}` : '<b>Not quite.</b>Use the filters to look again.';
+            });
+            row.appendChild(select);
+            box.append(row, fb);
+            quiz.appendChild(box);
+        });
+        filters.addEventListener('input', paint);
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // opcua-security: the channel and the identity are two choices
+    // ------------------------------------------------------------------
+    // What software/opcua/opcua.py and user_manager.py do with each pair.
+    const UA_IDENTITIES = {
+        anonymous: { name: 'Anonymous', session: false, why: 'The server advertises the Anonymous token, but its user manager finds no user and ActivateSession fails with BadUserAccessDenied.' },
+        wrong: { name: 'user1 with a wrong password', session: false, why: 'The password check fails, so ActivateSession is refused. Each try is a round trip the network can see.' },
+        user: { name: 'user1 with the right password', session: true, role: 'User', write: false, why: 'Accepted with the role User: it may browse and read, but every write is refused.' },
+        cert: { name: 'The registered admin certificate', session: true, role: 'Admin', write: true, why: 'The server registered this certificate as an administrator at start-up, so the session gets the role Admin and may write.' },
+    };
+    register('opcua-security', function (node) {
+        const { body } = frame(node, 'OPC-UA: envelope and ID card',
+            'Pick how the channel is protected and who the client claims to be, and see what the CybICS server (port 4840) does with it, and what someone listening on the network gets.');
+        const controls = el('div', { class: 'w-row' });
+        controls.innerHTML = `<label>Channel <select data-k="policy"><option value="none">Security policy None</option><option value="enc">Basic256Sha256, SignAndEncrypt</option></select></label>
+            <label>Identity <select data-k="id">${Object.entries(UA_IDENTITIES).map(([k, v]) => `<option value="${k}">${escapeHtml(v.name)}</option>`).join('')}</select></label>`;
+        const score = el('div', { class: 'score', 'aria-live': 'polite' });
+        const detail = el('dl', { class: 'ua-detail' });
+        body.append(controls, score, detail);
+        function paint() {
+            const enc = controls.querySelector('[data-k=policy]').value === 'enc';
+            const ident = UA_IDENTITIES[controls.querySelector('[data-k=id]').value];
+            const pill = (on, a, b) => `<span class="w-pill ${on ? 'on' : 'off'}">${on ? a : b}</span>`;
+            score.innerHTML = `<div><b>${pill(ident.session, 'yes', 'refused')}</b>session</div><div><b>${ident.role || '–'}</b>role</div>` +
+                `<div><b>${pill(ident.session, 'yes', 'no')}</b>may read</div><div><b>${pill(ident.write, 'yes', 'no')}</b>may write</div>`;
+            const sniff = enc
+                ? 'Scrambled bytes only. It still sees that this host talks to port 4840, when, and how much.'
+                : 'Every request and every value in readable form' +
+                  (ident === UA_IDENTITIES.anonymous ? '.' : ident === UA_IDENTITIES.cert ? ', and the client certificate (that is public; the private key never travels).'
+                  : ', and the user name. The password itself is encrypted with the server\'s key, because this server\'s token policy asks for it; a server set up differently would send it readable.');
+            const tamper = enc ? 'Detected: every message is signed, so a changed byte breaks the signature.'
+                : 'Not detected: a man in the middle can change values in either direction.';
+            detail.innerHTML = `<dt>Server</dt><dd>${escapeHtml(ident.why)}</dd><dt>A listener sees</dt><dd>${escapeHtml(sniff)}</dd>` +
+                `<dt>A changed message</dt><dd>${escapeHtml(tamper)}</dd><dt>IDS</dt><dd>${escapeHtml('From the attack machine: an opcua_access alert (low), whatever the channel or identity. The rule only asks whether the host is an expected OPC-UA client.')}</dd>`;
+        }
+        controls.addEventListener('change', paint);
         paint();
     });
 })();

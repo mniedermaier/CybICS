@@ -87,5 +87,53 @@
       "answer": 1,
       "explanation": "The valve opens above 220 bar and works without the PLC, but its venting rate is lower than the compressor's filling rate. It stays open until the pressure falls below 200, so it does not close early, and no Modbus write can hold it shut. A barrier that cannot be switched off still has limits, which is why plants layer several."
     }
-  ]
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the attack in order",
+      "intro": "Use the arrows to put the steps of the TRITON attack into the order they happened, then give each one its MITRE ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Lateral Movement",
+        "Evasion",
+        "Collection",
+        "Privilege Escalation",
+        "Persistence",
+        "Impact"
+      ],
+      "steps": [
+        {
+          "text": "Remote desktop jump hosts and weak firewalls led the attackers to the safety engineering workstation.",
+          "label": "Lateral Movement",
+          "explain": "The attackers were already in the office network; this is how they moved on to the computer that programs the safety controllers. Remote Services (T0886) used this way is Lateral Movement."
+        },
+        {
+          "text": "The attack tool was named trilog.exe, like a genuine Triconex log viewer.",
+          "label": "Evasion",
+          "explain": "The tool had to be placed on the workstation before it could talk to any controller, and its name made it look harmless there. Masquerading (T0849) is Evasion."
+        },
+        {
+          "text": "The tool read which state the safety controller was in before doing anything else.",
+          "label": "Collection",
+          "explain": "Checking the controller came before changing it. Gathering information from the controller with Detect Operating Mode and Program Upload (T0868, T0845) is Collection."
+        },
+        {
+          "text": "A previously unknown flaw in the Tricon firmware gave the attack code the highest privileges.",
+          "label": "Privilege Escalation",
+          "explain": "Normal access was not enough to plant hidden code, so the attackers needed more rights first. Exploitation for Privilege Escalation (T0890) is its own tactic."
+        },
+        {
+          "text": "Attacker code written into the controller's memory let them read and change it at will later.",
+          "label": "Persistence",
+          "explain": "With full privileges the backdoor could be installed. Keeping a lasting foothold through modified firmware (T1693.001) is Persistence."
+        },
+        {
+          "text": "The injected code misbehaved, the controllers detected a fault and shut the plant down.",
+          "label": "Impact",
+          "explain": "The faulty backdoor code tripped the controllers, which is how the attack was found. The shutdown cost production and was not the attackers' goal, but a stopped plant is still an Impact; the intended one was Loss of Safety (T0880)."
+        }
+      ]
+    }
+  }
 }

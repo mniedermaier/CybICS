@@ -48,6 +48,10 @@ When you press **Verify Defense**, the CybICS landing page logs in with the old 
 4. **Write it down safely.** If you forget it, the only way back in the lab is to reset the container. In a plant, store it in a password manager or a sealed record.
 5. **Verify.** Log out, try the old password yourself, then press Verify Defense.
 
+Try it: compare an eight-character password of random letters with a passphrase of four words (about 25 lower-case letters).
+
+<div data-widget="keyspace"></div>
+
 <div class="callout warning" markdown="1">
 **Watch out:** In a plant, locking out operators can be as dangerous as an attacker. Coordinate a password change with everyone who uses the account, and never change one in the middle of a running operation.
 </div>

@@ -1,0 +1,97 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain what an IP address, a subnet, a MAC address and a port identify, using the CybICS lab network",
+    "Describe how a TCP connection starts and why a port scanner sends SYN packets",
+    "Explain how the CybICS containers share one Docker bridge network and why the attack machine can reach all of them"
+  ],
+  "takeaways": [
+    "The IP address finds the computer, the port finds the program on it; 172.18.0.3:502 is Modbus on the CybICS PLC.",
+    "In 172.18.0.0/24 the first three numbers name the network and the last one names the device, so every lab container starts with 172.18.0.",
+    "A packet is nested envelopes: Ethernet carries MAC addresses, IP carries IP addresses, TCP carries ports, and the protocol data sits inside.",
+    "TCP opens every connection with SYN, SYN-ACK, ACK; a SYN-ACK tells a scanner that a port is open.",
+    "The attack machine shares one flat bridge network with every CybICS container, while the landing page and the IDS use the host's network."
+  ],
+  "checkpoints": [
+    {
+      "id": "subnet",
+      "question": "Which of these addresses is NOT on the CybICS lab network 172.18.0.0/24?",
+      "options": ["172.18.0.5", "172.18.1.5", "172.18.0.50"],
+      "answer": 1,
+      "explanation": "With /24 the first three numbers must be 172.18.0. In 172.18.1.5 the third number is 1, so it is a different street. 172.18.0.50 looks unfamiliar because no CybICS service uses it, but it is on the right street; only the house number is new."
+    },
+    {
+      "id": "handshake",
+      "question": "A scanner sends a SYN to a port of 172.18.0.3 and gets a reset (RST) back. What does that tell it?",
+      "options": [
+        "The host answers, but the port is closed",
+        "The port is open and waits for data",
+        "There is no device at that address at all"
+      ],
+      "answer": 0,
+      "explanation": "An RST is the host saying \"no one listens here\": the computer is up, the port is closed. An open port would answer with SYN-ACK. A missing device cannot send anything, so it leads to silence, not to a reset."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "OpenPLC is 172.18.0.3 and FUXA is 172.18.0.4. What do the shared first three numbers tell you?",
+      "options": [
+        "Both sit on one and the same network",
+        "Both run on the same physical machine",
+        "Both listen on the same port number",
+        "Both share one network card and MAC"
+      ],
+      "answer": 0,
+      "explanation": "With a /24 subnet the first three numbers name the network, so both devices are on the same street and can talk directly. In the virtual lab they happen to run on one machine as well, but the address does not say so: in a real plant the same numbers usually belong to two separate boxes. Each container has its own network card and MAC address."
+    },
+    {
+      "type": "single",
+      "question": "A packet reaches 172.18.0.3 with destination port 4840. What happens to it?",
+      "options": [
+        "No program listens there, so it is refused",
+        "OpenPLC hands it on to the OPC-UA server",
+        "The PLC treats it as Modbus, its main protocol",
+        "It goes to whichever program is least busy"
+      ],
+      "answer": 0,
+      "explanation": "The port picks the program, and OpenPLC has nothing listening on 4840, so the connection is refused with a reset. The OPC-UA server listens on port 4840 of a different address, 172.18.0.5; a computer does not forward packets for a port it does not serve. Modbus only receives what is sent to port 502."
+    },
+    {
+      "type": "single",
+      "question": "A scanner sends a SYN to 172.18.0.3 port 502 and receives a SYN-ACK. What has it learned?",
+      "options": [
+        "A program is listening on port 502",
+        "The connection is fully set up now",
+        "The PLC accepted its Modbus login",
+        "Its Modbus request was delivered"
+      ],
+      "answer": 0,
+      "explanation": "A SYN-ACK is the second step of the handshake: something on that port is willing to talk, so the port is open. The connection is only complete after the scanner's ACK, which many scanners never send. No Modbus byte has travelled yet, and Modbus has no login to accept."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these does a packet from the attack machine to the PLC's Modbus port carry? (Select all that apply)",
+      "options": [
+        "The destination IP address 172.18.0.3",
+        "The destination port 502",
+        "A username and password for the PLC",
+        "The MAC address of the PLC's network card"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "The IP layer carries 172.18.0.3, the TCP layer carries port 502, and on the local bridge the Ethernet frame carries the PLC's MAC address, found with ARP. Nothing in any of the envelopes carries a login: Modbus has none."
+    },
+    {
+      "type": "single",
+      "question": "The IDS is neither FUXA nor OpenPLC. Why can it still see the Modbus traffic between them?",
+      "options": [
+        "It shares the host network and listens on the bridge",
+        "FUXA mirrors every Modbus request to the IDS",
+        "It is the gateway, so all traffic is routed through it",
+        "OpenPLC copies every packet it gets to the IDS"
+      ],
+      "answer": 0,
+      "explanation": "The IDS uses host networking, so it can listen on the Docker bridge that every packet between two containers crosses. The gateway idea is tempting, but FUXA and OpenPLC are on the same subnet and talk directly; the gateway only sees traffic that leaves the street. Neither FUXA nor OpenPLC knows the IDS exists."
+    }
+  ]
+}

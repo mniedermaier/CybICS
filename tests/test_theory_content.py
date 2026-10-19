@@ -21,6 +21,7 @@ GLOSSARY = os.path.join(ROOT, "training", "theory", "glossary.json")
 WIDGETS = {
     "plant-live", "modbus-frame", "s7-layers", "register-decoder",
     "purdue-explorer", "scan-cycle", "ids-threshold", "firewall-rules",
+    "arp-spoof", "keyspace", "alert-log", "opcua-security", "sequence",
     "checkpoint",
 }
 LEVELS = {"beginner", "intermediate", "advanced"}
@@ -199,10 +200,41 @@ def test_article_widgets_and_links_resolve(topic):
         if widget == "checkpoint":
             assert attrs.get("data-id") in checkpoint_ids, (
                 f"{topic['id']}: checkpoint {attrs.get('data-id')} not in sidecar")
+        if widget == "sequence":
+            assert attrs.get("data-id") in data.get("exercises", {}), (
+                f"{topic['id']}: exercise {attrs.get('data-id')} not in sidecar")
     for target in re.findall(r"\]\(/theory/([^)#\s]+)", text):
         assert target in TOPIC_IDS, f"{topic['id']}: link to unknown topic {target}"
     for target in re.findall(r"\]\(/ctf/challenge/([^)#/\s]+)\)", text):
         assert target in challenge_ids(), f"{topic['id']}: link to unknown challenge {target}"
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_sequence_exercises_are_well_formed(topic):
+    for name, ex in sidecar(topic).get("exercises", {}).items():
+        where = f"{topic['id']}/{name}"
+        assert ex.get("type") == "sequence", where
+        assert ex.get("title") and ex.get("intro"), where
+        steps = ex.get("steps", [])
+        assert 3 <= len(steps) <= 8, f"{where}: {len(steps)} steps"
+        texts = [st["text"] for st in steps]
+        assert len(set(texts)) == len(texts), f"{where}: duplicate step"
+        labels = ex.get("labels", [])
+        assert len(set(labels)) == len(labels), f"{where}: duplicate label"
+        for st in steps:
+            assert st.get("explain"), f"{where}: step without explanation"
+            # The position must come from understanding, not from the wording.
+            assert not re.match(r"(first|then|finally|next|lastly)\b", st["text"], re.I), f"{where}: {st['text']}"
+            if labels:
+                assert st.get("label") in labels, f"{where}: label {st.get('label')!r} not offered"
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_instructor_notes_are_well_formed(topic):
+    """Instructor notes are cut out before rendering by a non-greedy match, so
+    one that contains another <details> would leak its second half."""
+    for note in re.findall(r'<details class="instructor"[^>]*>(.*?)</details>', article(topic), re.S):
+        assert "<details" not in note, f"{topic['id']}: nested <details> in an instructor note"
 
 
 @pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
@@ -277,3 +309,56 @@ def test_purdue_explorer_matches_the_ids_host_table():
         assert ip in known, f"{host_id} at {ip} is not in KNOWN_SERVICES"
         if host_id != "attack":
             assert known[ip] == host_id, f"{ip} is {known[ip]} in the IDS, {host_id} in the widget"
+
+
+def test_purdue_explorer_ids_claims_match_the_rules():
+    """What the widget says the IDS exempts is what rules.py exempts."""
+    with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
+        rules = f.read()
+    writers = set(re.findall(r'"(\w+)"', re.search(r"_MODBUS_WRITERS = frozenset\(\((.*?)\)\)", rules).group(1)))
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        widgets = f.read()
+    hosts = re.findall(r"\{ id: '([\w-]+)', name: .*?ids: '((?:[^'\\]|\\.)*)' \}", widgets, re.S)
+    assert len(hosts) >= 8
+    for host_id, claim in hosts:
+        assert "allowlist" not in claim.lower(), f"{host_id}: no host is allowlisted wholesale"
+        if re.search(r"(?<!not an )expected Modbus writer", claim, re.I):
+            assert host_id in writers, f"{host_id} is called an expected Modbus writer, rules.py disagrees"
+
+
+def test_scan_cycle_widget_decides_like_the_plc_program():
+    """plcScan in the widget repeats the automatic-mode rules of cybICS.st.
+    Compare the conditions, so a changed threshold in one shows up here."""
+    def norm(cond):
+        cond = re.sub(r"\b(inputs|state)\.", "", cond)
+        cond = cond.replace("===", "=").replace("&&", "AND")
+        return re.sub(r"\s+", "", cond)
+
+    with open(os.path.join(ROOT, "software", "OpenPLC", "cybICS.st"), encoding="utf-8") as f:
+        st = f.read()
+    auto = st.split("IF manual < 1 THEN", 1)[1].split("(* ELSE System running in manual mode *)", 1)[0]
+    plc = {norm(c) for c in re.findall(r"\b(?:ELS)?IF\s+(.+?)\s+THEN", auto)}
+    plc -= {"compressorState=1", "gstState=1"}   # copying the state to the outputs
+
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        js = f.read()
+    body = js.split("function plcScan(", 1)[1].split("\n    }\n", 1)[0]
+    widget = {norm(c) for c in re.findall(r"if \((.+?)\) \{", body) if "stop" not in c}
+    widget |= {norm(c) for c in re.findall(r"const systemValve = (.+?);", body)}
+    assert plc == widget
+
+
+def test_alert_log_widget_uses_the_ids_rules_and_severities():
+    with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
+        rules = f.read()
+    severity = {"SEVERITY_LOW": "low", "SEVERITY_MEDIUM": "medium", "SEVERITY_HIGH": "high", "SEVERITY_CRITICAL": "critical"}
+    real = {name: severity[sev] for name, sev in
+            re.findall(r'"rule": "(\w+)",\s*"severity": (SEVERITY_\w+)', rules)}
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        js = f.read()
+    log = js.split("const ALERT_LOG = [", 1)[1].split("];", 1)[0]
+    rows = re.findall(r"\['[\d:]+', '(\w+)', '(\w+)'", log)
+    assert len(rows) >= 10
+    for sev, rule in rows:
+        assert rule in real, f"{rule} is not an IDS rule"
+        assert real[rule] == sev, f"{rule} is {real[rule]} in rules.py, {sev} in the widget"

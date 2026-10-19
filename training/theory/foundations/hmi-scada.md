@@ -207,9 +207,3 @@ Protecting this layer comes down to three habits:
 2. **Restrict who can reach the HMI and who can reach past it.** If only the HMI may talk Modbus to the PLC, a flood from anywhere else stands out. See [Defense and hardening](/theory/defense-hardening).
 3. **Give the operator at least one independent value.** When every number came down the same wire, whoever owns that wire owns the operator's picture of the plant.
 
-<details class="instructor" markdown="1">
-<summary>Instructor notes</summary>
-
-`software/opcua/opcua.py` mirrors six PLC values into OPC-UA but reads `stop` and `manual` from 1129 and 1131 (FUXA's one-based numbers, one above the 1128 and 1130 the program declares), and `systemSen` and `boSen` from holding registers 2 and 3, which the program does not declare. Students comparing OPC-UA nodes with Modbus reads will see those four disagree; it is a live example of the off-by-one trap above.
-
-</details>

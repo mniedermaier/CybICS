@@ -5,7 +5,7 @@
     "start": {
       "name": "Getting started",
       "icon": "book",
-      "description": "Start here: what an industrial control system is, and the parts of the CybICS plant.",
+      "description": "Start here: what an industrial control system is, the parts of the CybICS plant, and your first look at it.",
       "topics": [
         {
           "id": "ics-basics",
@@ -20,6 +20,40 @@
             }
           ],
           "prerequisites": [],
+          "core": true
+        },
+        {
+          "id": "physical_process",
+          "title": "The gas pressure process",
+          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blowout.",
+          "content": "training/theory/modules/physical_process.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "physical_process",
+              "label": "Understanding the Physical Process"
+            }
+          ],
+          "prerequisites": [
+            "ics-basics"
+          ],
+          "core": true
+        },
+        {
+          "id": "networking",
+          "title": "Networks in ten minutes",
+          "summary": "IP addresses, subnets, ports, packets and the TCP handshake, shown on the CybICS lab network and its Docker containers.",
+          "content": "training/theory/foundations/networking.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning",
+              "label": "Service Scanning"
+            }
+          ],
+          "prerequisites": [
+            "ics-basics"
+          ],
           "core": true
         },
         {
@@ -38,6 +72,22 @@
             "ics-basics"
           ],
           "core": true
+        },
+        {
+          "id": "plc_programming",
+          "title": "Programming the controller",
+          "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",
+          "content": "training/theory/modules/plc_programming.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "plc_programming",
+              "label": "PLC Programming"
+            }
+          ],
+          "prerequisites": [
+            "plc-fundamentals"
+          ]
         },
         {
           "id": "hmi-scada",
@@ -65,6 +115,27 @@
             "plc-fundamentals"
           ],
           "core": true
+        },
+        {
+          "id": "password_attack",
+          "title": "Password attacks",
+          "summary": "Dictionary attacks against the OpenPLC and FUXA logins.",
+          "content": "training/theory/modules/password_attack.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "password_attack",
+              "label": "FUXA Password Attack"
+            },
+            {
+              "type": "ctf",
+              "id": "password_openplc",
+              "label": "OpenPLC Password Attack"
+            }
+          ],
+          "prerequisites": [
+            "hmi-scada"
+          ]
         },
         {
           "id": "safety-systems",
@@ -117,9 +188,59 @@
             }
           ],
           "prerequisites": [
-            "plc-fundamentals"
+            "plc-fundamentals",
+            "networking"
           ],
           "core": true
+        },
+        {
+          "id": "wireshark_capture",
+          "title": "Capturing Modbus traffic",
+          "summary": "Reading plaintext Modbus writes off the wire to recover data.",
+          "content": "training/theory/modules/wireshark_capture.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "wireshark_capture",
+              "label": "Wireshark Capture"
+            }
+          ],
+          "prerequisites": [
+            "modbus"
+          ]
+        },
+        {
+          "id": "flood_overwrite",
+          "title": "Flood and overwrite",
+          "summary": "Overwhelming a register with writes to force an unsafe state.",
+          "content": "training/theory/modules/flood_overwrite.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "flood_overwrite",
+              "label": "Flood & Overwrite"
+            }
+          ],
+          "prerequisites": [
+            "modbus"
+          ],
+          "core": true
+        },
+        {
+          "id": "fuzzingMB",
+          "title": "Modbus fuzzing",
+          "summary": "Sending malformed and non-standard frames to test robustness.",
+          "content": "training/theory/modules/fuzzingMB.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "fuzzingMB",
+              "label": "Fuzzing Modbus"
+            }
+          ],
+          "prerequisites": [
+            "modbus"
+          ]
         },
         {
           "id": "s7comm",
@@ -154,6 +275,22 @@
           ]
         },
         {
+          "id": "opcua-challenge",
+          "title": "Attacking OPC-UA",
+          "summary": "Certificate and user authentication, and what weak auth exposes.",
+          "content": "training/theory/modules/opcua.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "opcua",
+              "label": "OPC-UA"
+            }
+          ],
+          "prerequisites": [
+            "opcua-protocol"
+          ]
+        },
+        {
           "id": "other-protocols",
           "title": "DNP3, EtherNet/IP and friends",
           "summary": "The other protocols you will meet in real plants, and what they have in common with Modbus.",
@@ -168,13 +305,29 @@
           "prerequisites": [
             "modbus"
           ]
+        },
+        {
+          "id": "uart_basic",
+          "title": "UART and hardware access",
+          "summary": "The serial console on the board and physical-layer access.",
+          "content": "training/theory/modules/uart_basic.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "uart_basic",
+              "label": "UART Training Guide"
+            }
+          ],
+          "prerequisites": [
+            "ics-basics"
+          ]
         }
       ]
     },
-    "security": {
-      "name": "Attack, detection and defence",
-      "icon": "shield",
-      "description": "How attacks on a plant unfold, how defenders notice them, and how to make them harder.",
+    "attacks": {
+      "name": "How attacks unfold",
+      "icon": "target",
+      "description": "The steps of an attack on a plant, from the first scan to changing the process.",
       "topics": [
         {
           "id": "attack-lifecycle",
@@ -200,6 +353,63 @@
           "core": true
         },
         {
+          "id": "scanning",
+          "title": "Network scanning",
+          "summary": "Discovering ICS hosts and services with nmap without disrupting them.",
+          "content": "training/theory/modules/scanning.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning",
+              "label": "Service Scanning"
+            }
+          ],
+          "prerequisites": [
+            "attack-lifecycle"
+          ]
+        },
+        {
+          "id": "scanning2",
+          "title": "S7comm enumeration",
+          "summary": "Reading device identity from a Siemens-style S7 endpoint.",
+          "content": "training/theory/modules/scanning2.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "scanning2",
+              "label": "S7comm Scanning"
+            }
+          ],
+          "prerequisites": [
+            "s7comm",
+            "scanning"
+          ]
+        },
+        {
+          "id": "mitm",
+          "title": "Man in the middle",
+          "summary": "ARP poisoning between the HMI and the PLC to alter traffic.",
+          "content": "training/theory/modules/mitm.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "mitm",
+              "label": "Man-in-the-Middle (MitM)"
+            }
+          ],
+          "prerequisites": [
+            "modbus",
+            "attack-lifecycle"
+          ]
+        }
+      ]
+    },
+    "detection": {
+      "name": "Detection and response",
+      "icon": "radar",
+      "description": "How defenders notice an attack, how the CybICS IDS works, and what to do when it fires.",
+      "topics": [
+        {
           "id": "detection-monitoring",
           "title": "Detection and monitoring",
           "summary": "Passive network monitoring, IDS rules, and mapping detections to MITRE D3FEND.",
@@ -221,6 +431,110 @@
           ],
           "core": true
         },
+        {
+          "id": "detect_basic",
+          "title": "Detecting a scan",
+          "summary": "How a port scan looks to an IDS and which rule catches it.",
+          "content": "training/theory/modules/detect_basic.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "detect_basic",
+              "label": "Detect Port Scan"
+            }
+          ],
+          "prerequisites": [
+            "detection-monitoring"
+          ]
+        },
+        {
+          "id": "detect_overwrite",
+          "title": "Detecting a flood",
+          "summary": "Spotting a Modbus write flood in the alert stream.",
+          "content": "training/theory/modules/detect_overwrite.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "detect_overwrite",
+              "label": "Detect Modbus Flooding"
+            }
+          ],
+          "prerequisites": [
+            "detect_basic",
+            "flood_overwrite"
+          ]
+        },
+        {
+          "id": "ids_challenge",
+          "title": "Intrusion detection",
+          "summary": "Generating enough alerts to prove the IDS is working.",
+          "content": "training/theory/modules/ids_challenge.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_challenge",
+              "label": "IDS Challenge"
+            }
+          ],
+          "prerequisites": [
+            "detection-monitoring"
+          ]
+        },
+        {
+          "id": "ids_forensics",
+          "title": "IDS forensics",
+          "summary": "Reading the alert buffer to answer who, what, and when.",
+          "content": "training/theory/modules/ids_forensics.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_forensics",
+              "label": "IDS Forensics"
+            }
+          ],
+          "prerequisites": [
+            "ids_challenge"
+          ]
+        },
+        {
+          "id": "ids_evasion",
+          "title": "IDS evasion",
+          "summary": "Staying under the rate thresholds a simple rule engine uses.",
+          "content": "training/theory/modules/ids_evasion.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_evasion",
+              "label": "IDS Evasion"
+            }
+          ],
+          "prerequisites": [
+            "ids_challenge"
+          ]
+        },
+        {
+          "id": "incident-response",
+          "title": "Incident response in OT",
+          "summary": "What to do when an alarm turns out to be real, without making the plant less safe.",
+          "content": "training/theory/foundations/incident-response.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "ids_forensics",
+              "label": "IDS Forensics"
+            }
+          ],
+          "prerequisites": [
+            "detection-monitoring"
+          ]
+        }
+      ]
+    },
+    "defence": {
+      "name": "Defence",
+      "icon": "shield",
+      "description": "Making attacks harder: passwords, firewalls, segmentation, IDS tuning and deciding what to protect first.",
+      "topics": [
         {
           "id": "defense-hardening",
           "title": "Defence in depth",
@@ -244,6 +558,76 @@
           "core": true
         },
         {
+          "id": "defense_password",
+          "title": "Hardening credentials",
+          "summary": "Removing default passwords on the PLC and HMI.",
+          "content": "training/theory/modules/defense_password.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_openplc_password",
+              "label": "Harden OpenPLC Credentials"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_fuxa_password",
+              "label": "Harden FUXA Credentials"
+            }
+          ],
+          "prerequisites": [
+            "hmi-scada",
+            "password_attack"
+          ]
+        },
+        {
+          "id": "defense_firewall",
+          "title": "Host firewalling",
+          "summary": "Restricting Modbus to authorised peers with iptables.",
+          "content": "training/theory/modules/defense_firewall.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_firewall",
+              "label": "Modbus Firewall Rules"
+            }
+          ],
+          "prerequisites": [
+            "defense-hardening"
+          ]
+        },
+        {
+          "id": "defense_network",
+          "title": "Network segmentation",
+          "summary": "Blocking the attack host from the controllers.",
+          "content": "training/theory/modules/defense_network.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_network_segmentation",
+              "label": "Network Segmentation"
+            }
+          ],
+          "prerequisites": [
+            "defense-hardening"
+          ]
+        },
+        {
+          "id": "defense_ids",
+          "title": "Tuning the IDS",
+          "summary": "Keeping detection active and its rules effective.",
+          "content": "training/theory/modules/defense_ids.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_ids_tuning",
+              "label": "IDS Monitoring & Tuning"
+            }
+          ],
+          "prerequisites": [
+            "detection-monitoring"
+          ]
+        },
+        {
           "id": "risk-assessment",
           "title": "Asset inventory, risk and IEC 62443",
           "summary": "Know what you have, decide what matters most, and split the network into zones and conduits.",
@@ -262,22 +646,6 @@
           ],
           "prerequisites": [
             "defense-hardening"
-          ]
-        },
-        {
-          "id": "incident-response",
-          "title": "Incident response in OT",
-          "summary": "What to do when an alarm turns out to be real, without making the plant less safe.",
-          "content": "training/theory/foundations/incident-response.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "ids_forensics",
-              "label": "IDS Forensics"
-            }
-          ],
-          "prerequisites": [
-            "detection-monitoring"
           ]
         }
       ]
@@ -362,349 +730,6 @@
           ],
           "prerequisites": [
             "risk-assessment"
-          ]
-        }
-      ]
-    },
-    "modules": {
-      "name": "Challenge briefings",
-      "icon": "flag",
-      "description": "A short briefing for each hands-on challenge: the idea, what you will see on CybICS, and how to detect and defend.",
-      "topics": [
-        {
-          "id": "physical_process",
-          "title": "The gas pressure process",
-          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blowout.",
-          "content": "training/theory/modules/physical_process.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "physical_process",
-              "label": "Understanding the Physical Process"
-            }
-          ],
-          "prerequisites": [
-            "ics-basics"
-          ],
-          "core": true
-        },
-        {
-          "id": "plc_programming",
-          "title": "Programming the controller",
-          "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",
-          "content": "training/theory/modules/plc_programming.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "plc_programming",
-              "label": "PLC Programming"
-            }
-          ],
-          "prerequisites": [
-            "plc-fundamentals"
-          ]
-        },
-        {
-          "id": "scanning",
-          "title": "Network scanning",
-          "summary": "Discovering ICS hosts and services with nmap without disrupting them.",
-          "content": "training/theory/modules/scanning.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "scanning",
-              "label": "Service Scanning"
-            }
-          ],
-          "prerequisites": [
-            "attack-lifecycle"
-          ]
-        },
-        {
-          "id": "scanning2",
-          "title": "S7comm enumeration",
-          "summary": "Reading device identity from a Siemens-style S7 endpoint.",
-          "content": "training/theory/modules/scanning2.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "scanning2",
-              "label": "S7comm Scanning"
-            }
-          ],
-          "prerequisites": [
-            "s7comm",
-            "scanning"
-          ]
-        },
-        {
-          "id": "wireshark_capture",
-          "title": "Capturing Modbus traffic",
-          "summary": "Reading plaintext Modbus writes off the wire to recover data.",
-          "content": "training/theory/modules/wireshark_capture.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "wireshark_capture",
-              "label": "Wireshark Capture"
-            }
-          ],
-          "prerequisites": [
-            "modbus"
-          ]
-        },
-        {
-          "id": "flood_overwrite",
-          "title": "Flood and overwrite",
-          "summary": "Overwhelming a register with writes to force an unsafe state.",
-          "content": "training/theory/modules/flood_overwrite.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "flood_overwrite",
-              "label": "Flood & Overwrite"
-            }
-          ],
-          "prerequisites": [
-            "modbus"
-          ],
-          "core": true
-        },
-        {
-          "id": "password_attack",
-          "title": "Password attacks",
-          "summary": "Dictionary attacks against the OpenPLC and FUXA logins.",
-          "content": "training/theory/modules/password_attack.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "password_attack",
-              "label": "FUXA Password Attack"
-            },
-            {
-              "type": "ctf",
-              "id": "password_openplc",
-              "label": "OpenPLC Password Attack"
-            }
-          ],
-          "prerequisites": [
-            "hmi-scada"
-          ]
-        },
-        {
-          "id": "opcua-challenge",
-          "title": "Attacking OPC-UA",
-          "summary": "Certificate and user authentication, and what weak auth exposes.",
-          "content": "training/theory/modules/opcua.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "opcua",
-              "label": "OPC-UA"
-            }
-          ],
-          "prerequisites": [
-            "opcua-protocol"
-          ]
-        },
-        {
-          "id": "fuzzingMB",
-          "title": "Modbus fuzzing",
-          "summary": "Sending malformed and non-standard frames to test robustness.",
-          "content": "training/theory/modules/fuzzingMB.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "fuzzingMB",
-              "label": "Fuzzing Modbus"
-            }
-          ],
-          "prerequisites": [
-            "modbus"
-          ]
-        },
-        {
-          "id": "mitm",
-          "title": "Man in the middle",
-          "summary": "ARP poisoning between the HMI and the PLC to alter traffic.",
-          "content": "training/theory/modules/mitm.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "mitm",
-              "label": "Man-in-the-Middle (MitM)"
-            }
-          ],
-          "prerequisites": [
-            "modbus",
-            "attack-lifecycle"
-          ]
-        },
-        {
-          "id": "uart_basic",
-          "title": "UART and hardware access",
-          "summary": "The serial console on the board and physical-layer access.",
-          "content": "training/theory/modules/uart_basic.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "uart_basic",
-              "label": "UART Training Guide"
-            }
-          ],
-          "prerequisites": [
-            "ics-basics"
-          ]
-        },
-        {
-          "id": "detect_basic",
-          "title": "Detecting a scan",
-          "summary": "How a port scan looks to an IDS and which rule catches it.",
-          "content": "training/theory/modules/detect_basic.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "detect_basic",
-              "label": "Detect Port Scan"
-            }
-          ],
-          "prerequisites": [
-            "detection-monitoring"
-          ]
-        },
-        {
-          "id": "detect_overwrite",
-          "title": "Detecting a flood",
-          "summary": "Spotting a Modbus write flood in the alert stream.",
-          "content": "training/theory/modules/detect_overwrite.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "detect_overwrite",
-              "label": "Detect Modbus Flooding"
-            }
-          ],
-          "prerequisites": [
-            "detect_basic",
-            "flood_overwrite"
-          ]
-        },
-        {
-          "id": "ids_challenge",
-          "title": "Intrusion detection",
-          "summary": "Generating enough alerts to prove the IDS is working.",
-          "content": "training/theory/modules/ids_challenge.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "ids_challenge",
-              "label": "IDS Challenge"
-            }
-          ],
-          "prerequisites": [
-            "detection-monitoring"
-          ]
-        },
-        {
-          "id": "ids_forensics",
-          "title": "IDS forensics",
-          "summary": "Reading the alert buffer to answer who, what, and when.",
-          "content": "training/theory/modules/ids_forensics.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "ids_forensics",
-              "label": "IDS Forensics"
-            }
-          ],
-          "prerequisites": [
-            "ids_challenge"
-          ]
-        },
-        {
-          "id": "ids_evasion",
-          "title": "IDS evasion",
-          "summary": "Staying under the rate thresholds a simple rule engine uses.",
-          "content": "training/theory/modules/ids_evasion.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "ids_evasion",
-              "label": "IDS Evasion"
-            }
-          ],
-          "prerequisites": [
-            "ids_challenge"
-          ]
-        },
-        {
-          "id": "defense_password",
-          "title": "Hardening credentials",
-          "summary": "Removing default passwords on the PLC and HMI.",
-          "content": "training/theory/modules/defense_password.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "defense_openplc_password",
-              "label": "Harden OpenPLC Credentials"
-            },
-            {
-              "type": "ctf",
-              "id": "defense_fuxa_password",
-              "label": "Harden FUXA Credentials"
-            }
-          ],
-          "prerequisites": [
-            "hmi-scada",
-            "password_attack"
-          ]
-        },
-        {
-          "id": "defense_firewall",
-          "title": "Host firewalling",
-          "summary": "Restricting Modbus to authorised peers with iptables.",
-          "content": "training/theory/modules/defense_firewall.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "defense_firewall",
-              "label": "Modbus Firewall Rules"
-            }
-          ],
-          "prerequisites": [
-            "defense-hardening"
-          ]
-        },
-        {
-          "id": "defense_network",
-          "title": "Network segmentation",
-          "summary": "Blocking the attack host from the controllers.",
-          "content": "training/theory/modules/defense_network.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "defense_network_segmentation",
-              "label": "Network Segmentation"
-            }
-          ],
-          "prerequisites": [
-            "defense-hardening"
-          ]
-        },
-        {
-          "id": "defense_ids",
-          "title": "Tuning the IDS",
-          "summary": "Keeping detection active and its rules effective.",
-          "content": "training/theory/modules/defense_ids.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "defense_ids_tuning",
-              "label": "IDS Monitoring & Tuning"
-            }
-          ],
-          "prerequisites": [
-            "detection-monitoring"
           ]
         }
       ]

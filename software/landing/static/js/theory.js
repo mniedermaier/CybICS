@@ -30,6 +30,9 @@
         register(name, mount) { widgets[name] = mount; },
         util: { el, escapeHtml, inline },
         challenges: DATA.challenges || {},
+        // Per-lesson data for widgets that need more than a few attributes,
+        // from "exercises" in the sidecar, keyed by the widget's data-id.
+        exercises: DATA.exercises || {},
     };
     function mountWidgets() {
         document.querySelectorAll('.article [data-widget]').forEach(function (node) {
@@ -111,22 +114,29 @@
         box.querySelector('.q-feedback').className = 'q-feedback';
     }
 
-    // A checkpoint answers itself as soon as the reader picks (or, for
-    // "select all", when they press Check).
+    // A checkpoint is practice, not a test: the reader picks, presses Check,
+    // reads the explanation and may try again. Nothing is recorded.
     function mountCheckpoint(node) {
         const q = (DATA.checkpoints || []).find(c => c.id === node.dataset.id);
         if (!q) return;
         const box = renderQuestion(q, 0, 'cp-' + q.id);
         box.insertBefore(el('div', { class: 'q-eyebrow' }, 'Quick check'), box.firstChild);
         node.replaceWith(box);
-        if (q.type === 'multi') {
-            const check = el('button', { class: 't-btn', type: 'button' }, 'Check');
-            check.style.marginTop = '0.6rem';
-            check.addEventListener('click', function () { grade(box, q); check.remove(); });
-            box.insertBefore(check, box.querySelector('.q-feedback'));
-        } else {
-            box.addEventListener('change', function () { if (!box.classList.contains('graded')) grade(box, q); });
-        }
+        const actions = el('div', { class: 'q-actions' });
+        const check = el('button', { class: 't-btn', type: 'button', disabled: '' }, 'Check');
+        const retry = el('button', { class: 't-btn', type: 'button', hidden: '' }, 'Try again');
+        actions.append(check, retry);
+        box.insertBefore(actions, box.querySelector('.q-feedback'));
+        box.addEventListener('change', function () { check.disabled = !box.querySelector('input:checked'); });
+        check.addEventListener('click', function () {
+            const { ok } = grade(box, q);
+            check.hidden = true;
+            retry.hidden = ok;
+        });
+        retry.addEventListener('click', function () {
+            ungrade(box);
+            check.hidden = false; check.disabled = true; retry.hidden = true;
+        });
     }
 
     function mountQuiz() {
@@ -218,7 +228,20 @@
                 const button = el('button', { class: 'term', type: 'button', 'aria-expanded': 'false' });
                 button.textContent = m[2];
                 button.dataset.term = entry.term;
-                node.parentNode.insertBefore(button, after);
+                // Keep "(term)" or "term," on one line: the button is a box of
+                // its own, and the line could otherwise break between them.
+                const wrap = el('span', { class: 'term-wrap' });
+                node.parentNode.insertBefore(wrap, after);
+                if (/[(\["“‘]$/.test(node.nodeValue)) {
+                    wrap.appendChild(document.createTextNode(node.nodeValue.slice(-1)));
+                    node.nodeValue = node.nodeValue.slice(0, -1);
+                }
+                wrap.appendChild(button);
+                const tail = /^[)\],.;:!?”’'"]+/.exec(after.nodeValue);
+                if (tail) {
+                    wrap.appendChild(document.createTextNode(tail[0]));
+                    after.nodeValue = after.nodeValue.slice(tail[0].length);
+                }
                 break;  // one term per text node keeps the offsets simple
             }
         });
@@ -255,7 +278,18 @@
         });
     }
 
+    // ---- The core path keeps its own Previous and Next ----
+    function choosePager() {
+        const core = document.getElementById('pager-core');
+        if (!core) return;
+        let coreOnly = false;
+        try { coreOnly = localStorage.getItem('cybics-theory-core') === '1'; } catch (e) {}
+        core.hidden = !coreOnly;
+        document.getElementById('pager').hidden = coreOnly;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        choosePager();
         mountWidgets();
         mountQuiz();
         mountToc();

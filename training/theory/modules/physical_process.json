@@ -53,7 +53,7 @@
     },
     {
       "type": "single",
-      "question": "The HPT has passed 220 and the blowout valve is venting, but the compressor is still running. What happens?",
+      "question": "The plant is in manual mode, the HPT has passed 220 and the blowout valve is venting, but the compressor is still running. What happens?",
       "options": [
         "The valve holds the pressure at exactly 220",
         "It keeps rising; the valve vents slower than it fills",
@@ -61,7 +61,7 @@
         "It falls back to 200, where the valve closes again"
       ],
       "answer": 1,
-      "explanation": "The valve vents about half a unit per tick against the compressor's one unit, so a compressor that keeps running still wins. The valve is not a ceiling. In manual mode the PLC does not intervene, so nothing switches the compressor off when the valve opens."
+      "explanation": "The valve vents about half a bar per tick against the compressor's one bar, so a compressor that keeps running still wins. The valve is not a ceiling. In manual mode the PLC does not intervene, so nothing switches the compressor off when the valve opens."
     },
     {
       "type": "single",

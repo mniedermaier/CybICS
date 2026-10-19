@@ -10,6 +10,10 @@ Such lists exist because of real data breaches. The best known, `rockyou.txt`, h
 
 Industrial systems are especially exposed. Devices often ship with **default credentials**, the same user name and password on every unit, printed in the manual, and many are never changed. MITRE ATT&CK for ICS lists this as *Insecure Credentials: Default Credentials* (T1694.001), and the use of any stolen or guessed login as *Valid Accounts* (T0859).
 
+Why does a list beat trying everything? Compare the two below, and see what a default password costs the attacker.
+
+<div data-widget="keyspace"></div>
+
 ## How it looks on CybICS
 
 Two web interfaces have a login:

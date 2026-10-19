@@ -105,5 +105,52 @@
       "answer": 1,
       "explanation": "Lessons learned closes the loop: findings such as a new firewall rule or a tuned IDS threshold change the plan, the controls and the monitoring for the next incident. Skipping it because the plant runs again means the same attack can work twice."
     }
-  ]
+  ],
+  "exercises": {
+    "response": {
+      "type": "sequence",
+      "title": "Respond to a Modbus flood",
+      "intro": "The IDS raises modbus_flood from 172.18.0.66, a host nobody recognises, and the HPT pressure is climbing. Put the actions in order and name the response phase each belongs to.",
+      "labels": [
+        "Preparation",
+        "Identification",
+        "Containment",
+        "Eradication",
+        "Recovery",
+        "Lessons learned"
+      ],
+      "steps": [
+        {
+          "text": "Keep a known-good backup of the PLC program and agree which actions are safe to take on the PLC.",
+          "label": "Preparation",
+          "explain": "This has to exist before the alarm, or there is nothing to compare against and no plan to follow later. Backups and pre-planned safe actions are Preparation."
+        },
+        {
+          "text": "Check on the HMI whether the HPT pressure really is rising, and export the IDS alerts.",
+          "label": "Identification",
+          "explain": "Before acting, you confirm the alert is real and save the evidence: the IDS keeps its alerts only in memory. Deciding whether it is real and what is affected is Identification."
+        },
+        {
+          "text": "Drop traffic from 172.18.0.66 at the PLC, leave the PLC running and stop the compressor from the HMI.",
+          "label": "Containment",
+          "explain": "Once the incident is confirmed, you stop further damage without taking control away from the process. Closing the attacker's path while keeping the plant safe is Containment."
+        },
+        {
+          "text": "Compare the program running on OpenPLC with the backup and replace any password the intruder may know.",
+          "label": "Eradication",
+          "explain": "With the attacker cut off, you remove what they may have left behind. Hunting for changed programs and exposed passwords is Eradication, and it needs the backup from Preparation."
+        },
+        {
+          "text": "Hand control of the compressor back to the PLC and watch the pressure and the IDS for a while.",
+          "label": "Recovery",
+          "explain": "Only a cleaned plant goes back to automatic operation, and you keep watching in case the attacker returns. Returning to normal step by step is Recovery."
+        },
+        {
+          "text": "Decide whether the flood threshold or the new firewall rule should change for good, and record it.",
+          "label": "Lessons learned",
+          "explain": "Once the plant runs normally, you turn the experience into changes for next time. That closes the loop back to Preparation, which is the point of Lessons learned."
+        }
+      ]
+    }
+  }
 }

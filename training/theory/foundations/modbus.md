@@ -9,7 +9,7 @@ Modbus was designed in 1979 to let a controller talk to devices over a serial ca
 Modbus has no login, no encryption and no way to check who sent a message. That was not careless. In 1979 the "network" was a short cable inside a locked cabinet, so being able to touch the cable *was* the permission. When that cable became Ethernet and Ethernet reached the office network, the protocol did not change.
 
 <div class="callout warning" markdown="1">
-**No authentication:** Modbus does have error checks (a checksum catches a frame damaged in transit), but nothing catches a frame that someone *forged*. A secure variant with TLS on port 802 exists since 2018, but almost no plant uses it.
+**No authentication:** Modbus notices a frame that was damaged in transit (serial Modbus RTU carries its own checksum, Modbus TCP relies on the one in TCP), but nothing notices a frame that someone *forged*. A secure variant with TLS on port 802 exists since 2018, but almost no plant uses it.
 </div>
 
 ## The data model

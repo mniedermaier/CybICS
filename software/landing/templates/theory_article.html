@@ -14,7 +14,7 @@
         <div class="t-header-inner">
             <a class="t-back" href="/theory" aria-label="Back to the Theory Path">&#8592;<span class="label"> Theory Path</span></a>
             <div class="t-head-main">
-                <div class="t-crumbs"><span class="section-name">{{ section.name }} &middot; </span>Lesson {{ topic.number }} of {{ total }} &middot; {{ article.minutes }} min</div>
+                <div class="t-crumbs"><span class="section-name">{{ section.name }} &middot; </span>{{ 'Challenge briefing' if topic.briefing else 'Lesson' }} {{ topic.number }} of {{ total }} &middot; {{ article.minutes }} min</div>
                 <div class="t-head-title">{{ topic.title }}</div>
             </div>
             <span class="t-status{{ ' done' if mine.get('passed') }}" id="status">{{ '✓ Completed' if mine.get('passed') else 'Not completed yet' }}</span>
@@ -88,10 +88,18 @@
             </section>
             {% endif %}
 
-            <nav class="t-pager" aria-label="Lessons">
+            <nav class="t-pager" id="pager" aria-label="Lessons">
                 {% if before %}<a href="/theory/{{ before.id }}"><span class="dir">&larr; Previous</span><span class="name">{{ before.title }}</span></a>{% endif %}
                 {% if after %}<a class="next" href="/theory/{{ after.id }}"><span class="dir">Next &rarr;</span><span class="name">{{ after.title }}</span></a>{% endif %}
             </nav>
+            {% if topic.core %}
+            {# Shown instead of the full path when the reader chose the core path on the overview. #}
+            <nav class="t-pager" id="pager-core" aria-label="Core path lessons" hidden>
+                {% if core_before %}<a href="/theory/{{ core_before.id }}"><span class="dir">&larr; Previous on the core path</span><span class="name">{{ core_before.title }}</span></a>{% endif %}
+                {% if core_after %}<a class="next" href="/theory/{{ core_after.id }}"><span class="dir">Next on the core path &rarr;</span><span class="name">{{ core_after.title }}</span></a>
+                {% else %}<a class="next" href="/theory"><span class="dir">Core path complete &rarr;</span><span class="name">Back to the overview</span></a>{% endif %}
+            </nav>
+            {% endif %}
         </main>
     </div>
 
@@ -100,6 +108,7 @@
         'topic': topic.id,
         'quiz': sidecar.quiz or [],
         'checkpoints': sidecar.checkpoints or [],
+        'exercises': sidecar.exercises or {},
         'glossary': glossary,
         'challenges': challenges,
         'passRatio': pass_ratio

@@ -120,6 +120,14 @@ Known limitations of the lab, design trade-offs, things to watch for in class.
 </details>
 ```
 
+Instructor notes are **never rendered**: the renderer cuts them out before
+the page is built, because some of them say how a challenge can be passed
+without doing it. They are not secret, though: they stay in the Markdown in
+this public repository and in the copy of `training/` inside the landing
+container, where instructors read them. Anything a student must know belongs
+in the text or a callout, not in a note. Do not
+nest another `<details>` inside one.
+
 ### Figures
 
 Keep the existing SVG figures; they are accurate and accessible. Every `<svg>`
@@ -157,6 +165,11 @@ reached.
 | Scan cycle | `<div data-widget="scan-cycle"></div>` | Steps through read inputs, run logic, write outputs with the CybICS compressor rule. The reader changes the HPT pressure and watches the PLC decide. |
 | IDS threshold | `<div data-widget="ids-threshold"></div>` | A simulated stream of Modbus writes from a legitimate HMI and an attacker. The reader tunes the threshold and the window and sees detections and false alarms. |
 | Firewall rules | `<div data-widget="firewall-rules"></div>` | The reader orders allow and deny rules and sees which CybICS connections pass. |
+| ARP spoofing | `<div data-widget="arp-spoof"></div>` | Steps through poisoning FUXA's and the PLC's ARP caches, with the path of the frames, IP forwarding, rewriting a reading and the IDS `arp_spoof` rule. |
+| Keyspace | `<div data-widget="keyspace"></div>` | How long guessing a password takes: random characters (set and length), a leaked list or a default password, against online and offline attackers. |
+| Alert log | `<div data-widget="alert-log"></div>` | A made-up morning of CybICS IDS alerts to filter and count, with four triage questions. Not the data of the IDS Forensics challenge. |
+| OPC-UA security | `<div data-widget="opcua-security"></div>` | Choose the channel policy and the identity; shows what the CybICS server accepts, the role, what a listener sees and what the IDS reports. |
+| Sequence | `<div data-widget="sequence" data-id="attack"></div>` | Put the steps of a story in order and label each one (an ATT&CK tactic, an incident-response phase). The steps come from `exercises` in the sidecar. |
 | Checkpoint | `<div data-widget="checkpoint" data-id="frame"></div>` | One question in the middle of the text, taken from `checkpoints` in the sidecar. |
 
 ## The sidecar JSON
@@ -200,6 +213,28 @@ reached.
 }
 ```
 
+A lesson with a `sequence` widget also has an `exercises` object, keyed by
+the widget's `data-id`:
+
+```json
+"exercises": {
+  "attack": {
+    "type": "sequence",
+    "title": "Put the attack in order",
+    "intro": "What the reader has to do, in one or two sentences.",
+    "labels": ["Initial Access", "Discovery", "Impact"],
+    "steps": [
+      {"text": "One short sentence", "label": "Initial Access", "explain": "Why it comes here and has this label."}
+    ]
+  }
+}
+```
+
+The steps are listed in the right order; the widget shuffles them. Three to
+eight steps, none of which may give its position away ("first", "then"), and
+every one of them stated in the article. `labels` is optional; offer at most
+one label that no step uses.
+
 - `level` is `beginner`, `intermediate` or `advanced`.
 - A topic marked `"core": true` in `theory_config.json` is on the short core
   path; its prerequisites must be core topics too.
@@ -212,7 +247,9 @@ reached.
   if...", "Which field would you change to..."), not about trivia. Every
   question needs an explanation that also addresses the most tempting wrong
   answer.
-- Passing the quiz (at least 80 per cent) marks the topic as completed.
+- Passing the quiz (at least 80 per cent) marks the topic as completed. The
+  quiz is graded on the server, but its answers also ship in the page so the
+  explanations can show at once: it is a learning aid, not an exam.
 
 ## Checking your work
 

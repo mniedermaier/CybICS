@@ -34,7 +34,7 @@
         "It holds steady at 220, where the valve balances it"
       ],
       "answer": 1,
-      "explanation": "While open, the valve vents at most one unit per step and often none, while the compressor adds one unit per step. Falling back to 200 is what happens once the compressor stops; while it is forced on, the valve cannot win, which is why the PLC's control loop and a real SIS matter."
+      "explanation": "While open, the valve vents at most one bar per step and often none, while the compressor adds one bar per step. Falling back to 200 is what happens once the compressor stops; while it is forced on, the valve cannot win, which is why the PLC's control loop and a real SIS matter."
     }
   ],
   "quiz": [
