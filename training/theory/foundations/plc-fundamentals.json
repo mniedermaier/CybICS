@@ -1,0 +1,86 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Describe the three phases of the PLC scan cycle and how often OpenPLC runs it in CybICS",
+    "Predict what the CybICS compressor rule does for a given HPT pressure, including the hysteresis between 60 and 90",
+    "Explain why a forged coil is overwritten by the next scan while a forged register is overwritten by hwio",
+    "Translate an OpenPLC address such as %MW102 into its Modbus register number"
+  ],
+  "takeaways": [
+    "A PLC runs an endless scan: read inputs, run the whole program on that snapshot, write outputs; in CybICS every 50 ms.",
+    "The compressor starts below 60, keeps running until 90 and never runs while the storage tank holds 50 or less.",
+    "Whether a forged value sticks depends on who writes that address next: the program for coil 1, hwio for register 1126.",
+    "In manual mode the program stops assigning the compressor, the system valve and the refill, so forced coils stay forced.",
+    "OpenPLC maps %QX0.n to coil n and %MWn to holding register 1024 + n, and uploading a new program (T0843 Program Download) changes the plant permanently."
+  ],
+  "checkpoints": [
+    {
+      "id": "scan",
+      "question": "During phase 2 of a scan, the real pressure changes. When does the program see the new value?",
+      "options": [
+        "At once, because the program reads the live sensor value",
+        "In the next scan, when phase 1 takes a fresh copy of the inputs",
+        "In phase 3 of this scan, when inputs and outputs are synced"
+      ],
+      "answer": 1,
+      "explanation": "The program works on the snapshot taken in phase 1, so a change during the program waits for the next read-inputs phase, at most one scan (50 ms in CybICS) later. It does not read the live sensor line by line, and phase 3 only writes outputs; it reads nothing."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "The plant is in automatic mode, the compressor is running and the HPT pressure has risen to 75. What does the compressor rule decide in the next scan?",
+      "options": [
+        "Stop it, because 75 is above the start threshold of 60",
+        "Keep it running, because it is on and 75 is below 90",
+        "Stop it, because 75 is inside the healthy pressure band",
+        "Nothing, the rule only runs when a threshold is crossed"
+      ],
+      "answer": 1,
+      "explanation": "The seal-in branch (hpt < 90 AND compressorState = 1) keeps it running until 90. Stopping once the pressure is above 60 is the tempting mistake: it ignores the hysteresis that stops the compressor from switching on and off every scan. The rule runs on every scan, not only on crossings."
+    },
+    {
+      "type": "single",
+      "question": "An attacker uses Modbus to switch coil 1 (the compressor) off while the plant is in automatic mode and the logic wants it on. What happens?",
+      "options": [
+        "It stays off until an operator turns it on at the HMI",
+        "The next scan turns it back on, within about 50 ms",
+        "hwio restores the coil about 20 ms later",
+        "The PLC rejects the write, because coils are outputs"
+      ],
+      "answer": 1,
+      "explanation": "The program owns coil 1 and assigns it on every scan in automatic mode, so the write lasts at most one scan. hwio is tempting because it is fast, but it only reads the coils and never writes them; it owns the pressure registers instead. Modbus does accept writes to coils."
+    },
+    {
+      "type": "single",
+      "question": "Which Modbus holding register holds the variable declared as `gst AT %MW100`?",
+      "options": ["100", "1100", "1124", "1125"],
+      "answer": 2,
+      "explanation": "OpenPLC maps %MWn to holding register 1024 + n, so %MW100 is 1124. 1125 is tempting because it is the one-based number an HMI such as FUXA would show for the same word; 100 forgets the 1024 offset."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these happen when the `manual` register is set to a non-zero value? (Select all that apply)",
+      "options": [
+        "The automatic block stops writing the three plant coils",
+        "The heartbeat on coil 0 keeps blinking",
+        "The program switches every output off until manual is cleared",
+        "A coil written over Modbus keeps its value"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "The automatic block is wrapped in IF manual < 1 with no ELSE, so the compressor, system valve and refill coils are left alone and keep whatever was written to them; the heartbeat is outside that block. Switching every output off is what the stop register does, not manual."
+    },
+    {
+      "type": "single",
+      "question": "To keep a forged HPT pressure in register 1126, how often does an attacker have to write it?",
+      "options": [
+        "Once; the PLC never changes a register it only reads",
+        "Faster than every 50 ms, so it lands before each PLC scan",
+        "Faster than hwio rewrites it, about every 20 ms",
+        "Once per second, to match the HMI poll"
+      ],
+      "answer": 2,
+      "explanation": "It is true that the program only reads 1126, but hwio, the plant simulation, writes the real value back about every 20 ms. Beating the 50 ms PLC scan is the tempting answer, but it is hwio's rewrite the attacker has to outpace, not the PLC."
+    }
+  ]
+}

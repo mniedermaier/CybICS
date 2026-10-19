@@ -1,0 +1,77 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Name the three layers of an S7comm message (TPKT, COTP, S7) and what each one does",
+    "Describe the S7comm handshake and explain why it is not a login",
+    "Explain what the System Status List (SZL) reveals and why attackers read it first"
+  ],
+  "takeaways": [
+    "S7comm is Siemens' own PLC protocol and runs over ISO-on-TCP on port 102, wrapped in a TPKT and a COTP header.",
+    "The COTP connection and the S7 setup step only negotiate technical details; they never check who the client is.",
+    "The SZL describes the device (order number, hardware, names) and classic S7-300/400 PLCs hand it out without a password.",
+    "CybICS has two S7 servers: OpenPLC on port 102 and a purpose-built server on port 1102, and both claim to be an S7-300.",
+    "The CybICS IDS alerts on any traffic to ports 102 and 1102, at most once per source every 30 seconds."
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What is the job of the 4-byte TPKT header in front of every S7comm message?",
+      "options": [
+        "It encrypts the S7 part of the message",
+        "It carries the OSI addressing between the two sides",
+        "It says how long the whole message is",
+        "It holds the SZL ID of the record you want"
+      ],
+      "answer": 2,
+      "explanation": "TCP is a continuous stream of bytes without message boundaries; TPKT adds a length so the receiver knows where each message ends. The OSI addressing is the job of the second header, COTP, which is the easy one to mix up. Classic S7comm encrypts nothing, and the SZL ID sits inside the S7 part."
+    },
+    {
+      "type": "single",
+      "question": "A client completes the COTP connection and the S7 Setup Communication step. What has it proven to the PLC?",
+      "options": [
+        "Its identity, much like a login would",
+        "Nothing about who it is, only technical settings",
+        "That it holds a certificate the PLC trusts",
+        "That it knows the PLC's protection-level password"
+      ],
+      "answer": 1,
+      "explanation": "The handshake is negotiation, not admission control: it agrees on addressing and the PDU size. It is tempting to read a multi-step handshake as a login, but no identity is ever checked. The optional protection-level password is off by default and is not part of the handshake."
+    },
+    {
+      "type": "single",
+      "question": "Why is reading the SZL valuable for an attacker?",
+      "options": [
+        "It lets the attacker change the PLC program",
+        "It reveals the exact model and firmware, so flaws can be looked up",
+        "It stops the PLC so that it can be reprogrammed",
+        "It lists the user accounts configured on the PLC"
+      ],
+      "answer": 1,
+      "explanation": "The SZL is a read-only description of the device. Knowing the order number and firmware tells an attacker which known vulnerabilities and tools apply. It changes nothing on the PLC and holds no user accounts, which is also why reading it often goes unnoticed."
+    },
+    {
+      "type": "single",
+      "question": "You scan CybICS and find S7comm on two ports. Which statement is correct?",
+      "options": [
+        "Port 1102 cannot be S7comm, which always uses 102",
+        "Two separate servers, OpenPLC and s7com, both pose as an S7-300",
+        "Port 1102 is the newer, encrypted S7comm-Plus service",
+        "Both ports are served by the same OpenPLC process"
+      ],
+      "answer": 1,
+      "explanation": "CybICS runs OpenPLC's S7 server on the standard port 102 and a separate Python server in the s7com container on 1102. A protocol can run on any port, and the port number says nothing about the protocol version, so 1102 is not S7comm-Plus."
+    },
+    {
+      "type": "single",
+      "question": "An attacker scans port 102 without pause for 50 seconds. How many alerts does IDS rule 6 raise for that source?",
+      "options": [
+        "One for every packet it sees",
+        "Exactly one, for the first packet",
+        "Two, at 0 and 30 seconds",
+        "None, scans of port 102 are allowlisted"
+      ],
+      "answer": 2,
+      "explanation": "Rule 6 alerts on the first packet and then stays silent for 30 seconds per source, so 50 seconds of scanning give two alerts. 'Exactly one' is tempting if you forget that the cooldown ends. The rule has no allowlist, which is why it would also fire on a legitimate engineering host."
+    }
+  ]
+}

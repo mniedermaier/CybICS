@@ -1,0 +1,104 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Compare passive and active asset discovery and explain why active scanning is risky in OT",
+    "Score a threat scenario with risk = likelihood x impact and explain which factor a control changes",
+    "Explain IEC 62443 zones, conduits, security levels and foundational requirements",
+    "Propose a zone and conduit model for the CybICS network"
+  ],
+  "takeaways": [
+    "An asset inventory comes first: you cannot write a rule for a device you do not know about.",
+    "Passive discovery only listens and cannot disturb the process; active scanning finds silent devices but can crash fragile controllers.",
+    "Risk is likelihood times impact; network controls mostly lower likelihood, while lowering impact needs changes to the plant itself.",
+    "IEC 62443 groups assets into zones with a target security level from SL 1 to SL 4 and allows traffic between zones only through narrow conduits.",
+    "The CybICS network is one flat zone today, so the attack machine reaches the PLC as freely as the HMI does."
+  ],
+  "checkpoints": [
+    {
+      "id": "passive",
+      "question": "An operator asks you to inventory a running plant without any chance of disturbing it. Which method do you start with?",
+      "options": [
+        "A full nmap scan, since it finds silent devices too",
+        "Passive listening on a switch mirror port",
+        "A gentle ping sweep of the plant subnet"
+      ],
+      "answer": 1,
+      "explanation": "Passive discovery sends nothing, so it cannot crash a controller. A ping sweep sounds harmless, but it is still active traffic to every device. A full port scan does find silent devices, but it can make fragile controllers hang, which is why it needs coordination and is usually done later and more narrowly."
+    },
+    {
+      "id": "factor",
+      "question": "You block the attack machine from reaching the CybICS PLC. Which part of the overpressure risk does that change?",
+      "options": ["Impact", "Likelihood", "Both equally"],
+      "answer": 1,
+      "explanation": "An overpressure is just as dangerous as before, so impact is unchanged. The scenario is harder to reach, so likelihood drops. Reducing impact would need a change to the plant, such as a separate safety system."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What is the main weakness of passive asset discovery?",
+      "options": [
+        "It can make fragile controllers hang",
+        "Devices that never send traffic stay hidden",
+        "It needs the vendor's password for each device",
+        "It cannot tell which protocols a device speaks"
+      ],
+      "answer": 1,
+      "explanation": "Listening only reveals devices that talk, so a spare controller or a rarely used device may never appear. Hanging controllers is the risk of active scanning, not passive listening. A passive sensor does record which protocols each address uses."
+    },
+    {
+      "type": "single",
+      "question": "Scenario A has likelihood 4 and impact 2. Scenario B has likelihood 2 and impact 5. Which one should you address first on a likelihood x impact scale?",
+      "options": [
+        "A, because it is the more likely one",
+        "B, because 2 x 5 = 10 beats 4 x 2 = 8",
+        "Either, the two risks come out the same"
+      ],
+      "answer": 1,
+      "explanation": "A scores 4 x 2 = 8 and B scores 2 x 5 = 10. The more likely scenario is not automatically the bigger risk. In OT, a high-impact scenario with physical consequences often outranks a frequent but harmless one."
+    },
+    {
+      "type": "single",
+      "question": "In IEC 62443, what is a conduit?",
+      "options": [
+        "A cable duct that carries the plant's network",
+        "A group of assets with the same security needs",
+        "A controlled path between two zones, with rules for what may pass",
+        "The firewall product that separates two zones"
+      ],
+      "answer": 2,
+      "explanation": "A zone is the group of assets; a conduit is the controlled path between zones, with rules for what may travel along it. A firewall can enforce a conduit, which makes the product answer tempting, but the conduit is the concept, not the product or the cable."
+    },
+    {
+      "type": "single",
+      "question": "A zone must withstand a sophisticated attacker with moderate resources and ICS-specific skills. Which target security level fits?",
+      "options": ["SL 1", "SL 2", "SL 3", "SL 4"],
+      "answer": 2,
+      "explanation": "SL 3 covers sophisticated attacks with moderate resources and ICS-specific skills. SL 4 is tempting because the attacker is skilled, but it is for extended resources and high motivation, such as a state-funded team. SL 2 is for simple means and general skills."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are IEC 62443 foundational requirements? (Select all that apply)",
+      "options": [
+        "Restricted data flow",
+        "Identification and authentication control",
+        "Resource availability",
+        "Regular penetration testing of all components"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "The seven foundational requirements are identification and authentication control, use control, system integrity, data confidentiality, restricted data flow, timely response to events and resource availability. Penetration testing is a useful way to check them, but it is an activity, not one of the seven."
+    },
+    {
+      "type": "single",
+      "question": "Why does the CybICS network count as a single zone today?",
+      "options": [
+        "It has only one PLC, and zones form around PLCs",
+        "Every container can reach every other directly",
+        "The IDS watches all of its traffic from one place",
+        "All the containers run on a single host"
+      ],
+      "answer": 1,
+      "explanation": "A zone is defined by who can talk to whom. With all containers on the flat network 172.18.0.0/24 and no conduits, the attack machine reaches the PLC as freely as the HMI. Running on one host or being monitored does not change that; the IDS detects, it does not separate."
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - Glossary</title>
+    {% include 'theory_theme.html' %}
+    <link rel="stylesheet" href="/static/css/theory.css">
+    <style>
+        .g-list { display: grid; gap: 0.6rem; }
+        .g-entry { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.7rem 1rem; scroll-margin-top: 4.5rem; }
+        .g-entry h2 { font-size: 1rem; color: var(--accent-2); }
+        .g-entry .aka { font-size: 0.78rem; color: var(--faint); }
+        .g-entry p { margin: 0.25rem 0; color: var(--text); }
+        .g-entry a { font-size: 0.85rem; }
+        .g-letters { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 1rem; }
+        .g-letters a { text-decoration: none; padding: 0.1rem 0.45rem; border: 1px solid var(--border-strong); border-radius: 0.3rem; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <header class="t-header">
+        <div class="t-header-inner">
+            <a class="t-back" href="/theory" aria-label="Back to the Theory Path">&#8592;<span class="label"> Theory Path</span></a>
+            <h1>&#128214; Glossary</h1>
+        </div>
+    </header>
+    <main class="t-wrap">
+        <p class="t-intro">The terms the lessons use, in plain words. In a lesson, the first use of each term is underlined with dots: click it to see its definition.</p>
+        <div class="t-tools">
+            <label class="sr-only" for="search">Search the glossary</label>
+            <input id="search" class="t-search" type="search" placeholder="Search terms">
+        </div>
+        {% set letters = entries | map(attribute='term') | map('first') | map('upper') | unique | list %}
+        <nav class="g-letters" aria-label="Jump to letter">{% for l in letters %}<a href="#letter-{{ l }}">{{ l }}</a>{% endfor %}</nav>
+        <div class="g-list">
+            {% set seen = namespace(letters=[]) %}
+            {% for e in entries %}
+            {% set l = e.term[0] | upper %}
+            <article class="g-entry" {% if l not in seen.letters %}id="letter-{{ l }}"{% set seen.letters = seen.letters + [l] %}{% endif %}
+                     data-search="{{ (e.term ~ ' ' ~ (e.aliases or []) | join(' ') ~ ' ' ~ e.definition) | lower }}">
+                <h2>{{ e.term }}</h2>
+                {% if e.aliases %}<div class="aka">also: {{ e.aliases | join(', ') }}</div>{% endif %}
+                <p>{{ e.definition }}</p>
+                {% if e.link %}<a href="{{ e.link }}">Learn more &rarr;</a>{% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        <p class="t-empty" id="empty">No term matches your search.</p>
+    </main>
+    <script>
+        document.getElementById('search').addEventListener('input', function (e) {
+            const q = e.target.value.trim().toLowerCase();
+            let shown = 0;
+            document.querySelectorAll('.g-entry').forEach(function (entry) {
+                const hit = !q || entry.dataset.search.includes(q);
+                entry.style.display = hit ? '' : 'none';
+                shown += hit;
+            });
+            document.getElementById('empty').style.display = shown ? 'none' : 'block';
+        });
+    </script>
+</body>
+</html>

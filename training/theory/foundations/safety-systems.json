@@ -1,0 +1,113 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain the difference between safety and security in an industrial plant",
+    "Describe the layers of protection and what makes a Safety Instrumented System independent",
+    "Identify which part of the CybICS plant plays the safety role and where its limits are",
+    "Explain why attackers who want physical damage target the safety layer"
+  ],
+  "takeaways": [
+    "Safety protects people from the plant; security protects the plant from people.",
+    "Plants rely on several independent layers of protection, and the SIS is a separate controller with its own sensors and outputs.",
+    "Safety standards assume random, independent failures, while an attacker can make several layers fail at once on purpose.",
+    "CybICS has no SIS: its last line of defence is the blow-out valve in the plant model, which opens above 220 bar and cannot keep up with a compressor that is forced on.",
+    "TRITON/TRISIS showed that attackers will target safety controllers directly, because defeating them is what turns a manipulation into a disaster."
+  ],
+  "checkpoints": [
+    {
+      "id": "independence",
+      "question": "A plant uses the same pressure sensor for its PLC control loop and its SIS trip. What is the problem?",
+      "options": [
+        "None, as long as that one sensor is of good quality",
+        "One bad or spoofed sensor defeats both layers at once",
+        "The SIS will trip too often, because it sees every spike"
+      ],
+      "answer": 1,
+      "explanation": "Layers only protect you if they fail independently. A shared sensor is a common point of failure: if it reads low, the control loop keeps pumping and the SIS never sees the overpressure. A good-quality sensor is the tempting answer, but even a good sensor can break or be spoofed."
+    },
+    {
+      "id": "relief-limit",
+      "question": "The CybICS blow-out valve has opened. The compressor stays forced on. What happens to the HPT pressure?",
+      "options": [
+        "It falls back to 200, and then the valve closes",
+        "It keeps rising; the compressor outpaces the valve",
+        "It holds steady at 220, where the valve balances it"
+      ],
+      "answer": 1,
+      "explanation": "While open, the valve vents at most one unit per step and often none, while the compressor adds one unit per step. Falling back to 200 is what happens once the compressor stops; while it is forced on, the valve cannot win, which is why the PLC's control loop and a real SIS matter."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Which of these is a safety concern rather than a security concern?",
+      "options": [
+        "A worn pump seal that slowly leaks gas over several weeks",
+        "A stolen engineering-workstation password",
+        "An unknown host sending Modbus writes",
+        "Malware that switches off the safety controller"
+      ],
+      "answer": 0,
+      "explanation": "A worn seal is a random, accidental failure, which is what safety engineering handles. Malware on the safety controller is tempting because it hits the safety layer, but a person chose to cause it, so its origin is a security problem. The password and the Modbus writes are security too."
+    },
+    {
+      "type": "single",
+      "question": "In CybICS, where is the blow-out valve logic implemented?",
+      "options": [
+        "In the OpenPLC program cybICS.st",
+        "In the alarm settings of the FUXA HMI",
+        "In the plant model (firmware and hwio)",
+        "In the IDS, which reacts to high-pressure alerts"
+      ],
+      "answer": 2,
+      "explanation": "The blow-out valve is part of the simulated physics in thread_physical and hwio, like a real spring-loaded valve. The PLC program is the tempting answer, but it only receives the valve's status in register 1134, which is why no write to the PLC can switch the valve off. The IDS only raises alerts; it never acts on the plant."
+    },
+    {
+      "type": "multi",
+      "question": "Which properties make an SIS independent of the control system? (Select all that apply)",
+      "options": [
+        "Its own sensors",
+        "Its own logic solver",
+        "Its own final elements, such as a valve",
+        "A higher SIL rating than the control PLC"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "A safety function needs its own sensor, logic and final element. A SIL rates how reliably one safety function works on demand; it says nothing about whether it shares parts, a workstation or a network with the PLC, as TRITON showed."
+    },
+    {
+      "type": "single",
+      "question": "Why do safety standards alone not protect against an attacker?",
+      "options": [
+        "They do not require any redundancy",
+        "They assume failures are random, not deliberate",
+        "They forbid connecting safety controllers to networks",
+        "SIL ratings cover only software, not the hardware"
+      ],
+      "answer": 1,
+      "explanation": "SIL calculations rest on the chance that independent parts fail together being small. A deliberate attacker makes failures correlated, which breaks that assumption. The standards do require redundancy and do not forbid networking safety controllers, which is part of the problem; SIL figures are based on random hardware faults."
+    },
+    {
+      "type": "single",
+      "question": "What did the TRITON/TRISIS malware target?",
+      "options": [
+        "The process PLCs that ran the plant",
+        "The plant's historian database",
+        "Triconex safety controllers",
+        "The operator's HMI screens"
+      ],
+      "answer": 2,
+      "explanation": "TRITON was built to reprogram Schneider Electric Triconex safety controllers, which is why MITRE lists it under Loss of Safety (T0880). The process PLCs are the tempting answer, but the attackers went for the layer that would otherwise have stopped them. It was found because a mistake in its code tripped the safety controllers and shut the process down."
+    },
+    {
+      "type": "single",
+      "question": "The CybICS HPT is at 210 bar and falling after a blow-out. Is the blow-out valve open?",
+      "options": [
+        "Yes, it stays open until the pressure is down to 200",
+        "No, it closed as soon as the pressure fell below 220",
+        "Only while the compressor is still running"
+      ],
+      "answer": 0,
+      "explanation": "The valve opens above 220 and stays open while the pressure is above 200. Closing at 220 is the tempting answer, but this gap, called hysteresis, stops the valve from fluttering open and closed around a single threshold. The compressor does not affect the valve's state."
+    }
+  ]
+}

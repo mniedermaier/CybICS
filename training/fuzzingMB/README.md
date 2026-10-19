@@ -1,6 +1,6 @@
 # 🧪 Network Fuzzing Guide
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` `Impact` | [T0855 - Unauthorized Command Message](https://attack.mitre.org/techniques/T0855/) | [T0814 - Denial of Service](https://attack.mitre.org/techniques/T0814/)
+> **MITRE ATT&CK for ICS:** `Impair Process Control` `Impact` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0814 - Denial of Service](https://attack.mitre.org/techniques/T0814/)
 
 ## 📋 Introduction
 Network fuzzing is a security testing technique used to identify vulnerabilities in network protocols, services, and applications by sending malformed or unexpected data. The goal is to discover security flaws such as buffer overflows, denial-of-service (DoS) vulnerabilities, and other unintended behaviors.
@@ -102,7 +102,7 @@ Grab a coffee ☕☕☕☕ while the fuzzer runs
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Adversaries may send malformed or unexpected commands to disrupt control |
+| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send malformed or unexpected commands to disrupt control |
 | Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Adversaries may crash or disrupt services through malformed input |
 
 **Why this matters:** Protocol fuzzing reveals how ICS devices handle unexpected or malformed input. Many PLCs and industrial devices have limited error handling and can crash or behave unpredictably when receiving invalid data. Understanding these weaknesses helps both attackers (to find exploitable bugs) and defenders (to test device resilience before deployment).

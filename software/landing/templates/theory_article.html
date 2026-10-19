@@ -4,118 +4,107 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - {{ topic.title }}</title>
-    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
-    <style>
-        * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:#1a1a1a; color:#e8e8e8; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; line-height:1.7; }
-        ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-track { background:#1a1a1a; }
-        ::-webkit-scrollbar-thumb { background:#404040; border-radius:4px; } ::-webkit-scrollbar-thumb:hover { background:#ff6b00; }
-        header { background:#2d2d2d; padding:0.8rem 1.5rem; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ff6b00; position:sticky; top:0; z-index:10; gap:1rem; }
-        .back { color:#ff6b00; text-decoration:none; font-size:0.85rem; border:1px solid #ff6b00; border-radius:0.25rem; padding:0.3rem 0.7rem; white-space:nowrap; }
-        .back:hover { background:#ff6b00; color:#1a1a1a; }
-        .head-title { font-size:1.05rem; color:#ff6b00; font-weight:700; }
-        .head-meta { font-size:0.72rem; color:#999; text-transform:uppercase; letter-spacing:0.04em; }
-        .mark-btn { background:#333; color:#e8e8e8; border:1px solid #555; border-radius:0.3rem; padding:0.35rem 0.8rem; cursor:pointer; font-size:0.8rem; white-space:nowrap; }
-        .mark-btn.read { background:#22c55e; border-color:#22c55e; color:#fff; }
-        .wrap { max-width:820px; margin:0 auto; padding:1.75rem 1.5rem 4rem; }
-        .article h1 { font-size:1.6rem; color:#ff6b00; margin:0 0 1rem; }
-        .article h2 { font-size:1.25rem; color:#ff8c3a; margin:2rem 0 0.6rem; border-bottom:1px solid #383838; padding-bottom:0.3rem; }
-        .article h3 { font-size:1.05rem; color:#ffb37a; margin:1.4rem 0 0.5rem; }
-        .article p { margin:0.7rem 0; }
-        .article ul, .article ol { margin:0.7rem 0 0.7rem 1.4rem; }
-        .article li { margin:0.3rem 0; }
-        .article code { background:#2d2d2d; padding:0.1rem 0.35rem; border-radius:0.25rem; font-size:0.9em; }
-        .article pre { background:#0f0f0f; border:1px solid #333; border-radius:0.5rem; padding:0.9rem; overflow-x:auto; }
-        .article pre code { background:none; padding:0; }
-        /* A wide table burst the document sideways at phone width -- the
-           answer column of a nine-row rule table ended up off-screen with the
-           whole page scrolling. display:block lets it scroll inside itself,
-           the way the figures already do. */
-        .article table { border-collapse:collapse; margin:1rem 0; width:100%; display:block; overflow-x:auto; }
-        .article th, .article td { border:1px solid #383838; padding:0.4rem 0.7rem; text-align:left; font-size:0.9rem; }
-        .article th { background:#2d2d2d; color:#ff8c3a; }
-        .article blockquote { border-left:3px solid #ff6b00; background:#2d2d2d; padding:0.6rem 1rem; margin:1rem 0; color:#cfcfcf; }
-        /* Figures that set their own min-width (to keep one viewBox unit per
-           CSS pixel instead of shrinking labels to 8px on a phone) need a
-           scroll container. This belongs here rather than in one page's
-           scoped style block, where deleting that figure would silently let
-           every other figure on the page burst the document. */
-        .article figure { margin:1.4rem 0; text-align:center; overflow-x:auto; }
-        .article figure svg { max-width:100%; height:auto; background:#141414; border:1px solid #333; border-radius:0.5rem; padding:0.8rem; color:#e8e8e8; }
-        /* Only supply a colour where the figure did not choose one. A bare
-           `fill:currentColor` here beats the figures' own fill attributes,
-           which turned every dark label on an orange panel into light grey
-           at about 3:1 — under the 4.5:1 floor. 26 of the 29 theory pages
-           were affected. */
-        .article figure svg text:not([fill]) { fill:currentColor; }
-        /* #ff6b00 is 6.45:1 on the dark figure ground but only 2.86:1 on the
-           light one, so the accent cannot be one colour. Orange *text* and
-           orange *strokes* are retinted for the light theme; filled orange
-           panels keep the brand colour, because the dark ink on them is
-           6.10:1 either way. `!important` is needed because several figures
-           set the colour through an inline style, which no plain rule beats. */
-        html.light-mode .article figure svg text[fill="#ff6b00"],
-        html.light-mode .article figure svg text[style*="#ff6b00"] { fill:#b34700 !important; }
-        html.light-mode .article figure svg [stroke="#ff6b00"] { stroke:#b34700; }
-        html.light-mode .article figure svg path[fill="#ff6b00"] { fill:#b34700; }
-        .article figcaption { color:#999; font-size:0.82rem; margin-top:0.5rem; }
-        .related { margin-top:2.5rem; border-top:1px solid #383838; padding-top:1rem; }
-        .related h2 { font-size:1rem; color:#ff8c3a; margin-bottom:0.6rem; }
-        .related a { display:inline-block; margin:0.25rem 0.4rem 0.25rem 0; padding:0.35rem 0.8rem; border:1px solid #ff6b00; border-radius:0.3rem; color:#ff6b00; text-decoration:none; font-size:0.85rem; }
-        .related a:hover { background:#ff6b00; color:#1a1a1a; }
-        html.light-mode body { background:#f5f6f8; color:#1f2733; }
-        html.light-mode header { background:#fff; }
-        html.light-mode .article h1, html.light-mode .head-title { color:#b34700; }
-        /* The dark palette does not survive the light ground: the figcaptions
-           carry load-bearing explanation at 2.63:1 and the section headings sit
-           at 2.14:1. Both are on every theory page. */
-        html.light-mode .article h2 { color:#b34700; border-bottom-color:#e2e6ec; }
-        html.light-mode .article figcaption { color:#4a5260; }
-        html.light-mode .article code { background:#eef1f5; }
-        /* `.article pre code` is (0,1,2) and loses to the rule above at (0,2,2),
-           which painted white pills inside the navy code blocks. */
-        html.light-mode .article pre code { background:none; }
-        /* The navy block keeps its background in light mode but nothing set a
-           colour, so the ink stayed at the body's #1f2733: 1.19:1, which hid
-           every command on every theory page. */
-        html.light-mode .article pre,
-        html.light-mode .article pre code { color:#e8eaed; }
-        html.light-mode .article pre { background:#0f172a; }
-        html.light-mode .article figure svg { background:#fff; border-color:#e2e6ec; color:#1f2733; }
-        html.light-mode .article th { background:#eef1f5; color:#b34700; }
-    </style>
+    {% include 'theory_theme.html' %}
+    <link rel="stylesheet" href="/static/css/theory.css">
+    {% if article.css %}<style>{{ article.css | safe }}</style>{% endif %}
 </head>
 <body>
-    <header>
-        <a class="back" href="/theory">&#8592; Theory Path</a>
-        <div style="flex:1; min-width:0;">
-            <div class="head-title">{{ topic.title }}</div>
-            <div class="head-meta">{{ section.name }} &middot; {{ topic.minutes }} min read</div>
+    {% set mine = progress.get(topic.id, {}) %}
+    <header class="t-header">
+        <div class="t-header-inner">
+            <a class="t-back" href="/theory" aria-label="Back to the Theory Path">&#8592;<span class="label"> Theory Path</span></a>
+            <div class="t-head-main">
+                <div class="t-crumbs"><span class="section-name">{{ section.name }} &middot; </span>Lesson {{ topic.number }} of {{ total }} &middot; {{ article.minutes }} min</div>
+                <div class="t-head-title">{{ topic.title }}</div>
+            </div>
+            <span class="t-status{{ ' done' if mine.get('passed') }}" id="status">{{ '✓ Completed' if mine.get('passed') else 'Not completed yet' }}</span>
         </div>
-        <button class="mark-btn" id="mark-btn" data-id="{{ topic.id }}">Mark as read</button>
     </header>
-    <div class="wrap">
-        <article class="article">
-            {{ content | safe }}
-        </article>
-        {% if topic.related %}
-        <div class="related">
-            <h2>Put it into practice</h2>
-            {% for r in topic.related %}
-                <a href="/ctf/challenge/{{ r.id }}">&#127937; {{ r.label }}</a>
-            {% endfor %}
-        </div>
+
+    <div class="t-layout">
+        {% if article.toc %}
+        <nav class="t-toc" aria-label="On this page">
+            <details id="toc" open>
+                <summary>On this page</summary>
+                <ol>
+                    {% if sidecar.objectives %}<li><a href="#objectives">What you will learn</a></li>{% endif %}
+                    {% for entry in article.toc %}<li><a href="#{{ entry.id }}">{{ entry.name }}</a></li>{% endfor %}
+                    {% if sidecar.takeaways %}<li><a href="#takeaways">Key takeaways</a></li>{% endif %}
+                    {% if sidecar.quiz %}<li><a href="#quiz">Quiz</a></li>{% endif %}
+                </ol>
+            </details>
+        </nav>
         {% endif %}
+
+        <main class="t-main">
+            {% if prerequisites %}
+            <div class="t-prereq">
+                <span>Read first:</span>
+                {% for p in prerequisites %}
+                <a class="t-chip{{ ' done' if progress.get(p.id, {}).get('passed') }}" href="/theory/{{ p.id }}">{{ '✓ ' if progress.get(p.id, {}).get('passed') }}{{ p.title }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <article class="article" id="article">
+                {{ article.head | safe }}
+                {% if sidecar.objectives %}
+                <section class="t-box" id="objectives">
+                    <h2>What you will learn</h2>
+                    <ul>{% for o in sidecar.objectives %}<li>{{ o }}</li>{% endfor %}</ul>
+                </section>
+                {% endif %}
+                {{ article.body | safe }}
+            </article>
+
+            {% if sidecar.takeaways %}
+            <section class="t-box t-takeaways" id="takeaways">
+                <h2>Key takeaways</h2>
+                <ul>{% for t in sidecar.takeaways %}<li>{{ t }}</li>{% endfor %}</ul>
+            </section>
+            {% endif %}
+
+            {% if sidecar.quiz %}
+            <section class="t-box" id="quiz" aria-labelledby="quiz-title">
+                <div class="quiz-head">
+                    <h2 id="quiz-title">Check your understanding</h2>
+                    <span class="w-note">{{ sidecar.quiz|length }} questions &middot; {{ (pass_ratio * 100)|int }}% to complete the lesson{% if mine.get('attempts') %} &middot; your best: {{ (mine.best * 100)|round|int }}%{% endif %}</span>
+                </div>
+                <div id="quiz-questions"></div>
+                <div class="quiz-actions">
+                    <button class="t-btn primary" id="quiz-check" type="button">Check my answers</button>
+                    <button class="t-btn" id="quiz-retry" type="button" hidden>Try again</button>
+                    <span class="quiz-result" id="quiz-result" role="status" aria-live="polite"></span>
+                </div>
+            </section>
+            {% endif %}
+
+            {% if topic.related %}
+            <section class="t-box t-related">
+                <h2>Put it into practice</h2>
+                {% for r in topic.related %}
+                <a class="{{ 'solved' if r.id in solved }}" href="/ctf/challenge/{{ r.id }}">{{ '✓' if r.id in solved else '🏁' }} {{ r.label }}</a>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            <nav class="t-pager" aria-label="Lessons">
+                {% if before %}<a href="/theory/{{ before.id }}"><span class="dir">&larr; Previous</span><span class="name">{{ before.title }}</span></a>{% endif %}
+                {% if after %}<a class="next" href="/theory/{{ after.id }}"><span class="dir">Next &rarr;</span><span class="name">{{ after.title }}</span></a>{% endif %}
+            </nav>
+        </main>
     </div>
-    <script>
-        function readSet(){ try { return new Set(JSON.parse(localStorage.getItem('cybics-theory-read')||'[]')); } catch(e){ return new Set(); } }
-        function saveSet(s){ try { localStorage.setItem('cybics-theory-read', JSON.stringify([...s])); } catch(e){} }
-        (function(){
-            const btn=document.getElementById('mark-btn'); const id=btn.dataset.id; const read=readSet();
-            function paint(){ if(read.has(id)){ btn.classList.add('read'); btn.textContent='✓ Read'; } else { btn.classList.remove('read'); btn.textContent='Mark as read'; } }
-            paint();
-            btn.addEventListener('click', ()=>{ if(read.has(id)) read.delete(id); else read.add(id); saveSet(read); paint(); });
-        })();
-    </script>
+
+
+    <script type="application/json" id="theory-data">{{ {
+        'topic': topic.id,
+        'quiz': sidecar.quiz or [],
+        'checkpoints': sidecar.checkpoints or [],
+        'glossary': glossary,
+        'challenges': challenges,
+        'passRatio': pass_ratio
+    } | tojson }}</script>
+    <script src="/static/js/theory.js"></script>
+    <script src="/static/js/theory-widgets.js"></script>
 </body>
 </html>

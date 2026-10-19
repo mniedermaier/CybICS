@@ -1,24 +1,25 @@
 # Flood and overwrite
 
-Modbus accepts any write from anyone, so an attacker can write the same register over and over. The interesting part is not that the write lands &mdash; the *Modbus* topic covers why nothing stops it &mdash; but what happens next. The flood does not break the plant. It lies to the controller, and the controller does the damage.
+In this challenge you overwrite the pressure reading of the CybICS plant hundreds of times a second, so that the PLC believes the high-pressure tank is almost empty. You never touch the compressor or the valves. The controller does the damage itself, because it acts faithfully on a lie.
 
-## Why there is a register to fight over at all
+## The idea
 
-OpenPLC maps each `%MW`*n* in the program onto holding register 1024 + *n*. `hpt AT %MW102` is therefore register 1126, and a holding register is a single address space with no notion of who owns the word. The sensor path and the attacker's write path are not two channels that happen to meet &mdash; they are literally the same sixteen bits, and the protocol has no field in which to disagree about that.
+Picture a thermostat whose temperature sensor you hold an ice cube against. The room is warm, but the thermostat sees cold and keeps the heating on. Nothing is broken; the thermostat does exactly what it should with the information it has.
 
-## Winning a race, not defeating a check
+A PLC is in the same position. It never sees the tank, only a number in a **holding register**: a numbered 16-bit memory slot, like a mailbox, that the PLC reads every cycle. Modbus TCP lets any client on the network write to that mailbox, with no login and no check of who sent the value. If the attacker writes a false value more often than the real sensor writes the true one, the PLC almost always reads the false one.
 
-The PLC program only ever reads 1126; what keeps it truthful is `hwio`, whose loop does a coil read and five register writes and then sleeps 20 ms &mdash; 20.7 ms a pass, measured on this stack from the period of the physics tick, which is fifty-one passes and came out at 1.06 s. A single forged write survives roughly ten milliseconds and is gone.
+MITRE ATT&CK for ICS calls repeated writes to an I/O value *Brute Force I/O* (T0806), sent as *Unauthorized Messages: Command Message* (T1692.001). Because the HMI shows the same forged number, the operator's view is manipulated too (*Manipulation of View*, T0832).
 
-`flooding_hpt.py` writes in a loop with `time.sleep(0.001)`, but the sleep is not the period: each pass also waits for a Modbus response. Measured against this stack it manages **about eight hundred writes a second** from either the attack machine or the landing container, so seventeen or eighteen of its writes land between one `hwio` write and the next.
+## How it looks on CybICS
 
-<figure>
+The HPT pressure lives in holding register **1126** on OpenPLC (172.18.0.3, port 502). Two writers compete for it:
+
+- The `hwio` container (172.18.0.2), which simulates the plant, writes the true pressure about every 20 milliseconds.
+- The challenge script `flooding_hpt.py` from `training/flood_overwrite/` writes the value 10, as fast as the PLC answers, several hundred times a second.
+
+<figure class="wide">
 <style>
-.fo-r {--d: 12s; --on:#ff6b00; --notch:#141414;}
-html.light-mode .fo-r {--on:#b34700; --notch:#ffffff;}
-/* Two clocks against one register. The point is the ratio: the attacker's
-   writes are not stronger, only more frequent. The loop runs long enough that
-   it is still moving when a reader gets here. */
+.fo-r {--d: 12s; --on:#e65c00;}
 .fo-r .head {animation: r-head var(--d) linear 20 forwards;}
 .fo-r .lane {animation: r-wipe var(--d) linear 20 forwards;}
 @keyframes r-head{0%{transform:translateX(0)} 90%,100%{transform:translateX(340px)}}
@@ -29,18 +30,18 @@ html.light-mode .fo-r {--on:#b34700; --notch:#ffffff;}
 }
 </style>
 <svg class="fo-r" viewBox="0 0 460 196" role="img"
-     aria-label="A hundred-millisecond timeline. The attacker writes register 1126 about every 1.3 milliseconds; hwio writes the true value back every 20.7 milliseconds. The register therefore holds the forged value for all but about 0.65 milliseconds in every 20.7.">
+     aria-label="A hundred-millisecond timeline. The attacker writes register 1126 a little more than once per millisecond; hwio writes the true value back every 20 milliseconds. The register holds the forged value almost all the time, and the true value only for a fraction of a millisecond after each hwio write.">
   <text x="8" y="46" font-size="14" opacity="0.85">attacker</text>
   <text x="8" y="60" font-size="13" opacity="0.7">~1.2 ms</text>
   <g class="lane"><rect x="80.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="84.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="88.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="92.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="96.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="100.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="104.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="108.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="112.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="116.7" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="120.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="124.9" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="129.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="133.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="137.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="141.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="145.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="149.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="153.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="157.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="161.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="165.7" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="169.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="173.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="177.9" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="182.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="186.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="190.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="194.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="198.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="202.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="206.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="210.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="214.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="218.7" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="222.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="226.9" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="231.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="235.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="239.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="243.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="247.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="251.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="255.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="259.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="263.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="267.7" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="271.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="275.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="279.9" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="284.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="288.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="292.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="296.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="300.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="304.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="308.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="312.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="316.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="320.7" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="324.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="328.9" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="333.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="337.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="341.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="345.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="349.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="353.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="357.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="361.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="365.6" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="369.7" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="373.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="377.8" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="381.9" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="386.0" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="390.1" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="394.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="398.2" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="402.3" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="406.4" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="410.5" y="42" width="1.8" height="16" fill="var(--on)"/><rect x="414.6" y="42" width="1.8" height="16" fill="var(--on)"/></g>
   <text x="8" y="96" font-size="14" opacity="0.85">hwio</text>
-  <text x="8" y="110" font-size="13" opacity="0.7">20.7 ms</text>
+  <text x="8" y="110" font-size="13" opacity="0.7">~20 ms</text>
   <g class="lane"><rect x="80.0" y="92" width="2.6" height="16" fill="currentColor" opacity="0.75"/><rect x="148.0" y="92" width="2.6" height="16" fill="currentColor" opacity="0.75"/><rect x="216.0" y="92" width="2.6" height="16" fill="currentColor" opacity="0.75"/><rect x="284.0" y="92" width="2.6" height="16" fill="currentColor" opacity="0.75"/><rect x="352.0" y="92" width="2.6" height="16" fill="currentColor" opacity="0.75"/><rect x="420.0" y="92" width="2.6" height="16" fill="currentColor" opacity="0.75"/></g>
   <text x="8" y="146" font-size="14" opacity="0.85">reg 1126</text>
   <text x="8" y="160" font-size="13" opacity="0.7">holds</text>
   <g class="lane">
     <rect x="80" y="142" width="340" height="16" fill="var(--on)"/>
-    <rect x="80.0" y="142" width="2.1" height="16" fill="var(--notch)"/><rect x="148.0" y="142" width="2.1" height="16" fill="var(--notch)"/><rect x="216.0" y="142" width="2.1" height="16" fill="var(--notch)"/><rect x="284.0" y="142" width="2.1" height="16" fill="var(--notch)"/><rect x="352.0" y="142" width="2.1" height="16" fill="var(--notch)"/>
+    <rect x="80.0" y="142" width="2.1" height="16" fill="currentColor"/><rect x="148.0" y="142" width="2.1" height="16" fill="currentColor"/><rect x="216.0" y="142" width="2.1" height="16" fill="currentColor"/><rect x="284.0" y="142" width="2.1" height="16" fill="currentColor"/><rect x="352.0" y="142" width="2.1" height="16" fill="currentColor"/>
   </g>
   <line class="head" x1="80" y1="34" x2="80" y2="166" stroke="currentColor" stroke-width="2"/>
   <g font-size="13" opacity="0.7">
@@ -49,40 +50,15 @@ html.light-mode .fo-r {--on:#b34700; --notch:#ffffff;}
     <text x="420" y="182" text-anchor="middle">100</text>
   </g>
 </svg>
-<figcaption>The orange band is the forged value; the dark notches are the moments <code>hwio</code> gets its measurement in before the next attacker write buries it. <code>hwio</code> owns the word about <strong>3%</strong> of the time. Note it is not the ratio of the two periods: <code>hwio</code>'s write lands at a random point inside an attacker interval, so what survives is the <em>residual</em> of that interval, which averages half of it. 0.65 ms out of 20.7 is the number, and halving is what a race does.</figcaption>
+<figcaption>The orange band is the forged value; the thin notches are the moments after each <code>hwio</code> write, before the next attacker write buries it. The true value survives only a fraction of a millisecond, so the PLC, which reads the register every 50 ms, almost always sees the lie. The attacker's writes are not stronger, only more frequent.</figcaption>
 </figure>
 
-## What the controller does with a lie
+With the HPT reading 10, two rules in the PLC program fire, both exactly as designed. The compressor rule sees a pressure below 60 and switches the compressor on. The system-valve rule opens the valve only between 50 and 100, so at 10 it shuts the valve and nothing draws gas from the tank. The real pressure climbs by about one unit per second.
 
-Read `cybICS.st` with `hpt` reading 10. Two rules fire, and both are the program working as designed.
-
-- `IF hpt < 60 AND compressorState = 0 AND gst > 50` starts the compressor, and `ELSIF hpt < 90 AND compressorState = 1 AND gst > 50` holds it on. Scan to scan it is the seal-in doing the work; the start branch is what brings the compressor back after each drop-out.
-- `IF hpt > 50 AND hpt < 100 THEN systemValve := TRUE` is false at 10, so the system valve shuts and the downstream process stops drawing.
-
-So the compressor runs and nothing draws. The attacker never touched the compressor coil or the valve coil.
-
-The compressor does drop out, and there are two reasons for it on two very different scales.
-
-The first is the race in the figure above, and it turns out to be almost nothing. A scan that happens to sample the true pressure only breaks the hold once that pressure is above 90 &mdash; below it the seal-in branch is still satisfied and the compressor stays on. Past 90, a true read fails both conditions at once, the `ELSE` fires, and the compressor stops for exactly one scan: fifty milliseconds. Measured across a flood while the storage tank still had gas in it, the compressor was on **99.1%** of the time. The blink is real and it is over before anything mechanical could notice.
-
-The second is far larger, and the attacker has no hand in it. The compressor moves two units of storage for every one unit of pressure, and the program refills the storage tank on its own hysteresis: `IF gst < 60 AND gstState = 0` opens the supply and `gst < 240` keeps it open. Under a compressor that never switches off, the tank drains faster than the supply refills it and walks down to the `gst > 50` guard &mdash; which is a condition in *both* branches of the compressor rule, reading register **1124**, which the attacker is not flooding.
-
-Measured over a hundred and fifty seconds of flood, starting from a storage tank at 112: the compressor was on 72.5% of the time overall, and **99% of the lost time fell in samples where the tank was at or below 52**. Above 52 it ran 99.1%. The duty cycle is not a property of the attack at all. It is a property of how much gas was in the tank when the attack started.
-
-That is worth sitting with. The forgery is perfect &mdash; the controller has no way to doubt register 1126 &mdash; and what limits the damage is a second register the attacker never touched, enforced by a condition written for an entirely unrelated reason: to stop the compressor grinding against an empty tank. The plant's own material balance is the last line of defence here, and nobody wrote it as a safety function.
-
-<figure>
+<figure class="wide">
 <style>
-.fo-d {--d: 14s; --on:#ff6b00;}
-html.light-mode .fo-d {--on:#b34700;}
-/* pathLength normalises both paths to 1000 units so the dash offset and the
-   playhead advance together -- without it the traces finish in a quarter of
-   the sweep. */
+.fo-d {--d: 14s; --on:#e65c00;}
 .fo-d .trace {stroke-dasharray:1000; animation: d-draw var(--d) linear 18 forwards;}
-/* The flat trace runs parallel to the axis and both are currentColor, so at
-   figure scale they merged into one heavy rule and the "reads 10" label
-   annotated the wrong line. The axis moved down and this one carries a round
-   cap and a wider stroke, so it reads as data. */
 .fo-d .flat {stroke-linecap:round;}
 .fo-d .head  {animation: d-head var(--d) linear 18 forwards;}
 @keyframes d-draw{0%{stroke-dashoffset:1000} 88%,100%{stroke-dashoffset:0}}
@@ -93,7 +69,7 @@ html.light-mode .fo-d {--on:#b34700;}
 }
 </style>
 <svg class="fo-d" viewBox="0 0 460 210" role="img"
-     aria-label="Two traces over about five minutes. The value OpenPLC reads from register 1126 stays flat at 10. The pressure actually in the tank climbs from 75, reaching the relief valve at about three minutes and the 255 ceiling at about five. The compressor runs almost continuously with the system valve shut, until the storage tank runs down.">
+     aria-label="Two traces over about five minutes. The value OpenPLC reads from register 1126 stays flat at 10. The pressure actually in the tank climbs from 75, reaching the relief valve at about three minutes and the 255 ceiling at about five. The compressor runs almost continuously with the system valve shut.">
   <line x1="60" y1="30" x2="60" y2="164" stroke="currentColor" stroke-opacity="0.6"/>
   <line x1="60" y1="164" x2="340" y2="164" stroke="currentColor" stroke-opacity="0.6"/>
   <g font-size="13" opacity="0.7">
@@ -116,66 +92,50 @@ html.light-mode .fo-d {--on:#b34700;}
   <text x="200" y="197" text-anchor="middle" font-size="13" style="fill:#1a1a1a" font-weight="bold">compressor on, valve shut</text>
   <line class="head" x1="60" y1="26" x2="60" y2="170" stroke="currentColor" stroke-width="2"/>
 </svg>
-<figcaption>The physics advances one tick per <em>fifty-one</em> passes of <code>hwio</code>'s outer loop &mdash; the <code>if delay &gt; 50</code> gate &mdash; so a tick is about 1.06 seconds, not 21 milliseconds. That is why a millisecond-scale race has a minute-scale consequence: roughly three minutes to the relief valve and about five to the ceiling. Above the dashed line the rise falls to about 0.29 units per second against 0.83 below it &mdash; not half but nearer a third, because by then the relief valve is not the only thing pushing back: the storage tank is running down as well.</figcaption>
+<figcaption>The race is decided in milliseconds, but the plant moves in steps of about one second. That is why it takes minutes, not seconds, to reach the relief valve. Above it the rise slows, because the valve vents a little and the storage tank is running low, but it does not stop.</figcaption>
 </figure>
 
-Watching this from the HMI has a catch. FUXA's HPT trend reads the same register the flood is pinning, so it shows a flat 10 with nothing to diverge from. What it *does* show is `boSen`, the blow-out flag, which `hwio` sets from the true pressure: the trend sits at 10 while the alarm goes high.
+On the FUXA HMI the HPT display shows the forged 10, because it reads the same register. The blowout indicator is different: `hwio` sets it from the *true* pressure in register 1134, so it goes high while the pressure display still says 10.
 
-## Why this one is loud
+<div data-widget="plant-live" data-fields="hpt,boSen,compressor,systemValve"></div>
 
-Rule 3 counts fifty writes inside a five-second window from anything that is not `hwio`, `fuxa` or `openplc`. At eight hundred a second the fiftieth write lands about sixty milliseconds after the first, and the challenge's verifier simply asks the IDS whether the rule fired.
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: what limits the attack</summary>
 
-The *IDS Evasion* challenge is the same kind of write from the same host &mdash; three of them, five seconds apart, aimed at register 1124 &mdash; and trips nothing. The two sit at opposite ends of one axis, and the gap between them is larger than any single picture can hold.
+The compressor needs gas to push. It takes two units out of the gas storage tank (GST, register 1124) for every unit it adds to the HPT, and the PLC only runs it while the GST holds more than 50. Under a flood the GST drains faster than the supply refills it, so the compressor runs in bursts once storage is low. The attacker cannot speed this up, because the flood does not touch register 1124. A rule written to protect the compressor from an empty tank ends up limiting the attack.
 
-<figure>
-<style>
-.fo-c {--d: 7s; --on:#ff6b00;}
-html.light-mode .fo-c {--on:#b34700;}
-.fo-c .fill {transform-box: fill-box; transform-origin: left;
-             animation: c-fill var(--d) linear 40 forwards;}
-.fo-c .tick {transform-box: fill-box; transform-origin: bottom;
-             animation-duration:var(--d); animation-timing-function:steps(1,end);
-             animation-iteration-count:40; animation-fill-mode:forwards;}
-.fo-c .t1{animation-name:c-t1} .fo-c .t2{animation-name:c-t2} .fo-c .t3{animation-name:c-t3}
-.fo-c .alarm{animation: c-alarm var(--d) steps(1,end) 40 forwards;}
-.fo-c .slow {animation: c-slow var(--d) steps(1,end) 40 forwards;}
-/* The two rows are NOT one clock, and cannot be: 1.2 ms against 5 s is four
-   thousand to one. Each row carries its own span label, and the caption says
-   why no single axis holds both. */
-@keyframes c-fill {0%{transform:scaleX(0)} 8%,100%{transform:scaleX(1)}}
-@keyframes c-alarm{0%,8%{opacity:0} 9%,100%{opacity:1}}
-@keyframes c-t1{0%,3%{transform:scaleY(0)} 4%,100%{transform:scaleY(1)}}
-@keyframes c-t2{0%,33%{transform:scaleY(0)} 34%,100%{transform:scaleY(1)}}
-@keyframes c-t3{0%,66%{transform:scaleY(0)} 67%,100%{transform:scaleY(1)}}
-@keyframes c-slow {0%,66%{opacity:0} 67%,100%{opacity:1}}
-@media (prefers-reduced-motion: reduce){
-  .fo-c *{animation:none !important}
-  .fo-c .fill,.fo-c .tick{transform:scaleX(1) scaleY(1)}
-}
-</style>
-<svg class="fo-c" viewBox="0 0 460 150" role="img"
-     aria-label="Two rows drawn on different time scales. The flood row spans sixty milliseconds and fills rule 3's counter of fifty. The evasion row spans fifteen seconds and places three writes, so its counter never rises above one or two in any five-second window and no alert is raised.">
-  <text x="8" y="36" font-size="14" opacity="0.85">flood</text>
-  <text x="8" y="52" font-size="13" opacity="0.7">first 60 ms</text>
-  <rect x="120" y="24" width="220" height="18" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.45"/>
-  <rect class="fill" x="121" y="25" width="218" height="16" rx="2" fill="var(--on)"/>
-  <text x="348" y="38" font-size="13" opacity="0.7">50 writes / 5 s</text>
-  <text class="alarm" x="120" y="62" font-size="13" fill="var(--on)" font-weight="bold">modbus_flood fires</text>
+After the flood stops, the PLC sees the true, very high pressure, switches the compressor off and keeps the system valve shut. The relief valve vents down to about 200 and closes, and then nothing drains the tank. The plant does not recover on its own.
 
-  <text x="8" y="104" font-size="14" opacity="0.85">evasion</text>
-  <text x="8" y="120" font-size="13" opacity="0.7">first 15 s</text>
-  <rect x="120" y="92" width="220" height="18" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.45"/>
-  <rect class="tick t1" x="121" y="93" width="5" height="16" rx="2" fill="currentColor" opacity="0.65"/>
-  <rect class="tick t2" x="194" y="93" width="5" height="16" rx="2" fill="currentColor" opacity="0.65"/>
-  <rect class="tick t3" x="267" y="93" width="5" height="16" rx="2" fill="currentColor" opacity="0.65"/>
-  <text x="348" y="106" font-size="13" opacity="0.7">3 writes / 5 s</text>
-  <text class="slow" x="120" y="130" font-size="13" opacity="0.8">nothing fires, and nothing stays pinned</text>
-</svg>
-<figcaption>The two rows are drawn on different scales &mdash; sixty milliseconds against fifteen seconds &mdash; because no single axis holds both. One write every 1.2 ms against one every five seconds is a ratio of about four thousand to one, and that gap is the whole content of the comparison. A rate rule cannot tell an attacker from an engineer; it can only tell a hurried one from a patient one.</figcaption>
-</figure>
+</details>
 
-## The skill
+## How to approach it
 
-Run `flooding_hpt.py` against the PLC, watch FUXA's blow-out flag go high while its HPT trend still reads 10, and click Verify. The flag comes from the IDS having seen `modbus_flood` on the wire, not from the plant reaching any particular state. Do not wait to verify: `boSen` is transient. Once the flood stops, the mechanical relief valve keeps venting &mdash; it latches open above 220 and stays open until the pressure is back to 200, independently of the system valve &mdash; and then clears the flag. That is the recovery and its limit in one. The spring bleeds off everything above its latch and then stops, and below the latch nothing drains the tank at all, because the valve the controller shut is still shut. Measured after one flood on this stack, the plant came to rest at 192 with `boSen` back to 0, and sat there unchanged for the next two minutes: the compressor off, the valve shut, and no path in either direction.
+1. Read `flooding_hpt.py` before you run it. Find the register it writes, the value and the loop. Predict what the PLC will do.
+2. Open FUXA on port 1881 in another window and note the normal values first.
+3. Run the script from the attack machine against OpenPLC. It runs until you stop it or for a set `--duration`.
+4. Watch the HMI. Compare the pressure display with the blowout indicator over a few minutes.
+5. Click **Verify** on the challenge page. It does not look at the plant; it asks the IDS whether its flood rule has fired.
+6. Stop the script and watch how the plant does, or does not, recover.
 
-> **MITRE ATT&CK for ICS:** T0836 Modify Parameter, T0855 Unauthorized Command Message, T0806 Brute Force I/O. Detection: the *Detect Modbus Flooding* module. The quiet counterpart is *IDS Evasion*.
+<div data-widget="checkpoint" data-id="race"></div>
+
+## Detect and defend
+
+This attack is loud. The CybICS IDS counts Modbus write requests per source: fifty within five seconds from any host other than `hwio`, `fuxa` or `openplc` raises a critical `modbus_flood` alert. A second rule flags ten writes within thirty seconds from any unexpected writer. Try the trade-off between catching attackers and bothering operators yourself:
+
+<div data-widget="ids-threshold"></div>
+
+The [Detecting a flood](/theory/detect_overwrite) challenge asks you to find this alert. The patient opposite is [IDS evasion](/theory/ids_evasion): a few writes, seconds apart, stay below every threshold.
+
+Defences that stop or limit the attack:
+
+- **Allow-list Modbus writers.** Only the plant I/O and the HMI need to write. A firewall in front of port 502 can drop everything else. See [Host firewalling](/theory/defense_firewall).
+- **Plausibility checks in the PLC.** A real pressure cannot fall from 75 to 10 in one cycle. A program can reject impossible jumps or compare redundant sensors.
+- **Independent safety.** The relief valve works on the real pressure, not on a register, which is why the tank does not burst.
+- **Segmentation**, so the attack machine cannot reach port 502 at all.
+
+## Before you start
+
+- [Modbus TCP](/theory/modbus) for registers and write function codes.
+- [The gas pressure process](/theory/physical_process) for how the plant reacts.
+- [Detection and monitoring](/theory/detection-monitoring) for how rate rules work.

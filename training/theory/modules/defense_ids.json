@@ -1,0 +1,95 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Check that an IDS is running, capturing and detecting",
+    "Trigger and recognise alerts from several different CybICS IDS rules",
+    "Explain the trade-off between missed attacks and false alarms when tuning a threshold"
+  ],
+  "takeaways": [
+    "An IDS only helps if it is running, capturing the right network and producing alerts.",
+    "Traffic that passes while capture is stopped leaves no trace, so start the IDS before you test it.",
+    "Several different rules firing proves the pipeline better than one rule firing many times.",
+    "Lower thresholds catch more attacks but raise false alarms; exemptions cut noise but create blind spots.",
+    "Monitoring needs routine: test it, watch its health and make sure someone reads the alerts."
+  ],
+  "checkpoints": [
+    {
+      "id": "tradeoff",
+      "question": "You lower the Modbus write threshold from 10 to 2 writes in 30 seconds. What is the most likely effect?",
+      "options": [
+        "Fewer alerts, as fewer writes are counted",
+        "Slow attacks caught, more false alarms",
+        "Only modbus_flood alerts become faster",
+        "No change, the exemptions still apply"
+      ],
+      "answer": 1,
+      "explanation": "A lower threshold is more sensitive. It catches low-and-slow writes but also flags legitimate clients that are not exempt and write occasionally, which is the classic false-positive cost. Exemptions only cover hwio and FUXA, so other writers are affected."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You ran a port scan, then started the IDS. Why does the dashboard show no port_scan alert?",
+      "options": [
+        "Alerts appear only after a 30 s delay",
+        "The IDS sees only traffic while capturing",
+        "The scan was too slow for the threshold",
+        "Port scans need the dashboard to be open"
+      ],
+      "answer": 1,
+      "explanation": "The IDS reads live packets; it has no recording of what happened before capture started. Start it first, then test. The 30-second cooldown limits repeat alerts but does not delay the first one."
+    },
+    {
+      "type": "single",
+      "question": "You send 200 Modbus writes from the attack machine. How many different rules can this one activity count towards in the check?",
+      "options": [
+        "Exactly one rule, modbus_flood",
+        "Up to two, depending on the rate",
+        "Up to three, with modbus_diagnostic",
+        "None, Modbus writes are trusted"
+      ],
+      "answer": 1,
+      "explanation": "Writes feed both modbus_unauth_write and modbus_flood, and a fast burst can trigger both. modbus_diagnostic only matches function codes 8 and 43, not writes, and only hwio and FUXA are trusted. You still need one more kind of activity, such as a scan, for three different rules."
+    },
+    {
+      "type": "multi",
+      "question": "Which situations leave a plant without detection even though the IDS container exists? (Select all that apply)",
+      "options": [
+        "Capture was stopped and never restarted",
+        "The IDS listens on the wrong interface",
+        "Several rules fired in the last hour",
+        "Alerts appear but nobody reviews them"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "Each breaks a link in the chain from packet to response. Recent alerts from several rules may look alarming, but they are the sign of a healthy pipeline, which is exactly what the check asks for."
+    },
+    {
+      "type": "single",
+      "question": "CybICS trusts Modbus writes from hwio and FUXA. What is the risk of that exemption?",
+      "options": [
+        "None, writes from them are always normal",
+        "A hijacked hwio or FUXA writes unseen",
+        "Their writes still count toward modbus_flood",
+        "The HMI no longer shows any IDS alerts"
+      ],
+      "answer": 1,
+      "explanation": "Exemptions remove noise from normal traffic but blind the write rules to that host, so a compromised hwio or FUXA can write without an alert. Both are exempt from modbus_flood as well. Other controls, such as process checks, must cover the trusted hosts."
+    },
+    {
+      "type": "single",
+      "question": "What is a good routine for knowing that detection still works next month?",
+      "options": [
+        "Raise thresholds so only real attacks alert",
+        "Test regularly and alert on capture loss",
+        "Clear the alert buffer at the end of each day",
+        "Trust a quiet dashboard as a healthy sign"
+      ],
+      "answer": 1,
+      "explanation": "A known test proves the pipeline end to end, and a health alert catches a silent outage. A quiet dashboard is not proof of safety; it can just mean the IDS is blind, and higher thresholds only make it blinder."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # 🌊 Flood & Overwrite Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0836 - Modify Parameter](https://attack.mitre.org/techniques/T0836/) | [T0855 - Unauthorized Command Message](https://attack.mitre.org/techniques/T0855/) | [T0806 - Brute Force I/O](https://attack.mitre.org/techniques/T0806/)
+> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0836 - Modify Parameter](https://attack.mitre.org/techniques/T0836/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0806 - Brute Force I/O](https://attack.mitre.org/techniques/T0806/)
 
 ## 📋 Overview
 A flooding attack in an industrial security context can have devastating consequences, disrupting critical operations and compromising safety.
@@ -73,7 +73,7 @@ The flag has the format `CybICS(flag)`.
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Impair Process Control | Modify Parameter | [T0836](https://attack.mitre.org/techniques/T0836/) | Adversaries may modify parameters to disrupt normal process operation |
-| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Adversaries may send unauthorized commands to ICS devices |
+| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send unauthorized commands to ICS devices |
 | Impair Process Control | Brute Force I/O | [T0806](https://attack.mitre.org/techniques/T0806/) | Adversaries may repeatedly write to I/O points to override legitimate control |
 
 **Why this matters:** This attack demonstrates how an adversary can take control of a physical process by flooding Modbus registers faster than legitimate controllers can update them. The Ukrainian power grid attacks in 2015-2016 used similar techniques to manipulate breaker controls. This is a direct path from cyber access to physical impact—the core concern in ICS security.

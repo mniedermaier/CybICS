@@ -1,24 +1,82 @@
 # Host firewalling
 
-Not every host needs to talk Modbus to the PLC &mdash; only the HMI does. A host firewall on the controller drops Modbus from everyone else, so an attacker on the network cannot reach port 502 at all.
+In this challenge you put a firewall on the PLC itself, so that only the systems that really need Modbus can reach it. Modbus TCP has no password at all: anyone who can reach port 502 can read and write. After this module, the flood and overwrite attacks from the attack machine never get an answer.
+
+## The idea
+
+Think of a guest list at a club door. The bouncer checks each arrival against the list from top to bottom and acts on the first line that matches: "Alice: let in", "Bob: let in", "everyone else: turn away". Nobody is asked for a password; what counts is who you are and whether you are on the list.
+
+A **host firewall** is that bouncer, running on the device it protects. On Linux the classic tool is `iptables`. Incoming packets pass through a list of rules called the `INPUT` **chain**, and each rule says which packets it matches (protocol, port, source address) and what to do with them: `ACCEPT`, `DROP` (silently discard) or `REJECT` (discard and tell the sender).
+
+<div class="callout analogy" markdown="1">
+**Order matters:** the first matching rule wins. If "everyone else: turn away" stands at the top of the list, Alice is turned away too, even though she is listed further down.
+</div>
 
 <figure>
-<svg viewBox="0 0 520 130" role="img" aria-label="iptables allowing only the HMI">
-  <defs><marker id="df" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/></marker></defs>
-  <rect x="20" y="20" width="90" height="34" rx="6" fill="#ff6b00" opacity="0.55"/><text x="65" y="42" text-anchor="middle" font-size="11" fill="#1a1a1a">HMI (allow)</text>
-  <rect x="20" y="76" width="90" height="34" rx="6" fill="currentColor" opacity="0.2" stroke="currentColor"/><text x="65" y="98" text-anchor="middle" font-size="11">attacker (deny)</text>
-  <rect x="230" y="45" width="46" height="40" rx="4" fill="#ff6b00"/><text x="253" y="70" text-anchor="middle" font-size="11" fill="#1a1a1a">FW</text>
-  <rect x="380" y="45" width="110" height="40" rx="6" fill="#ff6b00" opacity="0.6"/><text x="435" y="70" text-anchor="middle" font-size="11" fill="#1a1a1a">PLC :502</text>
-  <line x1="110" y1="37" x2="230" y2="55" stroke="#ff6b00" stroke-width="2" marker-end="url(#df)"/>
-  <line x1="110" y1="93" x2="228" y2="75" stroke="currentColor" stroke-width="2" opacity="0.4"/>
-  <line x1="215" y1="60" x2="245" y2="90" stroke="#ff6b00" stroke-width="2"/>
-  <line x1="276" y1="65" x2="380" y2="65" stroke="#ff6b00" stroke-width="2" marker-end="url(#df)"/>
+<svg viewBox="0 0 520 140" role="img" aria-label="The HMI's Modbus traffic passes the firewall in front of the PLC's port 502, while traffic from the attacker is stopped at the firewall.">
+  <defs><marker id="dfw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="currentColor"/></marker></defs>
+  <rect x="20" y="20" width="110" height="36" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>
+  <rect x="20" y="84" width="110" height="36" rx="6" fill="none" stroke="#ff6b00" stroke-width="2" stroke-dasharray="5 3"/>
+  <rect x="240" y="40" width="40" height="60" rx="4" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="2"/>
+  <rect x="380" y="50" width="120" height="40" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>
+  <g font-size="13" text-anchor="middle" fill="currentColor">
+    <text x="75" y="43">HMI: accept</text>
+    <text x="75" y="107">attacker: drop</text>
+    <text x="260" y="75" font-weight="bold">FW</text>
+    <text x="440" y="75">PLC :502</text>
+  </g>
+  <line x1="130" y1="38" x2="238" y2="58" stroke="currentColor" stroke-width="2"/>
+  <line x1="280" y1="66" x2="376" y2="68" stroke="currentColor" stroke-width="2" marker-end="url(#dfw)"/>
+  <line x1="130" y1="102" x2="226" y2="86" stroke="#ff6b00" stroke-width="2"/>
+  <path d="M222 78 l10 10 M232 78 l-10 10" stroke="#ff6b00" stroke-width="3"/>
 </svg>
-<figcaption>An iptables rule permits Modbus only from the HMI and drops it from the attack host, shrinking the attack surface to what the process needs.</figcaption>
+<figcaption>A rule list on the PLC accepts Modbus from the HMI and drops it from the attacker, so only the traffic the process needs gets through.</figcaption>
 </figure>
 
-## The skill
+## How it looks on CybICS
 
-Add iptables rules on the OpenPLC container so only the HMI reaches port 502. The check confirms a DROP/REJECT rule for the attack host and that 502 is no longer reachable from elsewhere.
+OpenPLC runs at `172.18.0.3` and listens for Modbus TCP on port 502. Before you write a single rule, list everyone who legitimately talks Modbus to it:
 
-> **IEC 62443** SR 5.1; **NIST SP 800-82 / 800-53** SC-7 Boundary Protection.
+| Host | Address | Why it needs port 502 |
+|---|---|---|
+| `hwio` | `172.18.0.2` | writes the simulated sensor values into the PLC |
+| `fuxa` | `172.18.0.4` | the HMI reads values and sends operator commands |
+| `opcua` | `172.18.0.5` | reads the plant values to publish them over OPC-UA |
+
+Everything else, including the attack machine at `172.18.0.100`, has no business on port 502. You work inside the OpenPLC container with `docker exec`, which reaches the container without going over the network, so a wrong rule cannot lock you out.
+
+When you press **Verify Defense**, the check looks for a `DROP` or `REJECT` rule on the container and then tries to connect to port 502 from the CybICS host itself. That host is not on your list, so the connection has to fail.
+
+## How to approach it
+
+Try the order of rules here first. Move the rules around and watch which CybICS connections pass:
+
+<div data-widget="firewall-rules"></div>
+
+1. **Write the allow list.** One `ACCEPT` rule for port 502 per legitimate source from the table.
+2. **Add the catch-all.** A final rule that drops all other traffic to port 502.
+3. **Check the order.** `iptables -L INPUT -n --line-numbers` shows the chain as the kernel reads it, top to bottom.
+4. **Check the plant.** Open the HMI and confirm the values still update. A firewall that stops the process is an outage, not a defense.
+5. **Verify** in the challenge page.
+
+<div data-widget="checkpoint" data-id="order"></div>
+
+<div class="callout tip" markdown="1">
+**Tip:** These rules live only in memory and disappear when the container restarts. On a real device you save them with `iptables-save` and load them at boot.
+</div>
+
+## Detect and defend
+
+The firewall is the defense here; detection confirms it works.
+
+- **Watch the drops.** Run a Modbus write from the attack machine. It should hang until it times out. Counters in `iptables -L -v` show how many packets each rule matched.
+- **Mind the other doors.** OpenPLC also serves S7comm on port 102, DNP3 on 20000 and EtherNet/IP on 44818. A rule for 502 leaves those open; the next module, [Network segmentation](/theory/defense_network), closes the gap per host.
+- **Remember what remains.** If the HMI itself is taken over, the attacker inherits its place on the allow list. That is why firewalls are combined with monitoring, as described in [Defense in depth](/theory/defense-hardening).
+
+The attacks this blocks include Unauthorized Message: Command Message (T1692.001) and Brute Force I/O (T0806) from MITRE ATT&CK for ICS. NIST SP 800-82 calls the measure Boundary Protection (SC-7); D3FEND calls it Inbound Traffic Filtering (D3-ITF).
+
+## Before you start
+
+- [Modbus TCP](/theory/modbus): why port 502 has no authentication
+- [Defense in depth](/theory/defense-hardening): firewalls as one layer among several
+- [Flood and overwrite](/theory/flood_overwrite): the attack this rule set stops

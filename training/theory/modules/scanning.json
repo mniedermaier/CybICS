@@ -1,0 +1,91 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain what a port, an open port and a service banner are",
+    "Use nmap host discovery, port scans and service detection in a sensible order",
+    "Interpret nmap output and tell a looked-up service name from an observed one",
+    "Describe how the CybICS IDS detects a port scan and where it is blind"
+  ],
+  "takeaways": [
+    "A port scan knocks on numbered doors; service detection also listens to who answers.",
+    "Banners and version strings often reveal more than the list of open ports.",
+    "The service name nmap prints may come from a port-number table rather than from the reply itself.",
+    "The CybICS IDS flags five different ports to one target within ten seconds, but not one port across many targets.",
+    "Segmentation, closing unneeded services and an asset inventory make scans less useful to an attacker."
+  ],
+  "checkpoints": [
+    {
+      "id": "banner",
+      "question": "nmap shows a port as 'blackice-alerts?' with no version. What does the question mark tell you?",
+      "options": [
+        "nmap is fairly sure the service is BlackICE",
+        "The name is a port-number guess, not from the reply",
+        "The port is filtered, so nmap got only part of a reply"
+      ],
+      "answer": 1,
+      "explanation": "The question mark means the reply matched no known service, so nmap fell back to the name registered for that port number. It is not a confident identification, and the port did answer in full: it is listed as open. The raw reply in the fingerprint below the table may tell you what is really there."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You find TCP port 502 open on a host. What is the most reasonable first conclusion?",
+      "options": [
+        "It is likely the HMI, which shows the Modbus values",
+        "It probably speaks Modbus TCP, so likely a PLC",
+        "It is certainly a PLC; port 502 proves it",
+        "It is probably the OPC-UA server for the plant"
+      ],
+      "answer": 1,
+      "explanation": "502 is the standard Modbus TCP port. It is a strong hint, not proof, which is why service detection follows. An HMI such as FUXA is a Modbus client that connects to port 502 elsewhere rather than listening on it, and OPC-UA usually uses 4840."
+    },
+    {
+      "type": "single",
+      "question": "What does nmap -sV add compared to a plain port scan?",
+      "options": [
+        "It checks every one of the 65535 ports, not just the top 1000",
+        "It reads each reply to identify software and version",
+        "It hides the scan from the IDS by going slower",
+        "It scans UDP ports as well as the usual TCP ones"
+      ],
+      "answer": 1,
+      "explanation": "Service detection sends probes and compares the answers with a database of known services, which is where banners and version strings come from. Choosing which ports to scan is the job of -p, and -sV sends more traffic, not less, so it is not stealthier."
+    },
+    {
+      "type": "single",
+      "question": "An attacker probes port 502 on every host from 172.18.0.2 to 172.18.0.20 within ten seconds. Does the CybICS port-scan rule fire?",
+      "options": [
+        "Yes, because 19 probes is more than five",
+        "No, each target saw only one port",
+        "Yes, because any probe to port 502 raises an alert",
+        "No, the IDS only counts probes aimed at the PLC"
+      ],
+      "answer": 1,
+      "explanation": "The rule keeps a separate count for each source and destination pair and counts different ports. Each host received a probe on one port only, so no count reaches five. The total number of packets does not matter to this rule, and the port number 502 by itself does not trigger it."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures make network scanning less useful to an attacker? (Select all that apply)",
+      "options": [
+        "Separating the control network from the office network",
+        "Closing services the plant does not need",
+        "Keeping service banners free of exact versions",
+        "Moving Modbus to a random port and doing nothing else"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Segmentation stops the scan from reaching the plant, fewer services mean fewer doors, and plain banners reveal less. A different port number alone only delays an attacker: a scan of all ports with service detection still finds it."
+    },
+    {
+      "type": "single",
+      "question": "Why do OT teams often scan slowly or at agreed times?",
+      "options": [
+        "nmap is slow on industrial networks anyway",
+        "Older controllers can crash under aggressive probing",
+        "Scanning a production network is against the law",
+        "A fast scan would trip the IDS and block the scanner"
+      ],
+      "answer": 1,
+      "explanation": "Fragile embedded network stacks have been known to fail under aggressive scans, which can stop a process. Scanning your own network with permission is legal and useful. An IDS such as the one in CybICS raises alerts but does not block anything, so it is not the reason either."
+    }
+  ]
+}

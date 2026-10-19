@@ -1,0 +1,91 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain what the S7comm System Status List is and why a client can read it without a password",
+    "Run the nmap s7-info script and explain why a portrule can stop it from running",
+    "Judge how far a device identity record can be trusted",
+    "Name how a defender detects and limits S7comm enumeration"
+  ],
+  "takeaways": [
+    "S7comm hands out model, hardware and firmware details to any client that completes the handshake.",
+    "An identity record is a string the device chooses to send, so it shows what a device claims, not what it is.",
+    "An NSE script only runs on the ports its portrule accepts, so a service on a non-standard port can be skipped silently.",
+    "Legitimate S7comm comes from a few known stations, so allow-listing and alerting on every other source work well.",
+    "The CybICS IDS raises an alert for any S7comm payload to port 102 or 1102."
+  ],
+  "checkpoints": [
+    {
+      "id": "portrule",
+      "question": "You run nmap --script s7-info against 172.18.0.6 and the port shows as open, but no S7 information appears. What is the most likely reason?",
+      "options": [
+        "The server refused the S7comm handshake",
+        "The portrule skipped 1102, so nmap never ran it",
+        "S7comm wants a password before it hands out SZL records"
+      ],
+      "answer": 1,
+      "explanation": "A script that runs prints at least an error or partial output. Silence means nmap decided the script does not apply to that port, which is what the portrule controls. A refused handshake would produce an error, and S7comm does not ask for a password before an SZL read."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What does an SZL read return?",
+      "options": [
+        "A copy of the PLC program, block by block",
+        "Records such as module type and firmware version",
+        "The live tank pressures the PLC is working with",
+        "The list of clients currently connected to the PLC"
+      ],
+      "answer": 1,
+      "explanation": "The System Status List holds descriptive records about the controller itself, such as module identification (0x0011) and component identification (0x001C). Process values are read with other S7comm functions, and the program is uploaded with yet another one."
+    },
+    {
+      "type": "single",
+      "question": "Port 102 on CybICS reports 'CPU 315-2 PN/DP' and 'Original Siemens Equipment'. What should you conclude?",
+      "options": [
+        "The plant runs a genuine Siemens CPU 315",
+        "That is only what the device claims to be",
+        "The port is a honeypot run by the CybICS IDS",
+        "A Siemens CPU sits behind OpenPLC as a gateway"
+      ],
+      "answer": 1,
+      "explanation": "Identity strings are chosen by the software that sends them. On CybICS they are the defaults of the snap7 library inside OpenPLC, which answers this way unless someone configures it differently; there is no Siemens hardware anywhere. A real inventory verifies hardware on site."
+    },
+    {
+      "type": "single",
+      "question": "Why does the s7-info script's check for the service name iso-tsap not help with port 1102?",
+      "options": [
+        "nmap's port table names 1102 differently",
+        "iso-tsap is a UDP service, and 1102 is TCP",
+        "The s7com server sends the wrong banner",
+        "Version detection has not relabelled the port yet"
+      ],
+      "answer": 0,
+      "explanation": "The name comes from nmap-services, which maps port numbers to names: 102 is iso-tsap and 1102 is adobeserver-1. It is a lookup, not something nmap learned from the reply, so the banner does not matter. Running -sV does not help either, because nmap has no S7comm probe that would rename 1102."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures help against S7comm enumeration? (Select all that apply)",
+      "options": [
+        "Allowing S7comm only from the engineering workstation and the HMI",
+        "Alerting on S7comm from any other source",
+        "Using the CPU's protection levels",
+        "Moving S7comm to a non-standard port such as 1102"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Allow-lists and alerts work because the set of legitimate S7comm clients is small and known, and protection levels limit what an unknown client may do. A non-standard port only makes the script skip the port by default; anyone who points the script at 1102 still reads the records, as this challenge shows."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS technique describes reading model and firmware details from a controller?",
+      "options": [
+        "T0888 Remote System Information Discovery",
+        "T0846 Remote System Discovery",
+        "T0842 Network Sniffing",
+        "T0882 Theft of Operational Information"
+      ],
+      "answer": 0,
+      "explanation": "T0888 covers collecting details such as model and firmware from a remote system. Remote System Discovery (T0846) is the tempting answer, but it describes finding the system in the first place, the scan that comes before. Sniffing is passive and does not ask the device anything."
+    }
+  ]
+}

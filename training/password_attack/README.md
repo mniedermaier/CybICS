@@ -1,6 +1,6 @@
 # 🔑 Password Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Initial Access` `Persistence` | [T0812 - Default Credentials](https://attack.mitre.org/techniques/T0812/) | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
+> **MITRE ATT&CK for ICS:** `Initial Access` `Persistence` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
 
 ## 📋 Overview
 A dictionary attack is a common method used to crack passwords by systematically attempting all the words in a pre-defined list, or "dictionary," until the correct one is found.
@@ -87,7 +87,7 @@ FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Default Credentials | [T0812](https://attack.mitre.org/techniques/T0812/) | Adversaries may use default credentials to gain access to ICS systems |
+| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries may use default credentials to gain access to ICS systems |
 | Persistence | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Adversaries may use compromised credentials for persistence |
 
 **Why this matters:** Weak and default credentials remain one of the most common vulnerabilities in ICS environments. Many operators never change default passwords, and password policies are often weaker in OT than IT environments. Once an attacker has valid credentials, they can access HMI and engineering workstations to monitor and manipulate processes—often without triggering security alerts.

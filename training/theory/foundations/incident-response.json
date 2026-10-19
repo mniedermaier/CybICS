@@ -1,0 +1,109 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "List the six incident response phases and what happens in each",
+    "Explain why containment in OT must put safety first and cannot simply unplug devices",
+    "Identify the evidence sources in CybICS and what each one can and cannot show"
+  ],
+  "takeaways": [
+    "Incident response runs through preparation, identification, containment, eradication, recovery and lessons learned.",
+    "In OT the first question is whether the process is safe, and every containment action must be checked for side effects on the plant.",
+    "Manual operation and a controlled shutdown are legitimate containment options; an uncontrolled stop is not.",
+    "Much OT evidence is volatile: the CybICS IDS keeps only its 500 most recent alerts in memory, so collect before you restart anything.",
+    "IDS alerts, packet captures, PLC logs and process data each show part of the story; you need them together."
+  ],
+  "checkpoints": [
+    {
+      "id": "plug",
+      "question": "The IDS shows an attacker writing to the CybICS PLC. A colleague wants to stop the OpenPLC container immediately. What is the main concern?",
+      "options": [
+        "None, stopping the PLC is always the safest choice",
+        "Stopping it takes control of the pressure away",
+        "Stopping it would warn the attacker that we know"
+      ],
+      "answer": 1,
+      "explanation": "In OT the controller is doing a job: it keeps the pressure in range. Unplugging is the IT reflex, but a stopped PLC leaves the process uncontrolled, so blocking the attacker's network path is the better move. Alerting the attacker is a minor concern next to losing control of a pressurised tank."
+    },
+    {
+      "id": "volatile",
+      "question": "You want to investigate CybICS IDS alerts tomorrow. What should you do today?",
+      "options": [
+        "Restart the IDS so the analysis starts clean",
+        "Export the alerts now; they live only in memory",
+        "Nothing, the IDS writes every alert to disk anyway"
+      ],
+      "answer": 1,
+      "explanation": "The IDS keeps its most recent 500 alerts in memory only; a restart or a call to the clear endpoint erases them. Assuming they are on disk is the tempting mistake, and restarting to start clean would destroy the evidence you need."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "In which phase do you check that the PLC program still matches the known-good version?",
+      "options": ["Preparation", "Recovery", "Eradication", "Lessons learned"],
+      "answer": 2,
+      "explanation": "Eradication removes what the attacker left behind, which includes a modified program. Recovery comes after that, when the cleaned plant goes back to automatic operation. Preparation is where you make the known-good backup in the first place; without it there is nothing to compare against."
+    },
+    {
+      "type": "single",
+      "question": "Which containment action fits an attack on the CybICS PLC from 172.18.0.100 best?",
+      "options": [
+        "Power off the whole plant straight away",
+        "Drop traffic from 172.18.0.100 at the PLC and keep it running",
+        "Stop the FUXA HMI so the attacker sees nothing",
+        "Restart the PLC to clear the attacker's session"
+      ],
+      "answer": 1,
+      "explanation": "Closing the attacker's path keeps the control loop working. Modbus has no session to clear, so a restart only interrupts control and wipes volatile evidence. Powering off is an uncontrolled stop, and stopping the HMI blinds the operators rather than the attacker."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are evidence sources in CybICS? (Select all that apply)",
+      "options": [
+        "IDS alerts from the API on port 8443",
+        "Packet captures with Wireshark or tcpdump",
+        "The OpenPLC runtime log and container logs",
+        "The HPT values in holding register 1126",
+        "The attacker's username in the captured Modbus frames"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "The first four all contribute: alerts tell you what a rule noticed, captures show the exact bytes, logs show connections and restarts, and process data shows what the plant really did. A capture shows the sender's IP address but no username, because Modbus carries none."
+    },
+    {
+      "type": "single",
+      "question": "The OpenPLC runtime log shows that a Modbus client connected and disconnected. What can it not tell you?",
+      "options": [
+        "That a connection happened",
+        "Roughly when it happened",
+        "The client's address and what it wrote",
+        "That the Modbus server had been started at all"
+      ],
+      "answer": 2,
+      "explanation": "The runtime log records when protocol servers started and when clients connected, but not the client's address or the values written. For that you need the IDS alert or, better, a packet capture. This is why investigators combine sources."
+    },
+    {
+      "type": "single",
+      "question": "Why did Colonial Pipeline shut down its pipeline in 2021, although the ransomware had hit its business IT network?",
+      "options": [
+        "The ransomware had already opened valves",
+        "As a precaution, unsure the OT side was safe",
+        "The law required a shutdown for any malware",
+        "The pipeline control system was encrypted first"
+      ],
+      "answer": 1,
+      "explanation": "The shutdown was a precautionary, controlled containment decision: the company could not be sure the operational side was unaffected. As far as is publicly known, the ransomware never touched the control system, which is why the 'encrypted first' and 'opened valves' options are wrong. Containment in OT can mean stopping the process on purpose, in an orderly way."
+    },
+    {
+      "type": "single",
+      "question": "What should the lessons-learned phase produce?",
+      "options": [
+        "A report naming who caused the incident",
+        "Concrete changes fed back into preparation",
+        "Nothing more, once the plant is running again",
+        "A full reinstall of every device in the plant"
+      ],
+      "answer": 1,
+      "explanation": "Lessons learned closes the loop: findings such as a new firewall rule or a tuned IDS threshold change the plan, the controls and the monitoring for the next incident. Skipping it because the plant runs again means the same attack can work twice."
+    }
+  ]
+}

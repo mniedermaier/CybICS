@@ -1,0 +1,95 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain zones and conduits and why a flat network is risky",
+    "Block the attack machine from the PLC and the OPC-UA server without disturbing the plant",
+    "Compare a block list with an allow list and judge which is stronger"
+  ],
+  "takeaways": [
+    "Segmentation divides a network into zones and lets traffic cross only through controlled conduits.",
+    "The CybICS lab is a flat network, so the boundary is simulated with iptables rules on each target.",
+    "Blocking a source covers every service on a host, not only one port.",
+    "A block list fails when the attacker changes address; an allow list with a final deny does not.",
+    "Segmentation slows lateral movement but does not stop an attacker who already controls an allowed host."
+  ],
+  "checkpoints": [
+    {
+      "id": "scope",
+      "question": "You block 172.18.0.100 on the OpenPLC container only. Which service can the attack machine still reach?",
+      "options": [
+        "The OpenPLC web interface",
+        "Modbus on the PLC",
+        "The OPC-UA server",
+        "None, the network is cut"
+      ],
+      "answer": 2,
+      "explanation": "Each container has its own INPUT chain. A rule on OpenPLC protects all of OpenPLC's services, but it is not a network boundary: the OPC-UA server at 172.18.0.5 needs its own rule."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What makes the virtual CybICS network 'flat'?",
+      "options": [
+        "All containers share one subnet with no boundary",
+        "All containers sit behind a single host firewall",
+        "The network has only one switch and no router",
+        "Every container runs on the same Docker host"
+      ],
+      "answer": 0,
+      "explanation": "All services sit on 172.18.0.0/24 and can reach each other directly. 'Flat' describes the missing boundaries, not the hardware: one host or one switch could still carry separated networks. In a segmented plant the attacker's zone and the control zone would be separate networks joined by a firewall."
+    },
+    {
+      "type": "single",
+      "question": "The attacker gives their machine a second IP address on the same network. Which defense still holds?",
+      "options": [
+        "A rule that drops 172.18.0.100",
+        "An allow list of known peers only",
+        "A rule that drops the attacker's MAC",
+        "A stronger OpenPLC password"
+      ],
+      "answer": 1,
+      "explanation": "A block list names one address, so a new address slips past it. An allow list rejects anything it does not know. Blocking the MAC sounds sturdier, but a machine with administrator rights can change its MAC just as easily, and a password protects the web login but not Modbus, which has none."
+    },
+    {
+      "type": "multi",
+      "question": "Which statements about zones and conduits are correct? (Select all that apply)",
+      "options": [
+        "A zone groups systems with similar security needs",
+        "A conduit is a controlled link between zones",
+        "Inside a zone, segmentation stops every attack",
+        "IEC 62443 uses the zone and conduit model"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "Zones and conduits come from IEC 62443. Segmentation controls traffic between zones; inside a zone, hosts still trust each other, so a compromised host there is not stopped by the boundary."
+    },
+    {
+      "type": "single",
+      "question": "After you add your rules, the HMI stops showing live values. What is the most likely cause?",
+      "options": [
+        "The IDS started blocking the HMI's traffic",
+        "A rule also drops hwio or FUXA",
+        "The attack machine is still connected",
+        "The rules dropped the HMI's OPC-UA link"
+      ],
+      "answer": 1,
+      "explanation": "A rule without a source address, or with the wrong one, can catch the plant's own traffic, such as hwio or FUXA talking to port 502. Always test the process after a change. The IDS only watches; it never blocks, and FUXA reads the PLC over Modbus, not OPC-UA."
+    },
+    {
+      "type": "single",
+      "question": "In a real plant, where should the boundary between the office network and the control network usually be enforced?",
+      "options": [
+        "On each PLC, typed in by hand",
+        "On a firewall or VLANs between zones",
+        "In the IDS, which drops bad traffic",
+        "On the HMI, behind its operator login"
+      ],
+      "answer": 1,
+      "explanation": "A central firewall or VLAN boundary is easier to audit and harder to forget than rules on every device. The lab uses per-container rules only because all containers share one network. An IDS detects but does not enforce a boundary."
+    }
+  ]
+}

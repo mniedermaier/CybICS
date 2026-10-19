@@ -1,0 +1,95 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain why a port scan is easy to spot on an industrial network",
+    "Describe how a threshold rule with a time window detects a scan",
+    "Find and read a port_scan alert on the CybICS IDS dashboard and API",
+    "Identify ways a scan can stay below a threshold rule"
+  ],
+  "takeaways": [
+    "A port scan is one source trying many ports in a short time, which normal clients never do.",
+    "The CybICS port_scan rule alerts when one source tries 5 or more ports on one target within 10 seconds.",
+    "The IDS dashboard on port 8443 and its API show alerts and per-rule counts.",
+    "Every threshold has an edge: slow, wide or non-SYN scans can slip under this one.",
+    "Detection only helps if someone reads the alerts; a firewall reduces what a scan can find."
+  ],
+  "checkpoints": [
+    {
+      "id": "threshold",
+      "question": "Your scanner probes 4 ports on the PLC within 3 seconds. Does the CybICS port_scan rule fire?",
+      "options": [
+        "Yes, 4 ports in 3 seconds is fast enough",
+        "No, it needs 5 different ports in 10 s",
+        "Only if one of the probed ports is open"
+      ],
+      "answer": 1,
+      "explanation": "The rule needs at least 5 distinct destination ports from one source to one target inside its 10-second window; speed alone does not count. Whether the ports are open does not matter either; the rule counts connection attempts."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why is a port scan easier to detect on an industrial network than on an office network?",
+      "options": [
+        "Plant traffic is predictable, so new ports stand out",
+        "Industrial protocols log every connection attempt",
+        "Industrial switches block and report scans by default",
+        "Plant networks have fewer hosts for a scan to hide in"
+      ],
+      "answer": 1,
+      "explanation": "In a plant the same devices talk to the same ports all day, so a host touching many new ports is unusual. Industrial protocols and switches do not log or block scans on their own; on an office network many users open many connections, so unusual behaviour hides more easily."
+    },
+    {
+      "type": "single",
+      "question": "An attacker checks port 502 on 30 different hosts within 5 seconds. Does the CybICS port_scan rule fire?",
+      "options": [
+        "Yes, 30 attempts is far above the threshold",
+        "No, each target sees only one port",
+        "Yes, because port 502 is a Modbus port",
+        "No, port 502 is a normal plant service"
+      ],
+      "answer": 1,
+      "explanation": "The rule groups by source and target. A wide scan of one port touches each target once, so no pair reaches 5 ports, even though the total of 30 attempts sounds like a lot. Counting per source across all targets would catch it."
+    },
+    {
+      "type": "single",
+      "question": "You scan twice within 20 seconds. How many port_scan alerts from your address should you expect?",
+      "options": [
+        "One",
+        "Two",
+        "One per port",
+        "One per open port"
+      ],
+      "answer": 0,
+      "explanation": "The IDS raises at most one alert per rule and source every 30 seconds, so the second scan inside that time adds no new alert, though it is still a full scan. This keeps a long scan from flooding the dashboard."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these scans could stay below the CybICS port_scan rule? (Select all that apply)",
+      "options": [
+        "One port every 5 seconds",
+        "An nmap ACK scan, with no SYN packets",
+        "A fast SYN scan of 1,000 ports on a single host",
+        "One port on each of many hosts"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "A slow scan never puts 5 ports in one window, an ACK scan sends no SYN packets, and a wide scan never reaches 5 ports per target. A fast SYN scan of many ports on one host is exactly what the rule catches."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS technique does the port_scan rule detect?",
+      "options": [
+        "T0846.001 Port Scan",
+        "T0888 Remote System Information Discovery",
+        "T0842 Network Sniffing",
+        "T0830 Adversary-in-the-Middle"
+      ],
+      "answer": 0,
+      "explanation": "Scanning ports to find services is T0846.001, Remote System Discovery: Port Scan. T0888 is tempting because it also sounds like discovery, but it means reading a device's own information such as its firmware version; T0842 is passive listening, not knocking on ports."
+    }
+  ]
+}

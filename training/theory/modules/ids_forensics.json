@@ -1,0 +1,93 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain which question each field of an IDS alert answers",
+    "Query the CybICS IDS API and group alerts by source, rule and severity",
+    "Recognise why alert counts can differ from what really happened on the network"
+  ],
+  "takeaways": [
+    "An alert records when, who, what and where; forensics reads many alerts together to find the pattern.",
+    "Pre-grouped data such as /api/summary is a starting point, but an analyst confirms it against the raw alerts.",
+    "The answers depend on the buffer at the moment you look, so stop generating traffic while you investigate.",
+    "One alert can stand for many packets, because the IDS waits 30 seconds before repeating an alert for the same rule and source.",
+    "Evidence only helps if it survives: retention, write protection and synchronised clocks matter as much as detection."
+  ],
+  "checkpoints": [
+    {
+      "id": "field",
+      "question": "You want to know which host caused the most alerts. Which alert field do you group by?",
+      "options": [
+        "dst",
+        "src",
+        "severity",
+        "rule"
+      ],
+      "answer": 1,
+      "explanation": "src holds the source IP address, which answers 'who sent it'. dst is tempting, but it names the target that was attacked, and grouping by rule or severity tells you what happened or how bad it was, not who caused it."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You submit your answers, but a classmate is still running a port scan in the same lab. What is the most likely effect?",
+      "options": [
+        "None, answers freeze when the case opens",
+        "Your counts may drift from the live buffer",
+        "The IDS pauses new alerts during a case",
+        "Only your first answer is still checked"
+      ],
+      "answer": 1,
+      "explanation": "The correct answers are calculated from the live alert buffer at the moment you submit, so new alerts change the totals. It is tempting to think they freeze when the investigation opens, but they do not, which is why you keep the scene quiet."
+    },
+    {
+      "type": "single",
+      "question": "An attacker sends 2,000 Modbus writes in one minute. Why might the IDS show only two or three alerts for it?",
+      "options": [
+        "The IDS samples only some of the packets",
+        "The 30 s cooldown collapses the burst",
+        "The alert buffer keeps only three alerts",
+        "Writes to one register count as one alert"
+      ],
+      "answer": 1,
+      "explanation": "The rule engine has a 30-second cooldown per rule and source, so a one-minute burst yields only a few alerts. That keeps the dashboard readable but means alert counts understate the volume. The IDS looks at every packet, and the buffer holds 500 alerts, not three."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these questions can you answer directly from the fields of a CybICS alert? (Select all that apply)",
+      "options": [
+        "When did it happen?",
+        "Which rule matched?",
+        "Which value did the attacker write?",
+        "Which address sent the traffic?"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "Alerts carry timestamp, rule, src and dst. The Modbus rules only look at the function code, so the written value is never recorded, even though the alert is about a write; for that you would need a packet capture."
+    },
+    {
+      "type": "single",
+      "question": "Why should alerts be copied off the IDS to central storage in a real plant?",
+      "options": [
+        "The IDS dashboard cannot show old alerts",
+        "Old alerts get overwritten or can be cleared",
+        "Alerts must be decrypted on a central server",
+        "Central storage makes the IDS detect more"
+      ],
+      "answer": 1,
+      "explanation": "Retention and integrity are what make alerts usable as evidence. The CybICS buffer keeps only the latest 500 alerts and can be cleared through the API, which is exactly the weakness central storage removes. Copying alerts does not change what the IDS detects."
+    },
+    {
+      "type": "single",
+      "question": "True or false: the address with the most alerts may be a victim rather than the attacker.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": "True. The top source is a strong lead, not proof. For arp_spoof, for example, the recorded address is the one claimed in the ARP message, which may belong to the victim. An analyst checks the rule and context before naming a culprit."
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "level": "advanced",
+  "objectives": [
+    "Explain how ARP poisoning places an attacker between the HMI and the PLC",
+    "Describe how a Modbus proxy forges readings while relaying commands unchanged",
+    "Identify the network sign the CybICS IDS uses to detect ARP spoofing",
+    "Choose defences that prevent or reveal a man in the middle"
+  ],
+  "takeaways": [
+    "ARP has no proof of identity: a host believes the last reply it heard.",
+    "On an ICS network the dangerous MitM move is forging readings so the operator sees a healthy plant.",
+    "A Modbus read answer contains only values in order, so a forger must remember the request to know which slot to patch.",
+    "The CybICS IDS detects ARP spoofing by seeing one IP address with two MAC addresses.",
+    "Static ARP, segmentation and message authentication stop the attack; independent process checks reveal it."
+  ],
+  "checkpoints": [
+    {
+      "id": "slots",
+      "question": "FUXA reads 11 holding registers starting at 1124. In which slot of the answer is HPT (register 1126)?",
+      "options": [
+        "Slot 0",
+        "Slot 2",
+        "Slot 3",
+        "Slot 1126"
+      ],
+      "answer": 1,
+      "explanation": "Slots count from the start address: 1124 is slot 0, 1125 slot 1, 1126 slot 2. Slot 3 is the off-by-one mistake of counting from 1, and slot 1126 assumes the answer carries addresses, which it does not: it holds only values in order."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You poison both ARP caches but forget to enable IP forwarding. What does the operator notice?",
+      "options": [
+        "Nothing, the traffic still reaches the PLC",
+        "The HMI loses contact with the PLC",
+        "The HMI shows the proxy's forged values",
+        "The IDS blocks the attack machine"
+      ],
+      "answer": 1,
+      "explanation": "Without forwarding your machine receives the packets but never passes them on, so the HMI goes dark. It is tempting to think the traffic still arrives, but the poisoned caches now send it only to you. The IDS only alerts; it blocks nothing."
+    },
+    {
+      "type": "single",
+      "question": "Why does the proxy look at the request before it modifies the answer?",
+      "options": [
+        "The answer is encrypted and the request holds the key",
+        "The answer has no addresses, only values in order",
+        "The PLC rejects answers that do not match a request",
+        "The request tells it which values FUXA will display"
+      ],
+      "answer": 1,
+      "explanation": "A read answer holds a byte count and the values. Only the request says which address each slot belongs to, so the proxy records that map first. Modbus has no encryption, so there is no key to find."
+    },
+    {
+      "type": "single",
+      "question": "An attacker repoints FUXA to the proxy with FUXA admin rights and never sends ARP replies. Does the CybICS arp_spoof rule fire?",
+      "options": [
+        "Yes, it checks the Modbus values",
+        "Yes, it flags the attack machine",
+        "No, no IP gains a second MAC",
+        "No, the proxy port is not 502"
+      ],
+      "answer": 2,
+      "explanation": "arp_spoof keeps the set of MAC addresses seen for each IP and alerts when a set grows to two. It does not inspect Modbus values or ports, so a forgery set up without ARP poisoning leaves nothing for it to see."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures stop or reveal a man in the middle between FUXA and the PLC? (Select all that apply)",
+      "options": [
+        "Static ARP entries or Dynamic ARP Inspection",
+        "Keeping the attacker off the HMI and PLC segment",
+        "A protocol that authenticates its messages",
+        "Polling the PLC more often so changes show up sooner"
+      ],
+      "answer": [
+        0,
+        1,
+        2
+      ],
+      "explanation": "Fixed ARP mappings refuse forged replies, segmentation keeps the attacker away, and authenticated messages make tampering visible. Polling faster may sound like it catches stale data, but it only gives the proxy more answers to rewrite."
+    },
+    {
+      "type": "single",
+      "question": "The proxy forges HPT to 95 and also sets the system sensor to 'operational'. Why forge both?",
+      "options": [
+        "Modbus rejects answers whose values disagree",
+        "So the screen tells one consistent, calm story",
+        "The PLC needs both values to keep the valves open",
+        "The IDS would otherwise flag the changed HPT value"
+      ],
+      "answer": 1,
+      "explanation": "95 lies in the operational band, so a 'not operational' status next to it would contradict itself and make the operator look closer. Modbus does no consistency check, and the IDS never inspects register values."
+    }
+  ]
+}

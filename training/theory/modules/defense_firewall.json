@@ -1,0 +1,95 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain how iptables evaluates the rules of the INPUT chain",
+    "Identify every host that legitimately needs Modbus access to the CybICS PLC",
+    "Build an allow list for port 502 that blocks all other sources without breaking the plant"
+  ],
+  "takeaways": [
+    "Modbus TCP has no authentication, so controlling who can reach port 502 is the main protection.",
+    "iptables checks rules from top to bottom and the first match wins; accept rules must come before the catch-all drop.",
+    "List every legitimate peer before you block anything: on CybICS that is hwio, FUXA and the OPC-UA server.",
+    "A rule for one port leaves the device's other services open.",
+    "Rules added at the command line vanish on restart unless they are saved."
+  ],
+  "checkpoints": [
+    {
+      "id": "order",
+      "question": "The chain reads: 1) DROP all TCP to port 502, 2) ACCEPT port 502 from 172.18.0.4. What happens to the HMI's Modbus traffic?",
+      "options": [
+        "It is accepted by rule 2",
+        "It is dropped by rule 1",
+        "It is accepted, ACCEPT always wins",
+        "It is dropped, then retried by rule 2"
+      ],
+      "answer": 1,
+      "explanation": "The first matching rule decides. Rule 1 matches every packet to port 502, so rule 2 is never reached. It is tempting to think the more specific ACCEPT wins, but iptables does not weigh rules; it reads them top to bottom. Put the ACCEPT rules first."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You allow only FUXA (172.18.0.4) on port 502 and drop everything else. Which part of CybICS stops working correctly?",
+      "options": [
+        "Nothing, FUXA is the only Modbus client",
+        "hwio's sensor values and OPC-UA data",
+        "The OpenPLC web interface on port 8080",
+        "FUXA, since replies leave from port 502"
+      ],
+      "answer": 1,
+      "explanation": "hwio writes the simulated sensor values and the OPC-UA server reads the plant over Modbus, so both need port 502. Thinking FUXA is the only client is the classic mistake that turns a firewall into an outage. The web interface uses port 8080 and is not affected by a rule for 502."
+    },
+    {
+      "type": "single",
+      "question": "What is the difference between DROP and REJECT?",
+      "options": [
+        "DROP is silent; REJECT tells the sender",
+        "DROP logs the packet first; REJECT does not",
+        "REJECT blocks only the reply packets",
+        "DROP is temporary; REJECT is permanent"
+      ],
+      "answer": 0,
+      "explanation": "With DROP the sender waits for a timeout; with REJECT it gets an immediate refusal. Neither logs on its own and both last as long as the rule does. Both stop the traffic, and the CybICS check accepts either."
+    },
+    {
+      "type": "single",
+      "question": "After your rules are in place, an attacker takes over the FUXA HMI. What can they do over Modbus?",
+      "options": [
+        "Nothing, the firewall blocks them",
+        "Read and write, FUXA is allowed",
+        "Only read, writes need a password",
+        "Nothing, the IDS blocks the HMI"
+      ],
+      "answer": 1,
+      "explanation": "A source-based firewall trusts the address, not the person behind it, so a compromised allowed host keeps its full access. Modbus has no password for writes, and the IDS only alerts, which is why monitoring stays necessary but is not a block."
+    },
+    {
+      "type": "multi",
+      "question": "Your port 502 rules are in place. Which OpenPLC services can the attack machine still reach? (Select all that apply)",
+      "options": [
+        "S7comm on port 102",
+        "Web UI on port 8080",
+        "Modbus writes on port 502",
+        "DNP3 on port 20000"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "Your rules only cover port 502, so the attack machine's Modbus traffic is dropped. It is tempting to think the PLC is now closed, but every other listening service stays reachable until it gets its own rules or the source is blocked entirely."
+    },
+    {
+      "type": "single",
+      "question": "You restart the OpenPLC container. What happens to your rules?",
+      "options": [
+        "They stay active in the container",
+        "They are lost unless saved and restored",
+        "They stay, but only until the host reboots",
+        "They are reset to allow FUXA only"
+      ],
+      "answer": 1,
+      "explanation": "Rules added with iptables -A live in kernel memory and vanish with the container, not only with a host reboot. Real systems save them with iptables-save and restore them at boot."
+    }
+  ]
+}

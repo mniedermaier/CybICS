@@ -1,0 +1,89 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Describe the two stages of the ICS Cyber Kill Chain in your own words",
+    "Tell a MITRE ATT&CK for ICS tactic apart from a technique",
+    "Place each CybICS attack challenge on the attack lifecycle",
+    "Explain why detecting an early stage is worth more than detecting a late one"
+  ],
+  "takeaways": [
+    "Real attacks on plants are campaigns with stages, not single tricks.",
+    "The ICS Cyber Kill Chain splits a campaign into an intrusion stage and an ICS attack stage that has to fit the specific process.",
+    "In ATT&CK, a tactic is the attacker's goal and a technique is how they reach it; technique IDs let defenders speak the same language.",
+    "The earlier in the chain you detect an attack, the cheaper it is to stop and the less the process is affected.",
+    "Some stages, such as passive sniffing or a program download that looks like normal engineering work, are hard or impossible to see on the network."
+  ],
+  "checkpoints": [
+    {
+      "id": "tactic-technique",
+      "question": "\"Find out which hosts are on the network\" is an example of what?",
+      "options": ["A tactic", "A technique", "An impact"],
+      "answer": 0,
+      "explanation": "It is a goal, so it is a tactic (Discovery). 'Technique' is tempting because it sounds like an action, but a technique is how the goal is reached: Remote System Discovery (T0846), for example with a port scan."
+    },
+    {
+      "id": "earliest",
+      "question": "Which alert gives a defender the most options to stop a campaign before the process is affected?",
+      "options": ["modbus_flood on register 1126", "port_scan from 172.18.0.100", "The blow-out valve opening"],
+      "answer": 1,
+      "explanation": "A port scan is Discovery, the start of the chain: nothing has been changed yet, so blocking the source costs nothing. The Modbus flood sounds more serious, and it is, but that is because it already manipulates the process. The blow-out valve opening is the impact itself."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why does the second stage of the ICS Cyber Kill Chain usually take an attacker a long time?",
+      "options": [
+        "Industrial networks are always cut off from the internet",
+        "The attacker must first learn how this particular process works",
+        "ICS protocols encrypt the traffic the attacker needs",
+        "The office network must be breached a second time"
+      ],
+      "answer": 1,
+      "explanation": "To damage a physical process an attacker must know which controller drives which equipment and which values are dangerous. Learning that takes time and leaves traces. Encryption is not the reason: many ICS protocols, Modbus included, have none. The office network was already breached in stage 1."
+    },
+    {
+      "type": "single",
+      "question": "On CybICS you listen to Modbus traffic and learn that register 1126 carries the HPT pressure. Which technique fits best?",
+      "options": [
+        "T0842 Network Sniffing",
+        "T0836 Modify Parameter",
+        "T0846 Remote System Discovery",
+        "T0831 Manipulation of Control"
+      ],
+      "answer": 0,
+      "explanation": "You only listened, so it is Network Sniffing. Remote System Discovery means finding hosts, for example with a scan, which you did before. Modify Parameter would be the next step, when you actually write a value to the register."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are ATT&CK for ICS tactics? (Select all that apply)",
+      "options": ["Discovery", "Impair Process Control", "T0846", "Remote System Discovery", "Impact"],
+      "answer": [0, 1, 4],
+      "explanation": "Discovery, Impair Process Control and Impact are tactics, the attacker's goals. Remote System Discovery sounds like a tactic because it contains 'Discovery', but it is the name of technique T0846, one way to reach that goal."
+    },
+    {
+      "type": "single",
+      "question": "An attacker on the CybICS network only captures traffic and never sends a packet. What does the IDS see?",
+      "options": [
+        "A port_scan alert for the listening host",
+        "An arp_spoof alert, since it reads others' traffic",
+        "Nothing, a passive listener sends no packets",
+        "A modbus_flood alert once enough is captured"
+      ],
+      "answer": 2,
+      "explanation": "Passive sniffing produces no traffic of its own, so no network rule can fire. arp_spoof is the tempting one, but it catches the forged ARP replies a man-in-the-middle sends to redirect traffic, not someone who only listens."
+    },
+    {
+      "type": "single",
+      "question": "Why is a malicious PLC program download hard to detect with network rules alone?",
+      "options": [
+        "It travels over UART, not over the network",
+        "It looks like normal engineering work",
+        "OpenPLC encrypts uploaded programs end to end",
+        "OpenPLC hides uploads inside Modbus traffic"
+      ],
+      "answer": 1,
+      "explanation": "Engineers upload programs too, through the same web interface, so the traffic looks the same. It is neither encrypted nor hidden in Modbus. Catching it needs other controls, for example comparing the running program with a known-good copy, or watching who logs in to the engineering interface."
+    }
+  ]
+}

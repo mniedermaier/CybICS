@@ -1,0 +1,94 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain what an IDS does and why passive monitoring suits OT networks",
+    "Describe how a counting rule uses a threshold, a sliding window and a cooldown",
+    "Predict which CybICS IDS rule fires for a given attack",
+    "Balance false positives against false negatives when tuning a rule"
+  ],
+  "takeaways": [
+    "Because ICS protocols rarely authenticate, detection asks whether traffic looks normal rather than who sent it.",
+    "An IDS only watches a copy of the traffic, so a wrong decision never disturbs the process.",
+    "Most CybICS rules count events in a sliding window and fire at a threshold; a cooldown then limits how often you are told.",
+    "A threshold set too low floods the analyst with false alarms; set too high, it lets a slow attacker through.",
+    "Many rules trust traffic by source address, which is a shortcut an attacker will try to exploit."
+  ],
+  "checkpoints": [
+    {
+      "id": "slow-attacker",
+      "question": "An attacker writes to register 1126 once every four seconds. Can modbus_flood (50 writes in 5 s) catch it?",
+      "options": [
+        "Yes, every single write to 1126 is counted",
+        "No, it never gets anywhere near 50 writes in any 5 s window",
+        "Only if the 30-second cooldown is made shorter"
+      ],
+      "answer": 1,
+      "explanation": "Every write is counted, but at one write every four seconds there are at most two in any five-second window, far below 50. A slower rule with a longer window, like modbus_unauth_write (10 writes in 30 s), has a better chance. The cooldown only limits repeat alerts; it never makes a rule fire."
+    },
+    {
+      "id": "which-rule",
+      "question": "From the attack machine you send ten Modbus writes to OpenPLC within twenty seconds. Which rule fires?",
+      "options": ["modbus_flood", "modbus_unauth_write", "modbus_diagnostic", "Both modbus_flood and modbus_unauth_write"],
+      "answer": 1,
+      "explanation": "Ten writes in twenty seconds meets modbus_unauth_write (10 in 30 s), and 172.18.0.100 is not one of the trusted writers. It is far below the 50 writes in 5 s that modbus_flood needs, so 'both' is wrong; modbus_diagnostic only matches function codes 0x08 and 0x2B."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why do OT networks usually prefer an IDS (detection) over an IPS (prevention)?",
+      "options": [
+        "An IDS detects attacks more accurately than an IPS",
+        "A wrongly blocked packet could cut the PLC off from its sensors",
+        "An IPS cannot parse industrial protocols like Modbus",
+        "An IDS can block attacks too, so an IPS adds nothing"
+      ],
+      "answer": 1,
+      "explanation": "Every detector makes mistakes. A passive IDS that is wrong only produces a false alarm; an IPS that is wrong drops real control traffic. Accuracy is not the difference, as both use similar rules, and an IDS never blocks anything: it only watches and alerts."
+    },
+    {
+      "type": "single",
+      "question": "You lower the modbus_unauth_write threshold from 10 to 1. What is the most likely effect?",
+      "options": [
+        "Fewer alerts, because the cooldown starts earlier",
+        "Slow attackers are caught, and so are stray writes",
+        "Nothing changes, because the cooldown still caps alerts",
+        "FUXA's normal writes start raising alerts"
+      ],
+      "answer": 1,
+      "explanation": "A lower threshold catches more attacks (fewer false negatives) but also more harmless events (more false positives), for example a technician testing from a laptop. FUXA is a trusted writer for this rule, so its writes stay quiet. The cooldown only spaces out repeat alerts per source; it does not hide new sources."
+    },
+    {
+      "type": "single",
+      "question": "A Modbus flood sends 500 writes in 30 seconds from one host. Roughly how many modbus_flood alerts appear on the dashboard?",
+      "options": ["500, one per write", "About 10, one per 50 writes", "One or two", "None, the cooldown suppresses all"],
+      "answer": 2,
+      "explanation": "The rule fires once the window reaches 50 writes, and then the 30-second cooldown for that rule and source holds back further alerts. 'One per 50 writes' is tempting, but the cooldown is measured in time, not packets: the alert count is not the packet count."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these would raise an alert on the CybICS IDS? (Select all that apply)",
+      "options": [
+        "The attack machine probes five OpenPLC ports in seconds",
+        "FUXA polls OpenPLC's registers every second, all day long",
+        "A host answers ARP for OpenPLC's IP with its own MAC",
+        "The attack machine sends a function code 0x2B request",
+        "The attack machine writes register 1126 once"
+      ],
+      "answer": [0, 2, 3],
+      "explanation": "Five ports within ten seconds is port_scan, a second MAC for one IP is arp_spoof, and 0x2B is modbus_diagnostic. A single write stays below every write threshold, which is why one write raises nothing. FUXA's regular polling is normal traffic and is filtered out before the rules even see it."
+    },
+    {
+      "type": "single",
+      "question": "Why is it risky that many rules decide by source IP address which hosts to trust?",
+      "options": [
+        "IP addresses on the plant network change constantly",
+        "A host that spoofs a trusted IP is not flagged",
+        "Trusted hosts get blocked whenever they misbehave",
+        "Trusted hosts still raise alerts for normal polling"
+      ],
+      "answer": 1,
+      "explanation": "Trusting known services keeps false alarms down, but the trust is only as strong as the address it relies on. Compromising FUXA or spoofing its address lets an attacker look like the HMI. The IDS blocks nobody, trusted or not; it only decides whether to alert."
+    }
+  ]
+}

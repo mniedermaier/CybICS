@@ -1,0 +1,98 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain how an Industrial Control System differs from ordinary IT and why OT puts safety and availability first",
+    "Place the CybICS components on the levels of the Purdue model",
+    "Describe the CybICS control loop: which sensor the PLC reads, which actuator it drives and at which pressures",
+    "Explain why most industrial protocols let anyone on the network read and write values"
+  ],
+  "takeaways": [
+    "An ICS acts on the physical world, so a wrong value can open a valve or burst a tank, not just corrupt a file.",
+    "OT ranks availability above integrity and confidentiality, and safety above all three.",
+    "The Purdue model stacks the network from enterprise IT (Level 4/5) down to the physical process (Level 0); the key wall belongs between the office and everything below it.",
+    "In CybICS, OpenPLC starts the compressor when the HPT pressure drops below 60 and stops it at 90; the blow-out valve opens above 220.",
+    "Modbus and S7comm have no authentication; OPC-UA does, and the CybICS server refuses anonymous sessions even though it lists the option."
+  ],
+  "checkpoints": [
+    {
+      "id": "priorities",
+      "question": "A security patch requires restarting the PLC that controls a running gas plant. In OT, what usually decides when it is installed?",
+      "options": [
+        "It goes in at once, since an unpatched PLC is the bigger danger",
+        "It waits for a planned stop, since the process must keep running",
+        "It is skipped, since a validated OT system must never be changed"
+      ],
+      "answer": 1,
+      "explanation": "Availability and safety lead in OT, so a restart is planned for a maintenance window. Installing at once is the IT reflex: an unplanned stop of a running plant can itself be dangerous. Skipping is wrong too, because patches still matter; they are scheduled around the process."
+    },
+    {
+      "id": "purdue",
+      "question": "On which Purdue level does OpenPLC, the controller running the plant program, sit?",
+      "options": ["Level 0, Process", "Level 1, Control", "Level 2, Supervisory", "Level 3, Operations"],
+      "answer": 1,
+      "explanation": "Controllers (PLCs) are Level 1. Level 0 is tempting because the PLC is wired to the plant, but Level 0 is the physical process itself, simulated by hwio; Level 2 is where the operator screens such as FUXA live."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Which order of security goals best describes a typical OT environment, most important first?",
+      "options": [
+        "Confidentiality, integrity, availability",
+        "Availability, integrity, confidentiality",
+        "Integrity, confidentiality, availability",
+        "Integrity, availability, confidentiality"
+      ],
+      "answer": 1,
+      "explanation": "OT swaps the outer two goals of the IT order: a stopped process can be dangerous, so availability leads, and safety sits above all three. Confidentiality first is the familiar IT order, which is why it is the tempting wrong answer."
+    },
+    {
+      "type": "single",
+      "question": "The HPT pressure in CybICS drops to 55 while the storage tank is well filled and the plant is in automatic mode. What does OpenPLC do?",
+      "options": [
+        "Nothing, 55 is still inside the healthy band",
+        "It opens the blow-out valve",
+        "It starts the compressor",
+        "It closes the system valve"
+      ],
+      "answer": 2,
+      "explanation": "The compressor starts below 60 and runs until 90. 'Nothing' is tempting because 55 is inside the 50 to 100 band, but that band only governs the system valve, which stays open; the compressor has its own 60/90 thresholds. The blow-out valve only opens above 220."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are Level 0 (Process) items in the Purdue model? (Select all that apply)",
+      "options": [
+        "A pressure sensor on a tank",
+        "The operator's HMI screen in the control room",
+        "A motor-driven valve",
+        "The PLC that switches the valve"
+      ],
+      "answer": [0, 2],
+      "explanation": "Level 0 is the physical plant: sensors and actuators such as valves. The PLC is wired directly to them, which makes it tempting, but controllers are Level 1. The HMI is Level 2 (Supervisory)."
+    },
+    {
+      "type": "single",
+      "question": "Why can an attacker on the CybICS network usually write a Modbus register without logging in?",
+      "options": [
+        "A firewall bug in CybICS lets the request through",
+        "Modbus has no authentication, so any well-formed write is applied",
+        "The default Modbus password was never changed",
+        "Modbus encryption is switched off by default"
+      ],
+      "answer": 1,
+      "explanation": "Modbus simply has no login and no encryption to switch on; it trusted the locked cabinet around the cable. A default password sounds plausible from IT, but there is no password to change, which is exactly what makes Modbus dangerous on a network."
+    },
+    {
+      "type": "single",
+      "question": "The CybICS OPC-UA server lists 'Anonymous' among its login options. Can you open a session without any credentials?",
+      "options": [
+        "Yes, any login option a server lists is one it accepts",
+        "No, its user manager refuses sessions with no user or certificate",
+        "Yes, as long as you also pick the NoSecurity policy",
+        "No, the OPC-UA standard has no anonymous login"
+      ],
+      "answer": 1,
+      "explanation": "Advertising an option is not accepting it: the user manager returns no user for a session without a username or certificate, so it is refused. The standard does define anonymous login, which is why 'the standard has none' is wrong, and the security policy does not change the user check."
+    }
+  ]
+}

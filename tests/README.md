@@ -29,6 +29,11 @@ pytest -v test_training.py
   (no stack needed)
 - **`test_landing_settings.py`** - The settings view (`/settings`) and the scope of its restart and
   log download, without restarting anything
+- **`test_theory_content.py`** - The Theory Path sources: config, articles, sidecar quizzes, scoped
+  figure styles, widget names, links and the glossary, by the rules in `training/theory/AUTHORING.md`
+  (no stack needed)
+- **`test_theory_pages.py`** - Every Theory Path lesson renders with its objectives, quiz and widgets,
+  the sanitiser keeps every figure, and the live plant endpoint reads the PLC
 - **`test_register_map.py`** - The OPC-UA server reads each plant value from the holding register
   the PLC program declares for it (no stack needed)
 

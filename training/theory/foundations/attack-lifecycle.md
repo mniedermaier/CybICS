@@ -1,18 +1,78 @@
 # The ICS attack lifecycle
 
-Real intrusions are not single tricks. They are campaigns with stages, and the **MITRE ATT&CK for ICS** knowledge base names the tactics an adversary moves through. The CybICS challenges are arranged along the same arc, so the CTF is a guided walk through one.
+A burglar does not walk up to a house and immediately open the safe. First they watch the street, then they find an unlocked window, then they look around inside, and only at the very end do they take what they came for. Attacks on industrial plants work the same way: they are campaigns made of stages, and each stage is a chance for a defender to notice.
 
-The usual moral is that the stages get louder as they go, so a defender who watches the network turns a silent campaign into a series of alerts. That is the argument for monitoring, and it is mostly right. It is also worth checking against a real detector rather than assuming, because this platform has one and it does not behave that way.
+This article gives you two maps of those stages, the ICS Cyber Kill Chain and MITRE ATT&CK for ICS, and shows how the CybICS challenges walk you along them.
 
-## Walking the arc, and what the IDS hears
+## Why think in stages
 
-<figure>
+When you hear about a famous attack on a plant, the news report usually describes only the end: a power cut, a damaged machine, a halted pipeline. The weeks or months before that moment are invisible from the outside, but they are where most of the work happened.
+
+Thinking in stages helps you in two ways:
+
+- **As an attacker** (in the CTF), it tells you what to do next. You cannot overwrite a register before you know which host holds it.
+- **As a defender**, it tells you where to look. Every stage leaves traces, and catching an early stage means the dangerous final stage never happens.
+
+<div class="callout analogy" markdown="1">
+**Analogy:** a stage model is like the chapters of a crime novel. Knowing that "the break-in" comes before "the getaway" lets the detective set a trap at the right chapter.
+</div>
+
+## The ICS Cyber Kill Chain
+
+The word *kill chain* comes from the military: a sequence of steps that must all succeed for an attack to work. Break any link and the chain fails. In 2015, Michael Assante and Robert M. Lee adapted the idea for industrial control systems (ICS). Their **ICS Cyber Kill Chain** has two big stages.
+
+| Stage | What the attacker does | Example |
+|---|---|---|
+| **1. Intrusion** | Gets into the company network, usually the office (IT) side: researching the target, sending a phishing e-mail, installing a foothold, setting up remote control | A booby-trapped e-mail attachment on an engineer's laptop |
+| **2. ICS attack** | Learns how the plant works, develops and tests an attack that fits it, then delivers and runs it | Changing the setpoints of a controller so a tank overfills |
+
+The key insight is in stage 2. To damage a physical process, an attacker has to understand *that particular* process: which controller drives which valve, and what values are dangerous. That takes time and leaves traces, which is good news for defenders.
+
+## MITRE ATT&CK for ICS
+
+The kill chain gives you the big picture. For day-to-day work, defenders use a more detailed catalogue: **MITRE ATT&CK for ICS** (Adversarial Tactics, Techniques and Common Knowledge). MITRE is a US non-profit that collects how real attackers have behaved and publishes it for free at attack.mitre.org.
+
+ATT&CK uses two words you need to keep apart:
+
+- A **tactic** is the attacker's *goal* at that moment: "find out what is on the network" (Discovery) or "change how the process behaves" (Impair Process Control).
+- A **technique** is *how* they reach that goal. Each one has an ID, for example **T0846 Remote System Discovery**, so that a defender in Germany and one in Brazil mean exactly the same thing.
+
+There are twelve ICS tactics. You do not need to memorise them, but here they are in the usual order, so you can recognise the names when an alert or a report uses them:
+
+Initial Access, Execution, Persistence, Privilege Escalation, Evasion, Discovery, Lateral Movement, Collection, Command and Control, Inhibit Response Function, Impair Process Control, Impact.
+
+The two at the end are what makes ICS special. *Impair Process Control* means manipulating the physical process, and *Impact* is the result in the real world: lost production, damaged equipment or, worst of all, a safety incident.
+
+<div data-widget="checkpoint" data-id="tactic-technique"></div>
+
+## The arc on CybICS
+
+The CybICS challenges are arranged along the same arc. Doing them in order is a guided walk through one campaign against the gas plant.
+
+| Tactic | Technique | CybICS challenge |
+|---|---|---|
+| Discovery | T0846 Remote System Discovery, T0840 Network Connection Enumeration | [Service Scanning](/ctf/challenge/scanning) |
+| Collection | T0861 Point & Tag Identification | [S7comm Scanning](/ctf/challenge/scanning2) |
+| Discovery | T0842 Network Sniffing | [Wireshark Capture](/ctf/challenge/wireshark_capture) |
+| Collection | T0830 Adversary-in-the-Middle | [Man-in-the-Middle](/ctf/challenge/mitm) |
+| Persistence, Lateral Movement | T0859 Valid Accounts | [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password attacks |
+| Lateral Movement, Persistence | T0843 Program Download, T0889 Modify Program | [PLC Programming](/ctf/challenge/plc_programming) |
+| Impair Process Control | T0836 Modify Parameter, T0806 Brute Force I/O | [Flood & Overwrite](/ctf/challenge/flood_overwrite) |
+| Impact | T0831 Manipulation of Control | [Physical Process](/ctf/challenge/physical_process) |
+
+Read the table as a story. You scan the network from the attack machine (172.18.0.100) and find the PLC at 172.18.0.3. You listen to its Modbus traffic and learn that holding register 1126 carries the high-pressure tank (HPT) value. You get into the web interface with a guessed password. Finally, you change values the controller relies on, and the compressor and valves do things the operator never asked for.
+
+Notice that several techniques belong to more than one tactic. A stolen password (T0859 Valid Accounts) both lets an attacker move to a new machine and lets them come back later. ATT&CK is a catalogue, not a strict timeline.
+
+## What a defender hears
+
+CybICS has a small Intrusion Detection System (IDS) that watches the network and raises alerts. The figure walks one campaign past it, stage by stage, and shows which alert each stage raises. The details of every rule are in [Detection and monitoring](/theory/detection-monitoring).
+
+<figure class="wide">
 <style>
-.article figure svg.al-w {min-width: 428px;}
 .al-w {--w: 20s;}
-/* One marker, five stages, and the alert each stage actually produces. The
-   stage highlight and the alert row share the clock, because the point is
-   which of them arrive together and which stage arrives alone. */
+/* One marker, five stages, and the alert each stage produces. The stage
+   highlight and the alert row share one clock. */
 .al-w .mk {animation: aw-mk var(--w) steps(1,end) infinite;}
 .al-w .s1 {animation: aw-s1 var(--w) steps(1,end) infinite;}
 .al-w .s2 {animation: aw-s2 var(--w) steps(1,end) infinite;}
@@ -24,20 +84,16 @@ The usual moral is that the stages get louder as they go, so a defender who watc
 .al-w .a3 {opacity:0; animation: aw-o3 var(--w) steps(1,end) infinite;}
 .al-w .a4 {opacity:0; animation: aw-o4 var(--w) steps(1,end) infinite;}
 .al-w .a5 {opacity:0; animation: aw-o5 var(--w) steps(1,end) infinite;}
-/* Base state is stage 3, the one that produces nothing -- the frame worth
-   landing on when the animation is switched off. */
-.al-w .s3 {stroke-width:3;}
-.al-w .s1,.al-w .s2,.al-w .s4,.al-w .s5 {stroke-width:0;}
-.al-w .a3 {opacity:1;}
-.al-w .mk {transform: translateX(152px);}
+/* Base state is stage 4, the quiet one: the frame worth landing on when
+   animation is switched off. */
+.al-w .s4 {stroke-width:3;}
+.al-w .s1,.al-w .s2,.al-w .s3,.al-w .s5 {stroke-width:0;}
+.al-w .a4 {opacity:1;}
+.al-w .mk {transform: translateX(228px);}
 @keyframes aw-mk {0%,19.9%{transform:translateX(0)}    20%,39.9%{transform:translateX(76px)}
                   40%,59.9%{transform:translateX(152px)} 60%,79.9%{transform:translateX(228px)}
                   80%,100%{transform:translateX(304px)}}
-/* The panels animate stroke-width only. They used to animate `opacity` too,
-   which faded the orange rect out from under its own dark labels and left
-   them at 1.06:1 on the figure ground -- four of the five stage captions were
-   ghosts while the animation ran, and legible only when it stopped. The alert
-   rows below carry the opacity on their own keyframes. */
+/* The panels animate stroke-width only, so their dark labels stay legible. */
 @keyframes aw-s1 {0%,19.9%{stroke-width:3} 20%,100%{stroke-width:0}}
 @keyframes aw-s2 {0%,19.9%{stroke-width:0} 20%,39.9%{stroke-width:3} 40%,100%{stroke-width:0}}
 @keyframes aw-s3 {0%,39.9%{stroke-width:0} 40%,59.9%{stroke-width:3} 60%,100%{stroke-width:0}}
@@ -51,7 +107,7 @@ The usual moral is that the stages get louder as they go, so a defender who watc
 @media (prefers-reduced-motion: reduce) { .al-w * {animation:none !important;} }
 </style>
 <svg class="al-w" viewBox="0 0 400 214" role="img"
-     aria-label="Five stages of a campaign against this plant, walked in order. Scanning raises a port scan alert at medium severity and an S7 enumeration alert. Man in the middle raises an ARP spoofing alert at critical severity. Guessing the HMI password raises nothing at all, because the rule matches the word login or auth in the request and the HMI's endpoint is called api slash signin. Downloading a modified program raises nothing. Flooding a register raises a Modbus flood alert at critical severity. The quiet stage is in the middle, not at the start.">
+     aria-label="Five stages of a campaign against the CybICS plant, walked in order. Scanning raises a port scan alert and an S7 enumeration alert, both medium severity. Man in the middle raises an ARP spoofing alert at critical severity. Guessing the OpenPLC password raises an HTTP brute force alert at high severity after five attempts in thirty seconds. Downloading a modified PLC program raises nothing, because no rule looks at program uploads. Flooding a Modbus register raises a Modbus flood alert at critical severity. Four stages make noise; the quiet one is where the attacker changes the logic.">
   <text x="8" y="18" font-size="12" font-weight="bold">one campaign, five stages</text>
   <g font-size="11" text-anchor="middle">
     <rect class="s1" x="8"   y="30" width="68" height="40" rx="5" fill="#ff6b00" stroke="#1a1a1a"/>
@@ -59,7 +115,7 @@ The usual moral is that the stages get louder as they go, so a defender who watc
     <rect class="s2" x="84"  y="30" width="68" height="40" rx="5" fill="#ff6b00" stroke="#1a1a1a"/>
     <text x="118" y="48" style="fill:#1a1a1a" font-weight="bold">MitM</text><text x="118" y="62" style="fill:#1a1a1a">sit on the wire</text>
     <rect class="s3" x="160" y="30" width="68" height="40" rx="5" fill="#ff6b00" stroke="#1a1a1a"/>
-    <text x="194" y="48" style="fill:#1a1a1a" font-weight="bold">creds</text><text x="194" y="62" style="fill:#1a1a1a">guess the HMI</text>
+    <text x="194" y="48" style="fill:#1a1a1a" font-weight="bold">creds</text><text x="194" y="62" style="fill:#1a1a1a">guess a login</text>
     <rect class="s4" x="236" y="30" width="68" height="40" rx="5" fill="#ff6b00" stroke="#1a1a1a"/>
     <text x="270" y="48" style="fill:#1a1a1a" font-weight="bold">program</text><text x="270" y="62" style="fill:#1a1a1a">change the logic</text>
     <rect class="s5" x="312" y="30" width="80" height="40" rx="5" fill="#ff6b00" stroke="#1a1a1a"/>
@@ -71,100 +127,55 @@ The usual moral is that the stages get louder as they go, so a defender who watc
   <g font-size="12" font-weight="bold">
     <text class="a1" x="8" y="140" fill="#ff6b00">port_scan &mdash; medium &nbsp;&middot;&nbsp; s7_enumeration &mdash; medium</text>
     <text class="a2" x="8" y="140" fill="#ff6b00">arp_spoof &mdash; critical</text>
-    <text class="a3" x="8" y="140">&mdash; silence &mdash;</text>
+    <text class="a3" x="8" y="140" fill="#ff6b00">http_brute_force &mdash; high</text>
     <text class="a4" x="8" y="140">&mdash; silence &mdash;</text>
     <text class="a5" x="8" y="140" fill="#ff6b00">modbus_flood &mdash; critical</text>
   </g>
   <g font-size="11" opacity="0.85">
-    <text class="a1" x="8" y="160">Five ports in ten seconds, and any payload to 102.</text>
-    <text class="a2" x="8" y="160">One IP claiming two MAC addresses.</text>
-    <text class="a3" x="8" y="160">The rule looks for &ldquo;login&rdquo; or &ldquo;auth&rdquo;. FUXA&rsquo;s endpoint is /api/signin.</text>
-    <text class="a4" x="8" y="160">No rule watches a program upload at all.</text>
-    <text class="a5" x="8" y="160">Fifty writes in five seconds, from a host outside the exempt three.</text>
+    <text class="a1" x="8" y="160">Five ports in ten seconds, and any S7 payload to port 102.</text>
+    <text class="a2" x="8" y="160">One IP address claiming two hardware (MAC) addresses.</text>
+    <text class="a3" x="8" y="160">Five login attempts on OpenPLC in thirty seconds.</text>
+    <text class="a4" x="8" y="160">No rule looks at a program upload.</text>
+    <text class="a5" x="8" y="160">Fifty writes in five seconds from an unexpected host.</text>
   </g>
-  <text x="8" y="190" font-size="11" opacity="0.85">Both ends raise something. The two silent stages are in the middle,</text>
-  <text x="8" y="206" font-size="11" opacity="0.85">which is where an attacker takes control.</text>
+  <text x="8" y="190" font-size="11" opacity="0.85">Four stages make noise. The quiet one is where the attacker</text>
+  <text x="8" y="206" font-size="11" opacity="0.85">changes what the controller does.</text>
 </svg>
-<figcaption>Measured against the running IDS, not read off a diagram. Eight failed logins against OpenPLC&rsquo;s <code>/login</code> produced a HIGH <code>http_brute_force</code> alert on the fifth; eight against FUXA&rsquo;s <code>/api/signin</code> produced nothing, because <code>_check_http_brute</code> only proceeds when the first 200 bytes of the POST contain <code>login</code> or <code>auth</code>. The received wisdom is that a campaign gets louder as it advances. On this plant it is loud at both ends and quiet in the middle, which is exactly the wrong shape.</figcaption>
+<figcaption>The alerts each stage raises on the CybICS IDS, from the rules in <code>software/ids/rules.py</code>. A program download is a normal engineering action over the web interface, so no network rule flags it; catching it needs a different control, such as comparing the running program with a known-good copy.</figcaption>
 </figure>
-
-## A signature sees the string, not the meaning
-
-That gap is worth more than the embarrassment. It is the clearest example on the platform of how a detection rule actually fails.
-
-<figure>
-<style>
-.article figure svg.al-f {min-width: 428px;}
-.al-f {--f: 10s; --pkt-ink:#141414;}
-/* The grey packet is filled with currentColor, so its fill flips with the
-   theme while a fixed ink on it would not: #141414 on the light-mode fill
-   measures about 1.6:1. The ink has to flip with it. */
-html.light-mode .al-f {--pkt-ink:#ffffff;}
-/* Two identical attacks, one filter, two outcomes. The packets travel on the
-   same clock so the divergence happens at the same x for both rows -- the
-   filter is the only thing that differs. */
-/* Base state is both packets at their endpoints, matching the two outcome
-   labels below -- otherwise switching animations off showed the verdicts with
-   both packets still sitting at the start line. */
-.al-f .p1 {transform: translateX(164px); animation: af-p1 var(--f) linear infinite;}
-.al-f .p2 {transform: translateX(292px); animation: af-p2 var(--f) linear infinite;}
-.al-f .hit  {opacity:1; animation: af-hit var(--f) steps(1,end) infinite;}
-.al-f .miss {opacity:1; animation: af-miss var(--f) steps(1,end) infinite;}
-@keyframes af-p1 {0%{transform:translateX(0); opacity:0} 4%{transform:translateX(0); opacity:1}
-                  52%,100%{transform:translateX(164px); opacity:1}}
-@keyframes af-p2 {0%{transform:translateX(0); opacity:0} 4%{transform:translateX(0); opacity:1}
-                  52%{transform:translateX(164px); opacity:1}
-                  76%,100%{transform:translateX(292px); opacity:1}}
-@keyframes af-hit  {0%,51.9%{opacity:0} 52%,100%{opacity:1}}
-@keyframes af-miss {0%,75.9%{opacity:0} 76%,100%{opacity:1}}
-@media (prefers-reduced-motion: reduce) { .al-f * {animation:none !important;} }
-</style>
-<svg class="al-f" viewBox="0 0 400 200" role="img"
-     aria-label="Two identical brute-force attempts arrive at the same rule. The rule tests whether the first two hundred bytes of the POST contain the string login or auth. The request to OpenPLC's slash login endpoint matches and is counted, and the fifth one in thirty seconds raises an alert. The request to FUXA's slash api slash signin endpoint does not match, is never counted, and passes straight through the detector untouched.">
-  <text x="8" y="18" font-size="12" font-weight="bold">the same attack, one rule, two outcomes</text>
-  <rect x="150" y="34" width="100" height="112" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-  <text x="200" y="46" text-anchor="middle" font-size="11" opacity="0.9">the rule&rsquo;s filter:</text>
-  <text x="200" y="94" text-anchor="middle" font-size="11" opacity="0.9">first 200 bytes</text>
-  <text x="200" y="108" text-anchor="middle" font-size="11" opacity="0.9">contain</text>
-  <text x="200" y="124" text-anchor="middle" font-size="12" font-weight="bold" fill="#ff6b00">login or auth?</text>
-
-  <text x="8" y="52" font-size="11" opacity="0.85">POST /login</text>
-  <g class="p1"><rect x="8" y="58" width="56" height="18" rx="3" fill="#ff6b00"/>
-    <text x="36" y="71" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">OpenPLC</text></g>
-  <text class="hit" x="260" y="71" font-size="12" font-weight="bold" fill="#ff6b00">counted &rarr; alert</text>
-
-  <text x="8" y="112" font-size="11" opacity="0.85">POST /api/signin</text>
-  <g class="p2"><rect x="8" y="118" width="56" height="18" rx="3" fill="currentColor" fill-opacity="0.85"/>
-    <text x="36" y="131" text-anchor="middle" font-size="11" style="fill:var(--pkt-ink)" font-weight="bold">FUXA</text></g>
-  <text class="miss" x="392" y="112" text-anchor="end" font-size="12" font-weight="bold">never counted</text>
-
-  <text x="8" y="170" font-size="11" opacity="0.85">Eight failed logins each, same host, under thirty seconds.</text>
-  <text x="8" y="186" font-size="11" opacity="0.85">The rule is not wrong about rate. It is wrong about where to look.</text>
-</svg>
-<figcaption>The rule in <code>software/ids/rules.py</code> is a rate rule wearing a string match: it counts POSTs per source and port, but only ones whose first 200 bytes contain <code>login</code> or <code>auth</code>. FUXA&rsquo;s sign-in route contains neither, so its attempts are never counted and the rate it is counting never rises. The <em>Password Attack</em> module&rsquo;s own instructions point the learner at that route.</figcaption>
-</figure>
-
-There is a second reason a signature can be blind here, and it is in the same file: the capture runs with `tcpdump -s 128`, so only the first 128 bytes of each frame reach the rules. About sixty of those are payload. A rule that needs to see something further into a request cannot, whatever it matches on.
-
-## The stages, with CybICS challenges
-
-| Stage | ATT&CK for ICS | CybICS challenge | Detected here? |
-|---|---|---|---|
-| Discovery | T0846 Remote System Discovery | Service scanning, S7comm scanning | yes &mdash; `port_scan`, `s7_enumeration` |
-| Collection | T0842 Network Sniffing | Wireshark capture | no &mdash; passive |
-| Adversary-in-the-Middle | T0830 Adversary-in-the-Middle | MitM | yes &mdash; `arp_spoof` |
-| Initial access | T0859 Valid Accounts | Password attack | OpenPLC yes, FUXA no |
-| Execution, persistence | T0843 Program Download, T0889 Modify Program | PLC programming | no |
-| Impair process control | T0836 Modify Parameter | Flood &amp; overwrite | yes &mdash; `modbus_flood` |
-| Manipulation of control | T0831 Manipulation of Control | IDS evasion | by design, no |
-| Impact | T0828 Loss of Productivity and Revenue | the blow-out | not a network event |
-
-Two notes on that table. The identifiers are checked against the current ATT&CK for ICS catalogue &mdash; three that this repository still uses elsewhere (`T0812`, `T0855`, `T0856`) are no longer in it, including in the `mitre` field the IDS puts on its own alerts. And *Collection* is undetectable on principle, not by oversight: a host that only listens sends nothing to notice.
 
 ## Why the order matters for defenders
 
-Reconnaissance is quiet, impact is obvious, and the further left you detect the more options you have and the less damage is done. That argument survives, but this plant sharpens it into something more useful than "monitor the network".
+Early stages are quiet and cheap to stop; late stages are loud and expensive. If you notice a port scan, you can block one address and nothing is harmed. If you only notice when the HPT pressure is already climbing, the plant's operators are fighting the attack in real time.
 
-The coverage here is not a gradient, it is a set of holes. Two stages are watched by rate rules, one by a protocol rule, one by an ARP rule, and the two stages where an attacker actually takes control &mdash; getting credentials and changing the program &mdash; are watched by a rule with the wrong string in it and by nothing at all. **Shifting detection left is not the same as adding a rule per stage.** A defender who read only the stage names would conclude the middle was covered. Sending eight requests and reading the log is what tells you otherwise, and it takes a minute.
+So defenders try to **detect as far left in the chain as possible**. Two limits keep this honest:
 
-That is the habit worth taking from this page: a detection you have not fired is a detection you do not have.
+- Some stages cannot be seen on the network at all. A host that only *listens* (passive sniffing, T0842) sends nothing for an IDS to notice.
+- Some stages look exactly like normal work. An engineer uploading a new PLC program and an attacker doing the same produce very similar traffic.
+
+That is why a single control is never enough, and why the next articles cover both [detection](/theory/detection-monitoring) and [defence in depth](/theory/defense-hardening).
+
+<div data-widget="checkpoint" data-id="earliest"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: technique IDs change over time</summary>
+
+ATT&CK is a living catalogue. MITRE publishes new versions, merges techniques and occasionally renumbers them. Several older ICS IDs you will still find in tools and reports now redirect to new entries:
+
+| Older ID | Name then | Current entry |
+|---|---|---|
+| T0855 | Unauthorized Command Message | T1692.001 Unauthorized Message: Command Message |
+| T0856 | Spoof Reporting Message | T1692.002 Unauthorized Message: Reporting Message |
+| T0812 | Default Credentials | T1694.001 Insecure Credentials: Default Credentials |
+
+The habit to build: when an alert or a report cites a technique ID, look it up on attack.mitre.org before you rely on it. An ID is a promise about what the alert means, and the promise is only as good as the catalogue version behind it.
+
+</details>
+
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
+
+- The IDS (`software/ids/rules.py`) still labels its alerts with the older IDs T0855, T0856 and T0812. Students who look them up will be redirected to the T1692/T1694 entries; the deep dive above prepares them for that.
+- The `http_brute_force` rule only counts POSTs whose request contains `login` or `auth`. OpenPLC's `/login` matches; FUXA's sign-in route (`/api/signin` on port 1881) does not, so a FUXA password attack raises no brute-force alert. A good class discussion on how signature rules fail.
+
+</details>

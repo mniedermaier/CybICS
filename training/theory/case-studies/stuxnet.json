@@ -1,0 +1,86 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Describe how Stuxnet travelled from a USB stick to the program of a PLC",
+    "Map the main steps of Stuxnet to MITRE ATT&CK for ICS techniques",
+    "Explain why manipulating the operators' view made the physical damage possible",
+    "Relate Stuxnet's techniques to the PLC programming, Flood & Overwrite and MitM challenges on CybICS"
+  ],
+  "takeaways": [
+    "Stuxnet changed the program inside Siemens PLCs, not just the Windows computers around them.",
+    "It hid its changes from the engineers and replayed normal readings to the operators, so the plant looked healthy while centrifuges were damaged.",
+    "An air gap slowed the attack but did not stop it, because people carried data across it on USB sticks.",
+    "Knowing which program each PLC runs, and having an independent view of the process, are the defences that matter most.",
+    "Attribution to the United States and Israel is well-sourced reporting, never officially confirmed."
+  ],
+  "checkpoints": [
+    {
+      "id": "view",
+      "question": "On CybICS you overwrite the HPT pressure value in register 1126. Which part of Stuxnet does this resemble most?",
+      "options": [
+        "Crossing the air gap on infected USB sticks",
+        "Showing false process values to operators",
+        "Downloading new code blocks into the PLC"
+      ],
+      "answer": 1,
+      "explanation": "Overwriting the pressure value means the PLC and the FUXA HMI work with a number that is not the real pressure, just as Stuxnet's replayed values hid the real state of the centrifuges. It is tempting to call it a change of the PLC logic, but the program stays the same; only the value it reads is false. USB sticks were how Stuxnet got in, not what it did to the process."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Natanz was not connected to the internet. How did Stuxnet most likely get in?",
+      "options": [
+        "Through an exposed Modbus port on the internet",
+        "On USB sticks carried in by people",
+        "Through a phishing e-mail to an operator",
+        "Through a vendor's remote-access VPN account"
+      ],
+      "answer": 1,
+      "explanation": "Stuxnet spread on USB sticks (T0847 Replication Through Removable Media) and then across the local network. Phishing and stolen remote-access accounts are common entry points in other incidents, such as the 2015 Ukraine attack and Colonial Pipeline, but an air-gapped plant offers neither; people carrying data in did."
+    },
+    {
+      "type": "single",
+      "question": "Why did the engineers not see Stuxnet's code blocks when they looked at the PLC program in Step 7?",
+      "options": [
+        "The blocks were encrypted, so Step 7 could not show them",
+        "A hooked Step 7 library hid them from the engineers",
+        "The malicious code ran on Windows, not inside the PLC",
+        "Signed drivers made Step 7 treat the blocks as genuine"
+      ],
+      "answer": 1,
+      "explanation": "Stuxnet replaced a Step 7 communication library (T0874 Hooking, T0851 Rootkit), so the engineering software showed a clean program. The blocks really were inside the PLC; the tool the engineers trusted lied about them. The stolen certificates only made Windows trust Stuxnet's drivers, they did not hide anything from Step 7."
+    },
+    {
+      "type": "multi",
+      "question": "Which ATT&CK for ICS techniques describe what Stuxnet did once it reached the PLC? (Select all that apply)",
+      "options": [
+        "T0843 Program Download",
+        "T0836 Modify Parameter",
+        "T0832 Manipulation of View",
+        "T0847 Replication Through Removable Media"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Stuxnet downloaded its own code to the PLC, changed the drive speed parameters and showed the operators false values. Replication Through Removable Media is real Stuxnet behaviour too, but it is how the worm got into the plant, before it ever reached a PLC."
+    },
+    {
+      "type": "single",
+      "question": "On CybICS, which defence would most directly have caught a Stuxnet-style change to the OpenPLC program?",
+      "options": [
+        "Comparing the running program with a known-good copy",
+        "Watching the FUXA HMI closely for unusual pressure readings",
+        "Moving the plant network behind an air gap",
+        "Encrypting the Modbus traffic between PLC and HMI"
+      ],
+      "answer": 0,
+      "explanation": "A program that differs from the approved copy is the clearest sign of tampering. Watching the HMI is the tempting answer, but Stuxnet's whole point was that the screens showed normal values. An air gap did not stop it at Natanz, and encryption protects traffic in transit, not a program uploaded by a trusted tool."
+    },
+    {
+      "type": "single",
+      "question": "True or false: it is an officially confirmed fact that Stuxnet was built by the United States and Israel.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "False. The attribution rests on detailed press reporting, especially the New York Times in 2012, but no government has officially claimed Stuxnet. It is good practice to state that uncertainty."
+    }
+  ]
+}

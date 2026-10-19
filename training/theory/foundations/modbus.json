@@ -1,0 +1,92 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain the four Modbus data tables and find the CybICS tank pressures in them",
+    "Read the bytes of a Modbus TCP request and name each field",
+    "Explain why any host that reaches port 502 can change the plant, and what the IDS can still detect"
+  ],
+  "takeaways": [
+    "Modbus has no login and no way to prove who sent a frame: anyone who reaches port 502 can read and write.",
+    "Coils hold single bits, registers hold 16-bit numbers; CybICS keeps GST at holding register 1124 and HPT at 1126.",
+    "A Modbus TCP request is a 7-byte MBAP header followed by a function code and its data; length, function code and data must be right.",
+    "In CybICS, hwio rewrites the tank pressures about fifty times a second, so a forged value only lasts until the next update.",
+    "Because Modbus carries no identity, the IDS judges traffic by source IP address, rate and function code."
+  ],
+  "checkpoints": [
+    {
+      "id": "holding",
+      "question": "CybICS keeps the HPT pressure reading in holding register 1126 instead of an input register. What does that allow?",
+      "options": [
+        "Nothing, a client still cannot change a sensor value",
+        "Any Modbus client on the network can write a fake pressure into it",
+        "The HMI can display it, which an input register would not"
+      ],
+      "answer": 1,
+      "explanation": "Holding registers are read and write; input registers are read only. Putting a sensor reading in a holding register means any client can overwrite it, because Modbus does not know which values are sensors. Input registers can be read and displayed just as well, so the HMI needed no holding register."
+    },
+    {
+      "id": "frame",
+      "question": "You have the bytes of a request that writes 90 to register 1126 and want it to write 100 instead. Which part do you change?",
+      "options": [
+        "The transaction id",
+        "The length field, since the value grows",
+        "The last two bytes, the value",
+        "The unit id"
+      ],
+      "answer": 2,
+      "explanation": "The value is the last field of the data: 00 5a (90) becomes 00 64 (100). The length counts bytes, not the size of the number, so it stays 6 because the frame does not get longer. The transaction id only matches replies to requests."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "An attacker on the CybICS network sends a single Modbus write to the PLC. What does the PLC check before applying it?",
+      "options": [
+        "The sender's username and password",
+        "A certificate proving the sender's identity",
+        "Only that the frame is well formed",
+        "That the source IP is on an allowlist"
+      ],
+      "answer": 2,
+      "explanation": "Modbus has no authentication at all, so the PLC applies any well-formed request. The IP allowlist is tempting, but allowlists exist only in the separate IDS rules, and the IDS watches and alerts; it does not block anything."
+    },
+    {
+      "type": "single",
+      "question": "Which function code would you use to switch the compressor, which is coil 1?",
+      "options": ["3", "5", "6", "16"],
+      "answer": 1,
+      "explanation": "Function code 5 writes a single coil. Code 6 writes a single register, which is tempting, but the compressor is a coil (a bit), not a 16-bit register. Code 16 writes several registers, and code 3 only reads."
+    },
+    {
+      "type": "single",
+      "question": "In hex, what is the byte 5a as a decimal number?",
+      "options": ["50", "90", "510", "15"],
+      "answer": 1,
+      "explanation": "Hex digits count in sixteens: 5 times 16 plus a (which is 10) gives 90. Adding the digits (5 + 10 = 15) or reading them as the decimal digits 5 and 0 are the common mistakes."
+    },
+    {
+      "type": "single",
+      "question": "An attacker writes 90 into register 1126 once. Why does the value on the HMI soon go back to normal?",
+      "options": [
+        "The PLC detects the forged write and undoes it",
+        "The IDS spots the write and blocks the attacker",
+        "hwio keeps writing the real pressure back",
+        "The PLC scan recomputes the register every 50 ms"
+      ],
+      "answer": 2,
+      "explanation": "Nothing defends the register. hwio, which simulates the plant, simply overwrites it with the true value about fifty times a second. The PLC scan is tempting, but the program only reads 1126; it recomputes its outputs, not this input. The IDS only raises alerts and blocks nothing."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these can the CybICS IDS use to spot a suspicious Modbus write? (Select all that apply)",
+      "options": [
+        "The source IP address",
+        "How many writes arrive in a time window",
+        "The login name the client sends in the Modbus header",
+        "The function code"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Rules 3 and 4 combine the source IP with a write count, and rule 5 matches diagnostic function codes. Modbus carries no login name anywhere in the frame, which is exactly why the IDS has to rely on the other clues."
+    }
+  ]
+}
