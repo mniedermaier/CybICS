@@ -81,6 +81,12 @@ Every module article uses the same section headings, in this order:
 
 Aim for 500 to 900 words of prose. That is roughly five minutes.
 
+The reading time on a page counts the text outside deep dives (170 words a
+minute, plus half a minute per figure or widget); deep dives show as extra
+optional minutes. Keep a foundation lesson at eight minutes or less: move
+detail, numbers that only matter in a challenge, and source paths into deep
+dives rather than into the main text.
+
 ## Building blocks
 
 All of these are plain HTML in the Markdown. Leave a blank line before and
@@ -170,6 +176,8 @@ reached.
 | Alert log | `<div data-widget="alert-log"></div>` | A made-up morning of CybICS IDS alerts to filter and count, with four triage questions. Not the data of the IDS Forensics challenge. |
 | OPC-UA security | `<div data-widget="opcua-security"></div>` | Choose the channel policy and the identity; shows what the CybICS server accepts, the role, what a listener sees and what the IDS reports. |
 | Sequence | `<div data-widget="sequence" data-id="attack"></div>` | Put the steps of a story in order and label each one (an ATT&CK tactic, an incident-response phase). The steps come from `exercises` in the sidecar. |
+| Rate planner | `<div data-widget="rate-planner"></div>` | Plan a number of Modbus writes and their spacing against the two write rules of the IDS over a two-minute window, with imprecise timing and a stray scan as options. |
+| UART frame | `<div data-widget="uart-frame"></div>` | One character as start bit, eight data bits (lowest first) and stop bit, and what a receiver at the wrong baud rate reads instead. |
 | Checkpoint | `<div data-widget="checkpoint" data-id="frame"></div>` | One question in the middle of the text, taken from `checkpoints` in the sidecar. |
 
 ## The sidecar JSON
@@ -230,7 +238,10 @@ the widget's `data-id`:
 }
 ```
 
-The steps are listed in the right order; the widget shuffles them. Three to
+The steps are listed in the right order; the widget shuffles them. With
+`"order": false` the widget becomes a matching exercise: the items keep
+their place and only the labels are graded, which suits "which protocol is
+this?" or "normal or attack?". Three to
 eight steps, none of which may give its position away ("first", "then"), and
 every one of them stated in the article. `labels` is optional; offer at most
 one label that no step uses.
@@ -248,8 +259,12 @@ one label that no step uses.
   question needs an explanation that also addresses the most tempting wrong
   answer.
 - Passing the quiz (at least 80 per cent) marks the topic as completed. The
-  quiz is graded on the server, but its answers also ship in the page so the
-  explanations can show at once: it is a learning aid, not an exam.
+  page carries only the questions and options; the board grades an attempt,
+  records it and only then returns the answers and explanations. Checkpoints
+  are practice and carry their answers in the page.
+- Progress is stored on the board, one record for everyone who uses it. It
+  is a learning aid for self-study, not an exam: it does not tell students
+  apart, and anyone on the board can reset it.
 
 ## Checking your work
 

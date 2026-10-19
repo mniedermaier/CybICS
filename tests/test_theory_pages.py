@@ -65,6 +65,16 @@ def test_lesson_renders_with_its_parts(topic):
     assert article.count("data-widget=") == source.count("data-widget=")
 
 
+def test_quiz_answers_are_not_in_the_page():
+    """The answers come back only from the grading endpoint, after an attempt."""
+    for topic in TOPICS:
+        html = get(f"/theory/{topic['id']}").text
+        data = json.loads(re.search(r'<script type="application/json" id="theory-data">(.*?)</script>', html, re.S).group(1))
+        assert data["quiz"], topic["id"]
+        for question in data["quiz"]:
+            assert set(question) <= {"type", "question", "options"}, topic["id"]
+
+
 def test_instructor_notes_never_reach_the_page():
     for topic in TOPICS:
         with open(os.path.join(ROOT, topic["content"]), encoding="utf-8") as f:

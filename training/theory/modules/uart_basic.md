@@ -45,6 +45,10 @@ The CybICS PCB carries an STM32 microcontroller running the Zephyr real-time ope
 
 The prompt guards a small menu with the plant status, controls and system information. The challenge page tells you how the password is built: three lowercase letters. Work out how many combinations that allows before you start; it tells you how long a full search can take.
 
+See what actually travels on the TX wire, and what a receiver set to the wrong speed makes of it.
+
+<div data-widget="uart-frame"></div>
+
 <div data-widget="checkpoint" data-id="keyspace"></div>
 
 ## How to approach it

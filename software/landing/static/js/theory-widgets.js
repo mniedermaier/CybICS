@@ -718,7 +718,9 @@
         const ex = window.TheoryWidgets.exercises[node.dataset.id];
         if (!ex || !ex.steps) throw new Error('no exercise ' + node.dataset.id);
         const labels = ex.labels || [];
-        const { body } = frame(node, ex.title || 'Put the steps in order', inline(ex.intro || 'Move the steps into the right order with the arrows.'));
+        // "order": false turns it into a matching exercise: only the labels count.
+        const ordered = ex.order !== false;
+        const { body } = frame(node, ex.title || (ordered ? 'Put the steps in order' : 'Match each item'), inline(ex.intro || 'Move the steps into the right order with the arrows.'));
         const steps = ex.steps.map((st, i) => ({ ...st, key: i, chosen: '' }));
         let order = steps.slice();
         do {
@@ -726,7 +728,7 @@
                 const j = Math.floor(Math.random() * (i + 1));
                 [order[i], order[j]] = [order[j], order[i]];
             }
-        } while (order.length > 2 && order.every((st, i) => st.key === i));
+        } while (ordered && order.length > 2 && order.every((st, i) => st.key === i));
         const list = el('ol', { class: 'rules seq' });
         const actions = el('div', { class: 'w-row' });
         const check = el('button', { class: 't-btn primary', type: 'button' }, 'Check');
@@ -739,9 +741,9 @@
             list.innerHTML = '';
             order.forEach(function (st, i) {
                 const li = el('li', { class: 'rule' });
-                const posOk = st.key === i, labelOk = !labels.length || st.chosen === st.label;
+                const posOk = !ordered || st.key === i, labelOk = !labels.length || st.chosen === st.label;
                 if (graded) li.classList.add(posOk && labelOk ? 'ok' : 'bad');
-                li.appendChild(el('span', { class: 'mono' }, String(i + 1)));
+                if (ordered) li.appendChild(el('span', { class: 'mono' }, String(i + 1)));
                 li.appendChild(el('span', { class: 'grow' }, inline(st.text)));
                 if (labels.length) {
                     const select = el('select', { 'aria-label': `Label for step ${i + 1}` },
@@ -749,7 +751,7 @@
                     select.addEventListener('change', function () { st.chosen = select.value; graded = false; verdict.textContent = ''; paint(); });
                     li.appendChild(select);
                 }
-                [['↑', -1, 'Move up'], ['↓', 1, 'Move down']].forEach(function ([label, dir, aria]) {
+                if (ordered) [['↑', -1, 'Move up'], ['↓', 1, 'Move down']].forEach(function ([label, dir, aria]) {
                     const b = el('button', { type: 'button', 'aria-label': `${aria}: step ${i + 1}` }, label);
                     b.disabled = (dir < 0 && i === 0) || (dir > 0 && i === order.length - 1);
                     b.addEventListener('click', function () {
@@ -760,7 +762,7 @@
                     li.appendChild(b);
                 });
                 if (graded) {
-                    const why = posOk && labelOk ? '' : !posOk ? 'Not in this position. ' : `Right place, but not “${escapeHtml(st.chosen || 'no label')}”. `;
+                    const why = posOk && labelOk ? '' : !posOk ? 'Not in this position. ' : `${ordered ? 'Right place, but not' : 'Not'} “${escapeHtml(st.chosen || 'no label')}”. `;
                     li.appendChild(el('div', { class: 'seq-why' }, (why ? `<b>${why}</b>` : '') + (posOk && labelOk ? inline(st.explain || '') : '')));
                 }
                 list.appendChild(li);
@@ -768,18 +770,18 @@
         }
         check.addEventListener('click', function () {
             graded = true;
-            const right = order.filter((st, i) => st.key === i && (!labels.length || st.chosen === st.label)).length;
+            const right = order.filter((st, i) => (!ordered || st.key === i) && (!labels.length || st.chosen === st.label)).length;
             verdict.innerHTML = right === order.length
-                ? `<b class="w-ok">All ${order.length} steps are right.</b> Read the explanations under each step.`
-                : `<b>${right} of ${order.length} right.</b> The marked steps need another look; the explanation appears once a step is right.`;
+                ? `<b class="w-ok">All ${order.length} are right.</b> Read the explanations under each one.`
+                : `<b>${right} of ${order.length} right.</b> The marked ones need another look; the explanation appears once one is right.`;
             solve.hidden = right === order.length;
             paint();
         });
         solve.addEventListener('click', function () {
-            order = steps.slice().sort((a, b) => a.key - b.key);
+            if (ordered) order = steps.slice().sort((a, b) => a.key - b.key);
             order.forEach(st => { st.chosen = st.label || ''; });
             graded = true; solve.hidden = true;
-            verdict.innerHTML = '<b>This is the order the lesson describes.</b> Read why each step comes where it does.';
+            verdict.innerHTML = ordered ? '<b>This is the order the lesson describes.</b> Read why each step comes where it does.' : '<b>These are the answers.</b> Read why each one fits.';
             paint();
         });
         paint();
@@ -1021,6 +1023,106 @@
             detail.innerHTML = `<dt>Server</dt><dd>${escapeHtml(ident.why)}</dd><dt>A listener sees</dt><dd>${escapeHtml(sniff)}</dd>` +
                 `<dt>A changed message</dt><dd>${escapeHtml(tamper)}</dd><dt>IDS</dt><dd>${escapeHtml('From the attack machine: an opcua_access alert (low), whatever the channel or identity. The rule only asks whether the host is an expected OPC-UA client.')}</dd>`;
         }
+        controls.addEventListener('change', paint);
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // rate-planner: stay under the IDS rate rules for two minutes
+    // ------------------------------------------------------------------
+    // The two Modbus write rules of software/ids/rules.py and the two-minute
+    // evasion window of the IDS Evasion challenge.
+    const RATE_RULES = [
+        { rule: 'modbus_unauth_write', n: 10, w: 30 },
+        { rule: 'modbus_flood', n: 50, w: 5 },
+    ];
+    register('rate-planner', function (node) {
+        const { body } = frame(node, 'Plan a write rate',
+            'Choose how many Modbus writes to send and how far apart, then watch the two write rules of the CybICS IDS count them over the two-minute window. Both count writes from one host in a sliding window.');
+        const controls = el('div');
+        controls.innerHTML = `
+            <div class="w-row"><label for="rp-n">Writes <b data-o="n"></b></label><input id="rp-n" type="range" min="1" max="60" value="12" data-k="n"></div>
+            <div class="w-row"><label for="rp-gap">Pause between writes <b data-o="gap"></b> s</label><input id="rp-gap" type="range" min="0" max="120" value="20" data-k="gap"></div>
+            <div class="w-row"><label><input type="checkbox" data-k="jitter"> real timing: each pause up to 20% shorter</label>
+                <label><input type="checkbox" data-k="scan"> a quick port scan “just to check”</label></div>`;
+        const timeline = el('div', { class: 'timeline', role: 'img' });
+        const legend = el('div', { class: 'legend' }, '<span><i style="background:var(--bad)"></i>your write</span><span><i style="background:rgba(251,191,36,.5)"></i>alert raised</span><span>0 s → 120 s</span>');
+        const score = el('div', { class: 'score', 'aria-live': 'polite' });
+        const verdict = el('p', { class: 'w-note' });
+        body.append(controls, timeline, legend, score, verdict);
+        function paint() {
+            const k = name => controls.querySelector(`[data-k=${name}]`);
+            const n = Number(k('n').value), gap = Number(k('gap').value) / 10;
+            controls.querySelector('[data-o=n]').textContent = n;
+            controls.querySelector('[data-o=gap]').textContent = gap.toFixed(1);
+            const times = [];
+            let t = 2;
+            for (let i = 0; i < n && t <= 120; i++) {
+                times.push(t);
+                // A fixed pattern instead of random numbers, so the picture is stable.
+                t += gap * (k('jitter').checked ? 1 - 0.2 * ((i * 7) % 5) / 4 : 1);
+            }
+            const maxIn = w => Math.max(0, ...times.map(x => times.filter(y => y <= x && y >= x - w).length));
+            const alerts = [];
+            RATE_RULES.forEach(function (r) {
+                let last = -Infinity;
+                times.forEach(function (x) {
+                    if (times.filter(y => y <= x && y >= x - r.w).length >= r.n && x - last >= 30) { alerts.push([x, r.rule]); last = x; }
+                });
+            });
+            if (k('scan').checked) alerts.push([60, 'port_scan']);
+            const x = v => (v / 120 * 100).toFixed(2) + '%';
+            timeline.innerHTML = alerts.map(([a]) => `<div class="alarm" style="left:${x(a)};width:${x(Math.min(30, 120 - a))}"></div>`).join('') +
+                times.map(v => `<div class="ev atk" style="left:${x(v)}"></div>`).join('');
+            timeline.setAttribute('aria-label', `${times.length} writes in two minutes, ${alerts.length} alerts`);
+            score.innerHTML = `<div><b>${times.length}</b>writes sent</div><div><b>${maxIn(30)} / 10</b>most in any 30 s</div>` +
+                `<div><b>${maxIn(5)} / 50</b>most in any 5 s</div><div><b>${alerts.length}</b>alerts${alerts.length ? ': ' + [...new Set(alerts.map(a => a[1]))].join(', ') : ''}</div>`;
+            const close = maxIn(30) === 9;
+            verdict.innerHTML = alerts.length
+                ? (k('scan').checked && alerts.length === 1 ? '<b>Your writes stayed under the rules, but the scan did not.</b> Every rule counts, not only the one you planned for.' : '<b>The IDS fires.</b> Spread the writes out, or send fewer.')
+                : times.length < n ? `<b>No alert, but only ${times.length} of ${n} writes fit into the two minutes.</b> A slow attack needs time, and the window is short.`
+                : close ? '<b>No alert, with no margin at all.</b> Switch on real timing: a pause that is a little short tips you over.'
+                : '<b>No alert.</b> A rate rule cannot tell this from a quiet network. That is why defenders add rules without a threshold, such as alerting on the first write from a host that never writes.';
+        }
+        controls.addEventListener('input', paint);
+        paint();
+    });
+
+    // ------------------------------------------------------------------
+    // uart-frame: one character on the wire, and what a wrong baud rate reads
+    // ------------------------------------------------------------------
+    const BAUDS = [9600, 19200, 57600, 115200];
+    register('uart-frame', function (node) {
+        const { body } = frame(node, 'One character on a UART wire',
+            'Type a character to see its frame: the line rests high, a start bit pulls it low, eight data bits follow with the lowest bit first, and a stop bit returns it high. CybICS uses 115200 baud, 8N1.');
+        const controls = el('div', { class: 'w-row' });
+        controls.innerHTML = `<label>Character <input type="text" maxlength="1" value="C" data-k="ch" style="width:3rem"></label>
+            <label>Sender <select data-k="tx">${BAUDS.map(b => `<option${b === 115200 ? ' selected' : ''}>${b}</option>`).join('')}</select> baud</label>
+            <label>Receiver <select data-k="rx">${BAUDS.map(b => `<option${b === 115200 ? ' selected' : ''}>${b}</option>`).join('')}</select> baud</label>`;
+        const wire = el('div', { class: 'uart', role: 'img' });
+        const out = el('p', { 'aria-live': 'polite' });
+        body.append(controls, wire, out);
+        function paint() {
+            const ch = controls.querySelector('[data-k=ch]').value || ' ';
+            const code = ch.charCodeAt(0) & 0xff;
+            const tx = Number(controls.querySelector('[data-k=tx]').value), rx = Number(controls.querySelector('[data-k=rx]').value);
+            const data = Array.from({ length: 8 }, (_, i) => (code >> i) & 1);
+            const bits = [['idle', 1], ['start', 0], ...data.map((b, i) => [`bit ${i}`, b]), ['stop', 1], ['idle', 1]];
+            wire.innerHTML = bits.map(([name, v]) => `<div class="u-bit ${v ? 'hi' : 'lo'}${name.startsWith('bit') ? ' data' : ''}"><span class="u-v">${v}</span><small>${name}</small></div>`).join('');
+            wire.setAttribute('aria-label', `Frame of ${ch}: start bit 0, data bits ${data.join(' ')} lowest first, stop bit 1`);
+            // The receiver starts timing at the falling edge of the start bit and
+            // samples each data bit in the middle of where it expects it.
+            const level = t => { const i = Math.floor(t * tx); return i < 1 ? 0 : i <= 8 ? data[i - 1] : 1; };
+            let got = 0;
+            for (let i = 0; i < 8; i++) got |= level((1.5 + i) / rx) << i;
+            const stopOk = level(9.5 / rx) === 1;
+            const show = c => (c >= 32 && c < 127 ? `“${escapeHtml(String.fromCharCode(c))}”` : 'an unprintable byte');
+            const bitUs = (1e6 / tx).toFixed(2);
+            out.innerHTML = `Each bit lasts ${bitUs} µs at ${tx} baud; a whole character (10 bits) takes ${(10e6 / tx).toFixed(1)} µs.<br>` +
+                (tx === rx ? `The receiver reads <b>${show(got)}</b> (0x${hex(got, 2)}), as sent.`
+                : `The receiver reads <b>${show(got)}</b> (0x${hex(got, 2)}) instead of ${show(code)}${stopOk ? '' : ', and the stop bit is wrong (a framing error)'}. This garbage is the sign of a wrong baud rate: try the usual rates until the text becomes readable.`);
+        }
+        controls.addEventListener('input', paint);
         controls.addEventListener('change', paint);
         paint();
     });

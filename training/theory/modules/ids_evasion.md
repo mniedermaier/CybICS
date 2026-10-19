@@ -128,6 +128,10 @@ The challenge keeps its own score. You open a two-minute **evasion window** at `
 <figcaption>The check wants a small number of writes and zero new alerts while the window is open. The row being scored is the empty one: an absence of alerts, which a rate rule cannot tell apart from a quiet network.</figcaption>
 </figure>
 
+Try a plan before you try the network. The planner uses the two Modbus write rules of the CybICS IDS and the challenge's two-minute window.
+
+<div data-widget="rate-planner"></div>
+
 ## How to approach it
 
 1. **Read the rules first.** On the Rules tab, note the threshold and window of every rule your traffic could touch, not only the Modbus ones.

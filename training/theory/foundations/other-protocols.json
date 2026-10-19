@@ -104,5 +104,61 @@
       "answer": 1,
       "explanation": "DNP3 frames begin with 05 64. The bytes 03 00 start a TPKT header, which is what S7comm uses, and 00 00 is the protocol identifier inside a Modbus TCP header, so they are easy to confuse."
     }
-  ]
+  ],
+  "exercises": {
+    "match": {
+      "type": "sequence",
+      "order": false,
+      "title": "Which protocol is it?",
+      "intro": "Each clue below points to one protocol you have met so far. Pick the protocol for every clue, then check your answers.",
+      "labels": [
+        "Modbus TCP",
+        "S7comm",
+        "DNP3",
+        "EtherNet/IP"
+      ],
+      "steps": [
+        {
+          "text": "Every frame in a hex dump begins with the bytes 05 64.",
+          "label": "DNP3",
+          "explain": "05 64 is the start of every DNP3 link-layer frame. Modbus TCP begins with a transaction ID and S7comm with the TPKT header 03 00."
+        },
+        {
+          "text": "A control centre polls remote substations and pumping stations, which may also report a change on their own.",
+          "label": "DNP3",
+          "explain": "A master polling outstations, with unsolicited responses, is how DNP3 works in electric and water utilities."
+        },
+        {
+          "text": "A service scan of the CybICS PLC shows 44818/tcp open.",
+          "label": "EtherNet/IP",
+          "explain": "TCP port 44818 carries EtherNet/IP explicit messaging. DNP3 uses 20000, Modbus 502 and S7comm 102."
+        },
+        {
+          "text": "One broadcast asks every device on the network to report its vendor, product name and serial number.",
+          "label": "EtherNet/IP",
+          "explain": "That is the List Identity command, answered from the CIP Identity object. It makes discovery easy for engineers and attackers alike."
+        },
+        {
+          "text": "A service scan of the CybICS PLC shows 502/tcp open.",
+          "label": "Modbus TCP",
+          "explain": "502 is the Modbus TCP port. Whoever can reach it can read and write the PLC's registers without a login."
+        },
+        {
+          "text": "A 7-byte MBAP header is followed by a function code such as 06.",
+          "label": "Modbus TCP",
+          "explain": "Every Modbus TCP message starts with the MBAP header; the function code after it says what to do, 06 meaning write one register."
+        },
+        {
+          "text": "Each request travels inside a TPKT and a COTP header.",
+          "label": "S7comm",
+          "explain": "S7comm is carried over ISO-on-TCP, which wraps it in two envelopes: TPKT for the length and COTP for the old OSI addressing."
+        },
+        {
+          "text": "Reading an SZL list returns the CPU's module type, for example CPU 315-2 PN/DP.",
+          "label": "S7comm",
+          "explain": "The system status list (SZL) is an S7comm feature. OpenPLC's S7 server on port 102 answers with CPU 315-2 PN/DP."
+        }
+      ]
+    }
+  }
 }

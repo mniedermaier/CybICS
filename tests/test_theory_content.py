@@ -22,6 +22,7 @@ WIDGETS = {
     "plant-live", "modbus-frame", "s7-layers", "register-decoder",
     "purdue-explorer", "scan-cycle", "ids-threshold", "firewall-rules",
     "arp-spoof", "keyspace", "alert-log", "opcua-security", "sequence",
+    "rate-planner", "uart-frame",
     "checkpoint",
 }
 LEVELS = {"beginner", "intermediate", "advanced"}
@@ -225,7 +226,7 @@ def test_sequence_exercises_are_well_formed(topic):
             assert st.get("explain"), f"{where}: step without explanation"
             # The position must come from understanding, not from the wording.
             assert not re.match(r"(first|then|finally|next|lastly)\b", st["text"], re.I), f"{where}: {st['text']}"
-            if labels:
+            if labels or ex.get("order") is False:
                 assert st.get("label") in labels, f"{where}: label {st.get('label')!r} not offered"
 
 
@@ -362,3 +363,119 @@ def test_alert_log_widget_uses_the_ids_rules_and_severities():
     for sev, rule in rows:
         assert rule in real, f"{rule} is not an IDS rule"
         assert real[rule] == sev, f"{rule} is {real[rule]} in rules.py, {sev} in the widget"
+
+
+def test_rate_planner_uses_the_ids_thresholds():
+    with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
+        rules = f.read()
+    real = {name: int(value) for name, value in re.findall(r"self\.(\w+) = (\d+)", rules)}
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        js = f.read()
+    planned = dict(re.findall(r"\{ rule: '(\w+)', n: (\d+), w: \d+ \}", js))
+    windows = dict(re.findall(r"\{ rule: '(\w+)', n: \d+, w: (\d+) \}", js))
+    assert int(planned["modbus_unauth_write"]) == real["MODBUS_WRITE_THRESHOLD"]
+    assert int(windows["modbus_unauth_write"]) == real["MODBUS_WRITE_WINDOW"]
+    assert int(planned["modbus_flood"]) == real["MODBUS_FLOOD_THRESHOLD"]
+    assert int(windows["modbus_flood"]) == real["MODBUS_FLOOD_WINDOW"]
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_deep_dives_are_not_nested(topic):
+    """Reading time leaves deep dives out with a non-greedy match; a nested one would confuse it."""
+    for dive in re.findall(r'<details class="deep-dive"[^>]*>(.*?)</details>', article(topic), re.S):
+        assert "<details" not in dive, f"{topic['id']}: nested <details> in a deep dive"
+
+
+# ---- Facts in the prose, checked against the code ----
+
+def compose_services():
+    """Service -> {"ip": ..., "ports": {...}} from the virtual testbed's compose file."""
+    with open(os.path.join(ROOT, ".devcontainer", "virtual", "docker-compose.yml"), encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    services, current, in_services = {}, None, False
+    for line in lines:
+        if re.match(r"^services:", line):
+            in_services = True
+            continue
+        if in_services and re.match(r"^\S", line):
+            in_services = False
+        if not in_services:
+            continue
+        start = re.match(r"^  ([\w-]+):\s*(#.*)?$", line)
+        if start:
+            current = services.setdefault(start.group(1), {"ip": None, "ports": set()})
+            continue
+        if current is None:
+            continue
+        ip = re.search(r"ipv4_address:\s*([\d.]+)", line)
+        if ip:
+            current["ip"] = ip.group(1)
+        port = re.match(r'^\s+- "?(\d+):(\d+)', line)
+        if port:
+            current["ports"].add(int(port.group(2)))
+    return {name: s for name, s in services.items() if s["ip"]}
+
+
+def table_rows(text):
+    for line in text.splitlines():
+        if line.startswith("|") and not re.match(r"^\|[\s|:-]+\|?$", line):
+            yield [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def services_named(row, services):
+    text = " ".join(row).lower()
+    return [name for name in services if re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text)]
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_address_and_port_tables_match_the_compose_file(topic):
+    services = compose_services()
+    for row in table_rows(article(topic)):
+        named = services_named(row, services)
+        if len(named) != 1:
+            continue
+        service = services[named[0]]
+        for ip in re.findall(r"172\.18\.0\.\d+", " ".join(row)):
+            assert ip == service["ip"], f"{topic['id']}: {named[0]} is at {service['ip']}, the table says {ip}"
+        first = re.fullmatch(r"`?(\d+(?:,\s*\d+)*)`?", row[0])
+        if first:
+            for port in map(int, re.findall(r"\d+", first.group(1))):
+                assert port in service["ports"], f"{topic['id']}: {named[0]} has no port {port} ({sorted(service['ports'])})"
+
+
+def test_networking_lesson_lists_every_lab_host():
+    services = compose_services()
+    text = article(next(t for t in TOPICS if t["id"] == "networking"))
+    for name, service in services.items():
+        assert service["ip"] in text, f"networking.md does not list {name} at {service['ip']}"
+
+
+# rule name -> the attributes of software/ids/rules.py that set its threshold and window
+RATE_RULE_ATTRS = {
+    "port_scan": ("PORT_SCAN_THRESHOLD", "PORT_SCAN_WINDOW"),
+    "syn_flood": ("SYN_FLOOD_THRESHOLD", "SYN_FLOOD_WINDOW"),
+    "modbus_flood": ("MODBUS_FLOOD_THRESHOLD", "MODBUS_FLOOD_WINDOW"),
+    "modbus_unauth_write": ("MODBUS_WRITE_THRESHOLD", "MODBUS_WRITE_WINDOW"),
+    "http_brute_force": ("HTTP_BRUTE_THRESHOLD", "HTTP_BRUTE_WINDOW"),
+}
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_ids_rule_tables_match_rules_py(topic):
+    with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
+        rules = f.read()
+    value = {name: int(v) for name, v in re.findall(r"self\.(\w+) = (\d+)", rules)}
+    severity = {name: sev.split("_")[1].lower() for name, sev in
+                re.findall(r'"rule": "(\w+)",\s*"severity": (SEVERITY_\w+)', rules)}
+    for row in table_rows(article(topic)):
+        rule = re.fullmatch(r"`(\w+)`", row[0])
+        if not rule or rule.group(1) not in severity:
+            continue
+        name, rest = rule.group(1), " ".join(row[1:])
+        if name in RATE_RULE_ATTRS:
+            numbers = set(map(int, re.findall(r"\d+", rest)))
+            threshold, window = (value[a] for a in RATE_RULE_ATTRS[name])
+            assert {threshold, window} <= numbers, f"{topic['id']}: {name} is {threshold} in {window} s, the table says {rest!r}"
+        for word in ("low", "medium", "high", "critical"):
+            if word in row[1:]:
+                assert word == severity[name], f"{topic['id']}: {name} is {severity[name]}, the table says {word}"

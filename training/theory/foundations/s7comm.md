@@ -4,14 +4,12 @@ Siemens is one of the biggest PLC makers in the world, and its S7 controllers ru
 
 ## Where S7comm comes from
 
-S7comm is **proprietary**: Siemens wrote it and never published a full specification. Everything public about it was worked out by people reading network captures. Wireshark and the scanner nmap both understand it today.
+S7comm is **proprietary**: Siemens never published a full specification. Everything public about it was worked out from network captures, and Wireshark and the scanner nmap both understand it today. Keeping a protocol secret is not security: once the format is known, nothing else stands in the way.
 
-That is a lesson in itself. Keeping a protocol secret is not a security measure: it slows down curious people for a while, and once the format is known, nothing else stands in the way. Security has to come from the protocol checking who is talking, and classic S7comm does not.
+S7comm grew up on Siemens' own industrial networks, not on the internet. To carry it over TCP/IP, Siemens uses **ISO-on-TCP** (RFC 1006) on TCP port **102**, which adds two small headers in front of every S7comm message:
 
-It grew up on Siemens' own industrial networks (MPI and Profibus), not on the internet. To carry it over TCP/IP, Siemens uses a standard called **ISO-on-TCP** (RFC 1006), which listens on TCP port **102**. That bridge adds two small headers in front of every S7comm message:
-
-- **TPKT** (4 bytes) says how long the whole message is. TCP delivers a continuous stream of bytes, so the receiver needs this to know where one message ends.
-- **COTP** (Connection-Oriented Transport Protocol, 3 bytes in a data message) is a transport layer from the older OSI network model. S7comm already used it before TCP, so it came along.
+- **TPKT** (4 bytes) says how long the whole message is. TCP delivers one continuous stream of bytes, so the receiver needs this to know where a message ends.
+- **COTP** (Connection-Oriented Transport Protocol, 3 bytes in a data message) is a transport layer from the older OSI network model that S7comm already used before TCP.
 
 <div class="callout analogy" markdown="1">
 **Analogy:** a Modbus request is a postcard: the message is written right on it. An S7comm request is a letter inside two envelopes. The outer envelope (TPKT) says how thick the letter is, the inner one (COTP) carries the old OSI addressing, and only inside is the actual request.
@@ -19,7 +17,7 @@ It grew up on Siemens' own industrial networks (MPI and Profibus), not on the in
 
 ## The handshake
 
-A Modbus client can send a write as its very first packet. S7comm expects three steps first: open a COTP connection, agree on settings with an S7 "Setup Communication" request, and only then ask real questions.
+A Modbus client can send a write as its very first packet. S7comm expects three steps: open a COTP connection, agree on settings with an S7 "Setup Communication" request, and only then ask real questions.
 
 <figure class="wide">
 <style>
@@ -88,9 +86,12 @@ A Modbus client can send a write as its very first packet. S7comm expects three 
 <figcaption>Two round trips inside the dashed box only set up the conversation; the third carries device data. None of them checks who the client is: COTP agrees on addressing and the S7 setup agrees on a maximum message size.</figcaption>
 </figure>
 
-The important word is *negotiation*. The handshake agrees on technical details, such as the largest message both sides accept (the **PDU size**). It is not a login. Anybody who completes it may continue.
+The important word is *negotiation*. The handshake agrees on technical details, such as the largest message both sides accept (the **PDU size**). It is not a login: anybody who completes it may continue.
 
 ## One request, layer by layer
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the layers drawn to scale</summary>
 
 Put together, a request to read a device's identity is 33 bytes long. The two transport headers take 7 of them, the S7 part the remaining 26.
 
@@ -136,24 +137,26 @@ Put together, a request to read a device's identity is 33 bytes long. The two tr
 <figcaption>An SZL read request drawn to scale. TPKT only states the total length, the same job the length field does in Modbus. COTP marks the message as data. Everything that matters to the PLC sits in the S7 part.</figcaption>
 </figure>
 
-The bytes are written in hexadecimal, two digits per byte. If that is new to you, read the short hex callout in the [Modbus article](/theory/modbus) first. Then step through a real **Setup Communication** request below and see which bytes belong to which layer:
+</details>
+
+Every S7comm message is TPKT, then COTP, then the S7 part, which carries the function and its data. Step through a real **Setup Communication** request and see which bytes belong to which layer (new to hex? see the callout in [Modbus TCP](/theory/modbus)):
 
 <div data-widget="s7-layers" data-sample="setup"></div>
 
 ## Reading device identity
 
-S7 PLCs keep a **System Status List**, or **SZL** after its German name *Systemzustandsliste*. It is a set of numbered records that describe the device: its order number, its hardware, its firmware, the name the engineer gave it. A client asks for one record by its **SZL ID**:
+S7 PLCs keep a **System Status List**, or **SZL** after its German name *Systemzustandsliste*: numbered records that describe the device, such as its order number, hardware, firmware and the name the engineer gave it. A client asks for one record by its **SZL ID**:
 
 | SZL ID | Name | What it returns |
 |---|---|---|
 | 0x0011 | module identification | order number and hardware, for example `6ES7 315-2AG10-0AB0` |
 | 0x001c | component identification | system name, module type name, serial number and more |
 
-On classic S7-300 and S7-400 controllers, reading the SZL needs no password. That is useful for an engineer and just as useful for an attacker, who learns exactly which model and firmware to look up in a list of known vulnerabilities. Here is a real SZL 0x0011 request, taken apart:
+On classic S7-300 and S7-400 controllers, reading the SZL needs no password. An attacker learns exactly which model and firmware to look up in a list of known vulnerabilities. Here is a real SZL 0x0011 request, taken apart:
 
 <div data-widget="s7-layers" data-sample="szl"></div>
 
-In MITRE ATT&amp;CK for ICS, a catalogue of attacker techniques, finding the PLC on the network is **T0846 Remote System Discovery**, and reading its model and firmware is **T0888 Remote System Information Discovery**.
+In MITRE ATT&amp;CK for ICS, a catalogue of attacker techniques, finding the PLC is **T0846 Remote System Discovery** and reading its model and firmware is **T0888 Remote System Information Discovery**.
 
 ## In CybICS: two S7 servers
 
@@ -237,9 +240,9 @@ Protocol emulators often work this way. It is worth knowing before you spend tim
 
 ## Detect and defend
 
-Classic S7comm has no authentication on the identity functions. An optional "protection level" password guards some other functions, but it is off by default and weak. Siemens' newer S7-1200 and S7-1500 controllers speak **S7comm-Plus**, which adds protection against replayed and modified messages, but many plants still run the older controllers.
+Classic S7comm has no authentication on the identity functions. An optional "protection level" password guards some others, but it is off by default and weak. The newer S7-1200 and S7-1500 controllers speak **S7comm-Plus**, which protects against replayed and modified messages, but many plants still run the older ones.
 
-The CybICS IDS handles S7comm with one blunt rule. **Rule 6** raises an alert for any TCP message of four bytes or more sent to port 102 or 1102, from any source. It does not read the content. To avoid a thousand alerts for one scan, it reports each source address at most once every 30 seconds:
+The CybICS IDS handles S7comm with one blunt rule. **Rule 6** alerts on any TCP message of four bytes or more sent to port 102 or 1102, from any source, without reading the content. To avoid a thousand alerts for one scan, it reports each source at most once every 30 seconds:
 
 <figure class="wide">
 <style>
@@ -461,7 +464,7 @@ The CybICS IDS handles S7comm with one blunt rule. **Rule 6** raises an alert fo
 <figcaption>Sixty seconds of non-stop scanning produce just two alerts: one at the first packet and one when the 30-second cooldown ends. The alerts tell you a host is talking S7comm, not how much it sent.</figcaption>
 </figure>
 
-Because it has no allowlist, the rule would also fire on a legitimate engineering workstation. A real plant would at least exempt known engineering hosts and, better, block port 102 from everywhere else with a firewall. The [Detection and monitoring](/theory/detection-monitoring) article explains this trade-off between catching everything and drowning in false alarms.
+With no allowlist, the rule also fires on a legitimate engineering workstation. A real plant would exempt known engineering hosts and, better, block port 102 from everywhere else with a firewall. [Detection and monitoring](/theory/detection-monitoring) explains this trade-off between catching everything and drowning in false alarms.
 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>

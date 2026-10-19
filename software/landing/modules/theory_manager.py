@@ -84,6 +84,14 @@ _INSTRUCTOR_NOTE = re.compile(r'\n?<details class="instructor"[^>]*>.*?</details
 _UNSAFE_CSS = re.compile(r'@import|url\s*\(|expression\s*\(|</', re.I)
 
 
+_DEEP_DIVE = re.compile(r'<details class="deep-dive"[^>]*>.*?</details>', re.S)
+
+
+def _minutes(html):
+    figures = html.count('<figure') + html.count('data-widget=')
+    return math.ceil(_count_words(html) / WORDS_PER_MINUTE + figures * MINUTES_PER_FIGURE)
+
+
 def _count_words(html):
     text = re.sub(r'<(svg|style|pre)\b.*?</\1>', ' ', html, flags=re.S | re.I)
     text = re.sub(r'<[^>]+>', ' ', text)
@@ -175,7 +183,7 @@ class TheoryManager:
         if rendered is None:
             logger.warning(f"Theory content not found: {topic.get('content')}")
             return {'head': '', 'body': '<p><em>This lesson is not available.</em></p>',
-                    'css': '', 'toc': [], 'minutes': 1}
+                    'css': '', 'toc': [], 'minutes': 1, 'extra_minutes': 0}
         return rendered
 
     def overview(self):
@@ -223,9 +231,12 @@ class TheoryManager:
                          strip_comments=True)
 
         toc = [{'id': t['id'], 'name': t['name']} for t in md.toc_tokens]
-        figures = html.count('<figure') + html.count('data-widget=')
-        minutes = max(1, math.ceil(_count_words(html) / WORDS_PER_MINUTE
-                                   + figures * MINUTES_PER_FIGURE))
+        # Deep dives are optional, so they do not count towards the time a
+        # lesson takes; the page shows them as extra minutes.
+        optional = ''.join(_DEEP_DIVE.findall(html))
+        main = _DEEP_DIVE.sub(' ', html)
+        minutes = max(1, _minutes(main))
+        extra = _minutes(optional) if optional else 0
         # The template puts the learning objectives right under the title.
         head, sep, body = html.partition('</h1>')
         if not sep:
@@ -233,7 +244,7 @@ class TheoryManager:
         else:
             head += sep
         return {'head': head, 'body': body, 'css': '\n'.join(css), 'toc': toc,
-                'minutes': minutes}
+                'minutes': minutes, 'extra_minutes': extra}
 
 
 class ProgressStore:

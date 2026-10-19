@@ -1,26 +1,26 @@
 # What is an Industrial Control System?
 
-Somewhere near you, a computer is deciding when a pump starts, how far a valve opens, or how much pressure a pipe can take. Those computers are **Industrial Control Systems (ICS)**, and when they go wrong, the result is not a lost file but a flooded street or a burst tank. This first lesson explains what an ICS is, how its parts are arranged, and why protecting one is different from protecting an office network.
+Somewhere near you, a computer is deciding when a pump starts or how far a valve opens. When such a computer goes wrong, the result is not a lost file but a flooded street or a burst tank. This lesson explains what such a system is and why protecting it is different.
 
 ## A computer that moves things
 
-An **Industrial Control System (ICS)** is the hardware and software that watches and steers a physical process: a gas plant, a water works, a power grid, a bottling line. The umbrella term for all of this technology is **Operational Technology (OT)**, as opposed to the **Information Technology (IT)** you know from laptops, servers and email.
+An **Industrial Control System (ICS)** is the hardware and software that watches and steers a physical process: a gas plant, a water works, a power grid. The umbrella term is **Operational Technology (OT)**, as opposed to the **Information Technology (IT)** of laptops and email.
 
-The difference is what a mistake does. In IT, a wrong value corrupts a spreadsheet. In OT, a wrong value opens a valve, and the valve does not care whether the command came from the operator or from an attacker.
+The difference is what a mistake does. In IT, a wrong value corrupts a spreadsheet. In OT, it opens a valve, and the valve does not care whether the operator or an attacker sent the command.
 
 <div class="callout analogy" markdown="1">
-**Analogy:** think of the thermostat at home. A sensor measures the temperature, a small controller compares it with your setting, and it switches the heating on or off. An ICS is the same idea, scaled up to tanks, turbines and pipelines, and connected to a network.
+**Analogy:** think of the thermostat at home. A sensor measures the temperature, a controller compares it with your setting and switches the heating on or off. An ICS is the same idea, scaled up to tanks and pipelines and connected to a network.
 </div>
 
-## Why OT puts safety and availability first
+## Safety and availability first
 
-Security people often describe their goals with three words:
+Security has three classic goals:
 
 - **Confidentiality:** only the right people can read the data.
 - **Integrity:** nobody can change the data without permission.
 - **Availability:** the system works when you need it.
 
-In IT, confidentiality usually comes first: a leaked customer database is the classic disaster. In OT the order flips. A plant that stops can be more dangerous than one running badly, so **availability** leads. Above all three sits **safety**: the process must never hurt people or the environment.
+In IT, confidentiality usually comes first: think of a leaked customer database. In OT the order flips: a plant that stops can be more dangerous than one running badly, so **availability** leads. Above all three sits **safety**: the process must never hurt people or the environment.
 
 <figure class="wide">
 <style>
@@ -99,26 +99,47 @@ In IT, confidentiality usually comes first: a leaked customer database is the cl
     <text x="430" y="111" text-anchor="middle">3. Confidentiality</text>
   </g>
 </svg>
-<figcaption>Integrity stays in the middle. What changes is which of the other two you give up first. Above both of them sits safety, because the process must not hurt anyone.</figcaption>
+<figcaption>Integrity stays in the middle while the other two trade places. Safety sits above them all.</figcaption>
 </figure>
 
-This has practical consequences. A control system often runs for twenty or thirty years. It may never get a window in which it can be stopped and patched. A security tool that slows down the network, or locks out an operator after three wrong passwords, can itself become the hazard. OT security is the art of protecting a process without getting in its way.
+A control system often runs for twenty or thirty years and is rarely stopped for patching. A security tool that slows the network or locks out an operator can itself become the hazard.
 
 <div data-widget="checkpoint" data-id="priorities"></div>
 
-## The Purdue model: floors of a building
+## The Purdue model
 
-Real plants are big, so engineers describe their networks in layers. The usual picture is the **Purdue model** (Purdue Enterprise Reference Architecture), named after the university where it was drawn up. Think of it as a building: the offices are on the top floors and the machines are in the basement.
+Engineers describe plant networks in layers, usually with the **Purdue model**. Think of a building: offices on the top floors, machines in the basement.
 
 | Level | Name | What lives there |
 |---|---|---|
 | 4/5 | Enterprise | Office PCs, email, business systems |
 | 3 | Operations | Engineering workstations, historians, plant-wide servers |
-| 2 | Supervisory | Screens for operators (HMIs) and the systems that collect plant data |
+| 2 | Supervisory | Operator screens (HMIs) and plant data collection |
 | 1 | Control | The controllers (PLCs) that run the control logic |
 | 0 | Process | Sensors, valves, pumps, motors: the physical plant |
 
-Each level should mostly talk to its neighbours. The most important wall sits between the office (Level 4/5) and everything below it, usually built as an **OT DMZ**: a small buffer network so that no office PC ever talks directly to a controller.
+Each level should mostly talk to its neighbours. The most important wall belongs between the office (Level 4/5) and everything below it, so that no office PC talks directly to a controller.
+
+### Where CybICS fits
+
+CybICS deliberately leaves the walls out: every plant container sits on one Docker network, `172.18.0.0/24`, so the attack machine reaches every target. Click a host to see its address, its ports and the attacks on it.
+
+<div data-widget="purdue-explorer"></div>
+
+| Purdue level | CybICS component |
+|---|---|
+| 4/5 Enterprise | Attack machine (a compromised office PC) |
+| 3 Operations | Engineering workstation |
+| 2 Supervisory | FUXA HMI and the OPC-UA server |
+| 1 Control | OpenPLC and the S7comm server (a simulated Siemens PLC) |
+| 0 Process | `hwio`, which simulates the gas plant |
+
+<div data-widget="checkpoint" data-id="purdue"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the OT DMZ and an intruder's walk down the levels</summary>
+
+The full name is the Purdue Enterprise Reference Architecture, after the university where it was drawn up. In a real plant the wall between Level 4/5 and the levels below is usually built as an **OT DMZ**: a small buffer network between office and plant, so that office PCs only ever talk to servers in the buffer, never to a controller.
 
 <figure class="wide">
 <style>
@@ -166,35 +187,23 @@ Each level should mostly talk to its neighbours. The most important wall sits be
 <figcaption>The dashed line is where the IT/OT boundary belongs, usually built as an OT DMZ. An intruder who starts in the office has to walk down every level to reach the process. Each step is a different service and a different lesson in this path. CybICS deliberately leaves the wall out, so you can practise every step from one machine.</figcaption>
 </figure>
 
-### Where CybICS fits
+The landing page and the Intrusion Detection System (IDS) are not on the plant network. They run on the host's own network, which lets the IDS see the traffic between the containers.
 
-CybICS is a small but complete ICS. Every plant container sits on one Docker network, `172.18.0.0/24`, with no walls between them. That is a teaching choice: it lets you reach every target from the attack machine. Click a host below to see its address, its ports and the attacks that target it.
-
-<div data-widget="purdue-explorer"></div>
-
-| Purdue level | CybICS component | Address |
-|---|---|---|
-| 4/5 Enterprise | Attack machine, standing in for a compromised office PC | 172.18.0.100 |
-| 3 Operations | Engineering workstation | 172.18.0.10 |
-| 2 Supervisory | FUXA HMI and the OPC-UA server | 172.18.0.4, .5 |
-| 1 Control | OpenPLC, running the plant program, and the S7comm server, which plays a Siemens PLC | 172.18.0.3, .6 |
-| 0 Process | `hwio`, which simulates the gas plant | 172.18.0.2 |
-
-The landing page and the Intrusion Detection System (IDS) run on the host's own network instead, which lets the IDS see traffic between the containers.
+</details>
 
 ## The CybICS gas plant
 
-All of this exists to run one small plant. It has five parts you will meet again and again:
+The CybICS plant has five parts you will meet again and again:
 
-- **Gas storage tank (GST):** the supply. An external refill valve tops it up.
+- **Gas storage tank (GST):** the supply, topped up by an external refill valve.
 - **Compressor:** pumps gas from the GST into the high-pressure tank.
-- **High-pressure tank (HPT):** the tank that matters. Its pressure is the number everyone watches.
+- **High-pressure tank (HPT):** the tank whose pressure everyone watches.
 - **System valve:** lets the downstream process draw gas from the HPT.
-- **Blow-out valve:** a relief valve that opens when the HPT pressure gets dangerously high.
+- **Blow-out valve:** a relief valve that opens when the HPT pressure gets too high.
 
-Each pressure is given in bar and stored as a whole number from 0 to 255, so it fits in a single byte. The controller, OpenPLC, reads the HPT pressure and switches the compressor. It starts the compressor when the pressure drops below 60 and stops it at 90. It opens the system valve while the pressure is between 50 and 100, the band in which the plant reports itself healthy.
+The controller, OpenPLC, starts the compressor when the HPT pressure drops below 60 bar and stops it at 90. It opens the system valve while the pressure is between 50 and 100, the band in which the plant counts as healthy.
 
-That cycle of **sensor, controller, actuator, process, sensor again** is the **control loop**. It is what makes this a *control* system rather than just a machine. You will see exactly how the controller makes its decisions in [PLCs and the scan cycle](/theory/plc-fundamentals).
+That cycle of **sensor, controller, actuator, process, sensor again** is the **control loop**. [PLCs and the scan cycle](/theory/plc-fundamentals) shows how the controller decides.
 
 <figure class="wide">
 <style>
@@ -333,17 +342,17 @@ That cycle of **sensor, controller, actuator, process, sensor again** is the **c
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
   <text class="rst" x="450" y="308" font-size="13" text-anchor="end" font-weight="bold" fill="#ff6b00">loop restarts &mdash; the plant does not</text>
 </svg>
-<figcaption>The same plant twice. First OpenPLC holds the HPT between 60 and 90 with the system valve open. Then an operator in manual mode shuts the valve and keeps the compressor running: the pressure climbs past 220, the blow-out valve vents, and when the compressor stops the tank stays stuck at 200. With reduced motion the figure shows that end state.</figcaption>
+<figcaption>The same plant twice. First OpenPLC holds the HPT between 60 and 90. Then an operator in manual mode shuts the system valve and keeps the compressor running: the pressure passes 220, the blow-out valve vents, and the tank ends stuck at 200 (the frame shown with reduced motion).</figcaption>
 </figure>
 
-Left alone, the loop is calm on purpose: the pressure saws gently between 60 and 90 and never goes near the blow-out valve. The danger starts when someone takes the loop out of the controller's hands. The figure shows that case. With the system valve shut and the compressor kept running, gas has nowhere to go. The blow-out valve opens above 220, but it vents more slowly than the compressor pumps, so it only slows the rise.
+Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over from the controller: with the system valve shut and the compressor running, gas has nowhere to go. The blow-out valve opens above 220, but it vents more slowly than the compressor pumps, so it only slows the rise.
 
-Notice that nothing in that story needs a network attack. Every action is something an operator is allowed to do; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) asks you to reproduce this through the operator's own screen.
+No network attack is needed: each step is allowed; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) has you reproduce it through the operator's own screen.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: why the damage does not undo itself</summary>
 
-The plant model lives in two files that must agree: `thread_physical` in `software/stm32/src/main.c` (the reference, running on the real board) and `physical_process_thread` in `software/hwio-virtual/hardwareAbstraction.py` (its mirror in Docker). In each tick:
+Each pressure is stored as a whole number from 0 to 255, so it fits in a single byte. The plant model lives in two files that must agree: `thread_physical` in `software/stm32/src/main.c` (the reference, running on the real board) and `physical_process_thread` in `software/hwio-virtual/hardwareAbstraction.py` (its mirror in Docker). In each tick:
 
 - With the compressor on, and only while the GST holds at least 50, the GST loses 2 and the HPT gains 1.
 - With the compressor off and the system valve open, the downstream process draws a random 0 to 2 from the HPT.
@@ -357,12 +366,10 @@ On the physical CybICS board, Level 0 is not a container at all. The STM32 micro
 
 ## Why ICS security is different
 
-Most industrial protocols, such as [Modbus](/theory/modbus) and [S7comm](/theory/s7comm), have **no authentication and no encryption**. That is not carelessness. They were designed for a serial cable inside a locked cabinet, where the cabinet door was the access control. When the cable became a network, the protocols stayed the same. Anyone who can reach a controller on the network can usually read and write its values.
+Most industrial protocols, such as [Modbus](/theory/modbus) and [S7comm](/theory/s7comm), have **no authentication and no encryption**. They were designed for a cable inside a locked cabinet, where the door was the access control. The cable became a network; the protocols stayed the same, so anyone who reaches a controller can usually read and write its values.
 
-[OPC-UA](/theory/opcua-protocol), the newest protocol on the plant, is the exception: it has users, passwords and certificates. The CybICS server even lists the `Anonymous` login option and an unencrypted `NoSecurity` mode alongside its encrypted one. Advertising an option is not the same as accepting it, though. The server's user manager refuses every anonymous session, so you need a real account or a trusted certificate. That is why the OPC-UA challenge is about guessing a weak password and finding certificates that were left lying around, not about walking in.
+[OPC-UA](/theory/opcua-protocol), the newest protocol on the plant, is the exception: it has users, passwords and certificates. The CybICS server even lists an `Anonymous` login, but listing an option is not accepting it: it refuses every anonymous session. The OPC-UA challenge is about a weak password and stray certificates, not about walking in.
 
 <div class="callout cybics" markdown="1">
-**In CybICS:** every attack in the later modules ends in a physical effect: a frozen reading, a forced valve, a tank driven past what its relief valve can handle. Keep the gas plant in mind as you read on. It is the thing you are protecting.
+**In CybICS:** every attack in the later modules ends in a physical effect: a frozen reading, a forced valve, an overfilled tank. Keep the gas plant in mind: it is what you are protecting.
 </div>
-
-<div data-widget="checkpoint" data-id="purdue"></div>

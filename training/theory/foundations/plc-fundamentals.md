@@ -1,15 +1,15 @@
 # PLCs and the scan cycle
 
-Every decision in the CybICS plant, from "start the compressor" to "open the valve", is made by one small computer: the PLC. Once you understand how a PLC thinks, most ICS attacks stop looking like magic. You will see exactly when a forged value survives and when the controller simply overwrites it.
+Every decision in the CybICS plant, from "start the compressor" to "open the valve", is made by one small computer: the PLC. Once you understand how a PLC thinks, most ICS attacks stop looking like magic: you can tell when a forged value survives and when the controller simply overwrites it.
 
 ## What a PLC is
 
-A **Programmable Logic Controller (PLC)** is a rugged little computer built to control machines. It sits in a cabinet next to the plant, takes readings from sensors, runs a control program, and switches actuators such as motors and valves. It has no screen and no keyboard, and it is expected to run for years without a reboot.
+A **Programmable Logic Controller (PLC)** is a rugged little computer built to control machines. It sits in a cabinet next to the plant, reads sensors, runs a control program and switches actuators such as motors and valves. It has no screen or keyboard and is expected to run for years without a reboot.
 
-In CybICS the PLC is **OpenPLC**, an open-source PLC runtime in the container at `172.18.0.3`. It runs the plant program `software/OpenPLC/cybICS.st`, which decides when the compressor runs and when the valves open.
+In CybICS the PLC is **OpenPLC**, an open-source PLC in the container at `172.18.0.3`. Its plant program decides when the compressor runs and when the valves open.
 
 <div class="callout analogy" markdown="1">
-**Analogy:** picture a very strict cook who works in rounds. At the start of each round they read every order slip at once, then cook from that list without looking up, then hand out all the plates together. New slips that arrive mid-round wait for the next round. That is a PLC.
+**Analogy:** picture a very strict cook who works in rounds. At the start of each round they read every order slip at once, then cook from that list without looking up, then hand out all the plates together. Slips that arrive mid-round wait for the next round. That is a PLC.
 </div>
 
 ## The scan cycle
@@ -20,13 +20,11 @@ An ordinary program starts, does its work and exits. A PLC never exits. It runs 
 2. **Run the program.** Execute the whole control logic on that snapshot.
 3. **Write outputs.** Send every computed output to the actuators, all at once.
 
-Then it waits and starts again. The CybICS program sets its own rhythm in its configuration: `TASK TaskMain(INTERVAL := T#50ms, ...)`. So this PLC scans **every 50 milliseconds, twenty times a second**.
-
-Try it yourself. Change the HPT pressure below and step through one scan to watch the PLC decide whether the compressor should run.
+Then it starts again. The CybICS PLC scans **every 50 milliseconds, twenty times a second**. Change the HPT pressure below and step through one scan to watch the PLC decide whether the compressor should run.
 
 <div data-widget="scan-cycle"></div>
 
-Why a loop instead of reacting to events? Because a machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, and the program always works on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
+Why a loop instead of reacting to events? A machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
 
 <figure class="wide">
 <style>
@@ -101,14 +99,23 @@ Why a loop instead of reacting to events? Because a machine that can hurt someon
     <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 2 recomputes the coil, here</text>
   </g>
 </svg>
-<figcaption>One scan: read all inputs, run the whole program on that snapshot, write all outputs. Then repeat, 50 ms later. The lamp is coil 1, the compressor. Watch an attacker switch it off between two scans, and watch the program switch it straight back on in phase 2, because the logic says the compressor should be running.</figcaption>
+<figcaption>One scan: read all inputs, run the whole program on that snapshot, write all outputs, and repeat 50 ms later. The lamp is coil 1, the compressor. An attacker switches it off between two scans, and the program switches it straight back on in phase 2, because the logic says it should be running.</figcaption>
 </figure>
 
 <div data-widget="checkpoint" data-id="scan"></div>
 
-## The CybICS compressor rule
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: where the 50 ms come from and when a write lands</summary>
 
-PLC programs are written in the languages of the standard **IEC 61131-3**. CybICS uses **Structured Text (ST)**, which reads a lot like Python or Pascal. Here is the heart of `cybICS.st`:
+The program sets its own rhythm in its configuration, `TASK TaskMain(INTERVAL := T#50ms, ...)` in `software/OpenPLC/cybICS.st`.
+
+Inside OpenPLC, every phase of the scan, and every Modbus request, takes the same lock (`bufferLock`) on the shared memory. A Modbus write therefore cannot land in the middle of the program; it waits for the gap between scans. That is why the figure above shows the attacker's write arriving between two scans.
+
+</details>
+
+## The compressor rule
+
+PLC programs are written in the languages of the standard **IEC 61131-3**. CybICS uses **Structured Text (ST)**, which reads a lot like Python or Pascal. Here is the heart of the plant program:
 
 ```
 IF hpt < 60 AND compressorState = 0 AND gst > 50 THEN
@@ -120,19 +127,22 @@ ELSE
 END_IF;
 ```
 
-In words: start the compressor when the high-pressure tank (HPT) drops below 60, keep it running until the pressure reaches 90, and never run it when the gas storage tank (GST) holds 50 or less, because there is nothing left to pump. A later line copies `compressorState` to the real output, `compressor`.
+In words: start the compressor when the high-pressure tank (HPT) drops below 60, keep it running until 90, and never run it when the gas storage tank (GST) holds 50 or less, because there is nothing left to pump. A later line copies `compressorState` to the real output, `compressor`.
 
-Why two thresholds instead of one? With a single limit of 75, the compressor would flick on and off every few moments as the pressure wobbled around it. The gap between 60 and 90 is called **hysteresis**, and your home thermostat uses the same trick.
+Why two thresholds? With a single limit of 75, the compressor would flick on and off as the pressure wobbled around it. The gap between 60 and 90 is called **hysteresis**; your home thermostat uses the same trick.
 
-The same program has three more rules worth knowing:
+The program has three more rules:
 
 | Output | Rule in automatic mode |
 |---|---|
-| System valve | Open while the HPT is between 50 and 100, closed otherwise |
+| System valve | Open while the HPT is between 50 and 100 |
 | GST refill (`gstSig`) | Start refilling when the GST drops below 60, stop at 240 |
-| Heartbeat | Blinks on and off, about once per two seconds, whatever the mode |
+| Heartbeat | Blinks about once per two seconds, whatever the mode |
 
-All of this sits inside two guards. If `stop` is set, the program forces the compressor, the system valve and the refill off. If `manual` is set, the program stops assigning those three outputs at all, and the operator's buttons on the HMI take over.
+Two guards sit around the plant outputs. If `stop` is set, the program forces the compressor, the system valve and the refill off. If `manual` is set, it stops assigning those three outputs at all, and the operator's HMI buttons take over.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the same rule as a ladder diagram, and the other languages</summary>
 
 Engineers outside CybICS often draw the same logic as a **Ladder Diagram (LD)**, which looks like an electrical wiring plan. Here is the compressor rule as one rung:
 
@@ -230,12 +240,16 @@ Engineers outside CybICS often draw the same logic as a **Ladder Diagram (LD)**,
 <figcaption>Read a rung like an electric circuit: "current" flows from the left rail to the coil on the right only if a path of closed contacts connects them. The upper branch can only start the compressor while it is off; the lower one, the "seal-in", can only keep it running while it is on. Between 60 and 90 neither changes the state, and that is the hysteresis. For clarity, the storage-tank check that the ST repeats in both branches is drawn once.</figcaption>
 </figure>
 
+IEC 61131-3 defines Ladder Diagram (LD), Function Block Diagram (FBD), Structured Text (ST), Sequential Function Chart (SFC) and Instruction List (IL, now deprecated). OpenPLC compiles them all to C; CybICS only uses ST.
+
+</details>
+
 ## Who owns a value?
 
-An attacker on the network can write values into the PLC over [Modbus](/theory/modbus). Whether the forged value *sticks* depends on one question: **who writes that address next?** This is the most useful idea for understanding PLC attacks.
+An attacker on the network can write values into the PLC over [Modbus](/theory/modbus). Whether the forged value *sticks* depends on one question: **who writes that address next?**
 
 - **Coil 1 is the compressor.** The program computes it on every scan. Force it off and, in automatic mode, the next scan puts back whatever the logic says, within 50 ms.
-- **Register 1126 is the HPT pressure.** The program only ever *reads* it. In CybICS, the pressure is not wired to the PLC directly: `hwio`, the plant simulation, pushes the current value in over Modbus about every 20 ms. A forged pressure lasts only until `hwio` writes again.
+- **Register 1126 is the HPT pressure.** The program only *reads* it. `hwio`, the plant simulation, pushes the current value in over Modbus about every 20 ms, so a forged pressure lasts only until `hwio` writes again.
 
 <figure class="wide">
 <style>
@@ -310,13 +324,13 @@ An attacker on the network can write values into the PLC over [Modbus](/theory/m
 <figcaption>Two addresses, two owners, two clocks. One forged write lands in both rows at the same moment. The coil is put back by the PLC's next scan; the register is put back by <code>hwio</code>'s next write, which is not the PLC at all. The orange bars show how long the attacker's value lasted.</figcaption>
 </figure>
 
-This leads straight to the attacks in later modules. To keep a forged value in place, you have to write it *faster than its owner* does: that is the [Flood & Overwrite](/theory/flood_overwrite) challenge, and it is noisy for exactly that reason. The quieter alternative is to change the *program*, so the PLC computes the attacker's values itself. That is the [PLC Programming](/theory/plc_programming) challenge.
+To keep a forged value in place, you have to write it *faster than its owner*: that is the [Flood & Overwrite](/theory/flood_overwrite) challenge, and it is noisy for exactly that reason. The quieter alternative is to change the *program*, so the PLC computes the attacker's values itself: the [PLC Programming](/theory/plc_programming) challenge.
 
-The operating modes matter too. In **manual** mode the program stops assigning the compressor, the system valve and the refill, so a forced coil simply stays where it was put. A mode that does nothing can be more dangerous than one that shouts.
+In **manual** mode the program stops assigning the compressor, the system valve and the refill, so a forced coil simply stays where it was put. A mode that does nothing can be more dangerous than one that shouts.
 
-## How the outside world reaches the PLC
+## Reaching the PLC from outside
 
-Each variable in `cybICS.st` is bound to a PLC memory address in its declaration, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus using its own numbering: output bits `%QX0.0` to `%QX0.3` become **coils 0 to 3**, and each memory word `%MW`*n* becomes **holding register 1024 + *n***.
+Each variable in the program is bound to a PLC memory address, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus with a simple rule: output bit `%QX0.`*n* becomes **coil *n***, and memory word `%MW`*n* becomes **holding register 1024 + *n***.
 
 | Variable | PLC address | Modbus address |
 |---|---|---|
@@ -326,16 +340,12 @@ Each variable in `cybICS.st` is bound to a PLC memory address in its declaration
 | `systemSen` (plant healthy) | `%MW108` | register 1132 |
 | `boSen` (blow-out active) | `%MW110` | register 1134 |
 
-OpenPLC does not stop at Modbus. The CybICS container also exposes its S7comm (port 102), DNP3 (20000) and EtherNet/IP (44818) servers, and as deployed here none of them asks for a password. Blocking one port does not close the door when the same memory is reachable through the next one.
-
-The most powerful action of all is uploading a **new program**. It changes how the plant behaves permanently, and no amount of watching register values will reveal it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
+Modbus is not the only door: the same memory is reachable over S7comm, DNP3 and EtherNet/IP, and none of them asks for a password. The most powerful action of all is uploading a **new program**. It changes the plant's behaviour permanently, and no amount of watching register values reveals it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: the five IEC 61131-3 languages and where the write lands</summary>
+<summary>Deep dive: the other ports and how the outputs reach the plant</summary>
 
-IEC 61131-3 defines Ladder Diagram (LD), Function Block Diagram (FBD), Structured Text (ST), Sequential Function Chart (SFC) and Instruction List (IL, now deprecated). OpenPLC compiles them all to C; CybICS only uses ST.
-
-Inside OpenPLC, every phase of the scan, and every Modbus request, takes the same lock (`bufferLock`) on the shared memory. A Modbus write therefore cannot land in the middle of the program; it waits for the gap between scans. That is why the figure above shows the attacker's write arriving between two scans.
+The OpenPLC container exposes its S7comm server on port 102, DNP3 on 20000 and EtherNet/IP on 44818, next to Modbus on 502. Blocking one port does not close the door when the same memory is reachable through the next one.
 
 `cybICS.st` declares no `%I` input addresses at all: every located variable is a `%QX` output or a `%MW` memory word. In the Docker testbed OpenPLC also runs a "blank" hardware layer, so phase 3 drives no physical pins. The plant only sees the outputs because `hwio` reads the coils back over Modbus. On real hardware, `hwio-raspberry` plays the same bridge role between OpenPLC and the STM32 that runs the process.
 

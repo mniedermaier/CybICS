@@ -83,6 +83,10 @@ All of them map onto the same PLC memory. Blocking port 502 therefore does not p
 
 <div data-widget="checkpoint" data-id="question-mark"></div>
 
+A port number, a typical industry, a header or a byte pattern can each tell you which protocol you are looking at. Match each clue below to its protocol.
+
+<div data-widget="sequence" data-id="match"></div>
+
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: DNP3 layers and why PROFINET hides from scanners</summary>
 

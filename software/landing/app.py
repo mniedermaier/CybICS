@@ -396,6 +396,12 @@ def theory_glossary():
     return render_template('theory_glossary.html', entries=entries)
 
 
+@app.template_filter('quiz_question')
+def quiz_question(question):
+    """A quiz question as the page gets it: without its answer and explanation."""
+    return {k: question[k] for k in ('type', 'question', 'options') if k in question}
+
+
 @app.route('/theory/<topic_id>')
 def theory_topic(topic_id):
     """One lesson: the article, its widgets, its quiz and the way on."""
@@ -432,10 +438,10 @@ def theory_progress():
 
 @app.route('/theory/api/progress/<topic_id>', methods=['POST'])
 def theory_record(topic_id):
-    """Grade a quiz attempt and keep the best result.
+    """Grade a quiz attempt, keep the best result, and return the answers.
 
-    The page shows its feedback straight away, but the stored result is graded
-    here, against the quiz as it is on disk.
+    The page does not carry the quiz answers: they and the explanations come
+    back only from here, after an attempt.
     """
     topic, _ = theory_manager.get_topic(topic_id)
     if not topic:
@@ -444,15 +450,18 @@ def theory_record(topic_id):
     answers = (request.get_json(silent=True) or {}).get('answers')
     if not quiz or not isinstance(answers, list) or len(answers) != len(quiz):
         return jsonify({'error': 'expected one answer per question'}), 400
-    correct = 0
+    results = []
     for question, given in zip(quiz, answers):
         expected = question['answer']
         if isinstance(expected, list):
-            correct += isinstance(given, list) and sorted(set(given)) == sorted(expected)
+            ok = isinstance(given, list) and sorted(set(given)) == sorted(expected)
         else:
-            correct += given == expected
+            ok = given == expected
+        results.append({'correct': bool(ok), 'answer': expected,
+                        'explanation': question.get('explanation', '')})
+    correct = sum(r['correct'] for r in results)
     entry = theory_manager.progress.record(topic_id, correct, len(quiz))
-    return jsonify({'correct': correct, 'total': len(quiz), **entry})
+    return jsonify({'correct': correct, 'total': len(quiz), 'results': results, **entry})
 
 
 @app.route('/theory/api/progress/reset', methods=['POST'])

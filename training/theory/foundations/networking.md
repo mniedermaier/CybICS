@@ -1,20 +1,20 @@
-# Networks in ten minutes
+# Network basics
 
-Every attack in CybICS travels over a network: a scan, a forged Modbus write, a stolen password. To follow them you need a handful of ideas that network engineers take for granted, such as addresses, ports, packets and connections. This lesson explains them in plain words, using the CybICS lab network as the example.
+Every attack in CybICS travels over a network: a scan, a forged Modbus write, a stolen password. To follow them you need four basic ideas: addresses, ports, packets and connections.
 
 ## Addresses: who is who
 
-Every device on a network has an **IP address** (Internet Protocol address), four numbers from 0 to 255 separated by dots. The CybICS PLC, for example, is `172.18.0.3`. A message that should reach the PLC carries that address, just as a letter carries the address of the house it is for.
+Every device on a network has an **IP address** (Internet Protocol address), four numbers from 0 to 255 separated by dots. The CybICS PLC, for example, is `172.18.0.3`. A message for the PLC carries that address, like a letter.
 
 <div class="callout analogy" markdown="1">
-**Analogy:** in the CybICS lab network `172.18.0.0/24`, the first three numbers `172.18.0` name the street and the last number names the house. Every device on the street shares the first three numbers; only the house number differs.
+**Analogy:** in the CybICS lab network `172.18.0.0/24`, the first three numbers `172.18.0` name the street and the last number names the house.
 </div>
 
-Such a street is called a **subnet**. The `/24` says how much of the address names the street: the first 24 of its 32 bits, which is the first three numbers. Devices on the same subnet can talk to each other directly. To reach another street, a message goes to the **gateway**, a router that knows the way. In CybICS the gateway is `172.18.0.1`, which is the computer that runs Docker.
+Such a street is a **subnet**; the `/24` means the first three numbers name it. Devices on the same subnet talk directly. To reach another street, a message goes to the **gateway**, a router. In CybICS the gateway is `172.18.0.1`, the computer that runs Docker.
 
 | Address | Device |
 |---|---|
-| 172.18.0.1 | the gateway: the host computer itself |
+| 172.18.0.1 | the gateway: the host computer |
 | 172.18.0.2 | hwio, the simulated physical process |
 | 172.18.0.3 | openplc, the PLC |
 | 172.18.0.4 | fuxa, the HMI (the operator's screen) |
@@ -22,20 +22,20 @@ Such a street is called a **subnet**. The `/24` says how much of the address nam
 | 172.18.0.6 | s7com, a second S7 server |
 | 172.18.0.10 | engineeringws, the engineering workstation |
 | 172.18.0.11 | cybicsagent, the AI assistant |
-| 172.18.0.12 | nginx-proxy, which forwards the web interfaces to the host's ports |
+| 172.18.0.12 | nginx-proxy, which forwards the web interfaces |
 | 172.18.0.100 | the attack machine |
 
-Underneath the IP address there is a second, more local name. Every network card has a **MAC address** (Media Access Control address), six pairs of hex digits such as `02:42:ac:12:00:03`. It works only on the local segment, like the name on a door bell: the postman needs the street address to reach the house, then the name to find the right flat.
+Every network card also has a **MAC address** (Media Access Control address), six pairs of hex digits such as `02:42:ac:12:00:03`. It only works on the local segment, like the name on a door bell that finds the right flat once the postman has found the house.
 
-How does a computer find the MAC address for an IP address? It shouts a question to the whole segment, "who has 172.18.0.3?", and the owner answers. That is the **Address Resolution Protocol (ARP)**, and because nobody checks the answers, an attacker can lie in them. The [man-in-the-middle lesson](/theory/mitm) shows what follows from that.
+To find the MAC address for an IP address, a computer asks the whole segment "who has 172.18.0.3?" and the owner answers. That is the **Address Resolution Protocol (ARP)**. Nobody checks the answers, so an attacker can lie; see the [man-in-the-middle lesson](/theory/mitm).
 
 <div data-widget="checkpoint" data-id="subnet"></div>
 
 ## Ports: which program
 
-An IP address finds the computer, but one computer runs many programs. The **port** says which one a message is for. Think of a large office building: the address gets the letter to the building, and the door number on the envelope gets it to the right office. A port is a number from 0 to 65535, and a program that waits for messages on a port is said to **listen** on it.
+An IP address finds the computer, but one computer runs many programs. The **port**, a number from 0 to 65535, says which one a message is for, like the door number of an office in a large building. A program waiting for messages on a port **listens** on it.
 
-Industrial protocols have well-known port numbers, which is why a scanner can guess what a device is from its open ports. These are the ones you will meet in CybICS:
+Industrial protocols have well-known port numbers, so a scanner can guess what a device is from its open ports. The main ones in CybICS:
 
 | Port | Service | Runs on |
 |---|---|---|
@@ -43,6 +43,14 @@ Industrial protocols have well-known port numbers, which is why a scanner can gu
 | 102 | S7comm, the Siemens protocol | openplc |
 | 1102 | S7comm on a non-standard port | s7com |
 | 4840 | OPC-UA | opcua |
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the other ports, and the client's port</summary>
+
+OpenPLC also speaks two more plant protocols, and the lab offers web interfaces and remote desktops:
+
+| Port | Service | Runs on |
+|---|---|---|
 | 20000 | DNP3, a protocol from power and water utilities | openplc |
 | 44818 | EtherNet/IP | openplc |
 | 8080 | OpenPLC web interface | openplc |
@@ -56,11 +64,11 @@ Industrial protocols have well-known port numbers, which is why a scanner can gu
 
 The program that *starts* a conversation, the **client**, also needs a port for the answers. It gets a random high number, such as 50312, which is forgotten when the conversation ends.
 
-## Packets: envelopes inside envelopes
+</details>
 
-Data does not flow through a network as one long stream. It is cut into **packets**, small pieces that each carry their own addresses, like envelopes in the post. A single Modbus request fits into one packet.
+## Packets: nested envelopes
 
-Each packet is built in layers, and each layer adds the address information it needs. Picture a letter put into an envelope, which goes into a bigger envelope, which goes into a postbag:
+Data travels in **packets**, small pieces that each carry their own addresses. A single Modbus request fits into one. Each packet is built in layers, like a letter in an envelope, inside a bigger envelope, inside a postbag:
 
 <figure class="wide">
 <svg viewBox="0 0 520 210" role="img"
@@ -81,16 +89,14 @@ Each packet is built in layers, and each layer adds the address information it n
   <text x="343" y="136" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">Modbus data</text>
   <text x="343" y="152" text-anchor="middle" font-size="11" fill="#1a1a1a">read register 1126</text>
 </svg>
-<figcaption>One Modbus request from the attack machine to the PLC. Ethernet (MAC addresses) carries it across the local segment, IP (addresses) to the right computer, TCP (ports) to the right program, and only the innermost envelope holds the Modbus request itself.</figcaption>
+<figcaption>One Modbus request from the attack machine to the PLC. Ethernet (MAC addresses) carries it across the local segment, IP to the right computer, TCP (ports) to the right program; the innermost envelope holds the request.</figcaption>
 </figure>
 
-Each layer only reads its own envelope. The network card checks the MAC address, the operating system checks the IP address and the port, and only the Modbus program opens the innermost envelope. A tool like Wireshark shows you all the envelopes of a packet at once.
+Each layer only reads its own envelope: the network card checks the MAC address, the operating system the IP address and the port, and only the Modbus program opens the innermost one. Wireshark shows all of them at once.
 
-## TCP: a handshake before the talk
+## TCP: a handshake first
 
-The envelope with the ports belongs to the **Transmission Control Protocol (TCP)**. TCP turns loose packets into a reliable **connection**: it numbers the packets, asks again for lost ones and delivers them in order. Modbus TCP, S7comm and OPC-UA all run over TCP.
-
-Before any data flows, the two sides shake hands in three steps, the **three-way handshake**:
+The envelope with the ports belongs to the **Transmission Control Protocol (TCP)**. TCP turns loose packets into a reliable **connection**: it numbers them, resends lost ones and delivers them in order. Modbus TCP, S7comm and OPC-UA all run over TCP. Before any data flows, the two sides shake hands:
 
 <figure>
 <svg viewBox="0 0 360 200" role="img"
@@ -116,35 +122,38 @@ Before any data flows, the two sides shake hands in three steps, the **three-way
 <figcaption>The three-way handshake. SYN asks for a connection, SYN-ACK accepts it, ACK confirms. Only then does the first Modbus byte travel.</figcaption>
 </figure>
 
-If nothing listens on the port, the computer answers the SYN with a reset (**RST**) instead: "no one here". This is what a port scanner relies on. It sends a SYN to each port and listens: a SYN-ACK means the port is open, an RST means it is closed, silence often means a firewall swallowed the packet. Many scanners never send the final ACK, so they learn the answer without ever finishing a connection.
+If nothing listens on the port, the computer answers the SYN with a reset (**RST**): "no one here". A port scanner sends a SYN to each port: a SYN-ACK means open, an RST means closed, silence often means a firewall swallowed it. Many scanners never send the final ACK and leave the connection unfinished.
 
-Not everything uses TCP. The **User Datagram Protocol (UDP)** sends single packets with no handshake and no delivery check, which is faster but gives no guarantee that anything arrived.
+The **User Datagram Protocol (UDP)** skips the handshake and the delivery check: faster, but nothing guarantees that a packet arrived.
 
 <div data-widget="checkpoint" data-id="handshake"></div>
 
-## Containers and the lab network
+## The CybICS lab network
 
-In the virtual CybICS lab, each service runs in its own **container**: a small, sealed box with its own programs and files that shares the host computer's operating system. Docker, the software that runs the containers, gives each one its own network card and its own IP address. That is why openplc, fuxa and opcua look like separate computers to you, although they all run on one machine.
+In the virtual lab, each service runs in its own **container**: a small, sealed box that shares the host computer's operating system. Docker gives each container its own network card and IP address, so openplc, fuxa and opcua look like separate computers, although they run on one machine.
 
-All these containers are plugged into one virtual switch, a Docker **bridge network** called `virt-cybics`, with the subnet `172.18.0.0/24`. On that bridge the containers can also find each other by name: FUXA reaches the PLC as `openplc:502` instead of `172.18.0.3:502`.
+All containers are plugged into one virtual switch, a Docker **bridge network** with the subnet `172.18.0.0/24`. The attack machine, `172.18.0.100`, sits on it too, with no router or firewall in between: the network is **flat**. A packet it sends to `172.18.0.3:502` arrives and reaches the Modbus program.
 
-Two services are different. The landing page and the IDS use **host networking**: they get no container address and share the network of the host computer directly. The landing page answers on the host's port 80. The IDS finds the bridge among the host's network interfaces and listens on it, because every packet between two containers crosses it, and keeps what belongs to `172.18.0.0/24`. That is how it sees a Modbus request between FUXA and the PLC, although it is neither the sender nor the receiver.
+The landing page and the IDS are different: they use **host networking** and share the host computer's network instead of having a container address. That lets the IDS listen on the bridge, which every packet between two containers crosses, so it sees FUXA talk to the PLC.
 
-<div class="callout tip" markdown="1">
-**Published ports:** Docker can also forward a port of the host into a container. CybICS does that for 502, 1881, 4840 and others, so the same services are reachable at the host's own address, not only on the bridge.
-</div>
-
-## In CybICS
-
-Now the pieces fit together. The attack machine, `172.18.0.100`, is plugged into the same bridge as the PLC, the HMI and the OPC-UA server. There is no router, no firewall and no second street between them: the network is **flat**. Any packet the attack machine sends to `172.18.0.3:502` arrives, completes the handshake and is handed to the Modbus program.
-
-Combine that with what the [Modbus lesson](/theory/modbus) will show you, a protocol without a login, and you have the core problem of many real plants. Being able to reach a port is the same as being allowed to use it. Click a host below to see its address, its ports and what targets it:
+Add a protocol without a login, as the [Modbus lesson](/theory/modbus) shows, and you have the core problem of many real plants: reaching a port is the same as being allowed to use it. Click a host to see its address, ports and what targets it:
 
 <div data-widget="purdue-explorer"></div>
 
 <div class="callout cybics" markdown="1">
-**In CybICS:** the [Service Scanning challenge](/ctf/challenge/scanning) asks you to map this network yourself. Use the address table and the port table above to check what your scanner reports.
+**In CybICS:** the [Service Scanning challenge](/ctf/challenge/scanning) asks you to map this network yourself. Check your scanner's results against the tables above and in the deep dive.
 </div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: names on the bridge, the IDS and published ports</summary>
+
+The bridge is called `virt-cybics`. On it the containers can also find each other by name: FUXA reaches the PLC as `openplc:502` instead of `172.18.0.3:502`.
+
+The landing page answers on the host's port 80. The IDS finds the bridge among the host's network interfaces, listens on it and keeps what belongs to `172.18.0.0/24`.
+
+Docker can also forward a port of the host into a container. CybICS does that for 502, 1881, 4840 and others, so the same services are reachable at the host's own address, not only on the bridge.
+
+</details>
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: what /24 means in bits</summary>

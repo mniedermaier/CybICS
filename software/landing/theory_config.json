@@ -41,7 +41,7 @@
         },
         {
           "id": "networking",
-          "title": "Networks in ten minutes",
+          "title": "Network basics",
           "summary": "IP addresses, subnets, ports, packets and the TCP handshake, shown on the CybICS lab network and its Docker containers.",
           "content": "training/theory/foundations/networking.md",
           "related": [

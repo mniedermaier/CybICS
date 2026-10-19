@@ -91,5 +91,60 @@
       "answer": 0,
       "explanation": "Scanning ports to find services is T0846.001, Remote System Discovery: Port Scan. T0888 is tempting because it also sounds like discovery, but it means reading a device's own information such as its firmware version; T0842 is passive listening, not knocking on ports."
     }
-  ]
+  ],
+  "exercises": {
+    "triage": {
+      "type": "sequence",
+      "order": false,
+      "title": "Normal, caught or missed?",
+      "intro": "Each line describes traffic the CybICS IDS sees on the plant network. Decide whether it is normal traffic, a scan the port_scan rule catches, or a scan that stays below it.",
+      "labels": [
+        "Normal plant traffic",
+        "Scan that port_scan catches",
+        "Scan that port_scan misses"
+      ],
+      "steps": [
+        {
+          "text": "The HMI connects to port 502 of the PLC over and over, all day long.",
+          "label": "Normal plant traffic",
+          "explain": "Normal clients talk to the one or two ports they already know. However often it happens, one port is never five different ports."
+        },
+        {
+          "text": "An operator's browser loads the FUXA web page several times in a minute.",
+          "label": "Normal plant traffic",
+          "explain": "A browser talks to one web port. The rule counts different destination ports, not how many connections there are."
+        },
+        {
+          "text": "One source sends SYN packets to 20 different ports of the PLC within 2 seconds.",
+          "label": "Scan that port_scan catches",
+          "explain": "20 different ports from one source to one target inside the 10-second window is far past the threshold of 5."
+        },
+        {
+          "text": "One source sends SYN packets to exactly 5 different ports of the PLC within 8 seconds.",
+          "label": "Scan that port_scan catches",
+          "explain": "The rule fires at 5 or more different ports, and 8 seconds fits inside the 10-second window. Four ports would not have been enough."
+        },
+        {
+          "text": "The recon.py script checks its six industrial ports on the PLC.",
+          "label": "Scan that port_scan catches",
+          "explain": "Six different ports on one target within a few seconds is above the threshold of 5, which is why the challenge's own script is detected."
+        },
+        {
+          "text": "One source tries a new port of the PLC every 5 seconds, for ten minutes.",
+          "label": "Scan that port_scan misses",
+          "explain": "At one port every 5 seconds, no 10-second window ever holds 5 different ports. A slow scan stays under the threshold however long it runs."
+        },
+        {
+          "text": "One source tries port 502 on ten different plant hosts within 5 seconds.",
+          "label": "Scan that port_scan misses",
+          "explain": "The rule counts ports per source-and-target pair. Each host sees just one port, so no pair comes near 5."
+        },
+        {
+          "text": "An nmap ACK scan sends packets to 100 ports of the PLC, none of them with the SYN flag.",
+          "label": "Scan that port_scan misses",
+          "explain": "The rule only counts TCP packets with just the SYN flag set. An ACK scan sends none, so the counter never moves."
+        }
+      ]
+    }
+  }
 }

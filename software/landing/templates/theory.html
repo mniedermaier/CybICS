@@ -48,6 +48,7 @@
             <a class="t-btn" href="/theory/glossary">&#128214; Glossary</a>
             {% if ns.done %}<button class="t-btn" id="reset" type="button">Reset quiz progress</button>{% endif %}
         </div>
+        <p class="w-note t-store-note">Quiz progress is saved on this CybICS board, not in your browser, and is shared by everyone who uses the board.</p>
 
         {% for key, section in sections.items() %}
         <section class="t-section" data-section="{{ key }}">

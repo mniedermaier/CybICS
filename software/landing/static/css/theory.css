@@ -358,3 +358,14 @@ html.light-mode .article figure svg path[fill="#ff6b00"] { fill: #b34700; }
 .ua-detail { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 0.8rem; font-size: 0.86rem; margin-top: 0.7rem; }
 .ua-detail dt { color: var(--faint); }
 @media (max-width: 520px) { .ua-detail { grid-template-columns: 1fr; } .ua-detail dd { margin-bottom: 0.3rem; } }
+.t-store-note { margin: -0.8rem 0 1.4rem; }
+.t-crumbs .extra { opacity: 0.8; }
+
+/* uart-frame */
+.uart { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px; margin: 0.6rem 0; }
+.u-bit { text-align: center; font-size: 0.72rem; padding-top: 0.2rem; border-bottom: 3px solid var(--muted); min-width: 0; }
+.u-bit.hi { border-top: 3px solid var(--accent); border-bottom-color: transparent; }
+.u-bit.lo { border-top: 3px solid transparent; border-bottom-color: var(--accent); }
+.u-bit .u-v { display: block; font-family: ui-monospace, monospace; font-size: 0.9rem; font-weight: 700; }
+.u-bit small { display: block; color: var(--faint); font-size: 0.62rem; overflow-wrap: anywhere; line-height: 1.2; padding-bottom: 0.2rem; }
+.u-bit.data { background: var(--panel-2); }

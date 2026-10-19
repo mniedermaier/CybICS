@@ -149,29 +149,36 @@
         const check = document.getElementById('quiz-check');
         const retry = document.getElementById('quiz-retry');
         const result = document.getElementById('quiz-result');
+        // The page has no answers: the board grades the attempt, records it
+        // and only then sends back the right answers and the explanations.
         check.addEventListener('click', function () {
             const unanswered = boxes.filter(b => !b.querySelector('input:checked')).length;
             if (unanswered && !confirm(`${unanswered} question(s) have no answer yet. Check anyway?`)) return;
-            const answers = boxes.map((box, i) => grade(box, DATA.quiz[i]).answer);
-            const correct = boxes.filter(b => b.querySelector('.q-feedback.ok')).length;
-            const passed = correct / boxes.length >= DATA.passRatio;
-            result.className = 'quiz-result ' + (passed ? 'ok' : 'bad');
-            result.textContent = `${correct} of ${boxes.length} correct. ` +
-                (passed ? 'Lesson completed!' : `You need ${Math.ceil(DATA.passRatio * boxes.length)} to complete it; read the explanations and try again.`);
-            check.hidden = true; retry.hidden = false;
+            const answers = boxes.map(selected);
+            check.disabled = true;
             fetch(`/theory/api/progress/${encodeURIComponent(DATA.topic)}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ answers }),
-            }).then(r => r.json()).then(function (entry) {
+            }).then(function (r) {
+                if (!r.ok) throw new Error(r.status);
+                return r.json();
+            }).then(function (entry) {
+                boxes.forEach((box, i) => grade(box, { ...DATA.quiz[i], ...entry.results[i] }));
+                const passed = entry.correct / entry.total >= DATA.passRatio;
+                result.className = 'quiz-result ' + (passed ? 'ok' : 'bad');
+                result.textContent = `${entry.correct} of ${entry.total} correct. ` +
+                    (passed ? 'Lesson completed!' : `You need ${Math.ceil(DATA.passRatio * entry.total)} to complete it; read the explanations and try again.`);
                 if (entry.passed) {
                     const status = document.getElementById('status');
                     status.classList.add('done'); status.textContent = '✓ Completed';
                 }
+                check.hidden = true; retry.hidden = false;
+                const first = boxes.find(b => b.querySelector('.q-feedback.bad'));
+                (first || result).scrollIntoView({ behavior: 'smooth', block: 'center' });
             }).catch(function () {
-                result.textContent += ' (Your result could not be saved.)';
-            });
-            const first = boxes.find(b => b.querySelector('.q-feedback.bad'));
-            (first || result).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                result.className = 'quiz-result bad';
+                result.textContent = 'Your answers could not be checked: the board did not answer. Try again in a moment.';
+            }).finally(function () { check.disabled = false; });
         });
         retry.addEventListener('click', function () {
             boxes.forEach(ungrade);

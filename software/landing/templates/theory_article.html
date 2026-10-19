@@ -14,7 +14,7 @@
         <div class="t-header-inner">
             <a class="t-back" href="/theory" aria-label="Back to the Theory Path">&#8592;<span class="label"> Theory Path</span></a>
             <div class="t-head-main">
-                <div class="t-crumbs"><span class="section-name">{{ section.name }} &middot; </span>{{ 'Challenge briefing' if topic.briefing else 'Lesson' }} {{ topic.number }} of {{ total }} &middot; {{ article.minutes }} min</div>
+                <div class="t-crumbs"><span class="section-name">{{ section.name }} &middot; </span>{{ 'Challenge briefing' if topic.briefing else 'Lesson' }} {{ topic.number }} of {{ total }} &middot; {{ article.minutes }} min{% if article.extra_minutes %} <span class="extra">+ {{ article.extra_minutes }} min optional</span>{% endif %}</div>
                 <div class="t-head-title">{{ topic.title }}</div>
             </div>
             <span class="t-status{{ ' done' if mine.get('passed') }}" id="status">{{ '✓ Completed' if mine.get('passed') else 'Not completed yet' }}</span>
@@ -106,7 +106,7 @@
 
     <script type="application/json" id="theory-data">{{ {
         'topic': topic.id,
-        'quiz': sidecar.quiz or [],
+        'quiz': (sidecar.quiz or []) | map('quiz_question') | list,
         'checkpoints': sidecar.checkpoints or [],
         'exercises': sidecar.exercises or {},
         'glossary': glossary,

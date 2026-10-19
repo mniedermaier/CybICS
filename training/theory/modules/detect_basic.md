@@ -69,6 +69,10 @@ Defenders answer with longer windows, counting per source across all targets, or
 
 </details>
 
+With the threshold, the window and the deep dive in mind, sort these observations the way a defender would.
+
+<div data-widget="sequence" data-id="triage"></div>
+
 ## Detect and defend
 
 This whole module *is* the detection side, but a few lessons carry over to any real plant:
