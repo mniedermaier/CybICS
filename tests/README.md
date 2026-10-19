@@ -29,6 +29,8 @@ pytest -v test_training.py
   (no stack needed)
 - **`test_landing_settings.py`** - The settings view (`/settings`) and the scope of its restart and
   log download, without restarting anything
+- **`test_register_map.py`** - The OPC-UA server reads each plant value from the holding register
+  the PLC program declares for it (no stack needed)
 
 ## Remote Testing
 

@@ -114,10 +114,10 @@ async def main():
             try:
                 gst = client.read_holding_registers(1124)
                 hpt = client.read_holding_registers(1126)
-                systemSen = client.read_holding_registers(2)
-                boSen = client.read_holding_registers(3)
-                stop = client.read_holding_registers(1129)
-                manual = client.read_holding_registers(1131)
+                systemSen = client.read_holding_registers(1132)
+                boSen = client.read_holding_registers(1134)
+                stop = client.read_holding_registers(1128)
+                manual = client.read_holding_registers(1130)
             except Exception as e:
               logging.error("Read from OpenPLC failed - " + str(e))
             await gstvar.write_value(ua.UInt16(gst.registers[0]))

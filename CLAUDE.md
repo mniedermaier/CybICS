@@ -81,9 +81,8 @@ Do not open a PR with a suite you did not run.
   once silently never ran in CI.
 - `TEST_SERVER_IP` and `TEST_<SERVICE>_PORT` point the suite at a remote or
   relocated stack. `test_ids_rules.py`, `test_plant_model_parity.py`,
-  `test_cybics_mgmt.py`, `test_ctf_uplink.py` and `test_landing_restart.py` need
-  no stack and are a quick
-  check, not a substitute.
+  `test_cybics_mgmt.py`, `test_ctf_uplink.py`, `test_landing_restart.py` and
+  `test_register_map.py` need no stack and are a quick check, not a substitute.
 
 Firmware (Zephyr v4.3.0, SDK 0.17.4, board `nucleo_g070rb`):
 
