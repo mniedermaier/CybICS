@@ -1,31 +1,46 @@
 # PLCs and the scan cycle
 
-A **Programmable Logic Controller (PLC)** is the small, rugged computer at the heart of a control system. It reads sensors, runs a control program, and drives actuators &mdash; over and over, on a fixed period that never varies. In CybICS the PLC role is played by **OpenPLC**, running the plant program `software/OpenPLC/cybICS.st`.
+Every decision in the CybICS plant, from "start the compressor" to "open the valve", is made by one small computer: the PLC. Once you know how it thinks, you can tell when a forged value survives and when the controller simply overwrites it.
+
+## What a PLC is
+
+A **Programmable Logic Controller (PLC)** is a rugged little computer built to control machines. It reads sensors, runs a control program and switches actuators such as motors and valves, for years without a reboot.
+
+In CybICS the PLC is **OpenPLC**, an open-source PLC in the container at `172.18.0.3`. Its plant program decides when the compressor runs and when the valves open.
+
+<div class="callout analogy" markdown="1">
+**Analogy:** picture a very strict cook who works in rounds. At the start of each round they read every order slip at once, then cook from that list without looking up, then hand out all the plates together. Slips that arrive mid-round wait for the next round. That is a PLC.
+</div>
 
 ## The scan cycle
 
-A PLC does not run like a normal program that starts, does work, and exits. It runs a **cyclic scan**: an endless loop of three phases. The CybICS program declares its period in its own configuration &mdash; `TASK TaskMain(INTERVAL := T#50ms,PRIORITY := 0);` &mdash; so this PLC scans **every 50 ms, twenty times a second**. That number is worth remembering; most of what follows is a consequence of it.
+An ordinary program starts, does its work and exits. A PLC never exits. It runs a **scan cycle**: an endless loop of three phases.
 
-<figure>
+1. **Read inputs.** Copy every input value into memory, once.
+2. **Run the program.** Execute the whole control logic on that snapshot.
+3. **Write outputs.** Send every computed output to the actuators, all at once.
+
+Then it starts again. The CybICS PLC scans **every 50 milliseconds, twenty times a second**. Change the HPT pressure below and step through one scan to watch the PLC decide whether the compressor should run.
+
+<div data-widget="scan-cycle"></div>
+
+<div data-widget="checkpoint" data-id="scan"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: why a loop, where the 50 ms come from and when a write lands</summary>
+
+Why a loop instead of reacting to events? A machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
+
+The program sets its own rhythm in its configuration, `TASK TaskMain(INTERVAL := T#50ms, ...)` in `software/OpenPLC/cybICS.st`.
+
+Inside OpenPLC, every phase of the scan, and every Modbus request, takes the same lock (`bufferLock`) on the shared memory. A Modbus write therefore cannot land in the middle of the program; it waits for the gap between scans. That is why the figure below shows the attacker's write arriving between two scans.
+
+<figure class="wide">
 <style>
-/* `.article figure svg` caps figures at max-width:100%, so on a 390 px screen
-   a 520-unit viewBox drew its 13-unit labels at 7.7 CSS px. min-width beats
-   max-width and the figure scrolls instead of shrinking. The selector must be
-   at least as specific as the template's, or it loses without a warning. */
-.article figure {overflow-x: auto;}
-.article figure svg.pl-c {min-width: 468px;}
-.article figure svg.pl-t, .article figure svg.pl-r {min-width: 548px;}
-/* The base state is the end of the story, not a blank rung. A browser that
-   simply drops animations -- a print, a screenshot, a preview -- used to get
-   a ladder with every contact open, no caption and a rail ending in nothing.
-   The animations override these while they run; the reduced-motion blocks
-   below now only have to switch them off. */
+/* The base state is the end of the story (phase 2 recomputing the coil), so a
+   browser that drops animations still shows a meaningful frame. */
 .pl-c {--c: 6s;}
-html.light-mode .pl-c .dot {fill:#b34700;}
-/* The marker is moved with transform:translate along the ring that is actually
-   drawn. offset-path composes on top of cx/cy rather than replacing them, so a
-   circle given both renders at double its coordinates -- which put this marker
-   off-canvas for most of every loop. */
+.pl-c:where(.light-mode *) .dot {fill:#b34700;}
 .pl-c .dot {animation: c-run var(--c) linear infinite;}
 .pl-c .ph1 {animation: c-p1 var(--c) steps(1,end) infinite;}
 .pl-c .car1,.pl-c .car3 {opacity:0;}
@@ -38,40 +53,25 @@ html.light-mode .pl-c .dot {fill:#b34700;}
 .pl-c .car3{animation: c-p3t var(--c) steps(1,end) infinite;}
 .pl-c .atk {opacity:0; animation: c-atk var(--c) steps(1,end) infinite;}
 .pl-c .gone{opacity:1; animation: c-gone var(--c) steps(1,end) infinite;}
-/* The coil's value was never drawn, so "the attacker's value is gone" was
-   asserted in text three times and never shown. It is a lamp now: dark while
-   the forged write stands, lit again the moment phase 2 recomputes it. */
 .pl-c .lamp{fill-opacity:1; animation: c-lamp var(--c) steps(1,end) infinite;}
 .pl-c .ph2 {animation: c-p2 var(--c) steps(1,end) infinite;}
 .pl-c .ph3 {animation: c-p3 var(--c) steps(1,end) infinite;}
 @keyframes c-run{0%{transform:translate(0px,0px)} 8.333%{transform:translate(-38px,10.2px)} 16.67%{transform:translate(-65.8px,38px)} 25%{transform:translate(-76px,76px)} 33.33%{transform:translate(-65.8px,114px)} 41.67%{transform:translate(-38px,141.8px)} 50%{transform:translate(0px,152px)} 58.33%{transform:translate(38px,141.8px)} 66.67%{transform:translate(65.8px,114px)} 75%{transform:translate(76px,76px)} 83.33%{transform:translate(65.8px,38px)} 91.67%{transform:translate(38px,10.2px)} 100%{transform:translate(0px,0px)}}
-/* The active phase is marked with an outline, not by dimming the others: an
-   orange panel at 0.55 opacity puts its dark label at 2.57:1. */
 @keyframes c-p1{0%,16.7%{stroke-width:3} 16.71%,83.2%{stroke-width:0} 83.3%,100%{stroke-width:3}}
 @keyframes c-p2{0%,16.7%{stroke-width:0} 16.71%,50%{stroke-width:3} 50.01%,100%{stroke-width:0}}
 @keyframes c-p3{0%,50%{stroke-width:0} 50.01%,83.2%{stroke-width:3} 83.3%,100%{stroke-width:0}}
 @keyframes c-p1t{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-p2t{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @keyframes c-p3t{0%,50%{opacity:0} 50.01%,83.2%{opacity:1} 83.3%,100%{opacity:0}}
-/* main.cpp:184 takes `bufferLock`, runs `config_run__` at :205 and releases
-   at :207; blank.cpp's updateBuffersIn and updateBuffersOut each take the same
-   mutex around their own bodies; modbus.cpp:542-547 takes it too. Every phase
-   holds it, so the only open window is the sleep between scans -- which is why
-   `c-atk` wraps the 100%/0% boundary. And nothing "overwrites" the value in
-   phase 3: the program's own assignment in `cybICS.st:62-66` recomputes the
-   coil, inside phase 2. */
 @keyframes c-atk{0%,16.7%{opacity:1} 16.71%,83.2%{opacity:0} 83.3%,100%{opacity:1}}
 @keyframes c-gone{0%,16.7%{opacity:0} 16.71%,50%{opacity:1} 50.01%,100%{opacity:0}}
 @keyframes c-lamp{0%,16.7%{fill-opacity:0.15} 16.71%,83.2%{fill-opacity:1} 83.3%,100%{fill-opacity:0.15}}
 @media (prefers-reduced-motion: reduce){
-  /* Everything this used to declare is now the base state, so only the
-     switch-off is left. The frame it lands on is phase 2 recomputing the
-     coil, which is the point of the figure. */
   .pl-c * {animation:none !important;}
 }
 </style>
 <svg class="pl-c" viewBox="0 0 440 244" role="img"
-     aria-label="The PLC scan cycle as a ring. A marker travels clockwise past three boxes in turn: read inputs, run program, write outputs, and back to the start. Meanwhile an attacker writes coil 1 off with Modbus function code 5. The write lands between two scans and survives the read-inputs phase untouched; then the program phase recomputes the coil from the logic and the attacker's value is gone.">
+     aria-label="The PLC scan cycle as a ring. A marker travels clockwise past three boxes in turn: read inputs, run program, write outputs, and back to the start. Meanwhile an attacker writes coil 1 off with Modbus function code 5. The write lands between two scans; then the program phase recomputes the coil from the logic and the attacker's value is gone.">
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
       <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b00"/>
@@ -108,129 +108,54 @@ html.light-mode .pl-c .dot {fill:#b34700;}
     <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 2 recomputes the coil, here</text>
   </g>
 </svg>
-<figcaption>One scan: read all inputs into memory, run the whole program on that snapshot, then write all outputs at once. Then repeat, 50 ms later. The outlined box is the phase the marker is passing, and the caption in the middle is the value it is carrying. Watch the attacker's FC 05 write land in the gap between two scans, survive phase 1 untouched, and cease to exist the moment phase 2 recomputes the coil from the program &mdash; that is the whole of the next section in one turn of the ring. It cannot land anywhere else either, and that is stronger than it looks. Phase 1 takes <code>bufferLock</code> for its whole body, the scan takes it again across the input copy, the program and the output copy, and phase 3 takes it a third time. A Modbus write waits for whichever hold is current. The one window genuinely open is the sleep between scans &mdash; which is exactly where the ring puts it.</figcaption>
+<figcaption>One scan: read all inputs, run the program on that snapshot, write all outputs, repeat 50 ms later. The lamp is coil 1, the compressor: an attacker switches it off between two scans, and phase 2 switches it straight back on.</figcaption>
 </figure>
 
-Why a loop at all, rather than reacting to events? Because a machine that can crush someone has to have a worst case you can state. A fixed scan gives one: every input is acted on within one period, the program always sees a consistent snapshot rather than values shifting under it mid-calculation, and there is no scheduler deciding what runs when. Determinism is bought with the loop.
+</details>
 
-Each phase does something the next one depends on, and they never overlap:
+## The compressor rule
 
-1. **Every input is sampled once, here.** Nothing re-reads a sensor later in the scan, so the program cannot see a value change halfway through its own logic.
-2. **The whole program runs on that frozen snapshot.** Two lines that both read `hpt` are guaranteed to see the same `hpt`.
-3. **Only now do the outputs reach the plant, all at once.** An output your program set on line 10 does not physically move anything until the scan ends.
+PLC programs are written in the languages of the standard **IEC 61131-3**. CybICS uses **Structured Text (ST)**, which reads a lot like Python or Pascal. Here is the heart of the plant program:
 
-The second point is where security starts, because it means every output the program computes is rewritten from scratch, 20 times a second, whatever anybody else put there &mdash; at least while the plant is in automatic mode, which the next section qualifies. Note it is phase 2 that does this, not phase 3. Phase 3 only carries the already-computed value outward, and in the Docker testbed it does not even do that: the container runs the `blank_linux` driver, which lives in `OpenPLC_v3/webserver/core/` as `hardware_layers/blank.cpp`, and whose `updateBuffersOut()` is a lock, a commented-out block of I/O and an unlock. The plant is driven by `hwio` over Modbus instead.
+```
+IF hpt < 60 AND compressorState = 0 AND gst > 50 THEN
+  compressorState := 1;        (* start *)
+ELSIF hpt < 90 AND compressorState = 1 AND gst > 50 THEN
+  compressorState := 1;        (* keep running *)
+ELSE
+  compressorState := 0;        (* stop *)
+END_IF;
+```
 
-CybICS bends phase 1, and the way it bends it is the reason this page has a second half. `cybICS.st` declares no `%I` address of any kind: every located variable in it is a `%QX` output or a `%MW` memory word. `hpt` is not a sensor the PLC samples, it is a memory word that `hwio` pushes in from outside over Modbus. Phase 1 has nothing local to read. That is exactly why a value the program treats as a pressure reading is something a stranger on the network can set.
+In words: start the compressor when the high-pressure tank (HPT) drops below 60, keep it running until 90, and never run it when the gas storage tank (GST) holds 50 or less, because there is nothing left to pump.
 
-## What the scan overwrites, and what it does not
+Why two thresholds? With a single limit of 75, the compressor would flick on and off as the pressure wobbled around it. The gap between 60 and 90 is called **hysteresis**; your home thermostat uses the same trick.
 
-Write a value into the PLC from outside &mdash; over Modbus, say &mdash; and whether it sticks depends entirely on **who owns that address**. This is the single most useful thing to understand about attacking a PLC, and it is easy to get backwards.
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the other rules and the two guards</summary>
 
-- **Coil 1 is the compressor**, declared `compressor AT %QX0.1` and assigned on every scan in automatic mode by `IF compressorState = 1 THEN compressor := TRUE; ELSE compressor := FALSE;`. The program computes it, so the program owns it. Force it with Modbus FC 05 and the next scan puts back whatever the logic says &mdash; within 50 ms, every time.
-- **Register 1126 is the HPT pressure**, declared `hpt AT %MW102`. The program only ever *reads* it: it appears in comparisons and is never on the left of an assignment. Nothing in the scan restores it. What restores it is `hwio`, the bridge standing in for the sensor. Its loop reads the coils, writes five register blocks and then sleeps 20 ms, so the true pressure comes back roughly every 20 ms and a little more &mdash; and note the asymmetry: the PLC's 50 ms is a scheduled task interval, `hwio`'s 20 ms is a sleep at the bottom of a serial loop.
+A later line copies `compressorState` to the real output, `compressor`. The program has three more rules:
 
-Both values snap back, but for opposite reasons and on different clocks &mdash; and an attacker who confuses the two will build the wrong attack.
+| Output | Rule in automatic mode |
+|---|---|
+| System valve | Open while the HPT is between 50 and 100 |
+| GST refill (`gstSig`) | Start refilling when the GST drops below 60, stop at 240 |
+| Heartbeat | Blinks about once per two seconds, whatever the mode |
 
-<figure>
-<style>
-.pl-t {--t: 8s;}
-html.light-mode .pl-t .barA, html.light-mode .pl-t .barB {fill:#b34700;}
-/* The two bars end where their owner's next tick falls. The 20 ms side is
-   the nominal period: hwio's loop also does a read and five writes before
-   it sleeps, so the real gap is a little longer. */
-.pl-t .head {animation: t-head var(--t) linear infinite;}
-.pl-t .barA, .pl-t .barB {transform-box: fill-box; transform-origin: left;}
-.pl-t .barA {animation: t-barA var(--t) linear infinite;}
-.pl-t .barB {animation: t-barB var(--t) linear infinite;}
-.pl-t .head {transform: translateX(410px);}
-.pl-t .barA, .pl-t .barB {transform: scaleX(1);}
-.pl-t .fixA {opacity:1; animation: t-fixA var(--t) steps(1,end) infinite;}
-.pl-t .fixB {opacity:1; animation: t-fixB var(--t) steps(1,end) infinite;}
-.pl-t .shot {opacity:1; animation: t-shot var(--t) steps(1,end) infinite;}
-@keyframes t-head{0%{transform:translateX(0)} 70%,100%{transform:translateX(410px)}}
-@keyframes t-shot{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes t-barA{0%,10.5%{transform:scaleX(0)} 17.5%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
-@keyframes t-barB{0%,10.5%{transform:scaleX(0)} 14%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
-@keyframes t-fixA{0%,17.4%{opacity:0} 17.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes t-fixB{0%,13.9%{opacity:0} 14%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@media (prefers-reduced-motion: reduce){
-  .pl-t * {animation:none !important;}
-}
-</style>
-<svg class="pl-t" viewBox="0 0 520 210" role="img"
-     aria-label="A timeline over 200 milliseconds. An attacker writes at 30 milliseconds. Coil 1 is restored by the PLC scan at 50 milliseconds; register 1126 is restored by hwio at 40 milliseconds. The two are owned by different writers running at different rates.">
-  <!-- time axis: t = 0 at x = 90, 2.05 px per millisecond -->
-  <g font-size="13" opacity="0.7">
-    <line x1="90" y1="182" x2="500" y2="182" stroke="currentColor"/>
-    <text x="90"    y="198" text-anchor="middle">0 ms</text>
-    <text x="192.5" y="198" text-anchor="middle">50</text>
-    <text x="295"   y="198" text-anchor="middle">100</text>
-    <text x="397.5" y="198" text-anchor="middle">150</text>
-    <text x="500"   y="198" text-anchor="middle">200</text>
-  </g>
+Two guards sit around the plant outputs. If `stop` is set, the program forces the compressor, the system valve and the refill off. If `manual` is set, it stops assigning those three outputs at all, and the operator's HMI buttons take over.
 
-  <g class="head">
-    <line x1="90" y1="24" x2="90" y2="178" stroke="currentColor" stroke-width="2.5"/>
-    <path d="M 84 178 L 96 178 L 90 188 Z" fill="currentColor"/>
-  </g>
-  <!-- row A: the PLC scan, one tick every 50 ms -->
-  <text x="10" y="52" font-size="13" font-weight="bold">coil 1</text>
-  <text x="10" y="66" font-size="13" opacity="0.75">the scan</text>
-  <text x="10" y="79" font-size="13" opacity="0.75">owns it</text>
-  <line x1="90" y1="40" x2="500" y2="40" stroke="currentColor" stroke-opacity="0.45"/>
-  <g stroke="currentColor" stroke-opacity="0.65">
-    <line x1="90"    y1="34" x2="90"    y2="74"/><line x1="192.5" y1="34" x2="192.5" y2="74"/>
-    <line x1="295"   y1="34" x2="295"   y2="74"/><line x1="397.5" y1="34" x2="397.5" y2="74"/>
-    <line x1="500"   y1="34" x2="500"   y2="74"/>
-  </g>
-  <rect class="barA" x="151.5" y="44" width="41" height="22" rx="3" fill="#ff6b00"/>
-  <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="210" y="24" font-size="13" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
+</details>
 
-  <!-- row B: hwio, one write every 20 ms -->
-  <text x="10" y="122" font-size="13" font-weight="bold">reg 1126</text>
-  <text x="10" y="136" font-size="13" opacity="0.75">hwio &ge;20 ms</text>
-  <text x="10" y="149" font-size="13" opacity="0.75">owns it</text>
-  <line x1="90" y1="110" x2="500" y2="110" stroke="currentColor" stroke-opacity="0.45"/>
-  <g stroke="currentColor" stroke-opacity="0.65">
-    <line x1="90"  y1="104" x2="90"  y2="144"/><line x1="131" y1="104" x2="131" y2="144"/>
-    <line x1="172" y1="104" x2="172" y2="144"/><line x1="213" y1="104" x2="213" y2="144"/>
-    <line x1="254" y1="104" x2="254" y2="144"/><line x1="295" y1="104" x2="295" y2="144"/>
-    <line x1="336" y1="104" x2="336" y2="144"/><line x1="377" y1="104" x2="377" y2="144"/>
-    <line x1="418" y1="104" x2="418" y2="144"/><line x1="459" y1="104" x2="459" y2="144"/>
-    <line x1="500" y1="104" x2="500" y2="144"/>
-  </g>
-  <rect class="barB" x="151.5" y="114" width="20.5" height="22" rx="3" fill="#ff6b00"/>
-  <g class="fixB"><path d="M 172 114 L 167.5 106 L 176.5 106 Z" fill="#ff6b00"/><text x="180" y="100" font-size="13" fill="#ff6b00" font-weight="bold">hwio puts it back</text></g>
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the same rule as a ladder diagram, and the other languages</summary>
 
-  <!-- the attacker's single write -->
-  <g class="shot">
-    <line x1="151.5" y1="26" x2="151.5" y2="160" stroke="#ff6b00" stroke-width="2" stroke-dasharray="4 3"/>
-    <text x="90" y="20" font-size="13" fill="#ff6b00" font-weight="bold">one write, t = 30 ms</text>
-  </g>
+Engineers outside CybICS often draw the same logic as a **Ladder Diagram (LD)**, which looks like an electrical wiring plan. Here is the compressor rule as one rung:
 
-</svg>
-<figcaption>Two addresses, two owners, two clocks. The attacker's single write lands at the same instant in both rows, but the PLC's next scan is up to 50 ms away while <code>hwio</code>'s next write is about 20 ms away. Averaged over where the write happens to land, the coil is free for 25 ms and the register for 10 &mdash; and the thing that takes the register back is not the PLC at all. The orange bars are how long the attacker's value actually stood.</figcaption>
-</figure>
-
-Two attacks follow from this. Writing *faster than whoever owns the address* keeps the value pinned: that is the **Flood &amp; Overwrite** challenge, whose script `flooding_hpt.py` hammers register 1126 with the value **10** in a tight loop. It has to beat `hwio`'s roughly 20 ms loop, not the PLC's 50 ms task, and it is noisy for exactly that reason. Changing the *program* instead makes the PLC compute the attacker's value itself &mdash; quiet, and it survives a restart. That is the **PLC Programming** challenge.
-
-There is a third door, and it is in the logic &mdash; but only one of the two obvious candidates is really a door. The coil-assigning block sits inside `IF stop < 1` and then `IF manual < 1`. Setting `stop` looks like it should free the coils and does the opposite: the `ELSE` branch runs instead and drives `compressor`, `systemValve` and `gstSig` to `FALSE`, twenty times a second. Pin a coil on that way and you are fighting the program harder, not less.
-
-Setting `manual` is the door. The inner `IF` has no `ELSE`, so in manual mode nothing assigns those three coils at all &mdash; a forced coil simply stays forced. The one exception is `heartbeat` on coil 0, which is written above both guards and keeps blinking whatever mode the plant is in. A control system's own operating modes are part of its attack surface, and the mode that does nothing is more dangerous than the one that shouts.
-
-## IEC 61131-3 languages
-
-PLC programs are written in the languages standardised by **IEC 61131-3**. The one you actually meet in CybICS is **Structured Text (ST)**, a Pascal-like textual language: `cybICS.st` is ST from top to bottom, and the *PLC Programming* challenge has you compile and upload a modified copy of it.
-
-**Ladder Diagram (LD)** is the notation you will meet everywhere else in industry, so it is worth being able to read one rung. Below is the compressor rule from `cybICS.st` drawn the way an electrician would have wired it. It is one statement with two branches: `IF hpt < 60 AND compressorState = 0 AND gst > 50` starts the compressor, and `ELSIF hpt < 90 AND compressorState = 1 AND gst > 50` keeps it running. (`gst` is the gas storage tank the compressor draws from &mdash; the same GST the HMI shows; below 50 there is nothing left to pump.)
-
-<figure>
+<figure class="wide">
 <style>
 .pl-r {--r: 12s; --w:#ff6b00;}
-html.light-mode .pl-r {--w:#b34700;}
-/* Marching dashes mean current, so a de-energised segment drops its
-   dash pattern entirely rather than marching while dark. */
+.pl-r:where(.light-mode *) {--w:#b34700;}
+/* Marching dashes mean current; a dead segment drops its dashes entirely. */
 .pl-r .seg {animation: r-flow 1.2s linear infinite;}
 .pl-r .live {stroke:var(--w); stroke-dasharray:6 4;}
 .pl-r .a1 {animation: r-a1 var(--r) cubic-bezier(.4,0,.2,1) infinite;}
@@ -317,13 +242,118 @@ html.light-mode .pl-r {--w:#b34700;}
     <text class="rd3" x="26" y="204" fill="#ff6b00">HPT 95 &mdash; neither branch conducts, it stops</text>
   </g>
 </svg>
-<figcaption>One rung, two branches, one coil &mdash; which is what <code>cybICS.st</code> lines 47 to 53 say. The upper branch can only start the compressor while it is off; the lower one can only hold it while it is on. Between 60 and 90 neither condition changes, so the compressor stays as it is: that gap is the hysteresis, and the parallel junction is the part ladder shows better than the <code>IF/ELSIF</code> it compiles from. A separate rung at line 62 copies <code>compressorState</code> to the real output coil <code>compressor</code>. One liberty is taken here: a real editor draws every contact at the same width and highlights the conducting path instead. The gap that opens and closes above is a teaching device, not IEC 61131-3 notation. And <code>gst &gt; 50</code>, which the ST repeats in both branches, is drawn once as a series contact before the junction &mdash; which is also why it never opens in any of the three readings.</figcaption>
+<figcaption>Read a rung like an electric circuit: "current" flows from the left rail to the coil on the right only if a path of closed contacts connects them. The upper branch can only start the compressor while it is off; the lower one, the "seal-in", can only keep it running while it is on. Between 60 and 90 neither changes the state, and that is the hysteresis. For clarity, the storage-tank check that the ST repeats in both branches is drawn once.</figcaption>
 </figure>
 
-## How the outside world reaches the PLC
+IEC 61131-3 defines Ladder Diagram (LD), Function Block Diagram (FBD), Structured Text (ST), Sequential Function Chart (SFC) and Instruction List (IL, now deprecated). OpenPLC compiles them all to C; CybICS only uses ST.
 
-The program's variables are bound to memory addresses in their declarations: `%QX0.1` for the compressor output, `%MW102` for the HPT reading. OpenPLC exposes those over industrial protocols, with `%QX0.0`&ndash;`%QX0.3` appearing as Modbus coils 0&ndash;3 and each `%MW`*n* as holding register 1024 + *n*. That offset is OpenPLC's own convention, not anything Modbus requires &mdash; carry it to a Siemens or a Schneider controller and it will be wrong. That is why HPT, declared `%MW102`, is register **1126** &mdash; the same arithmetic gives 1124 for GST, and 1132 and 1134 for `systemSen` and `boSen` &mdash; system-operational and blow-out.
+</details>
 
-OpenPLC publishes the same memory over Modbus, S7comm, DNP3 and EtherNet/IP simultaneously, which is convenient for integration and equally convenient for an attacker: as deployed here, none of them authenticate. Blocking one port does not close the door, because the same memory is reachable through the next protocol along. *Modbus Firewall Rules* filters port 502. *Network Segmentation* does not test a port at all &mdash; its check greps each container's `iptables -L INPUT` for any rule naming the attack machine with DROP or REJECT. Follow its Steps, which say `iptables -A INPUT -s 172.18.0.100 -j DROP`, and you close everything including S7comm. Follow its Solution, which writes one rule per port, and you pass the check with the same memory word still writable through OpenPLC's S7 server on 102 &mdash; where it is not register 1126 at all, but `DB1002.DBW204`. S7 addresses a data block by byte, so the word index 102 is byte 204; typing `DB1002.DBW102` reads word 51 and gets zero. Verified live against this stack: Modbus 1126 and DB1002 byte 204 return the same value.
+## Who owns a value?
 
-Uploading a **new program** to a running controller is one of the most impactful actions in ICS: it changes how the process behaves, permanently, and no amount of watching register values will reveal it. That is exactly the *PLC Programming* challenge, and it maps to MITRE ATT&CK for ICS **T0843 Program Download**.
+An attacker on the network can write values into the PLC over [Modbus](/theory/modbus). Whether the forged value *sticks* depends on one question: **who writes that address next?**
+
+- **Coil 1 is the compressor.** The program computes it on every scan. Force it off and, in automatic mode, the next scan puts back whatever the logic says, within 50 ms.
+- **Register 1126 is the HPT pressure.** The program only *reads* it. `hwio`, the plant simulation, pushes the current value in over Modbus every 20 to 30 ms, so a forged pressure lasts only until `hwio` writes again.
+
+<figure class="wide">
+<style>
+.pl-t {--t: 8s;}
+.pl-t:where(.light-mode *) .barA, .pl-t:where(.light-mode *) .barB {fill:#b34700;}
+.pl-t .head {animation: t-head var(--t) linear infinite;}
+.pl-t .barA, .pl-t .barB {transform-box: fill-box; transform-origin: left;}
+.pl-t .barA {animation: t-barA var(--t) linear infinite;}
+.pl-t .barB {animation: t-barB var(--t) linear infinite;}
+.pl-t .head {transform: translateX(410px);}
+.pl-t .barA, .pl-t .barB {transform: scaleX(1);}
+.pl-t .fixA {opacity:1; animation: t-fixA var(--t) steps(1,end) infinite;}
+.pl-t .fixB {opacity:1; animation: t-fixB var(--t) steps(1,end) infinite;}
+.pl-t .shot {opacity:1; animation: t-shot var(--t) steps(1,end) infinite;}
+@keyframes t-head{0%{transform:translateX(0)} 70%,100%{transform:translateX(410px)}}
+@keyframes t-shot{0%,10.4%{opacity:0} 10.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes t-barA{0%,10.5%{transform:scaleX(0)} 17.5%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
+@keyframes t-barB{0%,10.5%{transform:scaleX(0)} 14%,96%{transform:scaleX(1)} 96.01%,100%{transform:scaleX(0)}}
+@keyframes t-fixA{0%,17.4%{opacity:0} 17.5%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@keyframes t-fixB{0%,13.9%{opacity:0} 14%,96%{opacity:1} 96.01%,100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+  .pl-t * {animation:none !important;}
+}
+</style>
+<svg class="pl-t" viewBox="0 0 520 210" role="img"
+     aria-label="A timeline over 200 milliseconds. An attacker writes at 30 milliseconds. Coil 1 is restored by the PLC scan at 50 milliseconds; register 1126 is restored by hwio at 40 milliseconds. The two are owned by different writers running at different rates.">
+  <g font-size="13" opacity="0.7">
+    <line x1="90" y1="182" x2="500" y2="182" stroke="currentColor"/>
+    <text x="90"    y="198" text-anchor="middle">0 ms</text>
+    <text x="192.5" y="198" text-anchor="middle">50</text>
+    <text x="295"   y="198" text-anchor="middle">100</text>
+    <text x="397.5" y="198" text-anchor="middle">150</text>
+    <text x="500"   y="198" text-anchor="middle">200</text>
+  </g>
+
+  <g class="head">
+    <line x1="90" y1="24" x2="90" y2="178" stroke="currentColor" stroke-width="2.5"/>
+    <path d="M 84 178 L 96 178 L 90 188 Z" fill="currentColor"/>
+  </g>
+  <text x="10" y="52" font-size="13" font-weight="bold">coil 1</text>
+  <text x="10" y="66" font-size="13" opacity="0.75">the scan</text>
+  <text x="10" y="79" font-size="13" opacity="0.75">owns it</text>
+  <line x1="90" y1="40" x2="500" y2="40" stroke="currentColor" stroke-opacity="0.45"/>
+  <g stroke="currentColor" stroke-opacity="0.65">
+    <line x1="90"    y1="34" x2="90"    y2="74"/><line x1="192.5" y1="34" x2="192.5" y2="74"/>
+    <line x1="295"   y1="34" x2="295"   y2="74"/><line x1="397.5" y1="34" x2="397.5" y2="74"/>
+    <line x1="500"   y1="34" x2="500"   y2="74"/>
+  </g>
+  <rect class="barA" x="151.5" y="44" width="41" height="22" rx="3" fill="#ff6b00"/>
+  <g class="fixA"><path d="M 192.5 44 L 188 36 L 197 36 Z" fill="#ff6b00"/><text x="210" y="24" font-size="13" fill="#ff6b00" font-weight="bold">the scan puts it back</text></g>
+
+  <text x="10" y="122" font-size="13" font-weight="bold">reg 1126</text>
+  <text x="10" y="136" font-size="13" opacity="0.75">hwio &ge;20 ms</text>
+  <text x="10" y="149" font-size="13" opacity="0.75">owns it</text>
+  <line x1="90" y1="110" x2="500" y2="110" stroke="currentColor" stroke-opacity="0.45"/>
+  <g stroke="currentColor" stroke-opacity="0.65">
+    <line x1="90"  y1="104" x2="90"  y2="144"/><line x1="131" y1="104" x2="131" y2="144"/>
+    <line x1="172" y1="104" x2="172" y2="144"/><line x1="213" y1="104" x2="213" y2="144"/>
+    <line x1="254" y1="104" x2="254" y2="144"/><line x1="295" y1="104" x2="295" y2="144"/>
+    <line x1="336" y1="104" x2="336" y2="144"/><line x1="377" y1="104" x2="377" y2="144"/>
+    <line x1="418" y1="104" x2="418" y2="144"/><line x1="459" y1="104" x2="459" y2="144"/>
+    <line x1="500" y1="104" x2="500" y2="144"/>
+  </g>
+  <rect class="barB" x="151.5" y="114" width="20.5" height="22" rx="3" fill="#ff6b00"/>
+  <g class="fixB"><path d="M 172 114 L 167.5 106 L 176.5 106 Z" fill="#ff6b00"/><text x="180" y="100" font-size="13" fill="#ff6b00" font-weight="bold">hwio puts it back</text></g>
+
+  <g class="shot">
+    <line x1="151.5" y1="26" x2="151.5" y2="160" stroke="#ff6b00" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="90" y="20" font-size="13" fill="#ff6b00" font-weight="bold">one write, t = 30 ms</text>
+  </g>
+</svg>
+<figcaption>Two addresses, two owners, two clocks. One forged write lands in both rows at once. The PLC's next scan restores the coil; <code>hwio</code>'s next write restores the register. The orange bars show how long the forged value lasted.</figcaption>
+</figure>
+
+To keep a forged value in place, you have to write it *faster than its owner*: that is the [Flood & Overwrite](/theory/flood_overwrite) challenge, and it is noisy for exactly that reason. The quieter alternative is to change the *program*, so the PLC computes the attacker's values itself: the [PLC Programming](/theory/plc_programming) challenge.
+
+In **manual** mode the program stops assigning the compressor, the system valve and the refill, so a forced coil simply stays where it was put; only the heartbeat on coil 0 keeps blinking. (The `stop` register is different: it forces those three outputs off.) A mode that does nothing can be more dangerous than one that shouts.
+
+## Reaching the PLC from outside
+
+Each variable in the program lives at a fixed place in the PLC's memory. OpenPLC makes that memory reachable over Modbus: its outputs, such as the compressor, appear as **coils** (on/off values), and its memory words, such as the HPT pressure, as **holding registers** (numbers). Anyone who reaches the PLC can read and write them, without a password.
+
+Modbus is not the only door: other industrial protocols reach the same memory, and none of them asks for a password either. The most powerful action is uploading a **new program**: it changes the plant's behaviour permanently, and watching register values never reveals it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the full address map, the other ports and how the outputs reach the plant</summary>
+
+Each variable is bound to a PLC memory address, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus with a simple rule: output bit `%QX0.`*n* becomes **coil *n***, and memory word `%MW`*n* becomes **holding register 1024 + *n***. So `hpt AT %MW102` is register 1126.
+
+| Variable | PLC address | Modbus address |
+|---|---|---|
+| `heartbeat`, `compressor`, `systemValve`, `gstSig` | `%QX0.0` to `%QX0.3` | coils 0 to 3 |
+| `gst` (storage tank) | `%MW100` | register 1124 |
+| `hpt` (high-pressure tank) | `%MW102` | register 1126 |
+| `systemSen` (plant healthy) | `%MW108` | register 1132 |
+| `boSen` (blow-out active) | `%MW110` | register 1134 |
+
+The OpenPLC container exposes its S7comm server on port 102, DNP3 on 20000 and EtherNet/IP on 44818, next to Modbus on 502. Blocking one port does not close the door when the same memory is reachable through the next one.
+
+`cybICS.st` declares no `%I` input addresses at all: every located variable is a `%QX` output or a `%MW` memory word. In the Docker testbed OpenPLC also runs a "blank" hardware layer, so phase 3 drives no physical pins. The plant only sees the outputs because `hwio` reads the coils back over Modbus. On real hardware, `hwio-raspberry` plays the same bridge role between OpenPLC and the STM32 that runs the process.
+
+</details>

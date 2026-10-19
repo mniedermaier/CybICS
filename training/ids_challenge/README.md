@@ -1,6 +1,6 @@
 # 🔍 Intrusion Detection System Challenge
 
-> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T0855 - Unauthorized Command Message](https://attack.mitre.org/techniques/T0855/)
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
 ## 📋 Overview
 
@@ -78,9 +78,9 @@ The CybICS IDS implements 9 detection rules:
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scan, S7 enumeration, OPC-UA access |
 | Impact | Denial of Service | [T0836](https://attack.mitre.org/techniques/T0836/) | SYN flood, Modbus write flood |
-| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Modbus writes from unexpected sources |
-| Collection | Spoof Reporting Message | [T0856](https://attack.mitre.org/techniques/T0856/) | ARP spoofing |
-| Initial Access | Default Credentials | [T0812](https://attack.mitre.org/techniques/T0812/) | HTTP brute force against OpenPLC/FUXA |
+| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
+| Collection | Unauthorized Message: Reporting Message | [T1692.002](https://attack.mitre.org/techniques/T1692/002/) | ARP spoofing |
+| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against OpenPLC/FUXA |
 
 ### NIST SP 800-82r3 Reference
 

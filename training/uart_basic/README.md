@@ -1,6 +1,6 @@
 # 🔌 UART Training Guide (Hardware Required)
 
-> **MITRE ATT&CK for ICS:** `Initial Access` | [T0812 - Default Credentials](https://attack.mitre.org/techniques/T0812/) | [T0822 - External Remote Services](https://attack.mitre.org/techniques/T0822/)
+> **MITRE ATT&CK for ICS:** `Initial Access` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0822 - External Remote Services](https://attack.mitre.org/techniques/T0822/)
 
 ## 📋 Overview
 This guide covers how to connect to the CybICS micro controller using UART (Universal Asynchronous Receiver-Transmitter) communication.
@@ -60,7 +60,7 @@ Given the small keyspace, you can automate the login attempts using the provided
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Default Credentials | [T0812](https://attack.mitre.org/techniques/T0812/) | Adversaries may leverage default or weak credentials on embedded devices |
+| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries may leverage default or weak credentials on embedded devices |
 | Initial Access | External Remote Services | [T0822](https://attack.mitre.org/techniques/T0822/) | Adversaries may use serial/debug interfaces as entry points |
 
 **Why this matters:** Hardware interfaces like UART, JTAG, and SWD are often overlooked attack vectors in ICS environments. Embedded devices (PLCs, RTUs, sensors) frequently have debug interfaces with weak or no authentication. Physical access to these interfaces can bypass all network security controls. This training demonstrates that ICS security must include physical security and hardware hardening.

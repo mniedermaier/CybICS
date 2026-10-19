@@ -1,0 +1,85 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain what an HMI and a SCADA system are and where they sit in the Purdue model",
+    "Describe how FUXA gets its values from OpenPLC and sends the operator's commands back",
+    "Convert an address shown in the HMI into the address used on the wire",
+    "Explain why an HMI is a high-value target and name ways to defend it"
+  ],
+  "takeaways": [
+    "The HMI only shows and sends what is in the PLC's memory; it never sees the gas itself.",
+    "The FUXA login guards the screen, not the plant: anyone who reaches port 502 can send the same writes.",
+    "Whoever changes the PLC's memory changes the operator's picture, so confirm important values over a separate path."
+  ],
+  "checkpoints": [
+    {
+      "id": "offset",
+      "question": "FUXA lists the GST tag at address 1125. Which holding register do you read with a Modbus client to get the same value?",
+      "options": ["1124", "1125", "1126"],
+      "answer": 0,
+      "explanation": "FUXA counts from one, the protocol from zero, so subtract one: 1124. Copying 1125 straight across is the tempting mistake and reads the neighbouring word; adding one instead gives 1126, the HPT."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Where does the HPT pressure shown on the FUXA screen come from?",
+      "options": [
+        "A pressure sensor wired to the FUXA container",
+        "Register 1126 in OpenPLC, polled over Modbus TCP",
+        "The OPC-UA server, which FUXA subscribes to",
+        "hwio, which pushes every new reading straight to FUXA"
+      ],
+      "answer": 1,
+      "explanation": "FUXA is a Modbus client of openplc:502 and polls it about once a second. hwio is tempting because it produces the real pressure, but it writes into the PLC, not into FUXA. Because the screen reads the PLC's memory, anything that changes that memory also changes the screen."
+    },
+    {
+      "type": "single",
+      "question": "An attacker floods register 1126 with the value 10. What does the operator most likely see on the HPT trend?",
+      "options": [
+        "The real pressure, because FUXA cross-checks the sensor",
+        "A flat line near 10, while the real pressure keeps climbing",
+        "An alarm that the register is being written too often",
+        "The last good value, because the HMI caches its readings"
+      ],
+      "answer": 1,
+      "explanation": "FUXA displays what the PLC holds, and the flood keeps that at 10; only the rare poll between two forged writes shows the climbing real pressure. An HMI has no built-in idea of 'too many writes', so no attack alarm appears; that is a job for an IDS."
+    },
+    {
+      "type": "single",
+      "question": "During the flood, why does the blow-out flag boSen still switch on correctly?",
+      "options": [
+        "hwio computes it from its own real pressure",
+        "OpenPLC derives it from the HPT value in register 1126",
+        "FUXA computes it from the pressure it displays",
+        "boSen is a coil, and coils cannot be flooded"
+      ],
+      "answer": 0,
+      "explanation": "hwio calculates boSen from the pressure inside its own model and writes it to register 1134, so its source is out of the attacker's reach. If OpenPLC or FUXA derived it from register 1126, it would see the forged 10 and stay off. boSen is a register, not a coil."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these make an HMI an attractive target?",
+      "options": [
+        "It holds valid credentials and a path to the PLCs",
+        "Its commands look like an operator's real commands",
+        "Operators trust what it shows",
+        "It runs the control logic that opens and closes the valves"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Access, legitimate-looking commands and the operator's trust are what the attacker inherits. The control logic runs in the PLC, not the HMI: the HMI only reads and writes the PLC's coils and registers."
+    },
+    {
+      "type": "single",
+      "question": "Which defence best helps the operator notice that the pressure value on the screen is forged?",
+      "options": [
+        "A longer password on the FUXA login",
+        "Polling the same register twice as often",
+        "An independent measurement on a separate path",
+        "Encrypting the Modbus link between FUXA and PLC"
+      ],
+      "answer": 2,
+      "explanation": "Confirmation only helps if the attacker cannot change it along with the value. Encryption is tempting, but a flood writes straight into the PLC register, so an encrypted link would faithfully carry the forged value. A stronger login and faster polling do not touch the register either."
+    }
+  ]
+}

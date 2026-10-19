@@ -1,0 +1,89 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain why a Modbus write flood can override a sensor value that another device keeps writing",
+    "Predict how the CybICS PLC program reacts when the HPT reading is forged low",
+    "Tell the forged pressure display from the true blow-out indicator on the HMI",
+    "Describe how the IDS detects the flood and which controls prevent it"
+  ],
+  "takeaways": [
+    "Whoever writes register 1126 most often decides what pressure the PLC believes the HPT holds.",
+    "The PLC then does the damage itself, running the compressor and shutting the system valve as its rules say.",
+    "The HMI shows the lie too, so the flood alert, allow-listed writers and the blow-out valve must catch it."
+  ],
+  "checkpoints": [
+    {
+      "id": "race",
+      "question": "hwio writes the true pressure every 20 to 30 ms. The attacker writes 10 about every 1.2 ms. What does the PLC read most of the time?",
+      "options": [
+        "The true pressure, since hwio is the real sensor",
+        "The forged 10, the last value written",
+        "Each value in turn, about half the time"
+      ],
+      "answer": 1,
+      "explanation": "A register holds one value, the last one written; it never averages and it does not care which writer is the real sensor. After each hwio write the next attacker write follows within about a millisecond, so the true value is present only briefly, far less than half the time."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why can the attacker overwrite register 1126 at all?",
+      "options": [
+        "The attacker knows the OpenPLC web password",
+        "Modbus TCP takes writes from any client",
+        "hwio stops writing while the flood runs",
+        "1126 is an input register, which anyone may write"
+      ],
+      "answer": 1,
+      "explanation": "Modbus has no login and no notion of who owns a register. The OpenPLC web password protects the web interface, not port 502. Register 1126 is a holding register; input registers are the read-only kind. hwio keeps writing; it simply loses the race."
+    },
+    {
+      "type": "single",
+      "question": "The PLC reads an HPT of 10. What do its rules do?",
+      "options": [
+        "Compressor off, system valve open",
+        "Compressor on, system valve shut",
+        "Compressor on, system valve open",
+        "Compressor off and blow-out valve opened"
+      ],
+      "answer": 1,
+      "explanation": "Below 60 the compressor rule starts the compressor, and outside 50 to 100 the valve rule shuts the system valve. Gas goes in and nothing comes out. It is tempting to think the valve stays open, but its rule only opens it between 50 and 100. The blow-out valve is mechanical and reacts to the real pressure, not to the PLC."
+    },
+    {
+      "type": "single",
+      "question": "During the flood, which FUXA indicator tells the operator something is wrong?",
+      "options": [
+        "The HPT pressure display, which climbs",
+        "The blow-out indicator, set from the true pressure",
+        "The heartbeat, which stops during the flood",
+        "None; every indicator on the HMI reads the forged register"
+      ],
+      "answer": 1,
+      "explanation": "The pressure display reads the same forged register as the PLC, so it stays at 10 instead of climbing. Not every indicator is forged, though: the blow-out indicator comes from register 1134, which hwio calculates from the real pressure, so it goes high."
+    },
+    {
+      "type": "single",
+      "question": "The CybICS IDS raises modbus_flood for 50 write requests in 5 seconds. Why does it not fire for hwio, which writes all the time?",
+      "options": [
+        "hwio writes too slowly to reach 50 in 5 s",
+        "hwio, fuxa and openplc are exempt as known writers",
+        "hwio writes over a different port than 502",
+        "The rule only counts writes from the attack machine"
+      ],
+      "answer": 1,
+      "explanation": "The rule skips sources it knows to write legitimately. hwio writes every 20 to 30 ms, far more than 50 times in five seconds, so without that exemption the plant's own I/O would raise alerts constantly. Any other host, not only the attack machine, is counted."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures stop or limit this attack?",
+      "options": [
+        "A firewall that lets only hwio, FUXA and OPC-UA reach port 502",
+        "A PLC rule that rejects impossible jumps in the pressure reading",
+        "A relief valve that acts on the real pressure",
+        "A stronger password on the OpenPLC web interface"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Allow-listing blocks the forged writes, plausibility checks make the PLC doubt them, and independent safety limits the damage. The web password is the tempting answer, but it protects only the OpenPLC web interface on port 8080, not Modbus on port 502."
+    }
+  ]
+}

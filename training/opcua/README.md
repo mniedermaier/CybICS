@@ -44,7 +44,7 @@ Then use *opcua_hello* to verify that an OPC UA Server is running on an open por
 If this is successful, follow step 4 and use *opcua_login* to brute force credentials for OPC UA Server instances. As input credential the input file, *credentials.txt* located in this folder should be used.   
 (hints: IP 10.0.0.1, PORT 4840, FILE CybICS/training/opcua/credentials.txt)
 
-In the case of a successful brute force attack, you should see the username and password labeled *success* as output. This procedure can also be traced in Wireshark and the usernames and passwords used in the attack can be read out in plaintext. 
+In the case of a successful brute force attack, you should see the username and password labeled *success* as output. This procedure can also be traced in Wireshark. On the unencrypted endpoint the usernames are readable, but the server asks clients to encrypt the password with its public key, so whether you can read a password depends on whether your client follows that request. Check your own capture. 
 
 ## 🎯 Task
 Brute-force OPC-UA credentials, explore the server security configuration, and use leaked certificates to gain admin access.

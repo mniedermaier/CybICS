@@ -1,0 +1,91 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain why Modbus TCP traffic can be read by anyone on the network path",
+    "Capture plant traffic and narrow it down with Wireshark display filters",
+    "Decode register values that carry text into characters",
+    "Describe why sniffing is hard to detect and which defences limit it"
+  ],
+  "takeaways": [
+    "Modbus TCP is plaintext: function codes, addresses and values are readable in every captured packet.",
+    "A switch only forwards traffic to its destination, so sniffing needs a position on the path.",
+    "Display filters such as modbus.func_code turn thousands of packets into the few that matter.",
+    "Each 16-bit register can hold two characters, so text can hide in process data.",
+    "Passive sniffing sends nothing, so defenders protect capture positions, segment and encrypt instead of waiting for an alert."
+  ],
+  "checkpoints": [
+    {
+      "id": "filter",
+      "question": "You want to see only requests that write several registers at once. Which display filter fits?",
+      "options": [
+        "modbus.func_code == 6",
+        "modbus.func_code == 16",
+        "modbus.func_code == 15"
+      ],
+      "answer": 1,
+      "explanation": "Function code 16 is Write Multiple Registers. Code 6 also writes a register, but only one per request, and code 15 writes several values at once, but to coils rather than registers. Telling these three apart is the key to filtering a Modbus capture."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why can a captured Modbus TCP packet be read directly?",
+      "options": [
+        "Wireshark breaks the weak Modbus encryption",
+        "Modbus TCP is not encrypted at all",
+        "Modbus sends its fields as readable text, like HTTP",
+        "The PLC sends a copy of each packet to every host"
+      ],
+      "answer": 1,
+      "explanation": "Modbus TCP has neither encryption nor authentication, so nothing is being broken. It is tempting to think plaintext means text, but Modbus is a binary format; it is public, so Wireshark can decode every field."
+    },
+    {
+      "type": "single",
+      "question": "You start Wireshark on a laptop plugged into a normal switch port of the plant network. Why might you see almost none of the PLC's traffic?",
+      "options": [
+        "The PLC encrypts traffic to unknown laptops",
+        "A switch only delivers packets to their destination",
+        "Wireshark cannot decode Modbus without a plugin",
+        "Your laptop needs an IP address in the PLC's subnet first"
+      ],
+      "answer": 1,
+      "explanation": "Switches learn where each device is and deliver traffic only there, so other conversations never reach your port. An IP address does not change that, because a capture is passive and only sees what arrives. To see others' traffic you need a mirror port, a tap, the host of a virtual network, or a man-in-the-middle position."
+    },
+    {
+      "type": "single",
+      "question": "A register holds the value 18533, which is 0x4865 in hexadecimal. Read as two ASCII characters, what is it?",
+      "options": [
+        "\"eH\"",
+        "\"He\"",
+        "\"18\"",
+        "\"HE\""
+      ],
+      "answer": 1,
+      "explanation": "Modbus sends the high byte first. 0x48 is 'H' and 0x65 is a lower-case 'e', so the register reads \"He\". Swapping the bytes into \"eH\" is the most common mistake; an upper-case 'E' would be 0x45."
+    },
+    {
+      "type": "single",
+      "question": "Why does the CybICS IDS not alert when you sniff the plant traffic?",
+      "options": [
+        "The IDS is paused while a capture is running",
+        "A passive capture sends no packets to see",
+        "The IDS ignores traffic from the landing page",
+        "Wireshark hides its packets from the IDS"
+      ],
+      "answer": 1,
+      "explanation": "Detection systems look for traffic, and a passive capture adds none; there is nothing for Wireshark to hide. The steps around it, such as ARP spoofing to get onto the path, can be detected, which is why defenders watch for those."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures reduce what an attacker can learn by sniffing?",
+      "options": [
+        "Protecting switch mirror ports and network taps",
+        "Encrypting traffic between zones, for example with a VPN or Modbus/TCP Security",
+        "Keeping secrets out of registers",
+        "Moving Modbus from port 502 to another port"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Fewer capture positions, encrypted links and no secrets in process data all limit what a capture reveals. Moving Modbus to another port changes nothing in the bytes: they are still plaintext, and Wireshark can be told to decode them as Modbus on any port."
+    }
+  ]
+}

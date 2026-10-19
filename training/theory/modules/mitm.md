@@ -1,22 +1,62 @@
 # Man in the middle
 
-A man-in-the-middle on an ICS network is rarely about reading the traffic. Modbus carries nothing worth stealing &mdash; the interesting move is to lie in one direction only: let the operator's commands through so the plant really does what they asked, and rewrite the readings coming back so the screen says everything is fine.
+In this challenge you place your attack machine between the FUXA HMI and the PLC, so that their conversation passes through you. On an industrial network the prize is rarely secret data. The dangerous move is to **lie in one direction**: let the operator's commands through untouched, and rewrite the readings on their way back, so the screen says everything is fine while the plant does something else.
 
-## Relaying a request is not doing nothing
+## The idea
 
-`training/mitm/mitm.py` is a Modbus TCP proxy, and its loop is strictly one request, one response, forever. The request leaves with the same bytes it arrived with: `manipulate_request` returns its input unmodified, and the two functions it hands the request to take a private copy before they touch anything. But they are not idle. They read the request and write down what they learn from it.
+Picture a letter carrier who opens every envelope between two offices, reads it, and sometimes rewrites a line before sealing it again. Neither office notices, because each one still gets a letter that looks right. That carrier is a **man in the middle (MitM)**, which MITRE now calls an adversary in the middle.
 
-They have to. A Modbus read response carries no addresses at all &mdash; a byte count, then the values, in the order they were asked for. By the time the answer comes back there is nothing in it to say which of those numbers is the pressure. Only the request knew, and the request is gone. So the proxy parses it, works out which slot each target register will occupy in the coming answer, and pushes that little map onto a queue. The response pass pops the map and patches by position.
+To become that carrier on a local network you exploit **ARP**, the Address Resolution Protocol. Computers on the same network segment talk to each other by hardware address (the **MAC address**), so each host keeps an **ARP cache**: a small table that says "IP address 172.18.0.3 belongs to MAC address d6:10:...".
 
-<figure>
+ARP has no proof of identity. When a host hears "172.18.0.3 is at my MAC", it simply believes the last message it heard. Sending such false messages is called **ARP spoofing** or **ARP poisoning**. Poison both sides, and both send their traffic to you.
+
+<div class="callout analogy" markdown="1">
+**Analogy:** ARP is like a building where anyone may change the name plates on the mailboxes. Nobody checks who swapped them.
+</div>
+
+## How it looks on CybICS
+
+FUXA (`172.18.0.4`) polls OpenPLC (`172.18.0.3`) once a second over Modbus TCP on port 502. Your attack machine is `172.18.0.100` on the same Docker network, so you can reach both.
+
+The challenge folder contains `mitm.py`, a small Modbus **proxy**: a program that sits in the conversation, relays every request and answer, and can change bytes in between. Out of the box it forges the readings of GST, HPT, the system sensor and the manual-mode flag.
+
+To forge a reading, the proxy must know where it is. A Modbus read answer carries only values, in order, with no addresses, so the proxy remembers from the request which slot holds which register.
+
+The forged values look consistent. An HPT of 95 lies inside the 50-to-100 band in which the plant reports "operational", and the system sensor is forged to match, so the operator sees a calm, healthy plant.
+
+Step through the attack yourself. Watch both ARP caches, the path of the frames and what the IDS notices.
+
+<div data-widget="arp-spoof"></div>
+
+<div data-widget="checkpoint" data-id="slots"></div>
+
+## How to approach it
+
+1. **Map the conversation.** Note the addresses of FUXA and OpenPLC and confirm the polling with a short `tcpdump` or Wireshark capture.
+2. **Let traffic pass through you.** Turn on IP forwarding on the attack machine. Otherwise you swallow every packet and the HMI goes dark, which is noticed at once.
+3. **Poison both ARP caches.** Tell FUXA that the PLC's IP is at your MAC, and the PLC the same about FUXA, and keep both running. Tools: `arpspoof`, `ettercap` or a small `scapy` script.
+4. **Watch the traffic cross your machine.** A capture on the attack machine should now show FUXA's polls.
+5. **Rewrite, if you want to see the deception.** Read the settings of `mitm.py` and run it. Poisoning alone does not hand it the traffic; the deep dive below says why.
+6. **Verify on the challenge page.** It asks the IDS whether it saw the ARP poisoning.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: getting the traffic into the proxy</summary>
+
+`mitm.py` accepts FUXA's connection on port 5020, opens its own connection to the PLC and relays between the two. It needs the PLC's address as its upstream.
+
+The poisoned frames now reach your machine, but they are still addressed to port 502, where nothing of yours listens. The proxy only sees them if one of two things is true:
+
+- FUXA's device is pointed at the proxy instead of the PLC. That needs FUXA admin rights, and no ARP reply is sent at all.
+- Your machine redirects incoming port 502 traffic to port 5020, for example with an `iptables` redirect rule.
+
+</details>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: why the proxy patches by position</summary>
+
+<figure class="wide">
 <style>
-.article figure svg.mm-q {min-width: 488px;}
-.mm-q {--d: 14s; --on:#ff6b00; --onink:#1a1a1a;}
-html.light-mode .mm-q {--on:#b34700; --onink:#ffffff;}
-/* One poll, in order, on one clock. The point is the handover: the note is
-   written while the request is passing through and spent when the answer
-   passes back, so the queue is empty again before the next poll begins.
-   A still can show the proxy or the queue, but not that they alternate. */
+.mm-q {--d: 14s; --on:#e06000; --onink:#1a1a1a;}
 .mm-q .req  {animation: q-req var(--d) linear infinite;}
 .mm-q .card {opacity:0; animation: q-card var(--d) steps(1,end) infinite;}
 .mm-q .mt   {opacity:1; animation: q-mt var(--d) steps(1,end) infinite;}
@@ -26,8 +66,6 @@ html.light-mode .mm-q {--on:#b34700; --onink:#ffffff;}
 @keyframes q-req  {0%{transform:translateX(0); opacity:1}
                    36%{transform:translateX(236px); opacity:1}
                    40%,100%{transform:translateX(236px); opacity:0}}
-/* The chip's centre starts at 160 and the proxy's is 230, so it is over the
-   proxy 70/236 of the way through a 36% travel -- 10.7%, not a guess. */
 @keyframes q-card {0%,10.6%{opacity:0} 10.7%,61.9%{opacity:1} 62%,100%{opacity:0}}
 @keyframes q-mt   {0%,10.6%{opacity:1} 10.7%,61.9%{opacity:0} 62%,100%{opacity:1}}
 @keyframes q-rs1  {0%,40%{transform:translateX(0); opacity:0}
@@ -38,9 +76,6 @@ html.light-mode .mm-q {--on:#b34700; --onink:#ffffff;}
                    62%{transform:translateX(0); opacity:1}
                    80%,100%{transform:translateX(-160px); opacity:1}}
 @keyframes q-scr  {0%,79.9%{opacity:0} 80%,100%{opacity:1}}
-/* Without motion the three stages cannot follow one another, so they are
-   shown at once: the request on its way out, the note it left behind, and
-   both versions of the answer. The lanes do not overlap at these offsets. */
 @media (prefers-reduced-motion: reduce){
   .mm-q *{animation:none !important}
   .mm-q .req{opacity:1; transform:translateX(0)}
@@ -51,7 +86,7 @@ html.light-mode .mm-q {--on:#b34700; --onink:#ffffff;}
 }
 </style>
 <svg class="mm-q" viewBox="0 0 460 274" role="img"
-     aria-label="One FUXA poll crossing the attacker's proxy. The request, a read of eleven holding registers from 1124, is relayed to OpenPLC unchanged, but as it passes the proxy writes a note into its queue saying that GST will arrive in slot 0, HPT in slot 2, manual in slot 6 and the system sensor in slot 8. OpenPLC answers with the true values, GST 184 and HPT 58. The proxy pops the note, patches those slots to 200 and 95, and forwards the answer. The queue is empty again before the next poll.">
+     aria-label="One FUXA poll crossing the attacker's proxy. The request, a read of eleven holding registers from 1124, is relayed to OpenPLC unchanged, but as it passes the proxy writes a note into its queue saying that GST will arrive in slot 0, HPT in slot 2, manual in slot 6 and the system sensor in slot 8. OpenPLC answers with the true values, GST 184 and HPT 58. The proxy uses the note to patch those slots to 200 and 95 and forwards the answer. The queue is empty again before the next poll.">
   <text x="14" y="20" font-size="12" font-weight="bold">one poll: relayed one way, rewritten the other</text>
 
   <rect x="14" y="84" width="92" height="44" rx="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.6"/>
@@ -89,141 +124,33 @@ html.light-mode .mm-q {--on:#b34700; --onink:#ffffff;}
   <text class="mt" x="230" y="235" text-anchor="middle" font-size="12" opacity="0.72">queue empty</text>
   <text class="scr" x="14" y="264" font-size="11" opacity="0.85">The operator's screen now reads 95. The tank still holds 58.</text>
 </svg>
-<figcaption>Measured on the running stack: FUXA polls once a second, one <code>read holding 1124, count 11</code> and one <code>read coils 0, count 4</code>. All four forged registers sit in that single block &mdash; GST at 1124, HPT at 1126, <code>manual</code> at 1130, the system sensor at 1132 &mdash; so one note covers the whole poll. Because the proxy's loop never has two requests in flight, the queue is a queue of at most one.</figcaption>
+<figcaption>FUXA asks for eleven holding registers starting at 1124 in one request. The answer carries only values, in order, with no addresses, so the proxy must remember from the request which slot holds which register.</figcaption>
 </figure>
 
-The four values were chosen to hang together. 95 sits inside the 50-to-100 band, and `sysSen` is only set when the pressure is in that band *and* the system valve is open, so forging the sensor without also forging the valve coil would hand the operator a reading that contradicts itself. GST 200 does not read "normal"; the plant's own classifier calls anything above 150 **Full**, which is the point &mdash; a well-stocked supply is one fewer thing to wonder about. And `manual` back to 0 hides the mode switch that made the rest of it possible.
+A Modbus read request says "start at 1124, give me 11 registers". The answer says only "22 bytes follow" and then the values, two bytes each, high byte first. Nothing in the answer says which number is the pressure.
 
-## The forged bytes land correctly for the wrong reason
+So the proxy does its bookkeeping on the way out. It parses the request, works out that GST will be in slot 0, HPT in slot 2 and so on, and puts that map on a queue. When the answer comes back it takes the map off the queue and overwrites those slots. Because the proxy relays one request, then its answer, then the next request, the queue never holds more than one entry.
 
-Now the part worth stopping on. Modbus is big-endian: every register on the wire is high byte first. The proxy writes its forged value with `to_bytes(2, 'little')`. And it patches at `HOLDING_DATA_OFFSET + location*2` with `HOLDING_DATA_OFFSET = 10`, although the values in a read response start at byte 9.
+The same trick works for coils, where each value is a single bit inside a byte.
 
-Two mistakes. They cancel.
+</details>
 
-<figure>
+## Detect and defend
+
+- **Watch ARP.** An IP address that suddenly changes its MAC is the classic sign of poisoning. The CybICS IDS rule `arp_spoof` does not see the interception itself; it notices one IP address announced with more than one MAC address.
+- **Fix the mapping.** Static ARP entries for critical devices, or switches with Dynamic ARP Inspection, refuse forged replies.
+- **Segment the network.** If the attacker never shares a network segment with the HMI and the PLC, ARP tricks cannot reach them.
+- **Authenticate the messages.** Protocols that sign their messages, such as OPC-UA with a secure policy or Modbus/TCP Security over TLS, make a rewritten answer detectable.
+- **Cross-check the process.** An independent gauge or a second sensor path shows when the screen and the tank disagree.
+
+In MITRE ATT&CK for ICS this is **T0830 Adversary-in-the-Middle**; forging the readings is **T1692.002 Unauthorized Message: Reporting Message** (formerly T0856 Spoof Reporting Message).
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: what the IDS remembers</summary>
+
+<figure class="wide">
 <style>
-.article figure svg.mm-b {min-width: 488px;}
-.mm-b {--d: 13s; --on:#ff6b00; --onink:#1a1a1a;}
-html.light-mode .mm-b {--on:#b34700; --onink:#ffffff;}
-/* Both bytes are written in the same statement, so the only way to see that
-   one is right and the other is one register out is to watch them land one
-   after the other. The cell that ends up orange is the one that mattered. */
-.mm-b .t5 {animation: b-t5 var(--d) steps(1,end) infinite;}
-.mm-b .f5 {opacity:0; animation: b-f5 var(--d) steps(1,end) infinite;}
-.mm-b .h6 {opacity:0; animation: b-h6 var(--d) steps(1,end) infinite;}
-.mm-b .mk {opacity:0; animation: b-mk var(--d) ease-in-out infinite;}
-.mm-b .c1 {animation: b-c1 var(--d) steps(1,end) infinite;}
-.mm-b .c2 {opacity:0; animation: b-c2 var(--d) steps(1,end) infinite;}
-.mm-b .c3 {opacity:0; animation: b-c3 var(--d) steps(1,end) infinite;}
-.mm-b .c4 {opacity:0; animation: b-c4 var(--d) steps(1,end) infinite;}
-@keyframes b-t5 {0%,19.9%{opacity:1} 20%,100%{opacity:0}}
-@keyframes b-f5 {0%,19.9%{opacity:0} 20%,100%{opacity:1}}
-@keyframes b-h6 {0%,49.9%{opacity:0} 50%,100%{opacity:1}}
-@keyframes b-mk {0%,19.9%{opacity:0; transform:translateX(0)}
-                 20%{opacity:1; transform:translateX(0)}
-                 46%{opacity:1; transform:translateX(0)}
-                 52%,100%{opacity:1; transform:translateX(46px)}}
-@keyframes b-c1 {0%,19.9%{opacity:1} 20%,100%{opacity:0}}
-@keyframes b-c2 {0%,19.9%{opacity:0} 20%,49.9%{opacity:1} 50%,100%{opacity:0}}
-@keyframes b-c3 {0%,49.9%{opacity:0} 50%,74.9%{opacity:1} 75%,100%{opacity:0}}
-@keyframes b-c4 {0%,74.9%{opacity:0} 75%,100%{opacity:1}}
-@media (prefers-reduced-motion: reduce){
-  .mm-b *{animation:none !important}
-  .mm-b .t5,.mm-b .c1,.mm-b .c2,.mm-b .c3{opacity:0}
-  .mm-b .f5,.mm-b .h6,.mm-b .c4{opacity:1}
-  .mm-b .mk{opacity:1; transform:translateX(46px)}
-}
-</style>
-<svg class="mm-b" viewBox="0 0 460 250" role="img"
-     aria-label="Eight bytes of a read response, covering registers 1124 to 1127, each as a high byte and a low byte. The proxy forges HPT, which is at slot 2, by writing at byte 14 and byte 15. Byte 14 is register 1126's low byte, so the low byte of 95 lands exactly where it belongs and 1126 reads 95. Byte 15 is register 1127's high byte, one register too far, but the value written there is zero and the byte was already zero. Nothing visible changes.">
-  <text x="14" y="20" font-size="12" font-weight="bold">writing 95 into slot 2 of the answer</text>
-
-  <text x="90"  y="84" text-anchor="middle" font-size="12" font-weight="bold">1124</text>
-  <text x="182" y="84" text-anchor="middle" font-size="12" font-weight="bold">1125</text>
-  <text x="274" y="84" text-anchor="middle" font-size="12" font-weight="bold">1126</text>
-  <text x="366" y="84" text-anchor="middle" font-size="12" font-weight="bold">1127</text>
-
-  <rect x="46"  y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="92"  y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="138" y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="184" y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="230" y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="276" y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="322" y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-  <rect x="368" y="92" width="42" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
-
-  <g font-family="monospace" font-size="13" text-anchor="middle">
-    <text x="67"  y="117">00</text>
-    <text x="113" y="117">b8</text>
-    <text x="159" y="117">00</text>
-    <text x="205" y="117">00</text>
-    <text x="251" y="117">00</text>
-    <text class="t5" x="297" y="117">3a</text>
-    <text x="389" y="117">00</text>
-  </g>
-  <g class="f5">
-    <rect x="276" y="92" width="42" height="38" rx="3" fill="var(--on)"/>
-    <text x="297" y="117" text-anchor="middle" font-family="monospace" font-size="13" style="fill:var(--onink)" font-weight="bold">5f</text>
-  </g>
-  <g class="h6">
-    <rect x="322" y="92" width="42" height="38" rx="3" fill="none" stroke="var(--on)" stroke-width="2.5"/>
-  </g>
-  <text x="343" y="117" text-anchor="middle" font-family="monospace" font-size="13">00</text>
-
-  <g class="mk"><path d="M 291 146 L 297 134 L 303 146 Z" fill="var(--on)"/></g>
-
-  <g font-size="11" text-anchor="middle" opacity="0.8">
-    <text x="67"  y="164">hi</text>
-    <text x="113" y="164">lo</text>
-    <text x="159" y="164">hi</text>
-    <text x="205" y="164">lo</text>
-    <text x="251" y="164">hi</text>
-    <text x="297" y="164">lo</text>
-    <text x="343" y="164">hi</text>
-    <text x="389" y="164">lo</text>
-  </g>
-  <g font-size="11" text-anchor="middle" opacity="0.7">
-    <text x="67"  y="180">9</text>
-    <text x="113" y="180">10</text>
-    <text x="159" y="180">11</text>
-    <text x="205" y="180">12</text>
-    <text x="251" y="180">13</text>
-    <text x="297" y="180">14</text>
-    <text x="343" y="180">15</text>
-    <text x="389" y="180">16</text>
-  </g>
-  <text x="14" y="164" font-size="11" opacity="0.8">half</text>
-  <text x="14" y="180" font-size="11" opacity="0.7">byte</text>
-
-  <g font-size="13" font-weight="bold">
-    <text class="c1" x="14" y="212">the true answer &mdash; 1126 holds 58</text>
-    <text class="c2" x="14" y="212" fill="var(--on)">low byte of 95 &rarr; byte 14, exactly where it belongs</text>
-    <text class="c3" x="14" y="212" fill="var(--on)">high byte &rarr; byte 15, one whole register too far</text>
-    <text class="c4" x="14" y="212">1126 now reads 95; byte 15 was 00 and is still 00</text>
-  </g>
-  <text x="14" y="236" font-size="11" opacity="0.85">Wrong byte order plus wrong offset, in a plant that never exceeds 255.</text>
-</svg>
-<figcaption>The low byte of a little-endian pair is written first, and <code>10 + 2&times;location</code> happens to be exactly where a big-endian low byte belongs &mdash; so the value that matters lands correctly. The stray high byte goes one register further on. That would corrupt the neighbour, except that <code>hardwareAbstraction.py</code> clamps <code>gst</code> and <code>hpt</code> to 255 before publishing them and every other register in the block is a flag, so each high byte is already <code>00</code>. Driving the proxy's own functions with the eleven live values captured off the stack returns precisely the intended forgery; set register 1127 to 4097 first and it comes back as 1.</figcaption>
-</figure>
-
-There is a third latent fault in the same place. The queue is pushed on a request with function code `0x03` and popped on a response with function code `0x03`; a Modbus exception reply carries `0x83`, so it is never popped, and the queue keeps one stale entry from then on. Here that costs nothing, because every FUXA poll requests the same eleven registers and every note is therefore identical. The proxy works &mdash; three times over, for reasons its author did not write down.
-
-## Two ways in, and they win different things
-
-The module gives two ways to reach the middle. It presents the second as a prerequisite, but it is a complete alternative, and the two are not equivalent.
-
-**ARP poisoning.** `arpspoof` or `ettercap` tells FUXA that the PLC's address belongs to the attacker's MAC, and tells the PLC the same about FUXA. Nothing in ARP asks for proof, so both caches simply believe the last thing they heard. Traffic now crosses the attacker's machine &mdash; but with forwarding enabled and no redirection rule it is routed straight on to OpenPLC. `mitm.py` listens on port 5020, and there is no `iptables ... REDIRECT --to-port 5020` anywhere in the repository. On this route the proxy is a bystander: the poisoning is real, the interception is not.
-
-**Repointing FUXA.** Log in as an administrator and edit the device: point its PLC connection at the proxy's address and port. No ARP is touched; the traffic arrives at the attacker because the operator's own configuration sends it there. This is the route that actually feeds the proxy.
-
-<figure>
-<style>
-.article figure svg.mm-a {min-width: 488px;}
-.mm-a {--d: 11s; --on:#ff6b00;}
-html.light-mode .mm-a {--on:#b34700;}
-/* The resting state is the detected one, because that is what the caption
-   under the figure describes. The keyframes replay the "before" at the start
-   of each cycle rather than the other way round. */
+.mm-a {--d: 11s; --on:#e06000;}
 .mm-a .old,.mm-a .m1 {opacity:0; animation: a-old var(--d) steps(1,end) infinite;}
 .mm-a .new,.mm-a .m2 {animation: a-new var(--d) steps(1,end) infinite;}
 .mm-a .fire{animation: a-fire var(--d) steps(1,end) infinite;}
@@ -237,7 +164,7 @@ html.light-mode .mm-a {--on:#b34700;}
 }
 </style>
 <svg class="mm-a" viewBox="0 0 460 128" role="img"
-     aria-label="FUXA's ARP cache entry for the PLC's address is overwritten with the attacker's MAC. The IDS keeps a set of MACs per address; when the set for that address reaches two, rule 8 raises arp_spoof.">
+     aria-label="FUXA's ARP cache entry for the PLC's address is overwritten with the attacker's MAC. The IDS keeps a set of MACs per address; when the set for that address reaches two, the arp_spoof rule raises an alert.">
   <text x="14" y="28" font-size="13" opacity="0.8">FUXA's ARP cache for .0.3</text>
   <rect x="14" y="36" width="238" height="30" rx="4" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.6"/>
   <text class="old" x="26" y="56" font-size="13" font-family="monospace" opacity="0.85">d6:10:7c:61:8a:64</text>
@@ -250,17 +177,26 @@ html.light-mode .mm-a {--on:#b34700;}
   <text class="m2" x="288" y="56" font-size="13" font-family="monospace" fill="var(--on)" font-weight="bold">2 MACs</text>
 
   <text class="fire" x="14" y="92" font-size="14" fill="var(--on)" font-weight="bold">arp_spoof &mdash; one address, two MACs</text>
-  <text x="14" y="116" font-size="13" opacity="0.8">Nothing in the cache is verified; nothing in the set is ever removed.</text>
+  <text x="14" y="116" font-size="13" opacity="0.8">The cache believes the last reply; the IDS remembers every one.</text>
 </svg>
-<figcaption>Rule 8 does not detect interception &mdash; it detects an address that has been seen with more than one MAC. That is why the configuration route is invisible to it, nobody having lied about a MAC, and why a plain container restart raises the same alert: Docker hands out a fresh random MAC each time, and <code>cleanup()</code> empties only <code>recent_alerts</code> and <code>port_scan_tracker</code>, so the alert outlives both the attack and the container.</figcaption>
+<figcaption>The CybICS IDS rule <code>arp_spoof</code> does not see the interception itself. It notices that one IP address has been announced with more than one MAC address.</figcaption>
 </figure>
 
-That split matters for the challenge, because `check_mitm_attack.py` asks the IDS one question: did `arp_spoof` fire? Its docstring claims either route leaves a trace. The proxy route leaves none it looks for &mdash; and in fact none at all, because the proxy's upstream is `172.17.0.1`, the docker0 gateway, while the IDS captures the `172.18.0.0/24` bridge. So the ARP route wins the flag without deceiving anyone, and the configuration route deceives the operator without winning the flag. Joining them takes the redirection rule the module never gives you.
+</details>
 
-Why ARP accepts anyone's word for it is worth a sentence of its own: the protocol dates from 1982, when the machines that could answer were the ones you had cabled up yourself. There was no threat model in which a reply might be a lie, so no field was reserved for proving it was not &mdash; and by the time that mattered, every stack on earth had shipped.
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
 
-## The skill
+- The challenge is scored only on the IDS `arp_spoof` rule, so ARP poisoning alone wins the flag. Students who expect the HMI to change also need the proxy in the path.
+- `mitm.py` ships with `MODBUS_SERVER_HOST = '172.17.0.1'`; students must point it at the PLC. ARP poisoning alone does not feed the proxy (it listens on 5020, the traffic goes to 502), so either repoint FUXA's device to the proxy or add an `iptables` REDIRECT rule. Repointing FUXA leaves no ARP trace and therefore does not score.
+- The IDS keeps every MAC it has seen per IP until it restarts. Recreating a container gives it a new MAC, which also raises `arp_spoof`. Restart the IDS between groups if you want a clean dashboard.
+- The proxy writes forged values little-endian at offset 10; this works only because all forged values are below 256 and the neighbouring high bytes are zero.
 
-Poison the two ARP tables and the IDS will see it; that is what the flag is scored on. To see the deception itself you need the traffic to actually enter the proxy, which means either repointing FUXA or adding the redirection rule yourself. The flag and the lesson are not in the same place here, which is worth knowing before you spend an hour wondering why nothing on the screen changed.
+</details>
 
-> **MITRE ATT&CK for ICS:** T0830 Adversary-in-the-Middle, and for the forged readings **T1692.002 Reporting Message** (Evasion / Impair Process Control). The module still cites T0856 Spoof Reporting Message, which the catalogue has since superseded &mdash; that page now serves only a redirect. Defence: static ARP entries, segmentation so the attacker is never on the same broadcast domain, and protocols that authenticate the endpoint rather than trusting the address.
+## Before you start
+
+- [Modbus TCP](/theory/modbus): requests, answers and the register map.
+- [The ICS attack lifecycle](/theory/attack-lifecycle): where interception fits in an attack.
+- [Capturing Modbus traffic](/theory/wireshark_capture): seeing the traffic you redirect.
+- [HMI and SCADA](/theory/hmi-scada): why the operator trusts the screen.

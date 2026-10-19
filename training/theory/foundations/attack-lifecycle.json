@@ -1,0 +1,135 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Describe the two stages of the ICS Cyber Kill Chain in your own words",
+    "Tell a MITRE ATT&CK for ICS tactic apart from a technique",
+    "Place each CybICS attack challenge on the attack lifecycle",
+    "Explain why detecting an early stage is worth more than detecting a late one"
+  ],
+  "takeaways": [
+    "A plant attack is a campaign of stages, and each stage needs what the one before found out.",
+    "ATT&CK names the attacker's goal (the tactic) and method (the technique), so defenders share one language.",
+    "Catching an early stage is cheap, but some stages stay invisible, so one control is never enough."
+  ],
+  "checkpoints": [
+    {
+      "id": "tactic-technique",
+      "question": "\"Find out which hosts are on the network\" is an example of what?",
+      "options": ["A tactic", "A technique", "An impact"],
+      "answer": 0,
+      "explanation": "It is a goal, so it is a tactic (Discovery). 'Technique' is tempting because it sounds like an action, but a technique is how the goal is reached: Remote System Discovery (T0846), for example with a port scan."
+    },
+    {
+      "id": "earliest",
+      "question": "Which alert gives a defender the most options to stop a campaign before the process is affected?",
+      "options": ["modbus_flood on register 1126", "port_scan from 172.18.0.100", "The blow-out valve opening"],
+      "answer": 1,
+      "explanation": "A port scan is Discovery, the start of the chain: nothing has been changed yet, so blocking the source costs nothing. The Modbus flood sounds more serious, and it is, but that is because it already manipulates the process. The blow-out valve opening is the impact itself."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why does the second stage of the ICS Cyber Kill Chain usually take an attacker a long time?",
+      "options": [
+        "Industrial networks are always cut off from the internet",
+        "The attacker must first learn how this particular process works",
+        "ICS protocols encrypt the traffic the attacker needs",
+        "The office network must be breached a second time"
+      ],
+      "answer": 1,
+      "explanation": "To damage a physical process an attacker must know which controller drives which equipment and which values are dangerous. Learning that takes time and leaves traces. Encryption is not the reason: many ICS protocols, Modbus included, have none. The office network was already breached in stage 1."
+    },
+    {
+      "type": "single",
+      "question": "On CybICS you listen to Modbus traffic and learn that register 1126 carries the HPT pressure. Which technique fits best?",
+      "options": [
+        "T0842 Network Sniffing",
+        "T0836 Modify Parameter",
+        "T0846 Remote System Discovery",
+        "T0831 Manipulation of Control"
+      ],
+      "answer": 0,
+      "explanation": "You only listened, so it is Network Sniffing. Remote System Discovery means finding hosts, for example with a scan, which you did before. Modify Parameter means changing a setting of the controller, such as a set point; you have not written anything yet."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are ATT&CK for ICS tactics?",
+      "options": ["Discovery", "Impair Process Control", "T0846", "Remote System Discovery", "Impact"],
+      "answer": [0, 1, 4],
+      "explanation": "Discovery, Impair Process Control and Impact are tactics, the attacker's goals. Remote System Discovery sounds like a tactic because it contains 'Discovery', but it is the name of technique T0846, one way to reach that goal."
+    },
+    {
+      "type": "single",
+      "question": "An attacker on the CybICS network only captures traffic and never sends a packet. What does the IDS see?",
+      "options": [
+        "A port_scan alert for the listening host",
+        "An arp_spoof alert, since it reads others' traffic",
+        "Nothing, a passive listener sends no packets",
+        "A modbus_flood alert once enough is captured"
+      ],
+      "answer": 2,
+      "explanation": "Passive sniffing produces no traffic of its own, so no network rule can fire. arp_spoof is the tempting one, but it catches the forged ARP replies a man-in-the-middle sends to redirect traffic, not someone who only listens."
+    },
+    {
+      "type": "single",
+      "question": "Why is a malicious PLC program download hard to detect with network rules alone?",
+      "options": [
+        "It travels over UART, not over the network",
+        "It looks like normal engineering work",
+        "OpenPLC encrypts uploaded programs end to end",
+        "OpenPLC hides uploads inside Modbus traffic"
+      ],
+      "answer": 1,
+      "explanation": "Engineers upload programs too, through the same web interface, so the traffic looks the same. It is neither encrypted nor hidden in Modbus. Catching it needs other controls, for example comparing the running program with a known-good copy, or watching who logs in to the engineering interface."
+    }
+  ],
+  "exercises": {
+    "arc": {
+      "type": "sequence",
+      "title": "Put one campaign in order",
+      "intro": "Each row is one step of an attack on the CybICS gas plant. Use the arrows to put the steps in the order an attacker has to take them, and give each one its ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Discovery",
+        "Lateral Movement",
+        "Collection",
+        "Inhibit Response Function",
+        "Impair Process Control",
+        "Impact"
+      ],
+      "steps": [
+        {
+          "text": "Open the attack machine's desktop in your browser; it sits inside the plant network at 172.18.0.100.",
+          "label": "Initial Access",
+          "explain": "Nothing can happen before the attacker has a foothold inside the network. Reaching an inside host through a remote-access service is Initial Access (T0822 External Remote Services); in CybICS that foothold is handed to you."
+        },
+        {
+          "text": "Scan the 172.18.0.0/24 network with nmap and find 172.18.0.3 with ports 502 and 8080 open.",
+          "label": "Discovery",
+          "explain": "From the foothold you have to find out what is on the network before you can target anything. Finding hosts and their open ports is Discovery (T0846 Remote System Discovery)."
+        },
+        {
+          "text": "Log in to the OpenPLC web interface on port 8080 with a guessed password.",
+          "label": "Lateral Movement",
+          "explain": "You need the scan to know the web interface exists. Using a working login to get onto another system is T0859 Valid Accounts, which ATT&CK lists under Lateral Movement (and Persistence, since the password still works tomorrow)."
+        },
+        {
+          "text": "Read the running PLC program and work out which register holds the HPT pressure.",
+          "label": "Collection",
+          "explain": "Reading the program needs the login. Learning which point in the controller means what is T0861 Point & Tag Identification, a Collection technique: you gather knowledge, you change nothing yet."
+        },
+        {
+          "text": "Write a low value to register 1126 over and over, so the PLC believes the HPT is nearly empty.",
+          "label": "Impair Process Control",
+          "explain": "Only now do you know which register to attack. Overwriting a value the controller relies on, again and again, is Impair Process Control (T0806 Brute Force I/O, sent as T1692.001 Unauthorized Message: Command Message); it is also what the modbus_flood rule catches."
+        },
+        {
+          "text": "The compressor keeps pumping although the real HPT pressure is already above its normal range.",
+          "label": "Impact",
+          "explain": "This is the consequence in the physical world, so it can only come last. The plant doing something the operator never asked for is Impact (T0831 Manipulation of Control)."
+        }
+      ]
+    }
+  }
+}

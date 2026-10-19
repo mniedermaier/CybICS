@@ -67,6 +67,13 @@ jobs:
         env:
           BUILDX_CACHE_FROM: type=gha
           BUILDX_CACHE_TO: type=gha,mode=max
+          # The devcontainer CLI writes its Dockerfile-with-features to /tmp,
+          # outside the compose build context. Since buildx v0.37.2 (runner
+          # image ubuntu24/20261004) bake refuses to read such a file without
+          # --allow=fs.read, which docker compose cannot pass through, and
+          # every build here failed with "additional privileges requested".
+          # COMPOSE_BAKE=false does not help: compose always builds via bake.
+          BUILDX_BAKE_ENTITLEMENTS_FS: "0"
         with:
           configFile: .devcontainer/raspberry/devcontainer.json
           env: .devcontainer/raspberry/.env
@@ -126,6 +133,13 @@ jobs:
         env:
           BUILDX_CACHE_FROM: type=gha
           BUILDX_CACHE_TO: type=gha,mode=max
+          # The devcontainer CLI writes its Dockerfile-with-features to /tmp,
+          # outside the compose build context. Since buildx v0.37.2 (runner
+          # image ubuntu24/20261004) bake refuses to read such a file without
+          # --allow=fs.read, which docker compose cannot pass through, and
+          # every build here failed with "additional privileges requested".
+          # COMPOSE_BAKE=false does not help: compose always builds via bake.
+          BUILDX_BAKE_ENTITLEMENTS_FS: "0"
         with:
           configFile: .devcontainer/raspberry/devcontainer.json
           env: .devcontainer/raspberry/.env
@@ -229,6 +243,13 @@ jobs:
         env:
           BUILDX_CACHE_FROM: type=gha
           BUILDX_CACHE_TO: type=gha,mode=max
+          # The devcontainer CLI writes its Dockerfile-with-features to /tmp,
+          # outside the compose build context. Since buildx v0.37.2 (runner
+          # image ubuntu24/20261004) bake refuses to read such a file without
+          # --allow=fs.read, which docker compose cannot pass through, and
+          # every build here failed with "additional privileges requested".
+          # COMPOSE_BAKE=false does not help: compose always builds via bake.
+          BUILDX_BAKE_ENTITLEMENTS_FS: "0"
         with:
           configFile: .devcontainer/virtual/devcontainer.json
           env: .devcontainer/virtual/.env

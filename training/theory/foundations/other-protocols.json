@@ -1,0 +1,164 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Describe the roles, data model and risky commands of DNP3 and EtherNet/IP with CIP",
+    "Name the common weaknesses that most industrial protocols share with Modbus",
+    "Identify the industrial protocols the CybICS PLC exposes and confirm them with nmap and Wireshark"
+  ],
+  "takeaways": [
+    "DNP3 (TCP 20000) connects a master to outstations in utilities; EtherNet/IP (TCP 44818, UDP 2222) carries CIP objects in factories.",
+    "Most industrial protocols were designed for closed networks and have no authentication or encryption by default.",
+    "Security extensions such as DNP3 Secure Authentication and CIP Security exist, but older devices often cannot use them.",
+    "The CybICS PLC exposes Modbus, S7comm, DNP3 and EtherNet/IP over the same memory, so blocking one port does not protect the data.",
+    "An nmap service name with a question mark is a guess from the port number; a Wireshark dissector confirms the protocol."
+  ],
+  "checkpoints": [
+    {
+      "id": "session",
+      "question": "An EtherNet/IP client must send Register Session before anything else. Does this protect the device?",
+      "options": [
+        "Yes, Register Session works like a password login",
+        "No, any client is handed a session handle",
+        "Yes, the session handle encrypts what follows"
+      ],
+      "answer": 1,
+      "explanation": "Register Session just hands out a handle so replies can be matched to a client. A mandatory first step looks like a login, but there is no password and no encryption. That would need CIP Security, which many devices do not support."
+    },
+    {
+      "id": "question-mark",
+      "question": "nmap reports 44818/tcp open EtherNetIP-2? on the CybICS PLC. What does the question mark tell you?",
+      "options": [
+        "The port is probably filtered or closed",
+        "nmap guessed the service from the port number",
+        "The service answered, but its traffic is encrypted"
+      ],
+      "answer": 1,
+      "explanation": "The question mark means nmap's probes did not get a reply it could match, so it fell back to the usual service for that port. The port itself is open, as the word 'open' says. Capturing a connection and seeing Wireshark's enip dissector decode it confirms the protocol."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "In DNP3, what is an outstation?",
+      "options": [
+        "The control centre that polls the field",
+        "A field device that answers the master",
+        "A backup master that takes over on failure",
+        "A gateway that converts DNP3 to Modbus"
+      ],
+      "answer": 1,
+      "explanation": "The master is the control centre; outstations are the field devices it polls, such as a substation controller. 'Out' makes the control centre sound tempting, but it is the master. Outstations can also send unsolicited responses when a value changes, which is useful over slow links."
+    },
+    {
+      "type": "single",
+      "question": "A firewall blocks port 502 on the CybICS PLC. Can an attacker on the network still reach the PLC's memory?",
+      "options": [
+        "No, the PLC's memory is only reachable over Modbus",
+        "Yes, over S7comm, DNP3 or EtherNet/IP on the PLC",
+        "Only through the OPC-UA server, which mirrors values",
+        "Only with physical access to the PLC cabinet"
+      ],
+      "answer": 1,
+      "explanation": "OpenPLC enables four industrial servers that map onto the same memory, so closing one port leaves the others open. The OPC-UA server is a separate container that itself reads the PLC over Modbus. A rule that blocks the attacker's address as a whole closes all of the PLC's ports."
+    },
+    {
+      "type": "multi",
+      "question": "Which weaknesses do DNP3, EtherNet/IP and BACnet commonly share with Modbus?",
+      "options": [
+        "No authentication by default",
+        "Traffic is not encrypted by default",
+        "Built-in discovery that reveals device details",
+        "No secure extension exists for any of them in the standard"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "All three were designed for trusted networks: no authentication or encryption by default, and broadcast discovery such as List Identity or Who-Is. Secure extensions do exist (DNP3 Secure Authentication, CIP Security, BACnet Secure Connect); the problem is that they are rarely switched on."
+    },
+    {
+      "type": "single",
+      "question": "You need to find PROFINET devices on a factory network. Why will an nmap port scan from another subnet not help?",
+      "options": [
+        "PROFINET hides behind an unusually high TCP port",
+        "Its real-time frames carry no IP header at all",
+        "PROFINET devices silently drop every scan packet",
+        "PROFINET only uses UDP, which nmap cannot scan"
+      ],
+      "answer": 1,
+      "explanation": "PROFINET real-time and DCP discovery frames use EtherType 0x8892 directly on Ethernet. With no IP header they never cross a router, and a port scanner has no ports to probe. A high port or UDP would still be scannable; you have to listen on the same segment."
+    },
+    {
+      "type": "single",
+      "question": "nmap shows port 102 open on an unknown device. What can you conclude?",
+      "options": [
+        "It is a Siemens S7 PLC, since 102 is the S7 port",
+        "It may be S7comm or IEC 61850 MMS; look closer",
+        "It is a DNP3 outstation on its default port",
+        "It is an IEC 60870-5-104 station in a substation"
+      ],
+      "answer": 1,
+      "explanation": "Both S7comm and IEC 61850 MMS run over ISO transport on TCP port 102, so a port number is a hint, not proof. DNP3 normally uses 20000 and IEC 104 uses 2404. An nmap script such as s7-info or a Wireshark capture tells you which one it is."
+    },
+    {
+      "type": "single",
+      "question": "Which two bytes start every DNP3 link-layer frame, so you can spot DNP3 in a hex dump?",
+      "options": ["00 00", "05 64", "03 00", "AB CD"],
+      "answer": 1,
+      "explanation": "DNP3 frames begin with 05 64. The bytes 03 00 start a TPKT header, which is what S7comm uses, and 00 00 is the protocol identifier inside a Modbus TCP header, so they are easy to confuse."
+    }
+  ],
+  "exercises": {
+    "match": {
+      "type": "sequence",
+      "order": false,
+      "title": "Which protocol is it?",
+      "intro": "Each clue below points to one protocol you have met so far. Pick the protocol for every clue, then check your answers.",
+      "labels": [
+        "Modbus TCP",
+        "S7comm",
+        "DNP3",
+        "EtherNet/IP"
+      ],
+      "steps": [
+        {
+          "text": "Every frame in a hex dump begins with the bytes 05 64.",
+          "label": "DNP3",
+          "explain": "05 64 is the start of every DNP3 link-layer frame. Modbus TCP begins with a transaction ID and S7comm with the TPKT header 03 00."
+        },
+        {
+          "text": "A control centre polls remote substations and pumping stations, which may also report a change on their own.",
+          "label": "DNP3",
+          "explain": "A master polling outstations, with unsolicited responses, is how DNP3 works in electric and water utilities."
+        },
+        {
+          "text": "A service scan of the CybICS PLC shows 44818/tcp open.",
+          "label": "EtherNet/IP",
+          "explain": "TCP port 44818 carries EtherNet/IP explicit messaging. DNP3 uses 20000, Modbus 502 and S7comm 102."
+        },
+        {
+          "text": "One broadcast asks every device on the network to report its vendor, product name and serial number.",
+          "label": "EtherNet/IP",
+          "explain": "That is the List Identity command, answered from the CIP Identity object. It makes discovery easy for engineers and attackers alike."
+        },
+        {
+          "text": "A service scan of the CybICS PLC shows 502/tcp open.",
+          "label": "Modbus TCP",
+          "explain": "502 is the Modbus TCP port. Whoever can reach it can read and write the PLC's registers without a login."
+        },
+        {
+          "text": "A 7-byte MBAP header is followed by a function code such as 06.",
+          "label": "Modbus TCP",
+          "explain": "Every Modbus TCP message starts with the MBAP header; the function code after it says what to do, 06 meaning write one register."
+        },
+        {
+          "text": "Each request travels inside a TPKT and a COTP header.",
+          "label": "S7comm",
+          "explain": "S7comm is carried over ISO-on-TCP, which wraps it in two envelopes: TPKT for the length and COTP for the old OSI addressing."
+        },
+        {
+          "text": "Reading an SZL list returns the CPU's module type, for example CPU 315-2 PN/DP.",
+          "label": "S7comm",
+          "explain": "The system status list (SZL) is an S7comm feature. OpenPLC's S7 server on port 102 answers with CPU 315-2 PN/DP."
+        }
+      ]
+    }
+  }
+}

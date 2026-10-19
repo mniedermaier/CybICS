@@ -1,38 +1,68 @@
 # Modbus TCP
 
-**Modbus** is the lingua franca of industrial automation. It was designed in 1979 for serial links and later wrapped in TCP/IP as **Modbus TCP** on port **502**. It is simple, open, and everywhere &mdash; and it has no authentication, no encryption, and no *cryptographic* integrity. (There is error detection: a CRC in RTU mode and an LRC in ASCII mode, the TCP checksum here. It catches a corrupted frame, not a forged one.) Whoever can reach port 502 can read and write the controller.
+Modbus is the protocol the CybICS PLC speaks most, and the most common one in real plants. It trusts everyone: whoever reaches the PLC on port 502 can read and change its values.
 
-That is not an oversight. In 1979 the "network" was a shielded cable running a few metres inside a locked cabinet. Physical access *was* the authentication. When that cable became Ethernet, and Ethernet reached the office LAN, the protocol did not notice. A secure variant does exist &mdash; Modbus/TCP Security, TLS on port 802, published in 2018 &mdash; and almost nobody deploys it, because the installed base is measured in decades and a controller from 2004 will not learn TLS.
+## Why Modbus trusts everyone
+
+Modbus was designed in 1979 for a serial cable. Its network version, **Modbus TCP**, listens on TCP port **502**. A port is like a door number: the address finds the machine, the port finds the program.
+
+Modbus has no login, no encryption and no check of who sent a message. In 1979 the cable sat in a locked cabinet, so touching it *was* the permission. The cable became Ethernet; the protocol stayed the same.
+
+<div class="callout warning" markdown="1">
+**No authentication:** Modbus notices a frame that was damaged in transit, but nothing notices a frame that someone *forged*.
+</div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: checksums and Modbus/TCP Security</summary>
+
+Serial Modbus RTU carries its own checksum; Modbus TCP relies on the one in TCP. Either only catches accidental damage: a forger simply computes a valid checksum. A secure variant with TLS on port 802 exists since 2018, but almost no plant uses it.
+
+</details>
 
 ## The data model
 
-Modbus exposes four tables of values. Two are bits, two are 16-bit words:
+<div class="callout analogy" markdown="1">
+**Analogy:** think of the PLC as a wall of numbered mailboxes. A client names a mailbox and either looks inside or puts a new value in. Nobody at the wall checks ID.
+</div>
 
-| Table | Access | Typical use |
+Modbus has four tables: two of single bits (on or off), two of 16-bit numbers (0 to 65535):
+
+| Table | Holds | Access | Typical use |
+|---|---|---|---|
+| Coils | 1 bit | read and write | digital outputs: a valve, a motor |
+| Discrete inputs | 1 bit | read only | digital inputs: a limit switch |
+| Holding registers | 16 bits | read and write | setpoints, counters |
+| Input registers | 16 bits | read only | sensor readings |
+
+CybICS keeps the plant's values in **holding registers** and **coils**:
+
+| Address | Table | Meaning |
 |---|---|---|
-| Coils | read/write | digital outputs (a valve, a motor) |
-| Discrete inputs | read only | digital inputs (a limit switch) |
-| Holding registers | read/write | analogue setpoints, counters |
-| Input registers | read only | sensor readings |
+| 1124 | holding register | GST: pressure in the gas storage tank |
+| 1126 | holding register | HPT: pressure in the high-pressure tank |
+| 0 to 3 | coils | heartbeat, compressor, system valve, GST signal |
 
-In CybICS the plant's variables live in holding registers: gas storage tank at 1124, high pressure tank at 1126, and so on.
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: more registers, and the tank pressures live</summary>
+
+Two more holding registers carry sensors: 1132 the system sensor and 1134 the blow-out sensor. These are the values in registers 1124 and 1126 right now, read from the PLC:
+
+<div data-widget="plant-live" data-fields="gst,hpt"></div>
+
+</details>
+
+The HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register, so anyone may write it. The *Flood &amp; Overwrite* challenge does exactly that.
+
+<div data-widget="checkpoint" data-id="holding"></div>
 
 ## Request and response
 
-A client (the "master") sends a request naming a **function code** and an address; the server (the PLC) answers. There is no session and no login. Watch what that means: the register changes on the *first Modbus request* the PLC ever sees from this client. A TCP handshake did precede it &mdash; what never happens is an authentication handshake.
+The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code** (what to do) and an address (where).
 
-<figure>
+<figure class="wide">
 <style>
 /* A long cycle with most of it at rest: the motion makes its point and then
    leaves the reader alone with the paragraph, instead of looping tightly. */
-/* min-width beats the template's max-width, so each figure keeps its own
-   scale on a narrow screen and scrolls instead of shrinking to 6.7 px. It must
-   not go on a table: min-width there grows the scroll container itself rather
-   than its contents, which pushed the whole document to 544 px at a 390 px
-   viewport. Markdown tables reflow fine on their own. 548 rather than 520
-   because box-sizing is border-box and the svg carries 0.8rem of padding plus
-   a border, so 520 would render at 0.947 of a pixel per unit. */
-.article figure svg {min-width: 548px;}
 .mb-x {--mb-dur: 9s;}
 .mb-x .rm {opacity:0;}
 .mb-x .pkt {animation: mb-fly var(--mb-dur) linear infinite;}
@@ -48,15 +78,11 @@ A client (the "master") sends a request naming a **function code** and an addres
                     43%,100%{transform:translateX(-134px);opacity:0}}
 @keyframes mb-fade {0%,20%{opacity:1} 22%,92%{opacity:0} 94%,100%{opacity:1}}
 @keyframes mb-show {0%,20%{opacity:0} 22%,92%{opacity:1} 94%,100%{opacity:0}}
-/* Appears the instant the register flips, i.e. in the gap where a check
-   would have been, and stays for the long rest phase. */
 @keyframes mb-blink{0%,21%{opacity:0} 23%,92%{opacity:1} 94%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
   .mb-x .pkt,.mb-x .ack,.mb-x .old,.mb-x .new,.mb-x .hs {animation: none;}
   .mb-x .pkt,.mb-x .ack {opacity:1;}
-  /* .old and .new occupy the same spot, so the still cannot show both. It
-     gets its own label instead: a reader who never sees the animation still
-     learns what the write changed. */
+  /* .old and .new occupy the same spot, so the still shows "45 -> 90". */
   .mb-x .old {opacity:0;} .mb-x .new {opacity:0;} .mb-x .hs {opacity:1;}
   .mb-x .rm {opacity:1;}
 }
@@ -99,22 +125,25 @@ A client (the "master") sends a request naming a **function code** and an addres
           stroke="#ff6b00" stroke-width="1.5" stroke-dasharray="4 3"/>
   </g>
 </svg>
-<figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes
-it back. TCP got the bytes there; nothing in Modbus asked who sent them. The gap where an
-authentication step would be is the whole attack surface.</figcaption>
+<figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes it back. Nothing asked who sent it.</figcaption>
 </figure>
 
-The value changed before anything asked who was writing. There is no session to hijack and no login to brute-force, because there is neither. This single fact underlies the flood, overwrite and MITM attacks.
-
-It also does not last. Register 1126 is the HPT pressure reading, and `hwio` writes the true value back into it every 20 milliseconds &mdash; so the forged 90 survives ten milliseconds on average and is gone. Nothing defended the register; something simply overwrote it, the way it overwrites it fifty times a second regardless. That is the whole reason the *Flood &amp; Overwrite* challenge is a loop rather than a single packet: the attacker is not defeating a check, they are winning a race against a process that never stops writing.
+The forged value does not last: the `hwio` container, which simulates the plant, writes the real HPT pressure back into 1126 30 to 50 times a second. So *Flood &amp; Overwrite* needs a loop, not one packet.
 
 ## The frame
 
-Note what CybICS does with that table. The pressure reading at 1126 is a *holding* register &mdash; read/write &mdash; not an input register. Nothing about Modbus required that choice, and the entire *Flood &amp; Overwrite* challenge lives in the space it opens: a sensor value an attacker is allowed to write.
+Every Modbus TCP message starts with a 7-byte **MBAP header** (Modbus Application Protocol header), followed by the **PDU** (Protocol Data Unit): the function code and its data.
 
-A Modbus TCP message is a 7-byte **MBAP header** followed by the function code and its data. Three of the six fields are free for the taking; three decide whether the frame works.
+<div class="callout tip" markdown="1">
+**New to hex?** A **byte** is 8 bits and holds a number from 0 to 255. Network tools write bytes in **hexadecimal** (base 16): the digits 0 to 9, then A to F for 10 to 15. Every byte is two hex digits: `0a` is 10, `5a` is 5 &times; 16 + 10 = 90, `ff` is 255. A 16-bit register takes two bytes, high byte first: 1126 is `04 66`.
+</div>
 
-<figure>
+Only three fields have to be right: the **length** (how many bytes follow), the **function code** and the **data** (address and value). The rest can hold almost anything.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: every field of the frame</summary>
+
+<figure class="wide">
 <svg viewBox="0 0 520 108" role="img"
      aria-label="The Modbus TCP frame: a seven-byte MBAP header holding transaction id, protocol id, length and unit id, followed by the PDU holding the function code and its data. The table below the figure says what each field does.">
   <g font-size="11" text-anchor="middle">
@@ -131,8 +160,6 @@ A Modbus TCP message is a 7-byte **MBAP header** followed by the function code a
     <rect x="330" y="30" width="180" height="42" fill="#ff6b00" stroke="#1a1a1a"/>
     <text x="420" y="22">n B</text><text x="420" y="56" style="fill:#1a1a1a">Data (address, values)</text>
   </g>
-
-  <!-- The header ends and the PDU begins at byte 7, between Unit and Func. -->
   <line x1="290" y1="24" x2="290" y2="96" stroke="currentColor" stroke-width="2"/>
   <path d="M 10 80 L 10 88 L 290 88 L 290 80" fill="none" stroke="currentColor"
         stroke-opacity="0.55"/>
@@ -141,198 +168,82 @@ A Modbus TCP message is a 7-byte **MBAP header** followed by the function code a
   <text x="150" y="102" text-anchor="middle" font-size="11" opacity="0.8">MBAP header, 7 bytes</text>
   <text x="400" y="102" text-anchor="middle" font-size="11" opacity="0.8">PDU &mdash; what the PLC acts on</text>
 </svg>
-<figcaption>Orange marks the three fields a forged frame has to get right. The fields are a
-layout, not a sequence, so this figure stays still: six labels read at a glance beat six shown
-in turn.</figcaption>
+<figcaption>The six fields of a Modbus TCP request. Orange marks the three a forged frame has to get right; the other three can hold almost anything.</figcaption>
 </figure>
 
-<table>
-<thead><tr><th>Field</th><th>Size</th><th>What it does</th><th>Has to be right?</th></tr></thead>
-<tbody>
-<tr><td>Transaction</td><td>2 B</td><td>Echoed back so a client can match a reply to its request.</td><td>No &mdash; any value works.</td></tr>
-<tr><td>Protocol</td><td>2 B</td><td>Always 0 for Modbus TCP. Nothing in CybICS ever checks it.</td><td>No.</td></tr>
-<tr><td>Length</td><td>2 B</td><td>Number of bytes that follow, from the unit id onwards.</td><td><strong>Yes</strong> &mdash; wrong and the parse desynchronises.</td></tr>
-<tr><td>Unit</td><td>1 B</td><td>Addresses a device behind a serial gateway. Usually 1.</td><td>No &mdash; unless a gateway is in the path.</td></tr>
-<tr><td>Function</td><td>1 B</td><td>Read or write, bit or word. This is what the PLC acts on.</td><td><strong>Yes.</strong></td></tr>
-<tr><td>Data</td><td>n B</td><td>The register address and the value. This is what changes the plant.</td><td><strong>Yes.</strong></td></tr>
-</tbody>
-</table>
+| Field | Size | What it does | Must it be right? |
+|---|---|---|---|
+| Transaction | 2 B | Copied into the reply so the client can match answer to question. | No, any value works. |
+| Protocol | 2 B | Always 0 for Modbus. | No. |
+| Length | 2 B | How many bytes follow, counted from the unit field on. | **Yes**, or the PLC misreads the frame. |
+| Unit | 1 B | Picks a device behind a serial gateway. Usually 1. | Only if a gateway is in the path. |
+| Function | 1 B | What to do: read or write, bits or registers. | **Yes.** |
+| Data | n B | The address and the value. This is what changes the plant. | **Yes.** |
 
-## Reading a flag out of the registers
+</details>
 
-The *Wireshark Capture* challenge hides a flag in Modbus traffic. It is worth seeing exactly how, because the mechanism &mdash; two ASCII characters packed into each 16-bit register &mdash; is how text crosses a protocol that only knows numbers.
+Try it: change a field and watch the bytes, or paste bytes to decode.
 
-<figure>
-<style>
-.mb-d {--d: 11s; --hi:#ff6b00;}
-html.light-mode .mb-d {--hi:#b34700;}
-/* Each register is taken apart in three beats: the box is picked out, it
-   splits into its two bytes, and the bytes become their characters. That
-   sequence is the thing being taught, so the motion carries it rather than
-   merely revealing a finished picture.
-   The stagger lives in the keyframe percentages, not in animation-delay: a
-   delay shifts an element's whole cycle permanently, so the figure would
-   never reset together and would be correct only on its first loop. */
-.mb-d .byt, .mb-d .chr {opacity:1;}
-.mb-d .r1{animation: d-reg1 var(--d) steps(1,end) infinite;}
-.mb-d .b1{animation: d-byt1 var(--d) steps(1,end) infinite;}
-.mb-d .k1{animation: d-chr1 var(--d) steps(1,end) infinite;}
-.mb-d .r2{animation: d-reg2 var(--d) steps(1,end) infinite;}
-.mb-d .b2{animation: d-byt2 var(--d) steps(1,end) infinite;}
-.mb-d .k2{animation: d-chr2 var(--d) steps(1,end) infinite;}
-.mb-d .r3{animation: d-reg3 var(--d) steps(1,end) infinite;}
-.mb-d .b3{animation: d-byt3 var(--d) steps(1,end) infinite;}
-.mb-d .k3{animation: d-chr3 var(--d) steps(1,end) infinite;}
-.mb-d .r4{animation: d-reg4 var(--d) steps(1,end) infinite;}
-.mb-d .b4{animation: d-byt4 var(--d) steps(1,end) infinite;}
-.mb-d .k4{animation: d-chr4 var(--d) steps(1,end) infinite;}
-.mb-d .r5{animation: d-reg5 var(--d) steps(1,end) infinite;}
-.mb-d .b5{animation: d-byt5 var(--d) steps(1,end) infinite;}
-.mb-d .k5{animation: d-chr5 var(--d) steps(1,end) infinite;}
-.mb-d .r6{animation: d-reg6 var(--d) steps(1,end) infinite;}
-.mb-d .b6{animation: d-byt6 var(--d) steps(1,end) infinite;}
-.mb-d .k6{animation: d-chr6 var(--d) steps(1,end) infinite;}
-.mb-d .r7{animation: d-reg7 var(--d) steps(1,end) infinite;}
-.mb-d .b7{animation: d-byt7 var(--d) steps(1,end) infinite;}
-.mb-d .k7{animation: d-chr7 var(--d) steps(1,end) infinite;}
-.mb-d .flag {animation: d-flag var(--d) steps(1,end) infinite;}
-@keyframes d-reg1{0.00%,6.36%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 6.37%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt1{0%,2.73%{opacity:0} 2.74%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr1{0%,5.91%{opacity:0} 5.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg2{0%,8.18%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 8.18%,14.55%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 14.56%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt2{0%,10.91%{opacity:0} 10.92%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr2{0%,14.09%{opacity:0} 14.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg3{0%,16.36%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 16.36%,22.73%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 22.74%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt3{0%,19.09%{opacity:0} 19.10%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr3{0%,22.27%{opacity:0} 22.28%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg4{0%,24.55%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 24.55%,30.91%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 30.92%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt4{0%,27.27%{opacity:0} 27.28%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr4{0%,30.45%{opacity:0} 30.46%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg5{0%,32.73%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 32.73%,39.09%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 39.10%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt5{0%,35.45%{opacity:0} 35.46%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr5{0%,38.64%{opacity:0} 38.65%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg6{0%,40.91%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 40.91%,47.27%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 47.28%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt6{0%,43.64%{opacity:0} 43.65%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr6{0%,46.82%{opacity:0} 46.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-reg7{0%,49.09%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1} 49.09%,55.45%{stroke:var(--hi); stroke-opacity:1; stroke-width:2.5} 55.46%,100%{stroke:currentColor; stroke-opacity:0.45; stroke-width:1}}
-@keyframes d-byt7{0%,51.82%{opacity:0} 51.83%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-chr7{0%,55.00%{opacity:0} 55.01%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@keyframes d-flag{0%,60%{opacity:0} 64%,96%{opacity:1} 96.01%,100%{opacity:0}}
-@media (prefers-reduced-motion: reduce){
-  .mb-d .byt,.mb-d .chr,.mb-d .flag{animation:none;opacity:1}
-  /* The rects get their resting look from their own fill-opacity and
-     stroke-opacity attributes, so nothing here needs to touch opacity --
-     forcing it would paint over the hex the figure exists to show. */
-  .mb-d .reg{animation:none;stroke:currentColor}
-}
-</style>
-<svg class="mb-d" viewBox="0 0 520 218" role="img"
-     aria-label="One Write Multiple Registers frame carries seven registers from address 1200. Each 16-bit register splits into a high and a low byte, and each byte is one ASCII character, together spelling the flag CybICS(m0dbu$).">
-  <rect x="10" y="14" width="500" height="30" rx="4" fill="#ff6b00"/>
-  <text x="260" y="34" text-anchor="middle" font-size="12" style="fill:#1a1a1a" font-weight="bold">
-    one frame &mdash; FC 16 Write Multiple Registers, address 1200, 7 registers
-  </text>
+<div data-widget="modbus-frame" data-fc="6" data-address="1126" data-value="90"></div>
 
-  <g font-size="13" text-anchor="middle">
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r1" x="14" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="47" y="82" font-size="13">0x4379</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r2" x="86" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="119" y="82" font-size="13">0x6249</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r3" x="158" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="191" y="82" font-size="13">0x4353</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r4" x="230" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="263" y="82" font-size="13">0x286D</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r5" x="302" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="335" y="82" font-size="13">0x3064</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r6" x="374" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="407" y="82" font-size="13">0x6275</text></g>
-    <g><rect fill-opacity="0.18" stroke-opacity="0.6" class="reg r7" x="446" y="62" width="66" height="30" rx="3" fill="currentColor" stroke="currentColor"/><text x="479" y="82" font-size="13">0x2429</text></g>
-  </g>
+<div data-widget="checkpoint" data-id="frame"></div>
 
-  <g font-size="11" text-anchor="middle">
-    <g class="byt b1">
-      <path d="M 47 92 L 47 98 M 30 98 L 64 98 M 30 98 L 30 102 M 64 98 L 64 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="14" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="30" y="117" font-family="monospace" font-size="12">43</text>
-      <rect x="48" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="64" y="117" font-family="monospace" font-size="12">79</text>
-    </g>
-    <g class="byt b2">
-      <path d="M 119 92 L 119 98 M 102 98 L 136 98 M 102 98 L 102 102 M 136 98 L 136 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="86" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="102" y="117" font-family="monospace" font-size="12">62</text>
-      <rect x="120" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="136" y="117" font-family="monospace" font-size="12">49</text>
-    </g>
-    <g class="byt b3">
-      <path d="M 191 92 L 191 98 M 174 98 L 208 98 M 174 98 L 174 102 M 208 98 L 208 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="158" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="174" y="117" font-family="monospace" font-size="12">43</text>
-      <rect x="192" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="208" y="117" font-family="monospace" font-size="12">53</text>
-    </g>
-    <g class="byt b4">
-      <path d="M 263 92 L 263 98 M 246 98 L 280 98 M 246 98 L 246 102 M 280 98 L 280 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="230" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="246" y="117" font-family="monospace" font-size="12">28</text>
-      <rect x="264" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="280" y="117" font-family="monospace" font-size="12">6D</text>
-    </g>
-    <g class="byt b5">
-      <path d="M 335 92 L 335 98 M 318 98 L 352 98 M 318 98 L 318 102 M 352 98 L 352 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="302" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="318" y="117" font-family="monospace" font-size="12">30</text>
-      <rect x="336" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="352" y="117" font-family="monospace" font-size="12">64</text>
-    </g>
-    <g class="byt b6">
-      <path d="M 407 92 L 407 98 M 390 98 L 424 98 M 390 98 L 390 102 M 424 98 L 424 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="374" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="390" y="117" font-family="monospace" font-size="12">62</text>
-      <rect x="408" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="424" y="117" font-family="monospace" font-size="12">75</text>
-    </g>
-    <g class="byt b7">
-      <path d="M 479 92 L 479 98 M 462 98 L 496 98 M 462 98 L 462 102 M 496 98 L 496 102"
-            stroke="currentColor" stroke-opacity="0.7" fill="none"/>
-      <rect x="446" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="462" y="117" font-family="monospace" font-size="12">24</text>
-      <rect x="480" y="102" width="32" height="22" rx="3" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-      <text x="496" y="117" font-family="monospace" font-size="12">29</text>
-    </g>
-  </g>
+## Function codes
 
-  <g font-size="13" text-anchor="middle" font-weight="bold">
-    <g class="chr k1"><text x="30" y="146" style="fill:#ff6b00">C</text><text x="64" y="146" style="fill:#ff6b00">y</text></g>
-    <g class="chr k2"><text x="102" y="146" style="fill:#ff6b00">b</text><text x="136" y="146" style="fill:#ff6b00">I</text></g>
-    <g class="chr k3"><text x="174" y="146" style="fill:#ff6b00">C</text><text x="208" y="146" style="fill:#ff6b00">S</text></g>
-    <g class="chr k4"><text x="246" y="146" style="fill:#ff6b00">(</text><text x="280" y="146" style="fill:#ff6b00">m</text></g>
-    <g class="chr k5"><text x="318" y="146" style="fill:#ff6b00">0</text><text x="352" y="146" style="fill:#ff6b00">d</text></g>
-    <g class="chr k6"><text x="390" y="146" style="fill:#ff6b00">b</text><text x="424" y="146" style="fill:#ff6b00">u</text></g>
-    <g class="chr k7"><text x="462" y="146" style="fill:#ff6b00">$</text><text x="496" y="146" style="fill:#ff6b00">)</text></g>
-  </g>
+The function code picks the table and the direction:
 
-  <g class="flag">
-    <rect x="150" y="180" width="220" height="30" rx="4" fill="#ff6b00"/>
-    <text x="260" y="200" text-anchor="middle" font-size="14" style="fill:#1a1a1a" font-weight="bold">CybICS(m0dbu$)</text>
-  </g>
-</svg>
-<figcaption>The plant writes this once per cycle from <code>hwio</code>. In Wireshark you are
-looking for one <em>Write Multiple Registers</em> frame at address 1200, and the work is decoding
-it: each register is two characters, high byte first. Filtering for <code>modbus</code> and reading
-the Data field of that one frame is the whole challenge.</figcaption>
-</figure>
+| Code | Meaning |
+|---|---|
+| 1 / 2 | read coils / read discrete inputs |
+| 3 / 4 | read holding registers / read input registers |
+| 5 / 6 | write one coil / write one register |
+| 15 / 16 | write several coils / write several registers |
 
-## What the IDS has to work with instead
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: diagnostic codes and OpenPLC's own function codes</summary>
 
-Here is the same write, sent twice: once by `hwio`, the bridge that is supposed to write the plant's registers, and once by the attack machine. Ten of the twelve Modbus bytes are identical. The two that differ are the transaction id, and they differ only because neither side has any reason to agree &mdash; captured on the bridge, `hwio` counts its up per request (`0a ed`, `0a ee`, and on), while an attacker picks whatever it likes, including `hwio`'s next one.
+Two more standard codes matter for security: 8 (diagnostics, meant for serial lines) and 43 (0x2B, device identification). The OpenPLC in CybICS refuses both with exception 1, "illegal function". The refused request is still on the wire, where the IDS sees it: that is how the *Fuzzing Modbus* challenge is detected.
 
-<figure>
+OpenPLC adds five function codes that are not in the Modbus specification: 0x41 to 0x45, used by its web editor for debugging. They return the number of debug variables (0x41), force a program variable (0x42), read variables (0x43 and 0x44) and return the MD5 hash of the running program (0x45). They are answered on the same unauthenticated port 502.
+
+The CybICS IDS only watches the standard diagnostic codes 0x08 and 0x2B. A rule catches what somebody thought to write it for, and this one was written for the specification, not for this implementation.
+
+</details>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: text hidden in numbers</summary>
+
+Modbus only knows numbers, but a 16-bit register can carry two text characters: one in the high byte, one in the low byte. Each byte is looked up in the ASCII table, where for example `48` is `H` and `65` is `e`. The *Wireshark Capture* challenge hides its secret this way. The decoder shows the method on a harmless example:
+
+<div data-widget="register-decoder" data-values="18533,27756,28416"></div>
+
+</details>
+
+## What the IDS can see
+
+A forged write and a real one are the same bytes, so the IDS can only judge traffic to port 502 by the sender's IP address, how *often* it writes and *which* function code it uses.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the three Modbus rules</summary>
+
+- **Rule 3, write flood:** 50 or more writes within 5 seconds from one source, unless it is `hwio`, `fuxa` or `openplc`.
+- **Rule 4, unauthorised write:** 10 or more writes within 30 seconds from a source other than `hwio` or `fuxa`. A single write raises nothing.
+- **Rule 5, diagnostics:** any request with function code 0x08 or 0x2B.
+
+The details of every rule are in [Detection and monitoring](/theory/detection-monitoring).
+
+</details>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the same write from two senders</summary>
+
+Compare the same write sent by `hwio` and by the attack machine:
+
+<figure class="wide">
 <svg viewBox="0 0 520 146" role="img"
      aria-label="Two Modbus frames stacked and aligned, one from hwio at 172.18.0.2 and one from the attack machine at 172.18.0.100. Ten of the twelve bytes match exactly. The first two, the transaction id, differ: hwio counts its up per request while the attacker chose one freely. Nothing in the protocol or the rule checks either, so the attacker could have copied hwio's.">
   <text x="10" y="18" font-size="11" opacity="0.75">outside the Modbus frame</text>
   <text x="200" y="18" font-size="11" opacity="0.75">the Modbus frame itself</text>
-
   <g font-size="11">
     <rect x="10" y="28" width="176" height="34" rx="4" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-opacity="0.7"/>
     <text x="20" y="43">src 172.18.0.2</text>
@@ -341,7 +252,6 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
     <text x="226" y="49" font-family="monospace" font-size="12" fill="#ff6b00" font-weight="bold">0a ed</text>
     <text x="269" y="49" font-family="monospace" font-size="12">00 00 00 06 01 06 04 66 00 5a</text>
   </g>
-
   <g font-size="11">
     <rect x="10" y="74" width="176" height="34" rx="4" fill="#ff6b00"/>
     <text x="20" y="89" style="fill:#1a1a1a">src 172.18.0.100</text>
@@ -350,47 +260,24 @@ Here is the same write, sent twice: once by `hwio`, the bridge that is supposed 
     <text x="226" y="95" font-family="monospace" font-size="12" fill="#ff6b00" font-weight="bold">00 01</text>
     <text x="269" y="95" font-family="monospace" font-size="12">00 00 00 06 01 06 04 66 00 5a</text>
   </g>
-
   <line x1="194" y1="116" x2="510" y2="116" stroke="#ff6b00" stroke-width="1" stroke-dasharray="4 4"/>
   <text x="352" y="132" text-anchor="middle" font-size="11" fill="#ff6b00" font-weight="bold">
     ten of twelve bytes identical &mdash; the rest need not be
   </text>
   <line x1="10" y1="116" x2="186" y2="116" stroke="currentColor" stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4 4"/>
   <text x="98" y="132" text-anchor="middle" font-size="11" opacity="0.85">the only difference</text>
-
 </svg>
-<figcaption>A source address is identity you can forge, and that is the honest limit of the allowlist the IDS uses. Both frames write 0x5a (90) to register 0x0466 (1126), and both would be applied. The transaction id is the only field either side chooses freely &mdash; <code>hwio</code> lets pymodbus count it up, an attacker picks one, and neither the protocol nor any rule compares them. Nothing but <code>hwio</code> has any business writing 1126, which is not the same as nothing else being able to.</figcaption>
+<figcaption>Both frames write 0x5a (90) to register 0x0466 (1126), and the PLC applies both. Apart from the freely chosen transaction id, only the sender's IP address differs, and that lies outside Modbus.</figcaption>
 </figure>
 
-So the IDS cannot ask Modbus who is writing. It asks the IP header, and then asks how often and what:
+</details>
 
-- **Rule 3, flood** &mdash; 50 writes in 5 seconds from one source. Its exemption list is `hwio`, `fuxa` and `openplc`, and only the first of those earns its place: `hwio` writes the plant registers at 50 Hz, `fuxa` writes a coil or a mode register when an operator clicks something, and `openplc` writes nothing at all &mdash; it is the *server* on 172.18.0.3, its `Slave_dev` table is empty, so it has no slave to poll and never originates a write at all. The Modbus rules would not have looked anyway: `check_packet` only runs them on traffic *towards* port 502, never on the replies coming back from it. The port-scan and ARP rules are not gated that way, which is why they still catch the neighbouring attacks. The `openplc` entry exempts a host that was never going to trigger the rule. Allowlists accumulate entries like this, and nobody re-derives them.
-- **Rule 4, unauthorised write** &mdash; 10 writes in 30 seconds from a source that is not `hwio` or `fuxa`. A narrower list than rule 3's, and note the threshold: a *single* write from the attack machine raises nothing at all.
-- **Rule 5, diagnostic** &mdash; function code 0x08 or 0x2B from anywhere.
+Slow writes stay below the write rules (the *IDS Evasion* challenge), and an IP address is easy to fake. The real defence is to keep untrusted hosts away from port 502, as [Defence in depth](/theory/defense-hardening) shows. Compare [S7comm](/theory/s7comm) and [OPC-UA](/theory/opcua-protocol), which adds the login Modbus lacks.
 
-That rule 4 threshold is not a detail. Three writes five seconds apart stay under it indefinitely, which is exactly what the *IDS Evasion* challenge does &mdash; its solver says so in as many words. A detector tuned to catch a flood is, by construction, blind to patience.
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
 
-## Common function codes
+- Rule 3 exempts `openplc`, but OpenPLC is only the Modbus server here and never sends writes to port 502, so that entry has no effect. The IDS only inspects traffic towards port 502.
+- The allowlists in rules 3 and 4 trust source IPs on a shared bridge, where the attack machine can spoof them. A good discussion: how would you tune the thresholds and allowlists in `rules.py` for this plant? The *IDS Monitoring &amp; Tuning* challenge only checks that three rules fire, not that any was tuned.
 
-- **1/2** read coils / discrete inputs
-- **3/4** read holding / input registers
-- **5/6** write single coil / register
-- **15/16** write multiple coils / registers
-- **8** diagnostics &mdash; specified for serial lines. OpenPLC does *not* implement it: `processModbusMessage()` falls through to `ERR_ILLEGAL_FUNCTION` and answers with exception 0x01
-- **43 (0x2B)** encapsulated transport / device identification &mdash; likewise refused
-
-Those two are worth dwelling on. The PLC rejecting a function code does not make the attempt harmless or invisible: the *Fuzzing Modbus* challenge passes when the IDS's `modbus_diagnostic` rule fires, which happens because the **request crossed the wire**, not because anything replied. `check_fuzzing_attack.py` asks the IDS, not the PLC. Detection has to sit on the network precisely because a refusal at the endpoint leaves no trace the endpoint will tell you about.
-
-And there is a third group, which is the more uncomfortable one:
-
-- **0x41&ndash;0x45** OpenPLC's own additions &mdash; debug info, set trace, get trace, get list, program MD5
-
-These are not in the Modbus specification; OpenPLC invented them, and it answers them. Sent live to this stack, function code 0x08 came back as exception 0x01 and 0x41 came back as `00 05 00 00 00 02 01 41 00 00` &mdash; an answer. `debugSetTrace()` behind 0x43 calls `set_trace(varidx, flag, value)`, which forces an internal program variable, on the same unauthenticated port 502.
-
-The IDS watches `{0x08, 0x2B}` and nothing else. So this page's two examples are the two codes the controller refuses and the detector notices, and the five it accepts are five nobody is watching. That asymmetry is the argument of this section in one line: what gets detected is what somebody thought to write a rule for, and the rule was written for the specification rather than for this implementation.
-
-## Security relevance
-
-Because Modbus carries no identity of its own, the CybICS IDS borrows one from the layer below and mixes it with behaviour: a burst of 50 writes in 5 seconds (flood, rule 3), 10 writes in 30 seconds from a source that is not `hwio` or `fuxa` (unauthorised write, rule 4), or a single diagnostic function code (rule 5). Only rule 5 is a signature: one byte matched, alerting on the first packet that carries it. The other two are rate rules, and *both* carry an IP allowlist on top of their counter &mdash; which is identity of a sort &mdash; just the weakest sort, since the attack machine sits on the same bridge and can claim any address it likes.
-
-Note what that costs. A behavioural rule has no ground truth to appeal to, so it is a judgement about what is normal *here*, tuned against this plant's traffic. Change the polling rate and the flood threshold is wrong. An address allowlist is worse: it is exactly as strong as the assumption that nobody spoofs. Neither trade-off is actually exercised anywhere: the *IDS Monitoring &amp; Tuning* challenge only asks you to start the IDS and make three different rules fire. The thresholds and the allowlists are both in `software/ids/rules.py`, and changing them is the exercise the challenge leaves out.
+</details>

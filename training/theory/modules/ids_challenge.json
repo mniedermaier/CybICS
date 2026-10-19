@@ -1,0 +1,96 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Describe what an intrusion detection system does and what it does not do",
+    "Match common attacks against CybICS to the IDS rule each one triggers",
+    "Explain why the IDS limits repeated alerts and how that affects testing",
+    "Identify gaps in a rule set by noting which attacks stay silent"
+  ],
+  "takeaways": [
+    "An IDS watches and alerts; it does not block anything by itself.",
+    "The CybICS IDS has nine rules covering discovery, access and manipulation of the plant.",
+    "At most one alert per rule and source is raised every 30 seconds, so different attacks produce more alerts than repeated ones.",
+    "Mapping attacks to the alerts they cause shows where a defender is blind.",
+    "Rule-based detection is predictable but cannot see an attack nobody wrote a rule for."
+  ],
+  "checkpoints": [
+    {
+      "id": "cooldown",
+      "question": "You run the same nmap scan five times within 50 seconds. How many port_scan alerts from your address do you expect at most?",
+      "options": [
+        "One",
+        "Two",
+        "Five",
+        "Three"
+      ],
+      "answer": 1,
+      "explanation": "The IDS allows one alert per rule and source every 30 seconds, so within 50 seconds that is at most two. Five assumes one alert per scan, but the cooldown swallows the repeats. Running different attacks raises more alerts than repeating one."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What does the CybICS IDS do when it detects a Modbus write flood?",
+      "options": [
+        "It blocks the attacker's IP address",
+        "It raises an alert for someone to act on",
+        "It resets the register to its last value",
+        "It drops the attacker's Modbus packets"
+      ],
+      "answer": 1,
+      "explanation": "An IDS detects and reports; it does not touch the traffic. Blocking or dropping packets needs a firewall or an intrusion prevention system. That is why alerts must reach someone who can respond."
+    },
+    {
+      "type": "single",
+      "question": "You open an S7comm connection to port 102 from the attack machine. Which rule fires?",
+      "options": [
+        "port_scan",
+        "s7_enumeration",
+        "opcua_access",
+        "No rule, one connection is normal"
+      ],
+      "answer": 1,
+      "explanation": "Any S7comm traffic to port 102 or 1102 raises s7_enumeration, even a single connection, because no plant service uses S7comm in normal operation. port_scan needs 5 ports on one target, so one connection is far below its threshold."
+    },
+    {
+      "type": "single",
+      "question": "FUXA sends Modbus writes all day. Why does modbus_unauth_write stay quiet for it?",
+      "options": [
+        "FUXA's writes are below the 10-in-30 s limit",
+        "The rule exempts the expected writers",
+        "The rule only watches the attack machine",
+        "FUXA writes coils, which the rule ignores"
+      ],
+      "answer": 1,
+      "explanation": "The rule is about writes from hosts that should not write, so it exempts hwio and FUXA. It is not that FUXA writes slowly: an exempt host is never counted at all. Any other host, not only the attack machine, would be counted."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these activities from the attack machine raise an alert on CybICS?",
+      "options": [
+        "A SYN scan of 20 ports on the PLC",
+        "An OPC-UA client connecting to port 4840",
+        "Reading holding registers once a second",
+        "Five failed OpenPLC logins within 30 s"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "The scan triggers port_scan, the OPC-UA connection opcua_access and the logins http_brute_force. Slow Modbus reads match no rule: the Modbus rules only count writes and the diagnostic codes, and reading is normal traffic in the plant."
+    },
+    {
+      "type": "single",
+      "question": "What is the main weakness of a purely rule-based IDS like the one in CybICS?",
+      "options": [
+        "It raises an alert for every packet it sees",
+        "It misses behaviour no rule describes",
+        "It needs months of training data first",
+        "It cannot read unencrypted Modbus traffic"
+      ],
+      "answer": 1,
+      "explanation": "Rules only match what someone described in advance. Needing training data is the weakness of anomaly detection, which learns normal behaviour; rule-based detection works from day one. The cooldown also keeps it far from one alert per packet."
+    }
+  ]
+}

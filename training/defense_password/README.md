@@ -48,7 +48,7 @@ The FUXA HMI runs on port **1881** and uses the default admin credentials:
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Default Credentials | [T0812](https://attack.mitre.org/techniques/T0812/) | Adversaries use default credentials to gain initial access |
+| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries use default credentials to gain initial access |
 | Persistence | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Compromised credentials enable persistent access |
 
 ### MITRE D3FEND - Defensive Techniques Applied

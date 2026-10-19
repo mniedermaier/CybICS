@@ -1,0 +1,142 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain defence in depth and why one control is never enough",
+    "Order firewall rules correctly and choose between an allow-list and a deny-list",
+    "Describe why patching is slow in OT and which compensating controls fill the gap",
+    "Explain zones and conduits as IEC 62443 uses them"
+  ],
+  "takeaways": [
+    "Layer independent defences, because each one can fail and an attacker needs only one open path.",
+    "A firewall uses the first rule that matches; an allow-list that blocks everything else closes the gaps you forgot.",
+    "When a weak device cannot be patched, segmentation, firewalls and monitoring protect it without stopping the plant."
+  ],
+  "checkpoints": [
+    {
+      "id": "rule-order",
+      "question": "OpenPLC has two rules, in this order: 1) drop all traffic to port 502, 2) accept traffic to port 502 from FUXA. What happens to FUXA's Modbus requests?",
+      "options": [
+        "Accepted, because rule 2 names FUXA specifically",
+        "Dropped, because rule 1 matches first",
+        "Accepted, because the more specific rule always wins"
+      ],
+      "answer": 1,
+      "explanation": "The firewall stops at the first rule that matches. Rule 1 matches every packet to port 502, so rule 2 is never reached. It is tempting to think the more specific rule wins, but a firewall like iptables only looks at order. Put the accept rules first, then the drop."
+    },
+    {
+      "id": "compensating",
+      "question": "A controller runs firmware with a known weakness, and the vendor patch would need a two-week shutdown. What is the typical OT response until the next planned stop?",
+      "options": [
+        "Patch tonight anyway, because security comes first",
+        "Add compensating controls around the controller",
+        "Accept the risk, since only the vendor can fix it"
+      ],
+      "answer": 1,
+      "explanation": "Compensating controls, such as tighter firewall rules and monitoring around the controller, reduce the risk without touching the process. Patching tonight is the IT reflex and risks an unplanned outage; simply accepting the risk leaves the weakness exposed when layers could be put around it."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You set strong passwords on OpenPLC and FUXA. Why can an attacker on the CybICS network still change the HPT pressure value?",
+      "options": [
+        "The new passwords are still stored in plain text",
+        "Modbus on port 502 accepts writes without any login at all",
+        "FUXA keeps the old default login active as well",
+        "The PLC still trusts sessions from before the change"
+      ],
+      "answer": 1,
+      "explanation": "Each control guards one path. Passwords protect the web interfaces, but Modbus has no authentication at all, so register writes do not go through any login and need a network control such as a firewall rule."
+    },
+    {
+      "type": "single",
+      "question": "Why do OT networks suit an allow-list (default deny) particularly well?",
+      "options": [
+        "Their traffic is predictable and rarely changes",
+        "Allow-lists never need updating once written",
+        "Industrial protocols already filter bad senders",
+        "A default-deny list blocks every attack, known or new"
+      ],
+      "answer": 0,
+      "explanation": "Because plant traffic barely changes, the list of needed connections is short and stable, and everything else can be dropped. It does not block every attack: traffic over an allowed path, such as a spoofed FUXA write, still passes. Allow-lists also need updating when the plant changes."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are reasons security patches are installed slowly in plants?",
+      "options": [
+        "A restart may stop a process that runs for months",
+        "The vendor may only support tested software versions",
+        "A monitoring IDS already makes most patches unnecessary",
+        "A faulty patch could create a safety hazard",
+        "Controllers often outlive their vendor's patch support"
+      ],
+      "answer": [0, 1, 3, 4],
+      "explanation": "Uptime, certification, safety testing and long equipment lifetimes are the real constraints. An IDS only watches and blocks nothing, so it is one of the compensating controls used while a patch waits, not a replacement for it."
+    },
+    {
+      "type": "single",
+      "question": "In IEC 62443, what is a conduit?",
+      "options": [
+        "A group of devices with the same security needs",
+        "The controlled path between two zones",
+        "The cable tray that carries a zone's network",
+        "A security level between SL 1 and SL 4"
+      ],
+      "answer": 1,
+      "explanation": "A zone is the group of devices, which makes the first option the easy one to mix up; the conduit is the controlled path between zones, typically a firewall that only lets through what the plant needs. It is a logical path, not a physical cable."
+    },
+    {
+      "type": "single",
+      "question": "You add a Modbus firewall rule on OpenPLC and accidentally block 172.18.0.2 (hwio). What is the consequence?",
+      "options": [
+        "Nothing, hwio only monitors the plant",
+        "The PLC stops getting real tank pressures",
+        "The attack machine is blocked along with it",
+        "The IDS loses its view of the plant traffic"
+      ],
+      "answer": 1,
+      "explanation": "hwio is not a monitoring tool: it exchanges the plant's sensor and actuator values with OpenPLC over Modbus. Blocking it leaves the control loop working on stale data and disrupts the process itself, which is exactly the availability failure a defender must avoid."
+    }
+  ],
+  "exercises": {
+    "capstone": {
+      "type": "sequence",
+      "title": "From an open network to the defence",
+      "intro": "These steps take an attacker from the attack machine to an overfilled high-pressure tank. Put them in the order they happen, then give each one the defence from the core path that would stop or catch it.",
+      "labels": [
+        "Network segmentation",
+        "Strong, changed passwords",
+        "Firewall allowlist on port 502",
+        "IDS alert and a response",
+        "Independent safety (blow-out valve)"
+      ],
+      "steps": [
+        {
+          "text": "The attack machine at 172.18.0.100 can open connections to every container on the plant network, the controllers included.",
+          "label": "Network segmentation",
+          "explain": "Every later step needs this reach. CybICS puts all containers on one flat network; separate zones joined by a controlled conduit would keep the attack machine away from the controllers before anything else happens."
+        },
+        {
+          "text": "A guessed default password opens the FUXA editor, whose tag list shows the HPT at address 1127.",
+          "label": "Strong, changed passwords",
+          "explain": "Default credentials are one of the typical ways authentication fails. With a changed, strong password the attacker stays off the HMI. Without it, they learn the target: HMIs count from one, so address 1127 is holding register 1126 on the wire."
+        },
+        {
+          "text": "OpenPLC accepts a test write to register 1126 from 172.18.0.100, a host that is not one of the plant's Modbus clients.",
+          "label": "Firewall allowlist on port 502",
+          "explain": "Modbus asks for no login, so the network is its only gate. A default-deny rule on OpenPLC that accepts port 502 only from hwio (172.18.0.2), FUXA (172.18.0.4) and the OPC-UA server (172.18.0.5) drops this write, even from a host on the same network."
+        },
+        {
+          "text": "A script writes the value 10 into register 1126 hundreds of times a second.",
+          "label": "IDS alert and a response",
+          "explain": "Fifty Modbus writes within five seconds from a host other than hwio, FUXA or OpenPLC raise a critical modbus_flood alert. The IDS only watches a copy of the traffic, so the alert helps only if someone acts on it and stops the attacker."
+        },
+        {
+          "text": "The PLC runs the compressor with the system valve shut, and the real HPT pressure climbs past 220 bar.",
+          "label": "Independent safety (blow-out valve)",
+          "explain": "The PLC and the HMI both believe the forged 10. The blow-out valve works on the real pressure, not on a register, so it opens above 220 bar whatever the PLC reads. It vents more slowly than the compressor fills, so it limits the damage rather than ending the attack."
+        }
+      ]
+    }
+  }
+}

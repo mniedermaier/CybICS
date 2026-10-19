@@ -10,6 +10,11 @@ You have the flexibility to complete the training modules in any sequence that b
 However, to maximize your learning and ensure a structured approach, we recommend following the suggested order.
 This recommended sequence is designed to build your knowledge progressively, laying a solid groundwork before advancing to more complex topics.
 
+New to industrial control systems? Start with the **Theory Path** in the landing page (`/theory`, or the 📚 button in the dashboard).
+It is a numbered course of short, illustrated lessons for students with little IT or OT background: what a PLC is, how Modbus, S7comm and OPC-UA work, how attacks unfold and how defenders respond, plus four real-world case studies.
+Every lesson has interactive examples (some read the live plant) and a short quiz, and every challenge has a briefing there that explains the idea behind it without giving the solution away.
+The lessons live in [`theory/`](theory/); [`theory/AUTHORING.md`](theory/AUTHORING.md) explains how to write one.
+
 ## 🛡️ Security Framework Alignment
 
 All training modules are mapped to industry-standard security frameworks to help you understand the real-world relevance of each exercise:
@@ -20,27 +25,29 @@ All training modules are mapped to industry-standard security frameworks to help
 
 ### 📊 MITRE ATT&CK for ICS Coverage Matrix
 
+The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs have been folded into new techniques and now redirect: T0855 is T1692.001, T0856 is T1692.002 and T0812 is T1694.001.
+
 | Module | Tactic | Techniques | IDs |
 |--------|--------|------------|-----|
 | [Physical Process](physical_process/README.md) | Impair Process Control | Manipulation of Control | T0831 |
 | [PLC Programming](plc_programming/README.md) | Execution, Persistence | Modify Program, Program Download | T0889, T0843 |
 | [Service Scanning](scanning/README.md) | Discovery | Remote System Discovery, Network Connection Enumeration | T0846, T0840 |
-| [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Point & Tag Identification | T0846, T0861 |
+| [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Remote System Information Discovery | T0846, T0888 |
 | [Wireshark Capture](wireshark_capture/README.md) | Collection | Network Sniffing | T0842 |
-| [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control | Modify Parameter, Unauthorized Command Message, Brute Force I/O | T0836, T0855, T0806 |
-| [Password Attack](password_attack/README.md) | Initial Access, Persistence | Default Credentials, Valid Accounts | T0812, T0859 |
-| [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts, Exploitation of Remote Services | T0859, T0866 |
-| [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Command Message, Denial of Service | T0855, T0814 |
-| [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Spoof Reporting Message | T0830, T0856 |
-| [UART Training](uart_basic/README.md) | Initial Access | Default Credentials, External Remote Services | T0812, T0822 |
+| [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control, Evasion | Brute Force I/O, Unauthorized Message: Command Message, Manipulation of View | T0806, T1692.001, T0832 |
+| [Password Attack](password_attack/README.md) | Initial Access, Persistence | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
+| [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts | T0859 |
+| [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
+| [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Unauthorized Message: Reporting Message | T0830, T1692.002 |
+| [UART Training](uart_basic/README.md) | Initial Access | Insecure Credentials: Hardcoded Credentials | T1694.002 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
 | [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
 | [Credential Hardening](defense_password/README.md) | *Defensive* | D3FEND: Strong Password Policy, Credential Rotation | D3-SPP |
 | [Modbus Firewall](defense_firewall/README.md) | *Defensive* | D3FEND: Inbound Traffic Filtering, Network Traffic Filtering | D3-ITF, D3-NTF |
 | [Network Segmentation](defense_network/README.md) | *Defensive* | D3FEND: Network Isolation | D3-NI |
 | [IDS Monitoring](defense_ids/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA, D3-PMAD |
-| [IDS Challenge](ids_challenge/README.md) | Discovery, Impair Process Control | Remote System Discovery, Denial of Service, Unauthorized Command Message | T0846, T0814, T0855 |
-| [IDS Evasion](ids_evasion/README.md) | Impair Process Control, Evasion | Unauthorized Command Message, Exploitation of Remote Services, Manipulation of Control | T0855, T0866, T0831 |
+| [IDS Challenge](ids_challenge/README.md) | Discovery, Impair Process Control | Remote System Discovery, Denial of Service, Unauthorized Message: Command Message | T0846, T0814, T1692.001 |
+| [IDS Evasion](ids_evasion/README.md) | Impair Process Control, Evasion | Unauthorized Message: Command Message, Exploitation of Remote Services, Manipulation of Control | T1692.001, T0866, T0831 |
 | [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Alert Triage | D3-NTA, D3-AT |
 
 ## 📦 Prerequisites

@@ -1,0 +1,96 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain how a rate rule with a sliding window detects a Modbus write flood",
+    "Describe why the CybICS rules count per source and exempt known writers",
+    "Correlate an IDS alert with the same attack in a packet capture",
+    "Identify the limits of threshold-based detection"
+  ],
+  "takeaways": [
+    "Modbus accepts writes from anyone, so a flood lets an attacker's value win over the real process.",
+    "The modbus_flood rule fires at 50 writes in 5 seconds from a host that is not a known writer.",
+    "Both CybICS Modbus rules count only write function codes; a read flood raises nothing.",
+    "Evidence from the IDS and from a capture that agree is much stronger than either alone.",
+    "An attacker who stays under every threshold is not detected by rate rules, so process monitoring and blocking matter too."
+  ],
+  "checkpoints": [
+    {
+      "id": "reads",
+      "question": "An attacker sends 1,000 read requests per second to the PLC. Which CybICS Modbus rule fires?",
+      "options": [
+        "modbus_flood",
+        "modbus_unauth_write",
+        "Both rules",
+        "Neither rule"
+      ],
+      "answer": 3,
+      "explanation": "Both rules only count write function codes (5, 6, 15, 16). It is tempting to pick modbus_flood because 1,000 requests a second is clearly a flood, but reads are normal polling in this plant, so a read flood raises neither rule, however fast it is."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "The hwio simulation writes to the PLC many times a second. Why does it not trigger modbus_flood?",
+      "options": [
+        "Its writes stay under 50 in 5 seconds",
+        "The rule skips the plant's known writers",
+        "The rule only counts writes to coils",
+        "Writes from inside 172.18.0.0/24 are trusted"
+      ],
+      "answer": 1,
+      "explanation": "The rule counts per source and skips the known writers hwio, FUXA and OpenPLC. hwio writes many times a second, well above 50 in 5 seconds, so without that allow-list it would raise constant false alarms. The attack machine is in the same subnet, so the subnet alone earns no trust."
+    },
+    {
+      "type": "single",
+      "question": "An attacker writes 9 times every 30 seconds from the attack machine. Which rule catches it?",
+      "options": [
+        "modbus_flood",
+        "modbus_unauth_write",
+        "Both rules",
+        "Neither rule"
+      ],
+      "answer": 3,
+      "explanation": "9 writes in 30 seconds stays just under the unauthorised-write threshold of 10, and far under the flood threshold of 50 in 5 seconds, so neither fires. modbus_unauth_write is the tempting answer because it watches exactly this host, but the count never reaches 10. This is the gap the IDS evasion module explores."
+    },
+    {
+      "type": "single",
+      "question": "You lower the modbus_flood threshold to 2 writes in 5 seconds and stop exempting FUXA. What is the most likely result?",
+      "options": [
+        "Attackers are caught sooner, with no side effects",
+        "HMI button presses start raising false alarms",
+        "The IDS can now block the attacker's writes",
+        "Read floods from the attacker are now detected"
+      ],
+      "answer": 1,
+      "explanation": "A lower threshold catches attackers sooner but also catches legitimate activity: two operator clicks in 5 seconds would now count as a flood. Every threshold is a trade-off between missed attacks and false alarms. The rule still only counts writes and still only alerts."
+    },
+    {
+      "type": "multi",
+      "question": "Which pieces of evidence should match between the IDS alert and your packet capture?",
+      "options": [
+        "The attacker's source IP",
+        "The target IP",
+        "The write rate",
+        "The alert's severity"
+      ],
+      "answer": [
+        0,
+        1,
+        2
+      ],
+      "explanation": "Source, target and rate appear both in the IDS alert and in the capture, so they should agree. Severity is tempting, but it is assigned by the IDS rule itself; a packet capture has no severity to compare against."
+    },
+    {
+      "type": "single",
+      "question": "Which defence stops the flood rather than only reporting it?",
+      "options": [
+        "A shorter window for modbus_flood",
+        "A firewall letting only FUXA and hwio write",
+        "Raising modbus_flood's severity to critical",
+        "Sending IDS alerts straight to the operator"
+      ],
+      "answer": 1,
+      "explanation": "An IDS detects; it does not block, however it is tuned or wherever its alerts go. Filtering write requests from unauthorised hosts at a firewall or gateway prevents the attacker's writes from reaching the PLC at all."
+    }
+  ]
+}

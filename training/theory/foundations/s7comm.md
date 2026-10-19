@@ -1,14 +1,25 @@
 # S7comm
 
-**S7comm** is the proprietary protocol Siemens PLCs use for programming and data exchange. It rides on ISO-on-TCP (RFC 1006), which conventionally listens on port **102**.
+Siemens is one of the biggest PLC makers in the world, and its S7 controllers run factories, water works and power plants. They talk **S7comm**, a protocol Siemens designed for its own devices. Like [Modbus](/theory/modbus), classic S7comm will tell anyone who asks what device it is, and that is where an attacker starts.
 
-CybICS gives you two of them, and they look almost identical from the outside. OpenPLC, at `172.18.0.3`, answers S7comm on the standard port 102 alongside its Modbus, DNP3 and EtherNet/IP servers, and identifies itself as a `CPU 315-2 PN/DP`. A separate purpose-built server at `172.18.0.6` on **port 1102** impersonates an S7-300 as well, calls itself `SIMATIC 300(1)`, and is the only one of the two carrying a flag. Telling them apart is the *S7comm Scanning* challenge.
+## Where S7comm comes from
 
-## What the protocol says has to happen
+S7comm is **proprietary**: Siemens never published a full specification. Everything public about it was worked out from network captures, and Wireshark and the scanner nmap both understand it today. Keeping a protocol secret is not security: once the format is known, nothing else stands in the way.
 
-A Modbus client can send a write as its first packet and be done. S7comm is not built that way, and the reason is historical: it is an OSI-stack protocol that grew up on MPI and Profibus, not on TCP. RFC 1006 tunnels that OSI transport over TCP without changing it, so the COTP header S7comm already used came along untouched &mdash; and RFC 1006 had to add a second one, TPKT, because TCP is a byte stream with no record boundaries while COTP expects discrete units. One of the two headers is OSI baggage; the other is the tax for putting OSI on TCP. The handshake is the same inheritance: two round trips of pure overhead come first, and only the third exchange carries anything about the device.
+S7comm grew up on Siemens' own industrial networks, not on the internet. To carry it over TCP/IP, Siemens uses **ISO-on-TCP** (RFC 1006) on TCP port **102**, which adds two small headers in front of every S7comm message:
 
-<figure>
+- **TPKT** (4 bytes) says how long the whole message is. TCP delivers one continuous stream of bytes, so the receiver needs this to know where a message ends.
+- **COTP** (Connection-Oriented Transport Protocol, 3 bytes in a data message) is a transport layer from the older OSI network model that S7comm already used before TCP.
+
+<div class="callout analogy" markdown="1">
+**Analogy:** a Modbus request is a postcard: the message is written right on it. An S7comm request is a letter inside two envelopes. The outer envelope (TPKT) says how thick the letter is, the inner one (COTP) carries the old OSI addressing, and only inside is the actual request.
+</div>
+
+## The handshake
+
+A Modbus client can send a write as its very first packet. S7comm expects three steps: open a COTP connection, agree on settings with an S7 "Setup Communication" request, and only then ask real questions.
+
+<figure class="wide">
 <style>
 .s7h {--d: 9s;}
 .s7h .st {opacity:0; animation-duration:var(--d); animation-timing-function:steps(1,end); animation-iteration-count:3; animation-fill-mode:forwards;}
@@ -39,7 +50,6 @@ A Modbus client can send a write as its first packet and be done. S7comm is not 
   <rect class="gate" x="14" y="64" width="392" height="130" rx="5" fill="none"
         stroke="currentColor" stroke-opacity="0.25" stroke-dasharray="5 4"/>
   <text class="gate" x="400" y="190" text-anchor="end" font-size="11" opacity="0.7">overhead</text>
-
   <g font-size="11" text-anchor="middle">
     <g class="st e1">
       <text x="210" y="82">COTP connection request</text>
@@ -73,23 +83,19 @@ A Modbus client can send a write as its first packet and be done. S7comm is not 
     </g>
   </g>
 </svg>
-<figcaption>Two round trips inside the dashed box buy nothing but the right to ask; the third is the only one that carries device data. None of them authenticates anything &mdash; the COTP exchange agrees addressing and the S7 setup agrees a maximum PDU size. They are negotiation, not admission control, and that is the difference that matters.</figcaption>
+<figcaption>Two round trips inside the dashed box only set up the conversation; the third carries device data. None of them checks who the client is: COTP agrees on addressing and the S7 setup agrees on a maximum message size.</figcaption>
 </figure>
 
-## What these two servers actually do
+The important word is *negotiation*. The handshake agrees on technical details, such as the largest message both sides accept (the **PDU size**). It is not a login: anybody who completes it may continue.
 
-Neither of them enforces any of it. The CybICS server is plainly stateless &mdash; `s7_server_custom.py` classifies each datagram by two bytes, the COTP PDU type and the S7 message type, and answers it with no memory that a connection was ever set up. OpenPLC's S7 side is snap7, a C++ library whose dispatch is not on display here; all the transcript below shows is that it answers too. An SZL read sent as the very first packet on a fresh socket &mdash; no connection request, no setup &mdash; gets a full answer from both:
+## One request, layer by layer
 
-```
-port 1102  ->  185 bytes, System name SIMATIC 300(1), Module type CybICS(s7comm_analysis_complete)
-port  102  ->  381 bytes, SNAP7-SERVER, CPU 315-2 PN/DP, Original Siemens Equipment
-```
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the layers drawn to scale</summary>
 
-That is what a bolt-on protocol emulator usually looks like, and it is worth knowing before you spend an afternoon debugging a handshake that nothing is checking. It also means the handshake is not a security control on anything here &mdash; it was never one on real hardware either, but here it is not even a speed bump.
+Put together, a request to read a device's identity is 33 bytes long. The two transport headers take 7 of them, the S7 part the remaining 26.
 
-## One request, to scale
-
-<figure>
+<figure class="wide">
 <style>
 .s7w {--d: 10s;}
 .s7w .st {opacity:0; animation-duration:var(--d); animation-timing-function:steps(1,end); animation-iteration-count:3; animation-fill-mode:forwards;}
@@ -128,16 +134,40 @@ That is what a bolt-on protocol emulator usually looks like, and it is worth kno
   </g>
   <text x="16" y="150" font-size="13" opacity="0.75">14 units per byte &mdash; 33 bytes in all</text>
 </svg>
-<figcaption>The request I sent above, drawn to scale: the two headers are 7 of its 33 bytes. Do not read a general lesson off that ratio, though &mdash; the 185-byte reply carries the same 7 bytes, where they are under 4%. TPKT exists only to say how long the message is, the same job Modbus gives its own length field, with the same failure mode when it is wrong.</figcaption>
+<figcaption>An SZL read request drawn to scale. TPKT only states the total length, the same job the length field does in Modbus. COTP marks the message as data. Everything that matters to the PLC sits in the S7 part.</figcaption>
 </figure>
+
+</details>
+
+Every S7comm message is TPKT, then COTP, then the S7 part, which carries the function and its data. Step through a real **Setup Communication** request and see which bytes belong to which layer (new to hex? see the callout in [Modbus TCP](/theory/modbus)):
+
+<div data-widget="s7-layers" data-sample="setup"></div>
 
 ## Reading device identity
 
-The **SZL** functions (*Systemzustandsliste*, system status list) return identity records and need no credentials &mdash; on these servers they need nothing at all. Two lists matter. SZL `0x0011` is module identification, which on 1102 answers with an ordinary S7-300 order number, `6ES7 315-2AG10-0AB0`, and basic hardware `SIMATIC 300`. SZL `0x001c` is component identification, and that is where the flag is.
+S7 PLCs keep a **System Status List**, or **SZL** after its German name *Systemzustandsliste*: numbered records that describe the device, such as its order number, hardware, firmware and the name the engineer gave it. A client asks for one record by its **SZL ID**:
 
-The trap is that both ports answer, and both answer plausibly.
+| SZL ID | Name | What it returns |
+|---|---|---|
+| 0x0011 | module identification | order number and hardware, for example `6ES7 315-2AG10-0AB0` |
+| 0x001c | component identification | system name, module type name, serial number and more |
 
-<figure>
+On classic S7-300 and S7-400 controllers, reading the SZL needs no password. An attacker learns exactly which model and firmware to look up in a list of known vulnerabilities. Here is a real SZL 0x0011 request, taken apart:
+
+<div data-widget="s7-layers" data-sample="szl"></div>
+
+In MITRE ATT&amp;CK for ICS, a catalogue of attacker techniques, finding the PLC is **T0846 Remote System Discovery** and reading its model and firmware is **T0888 Remote System Information Discovery**.
+
+## In CybICS: two S7 servers
+
+CybICS runs two services that both look like a Siemens S7-300 from the outside:
+
+| Host | Port | Software | Introduces itself as |
+|---|---|---|---|
+| `openplc`, 172.18.0.3 | 102 | OpenPLC's built-in S7 server (the snap7 library) | `CPU 315-2 PN/DP` |
+| `s7com`, 172.18.0.6 | 1102 | a small Python server written for CybICS | `SIMATIC 300(1)` |
+
+<figure class="wide">
 <style>
 .s7z {--d: 13s;}
 .s7z .st {opacity:0; animation-duration:var(--d); animation-timing-function:steps(1,end); animation-iteration-count:3; animation-fill-mode:forwards;}
@@ -156,10 +186,9 @@ The trap is that both ports answer, and both answer plausibly.
 }
 </style>
 <svg class="s7z" viewBox="0 0 520 244" role="img"
-     aria-label="The same SZL query sent to both S7 endpoints. Port 102 answers as a CPU 315-2 PN/DP from SNAP7-SERVER and carries no flag. Port 1102 answers as SIMATIC 300(1) and its module type name field holds the flag CybICS(s7comm_analysis_complete).">
+     aria-label="The same SZL query sent to both S7 endpoints. Port 102 answers with system name SNAP7-SERVER and module type CPU 315-2 PN/DP. Port 1102 answers with system name SIMATIC 300(1), and its module type name field is hidden behind a question mark: that is the field the challenge asks you to read.">
   <rect x="14" y="14" width="96" height="34" rx="5" fill="#ff6b00"/>
   <text x="62" y="36" text-anchor="middle" font-size="12" style="fill:#1a1a1a" font-weight="bold">nmap</text>
-
   <g class="st q1">
     <path d="M 114 31 L 392 31" stroke="#ff6b00" stroke-width="2"/>
     <path d="M 384 26 L 394 31 L 384 36" fill="none" stroke="#ff6b00" stroke-width="2"/>
@@ -173,9 +202,7 @@ The trap is that both ports answer, and both answer plausibly.
     <text x="180" y="78" font-family="monospace">SNAP7-SERVER</text>
     <text x="26" y="102" opacity="0.75">Module type name</text>
     <text x="180" y="102" font-family="monospace">CPU 315-2 PN/DP</text>
-    <text x="392" y="102" opacity="0.7">no flag here</text>
   </g>
-
   <line x1="62" y1="48" x2="62" y2="156" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="4 4"/>
   <g class="st q2">
     <path d="M 114 148 L 392 148" stroke="#ff6b00" stroke-width="2"/>
@@ -192,51 +219,32 @@ The trap is that both ports answer, and both answer plausibly.
   </g>
   <g class="st fl">
     <rect x="168" y="204" width="250" height="22" rx="3" fill="#ff6b00"/>
-    <text x="293" y="220" text-anchor="middle" font-size="12" font-family="monospace" style="fill:#1a1a1a" font-weight="bold">CybICS(s7comm_analysis_complete)</text>
+    <text x="293" y="220" text-anchor="middle" font-size="12" font-family="monospace" style="fill:#1a1a1a" font-weight="bold">? &mdash; read it yourself</text>
   </g>
 </svg>
-<figcaption>Two S7-300s that never existed, and only one of them is the exercise. The same question, asked twice. Both answers look like a Siemens S7-300 because both servers were written to look like one; the difference is in a single field. Enumeration maps to MITRE ATT&amp;CK for ICS <strong>T0846 Remote System Discovery</strong> and <strong>T0861 Point &amp; Tag Identification</strong>.</figcaption>
+<figcaption>The same question asked of both servers. Both answers look like a Siemens S7-300, because both were written to look like one. The difference is in a single field, and finding it is the <em>S7comm Scanning</em> challenge.</figcaption>
 </figure>
 
-There is a catch in the tooling, and it is worth taking apart properly. Nmap's `s7-info` carries
+<div class="callout tip" markdown="1">
+**Tip:** nmap's `s7-info` script reads the SZL for you, but every nmap script decides for itself which ports it runs on. Look at how `s7-info` makes that decision before you wonder why it stays silent on a non-standard port.
+</div>
 
-```
-portrule = shortport.version_port_or_service(102, "iso-tsap", "tcp")
-```
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: neither server insists on the handshake</summary>
 
-which matches either the port *number* 102 or a port whose *service name* is `iso-tsap`. The obvious guess is that `-sV` will discover the name on 1102 and the second clause will fire. It cannot: `nmap-service-probes` contains no rule that ever emits the name `iso-tsap`. The name exists only in `nmap-services`, the static port-to-name table, where it is bound to 102 &mdash; and 1102 is listed there as `adobeserver-1`. Version detection is not the missing ingredient, and adding `-sV` changes nothing.
+On a real S7-300, a client must finish the COTP connection and the setup step before the PLC answers an SZL read. Both CybICS servers are more relaxed: an SZL request sent as the very first packet on a new connection gets a full answer from each. The CybICS server in `software/s7com/s7_server_custom.py` looks only at two bytes of each message, the COTP message type and the S7 message type, and keeps no memory of earlier steps.
 
-Two routes actually work, and they differ in what you are willing to edit:
+Protocol emulators often work this way. It is worth knowing before you spend time debugging a handshake that nothing checks.
 
-```
-# 1. change the script. The S7comm Scanning module has you write
-#    portrule = shortport.port_or_service({102, 1102}, "iso-tsap", "tcp")
-#    which also drops the version-intensity clause; editing only the port
-#    list and keeping version_port_or_service is the smaller change.
+</details>
 
-# 2. or leave the script alone and change the name nmap gives the port
-mkdir -p /tmp/nd
-sed 's|^adobeserver-1\t1102/tcp|iso-tsap\t1102/tcp|' \
-    /usr/share/nmap/nmap-services > /tmp/nd/nmap-services
-nmap -Pn -n --datadir /tmp/nd --script s7-info -p 1102 172.18.0.6
-```
+## Detect and defend
 
-With the stock rule and the stock table the second command prints `1102/tcp open adobeserver-1` and nothing else; with only the table changed it prints the full record, flag included. Nothing about the service changed &mdash; only what nmap decided to call it. A scanner's port-to-name table is a guess baked in years ago, and a tool that gates its behaviour on that guess inherits it.
+Classic S7comm has no authentication on the identity functions. An optional "protection level" password guards some others, but it is off by default and weak. The newer S7-1200 and S7-1500 controllers speak **S7comm-Plus**, which protects against replayed and modified messages, but many plants still run the older ones.
 
-The standard port needs neither trick, because there the guess is right:
+The CybICS IDS handles S7comm with one blunt rule. **Rule 6** alerts on any TCP message of four bytes or more sent to port 102 or 1102, from any source, without reading the content. To avoid a thousand alerts for one scan, it reports each source at most once every 30 seconds:
 
-```
-nmap -Pn -n --script s7-info -p 102 172.18.0.3     # openplc, the decoy
-nmap -Pn -n --script s7-info -p 1102 172.18.0.6    # s7com, the one with the flag
-```
-
-## Security relevance
-
-Classic S7comm on the S7-300 and S7-400 has no authentication on the identity functions, and only an optional protection-level password &mdash; off by default, and weak &mdash; on the rest. Siemens added S7comm-Plus with anti-replay and integrity checking for the S7-1200 and S7-1500, but the installed base still speaks the old protocol, and CybICS models the old one.
-
-The CybICS IDS treats it bluntly. Rule 6 raises an alert for **any** TCP segment of four bytes or more sent to port 102 or 1102, from any source. It never looks at the payload, so it does not actually know whether what it saw was S7comm; there is no allowlist and no rate threshold, only a thirty-second cooldown per source address so one scan does not produce a thousand alerts. Rule 5, the Modbus diagnostic rule, is built the same way. They are the two Modbus-or-S7 rules in the file with neither an allowlist nor a threshold.
-
-<figure>
+<figure class="wide">
 <style>
 .s7c {--d: 12s;}
 /* The cooldown is a timing relationship, so the figure is a clock: the scan
@@ -453,7 +461,15 @@ The CybICS IDS treats it bluntly. Rule 6 raises an alert for **any** TCP segment
     <text x="400" y="126" text-anchor="middle">60</text>
   </g>
 </svg>
-<figcaption>Two alerts for sixty seconds of scanning, and no way to tell how much was missed. Rule 6's only brake is a thirty-second cooldown per source address, so a scan that never stops produces an alert, half a minute of silence, and another alert. The rule cannot say how many packets it suppressed, because it does not count them &mdash; and an analyst reading two alerts has no way to tell a port sweep from a single probe.</figcaption>
+<figcaption>Sixty seconds of non-stop scanning produce just two alerts: one at the first packet and one when the 30-second cooldown ends. The alerts tell you a host is talking S7comm, not how much it sent.</figcaption>
 </figure>
 
-That is worth arguing with. A rule with no exemptions is perfectly sensitive and completely unable to tell an engineer from an attacker, and in a plant where engineering traffic is routine it gets disabled within a week or ignored, which are both worse than a narrower rule. No challenge in CybICS currently asks you to fix it &mdash; *IDS Monitoring & Tuning* checks that the IDS is running, capturing, and firing at least three distinct rules, not that any rule was narrowed. Narrowing this one is left as the open question it is.
+With no allowlist, the rule also fires on a legitimate engineering workstation. A real plant would exempt known engineering hosts and, better, block port 102 from everywhere else with a firewall. [Detection and monitoring](/theory/detection-monitoring) explains this trade-off between catching everything and drowning in false alarms.
+
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
+
+- Rule 6 has a 30-second cooldown per source and does not count suppressed packets, so two alerts cannot be told apart from a single probe or a full sweep. A good class discussion: how would you narrow this rule without missing an attacker?
+- `training/README.md` maps the S7comm Scanning challenge to T0846 and T0861 (Point &amp; Tag Identification). Reading the SZL is closer to T0888 Remote System Information Discovery, which this article uses.
+
+</details>

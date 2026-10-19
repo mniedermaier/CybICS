@@ -16,6 +16,14 @@ TRAINING_DIR = os.path.join(BASE_DIR, 'training')
 PROGRESS_FILE = os.path.join(DATA_DIR, 'ctf_progress.json')
 CTF_CONFIG_FILE = os.path.join(BASE_DIR, 'ctf_config.json')
 THEORY_CONFIG_FILE = os.path.join(BASE_DIR, 'theory_config.json')
+THEORY_GLOSSARY_FILE = os.path.join(TRAINING_DIR, 'theory', 'glossary.json')
+THEORY_PROGRESS_FILE = os.path.join(DATA_DIR, 'theory_progress.json')
+# Share of quiz questions a student must answer correctly to complete a topic.
+THEORY_PASS_RATIO = 0.8
+# The PLC the live plant widgets read from (read-only, FC 01 and 03). The same
+# address on the virtual stack and on a board.
+PLC_HOST = os.environ.get('CYBICS_PLC_HOST', '172.18.0.3')
+PLC_MODBUS_PORT = 502
 
 # Ensure directories exist
 os.makedirs(DATA_DIR, exist_ok=True)

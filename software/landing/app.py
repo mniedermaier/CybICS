@@ -23,7 +23,7 @@ from utils.logger import logger
 from modules.stats_collector import StatsCollector
 from modules.network_capture import NetworkCapture
 from modules.ctf_manager import CTFManager
-from modules.theory_manager import TheoryManager
+from modules.theory_manager import TheoryManager, PlantReader
 from modules.network_routes import register_network_routes
 from modules.cybics_mgmt import MgmtClient
 from modules.mgmt_routes import register_mgmt_routes
@@ -53,6 +53,7 @@ stats_collector = StatsCollector()
 network_capture = NetworkCapture()
 ctf_manager = CTFManager()
 theory_manager = TheoryManager()
+plant_reader = PlantReader()
 
 # Optional CybICS-mgmt server. Sleeps until the user connects from the
 # settings (or a board joins the default network, see AutoEnrol); no network
@@ -377,26 +378,110 @@ def ctf_page():
 
 @app.route('/theory')
 def theory_page():
-    """Theory Path hub: sections of illustrated background-reading topics."""
+    """Theory Path hub: the numbered learning path with progress per topic."""
     initialize_session()
     logger.info('Rendering Theory page')
     return render_template('theory.html',
                            config=theory_manager.config,
-                           sections=theory_manager.sections)
+                           sections=theory_manager.sections,
+                           cards=theory_manager.overview(),
+                           progress=theory_manager.progress.load(),
+                           solved=session['solved_challenges'])
+
+
+@app.route('/theory/glossary')
+def theory_glossary():
+    """Every term the lessons explain on hover, in one alphabetical list."""
+    entries = sorted(theory_manager.glossary(), key=lambda e: e['term'].lower())
+    return render_template('theory_glossary.html', entries=entries)
+
+
+@app.template_filter('quiz_question')
+def quiz_question(question):
+    """A quiz question as the page gets it: without its answer and explanation."""
+    return {k: question[k] for k in ('type', 'question', 'options') if k in question}
 
 
 @app.route('/theory/<topic_id>')
 def theory_topic(topic_id):
-    """A single theory article, rendered from Markdown (may contain SVG)."""
+    """One lesson: the article, its widgets, its quiz and the way on."""
     initialize_session()
     topic, section = theory_manager.get_topic(topic_id)
     if not topic:
         logger.warning(f'Theory topic not found: {topic_id}')
         return "Topic not found", 404
-    content = theory_manager.load_markdown_content(topic.get('content'))
+    before, after = theory_manager.neighbours(topic_id)
+    core_before, core_after = theory_manager.neighbours(topic_id, core=True)
+    prerequisites = [theory_manager.get_topic(p)[0] for p in topic.get('prerequisites', [])]
     return render_template('theory_article.html',
-                           topic=topic, section=section, content=content,
+                           topic=topic, section=section,
+                           article=theory_manager.article(topic),
+                           sidecar=theory_manager.sidecar(topic),
+                           glossary=theory_manager.glossary(),
+                           challenges={ch['id']: ch.get('title', ch['id']) for cat in ctf_manager.challenges.values()
+                                       for ch in cat['challenges']},
+                           prerequisites=[p for p in prerequisites if p],
+                           before=before, after=after,
+                           core_before=core_before, core_after=core_after,
+                           core_total=len(theory_manager.core),
+                           total=len(theory_manager.topics),
+                           progress=theory_manager.progress.load(),
+                           solved=session['solved_challenges'],
+                           pass_ratio=THEORY_PASS_RATIO,
                            config=theory_manager.config)
+
+
+@app.route('/theory/api/progress', methods=['GET'])
+def theory_progress():
+    return jsonify(theory_manager.progress.load())
+
+
+@app.route('/theory/api/progress/<topic_id>', methods=['POST'])
+def theory_record(topic_id):
+    """Grade a quiz attempt, keep the best result, and return the answers.
+
+    The page does not carry the quiz answers: they and the explanations come
+    back only from here, after an attempt.
+    """
+    topic, _ = theory_manager.get_topic(topic_id)
+    if not topic:
+        return jsonify({'error': 'unknown topic'}), 404
+    quiz = theory_manager.sidecar(topic).get('quiz', [])
+    answers = (request.get_json(silent=True) or {}).get('answers')
+    if not quiz or not isinstance(answers, list) or len(answers) != len(quiz):
+        return jsonify({'error': 'expected one answer per question'}), 400
+    # An answer is an option index, a list of them, or null for "no answer".
+    def is_index(value):
+        return type(value) is int
+    if not all(a is None or is_index(a) or (isinstance(a, list) and all(map(is_index, a))) for a in answers):
+        return jsonify({'error': 'answers must be option indices'}), 400
+    results = []
+    for question, given in zip(quiz, answers):
+        expected = question['answer']
+        if isinstance(expected, list):
+            ok = isinstance(given, list) and sorted(set(given)) == sorted(expected)
+        else:
+            ok = given == expected
+        results.append({'correct': bool(ok), 'answer': expected,
+                        'explanation': question.get('explanation', '')})
+    correct = sum(r['correct'] for r in results)
+    entry = theory_manager.progress.record(topic_id, correct, len(quiz))
+    return jsonify({'correct': correct, 'total': len(quiz), 'results': results, **entry})
+
+
+@app.route('/theory/api/progress/reset', methods=['POST'])
+def theory_reset():
+    theory_manager.progress.reset()
+    return jsonify({'success': True})
+
+
+@app.route('/theory/api/plant')
+def theory_plant():
+    """Live plant values as the PLC holds them, for the plant-live widget."""
+    values = plant_reader.read()
+    if values is None:
+        return jsonify({'ok': False}), 503
+    return jsonify({'ok': True, 'values': values})
 
 
 @app.route('/ctf/challenge/<challenge_id>')
@@ -585,7 +670,9 @@ def theme_settings():
         return jsonify({'success': True, 'theme': theme})
     else:
         theme = session.get('theme', 'dark')
-        return jsonify({'theme': theme})
+        # 'explicit' tells a page opened on its own whether to follow this or
+        # the system preference (the Theory Path pages do).
+        return jsonify({'theme': theme, 'explicit': 'theme' in session})
 
 @app.route('/api/settings/logs/download')
 def download_logs():
