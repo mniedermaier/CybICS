@@ -190,7 +190,7 @@ Many rules depend on *who* sends the traffic. The IDS trusts the plant services 
 
 ## From alert to action
 
-An alert is only useful if someone acts on it. A good alert tells the analyst **what** happened, **who** did it and **what it probably means**. Each CybICS alert carries a rule name, a severity, the source and destination address, and an ATT&CK technique, so the analyst can look up the attacker's likely goal (see [The ICS attack lifecycle](/theory/attack-lifecycle)). What to do next is covered in [Incident response in OT](/theory/incident-response).
+An alert is only useful if someone acts on it. A good alert tells the analyst **what** happened, **who** did it and **what it probably means**. Each CybICS alert carries a rule name, a severity, the source and destination address, and an ATT&CK technique, so the analyst can look up the attacker's likely goal (see [The ICS attack lifecycle](/theory/attack-lifecycle)). Check the ID before you trust it: the CybICS flood alerts are labelled T0836 Modify Parameter, but forging a value over and over is T0806 Brute Force I/O, and some alerts still carry IDs that MITRE has since renumbered. What to do next is covered in [Incident response in OT](/theory/incident-response).
 
 <div class="callout tip" markdown="1">
 **Rule of thumb:** a good ICS detection stays quiet on normal traffic and has been shown to fire against the attack it claims to catch. The [Detect Port Scan](/ctf/challenge/detect_basic) and [IDS Challenge](/ctf/challenge/ids_challenge) exercises let you test exactly that.

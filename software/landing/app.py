@@ -450,6 +450,11 @@ def theory_record(topic_id):
     answers = (request.get_json(silent=True) or {}).get('answers')
     if not quiz or not isinstance(answers, list) or len(answers) != len(quiz):
         return jsonify({'error': 'expected one answer per question'}), 400
+    # An answer is an option index, a list of them, or null for "no answer".
+    def is_index(value):
+        return type(value) is int
+    if not all(a is None or is_index(a) or (isinstance(a, list) and all(map(is_index, a))) for a in answers):
+        return jsonify({'error': 'answers must be option indices'}), 400
     results = []
     for question, given in zip(quiz, answers):
         expected = question['answer']

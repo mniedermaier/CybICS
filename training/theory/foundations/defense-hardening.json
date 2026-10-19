@@ -101,7 +101,7 @@
   "exercises": {
     "capstone": {
       "type": "sequence",
-      "title": "From the first scan to the defence",
+      "title": "From an open network to the defence",
       "intro": "These steps take an attacker from the attack machine to an overfilled high-pressure tank. Put them in the order they happen, then give each one the defence from the core path that would stop or catch it.",
       "labels": [
         "Network segmentation",

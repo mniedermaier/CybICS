@@ -153,7 +153,7 @@ Notice that the downstream draw only happens while the compressor is off. A tick
 
 A defender sees this attack in two places. In the process, an HPT climbing out of its 60 to 90 band is abnormal whoever caused it, so an alarm on it catches operators and attackers alike. On the HMI, switching to manual mode is rare and should be logged with the user who did it.
 
-- **Independent safety functions.** The blow-out valve works without the PLC or the HMI. That is the idea behind a Safety Instrumented System (SIS).
+- **Independent safety functions.** The blow-out valve works without the PLC or the HMI. That is the idea behind independent protection layers such as physical relief; CybICS has no separate safety controller (SIS).
 - **Least privilege on the HMI.** FUXA supports user roles, so not every account can use manual mode.
 - **Strong credentials.** The operator login is a weak, well-known password here on purpose. See the [password attack briefing](/theory/password_attack).
 - **Interlocks in the PLC.** A program can refuse to run the compressor with the valve shut above a limit, even in manual mode.
@@ -163,4 +163,4 @@ A defender sees this attack in two places. In the process, an HPT climbing out o
 - [What is an ICS?](/theory/ics-basics) for the parts of a control system.
 - [PLCs and the scan cycle](/theory/plc-fundamentals) for how the controller decides.
 - [HMI and SCADA](/theory/hmi-scada) for what the operator screen does.
-- [Safety systems](/theory/safety-systems) for why the blow-out valve is independent.
+- [Safety systems](/theory/safety-systems) (optional, not on the core path) for why the blow-out valve is independent.

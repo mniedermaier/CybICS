@@ -134,6 +134,10 @@ def test_progress_endpoint_rejects_bad_attempts():
     url = BASE + "/theory/api/progress/"
     bad = requests.post(url + TOPICS[0]["id"], json={"answers": []}, timeout=READ_TIMEOUT)
     assert bad.status_code == 400
+    with open(os.path.join(ROOT, TOPICS[0]["content"][:-3] + ".json"), encoding="utf-8") as f:
+        count = len(json.load(f)["quiz"])
+    garbage = requests.post(url + TOPICS[0]["id"], json={"answers": [[{"x": 1}]] * count}, timeout=READ_TIMEOUT)
+    assert garbage.status_code == 400
     unknown = requests.post(url + "no-such-lesson", json={"answers": [0]}, timeout=READ_TIMEOUT)
     assert unknown.status_code == 404
 
