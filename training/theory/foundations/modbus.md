@@ -4,9 +4,9 @@ Modbus is the protocol the CybICS PLC speaks most, and the one you will meet mos
 
 ## Why Modbus trusts everyone
 
-Modbus was designed in 1979 to let a controller talk to devices over a serial cable. Its internet version, **Modbus TCP**, listens on TCP port **502**. A port is like a door number: the address finds the machine, the port finds the program.
+Modbus was designed in 1979 for a serial cable. Its network version, **Modbus TCP**, listens on TCP port **502**. A port is like a door number: the address finds the machine, the port finds the program.
 
-Modbus has no login, no encryption and no way to check who sent a message. In 1979 the "network" was a short cable in a locked cabinet, so touching the cable *was* the permission. The cable became Ethernet; the protocol did not change.
+Modbus has no login, no encryption and no way to check who sent a message. In 1979 the "network" was a short cable in a locked cabinet, so touching the cable *was* the permission. The cable became Ethernet; the protocol stayed the same.
 
 <div class="callout warning" markdown="1">
 **No authentication:** Modbus notices a frame that was damaged in transit, but nothing notices a frame that someone *forged*.
@@ -25,7 +25,7 @@ Serial Modbus RTU carries its own checksum; Modbus TCP relies on the one in TCP.
 **Analogy:** think of the PLC as a wall of numbered mailboxes. A Modbus client names a mailbox number and either looks inside or puts a new value in. Nobody at the wall checks ID.
 </div>
 
-Modbus offers four tables of these mailboxes. Two hold single bits (on or off), two hold 16-bit numbers (0 to 65535):
+Modbus has four tables of mailboxes. Two hold single bits (on or off), two hold 16-bit numbers (0 to 65535):
 
 | Table | Holds | Access | Typical use |
 |---|---|---|---|
@@ -48,13 +48,13 @@ The two tank pressures, live from the PLC:
 
 <div data-widget="plant-live" data-fields="gst,hpt"></div>
 
-Notice that the HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register, not a read-only input register. The *Flood &amp; Overwrite* challenge lives in that gap: a sensor value an attacker is allowed to write.
+The HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register. The *Flood &amp; Overwrite* challenge lives in that gap: a sensor value anyone may write.
 
 <div data-widget="checkpoint" data-id="holding"></div>
 
 ## Request and response
 
-The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code**, which says what to do, and an address, which says where. There is no session and no login: a client's very first request can already be a write.
+The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code** (what to do) and an address (where). There is no login: a client's very first request can already be a write.
 
 <figure class="wide">
 <style>
@@ -125,7 +125,7 @@ The **client** (older texts say "master") sends a request; the **server** (the P
 <figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes it back. TCP delivered the bytes; nothing in Modbus asked who sent them. The missing login step is the whole attack surface.</figcaption>
 </figure>
 
-The forged value does not last long, though. The `hwio` container, which simulates the plant's physics, writes the real HPT pressure back into register 1126 about fifty times a second. Nothing *defended* the register, which is why the *Flood &amp; Overwrite* attack is a loop, not a single packet.
+The forged value does not last, though. The `hwio` container, which simulates the plant, writes the real HPT pressure back into register 1126 about fifty times a second. Nothing *defended* the register, so the *Flood &amp; Overwrite* attack is a loop, not a single packet.
 
 ## The frame
 
@@ -179,7 +179,7 @@ Only three fields have to be right: the **length** (how many bytes follow), the 
 
 </details>
 
-Try it. The builder starts with the write from the request figure: function code 6, register 1126, value 90. Change a field and watch the bytes change, or paste bytes to decode them.
+Try it. The builder starts with the write from the figure: function code 6, register 1126, value 90. Change a field and watch the bytes, or paste bytes to decode them.
 
 <div data-widget="modbus-frame" data-fc="6" data-address="1126" data-value="90"></div>
 
@@ -187,19 +187,19 @@ Try it. The builder starts with the write from the request figure: function code
 
 ## Function codes
 
+The function code picks the table and the direction. These are the everyday ones:
+
 | Code | Meaning |
 |---|---|
 | 1 / 2 | read coils / read discrete inputs |
 | 3 / 4 | read holding registers / read input registers |
 | 5 / 6 | write one coil / write one register |
 | 15 / 16 | write several coils / write several registers |
-| 8 | diagnostics (meant for serial lines) |
-| 43 (0x2B) | device identification |
-
-The OpenPLC in CybICS refuses codes 8 and 43 with exception 1, "illegal function". The refused request is still on the wire, where the IDS sees it: that is how the *Fuzzing Modbus* challenge is detected.
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: OpenPLC's own function codes</summary>
+<summary>Deep dive: diagnostic codes and OpenPLC's own function codes</summary>
+
+Two more standard codes matter for security: 8 (diagnostics, meant for serial lines) and 43 (0x2B, device identification). The OpenPLC in CybICS refuses both with exception 1, "illegal function". The refused request is still on the wire, where the IDS sees it: that is how the *Fuzzing Modbus* challenge is detected.
 
 OpenPLC adds five function codes that are not in the Modbus specification: 0x41 to 0x45, used by its web editor for debugging. They return the number of debug variables (0x41), force a program variable (0x42), read variables (0x43 and 0x44) and return the MD5 hash of the running program (0x45). They are answered on the same unauthenticated port 502.
 
@@ -218,11 +218,18 @@ Modbus only knows numbers, but a 16-bit register can carry two text characters: 
 
 ## What the IDS can see
 
-Modbus carries no identity, so the IDS cannot ask *who* is writing. A forged write and a real one are the same bytes. The IDS therefore judges traffic to port 502 by the sender's IP address, by *how often* it writes and by *which* function code it uses:
+Modbus carries no identity, so a forged write and a real one are the same bytes. The IDS can only judge traffic to port 502 by the sender's IP address, by *how often* it writes and by *which* function code it uses.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the three Modbus rules</summary>
 
 - **Rule 3, write flood:** 50 or more writes within 5 seconds from one source, unless it is `hwio`, `fuxa` or `openplc`.
 - **Rule 4, unauthorised write:** 10 or more writes within 30 seconds from a source other than `hwio` or `fuxa`. A single write raises nothing.
 - **Rule 5, diagnostics:** any request with function code 0x08 or 0x2B.
+
+The details of every rule are in [Detection and monitoring](/theory/detection-monitoring).
+
+</details>
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the same write from two senders</summary>
@@ -262,7 +269,7 @@ Compare the same write sent by `hwio` and by the attack machine:
 
 </details>
 
-Writing slowly stays below rules 3 and 4 (the *IDS Evasion* challenge), and anyone on the same network can fake an IP address. The real defence is to keep untrusted hosts away from port 502, which [Defence and hardening](/theory/defense-hardening) covers. Next, see how Siemens solved the same job in [S7comm](/theory/s7comm), and how [OPC-UA](/theory/opcua-protocol) adds the login that Modbus lacks.
+Writing slowly stays below the write rules (the *IDS Evasion* challenge), and anyone on the same network can fake an IP address. The real defence is to keep untrusted hosts away from port 502, as [Defence in depth](/theory/defense-hardening) shows. Next, see how Siemens solved the same job in [S7comm](/theory/s7comm), and how [OPC-UA](/theory/opcua-protocol) adds the login that Modbus lacks.
 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>

@@ -178,6 +178,6 @@ In MITRE ATT&CK for ICS this is **T0830 Adversary-in-the-Middle**; forging the r
 ## Before you start
 
 - [Modbus TCP](/theory/modbus): requests, answers and the register map.
-- [The attack lifecycle](/theory/attack-lifecycle): where interception fits in an attack.
-- [Wireshark capture](/theory/wireshark_capture): seeing the traffic you redirect.
+- [The ICS attack lifecycle](/theory/attack-lifecycle): where interception fits in an attack.
+- [Capturing Modbus traffic](/theory/wireshark_capture): seeing the traffic you redirect.
 - [HMI and SCADA](/theory/hmi-scada): why the operator trusts the screen.

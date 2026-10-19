@@ -104,13 +104,14 @@ A program download is ordinary engineering traffic. It uses the vendor's own too
 Defenders therefore rely on process and integrity controls:
 
 - **Change control.** Every program change is requested, reviewed and recorded. An unplanned download is then an incident by definition.
-- **Integrity checks.** Compare the loaded program with a known-good copy, for example by its hash or file name. The challenge verifier does exactly this.
+- **Integrity checks.** Compare a cryptographic hash of the loaded program with the hash of a known-good copy: any change to the logic changes the hash. The challenge check is much weaker. It only sees that a new file is loaded and running, not what changed.
 - **Access control.** Change the default OpenPLC login and restrict who can reach port 8080. See [Hardening credentials](/theory/defense_password) and [Host firewalling](/theory/defense_firewall).
 - **Process monitoring.** A plant that behaves differently after a change, such as a valve that never opens, is a clue even when the screens look normal.
 
-<div class="callout tip" markdown="1">
-**Tip:** do this challenge before you harden the OpenPLC password. The check for this challenge logs in to OpenPLC with the default login to see which program is loaded. Once you have changed that password, it can no longer look.
-</div>
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
+
+The program check logs in with the default OpenPLC credential, and the password-hardening challenge passes only once that credential stops working, so students must do this challenge first:
 
 <figure class="wide">
 <style>
@@ -155,9 +156,6 @@ Defenders therefore rely on process and integrity controls:
 <figcaption>The order matters: download first, harden afterwards. The coupling mirrors real change audits, where the evidence that a change happened often depends on the access the change was meant to remove.</figcaption>
 </figure>
 
-<details class="instructor" markdown="1">
-<summary>Instructor notes</summary>
-
 The file name is assigned at upload, so re-uploading an unchanged copy of the shipped program also passes. The check proves that a new upload is loaded and running, not that the logic differs. A good discussion question: how would you prove that it does?
 
 </details>
@@ -165,8 +163,8 @@ The file name is assigned at upload, so re-uploading an unchanged copy of the sh
 ## Before you start
 
 - [PLCs and the scan cycle](/theory/plc-fundamentals) for how the controller runs its program.
+- [The gas pressure process](/theory/physical_process) for what the program controls.
 
 Later on the path:
 
-- [The gas pressure process](/theory/physical_process) for what the program controls.
 - [Stuxnet (2010)](/theory/stuxnet) for the real-world version of this attack.

@@ -1181,11 +1181,15 @@
                         show(end);
                         const delta = end.hpt - start.hpt;
                         const real = delta >= 3 ? 'up' : delta <= -3 ? 'down' : 'flat';
-                        const why = start.compressor
-                            ? 'The compressor was running, so it pushed gas from the GST into the HPT, about 1 bar a second.'
-                            : start.systemValve
-                                ? 'The compressor was off and the system valve open, so the consumer drew gas out of the HPT, about 1 bar a second on average.'
-                                : 'The compressor was off and the system valve closed, so nothing put gas in or took it out.';
+                        // The same cases as the plant model in hwio-virtual.
+                        const vent = start.boSen ? ' The blow-out valve was open (it opens above 220 bar and closes at 200) and vented about half a bar a second.' : '';
+                        const why = start.compressor && start.gst < 50
+                            ? 'The compressor was on, but the GST held less than 50 bar, too little to push against, so it moved no gas.' + vent
+                            : start.compressor
+                                ? 'The compressor was running, so it pushed gas from the GST into the HPT, about 1 bar a second.' + (vent && ' The open blow-out valve only slowed the rise.')
+                                : start.systemValve
+                                    ? 'The compressor was off and the system valve open, so the consumer drew gas out of the HPT, about 1 bar a second on average.' + vent
+                                    : 'The compressor was off and the system valve closed, so no gas went in and the consumer took none out.' + vent;
                         out.innerHTML = `<b class="${real === guess ? 'w-ok' : 'w-err'}">${real === guess ? 'Right.' : 'Not this time.'}</b> ` +
                             `The HPT went from ${start.hpt} to ${end.hpt} bar. ${escapeHtml(why)} ` +
                             (end.compressor !== start.compressor ? `Meanwhile the PLC switched the compressor ${end.compressor ? 'on' : 'off'}: the pressure crossed one of its limits (below 60 it starts, at 90 it stops). ` : '') +

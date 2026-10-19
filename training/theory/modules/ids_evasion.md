@@ -148,7 +148,7 @@ Try a plan before you try the network. The planner uses the two Modbus write rul
 
 Low-and-slow traffic beats rate rules, so a defender adds checks that do not depend on speed:
 
-- **Allow-listing.** Only the HMI should ever write to the PLC. A rule that alerts on the very first write from any other address has no threshold to hide under.
+- **Allow-listing.** Only the plant's own writers, the HMI and the plant I/O (hwio), should ever write to the PLC. A rule that alerts on the very first write from any other address has no threshold to hide under.
 - **Longer memory.** Count writes per source over hours, not seconds, and compare against a normal baseline.
 - **Process awareness.** Check whether a written value makes sense for the plant, not only how often writes arrive.
 - **Prevention.** A firewall that drops Modbus from unknown hosts stops the write entirely. See [Host firewalling](/theory/defense_firewall).

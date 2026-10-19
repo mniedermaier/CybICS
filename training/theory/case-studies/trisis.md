@@ -66,7 +66,7 @@ Check that you can retell the attack, from the office network to the unexpected 
 
 ## What it means for CybICS
 
-CybICS has no separate SIS. Its last line of defence is the **blow-out valve** on the high-pressure tank (HPT), and it is built very differently from a programmable safety controller. The valve is part of the physical process simulation, not of the OpenPLC program: it opens when the HPT goes above 220 bar and stays open until the pressure falls below 200. No Modbus write and no PLC program change can disable it, just as a real spring-loaded relief valve does not care what the software says.
+CybICS has no separate SIS. Its last line of defence is the **blow-out valve** on the high-pressure tank (HPT), and it is built very differently from a programmable safety controller. The valve is part of the physical process simulation, not of the OpenPLC program: it opens when the HPT goes above 220 bar and stays open until the pressure is back at 200. No Modbus write and no PLC program change can disable it, just as a real spring-loaded relief valve does not care what the software says.
 
 The valve has a limit, though. It vents more slowly than the compressor fills, so a compressor that keeps running drives the tank into a state the valve cannot recover. In the [physical process challenge](/ctf/challenge/physical_process) you work out what triggers the blow-out and how the HMI reports it. Read [Safety systems](/theory/safety-systems) first to see where an SIS would sit in this plant.
 
@@ -79,7 +79,7 @@ Other parts of TRITON map onto the lab as well:
 
 ## Lessons for defenders
 
-- **Keep the safety system separate.** Put the SIS and its engineering workstation on their own network, with no path from the office network. See [Defence and hardening](/theory/defense-hardening).
+- **Keep the safety system separate.** Put the SIS and its engineering workstation on their own network, with no path from the office network. See [Defence in depth](/theory/defense-hardening).
 - **Use the physical locks.** Keep controller mode switches in the run position and remove the key. A physical barrier cannot be hacked from the network.
 - **Treat every unexpected trip as a possible attack.** The plant investigated a shutdown and found TRITON. Shutdowns without a process reason deserve a security look. See [Incident response](/theory/incident-response).
 - **Layer your protection.** Keep at least one safety barrier, such as a mechanical relief valve, that no software can switch off. See [Risk assessment](/theory/risk-assessment).

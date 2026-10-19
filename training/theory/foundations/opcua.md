@@ -315,5 +315,5 @@ To defend a real OPC-UA server:
 - Use strong passwords and lock accounts after repeated failures, so guessing does not scale.
 - Protect private keys like passwords, and revoke a certificate the moment its key may have leaked.
 
-In MITRE ATT&amp;CK for ICS, logging in with a guessed password or a stolen certificate is **T0859 Valid Accounts**: the attacker uses a real identity the server accepts. The IDS rule maps OPC-UA access from an unexpected host to **T0846 Remote System Discovery**. The [Defence and hardening](/theory/defense-hardening) article covers these measures in more depth.
+In MITRE ATT&amp;CK for ICS, logging in with a guessed password or a stolen certificate is **T0859 Valid Accounts**: the attacker uses a real identity the server accepts. The IDS rule maps OPC-UA access from an unexpected host to **T0846 Remote System Discovery**. The [Defence in depth](/theory/defense-hardening) article covers these measures in more depth.
 

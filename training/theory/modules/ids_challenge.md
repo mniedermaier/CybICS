@@ -83,4 +83,4 @@ Industrial networks suit all three well, because their normal traffic is so regu
 
 - [Detection and monitoring](/theory/detection-monitoring): how an IDS works.
 - [Detecting a scan](/theory/detect_basic): your first IDS alert, step by step.
-- [The attack lifecycle](/theory/attack-lifecycle): the stages the rules cover.
+- [The ICS attack lifecycle](/theory/attack-lifecycle): the stages the rules cover.

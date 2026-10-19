@@ -76,6 +76,6 @@ NIST SP 800-82 lists this under Boundary Protection (SC-7); D3FEND calls it Netw
 
 ## Before you start
 
-- [Defense in depth](/theory/defense-hardening): why one layer is never enough
+- [Defence in depth](/theory/defense-hardening): why one layer is never enough
 - [Host firewalling](/theory/defense_firewall): iptables, chains and rule order
 - [Network scanning](/theory/scanning): how an attacker finds these services in the first place

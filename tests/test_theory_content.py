@@ -525,3 +525,41 @@ def test_lesson_reads_in_eight_minutes(topic):
     from modules.theory_manager import TheoryManager
     rendered = TheoryManager._render_article(None, os.path.join(ROOT, topic["content"]))
     assert rendered["minutes"] <= MAX_MINUTES, f"{topic['id']}: {rendered['minutes']} min of main text"
+
+
+def test_port_502_allowlists_keep_every_modbus_client():
+    """Three services read or write the PLC over Modbus: hwio, FUXA and the
+    OPC-UA server (opcua.py reads from openplc:502). Advice that allows port
+    502 only from some of them would break the others."""
+    with open(os.path.join(ROOT, "software", "opcua", "opcua.py"), encoding="utf-8") as f:
+        assert re.search(r'ModbusTcpClient\(host="openplc",\s*port=502\)', f.read())
+    for topic in TOPICS:
+        def strings(value):
+            if isinstance(value, str):
+                yield value
+            elif isinstance(value, dict):
+                for v in value.values():
+                    yield from strings(v)
+            elif isinstance(value, list):
+                for v in value:
+                    yield from strings(v)
+        for text in [article(topic), *strings(sidecar(topic))]:
+            for sentence in re.split(r"(?<=[.!?])\s+|\n", text):
+                if "502" not in sentence or not re.search(r"\b(allow|firewall|reach|lets?)\b", sentence, re.I):
+                    continue
+                if re.search(r"\bonly\b", sentence, re.I) and re.search(r"hwio", sentence, re.I) and re.search(r"fuxa", sentence, re.I):
+                    assert re.search(r"opc-?ua|172\.18\.0\.5", sentence, re.I), f"{topic['id']}: {sentence.strip()}"
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        flows = re.findall(r"\{ src: '(\w+)', port: 502, what: '[^']*', needed: true \}", f.read())
+    assert set(flows) == {"hwio", "fuxa", "opcua"}
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_lesson_links_use_one_name(topic):
+    """A link that opens a list item names the lesson by its title, and the
+    defence lesson is never linked under an older name."""
+    titles = {t["id"]: t["title"] for t in TOPICS}
+    text = article(topic)
+    for link_text, target in re.findall(r"^\s*- \[([^\]]+)\]\(/theory/([^)#\s]+)\)", text, re.M):
+        assert link_text == titles[target], f"{topic['id']}: [{link_text}] for {titles[target]!r}"
+    assert not re.search(r"\[(Defen[cs]e and hardening|Defense in depth)\]\(/theory/defense-hardening\)", text), topic["id"]

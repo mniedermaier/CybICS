@@ -1,12 +1,12 @@
 # HMI and SCADA
 
-An operator in a control room cannot walk up to every tank and read its gauge. Instead, they watch a screen that shows the whole plant at a glance and has buttons to steer it. That screen is the HMI, and because the operator trusts it completely, it is one of the most valuable targets in any ICS.
+An operator in a control room cannot walk up to every tank and read its gauge. Instead, they watch a screen that shows the whole plant and has buttons to steer it. Because the operator trusts that screen completely, it is one of the most valuable targets in any ICS.
 
 ## The operator's window on the plant
 
-A **Human-Machine Interface (HMI)** is the screen an operator uses to watch and control a process: tank levels, pressures, pump states, alarms, and the buttons to start and stop things. **SCADA (Supervisory Control and Data Acquisition)** is the wider system behind it, which collects data from many controllers, stores it and presents it. In the [Purdue model](/theory/ics-basics) both sit on Level 2, the supervisory level, one step above the PLCs.
+A **Human-Machine Interface (HMI)** is the screen an operator uses to watch and control a process: tank levels, pressures, alarms, and buttons to start and stop things. **SCADA (Supervisory Control and Data Acquisition)** is the wider system behind it, which collects and stores data from many controllers. In the [Purdue model](/theory/ics-basics) both sit on Level 2, the supervisory level, one step above the PLCs.
 
-In CybICS the HMI is **FUXA**, an open-source web-based SCADA/HMI that you open in a browser on port **1881**. It has an `operator` account for running the plant and a `viewer` account for watching it.
+In CybICS the HMI is **FUXA**, an open-source SCADA/HMI that you open in a browser on port **1881**.
 
 <div class="callout analogy" markdown="1">
 **Analogy:** an HMI is like the dashboard of a car. The fuel gauge is not the fuel; it is a needle driven by a sensor signal. If someone tampers with that signal, the gauge shows a full tank while the engine runs dry.
@@ -16,7 +16,7 @@ In CybICS the HMI is **FUXA**, an open-source web-based SCADA/HMI that you open 
 
 FUXA is not wired to any sensor. It is a **Modbus client**: about once a second it asks OpenPLC for the current register values and draws them. When the operator presses a button, FUXA writes a coil or a register back. The link is plain [Modbus TCP](/theory/modbus) on port 502, with no login.
 
-So the operator's picture of the plant is three hops away from the gas: sensor, PLC memory, HMI. The live values below are exactly what FUXA reads to draw its screen.
+So the operator's picture is three hops away from the gas: sensor, PLC memory, HMI. The live values below are exactly what FUXA reads.
 
 <div data-widget="plant-live" data-fields="gst,hpt,compressor,systemValve,boSen"></div>
 
@@ -92,7 +92,7 @@ So the operator's picture of the plant is three hops away from the gas: sensor, 
   </g>
   <text x="8" y="194" font-size="11" opacity="0.85">Three challenges, three depths, one chain.</text>
 </svg>
-<figcaption>A command travels right and becomes a coil write; a measured value travels left and becomes a number on the screen. Three CybICS challenges cut this chain at three different links: the HMI login, the network wire between HMI and PLC, and the PLC register itself.</figcaption>
+<figcaption>A command travels right and becomes a coil write; a measured value travels left and becomes a number on the screen. Three CybICS challenges cut the chain at three links: the HMI login, the wire to the PLC and the PLC register.</figcaption>
 </figure>
 
 The FUXA login protects the *screen*, not the plant. Anyone who can reach port 502 on OpenPLC can skip the screen and send the very same writes the HMI sends.
@@ -100,15 +100,15 @@ The FUXA login protects the *screen*, not the plant. Anyone who can reach port 5
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: how FUXA is wired up in CybICS</summary>
 
-FUXA runs in the container at `172.18.0.4`. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it.
+FUXA runs in the container at `172.18.0.4`, with an `operator` account for running the plant and a `viewer` account for watching it. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it. Its tags use one-based addresses: GST is 1125 in FUXA and 1124 on the wire. Read coil 2 instead of coil 1 and you get the system valve rather than the compressor.
 
 </details>
 
 ## Counting from one or from zero
 
-A practical trap from your first Modbus exercise: FUXA's tag table lists the HPT pressure at address **1127**, but on the wire the PLC calls it register **1126**.
+A practical trap: FUXA's tag table lists the HPT pressure at address **1127**, but on the wire the PLC calls it register **1126**.
 
-HMIs traditionally count Modbus addresses from one, while the protocol counts from zero. So every FUXA address is one higher than the real one: GST is 1125 in FUXA and 1124 on the wire, and FUXA's compressor at 2 is coil 1.
+HMIs traditionally count Modbus addresses from one, while the protocol counts from zero. So every FUXA address is one higher than the real one: FUXA's compressor at 2 is coil 1.
 
 <figure class="wide">
 <style>
@@ -142,7 +142,7 @@ HMIs traditionally count Modbus addresses from one, while the protocol counts fr
   <text x="8" y="146" font-size="12" opacity="0.9">&#37;MW102 &rarr; 1024 + 102 = 1126, listed as 1127.</text>
   <text x="8" y="168" font-size="11" opacity="0.85">Coils too: compressor at 2 is coil 1.</text>
 </svg>
-<figcaption>Copy a number out of the HMI into a Modbus client and you read the neighbouring word. It usually holds something plausible, so nothing warns you. Read coil 2 instead of coil 1 and you get the system valve rather than the compressor.</figcaption>
+<figcaption>Copy a number out of the HMI into a Modbus client and you read the neighbouring word. It usually holds something plausible, so nothing warns you.</figcaption>
 </figure>
 
 <div data-widget="checkpoint" data-id="offset"></div>
@@ -151,7 +151,7 @@ HMIs traditionally count Modbus addresses from one, while the protocol counts fr
 
 Because the HMI only shows what the PLC holds, anyone who changes the PLC's memory changes the operator's reality. In the [Flood & Overwrite](/theory/flood_overwrite) challenge, an attacker writes a low value such as 10 into register 1126 hundreds of times a second, faster than the plant simulation can put the real pressure back.
 
-Now the trap closes. The PLC believes the tank is nearly empty, so it starts the compressor and shuts the system valve. The real pressure climbs, while the operator's trend shows a calm, flat 10. One clue survives: the plant simulation (hwio) computes the blow-out flag `boSen` from the *real* pressure, so it switches on when the tank gets dangerously full, even though the pressure trend never moves.
+The PLC believes the tank is nearly empty, so it starts the compressor and shuts the system valve. The real pressure climbs, while the operator's trend shows a calm, flat 10. One clue survives: the plant simulation (hwio) computes the blow-out flag `boSen` from the *real* pressure, so it switches on when the tank gets dangerously full.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: a recorded flood on the FUXA trend</summary>
@@ -203,22 +203,21 @@ hwio writes `boSen` into register 1134 and sets it once the real HPT pressure pa
 
 </details>
 
-
-The lesson for defenders: **a value and the evidence that confirms it should not travel the same path.** In CybICS both come from the same PLC over the same connection, and they only disagree because one is calculated from something the attacker cannot reach. In a real plant, confirmation means a second sensor, a different protocol or a separate network.
-
 ## Why attackers target the HMI
 
-- **It holds valid credentials and a working network path** to the controllers. Compromising it skips the hardest part of an attack.
+- **It holds valid credentials and a network path** to the controllers. Compromising it skips the hardest part of an attack.
 - **It can command the process**, and its commands look exactly like an engineer's, because they are the same writes.
-- **The operator trusts what it shows.** In [Stuxnet](/theory/stuxnet), the attackers played back recorded normal readings while the centrifuges were being damaged. The deception was prepared below the HMI, so the screen honestly showed what it was given.
+- **The operator trusts what it shows.** In [Stuxnet](/theory/stuxnet), the attackers played back recorded normal readings, prepared below the HMI, while the centrifuges were being damaged.
 
-In CybICS, the [Password Attack](/theory/password_attack) challenge targets the FUXA login, [Man in the Middle](/theory/mitm) sits on the Modbus link between FUXA and OpenPLC, and Flood & Overwrite pins the register the HMI reads. MITRE ATT&CK for ICS names the effect on the operator **T0832 Manipulation of View**.
+In CybICS, [Password Attack](/theory/password_attack) targets the FUXA login, [Man in the Middle](/theory/mitm) sits on the link to OpenPLC, and Flood & Overwrite pins the register the HMI reads. MITRE ATT&CK for ICS calls the effect on the operator **T0832 Manipulation of View**.
 
 ## Defending the supervisory layer
 
-Protecting this layer comes down to three habits:
+The key rule: **a value and the evidence that confirms it should not travel the same path.** In CybICS both come from the same PLC, and they only disagree because `boSen` is calculated from something the attacker cannot reach. In a real plant, confirmation means a second sensor, a different protocol or a separate network.
+
+Three habits protect this layer:
 
 1. **Strong authentication on the HMI.** Default accounts like `operator`/`operator` are convenient in a lab and dangerous in a plant.
-2. **Restrict who can reach the HMI and who can reach past it.** If only the HMI may talk Modbus to the PLC, a flood from anywhere else stands out. See [Defense and hardening](/theory/defense-hardening).
-3. **Give the operator at least one independent value.** When every number came down the same wire, whoever owns that wire owns the operator's picture of the plant.
+2. **Restrict who can reach the HMI and who can reach past it.** If only the HMI may talk Modbus to the PLC, a flood from anywhere else stands out. See [Defence in depth](/theory/defense-hardening).
+3. **Give the operator at least one independent value.** When every number comes down the same wire, whoever owns that wire owns the operator's picture.
 

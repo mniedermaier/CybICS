@@ -78,8 +78,8 @@ Defences, roughly from most to least important:
 ## Before you start
 
 - [HMI and SCADA](/theory/hmi-scada) for what FUXA is and why its login matters.
+- [The ICS attack lifecycle](/theory/attack-lifecycle) for where initial access fits.
 
 Later on the path:
 
-- [The ICS attack lifecycle](/theory/attack-lifecycle) for where initial access fits.
 - [Ukraine power grid (2015, 2016, 2022)](/theory/ukraine-grid) for what attackers did with stolen operator logins.

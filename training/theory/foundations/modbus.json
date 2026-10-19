@@ -86,7 +86,7 @@
         "The function code"
       ],
       "answer": [0, 1, 3],
-      "explanation": "Rules 3 and 4 combine the source IP with a write count, and rule 5 matches diagnostic function codes. Modbus carries no login name anywhere in the frame, which is exactly why the IDS has to rely on the other clues."
+      "explanation": "The write rules combine the source IP with a count of writes in a time window, and another rule matches diagnostic function codes. Modbus carries no login name anywhere in the frame, which is exactly why the IDS has to rely on the other clues."
     }
   ]
 }

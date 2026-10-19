@@ -71,4 +71,4 @@ Standards say the same. NIST SP 800-82 points to control IA-5 (Authenticator Man
 
 - [HMI and SCADA](/theory/hmi-scada): what the HMI is and why its login matters
 - [Password attacks](/theory/password_attack): the attack this module defends against
-- [Defense in depth](/theory/defense-hardening): where credentials fit among other controls
+- [Defence in depth](/theory/defense-hardening): where credentials fit among other controls

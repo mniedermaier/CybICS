@@ -1,17 +1,15 @@
 # The ICS attack lifecycle
 
-A burglar does not walk up to a house and immediately open the safe. First they watch the street, then find an unlocked window, then look around inside, and only at the end take what they came for. Attacks on industrial plants work the same way: they are campaigns made of stages, and each stage is a chance for a defender to notice.
-
-This article gives you two maps of those stages, the ICS Cyber Kill Chain and MITRE ATT&CK for ICS, and shows how the CybICS challenges walk you along them.
+A burglar does not walk up to a house and immediately open the safe. First they watch the street, then find an unlocked window, look around inside, and only at the end take what they came for. Attacks on plants work the same way: they are campaigns made of stages, and each stage is a chance for a defender to notice.
 
 ## Why think in stages
 
-News reports on a famous plant attack usually describe only the end: a power cut, a damaged machine, a halted pipeline. The weeks or months before are invisible from outside, but they are where most of the work happened.
+News reports on a plant attack usually describe only the end: a power cut or a damaged machine. The weeks before, where most of the work happened, stay invisible.
 
 Thinking in stages helps you in two ways:
 
 - **As an attacker** (in the CTF), it tells you what to do next. You cannot overwrite a register before you know which host holds it.
-- **As a defender**, it tells you where to look. Every stage leaves traces, and catching an early stage means the dangerous final stage never happens.
+- **As a defender**, it tells you where to look. Every stage leaves traces, and catching an early one stops the dangerous final stage.
 
 <div class="callout analogy" markdown="1">
 **Analogy:** a stage model is like the chapters of a crime novel. Knowing that "the break-in" comes before "the getaway" lets the detective set a trap at the right chapter.
@@ -19,40 +17,51 @@ Thinking in stages helps you in two ways:
 
 ## The ICS Cyber Kill Chain
 
-A *kill chain* is a military term: a sequence of steps that must all succeed for an attack to work. Break any link and the chain fails. In 2015, Michael Assante and Robert M. Lee adapted it for industrial control systems (ICS). Their **ICS Cyber Kill Chain** has two big stages.
+A *kill chain* is a military term: a sequence of steps that must all succeed for an attack to work. Break any link and the chain fails. In 2015, Michael Assante and Robert M. Lee adapted it for industrial control systems (ICS). Their **ICS Cyber Kill Chain** has two big stages:
 
-| Stage | What the attacker does | Example |
-|---|---|---|
-| **1. Intrusion** | Gets into the company network, usually the office (IT) side: researching the target, sending a phishing e-mail, installing a foothold, setting up remote control | A booby-trapped e-mail attachment on an engineer's laptop |
-| **2. ICS attack** | Learns how the plant works, develops and tests an attack that fits it, then delivers and runs it | Changing the setpoints of a controller so a tank overfills |
+1. **Intrusion:** the attacker gets into the company network, usually the office (IT) side, for example with a booby-trapped e-mail attachment on an engineer's laptop.
+2. **ICS attack:** the attacker learns how the plant works, then builds, tests and runs an attack that fits it, such as changing a controller's setpoints so a tank overfills.
 
 The key insight is in stage 2. To damage a physical process, an attacker has to understand *that particular* process: which controller drives which valve, and what values are dangerous. That takes time and leaves traces, which is good news for defenders.
 
 ## MITRE ATT&CK for ICS
 
-The kill chain gives the big picture. For day-to-day work, defenders use a more detailed catalogue: **MITRE ATT&CK for ICS** (Adversarial Tactics, Techniques and Common Knowledge), published free at attack.mitre.org by MITRE, a US non-profit that collects how real attackers have behaved.
+For day-to-day work, defenders use a more detailed catalogue: **MITRE ATT&CK for ICS** (Adversarial Tactics, Techniques and Common Knowledge), published free at attack.mitre.org by MITRE, a US non-profit that records how real attackers behave.
 
 ATT&CK uses two words you need to keep apart:
 
 - A **tactic** is the attacker's *goal* at that moment: "find out what is on the network" (Discovery) or "change how the process behaves" (Impair Process Control).
-- A **technique** is *how* they reach that goal. Each one has an ID, for example **T0846 Remote System Discovery**, so that a defender in Germany and one in Brazil mean exactly the same thing.
+- A **technique** is *how* they reach that goal. Each one has an ID, for example **T0846 Remote System Discovery**, so that defenders everywhere mean exactly the same thing.
 
-There are twelve ICS tactics. You do not need to memorise them, but recognise the names when an alert or report uses them:
+There are twelve ICS tactics. You do not need to memorise them, only recognise the names:
 
 Initial Access, Execution, Persistence, Privilege Escalation, Evasion, Discovery, Lateral Movement, Collection, Command and Control, Inhibit Response Function, Impair Process Control, Impact.
 
-The two at the end are what makes ICS special. *Impair Process Control* means manipulating the physical process, and *Impact* is the result in the real world: lost production, damaged equipment or, worst of all, a safety incident.
+The last two make ICS special. *Impair Process Control* means manipulating the physical process; *Impact* is the real-world result: lost production, damaged equipment or a safety incident.
 
 <div data-widget="checkpoint" data-id="tactic-technique"></div>
 
 ## The arc on CybICS
 
-The CybICS challenges are arranged along the same arc. Doing them in order is a guided walk through one campaign against the gas plant.
+Doing the CybICS challenges in order walks you through one campaign against the gas plant.
+
+| Tactic | CybICS challenge |
+|---|---|
+| Discovery | [Service Scanning](/ctf/challenge/scanning), [S7comm Scanning](/ctf/challenge/scanning2), [Wireshark Capture](/ctf/challenge/wireshark_capture) |
+| Collection | [Man-in-the-Middle](/ctf/challenge/mitm) |
+| Lateral Movement, Persistence | [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password attacks, [PLC Programming](/ctf/challenge/plc_programming) |
+| Impair Process Control | [Flood & Overwrite](/ctf/challenge/flood_overwrite) |
+| Impact | [Physical Process](/ctf/challenge/physical_process) |
+
+Read the table as a story. You scan the network from the attack machine and find the PLC. You listen to its Modbus traffic and learn which register carries the high-pressure tank (HPT) value. You log in to the web interface with a guessed password. Finally, you change values the controller relies on, and the compressor does things the operator never asked for.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the technique behind each challenge</summary>
 
 | Tactic | Technique | CybICS challenge |
 |---|---|---|
 | Discovery | T0846 Remote System Discovery, T0840 Network Connection Enumeration | [Service Scanning](/ctf/challenge/scanning) |
-| Collection | T0861 Point & Tag Identification | [S7comm Scanning](/ctf/challenge/scanning2) |
+| Discovery | T0888 Remote System Information Discovery | [S7comm Scanning](/ctf/challenge/scanning2) |
 | Discovery | T0842 Network Sniffing | [Wireshark Capture](/ctf/challenge/wireshark_capture) |
 | Collection | T0830 Adversary-in-the-Middle | [Man-in-the-Middle](/ctf/challenge/mitm) |
 | Persistence, Lateral Movement | T0859 Valid Accounts | [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password attacks |
@@ -60,9 +69,9 @@ The CybICS challenges are arranged along the same arc. Doing them in order is a 
 | Impair Process Control | T0806 Brute Force I/O, T1692.001 Unauthorized Message: Command Message | [Flood & Overwrite](/ctf/challenge/flood_overwrite) |
 | Impact | T0831 Manipulation of Control | [Physical Process](/ctf/challenge/physical_process) |
 
-Read the table as a story. You scan the network from the attack machine and find the PLC. You listen to its Modbus traffic and learn which register carries the high-pressure tank (HPT) value. You get into the web interface with a guessed password. Finally, you change values the controller relies on, and the compressor and valves do things the operator never asked for.
-
 Some techniques belong to more than one tactic: a stolen password (T0859 Valid Accounts) lets an attacker both move to a new machine and come back later. ATT&CK is a catalogue, not a strict timeline.
+
+</details>
 
 Now try it yourself. Each step below needs something the one before it found out, so only one order works.
 
@@ -70,16 +79,14 @@ Now try it yourself. Each step below needs something the one before it found out
 
 ## Why the order matters for defenders
 
-Early stages are quiet and cheap to stop; late stages are loud and expensive. If you notice a port scan, you can block one address and nothing is harmed. If you only notice when the HPT pressure is already climbing, the plant's operators are fighting the attack in real time.
+Early stages are quiet and cheap to stop; late stages are loud and expensive. Notice a port scan, and you block one address before anything is harmed. Notice only when the HPT pressure is already climbing, and the operators are fighting the attack in real time.
 
 So defenders try to **detect as far left in the chain as possible**. Two limits keep this honest:
 
 - Some stages cannot be seen on the network at all. A host that only *listens* (passive sniffing, T0842) sends nothing for an IDS to notice.
 - Some stages look exactly like normal work. An engineer uploading a new PLC program and an attacker doing the same produce very similar traffic.
 
-That is why a single control is never enough, and why the next articles cover both [detection](/theory/detection-monitoring) and [defence in depth](/theory/defense-hardening).
-
-CybICS has a small Intrusion Detection System (IDS) that watches the network and raises alerts. Most stages of the campaign above make noise on it; the program download is the quiet one.
+That is why a single control is never enough, and why the next articles cover both [detection](/theory/detection-monitoring) and [Defence in depth](/theory/defense-hardening). On the small CybICS Intrusion Detection System (IDS), most stages of the campaign above raise alerts; the program download is the quiet one.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: which alert each stage raises on the CybICS IDS</summary>

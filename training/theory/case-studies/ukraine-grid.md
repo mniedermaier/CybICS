@@ -80,7 +80,7 @@ CybICS uses Modbus TCP instead of IEC 104, but the lessons map directly.
 ## Lessons for defenders
 
 - **Make remote access hard to abuse.** Use multi-factor authentication on every VPN or remote login into the control network, and log who uses it and when.
-- **Assume the protocol will not protect you.** Limit which hosts may send commands to controllers, and watch for commands from anywhere else. See [Defence and hardening](/theory/defense-hardening).
+- **Assume the protocol will not protect you.** Limit which hosts may send commands to controllers, and watch for commands from anywhere else. See [Defence in depth](/theory/defense-hardening).
 - **Watch for the quiet phase.** Months of preparation leave traces: new accounts, unusual logins, scans. See [Detection and monitoring](/theory/detection-monitoring).
 - **Plan to run by hand.** Ukraine recovered because staff could still operate substations manually. Practise that, and keep spare firmware and backups offline. See [Incident response](/theory/incident-response).
 - **Look at the whole campaign.** Each attack followed the stages of the [ICS attack lifecycle](/theory/attack-lifecycle), and each stage was a chance to notice it.

@@ -2,13 +2,14 @@
 
 No single security control protects a plant. Passwords get guessed, firewall rules have gaps, and patches arrive years late. The answer is **defence in depth**: several independent layers, so that an attacker who gets past one still meets the next, and a defender has time to notice.
 
-This article covers the layers that matter most in operational technology (OT): segmentation, firewall rules, authentication and patching, and the standards that tie them together.
-
 ## Layers, not a single wall
 
-Picture a medieval castle: a moat, an outer wall, an inner wall, guards at the keep, and lookouts on the towers watching all of it. No part is perfect, but together they make an attack slow, difficult and visible.
+Picture a medieval castle: a moat, an outer wall, an inner wall, guards at the keep, and lookouts on the towers. No part is perfect, but together they make an attack slow and visible. In a plant, the layers range from locked cabinets through firewalls and passwords to an IDS watching the traffic.
 
-In a plant, the layers look like this:
+One warning: on a network, an attacker does not have to break every wall in turn. Each control guards a **path**, and an attacker needs only one open path. A strong OpenPLC password does not help if Modbus registers can be written without any login, as [Flood & Overwrite](/ctf/challenge/flood_overwrite) shows. Monitoring blocks nothing, but whichever path the attacker takes, if it is watched, the attempt is seen.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the layers on CybICS</summary>
 
 | Layer | Example | On CybICS |
 |---|---|---|
@@ -19,31 +20,40 @@ In a plant, the layers look like this:
 | Authentication | strong, unique passwords; certificates | OpenPLC and FUXA logins, OPC-UA users |
 | Monitoring | an IDS watching traffic | the CybICS IDS ([Detection and monitoring](/theory/detection-monitoring)) |
 
-One warning about the castle picture: on a network, an attacker does not have to break every wall in turn. Each control guards a **path**, and an attacker needs only one open path. A strong OpenPLC password does not help if Modbus registers can be written without any login, as [Flood & Overwrite](/ctf/challenge/flood_overwrite) shows. Monitoring is the one layer that blocks nothing: whichever path the attacker takes, if it is watched, the attempt is seen.
+</details>
 
 ## Segmentation: zones and conduits
 
-**Segmentation** means splitting a network into separate parts so that one compromised machine cannot reach everything. The standard OT vocabulary comes from IEC 62443:
+**Segmentation** splits a network into separate parts, so that one compromised machine cannot reach everything. Its OT vocabulary comes from IEC 62443:
 
-- A **zone** is a group of devices that need the same level of protection, for example "all controllers" or "the operator workstations".
+- A **zone** is a group of devices that need the same protection, such as "all controllers".
 - A **conduit** is the controlled path between two zones, usually a firewall that only lets through the connections the plant really needs.
 
-The [Purdue model](/theory/ics-basics) gives a typical layout: office IT at the top, then historians and HMIs, then the controllers, then the physical process. Traffic should cross from one level to the next only through a conduit, never jump straight from an office laptop to a PLC.
+In the [Purdue model](/theory/ics-basics), traffic should cross levels only through a conduit, never jump straight from an office laptop to a PLC. IEC 62443 also gives each zone a target **security level**; which level a zone needs is a risk question, covered in [Asset inventory, risk and IEC 62443](/theory/risk-assessment).
 
 <div class="callout cybics" markdown="1">
-**On CybICS:** every container shares one flat network. The attack machine (172.18.0.100) can reach OpenPLC (172.18.0.3), FUXA (172.18.0.4) and the OPC-UA server (172.18.0.5) directly. The [Network Segmentation](/ctf/challenge/defense_network_segmentation) challenge asks you to change that.
+**On CybICS:** every container shares one flat network. The attack machine can reach OpenPLC, FUXA and the OPC-UA server directly. The [Network Segmentation](/ctf/challenge/defense_network_segmentation) challenge asks you to change that.
 </div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: security levels and NIST SP 800-82</summary>
+
+IEC 62443 is the international standard family for industrial automation security. It defines four **security levels**, SL 1 to SL 4, from protection against casual mistakes up to protection against well-funded, skilled attackers. It also sets requirements for asset owners, integrators and product vendors.
+
+The other document that frames most OT security work is **NIST SP 800-82** (revision 3), the US guide to applying general security controls to plants. It maps the controls of NIST SP 800-53 onto plants, for example boundary protection (SC-7) or authenticator management (IA-5).
+
+</details>
 
 ## Firewall rules: order and defaults
 
-A firewall checks each connection against a list of rules **from top to bottom, and the first rule that matches decides**. Nothing after it is read. So order is the most common source of mistakes: a "drop everything to port 502" rule above "allow FUXA to port 502" blocks the HMI too.
+A firewall checks each connection against a list of rules **from top to bottom, and the first rule that matches decides**. So order is the most common mistake: a "drop everything to port 502" rule above "allow FUXA to port 502" blocks the HMI too.
 
-There are two ways to write a rule list:
+Rule lists come in two kinds:
 
-- **Deny-list:** allow everything, then block the things you know are bad. Easy to start, but every gap you did not think of stays open.
-- **Allow-list (default deny):** block everything, then allow the few connections the plant needs. More work up front, but a forgotten port is closed by default.
+- **Deny-list:** allow everything, then block what you know is bad. Every gap you did not think of stays open.
+- **Allow-list (default deny):** block everything, then allow the few connections the plant needs. A forgotten port is closed by default.
 
-OT networks suit allow-lists well, because the traffic is predictable: the same few hosts talk to the same few ports all day. Try it with the CybICS hosts:
+OT networks suit allow-lists, because the traffic is predictable: the same few hosts talk to the same few ports all day. Try it with the CybICS hosts:
 
 <div data-widget="firewall-rules"></div>
 
@@ -114,57 +124,39 @@ A deny-list has to know every door. The figure shows what happens if you block o
 </details>
 
 <div class="callout tip" markdown="1">
-**Tip:** after writing a rule, test the *outcome*, not just the configuration. Try to connect from the attack machine to every port you meant to close. A rule that is listed but does not block is worse than no rule, because you believe you are safe.
+**Tip:** test the *outcome*: from the attack machine, try every port you meant to close. A rule that does not block is worse than none, because you believe you are safe.
 </div>
 
 ## Authentication
 
-**Authentication** is how a system checks who you are, usually with a password, sometimes with a certificate. In OT it fails in three typical ways:
+**Authentication** checks who you are, usually with a password, sometimes with a certificate. In OT it typically fails in three ways:
 
-- **No authentication at all.** Modbus TCP and classic S7comm accept commands from anyone who can reach the port. For them, the network layers above are the only gate.
-- **Default credentials.** Devices ship with a factory login that is printed in the manual and never changed. The [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password challenges exploit exactly this.
-- **Shared accounts.** One login used by every operator, so nobody can tell afterwards who did what.
+- **None at all.** Modbus TCP and classic S7comm accept commands from anyone who reaches the port; the network layers are their only gate.
+- **Default credentials.** Devices ship with a factory login from the manual that nobody changes. The [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password challenges exploit exactly this.
+- **Shared accounts.** Every operator uses one login, so nobody can tell afterwards who did what.
 
-Modern protocols do better: the CybICS OPC-UA server refuses anonymous sessions, wants a username and password or a client certificate, and can encrypt the connection (see [OPC-UA](/theory/opcua-protocol)). Fixing the web logins is the subject of the hardening challenges listed at the end.
+Modern protocols do better: the CybICS [OPC-UA](/theory/opcua-protocol) server refuses anonymous sessions.
 
 ## Patching in OT
 
-In office IT, a security patch is often installed within days. In a plant it may take years, for good reasons:
+In office IT, a patch is often installed within days. In a plant it may take years, for good reasons:
 
-- **Uptime.** Installing a patch often means a restart, and some processes run for months without stopping.
-- **Certification.** The vendor of a control system may only support it with tested software versions. Patching on your own can void that support.
-- **Testing.** A patch that breaks a controller can halt production or create a safety hazard, so it has to be tested on a copy of the system first.
-- **Age.** Controllers last fifteen to twenty years. Many run software that no longer gets patches at all.
+- **Uptime.** A patch often means a restart, and some processes run for months without stopping.
+- **Certification.** The vendor may only support tested software versions.
+- **Testing.** A faulty patch can halt production or create a safety hazard, so it is tested on a copy first.
+- **Age.** Controllers last fifteen to twenty years, and many run software that no longer gets patches at all.
 
-So OT relies heavily on **compensating controls**: if you cannot fix the weakness itself, you put layers around it. Segmentation, strict firewall rules and monitoring are the usual ones, the workhorses of ICS defence.
+So OT relies on **compensating controls**: if you cannot fix a weakness, you put layers around it, usually segmentation, strict firewall rules and monitoring.
 
 <div data-widget="checkpoint" data-id="compensating"></div>
 
-## Standards: IEC 62443 and NIST SP 800-82
-
-Two documents frame most OT security work:
-
-- **IEC 62443** is the international standard family for industrial automation security. Besides zones and conduits, it sets a target **security level** for each zone.
-- **NIST SP 800-82** (currently revision 3) is the US guide to OT security: how to apply general security controls to plants.
-
-Which zone needs which security level is a risk question, covered in [Asset inventory, risk and IEC 62443](/theory/risk-assessment).
-
-<details class="deep-dive" markdown="1">
-<summary>Deep dive: security levels and NIST controls</summary>
-
-IEC 62443 defines four **security levels**, SL 1 to SL 4, from protection against casual mistakes up to protection against well-funded, skilled attackers. It also sets requirements for asset owners, integrators and product vendors.
-
-NIST SP 800-82 maps the general controls of NIST SP 800-53 onto plants, for example boundary protection (SC-7) or authenticator management (IA-5).
-
-</details>
-
 ## Putting it into practice on CybICS
 
-The defence challenges each add one layer to the gas plant:
+Each defence challenge adds one layer to the gas plant:
 
 1. [Harden OpenPLC Credentials](/ctf/challenge/defense_openplc_password) and [Harden FUXA Credentials](/ctf/challenge/defense_fuxa_password): replace the default logins.
-2. [Modbus Firewall Rules](/ctf/challenge/defense_firewall): on the OpenPLC container, allow port 502 only from `hwio` (172.18.0.2) and FUXA (172.18.0.4).
+2. [Modbus Firewall Rules](/ctf/challenge/defense_firewall): on the OpenPLC container, allow port 502 only from the plant's own Modbus clients: `hwio` (172.18.0.2), FUXA (172.18.0.4) and the OPC-UA server (172.18.0.5).
 3. [Network Segmentation](/ctf/challenge/defense_network_segmentation): stop the attack machine reaching the controllers.
 4. [IDS Monitoring & Tuning](/ctf/challenge/defense_ids_tuning): keep the watching layer running.
 
-Keep availability in mind. If your Modbus rule also blocks `hwio`, the PLC stops receiving tank pressures, and you have caused the outage an attacker wanted. In OT, a control that endangers the process is not a security win.
+Keep availability in mind. If your Modbus rule also blocks `hwio`, the PLC stops receiving tank pressures: you have caused the outage an attacker wanted. Block the OPC-UA server, and its clients lose their view of the plant. In OT, a control that endangers the process is not a security win.

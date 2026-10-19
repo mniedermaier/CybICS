@@ -73,12 +73,12 @@ The firewall is the defense here; detection confirms it works.
 
 - **Watch the drops.** Run a Modbus write from the attack machine. It should hang until it times out. Counters in `iptables -L -v` show how many packets each rule matched.
 - **Mind the other doors.** OpenPLC also serves S7comm on port 102, DNP3 on 20000 and EtherNet/IP on 44818. A rule for 502 leaves those open; the next module, [Network segmentation](/theory/defense_network), closes the gap per host.
-- **Remember what remains.** If the HMI itself is taken over, the attacker inherits its place on the allow list. That is why firewalls are combined with monitoring, as described in [Defense in depth](/theory/defense-hardening).
+- **Remember what remains.** If the HMI itself is taken over, the attacker inherits its place on the allow list. That is why firewalls are combined with monitoring, as described in [Defence in depth](/theory/defense-hardening).
 
 The attacks this blocks include Unauthorized Message: Command Message (T1692.001) and Brute Force I/O (T0806) from MITRE ATT&CK for ICS. NIST SP 800-82 calls the measure Boundary Protection (SC-7); D3FEND calls it Inbound Traffic Filtering (D3-ITF).
 
 ## Before you start
 
 - [Modbus TCP](/theory/modbus): why port 502 has no authentication
-- [Defense in depth](/theory/defense-hardening): firewalls as one layer among several
+- [Defence in depth](/theory/defense-hardening): firewalls as one layer among several
 - [Flood and overwrite](/theory/flood_overwrite): the attack this rule set stops

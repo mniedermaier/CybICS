@@ -104,7 +104,7 @@ The OPC-UA server reads the tank pressures from the PLC and offers them to other
 
 ## Lessons for defenders
 
-- **Find and close forgotten access.** Inventory every remote access path and account, remove what is unused, and require multi-factor authentication on the rest. See [Defence and hardening](/theory/defense-hardening).
+- **Find and close forgotten access.** Inventory every remote access path and account, remove what is unused, and require multi-factor authentication on the rest. See [Defence in depth](/theory/defense-hardening).
 - **Segment, and be able to prove it.** A boundary between IT and OT only helps if you can show, in the middle of an incident, that the attacker cannot cross it. See [Network segmentation](/theory/defense_network).
 - **Map business dependencies.** List the IT systems operations cannot run without, such as billing, and plan how to work without them. See [Risk assessment](/theory/risk-assessment).
 - **Decide in advance when to stop.** A precautionary shutdown is a valid choice, but it should be a planned one, with criteria and a restart plan. See [Incident response](/theory/incident-response).

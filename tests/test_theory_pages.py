@@ -59,6 +59,8 @@ def test_lesson_renders_with_its_parts(topic):
     # viewBox (a lower-cased "viewbox" would break the scaling).
     with open(os.path.join(ROOT, topic["content"]), encoding="utf-8") as f:
         source = f.read()
+    # Instructor notes are cut out before rendering, figures and all.
+    source = re.sub(r'<details class="instructor".*?</details>', "", source, flags=re.S)
     assert article.count("<svg") == source.count("<svg")
     assert article.count("viewBox=") == source.count("viewBox=")
     assert article.count("aria-label=") >= source.count("<svg")

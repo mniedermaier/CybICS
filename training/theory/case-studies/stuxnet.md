@@ -82,7 +82,7 @@ The second half is lying to the operators. The FUXA HMI at `172.18.0.4` reads th
 
 ## Lessons for defenders
 
-- **Know what program your PLC is running.** Keep a known-good copy of every controller program and compare it regularly. A change nobody planned is an incident. See [Defence and hardening](/theory/defense-hardening).
+- **Know what program your PLC is running.** Keep a known-good copy of every controller program and compare it regularly. A change nobody planned is an incident. See [Defence in depth](/theory/defense-hardening).
 - **Protect the engineering workstation.** It holds the keys to every controller. Limit who can use it, what can be plugged into it and which networks it reaches.
 - **Do not rely on one view of the process.** Independent measurements, such as a separate pressure gauge or a protection system that does not trust the PLC, catch what a hacked HMI hides.
 - **Control removable media.** Scan or block USB sticks; the air gap only helps if people do not bridge it.

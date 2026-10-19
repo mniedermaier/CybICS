@@ -1,32 +1,22 @@
 # Detection and monitoring
 
-Most industrial protocols, Modbus among them, never ask a client who it is. So a defender cannot simply check "is this client allowed?". The question becomes "does this traffic look like the plant running normally?", and the tool that keeps asking it is an **Intrusion Detection System (IDS)**. This article shows how the CybICS IDS decides when to raise an alarm, and why tuning that decision is harder than it looks.
+Most industrial protocols, Modbus among them, never ask a client who it is. So a defender cannot check "is this client allowed?". The question becomes "does this traffic look like the plant running normally?", and the tool that keeps asking it is an **Intrusion Detection System (IDS)**.
 
 ## What an IDS does
 
-Think of a smoke detector. It does not put out fires or stop you from cooking; it only watches the air and shouts when something looks wrong. An IDS does the same for network traffic: it watches a copy of the packets and raises an **alert** when a rule matches.
+Think of a smoke detector. It does not put out fires; it only watches the air and shouts when something looks wrong. An IDS does the same for network traffic: it watches a copy of the packets and raises an **alert** when a rule matches.
 
-Two families of rules exist:
-
-- **Signature rules** look for something known to be bad: "a Modbus diagnostic request", "the word *login* in an HTTP request".
-- **Anomaly rules** look for something unusual: "far more writes per second than the HMI ever sends".
-
-Most real systems, CybICS included, mix both.
-
-### Why passive matters in OT
-
-An IDS only *watches*. Its big brother, the Intrusion **Prevention** System (IPS), also blocks traffic it does not like. In a plant, a wrongly blocked packet could mean the controller stops hearing a pressure sensor, which is a safety problem. That is why operational technology (OT) networks lean on passive monitoring: it can be wrong without hurting the process.
+Its big brother, the Intrusion **Prevention** System (IPS), also blocks traffic it does not like. In a plant, a wrongly blocked packet could mean the controller stops hearing a pressure sensor, which is a safety problem. That is why operational technology (OT) networks prefer passive monitoring: it can be wrong without hurting the process.
 
 ## Where the CybICS IDS sits
 
-In a real plant, a network switch copies all traffic to a **mirror port** (also called a SPAN port), and the IDS sensor listens there. CybICS does the same in software:
+In a real plant, a network switch copies all traffic to a **mirror port** (also called a SPAN port), and the IDS listens there. CybICS does the same in software:
 
-- The `ids` container records a copy of everything on the `172.18.0.0/24` plant network.
-- It only listens. Its one open port is its own dashboard on **8443**, with the alerts and rule statistics.
-- It drops traffic it knows is normal before any rule sees it: the steady Modbus polling between OpenPLC (172.18.0.3) and the plant simulation `hwio` (172.18.0.2) or the FUXA HMI (172.18.0.4).
+- The `ids` container records a copy of everything on the `172.18.0.0/24` plant network. Its only open port is its dashboard on **8443**.
+- It drops traffic it knows is normal before any rule sees it: the steady Modbus polling between OpenPLC and the plant simulation `hwio` or the FUXA HMI.
 
 <div class="callout cybics" markdown="1">
-**On CybICS:** open the IDS dashboard at port 8443 while you attack from the attack machine (172.18.0.100). Watching your own alerts appear is the fastest way to understand the rules.
+**On CybICS:** open the IDS dashboard at port 8443 while you attack from the attack machine (172.18.0.100). Watching your own alerts appear is the fastest way to learn the rules.
 </div>
 
 <details class="deep-dive" markdown="1">
@@ -97,24 +87,26 @@ The detector does not show every packet to every rule. It sorts packets by their
 
 </details>
 
-## Counting: thresholds and windows
+## Thresholds and windows
 
 A single Modbus write is normal; the HMI sends one whenever an operator clicks a button. Fifty writes in five seconds from a stranger is not. Most CybICS rules therefore count events in a **sliding window** ("how many in the last *N* seconds?") and fire when the count reaches the **threshold**.
 
-Choosing those two numbers is a trade-off between two kinds of mistake:
+Choosing those two numbers trades off two kinds of mistake:
 
 | Mistake | What happens | Caused by |
 |---|---|---|
 | **False positive** | an alert for harmless traffic | threshold too low, window too long |
 | **False negative** | an attack with no alert | threshold too high, window too short |
 
-Too many false positives and operators learn to ignore the dashboard, which is as bad as having no IDS. Too many false negatives and the IDS misses the attack it was installed for. Try it: the stream below mixes writes from a legitimate HMI and an attacker.
+Too many false positives and operators ignore the dashboard; too many false negatives and the IDS misses the attack. Try it: the stream below mixes writes from a legitimate HMI and an attacker.
 
 <div data-widget="ids-threshold"></div>
 
 <div data-widget="checkpoint" data-id="slow-attacker"></div>
 
-Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per rule and source address. Until it runs out, that rule stays silent for that source, so hundreds of writes produce one alert every thirty seconds, not hundreds.
+## One alert, not hundreds
+
+Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per rule and source address. Until it runs out, the rule stays silent for that source, so hundreds of writes produce one alert every thirty seconds, not hundreds.
 
 <figure class="wide">
 <style>
@@ -156,7 +148,22 @@ Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per r
 
 ## The nine CybICS rules
 
-These are the IDS rules, in plain words.
+*Signature* rules match something known to be bad, such as a diagnostic request; the counting *anomaly* rules flag far more of something than normal.
+
+| Rule | Fires when | Usually means |
+|---|---|---|
+| `port_scan` | one host probes 5 ports on another within 10 s | mapping the network |
+| `syn_flood` | 100 connection attempts within 10 s | overloading a service |
+| `modbus_flood` | 50 Modbus writes within 5 s, not from `hwio`, FUXA or OpenPLC | pinning a register |
+| `modbus_unauth_write` | 10 Modbus writes within 30 s, not from `hwio` or FUXA | a host that should never write |
+| `modbus_diagnostic` | any Modbus request with function code 0x08 or 0x2B | fingerprinting the PLC |
+| `s7_enumeration` | any S7comm data to port 102 or 1102 | probing with Siemens S7 |
+| `http_brute_force` | 5 POSTs mentioning `login` or `auth` within 30 s | password guessing |
+| `arp_spoof` | one IP address with two or more hardware (MAC) addresses | man-in-the-middle |
+| `opcua_access` | OPC-UA traffic from a host that is not a plant service | unexpected OPC-UA client |
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the exact conditions and severities</summary>
 
 | Rule | Fires when | Severity | What it usually means |
 |---|---|---|---|
@@ -170,16 +177,18 @@ These are the IDS rules, in plain words.
 | `arp_spoof` | one IP address shows up with more than one hardware (MAC) address | critical | a man-in-the-middle is redirecting traffic |
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low | an unexpected client is browsing the OPC-UA server |
 
-Notice how often a rule depends on *who* sends the traffic. The IDS trusts a list of plant services by IP address. That is a reasonable shortcut, and exactly what an attacker tries to exploit: the [IDS Evasion](/ctf/challenge/ids_evasion) challenge is about staying below the rules or looking like someone they trust.
+</details>
+
+Notice how often a rule depends on *who* sends the traffic. The IDS trusts the plant services by IP address: a reasonable shortcut, and exactly what an attacker exploits. The [IDS Evasion](/ctf/challenge/ids_evasion) challenge is about staying below the rules or looking like someone they trust.
 
 <div data-widget="checkpoint" data-id="which-rule"></div>
 
 ## From alert to action
 
-An alert is only useful if someone reads it and acts. A good alert tells the analyst **what** happened, **who** did it and **what it probably means**. Each CybICS alert carries a rule name, a severity, the source and destination address, and a reference to an ATT&CK technique, so the analyst can look up the attacker's likely goal (see [The ICS attack lifecycle](/theory/attack-lifecycle)). Containing and recovering after the alert is covered in [Incident response in OT](/theory/incident-response).
+An alert is only useful if someone acts on it. A good alert tells the analyst **what** happened, **who** did it and **what it probably means**. Each CybICS alert carries a rule name, a severity, the source and destination address, and an ATT&CK technique, so the analyst can look up the attacker's likely goal (see [The ICS attack lifecycle](/theory/attack-lifecycle)). What to do next is covered in [Incident response in OT](/theory/incident-response).
 
 <div class="callout tip" markdown="1">
-**Rule of thumb:** a good ICS detection stays quiet on normal plant traffic, points to a technique an analyst can look up, and has been shown to fire at least once against the attack it claims to catch. The [Detect Port Scan](/ctf/challenge/detect_basic) and [IDS Challenge](/ctf/challenge/ids_challenge) exercises let you do exactly that.
+**Rule of thumb:** a good ICS detection stays quiet on normal traffic and has been shown to fire against the attack it claims to catch. The [Detect Port Scan](/ctf/challenge/detect_basic) and [IDS Challenge](/ctf/challenge/ids_challenge) exercises let you test exactly that.
 </div>
 
 <details class="deep-dive" markdown="1">

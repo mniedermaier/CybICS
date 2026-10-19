@@ -1,10 +1,10 @@
 # PLCs and the scan cycle
 
-Every decision in the CybICS plant, from "start the compressor" to "open the valve", is made by one small computer: the PLC. Once you understand how a PLC thinks, most ICS attacks stop looking like magic: you can tell when a forged value survives and when the controller simply overwrites it.
+Every decision in the CybICS plant, from "start the compressor" to "open the valve", is made by one small computer: the PLC. Once you know how it thinks, you can tell when a forged value survives and when the controller simply overwrites it.
 
 ## What a PLC is
 
-A **Programmable Logic Controller (PLC)** is a rugged little computer built to control machines. It sits in a cabinet next to the plant, reads sensors, runs a control program and switches actuators such as motors and valves. It has no screen or keyboard and is expected to run for years without a reboot.
+A **Programmable Logic Controller (PLC)** is a rugged little computer built to control machines. It reads sensors, runs a control program and switches actuators such as motors and valves, for years without a reboot.
 
 In CybICS the PLC is **OpenPLC**, an open-source PLC in the container at `172.18.0.3`. Its plant program decides when the compressor runs and when the valves open.
 
@@ -23,8 +23,6 @@ An ordinary program starts, does its work and exits. A PLC never exits. It runs 
 Then it starts again. The CybICS PLC scans **every 50 milliseconds, twenty times a second**. Change the HPT pressure below and step through one scan to watch the PLC decide whether the compressor should run.
 
 <div data-widget="scan-cycle"></div>
-
-Why a loop instead of reacting to events? A machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
 
 <figure class="wide">
 <style>
@@ -99,13 +97,15 @@ Why a loop instead of reacting to events? A machine that can hurt someone needs 
     <text class="gone" x="4" y="236" opacity="0.75">&hellip; and phase 2 recomputes the coil, here</text>
   </g>
 </svg>
-<figcaption>One scan: read all inputs, run the whole program on that snapshot, write all outputs, and repeat 50 ms later. The lamp is coil 1, the compressor. An attacker switches it off between two scans, and the program switches it straight back on in phase 2, because the logic says it should be running.</figcaption>
+<figcaption>One scan: read all inputs, run the program on that snapshot, write all outputs, repeat 50 ms later. The lamp is coil 1, the compressor: an attacker switches it off between two scans, and phase 2 switches it straight back on.</figcaption>
 </figure>
 
 <div data-widget="checkpoint" data-id="scan"></div>
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: where the 50 ms come from and when a write lands</summary>
+<summary>Deep dive: why a loop, where the 50 ms come from and when a write lands</summary>
+
+Why a loop instead of reacting to events? A machine that can hurt someone needs a worst case you can state. With a fixed scan, every input is acted on within one period, on a consistent snapshot. Engineers call this **determinism**: the same inputs always give the same outputs, on time.
 
 The program sets its own rhythm in its configuration, `TASK TaskMain(INTERVAL := T#50ms, ...)` in `software/OpenPLC/cybICS.st`.
 
@@ -131,6 +131,9 @@ In words: start the compressor when the high-pressure tank (HPT) drops below 60,
 
 Why two thresholds? With a single limit of 75, the compressor would flick on and off as the pressure wobbled around it. The gap between 60 and 90 is called **hysteresis**; your home thermostat uses the same trick.
 
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the other rules and the two guards</summary>
+
 The program has three more rules:
 
 | Output | Rule in automatic mode |
@@ -140,6 +143,8 @@ The program has three more rules:
 | Heartbeat | Blinks about once per two seconds, whatever the mode |
 
 Two guards sit around the plant outputs. If `stop` is set, the program forces the compressor, the system valve and the refill off. If `manual` is set, it stops assigning those three outputs at all, and the operator's HMI buttons take over.
+
+</details>
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the same rule as a ladder diagram, and the other languages</summary>
@@ -321,16 +326,21 @@ An attacker on the network can write values into the PLC over [Modbus](/theory/m
     <text x="90" y="20" font-size="13" fill="#ff6b00" font-weight="bold">one write, t = 30 ms</text>
   </g>
 </svg>
-<figcaption>Two addresses, two owners, two clocks. One forged write lands in both rows at the same moment. The coil is put back by the PLC's next scan; the register is put back by <code>hwio</code>'s next write, which is not the PLC at all. The orange bars show how long the attacker's value lasted.</figcaption>
+<figcaption>Two addresses, two owners, two clocks. One forged write lands in both rows at once. The PLC's next scan restores the coil; <code>hwio</code>'s next write restores the register. The orange bars show how long the forged value lasted.</figcaption>
 </figure>
 
 To keep a forged value in place, you have to write it *faster than its owner*: that is the [Flood & Overwrite](/theory/flood_overwrite) challenge, and it is noisy for exactly that reason. The quieter alternative is to change the *program*, so the PLC computes the attacker's values itself: the [PLC Programming](/theory/plc_programming) challenge.
 
-In **manual** mode the program stops assigning the compressor, the system valve and the refill, so a forced coil simply stays where it was put. A mode that does nothing can be more dangerous than one that shouts.
+In **manual** mode the program stops assigning the compressor, the system valve and the refill, so a forced coil simply stays where it was put; only the heartbeat on coil 0 keeps blinking. (The `stop` register is different: it forces those three outputs off.) A mode that does nothing can be more dangerous than one that shouts.
 
 ## Reaching the PLC from outside
 
-Each variable in the program is bound to a PLC memory address, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus with a simple rule: output bit `%QX0.`*n* becomes **coil *n***, and memory word `%MW`*n* becomes **holding register 1024 + *n***.
+Each variable in the program is bound to a PLC memory address, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus with a simple rule: output bit `%QX0.`*n* becomes **coil *n***, and memory word `%MW`*n* becomes **holding register 1024 + *n***. So `hpt AT %MW102` is register 1126.
+
+Modbus is not the only door: S7comm, DNP3 and EtherNet/IP reach the same memory, and none of them asks for a password. The most powerful action is uploading a **new program**: it changes the plant's behaviour permanently, and watching register values never reveals it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the full address map, the other ports and how the outputs reach the plant</summary>
 
 | Variable | PLC address | Modbus address |
 |---|---|---|
@@ -339,11 +349,6 @@ Each variable in the program is bound to a PLC memory address, such as `compress
 | `hpt` (high-pressure tank) | `%MW102` | register 1126 |
 | `systemSen` (plant healthy) | `%MW108` | register 1132 |
 | `boSen` (blow-out active) | `%MW110` | register 1134 |
-
-Modbus is not the only door: the same memory is reachable over S7comm, DNP3 and EtherNet/IP, and none of them asks for a password. The most powerful action of all is uploading a **new program**. It changes the plant's behaviour permanently, and no amount of watching register values reveals it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
-
-<details class="deep-dive" markdown="1">
-<summary>Deep dive: the other ports and how the outputs reach the plant</summary>
 
 The OpenPLC container exposes its S7comm server on port 102, DNP3 on 20000 and EtherNet/IP on 44818, next to Modbus on 502. Blocking one port does not close the door when the same memory is reachable through the next one.
 

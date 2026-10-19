@@ -79,7 +79,7 @@
       "type": "multi",
       "question": "Which measures stop or limit this attack? (Select all that apply)",
       "options": [
-        "A firewall that only lets hwio and FUXA write to port 502",
+        "A firewall that lets only hwio, FUXA and OPC-UA reach port 502",
         "A PLC rule that rejects impossible jumps in the pressure reading",
         "A relief valve that acts on the real pressure",
         "A stronger password on the OpenPLC web interface"

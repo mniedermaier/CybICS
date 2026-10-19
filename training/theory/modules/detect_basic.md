@@ -86,5 +86,5 @@ The attacker's technique is MITRE ATT&CK for ICS **T0846.001 Remote System Disco
 ## Before you start
 
 - [Detection and monitoring](/theory/detection-monitoring): how an IDS and its rules work.
-- [Service scanning](/theory/scanning): running the scan you are about to detect.
-- [The attack lifecycle](/theory/attack-lifecycle): why discovery comes first.
+- [Network scanning](/theory/scanning): running the scan you are about to detect.
+- [The ICS attack lifecycle](/theory/attack-lifecycle): why discovery comes first.

@@ -57,22 +57,6 @@
           "core": true
         },
         {
-          "id": "plc_programming",
-          "title": "Programming the controller",
-          "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",
-          "content": "training/theory/modules/plc_programming.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "plc_programming",
-              "label": "PLC Programming"
-            }
-          ],
-          "prerequisites": [
-            "plc-fundamentals"
-          ]
-        },
-        {
           "id": "hmi-scada",
           "title": "HMI and SCADA",
           "summary": "How operators see and control the process, and why the HMI is a high-value target.",
@@ -98,27 +82,6 @@
             "plc-fundamentals"
           ],
           "core": true
-        },
-        {
-          "id": "password_attack",
-          "title": "Password attacks",
-          "summary": "Dictionary attacks against the OpenPLC and FUXA logins.",
-          "content": "training/theory/modules/password_attack.md",
-          "related": [
-            {
-              "type": "ctf",
-              "id": "password_attack",
-              "label": "FUXA Password Attack"
-            },
-            {
-              "type": "ctf",
-              "id": "password_openplc",
-              "label": "OpenPLC Password Attack"
-            }
-          ],
-          "prerequisites": [
-            "hmi-scada"
-          ]
         },
         {
           "id": "safety-systems",
@@ -383,6 +346,43 @@
           "prerequisites": [
             "s7comm",
             "scanning"
+          ]
+        },
+        {
+          "id": "password_attack",
+          "title": "Password attacks",
+          "summary": "Dictionary attacks against the OpenPLC and FUXA logins.",
+          "content": "training/theory/modules/password_attack.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "password_attack",
+              "label": "FUXA Password Attack"
+            },
+            {
+              "type": "ctf",
+              "id": "password_openplc",
+              "label": "OpenPLC Password Attack"
+            }
+          ],
+          "prerequisites": [
+            "hmi-scada"
+          ]
+        },
+        {
+          "id": "plc_programming",
+          "title": "Programming the controller",
+          "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",
+          "content": "training/theory/modules/plc_programming.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "plc_programming",
+              "label": "PLC Programming"
+            }
+          ],
+          "prerequisites": [
+            "plc-fundamentals"
           ]
         },
         {
