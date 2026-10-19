@@ -411,14 +411,14 @@
         { level: 'Level 1', name: 'Basic control', hint: 'PLCs and controllers', hosts: [
             { id: 'openplc', name: 'OpenPLC', ip: '172.18.0.3', ports: '502 (Modbus), 8080 (web), 102 (S7), 20000 (DNP3), 44818 (EtherNet/IP)',
               role: 'The PLC: it runs the control program every 50 ms, reads the sensors and switches the compressor and valves.',
-              attacks: ['flood_overwrite', 'fuzzingMB', 'password_openplc', 'scanning'], ids: 'Modbus write floods, unauthorised writes and diagnostic function codes raise alerts.' },
+              attacks: ['flood_overwrite', 'fuzzingMB', 'password_openplc', 'plc_programming', 'scanning'], ids: 'Modbus write floods, unauthorised writes and diagnostic function codes raise alerts, and so does any S7comm access on port 102. A program upload over the web interface raises none.' },
             { id: 's7com', name: 'S7 server', ip: '172.18.0.6', ports: '1102 (S7comm)',
               role: 'Plays a Siemens S7 PLC, so you can practise S7comm enumeration.',
               attacks: ['scanning2'], ids: 'Every S7comm access raises an enumeration alert.' },
         ] },
         { level: 'Level 0', name: 'Physical process', hint: 'Sensors, actuators, the plant itself', hosts: [
             { id: 'hwio', name: 'Plant simulation (hwio)', ip: '172.18.0.2', ports: '8090 (3D view)',
-              role: 'Simulates the tanks, the compressor and the valves, and writes the sensor values into the PLC about 50 times a second.',
+              role: 'Simulates the tanks, the compressor and the valves, and writes the sensor values into the PLC 30 to 50 times a second.',
               attacks: ['physical_process'], ids: 'Expected Modbus writer: its writes raise no alert.' },
             { id: 'stm32', name: 'STM32 (on the board)', ip: 'no IP address', ports: 'none: it talks I²C to the Raspberry Pi, plus a UART console',
               role: 'On the real board, the microcontroller that runs the physical model and drives the LEDs and the display.',
@@ -578,25 +578,28 @@
     // 120 s of Modbus writes. The engineer downloads a recipe in two bursts;
     // the attacker either floods or writes "low and slow".
     const IDS_SCENARIOS = {
-        flood: { name: 'Attacker writes the HPT register in a fast burst', attacker: Array.from({ length: 40 }, (_, i) => 70 + i * 0.25) },
+        burst: { name: 'Attacker writes a short burst (4 a second for 10 s)', attacker: Array.from({ length: 40 }, (_, i) => 70 + i * 0.25) },
+        flood: { name: 'Attacker floods register 1126 (200 a second for 3 s)', attacker: Array.from({ length: 600 }, (_, i) => 70 + i * 0.005) },
         slow: { name: 'Attacker writes low and slow', attacker: Array.from({ length: 12 }, (_, i) => 10 + i * 9) },
     };
     const ENGINEER = [...Array.from({ length: 8 }, (_, i) => 25 + i * 0.6), ...Array.from({ length: 6 }, (_, i) => 95 + i * 0.8)];
     register('ids-threshold', function (node) {
         const { body } = frame(node, 'Tune an IDS rule',
-            'The rule: “alert when one host sends at least N Modbus writes within W seconds”. Blue marks are an engineer downloading a recipe (legitimate), red marks the attacker. CybICS uses N = 10 and W = 30 s for hosts that are not expected writers.');
+            'The rule: “alert when one host sends at least N Modbus writes within W seconds”. Blue marks are the engineering workstation (172.18.0.10) downloading a recipe, which is legitimate but not an expected writer; red marks the attacker. For hosts that are not expected writers CybICS uses N = 10, W = 30 s (modbus_unauth_write) and N = 50, W = 5 s (modbus_flood).');
         const controls = el('div');
         controls.innerHTML = `
             <div class="w-row"><label>Scenario <select data-k="scenario">${Object.entries(IDS_SCENARIOS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('')}</select></label>
-            <label><input type="checkbox" data-k="allow"> allowlist the engineer's workstation</label></div>
-            <div class="w-row"><label for="ids-n">Threshold N <b data-o="n"></b> writes</label><input id="ids-n" type="range" min="2" max="30" data-k="n"></div>
+            <label><input type="checkbox" data-k="allow"> allowlist the engineering workstation</label></div>
+            <div class="w-row"><label for="ids-n">Threshold N <b data-o="n"></b> writes</label><input id="ids-n" type="range" min="2" max="60" data-k="n"></div>
             <div class="w-row"><label for="ids-w">Window W <b data-o="w"></b> s</label><input id="ids-w" type="range" min="1" max="60" data-k="w"></div>`;
         const timeline = el('div', { class: 'timeline', role: 'img' });
-        const legend = el('div', { class: 'legend' }, '<span><i style="background:var(--info)"></i>engineer write</span><span><i style="background:var(--bad)"></i>attacker write</span><span><i style="background:rgba(251,191,36,.5)"></i>alert raised</span><span>0 s → 120 s</span>');
+        const legend = el('div', { class: 'legend' }, '<span><i style="background:var(--info)"></i>engineering workstation write</span><span><i style="background:var(--bad)"></i>attacker write</span><span><i style="background:rgba(251,191,36,.5)"></i>alert raised</span><span>0 s → 120 s</span>');
         const score = el('div', { class: 'score', 'aria-live': 'polite' });
         const verdict = el('p', { class: 'w-note' });
         body.append(controls, timeline, legend, score, verdict);
-        const cfg = { scenario: 'flood', n: 10, w: 30, allow: false };
+        // A lesson can start the widget on its own rule: data-scenario, data-n, data-w.
+        const d = node.dataset;
+        const cfg = { scenario: IDS_SCENARIOS[d.scenario] ? d.scenario : 'burst', n: clampInt(d.n, 2, 60, 10), w: clampInt(d.w, 1, 60, 30), allow: false };
         // Like the IDS: once a rule has fired for a host, it stays quiet for
         // that host for 30 s, whatever the window.
         const COOLDOWN = 30;
@@ -613,6 +616,7 @@
             controls.querySelector('[data-o=w]').textContent = cfg.w;
             controls.querySelector('[data-k=n]').value = cfg.n;
             controls.querySelector('[data-k=w]').value = cfg.w;
+            controls.querySelector('[data-k=scenario]').value = cfg.scenario;
             const atk = IDS_SCENARIOS[cfg.scenario].attacker;
             const atkAlerts = alerts(atk);
             const engAlerts = cfg.allow ? [] : alerts(ENGINEER);
@@ -754,8 +758,19 @@
                     select.addEventListener('change', function () { st.chosen = select.value; graded = false; verdict.textContent = ''; paint(); });
                     li.appendChild(select);
                 }
+                if (ordered) {
+                    // On a phone a position picker beats tapping arrows five times.
+                    const pos = el('select', { class: 'seq-pos', 'aria-label': `Position of step ${i + 1}` },
+                        order.map((_, j) => `<option value="${j}"${j === i ? ' selected' : ''}>${j + 1}</option>`).join(''));
+                    pos.addEventListener('change', function () {
+                        const [item] = order.splice(i, 1);
+                        order.splice(Number(pos.value), 0, item);
+                        graded = false; verdict.textContent = ''; paint();
+                    });
+                    li.appendChild(pos);
+                }
                 if (ordered) [['↑', -1, 'Move up'], ['↓', 1, 'Move down']].forEach(function ([label, dir, aria]) {
-                    const b = el('button', { type: 'button', 'aria-label': `${aria}: step ${i + 1}` }, label);
+                    const b = el('button', { type: 'button', class: 'seq-mv', 'aria-label': `${aria}: step ${i + 1}` }, label);
                     b.disabled = (dir < 0 && i === 0) || (dir > 0 && i === order.length - 1);
                     b.addEventListener('click', function () {
                         const j = i + dir; [order[i], order[j]] = [order[j], order[i]];

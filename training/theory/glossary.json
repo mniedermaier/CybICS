@@ -232,7 +232,8 @@
     "link": "/theory/defense-hardening",
     "aliases": [
       "allow list",
-      "whitelist"
+      "whitelist",
+      "allow-list"
     ]
   },
   {
@@ -283,7 +284,7 @@
   {
     "term": "DMZ",
     "definition": "Demilitarised zone: a buffer network between the plant and the office network, so neither talks to the other directly.",
-    "link": "/theory/defense-hardening"
+    "link": "/theory/ics-basics"
   },
   {
     "term": "MITRE ATT&CK for ICS",
@@ -313,7 +314,7 @@
   {
     "term": "reconnaissance",
     "definition": "Gathering information about a target before attacking it.",
-    "link": "/theory/attack-lifecycle"
+    "link": "/theory/scanning"
   },
   {
     "term": "port scan",
@@ -413,7 +414,7 @@
   {
     "term": "set point",
     "definition": "The target value a controller tries to reach, such as the pressure a tank should hold.",
-    "link": "/theory/plc-fundamentals",
+    "link": "/theory/safety-systems",
     "aliases": [
       "setpoint",
       "set points"
@@ -422,7 +423,7 @@
   {
     "term": "historian",
     "definition": "A database that records process values over time, for trends, reports and investigations.",
-    "link": "/theory/hmi-scada"
+    "link": "/theory/ics-basics"
   },
   {
     "term": "engineering workstation",

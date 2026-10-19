@@ -144,7 +144,7 @@ Try a plan before you try the network. The planner uses the two Modbus write rul
 1. **Read the rules first.** On the Rules tab, note the threshold and window of every rule your traffic could touch, not only the Modbus ones.
 2. **Plan your rate.** Work out how many writes fit into any 30-second and any 5-second stretch without reaching a threshold. Leave a safety margin: a pause in a script is never perfectly exact.
 3. **Keep the rest of your traffic quiet.** Use one target port. A quick `nmap` "just to check" during the window is the classic way to fail.
-4. **Use a script.** A few lines of Python with `pymodbus` and `time.sleep()` give you exact control over timing. The [Flood and overwrite](/theory/flood_overwrite) module shows how to open a client and write a register.
+4. **Use a script.** A few lines of Python with `pymodbus` and `time.sleep()` give you exact control over timing. The [Flood & Overwrite](/theory/flood_overwrite) module shows how to open a client and write a register.
 5. **Open the window, act, then check.** The check counts Modbus writes from any host that is not one of the plant's own services, and every new alert since the window opened, whoever caused it.
 
 <div class="callout warning" markdown="1">
@@ -176,4 +176,4 @@ The technique you practise is Unauthorized Message: Command Message (T1692.001) 
 - [Intrusion detection](/theory/ids_challenge): the CybICS IDS and how its rules are built
 - [Detection and monitoring](/theory/detection-monitoring): thresholds, windows and false alarms
 - [Modbus TCP](/theory/modbus): function codes and register writes
-- [Flood and overwrite](/theory/flood_overwrite): the loud version of the same attack
+- [Flood & Overwrite](/theory/flood_overwrite): the loud version of the same attack

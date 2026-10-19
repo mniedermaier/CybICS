@@ -9,7 +9,7 @@
   "takeaways": [
     "In manual mode the HMI buttons drive the equipment directly, so whoever holds them controls the physics.",
     "The HPT pressure climbs while the compressor runs and nothing drains the tank, limited only by the gas in storage.",
-    "The blowout valve works on the real pressure without the PLC, but it vents more slowly than the compressor fills."
+    "The blow-out valve works on the real pressure without the PLC, but it vents more slowly than the compressor fills."
   ],
   "checkpoints": [
     {
@@ -31,11 +31,11 @@
       "options": [
         "The PLC shuts down and the plant stops",
         "The PLC stops deciding; the buttons write the coils",
-        "The blowout valve comes under the operator's control",
+        "The blow-out valve comes under the operator's control",
         "The sensors stop updating until automatic mode returns"
       ],
       "answer": 1,
-      "explanation": "In manual mode the PLC program skips its control rules, so the coils keep whatever the operator writes. The plant keeps running and the sensors keep reporting. The blowout valve is the tempting wrong answer: it is mechanical and independent, so neither manual mode nor any button can control it."
+      "explanation": "In manual mode the PLC program skips its control rules, so the coils keep whatever the operator writes. The plant keeps running and the sensors keep reporting. The blow-out valve is the tempting wrong answer: it is mechanical and independent, so neither manual mode nor any button can control it."
     },
     {
       "type": "single",
@@ -51,7 +51,7 @@
     },
     {
       "type": "single",
-      "question": "The plant is in manual mode, the HPT has passed 220 and the blowout valve is venting, but the compressor is still running. What happens?",
+      "question": "The plant is in manual mode, the HPT has passed 220 and the blow-out valve is venting, but the compressor is still running. What happens?",
       "options": [
         "The valve holds the pressure at exactly 220",
         "It keeps rising; the valve vents slower than it fills",
@@ -63,7 +63,7 @@
     },
     {
       "type": "single",
-      "question": "After a blowout the compressor is off and the system valve is shut. Where does the HPT pressure settle?",
+      "question": "After a blow-out the compressor is off and the system valve is shut. Where does the HPT pressure settle?",
       "options": [
         "Back in the normal band of 60 to 90",
         "At about 200, where the valve closes",
@@ -71,7 +71,7 @@
         "Just below 220, where the valve opened"
       ],
       "answer": 1,
-      "explanation": "The relief valve is a latch: it opens above 220, stays open until the pressure is back at 200 and then closes. It does not close at 220 and it does not keep venting below 200. With the compressor off and the system valve shut, nothing else drains the tank, so it does not return to the normal band on its own."
+      "explanation": "The blow-out valve is a latch: it opens above 220, stays open until the pressure is back at 200 and then closes. It does not close at 220 and it does not keep venting below 200. With the compressor off and the system valve shut, nothing else drains the tank, so it does not return to the normal band on its own."
     },
     {
       "type": "multi",

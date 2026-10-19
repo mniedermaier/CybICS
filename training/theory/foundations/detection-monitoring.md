@@ -98,7 +98,7 @@ Choosing those two numbers trades off two kinds of mistake:
 | **False positive** | an alert for harmless traffic | threshold too low, window too long |
 | **False negative** | an attack with no alert | threshold too high, window too short |
 
-Too many false positives and operators ignore the dashboard; too many false negatives and the IDS misses the attack. Try it: the stream below mixes writes from a legitimate HMI and an attacker.
+Too many false positives and operators ignore the dashboard; too many false negatives and the IDS misses the attack. Try it: the stream below mixes legitimate writes from the engineering workstation, which is not an expected writer, with an attacker's.
 
 <div data-widget="ids-threshold"></div>
 

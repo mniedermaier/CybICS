@@ -370,3 +370,10 @@ html.light-mode .article figure svg path[fill="#ff6b00"] { fill: #b34700; }
 .u-bit .u-v { display: block; font-family: ui-monospace, monospace; font-size: 0.9rem; font-weight: 700; }
 .u-bit small { display: block; color: var(--faint); font-size: 0.62rem; overflow-wrap: anywhere; line-height: 1.2; padding-bottom: 0.2rem; }
 .u-bit.data { background: var(--panel-2); }
+
+/* sequence on a phone: pick a position instead of tapping arrows */
+.seq .seq-pos { display: none; }
+@media (max-width: 600px) {
+    .seq .seq-pos { display: inline-block; }
+    .seq .seq-mv { display: none; }
+}

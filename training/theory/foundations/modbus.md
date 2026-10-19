@@ -128,7 +128,7 @@ The **client** (older texts say "master") sends a request; the **server** (the P
 <figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes it back. Nothing asked who sent it.</figcaption>
 </figure>
 
-The forged value does not last: the `hwio` container, which simulates the plant, writes the real HPT pressure back into 1126 about fifty times a second. So *Flood &amp; Overwrite* needs a loop, not one packet.
+The forged value does not last: the `hwio` container, which simulates the plant, writes the real HPT pressure back into 1126 30 to 50 times a second. So *Flood &amp; Overwrite* needs a loop, not one packet.
 
 ## The frame
 

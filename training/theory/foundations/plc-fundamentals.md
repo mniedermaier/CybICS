@@ -254,7 +254,7 @@ IEC 61131-3 defines Ladder Diagram (LD), Function Block Diagram (FBD), Structure
 An attacker on the network can write values into the PLC over [Modbus](/theory/modbus). Whether the forged value *sticks* depends on one question: **who writes that address next?**
 
 - **Coil 1 is the compressor.** The program computes it on every scan. Force it off and, in automatic mode, the next scan puts back whatever the logic says, within 50 ms.
-- **Register 1126 is the HPT pressure.** The program only *reads* it. `hwio`, the plant simulation, pushes the current value in over Modbus about every 20 ms, so a forged pressure lasts only until `hwio` writes again.
+- **Register 1126 is the HPT pressure.** The program only *reads* it. `hwio`, the plant simulation, pushes the current value in over Modbus every 20 to 30 ms, so a forged pressure lasts only until `hwio` writes again.
 
 <figure class="wide">
 <style>

@@ -599,3 +599,39 @@ def test_core_lessons_end_with_three_short_takeaways(topic):
     assert len(takeaways) == 3, topic["id"]
     for line in takeaways:
         assert len(line.split()) <= 22, f"{topic['id']}: {line}"
+
+
+def test_one_name_for_the_valve_and_the_flood_challenge():
+    """Beginners take two spellings for two things. Display strings quoted in
+    backticks (the LCD's `Danger! BlowOut`) are left as the device shows them."""
+    paths = [os.path.join(ROOT, t["content"]) for t in TOPICS] + [sidecar_path(t) for t in TOPICS]
+    paths += [GLOSSARY, os.path.join(LANDING, "static", "js", "theory-widgets.js")]
+    for path in paths:
+        with open(path, encoding="utf-8") as f:
+            text = re.sub(r"`[^`\n]*`", "", f.read())
+        assert not re.search(r"\b[Bb]lowout\b(?!\")", text), f"{path}: write blow-out"
+        assert not re.search(r"\b[Ff]lood and overwrite\b", text), f"{path}: write Flood & Overwrite"
+
+
+def test_glossary_links_lead_to_a_lesson_that_uses_the_term():
+    by_id = {t["id"]: t for t in TOPICS}
+    for entry in load_json(GLOSSARY):
+        link = entry.get("link", "")
+        if not link.startswith("/theory/"):
+            continue
+        text = article(by_id[link.split("/theory/", 1)[1].split("#")[0]]).lower()
+        names = [entry["term"], *entry.get("aliases", [])]
+        assert any(name.lower() in text for name in names), f"{entry['term']}: {link} never mentions it"
+
+
+def test_ids_threshold_widget_states_the_real_rules():
+    with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
+        real = {name: int(v) for name, v in re.findall(r"self\.(\w+) = (\d+)", f.read())}
+    with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
+        js = f.read()
+    assert f"N = {real['MODBUS_WRITE_THRESHOLD']}, W = {real['MODBUS_WRITE_WINDOW']} s (modbus_unauth_write)" in js
+    assert f"N = {real['MODBUS_FLOOD_THRESHOLD']}, W = {real['MODBUS_FLOOD_WINDOW']} s (modbus_flood)" in js
+    # The flood lesson starts the widget on the flood rule.
+    text = article(next(t for t in TOPICS if t["id"] == "flood_overwrite"))
+    mount = re.search(r'<div data-widget="ids-threshold"([^>]*)>', text).group(1)
+    assert f'data-n="{real["MODBUS_FLOOD_THRESHOLD"]}"' in mount and f'data-w="{real["MODBUS_FLOOD_WINDOW"]}"' in mount

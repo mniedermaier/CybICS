@@ -1,6 +1,6 @@
 # Host firewalling
 
-In this challenge you put a firewall on the PLC itself, so that only the systems that really need Modbus can reach it. Modbus TCP has no password at all: anyone who can reach port 502 can read and write. After this module, the flood and overwrite attacks from the attack machine never get an answer.
+In this challenge you put a firewall on the PLC itself, so that only the systems that really need Modbus can reach it. Modbus TCP has no password at all: anyone who can reach port 502 can read and write. After this module, the Flood & Overwrite attacks from the attack machine never get an answer.
 
 ## The idea
 
@@ -81,4 +81,4 @@ The attacks this blocks include Unauthorized Message: Command Message (T1692.001
 
 - [Modbus TCP](/theory/modbus): why port 502 has no authentication
 - [Defence in depth](/theory/defense-hardening): firewalls as one layer among several
-- [Flood and overwrite](/theory/flood_overwrite): the attack this rule set stops
+- [Flood & Overwrite](/theory/flood_overwrite): the attack this rule set stops

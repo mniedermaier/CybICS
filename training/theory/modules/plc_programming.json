@@ -44,11 +44,11 @@
       "options": [
         "The plant cycles as before, just a little higher",
         "It stalls above 100 with the system valve shut",
-        "The blowout valve opens as soon as it passes 120",
+        "The blow-out valve opens as soon as it passes 120",
         "OpenPLC rejects the program because the bands overlap"
       ],
       "answer": 1,
-      "explanation": "Above 100 the valve rule shuts the only consumer. The compressor would only restart below 60, and nothing brings the pressure down, so the plant freezes. The blowout needs 220, so no alarm sounds. The compiler cannot know about this coupling, so it accepts the program."
+      "explanation": "Above 100 the valve rule shuts the only consumer. The compressor would only restart below 60, and nothing brings the pressure down, so the plant freezes. The blow-out needs 220, so no alarm sounds. The compiler cannot know about this coupling, so it accepts the program."
     },
     {
       "type": "single",

@@ -103,7 +103,7 @@ Normally the HPT sits between 60 and 90, the compressor cycles and the blow-out 
 
 <div data-widget="plant-live" data-fields="hpt,compressor,systemValve,boSen"></div>
 
-The relief valve has a limit, and that limit is the lesson. While open it vents at most one bar per step, and on about half of the steps none at all, while a running compressor adds one bar per step. A valve sized for an occasional overshoot cannot win against a compressor that is forced on. In the *Physical process* challenge you create that situation yourself from the HMI.
+The blow-out valve has a limit, and that limit is the lesson. While open it vents at most one bar per step, and on about half of the steps none at all, while a running compressor adds one bar per step. A valve sized for an occasional overshoot cannot win against a compressor that is forced on. In the *Physical process* challenge you create that situation yourself from the HMI.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the PLC set points, where the valve lives, and the attacker's version</summary>

@@ -1,6 +1,6 @@
 # The gas pressure process
 
-In this challenge you take the controls of the CybICS plant yourself. You switch the Human-Machine Interface (HMI) to manual mode and drive the process into its safety blowout. Every later attack on CybICS ends in a physical effect like this one.
+In this challenge you take the controls of the CybICS plant yourself. You switch the Human-Machine Interface (HMI) to manual mode and drive the process into its safety blow-out. Every later attack on CybICS ends in a physical effect like this one.
 
 ## The idea
 
@@ -21,7 +21,7 @@ The plant has two tanks and four actuators:
 | Compressor (coil 1) | Moves gas from the GST into the HPT |
 | System valve (coil 2) | Lets the downstream process draw gas out of the HPT |
 | GST supply signal (coil 3) | Refills the GST from an outside supply |
-| Blowout valve | Mechanical relief valve on the HPT; its state is register 1134 |
+| Blow-out valve | Mechanical relief valve on the HPT; its state is register 1134 |
 
 In the Docker version the `hwio` container (172.18.0.2) simulates the plant. It advances in steps of about one second, called ticks. In automatic mode the PLC refills the GST when it falls below 60. It runs the compressor when the HPT falls below 60, until it reaches 90. It opens the system valve only while the HPT is between 50 and 100.
 
@@ -53,7 +53,7 @@ The compressor has an exchange rate, and it matters. Each tick it takes two bar 
 @media (prefers-reduced-motion: reduce) { .pp-b * {animation:none !important;} }
 </style>
 <svg class="pp-b" viewBox="0 0 360 250" role="img"
-     aria-label="A full gas storage tank emptying into the high-pressure tank. Each tick the compressor takes two units out of storage and puts one into the pressure tank. Storage holds about 242 when full, so it buys 97 units of pressure before the guard at 50 blocks the next transfer. Starting at 90, the pressure reaches 187 and stops, below the blowout threshold of 221.">
+     aria-label="A full gas storage tank emptying into the high-pressure tank. Each tick the compressor takes two units out of storage and puts one into the pressure tank. Storage holds about 242 when full, so it buys 97 units of pressure before the guard at 50 blocks the next transfer. Starting at 90, the pressure reaches 187 and stops, below the blow-out threshold of 221.">
   <text x="8" y="18" font-size="12" font-weight="bold">empty a full storage tank into the pressure tank</text>
 
   <rect x="24" y="40" width="56" height="150" rx="4" fill="none" stroke="currentColor" stroke-opacity="0.7"/>
@@ -72,12 +72,12 @@ The compressor has an exchange rate, and it matters. Each tick it takes two bar 
   <text x="308" y="224" text-anchor="middle" font-size="11" opacity="0.85">90 &rarr; 187</text>
 
   <line x1="272" y1="62" x2="344" y2="62" stroke="#ff6b00" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="266" y="58" text-anchor="end" font-size="11" fill="#ff6b00" font-weight="bold">221 &mdash; blowout</text>
+  <text x="266" y="58" text-anchor="end" font-size="11" fill="#ff6b00" font-weight="bold">221 &mdash; blow-out</text>
   <text class="done" x="266" y="170" text-anchor="end" font-size="12" font-weight="bold">97 transfers, then</text>
   <text class="done" x="266" y="184" text-anchor="end" font-size="12" font-weight="bold">the guard stops it</text>
   <text x="8" y="244" font-size="11" opacity="0.85">The level stops below the line. One tank of storage is not enough.</text>
 </svg>
-<figcaption>Two units out, one unit in, and only while the storage tank holds at least 50. The PLC stops refilling storage at 240, so a full tank holds about 242 and buys 97 units of pressure. From the top of the normal band at 90 that reaches 187, short of the 221 the blowout needs. Keep this mass balance in mind when you plan.</figcaption>
+<figcaption>Two units out, one unit in, and only while the storage tank holds at least 50. The PLC stops refilling storage at 240, so a full tank holds about 242 and buys 97 units of pressure. From the top of the normal band at 90 that reaches 187, short of the 221 the blow-out needs. Keep this mass balance in mind when you plan.</figcaption>
 </figure>
 
 </details>
@@ -89,13 +89,13 @@ The compressor has an exchange rate, and it matters. Each tick it takes two bar 
 1. Open FUXA on port 1881 and log in with the operator account from the challenge material.
 2. Open the system view and switch from automatic to manual. Three buttons appear: compressor, system valve and GST supply. Each one writes its coil directly.
 3. Before you press anything, ask three questions. What adds gas to the HPT? What takes gas out of it? What can stop the thing that adds gas?
-4. Make your changes and watch the HPT, the GST and the blowout indicator. The plant moves about one bar a second, so be patient.
-5. When the blowout valve opens, the HMI rewards you. Switch back to automatic afterwards.
+4. Make your changes and watch the HPT, the GST and the blow-out indicator. The plant moves about one bar a second, so be patient.
+5. When the blow-out valve opens, the HMI rewards you. Switch back to automatic afterwards.
 
-The blowout valve is not a ceiling but a latch: it opens above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, slower than a running compressor fills. Once it closes, nothing drains the tank while the system valve is shut.
+The blow-out valve is not a ceiling but a latch: it opens above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, slower than a running compressor fills. Once it closes, nothing drains the tank while the system valve is shut.
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: the relief valve, drawn</summary>
+<summary>Deep dive: the blow-out valve, drawn</summary>
 
 <figure class="wide">
 <style>
@@ -111,8 +111,8 @@ The blowout valve is not a ceiling but a latch: it opens above 220 and stays ope
 @media (prefers-reduced-motion: reduce) { .pp-l * {animation:none !important;} }
 </style>
 <svg class="pp-l" viewBox="0 0 360 208" role="img"
-     aria-label="The pressure climbs past 220, where the relief valve latches open. It vents until the pressure is back to 200, where the latch releases. Below 200 nothing drains the tank while the system valve is shut, so the pressure rests at 200.">
-  <text x="8" y="18" font-size="12" font-weight="bold">what the relief valve actually does</text>
+     aria-label="The pressure climbs past 220, where the blow-out valve latches open. It vents until the pressure is back to 200, where the latch releases. Below 200 nothing drains the tank while the system valve is shut, so the pressure rests at 200.">
+  <text x="8" y="18" font-size="12" font-weight="bold">what the blow-out valve actually does</text>
   <line x1="44" y1="150" x2="344" y2="150" stroke="currentColor" stroke-opacity="0.6"/>
   <line x1="44" y1="36" x2="44" y2="150" stroke="currentColor" stroke-opacity="0.6"/>
   <line x1="44" y1="48" x2="306" y2="48" stroke="#ff6b00" stroke-width="2" stroke-dasharray="5 4"/>
@@ -130,7 +130,7 @@ The blowout valve is not a ceiling but a latch: it opens above 220 and stays ope
   <text x="8" y="176" font-size="11" opacity="0.85">It opens above 220, closes at 200, removes the excess</text>
   <text x="8" y="192" font-size="11" opacity="0.85">and nothing removes the rest. 200 is where the plant stops.</text>
 </svg>
-<figcaption>The relief valve latches open above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, more slowly than a running compressor fills, so it cannot win against a compressor that never stops. Once it closes, the tank stays near 200 until something else drains it.</figcaption>
+<figcaption>The blow-out valve latches open above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, more slowly than a running compressor fills, so it cannot win against a compressor that never stops. Once it closes, the tank stays near 200 until something else drains it.</figcaption>
 </figure>
 
 </details>
@@ -143,7 +143,7 @@ These come from `physical_process_thread` in `software/hwio-virtual/hardwareAbst
 - Compressor on, GST at least 50 and HPT below 255: GST minus 2, HPT plus 1.
 - Compressor off and system valve open: the downstream process draws a random 0 to 2 from the HPT.
 - GST supply on and GST below 251: GST plus a random 0 to 3.
-- HPT above 220, or blowout already open and HPT above 200: the blowout is open and vents a random 0 or 1.
+- HPT above 220, or blow-out already open and HPT above 200: the blow-out is open and vents a random 0 or 1.
 
 Notice that the downstream draw only happens while the compressor is off. A tick is 51 passes of a 20 ms loop in the container, so a little over one second.
 
@@ -153,7 +153,7 @@ Notice that the downstream draw only happens while the compressor is off. A tick
 
 A defender sees this attack in two places. In the process, an HPT climbing out of its 60 to 90 band is abnormal whoever caused it, so an alarm on it catches operators and attackers alike. On the HMI, switching to manual mode is rare and should be logged with the user who did it.
 
-- **Independent safety functions.** The blowout valve works without the PLC or the HMI. That is the idea behind a Safety Instrumented System (SIS).
+- **Independent safety functions.** The blow-out valve works without the PLC or the HMI. That is the idea behind a Safety Instrumented System (SIS).
 - **Least privilege on the HMI.** FUXA supports user roles, so not every account can use manual mode.
 - **Strong credentials.** The operator login is a weak, well-known password here on purpose. See the [password attack briefing](/theory/password_attack).
 - **Interlocks in the PLC.** A program can refuse to run the compressor with the valve shut above a limit, even in manual mode.
@@ -163,4 +163,4 @@ A defender sees this attack in two places. In the process, an HPT climbing out o
 - [What is an ICS?](/theory/ics-basics) for the parts of a control system.
 - [PLCs and the scan cycle](/theory/plc-fundamentals) for how the controller decides.
 - [HMI and SCADA](/theory/hmi-scada) for what the operator screen does.
-- [Safety systems](/theory/safety-systems) for why the blowout valve is independent.
+- [Safety systems](/theory/safety-systems) for why the blow-out valve is independent.

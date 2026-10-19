@@ -72,7 +72,7 @@ Together they cover a loud attacker (both fire) and a slower one from an unknown
 
 ## Before you start
 
-- [Flood and overwrite](/theory/flood_overwrite): the attack this module detects.
+- [Flood & Overwrite](/theory/flood_overwrite): the attack this module detects.
 - [Detecting a scan](/theory/detect_basic): the IDS dashboard and the threshold idea.
 - [Capturing Modbus traffic](/theory/wireshark_capture): filtering and reading Modbus packets.
 - [Modbus TCP](/theory/modbus): the write function codes.

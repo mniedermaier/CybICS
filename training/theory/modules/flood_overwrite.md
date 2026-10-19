@@ -1,4 +1,4 @@
-# Flood and overwrite
+# Flood & Overwrite
 
 In this challenge you overwrite the pressure reading of the CybICS plant hundreds of times a second, so that the PLC believes the high-pressure tank is almost empty. You never touch the compressor or the valves: the controller does the damage itself, acting faithfully on a lie.
 
@@ -14,7 +14,7 @@ MITRE ATT&CK for ICS calls repeated writes to an I/O value *Brute Force I/O* (T0
 
 The HPT pressure lives in holding register **1126** on OpenPLC (172.18.0.3, port 502). Two writers compete for it:
 
-- The `hwio` container (172.18.0.2), which simulates the plant, writes the true pressure about every 20 milliseconds.
+- The `hwio` container (172.18.0.2), which simulates the plant, writes the true pressure every 20 to 30 milliseconds.
 - The challenge script `flooding_hpt.py` from `training/flood_overwrite/` writes the value 10, as fast as the PLC answers, several hundred times a second.
 
 <figure class="wide">
@@ -53,9 +53,9 @@ The HPT pressure lives in holding register **1126** on OpenPLC (172.18.0.3, port
 <figcaption>The orange band is the forged value; the thin notches are the moments after each <code>hwio</code> write, before the next attacker write buries it. The true value survives only a few milliseconds, so the PLC, which reads the register every 50 ms, sees the lie most of the time. The attacker's writes are not stronger, only more frequent.</figcaption>
 </figure>
 
-With the HPT reading 10, two PLC rules fire exactly as designed. Below 60 the compressor rule switches the compressor on. The system-valve rule opens the valve only between 50 and 100, so at 10 it shuts the valve and nothing draws gas from the tank. The real pressure climbs by about one bar per second, so it takes minutes to reach the relief valve.
+With the HPT reading 10, two PLC rules fire exactly as designed. Below 60 the compressor rule switches the compressor on. The system-valve rule opens the valve only between 50 and 100, so at 10 it shuts the valve and nothing draws gas from the tank. The real pressure climbs by about one bar per second, so it takes minutes to reach the blow-out valve.
 
-On the FUXA HMI the HPT display shows the forged 10, because it reads the same register. The blowout indicator is different: `hwio` sets it from the *true* pressure in register 1134, so it goes high while the pressure display still says 10.
+On the FUXA HMI the HPT display shows the forged 10, because it reads the same register. The blow-out indicator is different: `hwio` sets it from the *true* pressure in register 1134, so it goes high while the pressure display still says 10.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: watch the climb, and what limits it</summary>
@@ -78,7 +78,7 @@ The live values from the plant, as the HMI sees them:
 }
 </style>
 <svg class="fo-d" viewBox="0 0 460 210" role="img"
-     aria-label="Two traces over about five minutes. The value OpenPLC reads from register 1126 stays flat at 10. The pressure actually in the tank climbs from 75, reaching the relief valve at about three minutes and the 255 ceiling at about five. The compressor runs almost continuously with the system valve shut.">
+     aria-label="Two traces over about five minutes. The value OpenPLC reads from register 1126 stays flat at 10. The pressure actually in the tank climbs from 75, reaching the blow-out valve at about three minutes and the 255 ceiling at about five. The compressor runs almost continuously with the system valve shut.">
   <line x1="60" y1="30" x2="60" y2="164" stroke="currentColor" stroke-opacity="0.6"/>
   <line x1="60" y1="164" x2="340" y2="164" stroke="currentColor" stroke-opacity="0.6"/>
   <g font-size="13" opacity="0.7">
@@ -90,7 +90,7 @@ The live values from the plant, as the HMI sees them:
     <text x="340" y="180" text-anchor="middle">5 min</text>
   </g>
   <line x1="60" y1="47" x2="340" y2="47" stroke="var(--on)" stroke-dasharray="4 3"/>
-  <text x="346" y="51" font-size="13" fill="var(--on)">relief valve</text>
+  <text x="346" y="51" font-size="13" fill="var(--on)">blow-out valve</text>
 
   <polyline class="trace flat" pathLength="1000" points="60,150 340,150" fill="none" stroke="currentColor" stroke-width="3" stroke-opacity="0.85"/>
   <text x="346" y="154" font-size="13" opacity="0.75">reads 10</text>
@@ -101,12 +101,12 @@ The live values from the plant, as the HMI sees them:
   <text x="200" y="197" text-anchor="middle" font-size="13" style="fill:#1a1a1a" font-weight="bold">compressor on, valve shut</text>
   <line class="head" x1="60" y1="26" x2="60" y2="170" stroke="currentColor" stroke-width="2"/>
 </svg>
-<figcaption>The race is decided in milliseconds, but the plant moves in steps of about one second. That is why it takes minutes, not seconds, to reach the relief valve. Above it the rise slows, because the valve vents a little and the storage tank is running low, but it does not stop.</figcaption>
+<figcaption>The race is decided in milliseconds, but the plant moves in steps of about one second. That is why it takes minutes, not seconds, to reach the blow-out valve. Above it the rise slows, because the valve vents a little and the storage tank is running low, but it does not stop.</figcaption>
 </figure>
 
 The compressor needs gas to push. It takes two bar out of the gas storage tank (GST, register 1124) for every bar it adds to the HPT, and the PLC only runs it while the GST holds more than 50. Under a flood the GST drains faster than the supply refills it, so the compressor runs in bursts once storage is low. The attacker cannot speed this up, because the flood does not touch register 1124. A rule written to protect the compressor from an empty tank ends up limiting the attack.
 
-After the flood stops, the PLC sees the true, very high pressure, switches the compressor off and keeps the system valve shut. The relief valve vents down to about 200 and closes, and then nothing drains the tank. The plant does not recover on its own.
+After the flood stops, the PLC sees the true, very high pressure, switches the compressor off and keeps the system valve shut. The blow-out valve vents down to about 200 and closes, and then nothing drains the tank. The plant does not recover on its own.
 
 </details>
 
@@ -115,7 +115,7 @@ After the flood stops, the PLC sees the true, very high pressure, switches the c
 1. Read `flooding_hpt.py` before you run it: the register, the value and the loop. Predict what the PLC will do.
 2. Open FUXA on port 1881 in another window and note the normal values first.
 3. Run the script from the attack machine against OpenPLC, until you stop it or for a set `--duration`.
-4. Watch the HMI. Compare the pressure display with the blowout indicator over a few minutes.
+4. Watch the HMI. Compare the pressure display with the blow-out indicator over a few minutes.
 5. Click **Verify** on the challenge page. It does not look at the plant; it asks the IDS whether its flood rule has fired.
 6. Stop the script and watch how the plant does, or does not, recover.
 
@@ -123,9 +123,9 @@ After the flood stops, the PLC sees the true, very high pressure, switches the c
 
 ## Detect and defend
 
-This attack is loud. The CybICS IDS counts Modbus write requests per source: fifty within five seconds from any host other than `hwio`, `fuxa` or `openplc` raises a critical `modbus_flood` alert. A second rule flags ten writes within thirty seconds from any unexpected writer. Try the trade-off yourself:
+This attack is loud. The CybICS IDS counts Modbus write requests per source: fifty within five seconds from any host other than `hwio`, `fuxa` or `openplc` raises a critical `modbus_flood` alert. A second rule flags ten writes within thirty seconds from any unexpected writer. The widget starts on the flood rule and a real flood; switch to the slower scenarios and see what N = 50 in 5 s misses:
 
-<div data-widget="ids-threshold"></div>
+<div data-widget="ids-threshold" data-scenario="flood" data-n="50" data-w="5"></div>
 
 The [Detecting a flood](/theory/detect_overwrite) challenge asks you to find this alert. The patient opposite is [IDS evasion](/theory/ids_evasion): a few writes, seconds apart, stay below every threshold.
 
@@ -133,7 +133,7 @@ Defences that stop or limit it:
 
 - **Allow-list Modbus clients.** Only hwio and FUXA write and only the OPC-UA server reads besides them, so a firewall can drop every other client of port 502. See [Host firewalling](/theory/defense_firewall).
 - **Plausibility checks in the PLC.** A real pressure cannot fall from 75 to 10 in one cycle, so a program can reject impossible jumps.
-- **Independent safety.** The relief valve works on the real pressure, not on a register, which is why the tank does not burst.
+- **Independent safety.** The blow-out valve works on the real pressure, not on a register, which is why the tank does not burst.
 - **Segmentation**, so the attack machine cannot reach port 502 at all.
 
 ## Before you start

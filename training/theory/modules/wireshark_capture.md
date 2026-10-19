@@ -33,7 +33,7 @@ Several programs talk Modbus to OpenPLC (172.18.0.3, port 502) all the time. The
 <figcaption>Modbus requests carry the function code, the register address and the values in readable form. A capture point anywhere on the path sees all of it.</figcaption>
 </figure>
 
-- **hwio** (172.18.0.2) writes the pressures and sensor values about every 20 milliseconds and reads the coils that switch the compressor and the valves.
+- **hwio** (172.18.0.2) writes the pressures and sensor values every 20 to 30 milliseconds and reads the coils that switch the compressor and the valves.
 - **FUXA** (172.18.0.4), the HMI, reads the values it displays once a second.
 - **The OPC-UA server** (172.18.0.5) reads six registers every two seconds and offers them to OPC-UA clients.
 - **The landing page** reads the plant registers once a second, but only while a lesson with a live plant widget is open. It runs on the host, so its packets come from 172.18.0.1, the host's address on the container network.

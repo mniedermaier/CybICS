@@ -102,7 +102,7 @@
         {
           "id": "physical_process",
           "title": "The gas pressure process",
-          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blowout.",
+          "summary": "The plant CybICS models: tanks, compressor, valves, and the safety blow-out.",
           "content": "training/theory/modules/physical_process.md",
           "related": [
             {
@@ -174,7 +174,7 @@
         },
         {
           "id": "flood_overwrite",
-          "title": "Flood and overwrite",
+          "title": "Flood & Overwrite",
           "summary": "Overwhelming a register with writes to force an unsafe state.",
           "content": "training/theory/modules/flood_overwrite.md",
           "related": [

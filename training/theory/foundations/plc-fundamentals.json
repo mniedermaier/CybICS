@@ -43,7 +43,7 @@
       "options": [
         "It stays off until an operator turns it on at the HMI",
         "The next scan turns it back on, within about 50 ms",
-        "hwio restores the coil about 20 ms later",
+        "hwio restores the coil some 20 to 30 ms later",
         "The PLC rejects the write, because coils are outputs"
       ],
       "answer": 1,
@@ -79,11 +79,11 @@
       "options": [
         "Once; the PLC never changes a register it only reads",
         "Faster than every 50 ms, so it lands before each PLC scan",
-        "Faster than hwio rewrites it, about every 20 ms",
+        "Faster than hwio rewrites it, every 20 to 30 ms",
         "Once per second, to match the HMI poll"
       ],
       "answer": 2,
-      "explanation": "It is true that the program only reads 1126, but hwio, the plant simulation, writes the real value back about every 20 ms. Beating the 50 ms PLC scan is the tempting answer, but it is hwio's rewrite the attacker has to outpace, not the PLC."
+      "explanation": "It is true that the program only reads 1126, but hwio, the plant simulation, writes the real value back every 20 to 30 ms. Beating the 50 ms PLC scan is the tempting answer, but it is hwio's rewrite the attacker has to outpace, not the PLC."
     }
   ]
 }

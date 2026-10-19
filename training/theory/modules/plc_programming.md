@@ -91,7 +91,7 @@ The challenge does not hand you a string. When you click **Verify**, the landing
 
 The compressor band (60 to 90) and the system-valve band (50 to 100) are separate rules, but they depend on each other. Raise the compressor's upper limit to 99 and the plant still cycles. Raise it to 120 and something surprising happens.
 
-Once the pressure passes 100, the PLC shuts the system valve, so the only consumer of gas disappears. The compressor runs on until it reaches its new limit or storage runs low, then stops. Now the pressure is above 100, nothing draws gas out, and the compressor would only restart below 60. The plant freezes. No alarm sounds, because the blowout needs 220. The only sign is that the "system running" indicator stays off.
+Once the pressure passes 100, the PLC shuts the system valve, so the only consumer of gas disappears. The compressor runs on until it reaches its new limit or storage runs low, then stops. Now the pressure is above 100, nothing draws gas out, and the compressor would only restart below 60. The plant freezes. No alarm sounds, because the blow-out needs 220. The only sign is that the "system running" indicator stays off.
 
 That is why program changes are dangerous even without bad intent: a controller program encodes couplings that nobody wrote down.
 

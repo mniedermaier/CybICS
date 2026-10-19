@@ -50,7 +50,7 @@ The **Verify Defense** check tests the three links from the figure in order. The
 3. **Pick three different behaviours.** Choose three attacks you learned in earlier modules that map to three different rules. Repeating the same attack does not add new rules.
 4. **Watch the alerts arrive** on the dashboard, then verify.
 
-Then think about tuning. Every threshold is a trade-off between missing attacks and drowning in false alarms. Try it here: the stream mixes normal HMI writes with an attacker's.
+Then think about tuning. Every threshold is a trade-off between missing attacks and drowning in false alarms. Try it here: the stream mixes legitimate writes from the engineering workstation, which is not an expected writer, with an attacker's.
 
 <div data-widget="ids-threshold"></div>
 
@@ -71,4 +71,4 @@ NIST SP 800-82 calls this System Monitoring (SI-4). D3FEND lists Network Traffic
 
 - [Detection and monitoring](/theory/detection-monitoring): how an IDS works and what false positives are
 - [Intrusion detection](/theory/ids_challenge): the CybICS IDS and its rules in detail
-- [Network scanning](/theory/scanning) and [Flood and overwrite](/theory/flood_overwrite): attacks the rules recognise
+- [Network scanning](/theory/scanning) and [Flood & Overwrite](/theory/flood_overwrite): attacks the rules recognise
