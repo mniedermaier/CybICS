@@ -1,0 +1,96 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain what a UART serial console is and why it bypasses network security",
+    "Connect to a serial console with the right settings",
+    "Calculate the keyspace of a short password and estimate the time to search it",
+    "List the controls that protect debug interfaces on embedded devices"
+  ],
+  "takeaways": [
+    "A UART needs only TX, RX and ground, and has no built-in authentication.",
+    "Debug consoles are often left on production boards and sit below every network control.",
+    "Three lowercase letters give only 26 x 26 x 26 = 17,576 possible passwords.",
+    "A hard-coded console password is the same on every device and cannot be changed by the owner.",
+    "Physical access control, disabled debug ports and login delays are the main defences."
+  ],
+  "checkpoints": [
+    {
+      "id": "keyspace",
+      "question": "A password has exactly three lowercase letters (a to z). How many combinations are there?",
+      "options": [
+        "78",
+        "15,600",
+        "17,576",
+        "456,976"
+      ],
+      "answer": 2,
+      "explanation": "Each position has 26 choices and letters may repeat, so 26 x 26 x 26 = 17,576. 15,600 (26 x 25 x 24) wrongly forbids repeated letters, 78 adds instead of multiplying, and 456,976 is the number for four letters."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why does the CybICS IDS not notice a password search on the UART console?",
+      "options": [
+        "The UART never touches the network it watches",
+        "The console traffic is encrypted by the STM32",
+        "Console guesses are too slow to pass a threshold",
+        "The IDS has no rule for failed logins at all"
+      ],
+      "answer": 0,
+      "explanation": "The IDS captures network packets. The UART is a direct wire between two chips, so nothing on it ever reaches the network, however fast or slow you guess. Encryption plays no role either: the serial line is plain text."
+    },
+    {
+      "type": "single",
+      "question": "Your guessing script manages 1.5 passwords per second. Roughly how long can a search of all 17,576 three-letter passwords take in the worst case?",
+      "options": [
+        "About 3 minutes",
+        "About 3 hours",
+        "About 3 days",
+        "About 3 weeks"
+      ],
+      "answer": 1,
+      "explanation": "17,576 / 1.5 is about 11,700 seconds, a little over three hours. On average you find the password halfway through."
+    },
+    {
+      "type": "single",
+      "question": "You open the serial port and see only garbled characters. What is the most likely cause?",
+      "options": [
+        "The baud rate does not match the device",
+        "TX and RX are swapped on the adapter",
+        "The console output is encrypted until login",
+        "The board is still booting and not ready yet"
+      ],
+      "answer": 0,
+      "explanation": "Both ends must agree on the speed. At the wrong baud rate the bits are sampled at the wrong moments and turn into nonsense. Swapped TX and RX would show nothing at all rather than garbage, and the console is never encrypted."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures would make this attack much harder?",
+      "options": [
+        "A delay or lockout after failed attempts",
+        "A strong per-device password, not one in firmware",
+        "A locked cabinet and tamper seals",
+        "Moving the console to an unusual, secret baud rate"
+      ],
+      "answer": [
+        0,
+        1,
+        2
+      ],
+      "explanation": "Delays slow the search, strong unique passwords enlarge it, and physical controls stop the attacker reaching the board. An unusual baud rate only hides the console: the timing of the shortest pulse on a logic analyser reveals the speed in minutes."
+    },
+    {
+      "type": "single",
+      "question": "When wiring a USB-to-serial adapter to an unknown board, how do you connect the data lines?",
+      "options": [
+        "TX to TX, RX to RX, GND to GND",
+        "TX to RX, RX to TX, GND to GND",
+        "TX to RX, RX to TX, VCC to VCC",
+        "TX to RX, RX to TX, no ground"
+      ],
+      "answer": 1,
+      "explanation": "One side's transmit line must feed the other side's receive line, so TX to TX connects two talkers and no listener. Ground must be shared so both agree on what 0 V is, and VCC should not be connected: a mismatched supply can damage the chip."
+    }
+  ]
+}

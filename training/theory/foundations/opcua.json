@@ -1,0 +1,86 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Distinguish an OPC-UA security policy (channel protection) from a user identity token (who you are)",
+    "Describe the OPC-UA connection steps and identify the step where the user is accepted or refused",
+    "Explain which identities the CybICS server accepts and what each role may do",
+    "Name the settings that make an OPC-UA server secure in practice"
+  ],
+  "takeaways": [
+    "Channel security (None or SignAndEncrypt) and user identity (Anonymous, username, certificate) are two independent decisions.",
+    "The identity is checked only at the last connection step, ActivateSession; the earlier steps succeed for everyone.",
+    "On CybICS, anonymous sessions are refused, user1 gets the read-only User role, and only a registered certificate reaches Admin.",
+    "On an unencrypted channel the user name is readable even when the password is encrypted, which helps an attacker guess.",
+    "A certificate is only as safe as its private key: a leaked key is a leaked login."
+  ],
+  "checkpoints": [
+    {
+      "id": "roles",
+      "question": "A client logs in to the CybICS server as user1 and tries to write the trigger variable. What happens?",
+      "options": [
+        "It succeeds, because user1 logged in successfully",
+        "It is refused, because the User role may only read",
+        "It succeeds, but only on the SignAndEncrypt endpoint"
+      ],
+      "answer": 1,
+      "explanation": "Logging in and being allowed to write are different things. user1 is accepted with the User role, which may read every node but write none; the server answers BadUserAccessDenied. The channel's security policy does not change the role, so the encrypted endpoint does not help. Only the Admin role may write."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "A vendor says: \"Our OPC-UA server uses Basic256Sha256 encryption, so it is secure.\" Which security question does that leave unanswered?",
+      "options": [
+        "Whether an eavesdropper can read the traffic",
+        "Who is allowed to open a session",
+        "Which algorithm protects the channel",
+        "Whether the traffic is encrypted at all"
+      ],
+      "answer": 1,
+      "explanation": "The security policy only protects the channel, so the statement does answer the eavesdropping, algorithm and encryption questions. Who may connect is a separate decision made by the identity tokens and the user manager. An encrypted channel can still carry an anonymous user."
+    },
+    {
+      "type": "single",
+      "question": "At which step does the CybICS server refuse an anonymous client?",
+      "options": ["Hello / Acknowledge", "OpenSecureChannel", "CreateSession", "ActivateSession"],
+      "answer": 3,
+      "explanation": "The first three steps succeed for every client. CreateSession is tempting because it sounds like the login, but the identity only travels in ActivateSession, and that is where the user manager finds no user and the server answers BadUserAccessDenied."
+    },
+    {
+      "type": "single",
+      "question": "How can a client reach the Admin role on the CybICS server?",
+      "options": [
+        "With the password of user1",
+        "With the admin account's username and password",
+        "With the registered admin certificate and key",
+        "Anonymously, over the encrypted channel"
+      ],
+      "answer": 2,
+      "explanation": "The admin password list is empty, so no username and password reaches Admin, however good the guess. The role is bound to one registered certificate, and using a certificate requires its private key."
+    },
+    {
+      "type": "single",
+      "question": "You capture a user1 login on the CybICS None endpoint. What can you read in the capture?",
+      "options": [
+        "Nothing, because OPC-UA always encrypts everything",
+        "The user name, but not the password, which the client encrypts",
+        "Both the user name and the password in plain text",
+        "Only the password, since user names are hashed"
+      ],
+      "answer": 1,
+      "explanation": "On this endpoint the channel is unencrypted, so the user name is readable, but the username token carries its own Basic256Sha256 policy and the client encrypts the password. 'Both in plain text' is the tempting answer for a None channel; it would only be true on a server whose token policy is also None."
+    },
+    {
+      "type": "multi",
+      "question": "Which settings make an OPC-UA server harder to attack?",
+      "options": [
+        "Offering only signed and encrypted security policies",
+        "Disabling the Anonymous identity token",
+        "Storing the admin key in a shared folder as a backup",
+        "Locking accounts after repeated failed logins"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Encryption protects the channel, disabling Anonymous removes a way in, and lockout stops password guessing from scaling. A backup sounds responsible, but a private key in a shared place is a leaked credential, which is exactly what the challenge exploits."
+    }
+  ]
+}

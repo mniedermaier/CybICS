@@ -1,0 +1,93 @@
+{
+  "level": "advanced",
+  "objectives": [
+    "Explain how a sliding-window rate rule decides when to alert",
+    "Plan a sequence of Modbus writes that stays below documented IDS thresholds",
+    "Propose detections that low-and-slow traffic cannot avoid"
+  ],
+  "takeaways": [
+    "A rate rule counts events inside a sliding window and alerts only when the count reaches a threshold.",
+    "Events leave the window as time passes, so slow, patient traffic never builds up a count.",
+    "The CybICS Modbus rules look only at the function code, not at the register or the value written.",
+    "Any noisy side activity, such as a port scan, can trigger a different rule and spoil an otherwise quiet attack.",
+    "Allow-lists, long-term baselines and firewalls catch or stop traffic that rate rules miss."
+  ],
+  "checkpoints": [
+    {
+      "id": "window",
+      "question": "A rule fires at 10 writes in 30 seconds. You sent 4 writes, then waited 40 seconds. How many of them still count?",
+      "options": [
+        "4",
+        "0",
+        "2",
+        "It depends on the register"
+      ],
+      "answer": 1,
+      "explanation": "After 40 seconds all four writes have aged out of the 30-second window, so the count is back to zero. 4 assumes the rule remembers forever, but a sliding window forgets on its own. The register does not matter; the rule only looks at the function code."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Which change would let the CybICS IDS catch a single write from the attack machine?",
+      "options": [
+        "Raising the modbus_unauth_write threshold to 20",
+        "Alerting on any write from an unlisted host",
+        "Shortening the modbus_unauth_write window",
+        "Counting reads as well as writes per source"
+      ],
+      "answer": 1,
+      "explanation": "An allow-list rule has no threshold to stay under: the first write from an unexpected host alerts. Shortening the window sounds stricter but makes evasion easier, because writes age out sooner, and counting reads still needs a threshold the single write stays below."
+    },
+    {
+      "type": "single",
+      "question": "During your evasion window you run a quick nmap scan of OpenPLC. What is the most likely result?",
+      "options": [
+        "Nothing, nmap does not send any Modbus",
+        "port_scan fires and the attempt fails",
+        "Nothing, the check only counts writes",
+        "The scan is counted as a Modbus write"
+      ],
+      "answer": 1,
+      "explanation": "The check fails on any new alert since the window opened, not only Modbus alerts or writes. A scan touches many ports in a few seconds and trips port_scan, so the attempt is lost."
+    },
+    {
+      "type": "multi",
+      "question": "Which pieces of information does the CybICS Modbus write rule use?",
+      "options": [
+        "The source IP address",
+        "The function code",
+        "The value being written",
+        "The time of each write"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "The rule counts write function codes per source address over time. It never reads the value or the register, even though both sit in the same request, which is why a process-aware check is a useful addition."
+    },
+    {
+      "type": "single",
+      "question": "True or false: a rate rule that stays silent during your low-and-slow attack is working exactly as designed.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": "True. The rule measures rate, and your rate was low, so silence is the designed result rather than a bug. Evasion exploits what a rule looks at; fixing it means adding checks that look at something else."
+    },
+    {
+      "type": "single",
+      "question": "Why does a defender benefit from practising this attack?",
+      "options": [
+        "To learn which thresholds are safe to raise further",
+        "To find the rules' blind spots and cover them",
+        "To tune the rules so evasion raises alerts",
+        "To prove the IDS can block slow attacks"
+      ],
+      "answer": 1,
+      "explanation": "Testing detection the way an attacker would shows which traffic slips through, so new checks such as allow-listing can cover it. Raising thresholds would widen the blind spot, and no tuning makes an IDS block anything."
+    }
+  ]
+}

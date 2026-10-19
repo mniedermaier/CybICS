@@ -1,0 +1,544 @@
+[
+  {
+    "term": "ICS",
+    "definition": "Industrial Control System: the computers, controllers and networks that run a physical process such as a gas plant, a power grid or a water works.",
+    "link": "/theory/ics-basics",
+    "aliases": [
+      "Industrial Control System"
+    ]
+  },
+  {
+    "term": "OT",
+    "definition": "Operational Technology: hardware and software that monitors or changes physical equipment. The counterpart of office IT.",
+    "link": "/theory/ics-basics",
+    "aliases": [
+      "Operational Technology"
+    ]
+  },
+  {
+    "term": "PLC",
+    "definition": "Programmable Logic Controller: a rugged industrial computer that reads sensors, runs a control program in a fixed cycle and switches outputs such as motors and valves.",
+    "link": "/theory/plc-fundamentals",
+    "aliases": [
+      "PLCs",
+      "Programmable Logic Controller"
+    ]
+  },
+  {
+    "term": "HMI",
+    "definition": "Human-Machine Interface: the screen operators use to watch and control the plant. In CybICS this is FUXA.",
+    "link": "/theory/hmi-scada",
+    "aliases": [
+      "HMIs",
+      "Human-Machine Interface"
+    ]
+  },
+  {
+    "term": "SCADA",
+    "definition": "Supervisory Control and Data Acquisition: the software layer that collects data from many controllers and lets operators supervise a whole site.",
+    "link": "/theory/hmi-scada"
+  },
+  {
+    "term": "Purdue model",
+    "definition": "A reference model that sorts the devices of a plant into levels, from the physical process (level 0) up to the business network (levels 4 and 5).",
+    "link": "/theory/ics-basics",
+    "aliases": [
+      "Purdue levels"
+    ]
+  },
+  {
+    "term": "scan cycle",
+    "definition": "The loop a PLC repeats forever: read all inputs, run the program once, write all outputs. CybICS runs it every 50 ms.",
+    "link": "/theory/plc-fundamentals",
+    "aliases": [
+      "scan time"
+    ]
+  },
+  {
+    "term": "hysteresis",
+    "definition": "Switching on at one value and off at a different one, so a device does not flicker on and off around a single threshold. The CybICS compressor starts below 60 and stops at 90.",
+    "link": "/theory/plc-fundamentals"
+  },
+  {
+    "term": "IEC 61131-3",
+    "definition": "The international standard for PLC programming languages, such as Structured Text and Ladder Diagram.",
+    "link": "/theory/plc-fundamentals"
+  },
+  {
+    "term": "Structured Text",
+    "definition": "A text-based PLC programming language from IEC 61131-3 that looks a little like Pascal. The CybICS program is written in it.",
+    "link": "/theory/plc-fundamentals",
+    "aliases": [
+      "ST"
+    ]
+  },
+  {
+    "term": "Modbus",
+    "definition": "A simple industrial protocol from 1979. A client asks a server to read or write numbered coils and registers. It has no authentication.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "Modbus TCP",
+      "Modbus/TCP"
+    ]
+  },
+  {
+    "term": "holding register",
+    "definition": "A 16-bit Modbus value that clients can both read and write. CybICS keeps the tank pressures in holding registers 1124 and 1126.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "holding registers"
+    ]
+  },
+  {
+    "term": "coil",
+    "definition": "A single on/off value in Modbus, usually an output such as a motor or a valve. On CybICS coil 1 is the compressor.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "coils"
+    ]
+  },
+  {
+    "term": "function code",
+    "definition": "The byte in a Modbus request that says what to do, for example 03 = read holding registers or 06 = write one register.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "function codes"
+    ]
+  },
+  {
+    "term": "MBAP",
+    "definition": "Modbus Application Protocol header: the 7 bytes in front of every Modbus TCP message (transaction ID, protocol ID, length, unit ID).",
+    "link": "/theory/modbus",
+    "aliases": [
+      "MBAP header"
+    ]
+  },
+  {
+    "term": "PDU",
+    "definition": "Protocol Data Unit: the part of a message that carries the actual request, after the headers that only transport it.",
+    "link": "/theory/modbus"
+  },
+  {
+    "term": "S7comm",
+    "definition": "Siemens' proprietary protocol for its S7 PLCs, carried over TCP port 102 inside TPKT and COTP.",
+    "link": "/theory/s7comm",
+    "aliases": [
+      "S7"
+    ]
+  },
+  {
+    "term": "SZL",
+    "definition": "System status list (German: System-Zustandsliste): the self-description an S7 PLC gives on request, including its model and firmware.",
+    "link": "/theory/s7comm",
+    "aliases": [
+      "SSL"
+    ]
+  },
+  {
+    "term": "TPKT",
+    "definition": "A small framing header (RFC 1006) that lets ISO transport messages travel over TCP. S7comm uses it.",
+    "link": "/theory/s7comm"
+  },
+  {
+    "term": "COTP",
+    "definition": "Connection-Oriented Transport Protocol (ISO 8073), the transport layer S7comm runs on.",
+    "link": "/theory/s7comm"
+  },
+  {
+    "term": "OPC-UA",
+    "definition": "OPC Unified Architecture: a modern industrial protocol with a browsable data model and optional encryption and user authentication.",
+    "link": "/theory/opcua-protocol",
+    "aliases": [
+      "OPC UA"
+    ]
+  },
+  {
+    "term": "security policy",
+    "definition": "In OPC-UA, how a connection is protected: not at all (None), signed, or signed and encrypted.",
+    "link": "/theory/opcua-protocol"
+  },
+  {
+    "term": "identity token",
+    "definition": "In OPC-UA, how a client says who it is: anonymously, with a username and password, or with a certificate.",
+    "link": "/theory/opcua-protocol"
+  },
+  {
+    "term": "DNP3",
+    "definition": "Distributed Network Protocol 3, common in electricity and water utilities in North America. OpenPLC serves it on port 20000.",
+    "link": "/theory/other-protocols"
+  },
+  {
+    "term": "EtherNet/IP",
+    "definition": "An industrial protocol that carries CIP messages over Ethernet, common with Rockwell/Allen-Bradley PLCs. OpenPLC serves it on port 44818.",
+    "link": "/theory/other-protocols",
+    "aliases": [
+      "CIP"
+    ]
+  },
+  {
+    "term": "SIS",
+    "definition": "Safety Instrumented System: an independent controller whose only job is to bring the plant into a safe state when something goes dangerously wrong.",
+    "link": "/theory/safety-systems",
+    "aliases": [
+      "Safety Instrumented System"
+    ]
+  },
+  {
+    "term": "GST",
+    "definition": "Gas storage tank: the low-pressure tank of the CybICS plant that feeds the compressor (holding register 1124).",
+    "link": "/theory/ics-basics",
+    "aliases": [
+      "gas storage tank"
+    ]
+  },
+  {
+    "term": "HPT",
+    "definition": "High-pressure tank: the tank the CybICS compressor fills and the consumer draws from (holding register 1126).",
+    "link": "/theory/ics-basics",
+    "aliases": [
+      "high-pressure tank",
+      "high pressure tank"
+    ]
+  },
+  {
+    "term": "blow-out valve",
+    "definition": "The CybICS relief valve. It opens when the HPT pressure goes above 220 bar and closes again when it is back at 200. It vents more slowly than a running compressor fills, so it cannot stop a compressor that is forced on.",
+    "link": "/theory/safety-systems",
+    "aliases": [
+      "relief valve"
+    ]
+  },
+  {
+    "term": "IDS",
+    "definition": "Intrusion Detection System: watches network traffic and raises an alert when it matches a rule, such as many Modbus writes from an unexpected host. It does not block anything.",
+    "link": "/theory/detection-monitoring",
+    "aliases": [
+      "intrusion detection system"
+    ]
+  },
+  {
+    "term": "false positive",
+    "definition": "An alert that fires on legitimate activity. Too many of them and operators stop paying attention.",
+    "link": "/theory/detection-monitoring",
+    "aliases": [
+      "false positives",
+      "false alarm",
+      "false alarms"
+    ]
+  },
+  {
+    "term": "allowlist",
+    "definition": "A list of what is permitted; everything else is refused or flagged. The opposite of a blocklist.",
+    "link": "/theory/defense-hardening",
+    "aliases": [
+      "allow list",
+      "whitelist",
+      "allow-list"
+    ]
+  },
+  {
+    "term": "default deny",
+    "definition": "A firewall policy that blocks everything that is not explicitly allowed.",
+    "link": "/theory/defense-hardening"
+  },
+  {
+    "term": "defence in depth",
+    "definition": "Several independent layers of protection, so one failure does not lead straight to an incident.",
+    "link": "/theory/defense-hardening",
+    "aliases": [
+      "defense in depth"
+    ]
+  },
+  {
+    "term": "segmentation",
+    "definition": "Splitting a network into separate parts with controlled connections between them, so an intruder in one part cannot reach everything.",
+    "link": "/theory/defense-hardening",
+    "aliases": [
+      "network segmentation"
+    ]
+  },
+  {
+    "term": "zone",
+    "definition": "In IEC 62443, a group of assets with the same security requirements.",
+    "link": "/theory/risk-assessment",
+    "aliases": [
+      "zones"
+    ]
+  },
+  {
+    "term": "conduit",
+    "definition": "In IEC 62443, the controlled communication path between two zones.",
+    "link": "/theory/risk-assessment",
+    "aliases": [
+      "conduits"
+    ]
+  },
+  {
+    "term": "IEC 62443",
+    "definition": "The international family of standards for securing industrial automation and control systems.",
+    "link": "/theory/risk-assessment",
+    "aliases": [
+      "ISA/IEC 62443"
+    ]
+  },
+  {
+    "term": "DMZ",
+    "definition": "Demilitarised zone: a buffer network between the plant and the office network, so neither talks to the other directly.",
+    "link": "/theory/ics-basics"
+  },
+  {
+    "term": "MITRE ATT&CK for ICS",
+    "definition": "A public knowledge base of the tactics and techniques attackers use against industrial control systems, each with an ID such as T0846.",
+    "link": "/theory/attack-lifecycle",
+    "aliases": [
+      "ATT&CK for ICS",
+      "ATT&CK"
+    ]
+  },
+  {
+    "term": "tactic",
+    "definition": "In ATT&CK, the attacker's goal at a stage of an attack, such as Discovery or Impair Process Control.",
+    "link": "/theory/attack-lifecycle",
+    "aliases": [
+      "tactics"
+    ]
+  },
+  {
+    "term": "technique",
+    "definition": "In ATT&CK, a specific way of reaching a tactic's goal, such as Remote System Discovery.",
+    "link": "/theory/attack-lifecycle",
+    "aliases": [
+      "techniques"
+    ]
+  },
+  {
+    "term": "reconnaissance",
+    "definition": "Gathering information about a target before attacking it.",
+    "link": "/theory/scanning"
+  },
+  {
+    "term": "port scan",
+    "definition": "Probing a host's network ports to find which services it runs. nmap is the usual tool.",
+    "link": "/theory/attack-lifecycle",
+    "aliases": [
+      "port scanning"
+    ]
+  },
+  {
+    "term": "man-in-the-middle",
+    "definition": "An attacker who sits between two parties and can read or change everything they send each other.",
+    "link": "/theory/mitm",
+    "aliases": [
+      "MITM",
+      "man in the middle"
+    ]
+  },
+  {
+    "term": "ARP spoofing",
+    "definition": "Sending forged ARP replies so that other hosts send their traffic for an IP address to the attacker's machine.",
+    "link": "/theory/mitm",
+    "aliases": [
+      "ARP poisoning"
+    ]
+  },
+  {
+    "term": "fuzzing",
+    "definition": "Sending large amounts of malformed or unexpected input to a program to find crashes and bugs.",
+    "link": "/theory/fuzzingMB"
+  },
+  {
+    "term": "brute force",
+    "definition": "Guessing passwords by trying many candidates, often from a wordlist.",
+    "link": "/theory/password_attack",
+    "aliases": [
+      "dictionary attack"
+    ]
+  },
+  {
+    "term": "UART",
+    "definition": "Universal Asynchronous Receiver-Transmitter: a simple serial interface found on most circuit boards, often left open as a debug console.",
+    "link": "/theory/uart_basic"
+  },
+  {
+    "term": "PCAP",
+    "definition": "A packet capture file, as written by Wireshark or tcpdump.",
+    "link": "/theory/wireshark_capture",
+    "aliases": [
+      "packet capture"
+    ]
+  },
+  {
+    "term": "Wireshark",
+    "definition": "A free tool that captures network traffic and decodes it protocol by protocol.",
+    "link": "/theory/wireshark_capture"
+  },
+  {
+    "term": "nmap",
+    "definition": "A free network scanner that finds hosts and open ports and can identify the services behind them.",
+    "link": "/theory/scanning"
+  },
+  {
+    "term": "incident response",
+    "definition": "The organised way of handling a security incident: prepare, identify, contain, eradicate, recover and learn from it.",
+    "link": "/theory/incident-response"
+  },
+  {
+    "term": "ransomware",
+    "definition": "Malware that encrypts a victim's data and demands payment to unlock it.",
+    "link": "/theory/colonial-pipeline"
+  },
+  {
+    "term": "hex",
+    "definition": "Hexadecimal: writing numbers in base 16 with the digits 0-9 and A-F. One byte is always two hex digits, from 00 to FF.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "hexadecimal"
+    ]
+  },
+  {
+    "term": "byte",
+    "definition": "Eight bits: a number from 0 to 255, written as two hex digits.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "bytes"
+    ]
+  },
+  {
+    "term": "register",
+    "definition": "A numbered storage slot in a controller. A Modbus register holds 16 bits, a number from 0 to 65535.",
+    "link": "/theory/modbus",
+    "aliases": [
+      "registers"
+    ]
+  },
+  {
+    "term": "set point",
+    "definition": "The target value a controller tries to reach, such as the pressure a tank should hold.",
+    "link": "/theory/safety-systems",
+    "aliases": [
+      "setpoint",
+      "set points"
+    ]
+  },
+  {
+    "term": "historian",
+    "definition": "A database that records process values over time, for trends, reports and investigations.",
+    "link": "/theory/ics-basics"
+  },
+  {
+    "term": "engineering workstation",
+    "definition": "The PC an engineer uses to write and download PLC programs. Whoever controls it can change how the plant behaves.",
+    "link": "/theory/ics-basics"
+  },
+  {
+    "term": "IP address",
+    "definition": "Internet Protocol address: four numbers from 0 to 255, such as 172.18.0.3, that identify a device on a network. Every packet carries the address of its sender and its receiver.",
+    "link": "/theory/networking",
+    "aliases": [
+      "IP addresses",
+      "IP"
+    ]
+  },
+  {
+    "term": "subnet",
+    "definition": "A group of addresses that share the same first part, written like 172.18.0.0/24. Devices on one subnet talk to each other directly; everything else goes through a gateway.",
+    "link": "/theory/networking",
+    "aliases": [
+      "subnets",
+      "subnetwork"
+    ]
+  },
+  {
+    "term": "gateway",
+    "definition": "The router a device sends a packet to when the receiver is not on its own subnet. In the CybICS lab network it is 172.18.0.1, the host computer.",
+    "link": "/theory/networking",
+    "aliases": [
+      "default gateway"
+    ]
+  },
+  {
+    "term": "port",
+    "definition": "A number from 0 to 65535 that says which program on a computer a message is for. Modbus TCP uses 502, OPC-UA 4840.",
+    "link": "/theory/networking",
+    "aliases": [
+      "ports"
+    ]
+  },
+  {
+    "term": "packet",
+    "definition": "A small piece of data sent over a network, wrapped in layers that each add addresses: MAC addresses, IP addresses, then ports.",
+    "link": "/theory/networking",
+    "aliases": [
+      "packets"
+    ]
+  },
+  {
+    "term": "TCP",
+    "definition": "Transmission Control Protocol: opens a connection with a handshake, numbers the packets and resends lost ones, so data arrives complete and in order. Modbus TCP, S7comm and OPC-UA run over it.",
+    "link": "/theory/networking",
+    "aliases": [
+      "Transmission Control Protocol"
+    ]
+  },
+  {
+    "term": "UDP",
+    "definition": "User Datagram Protocol: sends single packets without a connection or a delivery check. Faster than TCP, but nothing guarantees a packet arrives.",
+    "link": "/theory/networking",
+    "aliases": [
+      "User Datagram Protocol"
+    ]
+  },
+  {
+    "term": "three-way handshake",
+    "definition": "How TCP opens a connection: the client sends SYN, the server answers SYN-ACK, the client confirms with ACK. A SYN-ACK tells a port scanner that a port is open.",
+    "link": "/theory/networking",
+    "aliases": [
+      "handshake",
+      "TCP handshake",
+      "SYN",
+      "SYN-ACK"
+    ]
+  },
+  {
+    "term": "MAC address",
+    "definition": "Media Access Control address: the hardware name of a network card, six pairs of hex digits such as 02:42:ac:12:00:03. It is only used on the local network segment.",
+    "link": "/theory/networking",
+    "aliases": [
+      "MAC addresses"
+    ]
+  },
+  {
+    "term": "ARP",
+    "definition": "Address Resolution Protocol: a device asks the local network which MAC address belongs to an IP address. Nobody checks the answers, which makes ARP spoofing possible.",
+    "link": "/theory/mitm",
+    "aliases": [
+      "Address Resolution Protocol"
+    ]
+  },
+  {
+    "term": "container",
+    "definition": "A sealed box with its own programs, files and network address that shares the host's operating system. Each CybICS service runs in its own Docker container.",
+    "link": "/theory/networking",
+    "aliases": [
+      "containers",
+      "Docker container"
+    ]
+  },
+  {
+    "term": "bridge network",
+    "definition": "A virtual switch inside the host computer that connects Docker containers. The CybICS containers share the bridge virt-cybics with the subnet 172.18.0.0/24.",
+    "link": "/theory/networking",
+    "aliases": [
+      "Docker bridge network",
+      "Docker bridge"
+    ]
+  },
+  {
+    "term": "host networking",
+    "definition": "A Docker mode in which a container gets no address of its own and uses the host computer's network directly. The CybICS landing page and IDS run this way.",
+    "link": "/theory/networking",
+    "aliases": [
+      "host network"
+    ]
+  }
+]

@@ -1,0 +1,172 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Describe how Stuxnet travelled from a USB stick to the program of a PLC",
+    "Map the main steps of Stuxnet to MITRE ATT&CK for ICS techniques",
+    "Explain why manipulating the operators' view made the physical damage possible",
+    "Relate Stuxnet's techniques to the PLC programming, Flood & Overwrite and MitM challenges on CybICS"
+  ],
+  "takeaways": [
+    "Stuxnet crossed the air gap on USB sticks and rewrote the program inside the PLCs themselves.",
+    "It hid its code from the engineers and played normal readings to the operators while the centrifuges were damaged.",
+    "Defenders must know which program each PLC runs and keep a view of the process that bypasses the PLC."
+  ],
+  "checkpoints": [
+    {
+      "id": "view",
+      "question": "On CybICS you overwrite the HPT pressure value in register 1126. Which part of Stuxnet does this resemble most?",
+      "options": [
+        "Crossing the air gap on infected USB sticks",
+        "Showing false process values to operators",
+        "Downloading new code blocks into the PLC"
+      ],
+      "answer": 1,
+      "explanation": "Overwriting the pressure value means the PLC and the FUXA HMI work with a number that is not the real pressure, just as Stuxnet's replayed values hid the real state of the centrifuges. It is tempting to call it a change of the PLC logic, but the program stays the same; only the value it reads is false. USB sticks were how Stuxnet got in, not what it did to the process."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Natanz was not connected to the internet. How did Stuxnet most likely get in?",
+      "options": [
+        "Through an exposed Modbus port on the internet",
+        "On USB sticks carried in by people",
+        "Through a phishing e-mail to an operator",
+        "Through a vendor's remote-access VPN account"
+      ],
+      "answer": 1,
+      "explanation": "Stuxnet spread on USB sticks (T0847 Replication Through Removable Media) and then across the local network. Phishing and stolen remote-access accounts are common entry points in other incidents, such as the 2015 Ukraine attack and Colonial Pipeline, but an air-gapped plant offers neither; people carrying data in did."
+    },
+    {
+      "type": "single",
+      "question": "Why did the engineers not see Stuxnet's code blocks when they looked at the PLC program in Step 7?",
+      "options": [
+        "The blocks were encrypted, so Step 7 could not show them",
+        "A hooked Step 7 library hid them from the engineers",
+        "The malicious code ran on Windows, not inside the PLC",
+        "Signed drivers made Step 7 treat the blocks as genuine"
+      ],
+      "answer": 1,
+      "explanation": "Stuxnet replaced a Step 7 communication library (T0874 Hooking, T0851 Rootkit), so the engineering software showed a clean program. The blocks really were inside the PLC; the tool the engineers trusted lied about them. The stolen certificates only made Windows trust Stuxnet's drivers, they did not hide anything from Step 7."
+    },
+    {
+      "type": "multi",
+      "question": "Which ATT&CK for ICS techniques describe what Stuxnet did once it reached the PLC?",
+      "options": [
+        "T0843 Program Download",
+        "T0836 Modify Parameter",
+        "T0832 Manipulation of View",
+        "T0847 Replication Through Removable Media"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Stuxnet downloaded its own code to the PLC, changed the drive speed parameters and showed the operators false values. Replication Through Removable Media is real Stuxnet behaviour too, but it is how the worm got into the plant, before it ever reached a PLC."
+    },
+    {
+      "type": "single",
+      "question": "On CybICS, which defence would most directly have caught a Stuxnet-style change to the OpenPLC program?",
+      "options": [
+        "Comparing the running program with a known-good copy",
+        "Watching the FUXA HMI closely for unusual pressure readings",
+        "Moving the plant network behind an air gap",
+        "Encrypting the Modbus traffic between PLC and HMI"
+      ],
+      "answer": 0,
+      "explanation": "A program that differs from the approved copy is the clearest sign of tampering. Watching the HMI is the tempting answer, but Stuxnet's whole point was that the screens showed normal values. An air gap did not stop it at Natanz, and encryption protects traffic in transit, not a program uploaded by a trusted tool."
+    },
+    {
+      "type": "single",
+      "question": "True or false: it is an officially confirmed fact that Stuxnet was built by the United States and Israel.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "False. The attribution rests on detailed press reporting, especially the New York Times in 2012, but no government has officially claimed Stuxnet. It is good practice to state that uncertainty."
+    }
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the attack in order",
+      "intro": "Use the arrows to put the steps of the Stuxnet attack into the order they happened, then give each one its MITRE ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Lateral Movement",
+        "Evasion",
+        "Persistence",
+        "Impair Process Control",
+        "Impact",
+        "Collection"
+      ],
+      "steps": [
+        {
+          "text": "Infected USB sticks carried the worm into a plant with no internet connection.",
+          "label": "Initial Access",
+          "explain": "Nothing can happen before the worm is inside the plant. Replication Through Removable Media (T0847) is an Initial Access technique: it is how Stuxnet got its first foothold."
+        },
+        {
+          "text": "Windows flaws, four of them unknown at the time, let the worm spread from computer to computer.",
+          "label": "Lateral Movement",
+          "explain": "Once inside, the worm had to find the computers that program the PLCs. Moving between hosts with Exploitation of Remote Services (T0866) is Lateral Movement."
+        },
+        {
+          "text": "A replaced Step 7 library hid the malicious code blocks from the engineers looking at the PLC.",
+          "label": "Evasion",
+          "explain": "The swapped library had to sit on the engineering computer before any code reached a PLC, because Step 7 talks to the PLC through that library. Hiding from the defenders with Hooking and a Rootkit (T0874, T0851) is Evasion."
+        },
+        {
+          "text": "The worm wrote its own code blocks into the Siemens PLCs.",
+          "label": "Persistence",
+          "explain": "With the cover in place, the code went into the controllers (T0843 Program Download). Modify Program (T0889) is a Persistence technique: the malicious blocks stay in the PLC and run on every cycle."
+        },
+        {
+          "text": "The PLCs ordered the centrifuge drives to speeds far above and far below normal.",
+          "label": "Impair Process Control",
+          "explain": "Only the code inside the PLC could command the drives. Changing setpoints with Modify Parameter (T0836) and Manipulation of Control (T0831) is Impair Process Control."
+        },
+        {
+          "text": "Iran removed a large number of centrifuges at Natanz, which most researchers link to the worm.",
+          "label": "Impact",
+          "explain": "The removals came after months of stressful speed changes. Damaged machines are the physical result the attack aimed at, and that result is the Impact tactic."
+        }
+      ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the Stuxnet attack. Give each one the defence from the lesson that would most directly have stopped or revealed the attack at that point.",
+      "labels": [
+        "Removable-media control",
+        "Engineering workstation protection",
+        "Alert on programming traffic",
+        "Program integrity checks",
+        "Independent measurement"
+      ],
+      "steps": [
+        {
+          "text": "Someone plugs a USB stick from outside into a computer inside the plant.",
+          "label": "Removable-media control",
+          "explain": "Natanz had no internet connection, so the USB stick was the bridge across the air gap. Scanning or blocking removable media closes that bridge before the worm is inside."
+        },
+        {
+          "text": "The worm spreads over the plant network until it reaches the computers that run Step 7.",
+          "label": "Engineering workstation protection",
+          "explain": "The Step 7 computers hold the keys to every PLC. Limiting which networks they reach and who uses them keeps a worm on an ordinary office PC away from them."
+        },
+        {
+          "text": "An infected Step 7 computer sends new code blocks to a PLC on a day when nobody planned a change.",
+          "label": "Alert on programming traffic",
+          "explain": "Program downloads are rare in normal operation, so an alert on each one catches this moment as it happens. Comparing programs would find the blocks too, but only at the next check, not when they arrive."
+        },
+        {
+          "text": "For months the PLC runs code that differs from the approved program, while Step 7 shows the engineers a clean one.",
+          "label": "Program integrity checks",
+          "explain": "A known-good copy of the program, compared regularly with a tool the attacker has not tampered with, shows a difference that the hooked Step 7 library hides."
+        },
+        {
+          "text": "The control room screens show normal readings while the drives run far above and far below their normal speed.",
+          "label": "Independent measurement",
+          "explain": "The HMI only showed a recording. A measurement that does not pass through the PLC, such as a separate speed or pressure gauge, would have disagreed with the screens."
+        }
+      ]
+    }
+  }
+}

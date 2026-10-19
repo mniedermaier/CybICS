@@ -1,31 +1,33 @@
 # HMI and SCADA
 
-The **Human-Machine Interface (HMI)** is the screen an operator watches: tank levels, pressures, pumps, alarms, and the buttons to start and stop the process. **SCADA** (Supervisory Control and Data Acquisition) is the wider system that gathers that data from many controllers and presents it. In CybICS the HMI is **FUXA**, a web-based SCADA/HMI on port 1881.
+An operator in a control room cannot walk up to every tank and read its gauge. Instead, they watch a screen that shows the whole plant and has buttons to steer it. Because the operator trusts that screen completely, it is one of the most valuable targets in any ICS.
 
-## The operator sees nothing directly
+## The operator's window on the plant
 
-The HMI is not wired to a sensor. It is a Modbus client. Every number on the screen is a register it polled from OpenPLC, and every button is a register it writes back. The operator's picture of the plant is an inference, three hops from the gas.
+A **Human-Machine Interface (HMI)** is the screen an operator uses to watch and control a process: tank levels, pressures, alarms, and buttons to start and stop things. **SCADA (Supervisory Control and Data Acquisition)** is the wider system behind it, which collects data from many controllers. In the [Purdue model](/theory/ics-basics) both sit on Level 2, one step above the PLCs.
 
-<figure>
+In CybICS the HMI is **FUXA**, an open-source SCADA/HMI that you open in a browser on port **1881**.
+
+<div class="callout analogy" markdown="1">
+**Analogy:** an HMI is like the dashboard of a car. The fuel gauge is not the fuel; it is a needle driven by a sensor signal. If someone tampers with that signal, the gauge shows a full tank while the engine runs dry.
+</div>
+
+## The HMI only knows what the PLC tells it
+
+FUXA is not wired to any sensor. It is a **Modbus client**: about once a second it asks OpenPLC for the current register values and draws them. A button press writes a coil or a register back. The link is plain [Modbus TCP](/theory/modbus) on port 502, with no login.
+
+So the operator's picture is three hops away from the gas: sensor, PLC memory, HMI. The live values below are exactly what FUXA reads.
+
+<div data-widget="plant-live" data-fields="gst,hpt,compressor,systemValve,boSen"></div>
+
+<figure class="wide">
 <style>
-.article figure svg.hm-c {min-width: 388px;}
 .hm-c {--p: 6s; --k: 18s;}
-/* theory_article.html retints text, path and stroke for the light theme but
-   never a circle, so this marker stayed #ff6b00 on white: 2.86:1. */
-html.light-mode .hm-c .cmd {fill:#b34700;}
-/* and it cannot reach a rect: the FUXA and OpenPLC panels and the wire panel
-   in figure 3 were all #ff6b00 on white, 2.86:1. Retinting a panel means
-   retinting the ink on it as well -- #1a1a1a is 6.10:1 on #ff6b00 but only
-   3.14:1 on #b34700, which is why the template deliberately leaves filled
-   panels alone. White is 5.48:1 there. */
-html.light-mode .hm-c rect[fill="#ff6b00"],
-html.light-mode .hm-a rect[fill="#ff6b00"] {fill:#b34700;}
-html.light-mode .hm-c text[style*="#1a1a1a"],
-html.light-mode .hm-a text[style*="#1a1a1a"] {fill:#ffffff !important;}
-/* Two clocks in phase: the command-and-value round trip replays every 6 s,
-   and which link is under attack changes every 6 s, cycling through three
-   over 18. The base state is the middle one, the man in the middle, because
-   it is the link a reader is least likely to think of unprompted. */
+.hm-c:where(.light-mode *) .cmd {fill:#b34700;}
+.hm-c:where(.light-mode *) rect[fill="#ff6b00"] {fill:#b34700;}
+.hm-c:where(.light-mode *) text[style*="#1a1a1a"] {fill:#ffffff !important;}
+/* The command and value round trip replays every 6 s; which link is under
+   attack changes every 6 s, cycling through three over 18. */
 .hm-c .cmd {animation: hc-cmd var(--p) ease-in-out infinite;}
 .hm-c .val {animation: hc-val var(--p) ease-in-out infinite;}
 .hm-c .k1,.hm-c .k3 {opacity:0;}
@@ -47,7 +49,7 @@ html.light-mode .hm-a text[style*="#1a1a1a"] {fill:#ffffff !important;}
 @media (prefers-reduced-motion: reduce) { .hm-c * {animation:none !important;} }
 </style>
 <svg class="hm-c" viewBox="0 0 360 204" role="img"
-     aria-label="Four boxes in a row: operator, HMI FUXA on port 1881, PLC OpenPLC on Modbus port 502, and the plant. A command travels left to right from the operator to the plant; a measured value travels right to left back to the operator's screen. Three attacks cut the chain at three different links: a dictionary attack on the FUXA login, a man in the middle on the Modbus connection between HMI and PLC, and a register flood at the PLC end. Each breaks a different link of the same chain of trust.">
+     aria-label="Four boxes in a row: operator, HMI FUXA on port 1881, PLC OpenPLC on Modbus port 502, and the plant. A command travels left to right from the operator to the plant; a measured value travels right to left back to the operator's screen. Three attacks cut the chain at three different links: guessing the HMI login, a man in the middle on the Modbus connection between HMI and PLC, and a register flood at the PLC end.">
   <g font-size="12" text-anchor="middle">
     <rect x="8" y="30" width="76" height="40" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
     <text x="46" y="48" font-weight="bold">Operator</text><text x="46" y="62" font-size="11" opacity="0.85">eyes &amp; hands</text>
@@ -90,23 +92,82 @@ html.light-mode .hm-a text[style*="#1a1a1a"] {fill:#ffffff !important;}
   </g>
   <text x="8" y="194" font-size="11" opacity="0.85">Three challenges, three depths, one chain.</text>
 </svg>
-<figcaption>Watch the round trip first: a command goes right and becomes a coil write, a measured value comes back left and becomes a number on a screen. Then watch where each of the three challenges cuts in. They are usually taught as separate exercises; they are the same chain attacked at three depths. Depth is not the same as stealth, though, and the ranking here is not the obvious one. The flood raises <code>modbus_flood</code> at critical severity &mdash; but so does the man in the middle: <code>arp_spoof</code> is critical too, and it fires on the first ARP reply carrying a second MAC rather than after fifty writes. The MitM challenge will not award its flag unless that rule has fired. The quietest of the three is the login attempt, which raises <code>http_brute_force</code> at high severity, and against FUXA's own sign-in route raises nothing at all. Guess the login and you inherit the HMI&rsquo;s credentials and its network path in one step. Sit on the wire and neither end can tell, because Modbus has no field in which to disagree. Pin the register and you need neither: just write the word more often than the sensor does.</figcaption>
+<figcaption>A command travels right and becomes a coil write; a measured value travels left and becomes a number on the screen. Three CybICS challenges cut this chain at three links.</figcaption>
 </figure>
 
-FUXA's device entry says `openplc:502`, plain Modbus TCP, and its tag table is a list of register addresses: `GST`, `HPT`, `systemSen`, `boSen`, `stop`, `manual` as holding registers, and `heartbeat`, `compressor`, `systemValve`, `gstSig` as coils. Nothing in that list is authenticated. FUXA ships an `operator` account with `operator` as its password and a `viewer` beside it, though the *Password Attack* challenge goes after `admin`, on both FUXA and OpenPLC. Either way the login protects the *screen*, not the plant. Anyone who can reach port 502 skips the screen.
+The FUXA login protects the *screen*, not the plant. Anyone who can reach port 502 on OpenPLC can skip the screen and send the very same writes the HMI sends.
 
-## The screen can contradict itself, and does
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: how FUXA is wired up in CybICS</summary>
 
-The most useful thing about an HMI for a defender is that it shows several values from several sources. The most dangerous is that the operator reads them as one picture.
+FUXA runs in the container at `172.18.0.4`, with one account for running the plant and one for only watching it. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it.
 
-<figure>
+</details>
+
+## Counting from one or from zero
+
+HMIs count Modbus addresses from one; the protocol counts from zero. So subtract one: FUXA's HPT at **1127** is register **1126** on the wire.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the off-by-one trap in FUXA</summary>
+
+Every FUXA address is one higher than the real one, coils included: FUXA's compressor at 2 is coil 1. Read coil 2 instead and you get the system valve. Copy a number straight out of the HMI and you read the neighbouring word, which usually holds something plausible.
+
+<figure class="wide">
 <style>
-.article figure svg.hm-t {min-width: 388px;}
+.hm-a {--a: 9s;}
+.hm-a:where(.light-mode *) rect[fill="#ff6b00"] {fill:#b34700;}
+.hm-a:where(.light-mode *) text[style*="#1a1a1a"] {fill:#ffffff !important;}
+/* The base state is the settled one, so the two labels never overprint. */
+.hm-a .slide {opacity:0; transform: translateX(-86px);
+              animation: ha-slide var(--a) cubic-bezier(.4,0,.2,1) infinite;}
+.hm-a .off   {opacity:1; animation: ha-off var(--a) steps(1,end) infinite;}
+@keyframes ha-slide {0%,22%{opacity:1; transform:translateX(0)}
+                     43.9%{opacity:1; transform:translateX(-86px)}
+                     44%,100%{opacity:0; transform:translateX(-86px)}}
+@keyframes ha-off   {0%,43.9%{opacity:0} 44%,100%{opacity:1}}
+@media (prefers-reduced-motion: reduce) { .hm-a * {animation:none !important;} }
+</style>
+<svg class="hm-a" viewBox="0 0 360 176" role="img"
+     aria-label="FUXA lists the HPT tag at address 1127. That is a one-based Modbus address. On the wire the same word is holding register 1126, which the PLC program declares as percent MW 102. The tag address slides down by one to become the register address. Every coil is offset the same way: FUXA's compressor at 2 is coil 1.">
+  <text x="8" y="18" font-size="12" font-weight="bold">The same word, counted twice</text>
+  <rect x="8" y="34" width="158" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="87" y="52" text-anchor="middle" font-size="11" opacity="0.85">FUXA tag table</text>
+  <text x="87" y="70" text-anchor="middle" font-size="13" font-weight="bold">HPT &rarr; address 1127</text>
+
+  <rect x="194" y="34" width="158" height="44" rx="5" fill="#ff6b00"/>
+  <text x="273" y="52" text-anchor="middle" font-size="11" style="fill:#1a1a1a">on the wire</text>
+  <text class="slide" x="273" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1127</text>
+  <text class="off" x="273" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1126</text>
+
+  <text class="off" x="180" y="100" text-anchor="middle" font-size="12" fill="#ff6b00" font-weight="bold">&minus;1</text>
+  <text x="8" y="128" font-size="12" opacity="0.9">FUXA counts from one. The protocol counts from zero.</text>
+  <text x="8" y="146" font-size="12" opacity="0.9">&#37;MW102 &rarr; 1024 + 102 = 1126, listed as 1127.</text>
+  <text x="8" y="168" font-size="11" opacity="0.85">Coils too: compressor at 2 is coil 1.</text>
+</svg>
+<figcaption>Copy a number out of the HMI into a Modbus client and you read the neighbouring word. It usually holds something plausible, so nothing warns you.</figcaption>
+</figure>
+
+</details>
+
+<div data-widget="checkpoint" data-id="offset"></div>
+
+## When the screen lies
+
+Because the HMI only shows what the PLC holds, whoever changes the PLC's memory changes the operator's reality. In the [Flood & Overwrite](/theory/flood_overwrite) challenge, an attacker writes a low value such as 10 into register 1126 hundreds of times a second. That is faster than the plant simulation can put the real pressure back.
+
+The PLC believes the tank is nearly empty, so it starts the compressor and shuts the system valve. The real pressure climbs, while the operator's trend shows a flat 10. One clue survives: the plant simulation (hwio) computes the blow-out flag `boSen` from the *real* pressure, so it switches on when the tank gets dangerously full.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: a recorded flood on the FUXA trend</summary>
+
+hwio writes `boSen` into register 1134 and sets it once the real HPT pressure passes 220. The attacker only overwrites register 1126, so the flag keeps telling the truth.
+
+<figure class="wide">
+<style>
 .hm-t {--t: 18s;}
-/* Each trace draws on its own dash length rather than a shared normalised
-   sweep. They used to share one, and because the HPT trace spends arc length
-   climbing its spikes, its pen ran up to 31 s of plant time behind the other
-   on a figure whose whole point is "same moment, two registers". */
+/* Each trace draws on its own dash length, so both pens stay at the same
+   moment in time. */
 .hm-t .head {animation: ht-head var(--t) linear infinite;}
 .hm-t .hpt  {stroke-dasharray:1400; animation: ht-hpt var(--t) linear infinite;}
 .hm-t .bo   {stroke-dasharray:1000; animation: ht-bo  var(--t) linear infinite;}
@@ -118,7 +179,7 @@ The most useful thing about an HMI for a defender is that it shows several value
 @media (prefers-reduced-motion: reduce) { .hm-t * {animation:none !important;} }
 </style>
 <svg class="hm-t" viewBox="0 0 360 240" role="img"
-     aria-label="Two FUXA trends over one run of three hundred and thirty seconds, flooding register 1126 from the plant's normal resting band. The HPT trend sits at ten almost throughout, with six single-sample spikes where a poll landed in the fraction of a millisecond before the next forged write. The spikes rise as the run goes on, from 131 at sixty-one seconds to 254 at two hundred and ninety-eight, because what escapes is the real pressure and the real pressure is climbing. The blow-out flag, read from register 1134 and written by hwio from that same real pressure, steps from zero to one at a hundred and fifty-six seconds.">
+     aria-label="Two FUXA trends over one flood of register 1126 lasting three hundred and thirty seconds. The HPT trend sits at ten almost throughout, with a few single-sample spikes where a poll caught the real pressure between two forged writes. The spikes rise as the run goes on, from 131 to 254, because the real pressure is climbing. The blow-out flag from register 1134 steps from zero to one at a hundred and fifty-six seconds.">
   <text x="8" y="18" font-size="12" font-weight="bold">FUXA, &ldquo;System values&rdquo;, one flood, 330 s</text>
 
   <text x="52" y="38" font-size="11" opacity="0.85">HPT &mdash; register 1126 &mdash; what the trend shows</text>
@@ -142,62 +203,26 @@ The most useful thing about an HMI for a defender is that it shows several value
   </g>
   <text x="8" y="236" font-size="11" opacity="0.85">The spikes climb. That is the tank, seen through the gaps.</text>
 </svg>
-<figcaption>One run, every number from it. Flooding register 1126 at about 830 writes a second from the plant&rsquo;s own resting band: <code>boSen</code> went high at 156 s, and six of 330 polls at FUXA&rsquo;s one-per-second rate came back with the real pressure instead of 10 &mdash; 131 and 133 within the first minute, then 195, 226, 234 and 254. <code>hwio</code> puts the true value back every 20.7 ms and the next forged write buries it about a millisecond later, so a poll occasionally lands in the gap; how often is a race, and six events is too few to quote a rate from. What matters is the shape: the spikes rise, because what escapes is the real pressure and the real pressure is climbing. A single sample out of line reads as noise. On this trend it is the only measurement on the screen.</figcaption>
+<figcaption>A recorded flood. The pressure trend shows the forged 10, except for a few lucky polls that caught the real value between two forged writes; those spikes climb because the real tank is filling. Meanwhile the blow-out flag switches on. A single odd sample looks like noise, but here it is the only true pressure reading on the screen.</figcaption>
 </figure>
 
-Why does the flag survive when the pressure does not? Because `hwio` never reads the pressure back. Its loop reads the four coils and nothing else, and then writes five register blocks; the true pressure lives as a local variable inside the plant model and reaches Modbus only on the way out. Flooding 1126 cannot *write* the model's variable &mdash; but it drives it. The PLC reads the forged 10, latches the compressor on and shuts the system valve; `hwio` reads those four coils back, and the tank climbs for real. So the attacker owns what everyone reads and controls what actually happens, and the one thing out of reach is the model's own arithmetic. `boSen` is computed from that arithmetic, which is why the flag stays honest while the trend does not.
+</details>
 
-That is the general defensive shape: **a value and its corroboration should not come down the same path.** Here they very nearly do &mdash; `HPT` and `boSen` are both holding registers from the same PLC, and FUXA fetches them in a single eleven-register response, so they arrive in the same frame. What separates them is only that one of them is a copy of something the attacker cannot reach. Real corroboration means a different sensor, a different protocol, or a different network. The *Detect Modbus Flooding* module takes the other route again: it does not compare values at all, it watches the wire for the flood itself.
+## Why attackers target the HMI
 
-## The address on the screen is not the address on the wire
+- **It holds valid credentials and a network path** to the controllers. Compromising it skips the hardest part of an attack.
+- **It can command the process**, and its commands look exactly like an engineer's, because they are the same writes.
+- **The operator trusts what it shows.** In [Stuxnet](/theory/stuxnet), the attackers played back recorded normal readings, prepared below the HMI, while the centrifuges were being damaged.
 
-One practical trap, and it is the reason a learner's first Modbus client usually reads the wrong word.
+In CybICS, [Password Attack](/theory/password_attack) targets the FUXA login, [Man in the Middle](/theory/mitm) sits on the link to OpenPLC, and Flood & Overwrite pins the register the HMI reads. MITRE ATT&CK for ICS calls the effect on the operator **T0832 Manipulation of View**.
 
-<figure>
-<style>
-.article figure svg.hm-a {min-width: 388px;}
-.hm-a {--a: 9s;}
-/* The base state is the settled one: the tag number has arrived and become
-   the register number. Without it both texts sat at x=304 with opacity 1 and
-   printed over each other -- "register 112" with a 6 and a 7 in the same
-   place -- in the reduced-motion frame and with animations simply off. */
-.hm-a .slide {opacity:0; transform: translateX(-86px);
-              animation: ha-slide var(--a) cubic-bezier(.4,0,.2,1) infinite;}
-.hm-a .off   {opacity:1; animation: ha-off var(--a) steps(1,end) infinite;}
-@keyframes ha-slide {0%,22%{opacity:1; transform:translateX(0)}
-                     43.9%{opacity:1; transform:translateX(-86px)}
-                     44%,100%{opacity:0; transform:translateX(-86px)}}
-@keyframes ha-off   {0%,43.9%{opacity:0} 44%,100%{opacity:1}}
-@media (prefers-reduced-motion: reduce) { .hm-a * {animation:none !important;} }
-</style>
-<svg class="hm-a" viewBox="0 0 360 176" role="img"
-     aria-label="FUXA lists the HPT tag at address 1127 and the GST tag at 1125. Those are one-based Modbus addresses. On the wire the same words are holding registers 1126 and 1124, which is what the PLC program declares as percent MW 102 and percent MW 100. The tag address slides down by one to become the register address. Every coil is offset the same way: FUXA's compressor at 2 is coil 1.">
-  <text x="8" y="18" font-size="12" font-weight="bold">The same word, counted twice</text>
-  <rect x="8" y="34" width="158" height="44" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
-  <text x="87" y="52" text-anchor="middle" font-size="11" opacity="0.85">FUXA tag table</text>
-  <text x="87" y="70" text-anchor="middle" font-size="13" font-weight="bold">HPT &rarr; address 1127</text>
+## Defending the supervisory layer
 
-  <rect x="194" y="34" width="158" height="44" rx="5" fill="#ff6b00"/>
-  <text x="273" y="52" text-anchor="middle" font-size="11" style="fill:#1a1a1a">on the wire</text>
-  <text class="slide" x="273" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1127</text>
-  <text class="off" x="273" y="70" text-anchor="middle" font-size="13" font-weight="bold" style="fill:#1a1a1a">register 1126</text>
+The key rule: **a value and the evidence that confirms it should not travel the same path.** In CybICS both come from the same PLC; they only disagree because `boSen` is calculated from something the attacker cannot reach. In a real plant, confirmation means a second sensor, a different protocol or a separate network.
 
-  <text class="off" x="180" y="100" text-anchor="middle" font-size="12" fill="#ff6b00" font-weight="bold">&minus;1</text>
-  <text x="8" y="128" font-size="12" opacity="0.9">FUXA counts from one. The protocol counts from zero.</text>
-  <text x="8" y="146" font-size="12" opacity="0.9">&#37;MW102 &rarr; 1024 + 102 = 1126, listed as 1127.</text>
-  <text x="8" y="168" font-size="11" opacity="0.85">Coils too: compressor at 2 is coil 1.</text>
-</svg>
-<figcaption>FUXA shows one-based addresses, the wire carries zero-based ones, and the two tables sit in different files. Coils are offset the same way, so FUXA&rsquo;s compressor at address 2 is coil 1 &mdash; read coil 2 and you get the system valve, which will also look like a plausible answer. Copy a number out of the HMI into a Modbus client and you read the neighbouring word &mdash; which usually holds something plausible, so nothing announces the mistake. This platform contains a live example. <code>software/opcua/opcua.py</code> mirrors six PLC values and gets four addresses wrong, in two different ways: <code>stop</code> and <code>manual</code> read 1129 and 1131, the HMI&rsquo;s numbers, one above the 1128 and 1130 the program declares. <code>systemSen</code> and <code>boSen</code> are not off by one at all &mdash; they read holding registers 2 and 3, which the program declares nowhere, so those two nodes are permanently zero.</figcaption>
-</figure>
+Three habits protect this layer:
 
-## Why the HMI is a high-value target
+1. **Strong authentication on the HMI.** Default accounts are convenient in a lab and dangerous in a plant.
+2. **Restrict who can reach the HMI and who can reach past it.** If only the HMI may talk Modbus to the PLC, a flood from anywhere else stands out. See [Defence in depth](/theory/defense-hardening).
+3. **Give the operator at least one independent value.** When every number comes down the same wire, whoever owns that wire owns the operator's picture.
 
-- It holds **valid credentials** and a working network path to the controllers. Compromising it skips the hard part.
-- It can **command** the process, and its commands look exactly like an engineer's, because they are the same writes.
-- The operator **trusts what it shows**. Stuxnet replayed recorded normal readings while the centrifuges tore themselves apart underneath, and it is the cover rather than the sabotage that bought the time. Worth being precise about where that cover lived: in the controller itself and in a shim DLL on the engineering workstation, *below* the HMI. The screen was honest about what it was given. Everything it was given had been prepared.
-
-In CybICS the FUXA login is the *Password Attack* target, the *Man in the Middle* challenge sits on the HMI-to-PLC link, and *Flood &amp; Overwrite* pins the register the HMI reads. Three different depths, one screen.
-
-## Security relevance
-
-Protecting the supervisory layer means strong authentication on the HMI, restricting who can reach it *and who can reach past it*, and giving the operator at least one value whose path is independent of the others. The last one is the hardest and the most valuable: when every number on the screen came down the same wire, an attacker who owns that wire owns the operator's reality, and the screen will look completely normal while it happens.

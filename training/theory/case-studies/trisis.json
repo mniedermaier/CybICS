@@ -1,0 +1,173 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain what a Safety Instrumented System does and why attacking it is so dangerous",
+    "Describe how TRITON reached and modified Triconex safety controllers",
+    "Map the TRITON attack to MITRE ATT&CK for ICS techniques, including Loss of Safety",
+    "Compare a programmable safety controller with the mechanical blow-out valve in CybICS"
+  ],
+  "takeaways": [
+    "TRITON is the first known malware built to tamper with a safety system, the plant's last automatic line of defence.",
+    "The attackers reached the safety controllers through the engineering workstation that programs them.",
+    "The attack was discovered because the controllers detected a fault and shut the plant down safely.",
+    "Separate networks, physical mode switches in the run position and at least one non-programmable safety barrier limit what such an attack can do.",
+    "CybICS's blow-out valve is part of the physical process, so no Modbus write or PLC program can switch it off."
+  ],
+  "checkpoints": [
+    {
+      "id": "barrier",
+      "question": "Why can an attacker on the CybICS network not disable the blow-out valve with a Modbus write?",
+      "options": [
+        "The PLC program refuses writes to the valve coil",
+        "The valve reacts to HPT pressure, not to the PLC",
+        "The IDS blocks any write to the blow-out valve"
+      ],
+      "answer": 1,
+      "explanation": "The valve opens on HPT pressure alone, like a spring-loaded relief valve, and the PLC only reports its state. There is no valve coil in the PLC program to protect, so the program has nothing to refuse. The IDS raises alerts but does not block traffic, so it is not the reason either."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What is the job of a Safety Instrumented System?",
+      "options": [
+        "To run the process at its most efficient point",
+        "To force a safe state, independent of the control system",
+        "To warn operators with alarms when limits are crossed",
+        "To take over control of the process whenever the main PLC fails"
+      ],
+      "answer": 1,
+      "explanation": "An SIS watches for dangerous conditions and shuts the process down regardless of what the control system does. It is not a backup PLC that keeps the process running: its job is to stop it safely. Showing alarms is the HMI's job, and efficiency is the control system's job."
+    },
+    {
+      "type": "single",
+      "question": "How was TRITON discovered?",
+      "options": [
+        "An antivirus scan flagged trilog.exe on the workstation",
+        "The controllers tripped and stopped the plant",
+        "Operators saw strange values on the safety HMI",
+        "An IDS alerted on TriStation traffic from the workstation"
+      ],
+      "answer": 1,
+      "explanation": "The injected code misbehaved, the controllers detected a fault and stopped the plant, and investigating that shutdown led to the malware. No security tool raised the alarm first; the name trilog.exe was chosen precisely so that it would not look suspicious."
+    },
+    {
+      "type": "multi",
+      "question": "Which ATT&CK for ICS techniques belong to the TRITON attack?",
+      "options": [
+        "T0880 Loss of Safety",
+        "T0849 Masquerading",
+        "T0890 Exploitation for Privilege Escalation",
+        "T0847 Replication Through Removable Media"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "TRITON aimed at Loss of Safety, hid as a Triconex log viewer and used a firmware flaw to gain privileges. Spreading on removable media was Stuxnet's method; TRITON's attackers moved over the network through remote desktop jump hosts."
+    },
+    {
+      "type": "single",
+      "question": "Which defence would have blocked TRITON's network programming of the controllers even after the workstation was compromised?",
+      "options": [
+        "Leaving the key switch in the run position",
+        "A stronger password on the engineering workstation",
+        "An IDS alerting on TriStation sessions",
+        "Encrypting the TriStation traffic on the network"
+      ],
+      "answer": 0,
+      "explanation": "In the run position the key switch stops the controller from accepting new code over the network, whatever the workstation sends. A stronger password is the tempting answer, but the attackers already controlled the workstation. An IDS would raise an alert without blocking, and encryption does not help when the attacker sends from the trusted workstation itself."
+    },
+    {
+      "type": "single",
+      "question": "On CybICS, why can the blow-out valve fail to bring the HPT back to a safe pressure if the compressor keeps running?",
+      "options": [
+        "The PLC can hold the valve closed with a Modbus write",
+        "The valve vents more slowly than the compressor fills",
+        "The valve only opens once the HPT drops below 200 bar",
+        "The valve closes again as soon as the pressure dips below 220 bar"
+      ],
+      "answer": 1,
+      "explanation": "The valve opens above 220 bar and works without the PLC, but its venting rate is lower than the compressor's filling rate. It stays open until the pressure falls below 200, so it does not close early, and no Modbus write can hold it shut. A barrier that cannot be switched off still has limits, which is why plants layer several."
+    }
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the attack in order",
+      "intro": "Use the arrows to put the steps of the TRITON attack into the order they happened, then give each one its MITRE ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Lateral Movement",
+        "Evasion",
+        "Collection",
+        "Privilege Escalation",
+        "Persistence",
+        "Impact"
+      ],
+      "steps": [
+        {
+          "text": "Remote desktop jump hosts and weak firewalls led the attackers to the safety engineering workstation.",
+          "label": "Lateral Movement",
+          "explain": "The attackers were already in the office network; this is how they moved on to the computer that programs the safety controllers. Remote Services (T0886) used this way is Lateral Movement."
+        },
+        {
+          "text": "The attack tool was named trilog.exe, like a genuine Triconex log viewer.",
+          "label": "Evasion",
+          "explain": "The tool had to be placed on the workstation before it could talk to any controller, and its name made it look harmless there. Masquerading (T0849) is Evasion."
+        },
+        {
+          "text": "The tool read which state the safety controller was in before doing anything else.",
+          "label": "Collection",
+          "explain": "Checking the controller came before changing it. Gathering information from the controller with Detect Operating Mode and Program Upload (T0868, T0845) is Collection."
+        },
+        {
+          "text": "A previously unknown flaw in the Tricon firmware gave the attack code the highest privileges.",
+          "label": "Privilege Escalation",
+          "explain": "Normal access was not enough to plant hidden code, so the attackers needed more rights first. Exploitation for Privilege Escalation (T0890) is its own tactic."
+        },
+        {
+          "text": "Attacker code written into the controller's memory let them read and change it at will later.",
+          "label": "Persistence",
+          "explain": "With full privileges the backdoor could be installed. Keeping a lasting foothold through modified firmware (T1693.001) is Persistence."
+        },
+        {
+          "text": "The injected code misbehaved, the controllers detected a fault and shut the plant down.",
+          "label": "Impact",
+          "explain": "The faulty backdoor code tripped the controllers, which is how the attack was found. The shutdown cost production and was not the attackers' goal, but a stopped plant is still an Impact; the intended one was Loss of Safety (T0880)."
+        }
+      ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the TRITON attack. Give each one the defence from the lesson that would most directly have stopped it or limited the harm at that point.",
+      "labels": [
+        "Separate safety network",
+        "Physical key switch",
+        "Investigating unexpected trips",
+        "Mechanical safety barrier"
+      ],
+      "steps": [
+        {
+          "text": "Over remote desktop jump hosts and poorly configured firewalls, the attackers get from the office network to the safety engineering workstation.",
+          "label": "Separate safety network",
+          "explain": "Good practice puts the SIS and its engineering workstation on their own network, with no path from the office network. Without that path, the jump hosts lead nowhere."
+        },
+        {
+          "text": "With the workstation in their hands, the attackers write their own code into the safety controllers over the network.",
+          "label": "Physical key switch",
+          "explain": "The workstation is already lost, so a network boundary no longer helps. A mode switch in the run position stops the controllers from accepting new code over the network, whatever the workstation sends."
+        },
+        {
+          "text": "The plant shuts down although nothing was wrong with the process.",
+          "label": "Investigating unexpected trips",
+          "explain": "This is the moment TRITON was caught: the plant looked into the shutdown and found the malware. A trip without a process reason deserves a security look, not just a restart."
+        },
+        {
+          "text": "Had the attack succeeded, the safety controllers would no longer have responded when pressure left the safe range.",
+          "label": "Mechanical safety barrier",
+          "explain": "The intended impact was Loss of Safety; the exact final plan is not known. A barrier no software can switch off, such as a mechanical relief valve, still protects people when the programmable one is compromised."
+        }
+      ]
+    }
+  }
+}

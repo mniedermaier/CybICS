@@ -1,0 +1,91 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Distinguish what an OPC-UA server advertises from what it actually accepts",
+    "Explain how weak passwords and leaked certificates defeat OPC-UA's built-in security",
+    "Describe how role-based access separates reading from writing on the CybICS server",
+    "Name the controls that detect and prevent credential attacks on OPC-UA"
+  ],
+  "takeaways": [
+    "OPC-UA has real security features, but a weak password or a leaked private key gives an attacker a valid identity.",
+    "Advertising an anonymous token is not the same as accepting anonymous sessions; always test what a server offers.",
+    "With the None security policy, a password crosses the network in clear text.",
+    "On CybICS the user role can read but only the admin role can write.",
+    "Using a stolen but valid identity is MITRE ATT&CK for ICS T0859 Valid Accounts."
+  ],
+  "checkpoints": [
+    {
+      "id": "anonymous",
+      "question": "The CybICS endpoint lists an anonymous identity token. What does that tell you?",
+      "options": [
+        "Anonymous login works, so you can skip a password",
+        "Only that it is offered; acceptance needs a test",
+        "Anonymous users get the user role and may read"
+      ],
+      "answer": 1,
+      "explanation": "An endpoint description lists the token types the server is configured to offer. Whether a session is accepted is decided later by the user manager, and on CybICS it refuses anonymous sessions, so an anonymous client gets no role at all, not even read access."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You connect with the None security policy and log in with a username and password. Who can read the password?",
+      "options": [
+        "Nobody; OPC-UA always encrypts the password",
+        "Anyone who can capture traffic on the path",
+        "Only someone with the server's private key",
+        "Only the server administrator, from its logs"
+      ],
+      "answer": 1,
+      "explanation": "With the None policy the channel is neither signed nor encrypted, so the password travels in clear text. The tempting answer, 'OPC-UA always encrypts', is only true when a secure policy such as Basic256Sha256 is used; the private key only matters for an encrypted channel."
+    },
+    {
+      "type": "single",
+      "question": "You are logged in as user1 and try to write a node, but the server refuses. Why?",
+      "options": [
+        "The node is read-only for every client",
+        "Your session has the user role, not admin",
+        "Writes need the Basic256Sha256 policy first",
+        "The PLC rejects writes that come through OPC-UA"
+      ],
+      "answer": 1,
+      "explanation": "CybICS maps password logins to the user role and the trusted certificate to the admin role, and only the admin role may write. The security policy decides whether messages are encrypted, not what you may do, so a more secure channel would not change the answer."
+    },
+    {
+      "type": "single",
+      "question": "What does an attacker need to log in with someone else's X.509 certificate?",
+      "options": [
+        "Only the certificate file, which is public anyway",
+        "The certificate and its matching private key",
+        "The server's private key, to sign the session",
+        "The certificate and the user's password"
+      ],
+      "answer": 1,
+      "explanation": "A certificate is public; proving you own it requires signing with the private key. That is why a leaked private key is as bad as a leaked password. No password is involved in a certificate login, and the server's own key is not needed to log in as a client."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures make the password-guessing step much harder?",
+      "options": [
+        "Locking or slowing an account after several failed logins",
+        "Long, unique passwords",
+        "Changing the port from 4840 to another number",
+        "Alerting on bursts of failed logins"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Lockout, strong passwords and monitoring all work against guessing. Moving the port only hides the service from a lazy scan; a port scan finds it again in seconds."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS technique best describes logging in with a guessed password or a stolen certificate?",
+      "options": [
+        "T0859 Valid Accounts",
+        "T0866 Exploitation of Remote Services",
+        "T0806 Brute Force I/O",
+        "T0830 Adversary-in-the-Middle"
+      ],
+      "answer": 0,
+      "explanation": "You use a legitimate identity, which is Valid Accounts. Brute Force I/O sounds like password guessing, but it means repeatedly changing process values. Exploitation of Remote Services means abusing a software bug."
+    }
+  ]
+}

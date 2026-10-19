@@ -1,6 +1,6 @@
 # 🕵️‍♂️ Man-in-the-Middle (MitM) Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Collection` `Evasion` | [T0830 - Adversary-in-the-Middle](https://attack.mitre.org/techniques/T0830/) | [T0856 - Spoof Reporting Message](https://attack.mitre.org/techniques/T0856/)
+> **MITRE ATT&CK for ICS:** `Collection` `Evasion` | [T0830 - Adversary-in-the-Middle](https://attack.mitre.org/techniques/T0830/) | [T1692.002 - Unauthorized Message: Reporting Message](https://attack.mitre.org/techniques/T1692/002/)
 
 ## 📋 Overview
 This guide explains how to create a Modbus TCP proxy in Python that listens on all network interfaces (`0.0.0.0`).
@@ -105,7 +105,7 @@ The flag has the format `CybICS(flag)`.
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Collection | Adversary-in-the-Middle | [T0830](https://attack.mitre.org/techniques/T0830/) | Adversaries may position themselves between endpoints to intercept and manipulate communications |
-| Evasion | Spoof Reporting Message | [T0856](https://attack.mitre.org/techniques/T0856/) | Adversaries may spoof messages to hide malicious activity from operators |
+| Evasion | Unauthorized Message: Reporting Message | [T1692.002](https://attack.mitre.org/techniques/T1692/002/) | Adversaries may spoof messages to hide malicious activity from operators |
 
 **Why this matters:** Man-in-the-Middle attacks allow adversaries to intercept, monitor, and modify communications between HMI/SCADA systems and PLCs. Since Modbus lacks authentication, an attacker can inject commands, modify responses, or hide attacks from operators. This was demonstrated in the Industroyer/CrashOverride malware, which used similar techniques to control power grid equipment while hiding its actions from operators.
 

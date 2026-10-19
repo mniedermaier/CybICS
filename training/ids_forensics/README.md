@@ -13,7 +13,7 @@ The CybICS IDS exposes a REST API that provides alert data, summary statistics, 
 | Technique | ID | Relevance |
 |---|---|---|
 | Remote System Discovery | T0846 | Identifying reconnaissance patterns |
-| Unauthorized Command Message | T0855 | Detecting unauthorized Modbus writes |
+| Unauthorized Message: Command Message | T1692.001 | Detecting unauthorized Modbus writes |
 | Denial of Service | T0814 | Identifying flooding attacks |
 
 ## MITRE D3FEND Alignment
@@ -151,7 +151,7 @@ print(result)
 | Tactic | Technique | ID | Relevance |
 |--------|-----------|-----|-----------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Identifying reconnaissance patterns |
-| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Detecting unauthorized Modbus writes |
+| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Detecting unauthorized Modbus writes |
 | Impact | Denial of Service | [T0836](https://attack.mitre.org/techniques/T0836/) | Identifying flooding attacks |
 
 ### MITRE D3FEND — Defensive Techniques Applied

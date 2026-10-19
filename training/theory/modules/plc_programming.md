@@ -1,20 +1,31 @@
 # Programming the controller
 
-The PLC runs a program, and the program can be replaced from a web form. Downloading modified logic to a running controller is one of the highest-impact actions in ICS, because nothing about the process *looks* different afterwards &mdash; the registers still read plausibly, the HMI still draws its trends, and the plant now does something else. It is the technique behind Stuxnet, and on this platform it is four clicks.
+In this challenge you change the program that runs on the CybICS PLC, compile it and load it onto the running controller. Downloading new logic is one of the most powerful things anyone can do in a control system, because afterwards nothing *looks* different: the screens still draw their trends, and the plant quietly follows new rules.
 
-## What the check actually looks at, and why
+## The idea
 
-Most CTF flags are a string you find. This one is not: `check_plc_program.py` asks the controller which program it is running.
+A Programmable Logic Controller (PLC) is a small, rugged computer that runs one program in an endless loop: read the sensors, decide, switch the outputs. The program is written by a control engineer on an **engineering workstation**, compiled, and then *downloaded* to the controller. Think of a washing machine whose wash programme can be replaced over the network. The buttons and the display stay the same, but the drum may now spin at a different speed.
 
-<figure>
+Engineers download programs all the time, for good reasons: fixing a bug, tuning a limit, adding a sensor. Attackers use the very same path. Stuxnet did it in 2010: it replaced code on Siemens PLCs so that centrifuges were driven at damaging speeds while the operators' screens showed normal values. MITRE ATT&CK for ICS lists the two steps as *Modify Program* (T0889) and *Program Download* (T0843).
+
+<div data-widget="scan-cycle"></div>
+
+## How it looks on CybICS
+
+The CybICS controller is **OpenPLC** in the `openplc` container (172.18.0.3). Its web interface on port 8080 lets you upload, compile and start programs. Its program, `cybICS.st`, is written in Structured Text (ST), one of the IEC 61131-3 PLC languages, and it reads much like simple Pascal. It holds a few rules:
+
+- Refill the gas storage tank (GST) when it falls below 60, and stop at 240.
+- Run the compressor when the high-pressure tank (HPT) is below 60, and keep it on until 90, but only while the GST holds more than 50.
+- Open the system valve only while the HPT is between 50 and 100.
+- Blink a heartbeat output so you can see the PLC is alive.
+
+The editor is on the **engineering workstation** (`engineeringws`, 172.18.0.10), a desktop in your browser at port 6080 (noVNC), with the OpenPLC Editor and the CybICS project already on the desktop. It is only part of the Docker stack and starts in the `full` and `withoutai` modes.
+
+The challenge does not hand you a string. When you click **Verify**, the landing page logs into OpenPLC and reads its dashboard: which program file is loaded, and whether the controller is running.
+
+<figure class="wide">
 <style>
-.article figure svg.pg-f {min-width: 388px;}
 .pg-f {--f: 18s;}
-/* Three states, because the check is a conjunction and the interesting frame
-   is the one in the middle: a new file that was never started. A two-state
-   crossfade would be a before-and-after still with a seven-second wait. The
-   rest state is the first, which is what this stack reports right now and
-   what the figcaption quotes. */
 .pg-f .s1 {opacity:1; animation: pf-s1 var(--f) steps(1,end) infinite;}
 .pg-f .s2 {opacity:0; animation: pf-s2 var(--f) steps(1,end) infinite;}
 .pg-f .s3 {opacity:0; animation: pf-s3 var(--f) steps(1,end) infinite;}
@@ -24,7 +35,7 @@ Most CTF flags are a string you find. This one is not: `check_plc_program.py` as
 @media (prefers-reduced-motion: reduce) { .pg-f * {animation:none !important;} }
 </style>
 <svg class="pg-f" viewBox="0 0 360 244" role="img"
-     aria-label="The OpenPLC dashboard reports two things and the check needs both. In the first state the file is 424345.st, one of the three shipped with the image, and the status is Running: the check fails because the program is not yours. In the second the file is 831742.st, which is new, but the status is Stopped: the check fails because you uploaded without starting it. Only in the third, a new file and Running, does it pass. The file name is a fingerprint the wire cannot forge; the status is the half people forget.">
+     aria-label="The OpenPLC dashboard reports two things and the check needs both. In the first state the file is 424345.st, one of the three shipped with the image, and the status is Running: the check fails because the program is not yours. In the second the file is 831742.st, which is new, but the status is Stopped: the check fails because the program was uploaded but never started. Only in the third, a new file and Running, does it pass.">
   <text x="8" y="18" font-size="12" font-weight="bold">the check needs both fields</text>
   <rect x="8" y="30" width="216" height="52" rx="5" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.7"/>
   <text x="20" y="51" font-size="12" opacity="0.85">File:</text>
@@ -57,22 +68,54 @@ Most CTF flags are a string you find. This one is not: `check_plc_program.py` as
   <text x="8" y="222" font-size="11" opacity="0.85">at all. That is why this check asks the runtime, not the wire.</text>
   <text x="8" y="240" font-size="11" opacity="0.85">And why it also asks whether you remembered to press Start.</text>
 </svg>
-<figcaption>OpenPLC names every uploaded file <code>str(random.randint(1, 1000000)) + ".st"</code>, so the dashboard&rsquo;s <code>File:</code> field identifies what is loaded. <code>check_plc_program.py</code> logs in, parses that field and the status, and passes only when the name is outside <code>{424345.st, 4968.st, blank_program.st}</code> <strong>and</strong> the controller reports <code>Running</code> &mdash; a conjunction, which is why uploading without starting fails. Read live from this stack while writing: <code>424345.st</code>, <code>Running</code>, the first of the three states above. Worth reading critically, though: the id is assigned at <em>upload</em>, not at compile, so re-uploading a byte-identical copy of the shipped program also passes. The check proves a file outside that set is loaded and running. It does not prove you changed anything.</figcaption>
+<figcaption>OpenPLC gives every uploaded program a new random file name, so the name on the dashboard shows which program is loaded. The check passes only when that name is not one of the three shipped with the lab <strong>and</strong> the controller reports <code>Running</code>. Uploading without starting is not enough.</figcaption>
 </figure>
 
-## Two challenges that want opposite things
+## How to approach it
 
-There is a trap in the order, and it is worth meeting on a page rather than in a verifier.
+1. Open the engineering workstation in your browser and start the OpenPLC Editor from the desktop. Open the CybICS project.
+2. Read the program first. Find the rules listed above and work out which variable is which sensor or actuator.
+3. Make a change. It can be harmless, such as a comment, or a change to a limit. If you change a limit, predict what the plant will do before you load it.
+4. Compile the project in the editor. The result is a `.st` file.
+5. In the OpenPLC web interface on port 8080, upload the file under **Programs**, let it compile, and start the PLC.
+6. Watch the plant on the HMI, then click **Verify** on the challenge page.
 
-<figure>
+<div data-widget="checkpoint" data-id="start"></div>
+
+<div class="callout warning" markdown="1">
+**Warning:** The verifier logs into OpenPLC with its default credentials. Do this challenge *before* the challenge that asks you to harden the OpenPLC password, or restore the default for a moment.
+</div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: how a small edit can stall the plant</summary>
+
+The compressor band (60 to 90) and the system-valve band (50 to 100) are separate rules, but they depend on each other. Raise the compressor's upper limit to 99 and the plant still cycles. Raise it to 120 and something surprising happens.
+
+Once the pressure passes 100, the PLC shuts the system valve, so the only consumer of gas disappears. The compressor runs on until it reaches its new limit or storage runs low, then stops. Now the pressure is above 100, nothing draws gas out, and the compressor would only restart below 60. The plant freezes. No alarm sounds, because the blow-out needs 220. The only sign is that the "system running" indicator stays off.
+
+That is why program changes are dangerous even without bad intent: a controller program encodes couplings that nobody wrote down.
+
+</details>
+
+## Detect and defend
+
+A program download is ordinary engineering traffic. It uses the vendor's own tools and protocols, here a web upload to port 8080, so a network sensor cannot tell a legitimate change from a malicious one by looking at it. The CybICS IDS has no rule for program uploads; its web rule only counts login attempts.
+
+Defenders therefore rely on process and integrity controls:
+
+- **Change control.** Every program change is requested, reviewed and recorded. An unplanned download is then an incident by definition.
+- **Integrity checks.** Compare a cryptographic hash of the loaded program with the hash of a known-good copy: any change to the logic changes the hash. The challenge check is much weaker. It only sees that a new file is loaded and running, not what changed.
+- **Access control.** Change the default OpenPLC login and restrict who can reach port 8080. See [Hardening credentials](/theory/defense_password) and [Host firewalling](/theory/defense_firewall).
+- **Process monitoring.** A plant that behaves differently after a change, such as a valve that never opens, is a clue even when the screens look normal.
+
+<details class="instructor" markdown="1">
+<summary>Instructor notes</summary>
+
+The program check logs in with the default OpenPLC credential, and the password-hardening challenge passes only once that credential stops working, so students must do this challenge first:
+
+<figure class="wide">
 <style>
-.article figure svg.pg-o {min-width: 388px;}
 .pg-o {--o: 16s;}
-/* One marker walks two orderings of the same two tasks. The rest state shows
-   both rows and both verdicts, because the figure's whole content is the
-   comparison -- resting on one row showed a reader the broken ordering and
-   nothing to compare it against. The two verdicts also get equal time; the
-   first used to hold for 1.6 s against the second's 5.6. */
 .pg-o .mk  {animation: po-mk var(--o) cubic-bezier(.4,0,.2,1) infinite;}
 .pg-o .rA  {animation: po-a var(--o) steps(1,end) infinite;}
 .pg-o .rB  {animation: po-b var(--o) steps(1,end) infinite;}
@@ -89,7 +132,7 @@ There is a trap in the order, and it is worth meeting on a page rather than in a
 @media (prefers-reduced-motion: reduce) { .pg-o * {animation:none !important;} }
 </style>
 <svg class="pg-o" viewBox="0 0 360 226" role="img"
-     aria-label="Two orderings of the same two tasks. Doing the program download first and hardening the OpenPLC password afterwards leaves both checks able to pass. Hardening the password first means the program check can no longer log into the controller, so it cannot read which program is loaded and reports that it cannot verify, even though the player may have done the work.">
+     aria-label="Two orderings of the same two tasks. Doing the program download first and hardening the OpenPLC password afterwards leaves both checks able to pass. Hardening the password first means the program check can no longer log into the controller, so it cannot read which program is loaded.">
   <text x="8" y="18" font-size="12" font-weight="bold">the same two tasks, two orders</text>
 
   <rect class="rA" x="4" y="30" width="352" height="64" rx="5" fill="none" stroke="#ff6b00"/>
@@ -110,23 +153,18 @@ There is a trap in the order, and it is worth meeting on a page rather than in a
   <text x="8" y="202" font-size="11" opacity="0.85">One verifier needs the default credential to work.</text>
   <text x="8" y="218" font-size="11" opacity="0.85">The other passes only when it has stopped working.</text>
 </svg>
-<figcaption><code>check_plc_program.py</code> logs into OpenPLC as <code>openplc</code>/<code>openplc</code> to read the dashboard, and <code>check_openplc_password.py</code> passes only when that exact credential no longer works. The two are in direct opposition, and the program check says so in its own failure text: &ldquo;Do this challenge before hardening the OpenPLC password, or restore it temporarily.&rdquo; That is a fair design &mdash; there is no other way for an outside checker to read the loaded program &mdash; but it is the kind of coupling that makes real change-control audits difficult, where the evidence that a change happened often depends on the access the change was meant to remove.</figcaption>
+<figcaption>The order matters: download first, harden afterwards. The coupling mirrors real change audits, where the evidence that a change happened often depends on the access the change was meant to remove.</figcaption>
 </figure>
 
-## Doing it
+The file name is assigned at upload, so re-uploading an unchanged copy of the shipped program also passes. The check proves that a new upload is loaded and running, not that the logic differs. A good discussion question: how would you prove that it does?
 
-The editor is on the Engineering Workstation: `http://localhost:6080/vnc.html`, password `cybics`, and the project is `beremiz.xml` on the desktop. Change something in `cybICS.st`, compile it, then upload and start the result through OpenPLC's web UI on port 8080. The flag is `CybICS(ladder_logic_modified)`.
+</details>
 
-What to change is up to you, and the two obvious edits behave very differently. Widening the compressor band from 60&ndash;90 to 60&ndash;99 leaves the plant cycling exactly as before &mdash; simulated over 6000 ticks, the pressure still swings between 58 and its new ceiling and the system valve is open the whole time. Widen it to 60&ndash;120 and the plant stops dead.
+## Before you start
 
-The reason is a coupling the program never states. `cybICS.st` opens the system valve only while `hpt > 50 AND hpt < 100`, so the moment the pressure passes 100 the only consumer disappears. The compressor keeps running until storage falls to its own guard, storage then refills to 240 and parks, and the pressure freezes above 100 for good &mdash; restarting the cycle would need it to fall below 60, and nothing can take it down. Simulated: at 60&ndash;99 the valve is open 100 per cent of ticks; at 60&ndash;100 and beyond, 0.9 per cent.
+- [PLCs and the scan cycle](/theory/plc-fundamentals) for how the controller runs its program.
+- [The gas pressure process](/theory/physical_process) for what the program controls.
 
-No alarm sounds, because the blowout needs 220 and the pressure never gets there. What does happen is that `systemSen` flatlines at zero on the HMI's own trend and stays there. That is the better parallel to draw with *Flood &amp; Overwrite*: the flood is loud and transient, and a program download can brick a process permanently without tripping a single designed alarm &mdash; using a coupling between two bands that no one wrote down.
+Later on the path:
 
-## Detecting it
-
-You cannot, on this platform. The IDS dispatches on destination port, and port 8080 reaches only the brute-force rule, which counts POSTs whose first 200 bytes contain `login` or `auth`. A program upload matches neither, so no port rule fires. The two rules that run before the dispatch see it &mdash; they see every SYN packet on every port &mdash; but one needs five distinct ports in ten seconds and the other a hundred SYNs, and an upload is neither.
-
-That is not a gap peculiar to CybICS. Program downloads are ordinary engineering traffic, they use the vendor's own protocol, and telling a legitimate change from a malicious one means knowing which changes were authorised &mdash; which is change control, not network detection.
-
-> **MITRE ATT&CK for ICS:** T0843 Program Download, T0889 Modify Program. Defence: configuration management and change control (NIST CM-3), and integrity verification of the loaded program &mdash; which is exactly what this challenge&rsquo;s own verifier does, and the only reason it can tell.
+- [Stuxnet (2010)](/theory/stuxnet) for the real-world version of this attack.

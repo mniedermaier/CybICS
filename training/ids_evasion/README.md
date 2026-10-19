@@ -1,6 +1,6 @@
 # 🥷 IDS Evasion Challenge
 
-> **MITRE ATT&CK for ICS:** `Evasion` | [T0820 - Exploitation for Evasion](https://attack.mitre.org/techniques/T0820/) | [T0855 - Unauthorized Command Message](https://attack.mitre.org/techniques/T0855/)
+> **MITRE ATT&CK for ICS:** `Evasion` | [T0820 - Exploitation for Evasion](https://attack.mitre.org/techniques/T0820/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
 ## 📋 Overview
 
@@ -117,7 +117,7 @@ If successful, the flag will be included in the response.
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Lateral Movement | Exploitation of Remote Services | [T0866](https://attack.mitre.org/techniques/T0866/) | Accessing PLC via Modbus protocol |
-| Impair Process Control | Unauthorized Command Message | [T0855](https://attack.mitre.org/techniques/T0855/) | Writing to PLC registers |
+| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Writing to PLC registers |
 | Evasion | Exploitation for Evasion | [T0820](https://attack.mitre.org/techniques/T0820/) | Exploiting trusted communication patterns |
 | Impair Process Control | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Modifying PLC register values |
 

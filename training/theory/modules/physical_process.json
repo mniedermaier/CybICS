@@ -1,0 +1,89 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Describe the parts of the CybICS gas plant and what each actuator does to the tanks",
+    "Explain how the automatic mode keeps the high-pressure tank in its normal band",
+    "Predict how the pressure changes when an operator switches actuators in manual mode",
+    "Name ways a defender notices and limits unsafe manual control"
+  ],
+  "takeaways": [
+    "In manual mode the HMI buttons drive the equipment directly, so whoever holds them controls the physics.",
+    "The HPT pressure climbs while the compressor runs and nothing drains the tank, limited only by the gas in storage.",
+    "The blow-out valve works on the real pressure without the PLC, but it vents more slowly than the compressor fills."
+  ],
+  "checkpoints": [
+    {
+      "id": "balance",
+      "question": "The compressor runs and the storage tank starts full at about 242. Nothing refills it. Roughly how much pressure can the compressor add to the HPT?",
+      "options": [
+        "About 121 units",
+        "About 97 units",
+        "About 192 units"
+      ],
+      "answer": 1,
+      "explanation": "Each transfer costs two units of storage for one unit of pressure, and it stops once storage falls below 50. From 242 down to 48 that is 97 transfers. Halving 242 to 121 forgets the guard at 50, and 192 (242 minus 50) forgets that the exchange rate is two to one. The compressor only moves what the storage tank holds."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "What changes when the operator switches the FUXA HMI from automatic to manual mode?",
+      "options": [
+        "The PLC shuts down and the plant stops",
+        "The PLC stops deciding; the buttons write the coils",
+        "The blow-out valve comes under the operator's control",
+        "The sensors stop updating until automatic mode returns"
+      ],
+      "answer": 1,
+      "explanation": "In manual mode the PLC program skips its control rules, so the coils keep whatever the operator writes. The plant keeps running and the sensors keep reporting. The blow-out valve is the tempting wrong answer: it is mechanical and independent, so neither manual mode nor any button can control it."
+    },
+    {
+      "type": "single",
+      "question": "In automatic mode, when does the PLC open the system valve?",
+      "options": [
+        "Whenever the compressor is switched off",
+        "While the HPT reads between 50 and 100",
+        "While the HPT reads between 60 and 90",
+        "Only while the GST is being refilled from outside"
+      ],
+      "answer": 1,
+      "explanation": "The program opens the system valve while the HPT reads above 50 and below 100. The band from 60 to 90 belongs to the compressor, which starts below 60 and stops at 90; it is easy to mix the two up. The valve rule does not look at the compressor or the GST."
+    },
+    {
+      "type": "single",
+      "question": "The plant is in manual mode, the HPT has passed 220 and the blow-out valve is venting, but the compressor is still running. What happens?",
+      "options": [
+        "The valve holds the pressure at exactly 220",
+        "It keeps rising; the valve vents slower than it fills",
+        "The PLC switches the compressor off as soon as the valve opens",
+        "It falls back to 200, where the valve closes again"
+      ],
+      "answer": 1,
+      "explanation": "The valve vents about half a bar per tick against the compressor's one bar, so a compressor that keeps running still wins. The valve is not a ceiling. In manual mode the PLC does not intervene, so nothing switches the compressor off when the valve opens."
+    },
+    {
+      "type": "single",
+      "question": "After a blow-out the compressor is off and the system valve is shut. Where does the HPT pressure settle?",
+      "options": [
+        "Back in the normal band of 60 to 90",
+        "At about 200, where the valve closes",
+        "At 0, because the valve keeps venting",
+        "Just below 220, where the valve opened"
+      ],
+      "answer": 1,
+      "explanation": "The blow-out valve is a latch: it opens above 220, stays open until the pressure is back at 200 and then closes. It does not close at 220 and it does not keep venting below 200. With the compressor off and the system valve shut, nothing else drains the tank, so it does not return to the normal band on its own."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures help a defender against unsafe manual control from the HMI?",
+      "options": [
+        "Alarming when the HPT leaves its normal band",
+        "Giving only some accounts permission to use manual mode",
+        "Keeping the safety relief independent of the PLC and the HMI",
+        "Encrypting the connection between the HMI and the PLC"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Process alarms catch the effect, role-based permissions limit who can cause it, and an independent safety function limits the damage. Encryption protects the messages on the wire, but here the unsafe commands come from a logged-in operator, so they would be encrypted and delivered just the same."
+    }
+  ]
+}

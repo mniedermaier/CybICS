@@ -1,21 +1,74 @@
-# Defense in depth
+# Defence in depth
 
-No single control secures an ICS. The strategy is **defense in depth**: layered controls, so that getting past one still leaves an attacker facing the next. Two standards frame this for OT &mdash; **IEC 62443**, which groups assets into **zones** and controls the **conduits** between them, and **NIST SP 800-82**.
+No single security control protects a plant. Passwords get guessed, firewall rules have gaps, and patches arrive years late. The answer is **defence in depth**: several independent layers, so that an attacker who gets past one still meets the next, and a defender has time to notice.
 
-The usual picture is concentric rings: an attacker has to defeat each one in turn. That is a good picture of a building and a poor picture of a network, and this platform will show you why in about two minutes.
+## Layers, not a single wall
 
-## A conduit is a list of ports, and lists have gaps
+Picture a castle: a moat, two walls, guards at the keep and lookouts on the towers. No part is perfect, but together they make an attack slow and visible. A plant's layers range from locked cabinets through firewalls and passwords to an IDS.
 
-The *Network Segmentation* challenge asks you to stop the attack machine reaching the controllers. Its Solution gives you three rules.
+One warning: on a network, an attacker need not break every wall in turn. Each control guards a **path**, and one open path is enough. A strong OpenPLC password does not help if Modbus registers can be written without any login, as [Flood & Overwrite](/ctf/challenge/flood_overwrite) shows. Monitoring blocks nothing, but it sees an attempt on any path it watches.
 
-<figure>
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the layers on CybICS</summary>
+
+| Layer | Example | On CybICS |
+|---|---|---|
+| Physical | locked cabinets, no stray USB sticks | the board's UART header (see [UART Training Guide](/ctf/challenge/uart_basic)) |
+| Network perimeter | firewall between office and plant | not modelled: the attack machine already sits inside |
+| Segmentation | separate zones for HMI, controllers and safety | one flat network, `172.18.0.0/24` |
+| Host hardening | only needed services, firewall on each device | `iptables` rules inside a container |
+| Authentication | strong, unique passwords; certificates | OpenPLC and FUXA logins, OPC-UA users |
+| Monitoring | an IDS watching traffic | the CybICS IDS ([Detection and monitoring](/theory/detection-monitoring)) |
+
+</details>
+
+## Segmentation: zones and conduits
+
+**Segmentation** splits a network into separate parts, so one compromised machine cannot reach everything. Its OT vocabulary comes from IEC 62443:
+
+- A **zone** is a group of devices that need the same protection, such as "all controllers".
+- A **conduit** is the controlled path between two zones, usually a firewall that lets through only the connections the plant needs.
+
+In the [Purdue model](/theory/ics-basics), traffic should cross levels only through a conduit, never jump straight from an office laptop to a PLC. IEC 62443 also gives each zone a target **security level**; choosing it is covered in [Asset inventory, risk and IEC 62443](/theory/risk-assessment).
+
+<div class="callout cybics" markdown="1">
+**On CybICS:** every container shares one flat network. The attack machine can reach OpenPLC, FUXA and the OPC-UA server directly. The [Network Segmentation](/ctf/challenge/defense_network_segmentation) challenge asks you to change that.
+</div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: security levels and NIST SP 800-82</summary>
+
+IEC 62443 is the international standard family for industrial automation security. It defines four **security levels**, SL 1 to SL 4, from protection against casual mistakes up to protection against well-funded, skilled attackers. It also sets requirements for asset owners, integrators and product vendors.
+
+The other document that frames most OT security work is **NIST SP 800-82** (revision 3), the US guide to applying general security controls to plants. It maps the controls of NIST SP 800-53 onto plants, for example boundary protection (SC-7) or authenticator management (IA-5).
+
+</details>
+
+## Firewall rules: order and defaults
+
+A firewall checks each connection against a list of rules **from top to bottom, and the first rule that matches decides**. So order is the most common mistake: a "drop everything to port 502" rule above "allow FUXA to port 502" blocks the HMI too.
+
+Rule lists come in two kinds:
+
+- **Deny-list:** allow everything, then block what you know is bad. Every gap you did not think of stays open.
+- **Allow-list (default deny):** block everything, then allow the few connections the plant needs. A forgotten port is closed by default.
+
+OT networks suit allow-lists, because the traffic is predictable: the same few hosts talk to the same few ports all day. Try it:
+
+<div data-widget="firewall-rules"></div>
+
+<div data-widget="checkpoint" data-id="rule-order"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: why blocking single ports is fragile</summary>
+
+A deny-list has to know every door. The figure shows what happens if you block only the three ports you have heard of on the OpenPLC container.
+
+<figure class="wide">
 <style>
-.article figure svg.dh-p {min-width: 388px;}
 .dh-p {--p: 18s;}
 /* The verdicts accumulate rather than replacing each other, so the figure
-   ends on the whole comparison -- which is also what a reader gets when the
-   animation is switched off. Replacing them meant the still showed one
-   verdict and five dashed leaders pointing at nothing. */
+   ends on the whole comparison, which is also the still frame. */
 .dh-p .prb {animation: dp-prb var(--p) cubic-bezier(.4,0,.2,1) infinite;}
 .dh-p .g1 {animation: dp-g1 var(--p) steps(1,end) infinite;}
 .dh-p .g2 {animation: dp-g2 var(--p) steps(1,end) infinite;}
@@ -24,9 +77,6 @@ The *Network Segmentation* challenge asks you to stop the attack machine reachin
 .dh-p .g5 {animation: dp-g5 var(--p) steps(1,end) infinite;}
 .dh-p .g6 {animation: dp-g6 var(--p) steps(1,end) infinite;}
 .dh-p .prb {transform: translateY(175px);}
-/* The leader lines are the only thing tying a port to its verdict across the
-   gap, so they are graphics that carry meaning: at 0.45 they measured 2.69:1
-   on white. */
 .dh-p .ldr {stroke:currentColor; stroke-opacity:0.7; stroke-dasharray:3 3;}
 @keyframes dp-prb {0%,13%{transform:translateY(0)}     16.7%,30%{transform:translateY(35px)}
                    33.3%,46%{transform:translateY(70px)}  50%,63%{transform:translateY(105px)}
@@ -40,7 +90,7 @@ The *Network Segmentation* challenge asks you to stop the attack machine reachin
 @media (prefers-reduced-motion: reduce) { .dh-p * {animation:none !important;} }
 </style>
 <svg class="dh-p" viewBox="0 0 360 280" role="img"
-     aria-label="The attack machine probes six service ports in turn. Port 8080, the OpenPLC web interface, and port 502, Modbus, are dropped by the solution's rules on the OpenPLC container, and port 4840 is dropped on the OPC-UA container. Ports 102 for S7comm, 20000 for DNP3 and 44818 for EtherNet slash IP have no rule at all, because the solution lists only the first three. All six verdicts stay on screen once reached, so the figure ends showing three doors shut and three open.">
+     aria-label="The attack machine probes six service ports in turn. Three have a blocking rule: port 8080 for the OpenPLC web interface, port 502 for Modbus and port 4840 for OPC-UA. Ports 102 for S7comm, 20000 for DNP3 and 44818 for EtherNet slash IP have no rule and stay open. All six verdicts stay on screen once reached, so the figure ends showing three doors shut and three open.">
   <text x="8" y="18" font-size="12" font-weight="bold">the attack machine tries every listening port</text>
   <g class="prb"><rect x="8" y="32" width="78" height="26" rx="4" fill="#ff6b00"/>
     <text x="47" y="49" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">172.18.0.100</text></g>
@@ -65,87 +115,52 @@ The *Network Segmentation* challenge asks you to stop the attack machine reachin
     <text class="g5" x="344" y="185" fill="#ff6b00">open</text>
     <text class="g6" x="344" y="220" fill="#ff6b00">open</text>
   </g>
-  <text x="8" y="252" font-size="11" opacity="0.85">Three rules written. Six ports answering. The three left open</text>
+  <text x="8" y="252" font-size="11" opacity="0.85">Three rules written, six ports answering. The three left open</text>
   <text x="8" y="268" font-size="11" opacity="0.85">all reach the same controller memory.</text>
 </svg>
-<figcaption>The Solution in <code>training/defense_network/README.md</code> writes one rule per port: 8080 and 502 on OpenPLC, 4840 on OPC-UA. That container is also listening on 102, 20000 and 44818 &mdash; S7comm, DNP3 and EtherNet/IP &mdash; and OpenPLC publishes the same memory through all of them. The pressure register is <code>DB1002.DBW204</code> over S7, and on the running stack it returns what Modbus register 1126 returns. Follow the Solution exactly and the challenge passes with the controller still writable three ways.</figcaption>
+<figcaption>Besides its web interface and Modbus, OpenPLC also speaks S7comm (102), DNP3 (20000) and EtherNet/IP (44818), and all of them reach the same values the PLC holds. Blocking by port only works if you know every port, so check with a scan (see <a href="/theory/scanning">Network scanning</a>). A rule that drops everything from an untrusted host closes all of them at once.</figcaption>
 </figure>
 
-The challenge's *Steps* do not have this problem: they tell you to write `iptables -A INPUT -s 172.18.0.100 -j DROP`, with no port at all, which closes everything. Two routes through the same exercise, one of which leaves a door open, and both of which are marked correct.
+</details>
 
-## Which is a statement about the check, not about you
+<div class="callout tip" markdown="1">
+**Tip:** test the *outcome*: from the attack machine, try every port you meant to close. A rule that does not block is worse than none: you believe you are safe.
+</div>
 
-<figure>
-<style>
-.article figure svg.dh-v {min-width: 388px;}
-.dh-v {--v: 14s;}
-/* The scanner walks the rule table line by line and stops on the first line
-   that satisfies it. Running it over two different tables, one after the
-   other, is the point: the stop happens at the same moment in both. */
-.dh-v .scan {animation: dv-scan var(--v) steps(1,end) infinite;}
-.dh-v .tblA {animation: dv-a var(--v) steps(1,end) infinite;}
-.dh-v .tblB {animation: dv-b var(--v) steps(1,end) infinite;}
-.dh-v .ok   {animation: dv-ok var(--v) steps(1,end) infinite;}
-.dh-v .scan {transform: translateY(26px);}
-.dh-v .tblA {opacity:0;}
-.dh-v .tblB {opacity:1;}
-.dh-v .ok   {opacity:1;}
-@keyframes dv-scan {0%,7%{transform:translateY(0)}   10%,20%{transform:translateY(13px)}
-                    23%,43%{transform:translateY(26px)}
-                    50%,57%{transform:translateY(0)}  60%,70%{transform:translateY(13px)}
-                    73%,100%{transform:translateY(26px)}}
-@keyframes dv-a {0%,49.9%{opacity:1} 50%,100%{opacity:0}}
-@keyframes dv-b {0%,49.9%{opacity:0} 50%,100%{opacity:1}}
-@keyframes dv-ok {0%,22.9%{opacity:0} 23%,49.9%{opacity:1}
-                  50%,72.9%{opacity:0} 73%,100%{opacity:1}}
-@media (prefers-reduced-motion: reduce) { .dh-v * {animation:none !important;} }
-</style>
-<svg class="dh-v" viewBox="0 0 360 202" role="img"
-     aria-label="The segmentation verifier reads the output of iptables -L INPUT -n and stops at the first line that contains the attack machine's address together with DROP. It is shown running over the OpenPLC container's rule table twice. The first version is a single blanket DROP, which closes every port. The second is the solution's per-port rule, which closes only the port it names. The verifier stops on the same line in both cases and reports the same pass, because it is matching text rather than testing reachability.">
-  <text x="8" y="18" font-size="12" font-weight="bold">what the segmentation check reads</text>
-  <text x="8" y="36" font-size="11" opacity="0.85" font-family="monospace">iptables -L INPUT -n</text>
-  <rect class="scan" x="8" y="48" width="280" height="14" rx="3" fill="#ff6b00" fill-opacity="0.30" stroke="#ff6b00"/>
-  <g font-family="monospace" font-size="11">
-    <g class="tblA">
-      <text x="12" y="59">Chain INPUT (policy ACCEPT)</text>
-      <text x="12" y="72">target prot source</text>
-      <text x="12" y="85">DROP   all  172.18.0.100</text>
-    </g>
-    <g class="tblB">
-      <text x="12" y="59">Chain INPUT (policy ACCEPT)</text>
-      <text x="12" y="72">target prot source</text>
-      <text x="12" y="85">DROP   6    172.18.0.100  dpt:8080</text>
-    </g>
-  </g>
-  <text class="ok" x="8" y="112" font-size="12" font-weight="bold" fill="#ff6b00">line contains the address and DROP &rarr; pass</text>
+## Authentication
 
-  <text x="8" y="142" font-size="11" opacity="0.85">Both pass. One closes every port, the other closes one.</text>
-  <text x="8" y="158" font-size="11" opacity="0.85">The check never opens a socket, so it cannot tell them apart.</text>
-  <text x="8" y="184" font-size="11" opacity="0.85">The password check does open one, and fails you if the old</text>
-  <text x="8" y="198" font-size="11" opacity="0.85">credential still works.</text>
-</svg>
-<figcaption><code>_check_iptables_rule</code> runs <code>iptables -L INPUT -n</code> in each target container and returns true for the first line containing the attack machine&rsquo;s address and either DROP or REJECT. No port is compared, and nothing is connected to. The check also runs per container, so the OPC-UA rule never appears in this listing at all. <code>check_openplc_password.py</code> is the opposite kind of test: it posts the default credential to the login form and passes only when that attempt fails. Same word, &ldquo;verified&rdquo;, two very different promises.</figcaption>
-</figure>
+**Authentication** checks who you are, with a password or a certificate. In OT it fails in three typical ways:
 
-## Four controls, five checks, and what each one actually proves
+- **None at all.** Modbus TCP and classic S7comm accept commands from anyone who reaches the port; the network layers are their only gate.
+- **Default credentials.** Devices ship with a factory login nobody changes. The [OpenPLC](/ctf/challenge/password_openplc) and [FUXA](/ctf/challenge/password_attack) password challenges exploit exactly this.
+- **Shared accounts.** Every operator uses one login, so nobody can tell who did what.
 
-| Control | What you do | What the check proves | Standard |
-|---|---|---|---|
-| Remove default credentials | change the OpenPLC and FUXA passwords | that the old credential no longer works &mdash; it tries it | IEC 62443 SR 1.5; NIST IA-5 |
-| Restrict Modbus | iptables so only `hwio` and FUXA reach port 502 | that a DROP rule exists **and** that port 502 refuses a connection from an unauthorised host | SR 5.2; NIST SC-7 |
-| Network segmentation | block the attack host from the controllers | only that some rule mentioning the attack host exists | SR 5.1; NIST SC-7 |
-| Keep the IDS effective | detection stays running and tuned | that the IDS answers `/health`, reports itself active, **and** that at least three distinct rules have non-zero hit counts | NIST SI-4 |
+Modern protocols do better: the CybICS [OPC-UA](/theory/opcua-protocol) server refuses anonymous sessions.
 
-Three of the four test an outcome and one tests a configuration &mdash; and the one that tests a configuration is the same exercise whose Steps and Solution disagree. That is not a criticism of the exercises: testing an outcome is often expensive, and a configuration check is what most real audits are. There is even a reason for it here. `docker exec … iptables -L` is cheap and works from anywhere, while a socket test can only probe from wherever the checker happens to be &mdash; which is why the Modbus row's socket test runs from the host-networked landing container and would not notice a rule that blocks only the attack machine.
+## Patching in OT
 
-## Rings are the wrong picture
+Office IT installs a patch within days; a plant may take years, for good reasons:
 
-The concentric-ring drawing implies that an attacker must defeat every layer in turn. On a network they rarely have to. Each control guards a *path*, and an attacker needs one path, not all of them. The Modbus firewall does not help if S7 is open; strong OpenPLC passwords do not help if the register is writable without logging in at all, which is exactly what *Flood &amp; Overwrite* demonstrates.
+- **Uptime.** A patch often means a restart, and some processes run for months non-stop.
+- **Certification.** The vendor may only support tested software versions.
+- **Testing.** A faulty patch can create a safety hazard, so it is tested on a copy first.
+- **Age.** Controllers last fifteen to twenty years, often longer than their patch support.
 
-What survives from the ring picture, and it is the important half: **monitoring is the one layer that does not have to stop anything.** Whatever path an attacker takes, if it is watched, the attempt is recorded. That is why the *Detect Modbus Flooding* and *IDS Evasion* challenges sit where they do, and why the ICS answer to "which control matters most" is usually the one that sees rather than the one that blocks.
+So OT relies on **compensating controls**: if you cannot fix a weakness, put layers around it: segmentation, strict firewall rules and monitoring.
 
-## The mindset
+<div data-widget="checkpoint" data-id="compensating"></div>
 
-Assume any single control can fail, and assume your evidence that it works is weaker than it looks. Design so a failure is contained and observed. In OT this is balanced against availability &mdash; a lockout or a dropped packet must never endanger the process &mdash; which is why segmentation and monitoring, rather than intrusive blocking, are the workhorses of ICS defense.
+## Putting it into practice on CybICS
 
-And when a check passes, ask what it looked at. On this platform you can answer it by reading thirteen lines of Python &mdash; `_check_iptables_rule` is that short &mdash; which is a luxury you will not usually have.
+Each defence challenge adds one layer:
+
+1. [Harden OpenPLC Credentials](/ctf/challenge/defense_openplc_password) and [Harden FUXA Credentials](/ctf/challenge/defense_fuxa_password): replace the default logins.
+2. [Modbus Firewall Rules](/ctf/challenge/defense_firewall): on the OpenPLC container, allow port 502 only from the plant's own Modbus clients: `hwio` (172.18.0.2), FUXA (172.18.0.4) and the OPC-UA server (172.18.0.5).
+3. [Network Segmentation](/ctf/challenge/defense_network_segmentation): stop the attack machine reaching the controllers.
+4. [IDS Monitoring & Tuning](/ctf/challenge/defense_ids_tuning): keep the watching layer running.
+
+Mind availability: if your Modbus rule also blocks `hwio`, the PLC stops receiving tank pressures: you have caused the outage an attacker wanted. Block the OPC-UA server, and its clients lose their view of the plant. In OT, a control that endangers the process is not a security win.
+
+Before the closing case study, follow one attack from the attack machine to an overfilled tank and pick the layer that stops each step:
+
+<div data-widget="sequence" data-id="capstone"></div>

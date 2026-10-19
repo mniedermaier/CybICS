@@ -1,0 +1,171 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Describe the 2015, 2016 and 2022 attacks on the Ukrainian power grid in the right order",
+    "Explain the difference between hijacking an operator's HMI and sending protocol commands directly",
+    "Map the key steps to MITRE ATT&CK for ICS techniques",
+    "Relate the attacks to the password, Flood & Overwrite and MitM challenges on CybICS"
+  ],
+  "takeaways": [
+    "In 2015 the attackers used stolen accounts, a VPN without a second factor and the operators' own HMIs to switch off power.",
+    "Industroyer (2016) and Industroyer2 (2022) automated the attack by speaking grid protocols such as IEC 104 directly.",
+    "Grid protocols, like Modbus, accept commands from anyone who can reach the device.",
+    "The attackers also targeted recovery: wiped computers and broken converters kept operators blind and forced manual work.",
+    "Being able to run the process by hand is a defence in its own right."
+  ],
+  "checkpoints": [
+    {
+      "id": "protocol",
+      "question": "Industroyer sent IEC 104 commands straight to substation equipment. Which CybICS action is the closest parallel?",
+      "options": [
+        "Logging in to the FUXA HMI with a guessed password",
+        "Writing a Modbus register on port 502 directly",
+        "Sitting between the HMI and the PLC as a MitM"
+      ],
+      "answer": 1,
+      "explanation": "Writing Modbus values directly to the PLC skips the HMI, just as Industroyer skipped the operators' screens and talked to the equipment itself. Logging in to FUXA is the 2015 method: acting through the operator's own tool. A MitM changes messages that someone else sends, while Industroyer sent its own commands."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "How did the 2015 attackers open the breakers?",
+      "options": [
+        "With custom malware that spoke IEC 104",
+        "Through the operators' own HMIs, remotely",
+        "By flooding the substation networks with traffic",
+        "With BlackEnergy 3 sending breaker commands"
+      ],
+      "answer": 1,
+      "explanation": "In 2015 the attackers used valid accounts and remote access to click through the operators' HMIs (T0859, T0823). BlackEnergy 3 was how they got into the office network months earlier, not what opened the breakers, and malware that speaks grid protocols only came in 2016 with Industroyer."
+    },
+    {
+      "type": "single",
+      "question": "Why could Industroyer's commands switch breakers even though they did not come from the control centre?",
+      "options": [
+        "IEC 104 does not check who sent a command",
+        "The attackers had broken IEC 104's encryption",
+        "The commands carried a stolen operator password",
+        "The commands were signed with a stolen certificate"
+      ],
+      "answer": 0,
+      "explanation": "IEC 104, like Modbus, trusts any well-formed message. There was no encryption to break, no password in the message and no signature to forge, which is exactly why reaching the device was enough. Stolen passwords mattered in 2015, when the attackers logged in to the HMIs."
+    },
+    {
+      "type": "multi",
+      "question": "Which steps of the 2015 attack made recovery harder?",
+      "options": [
+        "Wiping computers with KillDisk",
+        "Loading broken firmware onto serial-to-Ethernet converters",
+        "Flooding the customer call centre",
+        "Logging in over the VPN with stolen passwords"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Wiping, bricking the converters and flooding the call centre all hampered the response. The VPN login with stolen passwords was how the attackers reached the control network, a step towards the outage, not part of the attack on recovery."
+    },
+    {
+      "type": "single",
+      "question": "Which single control would most directly have blocked the 2015 attackers' path into the control network?",
+      "options": [
+        "Multi-factor authentication on the VPN",
+        "Encrypting the IEC 104 traffic",
+        "An IDS watching the control network",
+        "Keeping offline backups of converter firmware"
+      ],
+      "answer": 0,
+      "explanation": "The attackers entered with stolen passwords over a VPN without a second factor; a second factor would have stopped the stolen passwords from being enough. An IDS can notice the intrusion but does not block it, offline firmware backups speed up recovery rather than keeping anyone out, and encrypting IEC 104 would not have helped because they used the operators' own tools."
+    },
+    {
+      "type": "single",
+      "question": "What happened to Industroyer2 in April 2022?",
+      "options": [
+        "It caused a blackout across Kyiv",
+        "It was found and stopped before any outage",
+        "It only ran in a lab and was never deployed",
+        "It disabled the protection relays at substations"
+      ],
+      "answer": 1,
+      "explanation": "CERT-UA and ESET found Industroyer2 on the target network and prevented the planned outage. The Kyiv blackout was the 2016 attack with the first Industroyer, and the attempt to disable SIPROTEC protection relays belonged to 2016 as well, where it failed."
+    }
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the attacks in order",
+      "intro": "These steps span the 2015, 2016 and 2022 attacks. Put them in the order they happened and give each one its MITRE ATT&CK for ICS tactic.",
+      "labels": [
+        "Initial Access",
+        "Lateral Movement",
+        "Impair Process Control",
+        "Inhibit Response Function",
+        "Collection"
+      ],
+      "steps": [
+        {
+          "text": "Office documents with malicious macros installed BlackEnergy 3 in the companies' office networks.",
+          "label": "Initial Access",
+          "explain": "This happened months before the 2015 outage and gave the attackers their first foothold. Spearphishing Attachment (T0865) is an Initial Access technique."
+        },
+        {
+          "text": "Stolen user names and passwords, used over the companies' own VPN, opened the way into the control network.",
+          "label": "Lateral Movement",
+          "explain": "From the office network the attackers moved on to the control systems by logging in as real users. Using Valid Accounts (T0859) to reach new systems is Lateral Movement."
+        },
+        {
+          "text": "Remotely controlled operator HMIs opened breakers, and about 225,000 customers lost power.",
+          "label": "Impair Process Control",
+          "explain": "With operator access in hand, the attackers clicked the breakers open on 23 December 2015. Manipulation of Control (T0831) belongs to Impair Process Control."
+        },
+        {
+          "text": "Broken converter firmware and wiped computers kept operators from switching power back on remotely.",
+          "label": "Inhibit Response Function",
+          "explain": "This step only makes sense once the power is off: it slowed the repair. Destroying firmware and data (T1693.001, T0809) to stop the defenders responding is Inhibit Response Function."
+        },
+        {
+          "text": "Malware speaking four grid protocols switched off a transmission substation near Kyiv for about an hour.",
+          "label": "Impair Process Control",
+          "explain": "This was Industroyer in December 2016, a year after the manual attack. Sending commands straight to the equipment (T1692.001 Unauthorized Message: Command Message) is Impair Process Control."
+        },
+        {
+          "text": "Malware speaking only IEC 104, with a hard-coded list of target devices, was stopped before any outage.",
+          "label": "Impair Process Control",
+          "explain": "This was Industroyer2 in April 2022, found by CERT-UA and ESET. It was built to send the same kind of breaker commands, so its goal was still Impair Process Control."
+        }
+      ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the Ukrainian grid attacks. Give each one the defence from the lesson that would most directly have stopped it, revealed it or limited the damage at that point.",
+      "labels": [
+        "Multi-factor authentication",
+        "Security monitoring",
+        "Restricting who may send commands",
+        "Manual operation and offline backups"
+      ],
+      "steps": [
+        {
+          "text": "In 2015 the attackers log in to the control network over the companies' VPN with stolen user names and passwords.",
+          "label": "Multi-factor authentication",
+          "explain": "The VPN asked for nothing but a password, so stolen passwords were enough. A second factor would have made them useless on their own."
+        },
+        {
+          "text": "For months before the outage, BlackEnergy sits in the networks while the attackers study the control systems.",
+          "label": "Security monitoring",
+          "explain": "Nothing is switched off yet, so there is nothing to block. The quiet phase still leaves traces, such as new accounts, unusual logins and scans, and watching for them is how a defender notices it."
+        },
+        {
+          "text": "In 2016 Industroyer, running on a computer that is not the control centre, sends IEC 104 commands to substation equipment.",
+          "label": "Restricting who may send commands",
+          "explain": "IEC 104 does not check who sent a command, so the protocol cannot help. Only allowing known control hosts to send commands to the equipment, and alerting on any other sender, takes that away."
+        },
+        {
+          "text": "Broken converter firmware and wiped computers stop the control centres from switching substations back on remotely.",
+          "label": "Manual operation and offline backups",
+          "explain": "At this point the damage is done. Staff who can run substations by hand, and spare firmware and backups kept offline, decide how long the outage lasts; that is how Ukraine restored power."
+        }
+      ]
+    }
+  }
+}

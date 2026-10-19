@@ -1,0 +1,94 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain what fuzzing is and why fragile field devices are vulnerable to it",
+    "Identify which fields of a Modbus TCP request a fuzzer changes",
+    "Recognise a Modbus exception response as the robust answer to bad input",
+    "Describe how an IDS and function-code allow-listing detect fuzzing"
+  ],
+  "takeaways": [
+    "Fuzzing sends unexpected input on purpose to find crashes and hangs before an attacker does.",
+    "A robust Modbus server answers bad requests with an exception: the function code with its top bit set.",
+    "The diagnostic (8) and device identification (43) function codes are rare in normal traffic and easy to flag.",
+    "A crash on an industrial controller can stop a process, which is T0814 Denial of Service.",
+    "Never fuzz a live plant; use a lab or a spare device."
+  ],
+  "checkpoints": [
+    {
+      "id": "exception",
+      "question": "You send function code 0x06 with a bad register address and the PLC answers with function code 0x86. What happened?",
+      "options": [
+        "The PLC crashed and sent an error dump",
+        "The PLC rejected it with an exception",
+        "The write succeeded and was confirmed",
+        "The PLC switched to function code 0x86"
+      ],
+      "answer": 1,
+      "explanation": "Setting the top bit (0x80 + 0x06 = 0x86) marks an exception response: the device refuses politely and keeps running. It is not a confirmation, which would echo 0x06, and a crashed device would not answer at all."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why do you record the plant's normal behaviour before starting the fuzzer?",
+      "options": [
+        "The fuzzer builds its test cases from the recorded values",
+        "To know whether a frozen value or timeout is your doing",
+        "The IDS needs a baseline before it can raise any alerts",
+        "So the PLC can be restored to it after the fuzzing run"
+      ],
+      "answer": 1,
+      "explanation": "Fuzzing finds problems by noticing a change, so you need to know what working looks like. It is tempting to think the IDS needs a baseline, but the CybICS IDS rules are fixed thresholds and work without one."
+    },
+    {
+      "type": "single",
+      "question": "Your fuzzer sends only unusual function codes, including 8, and no writes. Which CybICS IDS rule should fire?",
+      "options": [
+        "modbus_flood",
+        "modbus_diagnostic",
+        "syn_flood",
+        "modbus_unauth_write"
+      ],
+      "answer": 1,
+      "explanation": "modbus_diagnostic fires on function codes 8 and 43. modbus_flood is the tempting choice because fuzzing sends many packets, but it and modbus_unauth_write only count write function codes, so a run without writes triggers neither."
+    },
+    {
+      "type": "single",
+      "question": "A mutation-based fuzzer takes a valid Modbus request and sets the length field to 255 while sending only 6 bytes. What is it testing?",
+      "options": [
+        "Whether the PLC trusts the length field blindly",
+        "Whether the PLC accepts function codes it does not support",
+        "Whether the IDS notices frames that are longer than usual",
+        "Whether the PLC can handle many requests in a short time"
+      ],
+      "answer": 0,
+      "explanation": "A lying length field is a classic boundary test: firmware that reads as many bytes as the header claims can read past its buffer and crash. The function code is unchanged here, and one frame is not a load test."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures help against fuzzing attacks on a PLC?",
+      "options": [
+        "Validating every field in the device firmware",
+        "Allowing only the function codes the HMI uses",
+        "Alerting on diagnostic function codes",
+        "Encrypting the link between HMI and PLC"
+      ],
+      "answer": [
+        0,
+        1,
+        2
+      ],
+      "explanation": "Input validation fixes the cause, allow-listing blocks most malformed traffic, and alerting tells a defender someone is probing. Encrypting the HMI link does not help: the fuzzer talks to the PLC directly, and the PLC must still parse whatever reaches it."
+    },
+    {
+      "type": "single",
+      "question": "True or false: a PLC that survives a whole fuzzing run without a crash can still be attacked over Modbus.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "answer": 0,
+      "explanation": "True. Fuzzing only tests the inputs it tried, and robustness is not the same as security: a perfectly stable PLC still accepts any valid write from anyone, because Modbus has no authentication. 'No crash' is not proof of 'secure'."
+    }
+  ]
+}

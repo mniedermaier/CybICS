@@ -1,0 +1,90 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Describe how a PLC program gets from the engineering workstation onto the controller",
+    "Read the main control rules of the CybICS program and predict the effect of changing one",
+    "Explain why a program download is hard to detect on the network and which controls catch it"
+  ],
+  "takeaways": [
+    "A PLC runs whatever program was downloaded last, and the HMI cannot tell you which one that is.",
+    "Program download uses the same tools and path for engineers and attackers, which is why Stuxnet worked.",
+    "Small changes to one limit can break the plant because rules in a PLC program depend on each other.",
+    "Change control and integrity checks of the loaded program catch what network monitoring cannot.",
+    "On CybICS a new program only counts once it is uploaded and the controller is running it."
+  ],
+  "checkpoints": [
+    {
+      "id": "start",
+      "question": "You uploaded and compiled your program in OpenPLC, but the dashboard says Stopped. What does the plant do now?",
+      "options": [
+        "It runs your new program from the next scan",
+        "No logic runs until you start the PLC",
+        "It keeps running the previous program"
+      ],
+      "answer": 1,
+      "explanation": "Uploading only stores and compiles the program. A stopped PLC does not run its scan cycle at all, so neither your new logic nor the old program is executed until you start it. That is also why the verifier checks the Running status."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why is a malicious program download hard to spot on the HMI?",
+      "options": [
+        "The HMI goes offline while a download runs",
+        "It shows what the PLC reports, which can look normal",
+        "Program downloads are encrypted, so it cannot see them",
+        "The HMI shows the loaded program only in manual mode"
+      ],
+      "answer": 1,
+      "explanation": "The HMI reads what the controller exposes. If the logic changes but the reported values look normal, the operator has no reason to doubt them; Stuxnet relied on exactly this. The HMI never shows the program in any mode, and encryption has nothing to do with it: the trouble is trust in the controller."
+    },
+    {
+      "type": "single",
+      "question": "In the CybICS program the system valve is open only between 50 and 100. You raise the compressor's upper limit from 90 to 120. What is the most likely result?",
+      "options": [
+        "The plant cycles as before, just a little higher",
+        "It stalls above 100 with the system valve shut",
+        "The blow-out valve opens as soon as it passes 120",
+        "OpenPLC rejects the program because the bands overlap"
+      ],
+      "answer": 1,
+      "explanation": "Above 100 the valve rule shuts the only consumer. The compressor would only restart below 60, and nothing brings the pressure down, so the plant freezes. The blow-out needs 220, so no alarm sounds. The compiler cannot know about this coupling, so it accepts the program."
+    },
+    {
+      "type": "single",
+      "question": "Why does the CybICS IDS not raise an alert when you upload a new program to OpenPLC?",
+      "options": [
+        "The firewall blocks uploads before the IDS sees them",
+        "Its web rule only counts logins; uploads look normal",
+        "The IDS pauses its rules while the PLC is stopped",
+        "Uploads are encrypted, so the IDS cannot read them"
+      ],
+      "answer": 1,
+      "explanation": "The rule on port 8080 looks for repeated login requests. A program upload is a normal web request to the controller, the same kind an engineer sends, and it is not hidden: the web interface uses plain HTTP. Telling a good change from a bad one needs knowledge of which changes were approved."
+    },
+    {
+      "type": "multi",
+      "question": "Which controls help a defender catch or prevent an unauthorised program download?",
+      "options": [
+        "A change-control process that records every approved change",
+        "Comparing the loaded program with a known-good copy",
+        "Replacing the default OpenPLC login",
+        "Encrypting the Modbus traffic between PLC and HMI"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Change control defines what is allowed, an integrity check spots deviations, and a strong login limits who can download at all. Encrypting Modbus protects the values on their way to the HMI, but the program is uploaded through the web interface on port 8080, so it does not stop a download."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS techniques describe this challenge?",
+      "options": [
+        "T0846 Remote System Discovery and T0842 Network Sniffing",
+        "T0889 Modify Program and T0843 Program Download",
+        "T0836 Modify Parameter and T0831 Manipulation of Control",
+        "T0858 Change Operating Mode and T0816 Device Restart/Shutdown"
+      ],
+      "answer": 1,
+      "explanation": "You change the logic (Modify Program) and load it onto the controller (Program Download). Modify Parameter is tempting because you may change a limit, but you do it by replacing the program, not by writing a setpoint to a running one. Starting the PLC afterwards is part of the download, not the technique this challenge practises."
+    }
+  ]
+}

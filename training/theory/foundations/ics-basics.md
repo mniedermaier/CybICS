@@ -1,23 +1,44 @@
 # What is an Industrial Control System?
 
-An **Industrial Control System (ICS)** is the combination of hardware and software that monitors and controls a physical process: a gas plant, a water works, a power grid, a production line. Unlike ordinary IT, an ICS acts on the real world. A wrong value does not corrupt a spreadsheet, it opens a valve.
+Somewhere near you, a computer decides when a pump starts or a valve opens. When it goes wrong, you get a flooded street or a burst tank, not a lost file.
 
-This is why the priorities are inverted compared to IT. A control system runs for twenty or thirty years, there is rarely a window in which it can be stopped to patch, and a process that halts can be more dangerous than one running badly. In IT the order is usually **confidentiality, integrity, availability**. In operational technology (OT) it is the reverse: keeping the process running safely comes first.
+## A computer that moves things
 
-<figure>
+<div class="callout analogy" markdown="1">
+**Analogy:** think of the thermostat at home. A sensor measures the temperature, and a controller switches the heating on or off to match your setting. A plant runs on the same idea, at a larger scale and on a network.
+</div>
+
+An **Industrial Control System (ICS)** watches and steers a physical process, such as a gas plant or a water works. The umbrella term is **Operational Technology (OT)**, as opposed to the **Information Technology (IT)** of laptops and email.
+
+In IT, a wrong value corrupts a spreadsheet. In OT, it opens a valve, and the valve does not care who sent the command.
+
+## Safety and availability first
+
+Security has three classic goals:
+
+- **Confidentiality:** only the right people can read the data.
+- **Integrity:** nobody can change the data without permission.
+- **Availability:** the system works when you need it.
+
+In IT, confidentiality usually comes first. In OT the outer two swap: **availability** first, integrity second, confidentiality last. A plant that stops can be more dangerous than one running badly. Above all three sits **safety**: the process must never hurt people or the environment.
+
+A control system often runs for decades and is rarely stopped for patching. Even a security tool becomes a hazard if it locks out an operator.
+
+<div data-widget="checkpoint" data-id="priorities"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the IT and OT order side by side</summary>
+
+<figure class="wide">
 <style>
 /* The inversion is a reordering, so the figure reorders: the two outer goals
-   trade places and the reader sees which one moved. Orange marks rank 1 and
-   nothing else, in both the animated and the static version -- when it marked
-   a goal instead, the two versions disagreed about what the colour meant. */
+   trade places. Orange marks rank 1 and nothing else. The static two-row
+   version is the default, so a browser without animation still sees both. */
 .pri {--p: 12s;}
 .pri .swap-c {animation: p-right var(--p) ease-in-out infinite;}
 .pri .swap-a {animation: p-left  var(--p) ease-in-out infinite;}
 .pri .lab-it {animation: p-it    var(--p) steps(1,end) infinite;}
 .pri .lab-ot {opacity:0; animation: p-ot var(--p) steps(1,end) infinite;}
-/* Inverted: the static two-row version is the default, so a browser that
-   simply drops animations gets both orderings rather than the IT row alone
-   with no hint that anything was meant to move. */
 .pri {display:none;}
 .pri-static {display:block;}
 @media (prefers-reduced-motion: no-preference) {
@@ -37,7 +58,6 @@ This is why the priorities are inverted compared to IT. A control system runs fo
 @media (prefers-reduced-motion: reduce) {
   .pri {display:none;}
   .pri-static {display:block;}
-  /* kept explicit: the no-preference block above must not win here */
 }
 </style>
 <svg class="pri" viewBox="0 0 520 166" role="img"
@@ -86,35 +106,49 @@ This is why the priorities are inverted compared to IT. A control system runs fo
     <text x="430" y="111" text-anchor="middle">3. Confidentiality</text>
   </g>
 </svg>
-<figcaption>Integrity does not move. What changes is which of the other two you give up first &mdash; and above both of them sits safety, because the process must not hurt anyone.</figcaption>
+<figcaption>Integrity stays in the middle while the other two trade places. Safety sits above them all.</figcaption>
 </figure>
+
+</details>
 
 ## The Purdue model
 
-ICS networks are traditionally described with the **Purdue Enterprise Reference Architecture**, a layered model that separates the office from the plant floor. Each level talks mostly to its neighbours, and the security boundary that matters most sits between Level 3 and the enterprise above it &mdash; usually as an OT DMZ, so that no host in the office ever speaks directly to a controller.
+Think of a building: offices on the top floors, machines in the basement. Engineers describe plant networks the same way, in layers, with the **Purdue model**.
 
-<figure>
+| Level | What lives there | In CybICS |
+|---|---|---|
+| 4/5 Enterprise | Office PCs, email | the attack machine (a compromised office PC) |
+| 3 Operations | Engineering workstations, historians | the engineering workstation |
+| 2 Supervisory | Operator screens (HMIs), data collection | FUXA HMI, the OPC-UA server |
+| 1 Control | Controllers (PLCs) that run the logic | OpenPLC, the S7comm server |
+| 0 Process | Sensors, valves, pumps, motors | `hwio`, which simulates the gas plant |
+
+The most important wall separates the office (Level 4/5) from everything below: no office PC should talk to a controller.
+
+CybICS leaves the walls out on purpose, so the attack machine reaches every target. Click a host to see what it is:
+
+<div data-widget="purdue-explorer"></div>
+
+<div data-widget="checkpoint" data-id="purdue"></div>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the OT DMZ and an intruder's walk down the levels</summary>
+
+The full name is the Purdue Enterprise Reference Architecture, after the university where it was drawn up. In a real plant the wall between Level 4/5 and the levels below is usually built as an **OT DMZ**: a small buffer network between office and plant, so that office PCs only ever talk to servers in the buffer, never to a controller.
+
+<figure class="wide">
 <style>
+/* The intruder walks down the levels; the boundary it crosses is the one a
+   DMZ should occupy. */
 .pur {--u: 10s;}
-/* The intruder walks down the levels. The boundary it crosses is the one the
-   DMZ is supposed to occupy, so the crossing is the moment worth watching. */
 .pur .walk {animation: u-walk var(--u) ease-in-out infinite;}
-/* theory_article.html retints text[fill], path[fill] and [stroke] for the
-   light theme but cannot reach a circle, so the intruder marker stayed at
-   #ff6b00 on white: 2.86:1. */
-html.light-mode .pur .intr {fill:#b34700;}
-/* and the glyph on it: #1a1a1a was 6.10:1 on #ff6b00 but only 3.16:1 once the
-   circle became #b34700. White is 5.50:1 there. */
-html.light-mode .pur .intr-t {fill:#ffffff !important;}
 .pur .dmz  {animation: u-dmz  var(--u) linear infinite;}
+.pur:where(.light-mode *) .intr {fill:#b34700;}
+.pur:where(.light-mode *) .intr-t {fill:#ffffff !important;}
 @keyframes u-walk {0%,6%{transform:translateY(0)}      14%,22%{transform:translateY(0)}
                    30%,38%{transform:translateY(50px)}  46%,54%{transform:translateY(100px)}
                    62%,70%{transform:translateY(150px)} 78%,94%{transform:translateY(200px)}
                    100%{transform:translateY(0)}}
-/* The resting state was 0.5 opacity, which blends to 2.47:1 on the dark
-   ground and 2.21:1 on the light one -- under the 3:1 a meaningful graphic
-   needs, for 92 per cent of the loop, on the one line the caption calls the
-   point of the figure. The pulse still reads as a pulse at 0.75. */
 @keyframes u-dmz  {0%,24%{stroke-opacity:0.75; stroke-width:2}
                    26%,34%{stroke-opacity:1; stroke-width:3}
                    36%,100%{stroke-opacity:0.75; stroke-width:2}}
@@ -124,7 +158,7 @@ html.light-mode .pur .intr-t {fill:#ffffff !important;}
 }
 </style>
 <svg class="pur" viewBox="0 0 520 266" role="img"
-     aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The DMZ boundary it crosses sits between Level 3 and the enterprise; CybICS has no such boundary: the plant components share one flat network, and the IDS watches from the host.">
+     aria-label="The five Purdue levels from enterprise IT down to the physical process. An intruder starting at the enterprise level descends one level at a time to the process. The dashed DMZ boundary it crosses sits between Level 3 and the enterprise.">
   <g font-size="14">
     <rect x="70" y="10" width="440" height="40" rx="5" fill="currentColor" fill-opacity="0.10" stroke="currentColor"/>
     <text x="82" y="35">Level 4/5 &mdash; Enterprise IT</text>
@@ -144,62 +178,48 @@ html.light-mode .pur .intr-t {fill:#ffffff !important;}
     <circle class="intr" cx="40" cy="30" r="10" fill="#ff6b00"/>
     <text class="intr-t" x="40" y="34" text-anchor="middle" font-size="11" style="fill:#1a1a1a" font-weight="bold">!</text>
   </g>
-
 </svg>
-<figcaption>The dashed line is where the IT/OT boundary belongs: between the enterprise and everything that can reach a controller, usually built as an OT DMZ. An intruder that starts at the top reaches the process by descending all five levels. The descent is the point: each step meets a different service and a different topic in this path, and the only thing that would have stopped it is a boundary CybICS deliberately does not have.</figcaption>
+<figcaption>The dashed line is where the IT/OT boundary belongs, usually built as an OT DMZ. An intruder who starts in the office has to walk down every level to reach the process. Each step is a different service and a different lesson in this path. CybICS deliberately leaves the wall out, so you can practise every step from one machine.</figcaption>
 </figure>
 
-## Where CybICS fits
+The S7comm server on Level 1 simulates a Siemens PLC. All plant containers share the Docker network `172.18.0.0/24`. The landing page and the Intrusion Detection System (IDS) are not on it. They run on the host's own network, which lets the IDS see the traffic between the containers.
 
-CybICS is a small but complete ICS, and every simulated plant component sits on the same bridge network, `172.18.0.0/24`, with nothing between them. That is not an oversight &mdash; it is what makes the attacks in the later modules reachable from a single machine. Two services are deliberately outside it: the landing page and the IDS run on the *host* network, which is how the IDS gets to see traffic between containers it is not a party to.
+</details>
 
-| Purdue level | CybICS component | Address |
-|---|---|---|
-| Level 4/5 (Enterprise) | Attack machine, standing in for any compromised office host | 172.18.0.100 |
-| Level 3 (Operations) | Engineering workstation | 172.18.0.10 |
-| Level 2 (Supervisory) | FUXA HMI; OPC-UA and S7comm servers alongside it | 172.18.0.4, .5, .6 |
-| Level 1 (Control) | OpenPLC runtime executing the plant program | 172.18.0.3 |
-| Level 0 (Process) | `hwio`, which runs the gas pressure simulation and writes its readings into the PLC | 172.18.0.2 |
+## The CybICS gas plant
 
-On real hardware, Level 0 is not a container at all: the STM32 on the CybICS board runs the process, and `hwio` becomes a genuine bridge, talking to it over I&sup2;C at address 0x20.
+The plant has five parts:
 
-## The process you are actually protecting
+- **Gas storage tank (GST):** the supply, topped up by a refill valve.
+- **Compressor:** pumps gas from the GST into the high-pressure tank.
+- **High-pressure tank (HPT):** the tank everyone watches.
+- **System valve:** lets the downstream process draw gas from the HPT.
+- **Blow-out valve:** a relief valve that opens when the HPT pressure is too high.
 
-Everything above exists to run one small plant. A compressor pumps gas from a storage tank (**GST**) into a high pressure tank (**HPT**), and the downstream process draws from the HPT while the system valve is open &mdash; but only while the compressor is off, because the simulation puts the draw in the `else` of `if compressor > 0` and so gives the plant one job per tick. Both readings are a single byte, 0 to 255, and OpenPLC is the thing that decides: it reads the HPT pressure out of register 1126 and drives the compressor on coil 1. That loop &mdash; sensor, controller, actuator, process, sensor again &mdash; is what makes this a *control* system rather than a machine.
+The controller, OpenPLC, starts the compressor when the HPT pressure drops below 60 bar and stops it at 90. It keeps the system valve open while the pressure is between 50 and 100.
 
-Left alone, the loop is dull on purpose. OpenPLC starts the compressor when the HPT falls below 60 and stops it at 90, so the pressure saws gently between the two, comfortably inside the 50-to-100 band in which the plant reports itself healthy. Nothing ever goes near the relief valve.
+That cycle of **sensor, controller, actuator, process, sensor again** is the **control loop**. [PLCs and the scan cycle](/theory/plc-fundamentals) shows how the controller decides.
 
-<figure>
+## When someone takes over
+
+Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over: with the system valve shut, the compressor forced on and the supply refilling the storage tank, gas has nowhere to go. The blow-out valve opens at a high pressure, but it vents more slowly than a compressor that is forced on fills the tank.
+
+No network attack is needed. Each step is allowed; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) has you do it from the operator's own screen.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the overpressure run in numbers</summary>
+
+<figure class="wide">
 <style>
-/* `.article figure svg` is capped at max-width:100%, so on a 390 px screen a
-   520-unit viewBox rendered its 13-unit labels at 7.9 CSS px. min-width beats
-   max-width, so each figure keeps one viewBox unit per CSS pixel and scrolls
-   inside its own figure instead of shrinking below readability. The selector
-   has to be at least as specific as the template's `.article figure svg`: a
-   bare `svg.plt` is one step weaker and loses, silently. */
-.article figure svg.pri, .article figure svg.pri-static,
-.article figure svg.pur {min-width: 548px;}
-/* 460 + 28 would be one unit per CSS pixel, but this figure is wide enough
-   that on a phone the extra 88 px all become horizontal scroll -- and its
-   right-hand column carries the thresholds and the valve state. 400 renders
-   its labels at 0.81 of their size and keeps them on screen, which is the
-   better half of a bad trade for this one figure. */
-.article figure svg.plt {min-width: 400px;}
 .plt {--t: 20s; --on:#ff6b00; --on-ink:#1a1a1a;}
-html.light-mode .plt {--on:#b34700; --on-ink:#ffffff;}
-html.light-mode .plt .hpt {fill:#b34700;}
-html.light-mode .plt .gst {opacity:0.55;}
-/* transform-box defaults to view-box for SVG, so `center bottom` would anchor
-   at the bottom of the *viewBox*, not of the rect -- which put the fills
-   outside their tanks entirely. fill-box anchors on the element's own box. */
+.plt:where(.light-mode *) {--on:#b34700; --on-ink:#ffffff;}
+.plt:where(.light-mode *) .hpt {fill:#b34700;}
+.plt:where(.light-mode *) .gst {opacity:0.55;}
+/* fill-box anchors the scale on each fill's own bottom edge. */
 .plt .lvl {transform-box: fill-box; transform-origin: bottom;}
 .plt .gst {transform: scaleY(0.941);}
 .plt .hpt {transform: scaleY(0.235);}
-/* The template sets `.article figure svg text:not([fill])` at (0,2,3); a bare
-   `.plt .compt` is (0,2,0) and loses to it, so with animations switched off
-   this label rendered light grey on orange at 2.34:1. Only the running
-   keyframes were holding it dark. */
-.article figure svg text.compt {fill:var(--on-ink);}
+.plt .compt {fill:var(--on-ink);}
 .plt .gst {animation: t-gst var(--t) linear infinite;}
 .plt .hpt {animation: t-hpt var(--t) linear infinite;}
 .plt .comp{fill:var(--on); animation: t-comp var(--t) steps(1,end) infinite;}
@@ -209,31 +229,14 @@ html.light-mode .plt .gst {opacity:0.55;}
 .plt .sup {opacity:0; animation: t-man  var(--t) steps(1,end) infinite;}
 .plt .ph-n{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .ph-a{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
-/* "stuck here" lands on the 200 rule, which is the point, and therefore on
-   the "200" label, which is not. The number steps aside while the phrase is
-   up; by then the figure has said 200 four times. */
 .plt .lbl200{animation: t-n200 var(--t) steps(1,end) infinite;}
 .plt .stuck{opacity:0; animation: t-stuck var(--t) steps(1,end) infinite;}
 .plt .rst  {opacity:0; animation: t-rst   var(--t) steps(1,end) infinite;}
 .plt .sv-open{animation: t-phn var(--t) steps(1,end) infinite;}
 .plt .sv-shut{opacity:0; animation: t-man var(--t) steps(1,end) infinite;}
-/* One clock for every segment, from a single chained run of
-   physical_process_thread over 3000 seeds -- one scenario start to finish, not
-   eight independent segments, so the state each segment hands to the next is
-   the state the model actually produces:
-     A  30  auto, compressor on,  60 -> 90     E   93  venting, 221 -> 255
-     B  30  auto, compressor off, 90 -> 60     F   10  pinned at the 255 cap
-     C  15  auto, compressor on,  60 -> 75     G  109  vent only, 255 -> 200
-     D 147  manual, valve shut,   75 -> 221    H   20  supply fills GST to 251
-     + 55 ticks of dwell = 509 ticks over 20 s = 25.4 ticks per second.
-   The vent segment used to be drawn at 124 ticks, a third too long, which made
-   the climb above 220 look 3.6x slower than the fill below it where the model
-   gives 2.7x. The extra slowdown is not the spring: by then the compressor is
-   duty-cycling on the `gst >= 50` guard about nine ticks in ten. The dwell is
-   real -- with the compressor off, the valve shut and the vent latch released
-   at 200 nothing moves the pressure, and once GST reaches the 251 supply cap
-   nothing moves that either. It is a genuine fixed point, which is the whole
-   point of the figure, so it now gets 2.9 s instead of 0.6 s. */
+/* Timings come from one chained run of physical_process_thread: automatic
+   60-90 twice, then manual with the valve shut, venting above 220, settling
+   at 200 while the supply refills the GST. */
 @keyframes t-hpt {0%{transform:scaleY(0.235)}     5.90%{transform:scaleY(0.353)}
                   11.84%{transform:scaleY(0.235)} 14.85%{transform:scaleY(0.294)}
                   43.78%{transform:scaleY(0.867)} 61.98%,63.94%{transform:scaleY(1)}
@@ -254,21 +257,14 @@ html.light-mode .plt .gst {opacity:0.55;}
 @keyframes t-phn  {0%,14.84%{opacity:1} 14.85%,100%{opacity:0}}
 @keyframes t-stuck{0%,85.30%{opacity:0} 85.31%,100%{opacity:1}}
 @keyframes t-n200 {0%,85.30%{opacity:0.75} 85.31%,100%{opacity:0}}
-/* The loop restart snaps the pressure from 200 back to 60, which silently
-   undoes the damage three paragraphs say cannot be undone. Naming it stops the
-   restart from reading as recovery. */
 @keyframes t-rst  {0%,97.49%{opacity:0} 97.50%,100%{opacity:1}}
 @media (prefers-reduced-motion: reduce) {
   /* The frozen frame is the end state: compressor stopped, valve shut, the
-     pressure resting at 200 -- and the storage tank at 251, where the supply
-     valve's own `gst < 251` guard stops it. */
+     pressure resting at 200 and the storage tank refilled. */
   .plt .gst {animation:none; transform:scaleY(0.984);}
   .plt .hpt {animation:none; transform:scaleY(0.784);}
   .plt .comp {animation:none; fill:currentColor; fill-opacity:0.18;}
-  /* Must match the specificity of the base rule above, which was raised to
-     beat the template. `.plt .compt` is (0,2,0) and loses to (0,2,3), which
-     left this label at 1.53:1 in exactly the frame the caption advertises. */
-  .article figure svg text.compt {animation:none; fill:currentColor;}
+  .plt .compt {animation:none; fill:currentColor;}
   .plt .sup,.plt .ph-a,.plt .stuck,.plt .sv-shut {animation:none; opacity:1;}
   .plt .lbl200 {animation:none; opacity:0;}
   .plt .rst {animation:none; opacity:0;}
@@ -279,9 +275,7 @@ html.light-mode .plt .gst {opacity:0.55;}
 }
 </style>
 <svg class="plt" viewBox="0 0 460 320" role="img"
-     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1, holding the pressure between 60 and 90 while the system valve lets the downstream process draw from it. An operator then switches to manual mode, shuts the system valve and runs the compressor; the pressure climbs past 220 and the relief valve opens, which slows the rise to about two fifths of its earlier rate, and when the compressor finally stops the pressure settles at 200 and stays there, because the shut valve leaves no consumer.">
-  <!-- storage tank; the fill is 126 units tall with its base at y=198, so a
-       value v sits at y = 198 - 126*v/255 -->
+     aria-label="The CybICS control loop. OpenPLC reads the high pressure tank from register 1126 and drives the compressor on coil 1, holding the pressure between 60 and 90 while the system valve lets the downstream process draw from it. Then an operator in manual mode shuts the system valve and holds the compressor on. The pressure passes 220 and the blow-out valve opens, but it vents more slowly than the compressor fills, so the pressure climbs to 255 and stays there. Only when the compressor is switched off does the valve vent the tank down to 200. It stays at 200, because the shut system valve leaves no consumer.">
   <rect x="24" y="70" width="56" height="130" rx="4" fill="none" stroke="currentColor"/>
   <rect class="lvl gst" x="26" y="72" width="52" height="126" fill="currentColor" opacity="0.6"/>
   <text x="52" y="216" text-anchor="middle" font-size="13" font-weight="bold">GST</text>
@@ -292,7 +286,7 @@ html.light-mode .plt .gst {opacity:0.55;}
   </g>
 
   <rect class="comp" x="134" y="115" width="90" height="40" rx="5" stroke="currentColor" stroke-opacity="0.5"/>
-  <text class="compt" x="179" y="140" text-anchor="middle" font-size="13" font-weight="bold">compressor</text>
+  <text class="compt" x="179" y="140" text-anchor="middle" font-size="13" font-weight="bold" fill="currentColor">compressor</text>
   <path d="M 84 135 L 130 135" stroke="currentColor" stroke-width="2"/>
   <path d="M 228 135 L 286 135" stroke="currentColor" stroke-width="2"/>
   <text x="179" y="176" text-anchor="middle" font-size="13" opacity="0.85">&minus;2 GST &rarr; +1 HPT</text>
@@ -324,7 +318,6 @@ html.light-mode .plt .gst {opacity:0.55;}
     <text x="318" y="26" text-anchor="middle" font-size="13" fill="#ff6b00" font-weight="bold">venting</text>
   </g>
 
-  <!-- the system valve: the one thing the challenge asks you to close -->
   <text x="372" y="210" text-anchor="middle" font-size="13" font-weight="bold">SV</text>
   <path d="M 346 186 L 398 186" stroke="currentColor" stroke-width="2"/>
   <g class="sv-open">
@@ -353,27 +346,27 @@ html.light-mode .plt .gst {opacity:0.55;}
   <text class="ph-a" x="10" y="308" font-size="13" fill="#ff6b00" font-weight="bold">manual: the operator has the controls</text>
   <text class="rst" x="450" y="308" font-size="13" text-anchor="end" font-weight="bold" fill="#ff6b00">loop restarts &mdash; the plant does not</text>
 </svg>
-<figcaption>The same plant twice: first with OpenPLC holding it between 60 and 90 with the system valve open, then with an operator in manual mode who has shut that valve. When the compressor finally stops, the pressure falls to 200 and no further. With reduced motion the figure holds that end state instead of animating: valve shut, compressor stopped, the tank resting at 200 with the storage tank filled to its supply cap. One tick is one pass of the simulation's <code>delay &gt; 50</code> gate over a 20 ms sleep, so it is about a second of plant time: the twenty seconds here are roughly eight and a half minutes on the plant.</figcaption>
+<figcaption>OpenPLC holds the HPT between 60 and 90. Then an operator shuts the system valve and holds the compressor on: the tank climbs past 220 to 255. Once the compressor is off, the blow-out valve vents it to 200, where it stays.</figcaption>
 </figure>
 
-The attack is the second half of that loop, and it is not a network attack at all. The *Physical Process* challenge has you log in to the FUXA HMI as `operator:operator`, press **Manual / Automatic**, close the system valve and run the compressor. Every step is a legitimate operator action; the damage comes from the combination &mdash; a shut valve with a running compressor.
+In the figure the storage tank is also being refilled, so the compressor never runs dry; the frame shown with reduced motion is the end state.
 
-Three details make it work, and each of them is a design decision rather than a bug.
+Each pressure is stored as a whole number from 0 to 255, so it fits in a single byte. The plant model lives in two files that must agree: `thread_physical` in `software/stm32/src/main.c` (the reference, running on the real board) and `physical_process_thread` in `software/hwio-virtual/hardwareAbstraction.py` (its mirror in Docker). In each tick:
 
-**Manual mode does not fail safe, it freezes.** The whole automatic block is wrapped in `IF manual < 1`, and the inner block has no `ELSE`. In manual mode OpenPLC stops assigning the compressor, the system valve and the supply valve entirely &mdash; they keep whatever value they had at the instant the operator switched over, and the panel hands all three to the operator. The `Comp.`, `SV` and `GST` buttons in FUXA write those same three coils, and each is gated on manual mode being on. The operator opens the supply deliberately &mdash; unless manual mode was entered during the tank's own refill window, in which case `gstSig` freezes on and the supply is already feeding. Either way it matters, because of the budget at the end of this section.
+- With the compressor on, and only while the GST holds at least 50 and the HPT is below 255, the GST loses 2 and the HPT gains 1.
+- With the compressor off and the system valve open, the downstream process draws a random 0 to 2 from the HPT.
+- Above 220 the blow-out valve opens and stays open until the HPT falls to 200. It vents a random 0 or 1 per tick, so on average half a bar against the compressor's steady one. That is why a compressor held on drives the HPT to 255 and keeps it there.
 
-All of this is in two files that must agree: `physical_process_thread` in `software/hwio-virtual/hardwareAbstraction.py` is what runs in Docker, and `thread_physical` in `software/stm32/src/main.c` is the reference it mirrors. The control logic is `software/OpenPLC/cybICS.st`.
+Once the compressor stops, the only thing removing gas is the blow-out valve, and it closes again at 200. The downstream process cannot help, because the valve is shut. Handing the plant back to automatic mode does not reopen it either: OpenPLC only opens the system valve while the pressure is between 50 and 100. The tank sits at 200 until a person deliberately opens the valve by hand. That is typical of real incidents: the controller's own logic does not bring the plant back, and the recovery happens on the plant floor, not in the network capture.
 
-**The relief valve does not hold the tank, it only slows it.** Above 220 the blow-out valve opens and stays open until the pressure has fallen back to 200, but it vents a random 0 or 1 unit per tick &mdash; half a unit on average &mdash; against the compressor's steady +1. The net is still positive. The valve halves the rate of rise and the tank goes to 255 anyway. The last line of defence here is a spring, and the spring loses.
+On the physical CybICS board, Level 0 is not a container at all. The STM32 microcontroller runs the process model, and `hwio` becomes a real bridge that talks to it over I&sup2;C at address 0x20.
 
-The figure draws that stretch slower still, and the spring is only half the reason. By the time the pressure passes 220 the compressor has been pulling two units of storage for every one and a half the supply valve puts back, and the tank is down to about 76 &mdash; still clear of the `gst >= 50` floor, but losing half a unit a tick. It reaches the floor a little past halfway up the vent &mdash; 4000 runs of the model put the first stall at 55 per cent of the segment, median 52 &mdash; and from there the compressor stalls whenever the tank is momentarily empty, waiting on the supply. Averaged over the whole climb that is roughly one tick in ten. It is not even certain: in about one run in five the tank never quite reaches the guard before the pressure caps out. So the stretch above 220 runs at about two fifths of the rate below it, and the two causes are not equal partners. Simulated over 4000 seeds: one unit a tick below the valve, 0.51 with the valve open and storage unlimited, 0.41 with the real `gst >= 50` floor as well. The valve does 84 per cent of the slowing and the empty tank the remaining 16 &mdash; which is what a stall rate of one tick in ten ought to cost, and a useful check on the arithmetic. Neither of them stops it.
+</details>
 
-**And the damage does not undo itself.** Once the compressor stops, the only thing removing gas is the blow-out valve, which latches shut again at 200. The downstream consumer cannot help either. The valve is shut because the operator shut it, and handing the plant back to OpenPLC does not reopen it: the automatic rule only opens the valve between 50 and 100, and the tank is sitting at 200. The tank settles at 200 and sits there. Recovering it takes something from outside the loop &mdash; which is the part of an ICS incident that does not appear in the network capture.
+## Why ICS security is different
 
-For scale: draining two units of storage per unit of pressure, a completely full storage tank buys 103 units of pressure before the compressor stalls at the `gst >= 50` guard. That is not enough to reach 220 from the normal band on its own, which is exactly why the supply valve matters.
+Most industrial protocols, such as [Modbus](/theory/modbus) and [S7comm](/theory/s7comm), have **no authentication and no encryption**. They were designed for a cable inside a locked cabinet. The cable became a network, but the protocols stayed the same: anyone who reaches a controller can usually read and write its values.
 
-## Why it matters for security
-
-Most ICS protocols have **no authentication and no encryption**, and the reason is concrete rather than philosophical: they were designed for a serial cable running inside a locked cabinet, where the cabinet was the access control. Nothing about the protocol changed when that cable became a network. OPC-UA, the newest thing on this plant, is the exception that shows the rule: it has sessions, certificates and users, and it is the only one of them that does. Having them is not the same as using them, though &mdash; the CybICS server offers `Anonymous` and `NoSecurity` alongside its signed-and-encrypted policy, which is precisely why the OPC-UA challenge on this platform is solvable at all. Any host that can reach a PLC can usually read and write its values. The rest of the Theory Path shows exactly how each protocol works, how that trust is abused, and how to detect and contain it.
-
-> **Key idea:** in ICS security you are protecting a physical process. Every attack in the later modules ends in a real-world effect &mdash; a frozen reading, a forced valve, a tank driven past the pressure its relief valve can bleed off.
+<div class="callout cybics" markdown="1">
+**In CybICS:** every attack in the later modules ends in a physical effect: a frozen reading, a forced valve, an overfilled tank. The gas plant is what you are protecting.
+</div>

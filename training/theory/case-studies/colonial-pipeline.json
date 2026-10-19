@@ -1,0 +1,161 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain how ransomware confined to the IT network stopped a fuel pipeline",
+    "Identify the initial access weakness and the ATT&CK techniques involved",
+    "Explain why a precautionary OT shutdown and business-system dependencies extend an IT incident into operations",
+    "Apply the segmentation lesson to the flat CybICS network"
+  ],
+  "takeaways": [
+    "The attackers got in through a forgotten VPN account protected only by a password.",
+    "Colonial shut the pipeline down as a precaution, because it could not be sure the attack would stay out of OT.",
+    "If operations depend on an IT system such as billing, that system is effectively part of the process.",
+    "Segmentation helps most when you can prove, during an incident, that the boundary holds.",
+    "On CybICS everything shares one flat network, which the Network Segmentation challenge asks you to fix."
+  ],
+  "checkpoints": [
+    {
+      "id": "shutdown",
+      "question": "The ransomware hit only IT systems. What is the best explanation for why the pipeline still stopped?",
+      "options": [
+        "The ransomware also encrypted the pipeline's PLCs",
+        "OT might be next, and the business relied on IT",
+        "The US government ordered the pipeline shut down"
+      ],
+      "answer": 1,
+      "explanation": "Colonial stopped the pipeline as a precaution because it could not be sure the attack would stay out of OT, and operations also relied on IT systems. It is tempting to assume the PLCs were encrypted, but there is no public evidence that the control systems were touched, and the shutdown was the company's own decision, not a government order."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "How did the attackers first get into Colonial's network, according to the CEO's testimony?",
+      "options": [
+        "A vulnerable PLC exposed to the internet",
+        "An old VPN account without multi-factor login",
+        "A phishing e-mail with a malicious attachment",
+        "A compromised update from a software supplier"
+      ],
+      "answer": 1,
+      "explanation": "Blount testified that a legacy VPN profile without multi-factor authentication was used, so a password alone opened the door. Phishing is the classic way in for many ransomware attacks, and was used in Ukraine in 2015, but it is not what Colonial reported. No PLC was exposed or attacked."
+    },
+    {
+      "type": "single",
+      "question": "MITRE uses the Colonial Pipeline incident as its example for which ATT&CK for ICS technique?",
+      "options": [
+        "T0828 Loss of Productivity and Revenue",
+        "T0882 Theft of Operational Information",
+        "T0831 Manipulation of Control",
+        "T0809 Data Destruction"
+      ],
+      "answer": 0,
+      "explanation": "The pipeline could not deliver fuel, which is a loss of productivity and revenue. The attackers did copy data, but it came from the IT network, and the stolen data is not what stopped the fuel. Encrypting files is not ICS data destruction either, and nobody manipulated control of the pipeline."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures would have reduced the impact of an attack like this?",
+      "options": [
+        "Removing unused VPN accounts and requiring multi-factor authentication",
+        "A tested boundary between IT and OT",
+        "A plan for running and billing without the main IT systems",
+        "Paying the ransom as fast as possible"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Closing forgotten access stops the entry, a provable boundary allows OT to keep running, and a fallback plan removes the business dependency. Paying quickly is tempting, but Colonial paid on the first day and the pipeline still stayed off for five days; offline backups and practised restores shorten an outage more than any payment."
+    },
+    {
+      "type": "single",
+      "question": "On CybICS, the attack machine at 172.18.0.100 can reach the PLC on 172.18.0.3:502. What does that mean in Colonial's terms?",
+      "options": [
+        "Nothing separates the attacker from the control system",
+        "The PLC is safe, since the attack machine counts as IT",
+        "The plant is effectively air-gapped from IT",
+        "The OPC-UA server acts as a boundary in front of the PLC"
+      ],
+      "answer": 0,
+      "explanation": "All CybICS containers share one flat network, so any compromised machine can reach the controllers directly. The OPC-UA server is not in the way: it reads from the PLC like any other client, and port 502 stays reachable for everyone. The Network Segmentation challenge asks you to add that missing boundary."
+    },
+    {
+      "type": "single",
+      "question": "True or false: it is officially confirmed that Colonial kept the pipeline off because its billing system was down.",
+      "options": ["True", "False"],
+      "answer": 1,
+      "explanation": "False. CNN reported this, citing people briefed on the matter, but Colonial said it shut down to contain the attack. The dependency lesson holds either way."
+    }
+  ],
+  "exercises": {
+    "attack": {
+      "type": "sequence",
+      "title": "Put the incident in order",
+      "intro": "The intrusion stayed in Colonial's office IT network, so the labels are MITRE ATT&CK for Enterprise tactics. Put the steps in order and label each one.",
+      "labels": [
+        "Resource Development",
+        "Initial Access",
+        "Exfiltration",
+        "Impact",
+        "Lateral Movement"
+      ],
+      "steps": [
+        {
+          "text": "The DarkSide group wrote the ransomware and rented it out to others who would do the break-ins.",
+          "label": "Resource Development",
+          "explain": "Under ransomware as a service, the tool exists before any victim is chosen. Building or obtaining capabilities for later use is the Resource Development tactic."
+        },
+        {
+          "text": "A password for an old VPN account with no multi-factor authentication let the attackers log in.",
+          "label": "Initial Access",
+          "explain": "This was the way into Colonial's network. Logging in through External Remote Services with Valid Accounts (T1133, T1078) is Initial Access."
+        },
+        {
+          "text": "According to press reports, about 100 gigabytes of data were copied out of the network.",
+          "label": "Exfiltration",
+          "explain": "The data was reportedly taken before the encryption, to add pressure: pay, or it gets published. Stealing data out of the network is Exfiltration."
+        },
+        {
+          "text": "Ransomware encrypted IT systems, and an employee found the ransom note.",
+          "label": "Impact",
+          "explain": "Encryption is the attack's payload, so it comes after the attackers have what they need. Data Encrypted for Impact (T1486) belongs to the Impact tactic."
+        },
+        {
+          "text": "Colonial shut down the whole pipeline as a precaution, although its control systems were not attacked.",
+          "label": "Impact",
+          "explain": "This was the company's own decision, taken because it could not be sure where the attack stopped. It still counts as an impact of the attack: MITRE's ICS technique T0828 Loss of Productivity and Revenue uses exactly this example."
+        }
+      ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have stopped it?",
+      "intro": "Each line is one moment of the Colonial Pipeline incident. Give each one the defence from the lesson that would most directly have stopped it or shortened the outage at that point.",
+      "labels": [
+        "Closing forgotten access",
+        "Provable IT/OT segmentation",
+        "Mapping business dependencies",
+        "Offline backups"
+      ],
+      "steps": [
+        {
+          "text": "The attackers log in through a legacy VPN profile that was no longer meant to be in use, with nothing but its password.",
+          "label": "Closing forgotten access",
+          "explain": "An inventory of remote access would have found the profile and removed it, and multi-factor authentication on the remaining accounts would have made a password alone useless."
+        },
+        {
+          "text": "Ransomware leaves the office IT systems encrypted, and they have to be brought back.",
+          "label": "Offline backups",
+          "explain": "Backups the ransomware cannot reach, with restores that have been practised, bring the systems back faster than any payment. Colonial paid on the first day and still needed days to restart."
+        },
+        {
+          "text": "Colonial cannot tell whether the attackers might also reach the control systems, so it stops the pipeline.",
+          "label": "Provable IT/OT segmentation",
+          "explain": "A boundary between IT and OT that can be shown to hold, in the middle of an incident, lets an operator say the attack is in IT and keep OT running."
+        },
+        {
+          "text": "Press reports say the billing system was hit, and the pipeline could not deliver fuel without it.",
+          "label": "Mapping business dependencies",
+          "explain": "Colonial never confirmed this report. Either way, if operations cannot run without an IT system, listing that dependency in advance and planning how to work without it keeps the process going."
+        }
+      ]
+    }
+  }
+}
