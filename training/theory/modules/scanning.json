@@ -65,7 +65,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures make network scanning less useful to an attacker? (Select all that apply)",
+      "question": "Which measures make network scanning less useful to an attacker?",
       "options": [
         "Separating the control network from the office network",
         "Closing services the plant does not need",

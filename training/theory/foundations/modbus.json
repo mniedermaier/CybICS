@@ -78,7 +78,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these can the CybICS IDS use to spot a suspicious Modbus write? (Select all that apply)",
+      "question": "Which of these can the CybICS IDS use to spot a suspicious Modbus write?",
       "options": [
         "The source IP address",
         "How many writes arrive in a time window",

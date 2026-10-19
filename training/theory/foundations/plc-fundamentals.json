@@ -60,7 +60,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these happen when the `manual` register is set to a non-zero value? (Select all that apply)",
+      "question": "Which of these happen when the `manual` register is set to a non-zero value?",
       "options": [
         "The automatic block stops writing the three plant coils",
         "The heartbeat on coil 0 keeps blinking",

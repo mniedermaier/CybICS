@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which ATT&CK for ICS techniques belong to the TRITON attack? (Select all that apply)",
+      "question": "Which ATT&CK for ICS techniques belong to the TRITON attack?",
       "options": [
         "T0880 Loss of Safety",
         "T0849 Masquerading",

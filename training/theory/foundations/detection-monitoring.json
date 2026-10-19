@@ -67,7 +67,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these would raise an alert on the CybICS IDS? (Select all that apply)",
+      "question": "Which of these would raise an alert on the CybICS IDS?",
       "options": [
         "The attack machine probes five OpenPLC ports in seconds",
         "FUXA polls OpenPLC's registers every second, all day long",

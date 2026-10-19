@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which statements about zones and conduits are correct? (Select all that apply)",
+      "question": "Which statements about zones and conduits are correct?",
       "options": [
         "A zone groups systems with similar security needs",
         "A conduit is a controlled link between zones",

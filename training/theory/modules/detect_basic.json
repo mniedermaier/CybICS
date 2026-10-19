@@ -65,7 +65,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these scans could stay below the CybICS port_scan rule? (Select all that apply)",
+      "question": "Which of these scans could stay below the CybICS port_scan rule?",
       "options": [
         "One port every 5 seconds",
         "An nmap ACK scan, with no SYN packets",

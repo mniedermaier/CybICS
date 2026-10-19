@@ -563,3 +563,11 @@ def test_lesson_links_use_one_name(topic):
     for link_text, target in re.findall(r"^\s*- \[([^\]]+)\]\(/theory/([^)#\s]+)\)", text, re.M):
         assert link_text == titles[target], f"{topic['id']}: [{link_text}] for {titles[target]!r}"
     assert not re.search(r"\[(Defen[cs]e and hardening|Defense in depth)\]\(/theory/defense-hardening\)", text), topic["id"]
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_questions_do_not_repeat_the_select_all_hint(topic):
+    """The page adds "Select all that apply." to every multi question itself."""
+    data = sidecar(topic)
+    for question in data.get("quiz", []) + data.get("checkpoints", []):
+        assert "select all" not in question["question"].lower(), f"{topic['id']}: {question['question']}"

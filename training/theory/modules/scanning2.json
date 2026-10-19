@@ -65,7 +65,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures help against S7comm enumeration? (Select all that apply)",
+      "question": "Which measures help against S7comm enumeration?",
       "options": [
         "Allowing S7comm only from the engineering workstation and the HMI",
         "Alerting on S7comm from any other source",

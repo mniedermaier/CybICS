@@ -1192,7 +1192,7 @@
                                     : 'The compressor was off and the system valve closed, so no gas went in and the consumer took none out.' + vent;
                         out.innerHTML = `<b class="${real === guess ? 'w-ok' : 'w-err'}">${real === guess ? 'Right.' : 'Not this time.'}</b> ` +
                             `The HPT went from ${start.hpt} to ${end.hpt} bar. ${escapeHtml(why)} ` +
-                            (end.compressor !== start.compressor ? `Meanwhile the PLC switched the compressor ${end.compressor ? 'on' : 'off'}: the pressure crossed one of its limits (below 60 it starts, at 90 it stops). ` : '') +
+                            (end.compressor !== start.compressor ? `Meanwhile the compressor was switched ${end.compressor ? 'on' : 'off'}. In automatic mode that is the PLC reacting to its limits (it starts the compressor below 60 bar and stops it at 90); in manual mode it was the operator. ` : '') +
                             '<button class="t-btn" type="button" data-again>Try again</button>';
                         out.querySelector('[data-again]').addEventListener('click', function () {
                             start = null; out.textContent = '';

@@ -77,7 +77,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures stop or limit this attack? (Select all that apply)",
+      "question": "Which measures stop or limit this attack?",
       "options": [
         "A firewall that lets only hwio, FUXA and OPC-UA reach port 502",
         "A PLC rule that rejects impossible jumps in the pressure reading",

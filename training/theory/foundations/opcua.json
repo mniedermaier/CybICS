@@ -72,7 +72,7 @@
     },
     {
       "type": "multi",
-      "question": "Which settings make an OPC-UA server harder to attack? (Select all that apply)",
+      "question": "Which settings make an OPC-UA server harder to attack?",
       "options": [
         "Offering only signed and encrypted security policies",
         "Disabling the Anonymous identity token",

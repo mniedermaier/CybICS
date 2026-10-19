@@ -58,7 +58,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these are evidence sources in CybICS? (Select all that apply)",
+      "question": "Which of these are evidence sources in CybICS?",
       "options": [
         "IDS alerts from the API on port 8443",
         "Packet captures with Wireshark or tcpdump",

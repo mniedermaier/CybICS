@@ -63,7 +63,7 @@
     },
     {
       "type": "multi",
-      "question": "Which weaknesses do DNP3, EtherNet/IP and BACnet commonly share with Modbus? (Select all that apply)",
+      "question": "Which weaknesses do DNP3, EtherNet/IP and BACnet commonly share with Modbus?",
       "options": [
         "No authentication by default",
         "Traffic is not encrypted by default",

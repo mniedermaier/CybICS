@@ -4,7 +4,7 @@ An operator in a control room cannot walk up to every tank and read its gauge. I
 
 ## The operator's window on the plant
 
-A **Human-Machine Interface (HMI)** is the screen an operator uses to watch and control a process: tank levels, pressures, alarms, and buttons to start and stop things. **SCADA (Supervisory Control and Data Acquisition)** is the wider system behind it, which collects and stores data from many controllers. In the [Purdue model](/theory/ics-basics) both sit on Level 2, the supervisory level, one step above the PLCs.
+A **Human-Machine Interface (HMI)** is the screen an operator uses to watch and control a process: tank levels, pressures, alarms, and buttons to start and stop things. **SCADA (Supervisory Control and Data Acquisition)** is the wider system behind it, which collects data from many controllers. In the [Purdue model](/theory/ics-basics) both sit on Level 2, one step above the PLCs.
 
 In CybICS the HMI is **FUXA**, an open-source SCADA/HMI that you open in a browser on port **1881**.
 
@@ -14,7 +14,7 @@ In CybICS the HMI is **FUXA**, an open-source SCADA/HMI that you open in a brows
 
 ## The HMI only knows what the PLC tells it
 
-FUXA is not wired to any sensor. It is a **Modbus client**: about once a second it asks OpenPLC for the current register values and draws them. When the operator presses a button, FUXA writes a coil or a register back. The link is plain [Modbus TCP](/theory/modbus) on port 502, with no login.
+FUXA is not wired to any sensor. It is a **Modbus client**: about once a second it asks OpenPLC for the current register values and draws them. A button press writes a coil or a register back. The link is plain [Modbus TCP](/theory/modbus) on port 502, with no login.
 
 So the operator's picture is three hops away from the gas: sensor, PLC memory, HMI. The live values below are exactly what FUXA reads.
 
@@ -92,7 +92,7 @@ So the operator's picture is three hops away from the gas: sensor, PLC memory, H
   </g>
   <text x="8" y="194" font-size="11" opacity="0.85">Three challenges, three depths, one chain.</text>
 </svg>
-<figcaption>A command travels right and becomes a coil write; a measured value travels left and becomes a number on the screen. Three CybICS challenges cut the chain at three links: the HMI login, the wire to the PLC and the PLC register.</figcaption>
+<figcaption>A command travels right and becomes a coil write; a measured value travels left and becomes a number on the screen. Three CybICS challenges cut this chain at three links.</figcaption>
 </figure>
 
 The FUXA login protects the *screen*, not the plant. Anyone who can reach port 502 on OpenPLC can skip the screen and send the very same writes the HMI sends.
@@ -100,15 +100,18 @@ The FUXA login protects the *screen*, not the plant. Anyone who can reach port 5
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: how FUXA is wired up in CybICS</summary>
 
-FUXA runs in the container at `172.18.0.4`, with an `operator` account for running the plant and a `viewer` account for watching it. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it. Its tags use one-based addresses: GST is 1125 in FUXA and 1124 on the wire. Read coil 2 instead of coil 1 and you get the system valve rather than the compressor.
+FUXA runs in the container at `172.18.0.4`, with an `operator` account for running the plant and a `viewer` account for watching it. Its only device entry points at `openplc:502`: no username, no password, no encryption. Everything on its screens is a Modbus read of that one connection, and every button is a Modbus write over it.
 
 </details>
 
 ## Counting from one or from zero
 
-A practical trap: FUXA's tag table lists the HPT pressure at address **1127**, but on the wire the PLC calls it register **1126**.
+HMIs count Modbus addresses from one; the protocol counts from zero. So subtract one: FUXA's HPT at **1127** is register **1126** on the wire.
 
-HMIs traditionally count Modbus addresses from one, while the protocol counts from zero. So every FUXA address is one higher than the real one: FUXA's compressor at 2 is coil 1.
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the off-by-one trap in FUXA</summary>
+
+Every FUXA address is one higher than the real one, coils included: FUXA's compressor at 2 is coil 1. Read coil 2 instead and you get the system valve. Copy a number straight out of the HMI and you read the neighbouring word, which usually holds something plausible.
 
 <figure class="wide">
 <style>
@@ -145,13 +148,15 @@ HMIs traditionally count Modbus addresses from one, while the protocol counts fr
 <figcaption>Copy a number out of the HMI into a Modbus client and you read the neighbouring word. It usually holds something plausible, so nothing warns you.</figcaption>
 </figure>
 
+</details>
+
 <div data-widget="checkpoint" data-id="offset"></div>
 
 ## When the screen lies
 
-Because the HMI only shows what the PLC holds, anyone who changes the PLC's memory changes the operator's reality. In the [Flood & Overwrite](/theory/flood_overwrite) challenge, an attacker writes a low value such as 10 into register 1126 hundreds of times a second, faster than the plant simulation can put the real pressure back.
+Because the HMI only shows what the PLC holds, whoever changes the PLC's memory changes the operator's reality. In the [Flood & Overwrite](/theory/flood_overwrite) challenge, an attacker writes a low value such as 10 into register 1126 hundreds of times a second. That is faster than the plant simulation can put the real pressure back.
 
-The PLC believes the tank is nearly empty, so it starts the compressor and shuts the system valve. The real pressure climbs, while the operator's trend shows a calm, flat 10. One clue survives: the plant simulation (hwio) computes the blow-out flag `boSen` from the *real* pressure, so it switches on when the tank gets dangerously full.
+The PLC believes the tank is nearly empty, so it starts the compressor and shuts the system valve. The real pressure climbs, while the operator's trend shows a flat 10. One clue survives: the plant simulation (hwio) computes the blow-out flag `boSen` from the *real* pressure, so it switches on when the tank gets dangerously full.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: a recorded flood on the FUXA trend</summary>
@@ -213,7 +218,7 @@ In CybICS, [Password Attack](/theory/password_attack) targets the FUXA login, [M
 
 ## Defending the supervisory layer
 
-The key rule: **a value and the evidence that confirms it should not travel the same path.** In CybICS both come from the same PLC, and they only disagree because `boSen` is calculated from something the attacker cannot reach. In a real plant, confirmation means a second sensor, a different protocol or a separate network.
+The key rule: **a value and the evidence that confirms it should not travel the same path.** In CybICS both come from the same PLC; they only disagree because `boSen` is calculated from something the attacker cannot reach. In a real plant, confirmation means a second sensor, a different protocol or a separate network.
 
 Three habits protect this layer:
 

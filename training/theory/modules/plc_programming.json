@@ -64,7 +64,7 @@
     },
     {
       "type": "multi",
-      "question": "Which controls help a defender catch or prevent an unauthorised program download? (Select all that apply)",
+      "question": "Which controls help a defender catch or prevent an unauthorised program download?",
       "options": [
         "A change-control process that records every approved change",
         "Comparing the loaded program with a known-good copy",

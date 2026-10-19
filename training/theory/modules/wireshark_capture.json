@@ -77,7 +77,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures reduce what an attacker can learn by sniffing? (Select all that apply)",
+      "question": "Which measures reduce what an attacker can learn by sniffing?",
       "options": [
         "Protecting switch mirror ports and network taps",
         "Encrypting traffic between zones, for example with a VPN or Modbus/TCP Security",

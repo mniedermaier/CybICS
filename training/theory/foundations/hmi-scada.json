@@ -61,7 +61,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these make an HMI an attractive target? (Select all that apply)",
+      "question": "Which of these make an HMI an attractive target?",
       "options": [
         "It holds valid credentials and a path to the PLCs",
         "Its commands look like an operator's real commands",

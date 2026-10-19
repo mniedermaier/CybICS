@@ -65,7 +65,7 @@
     },
     {
       "type": "multi",
-      "question": "Your port 502 rules are in place. Which OpenPLC services can the attack machine still reach? (Select all that apply)",
+      "question": "Your port 502 rules are in place. Which OpenPLC services can the attack machine still reach?",
       "options": [
         "S7comm on port 102",
         "Web UI on port 8080",

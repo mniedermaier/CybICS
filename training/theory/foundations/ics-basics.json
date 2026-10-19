@@ -60,7 +60,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these are Level 0 (Process) items in the Purdue model? (Select all that apply)",
+      "question": "Which of these are Level 0 (Process) items in the Purdue model?",
       "options": [
         "A pressure sensor on a tank",
         "The operator's HMI screen in the control room",

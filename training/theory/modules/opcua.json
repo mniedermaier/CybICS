@@ -65,7 +65,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures make the password-guessing step much harder? (Select all that apply)",
+      "question": "Which measures make the password-guessing step much harder?",
       "options": [
         "Locking or slowing an account after several failed logins",
         "Long, unique passwords",

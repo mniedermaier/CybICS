@@ -1,14 +1,14 @@
 # The gas pressure process
 
-In this challenge you take the controls of the CybICS plant yourself. You switch the Human-Machine Interface (HMI) to manual mode and drive the process into its safety blowout. Every later attack on CybICS ends in a physical effect like this one, so knowing how the plant behaves is the best preparation you can get.
+In this challenge you take the controls of the CybICS plant yourself. You switch the Human-Machine Interface (HMI) to manual mode and drive the process into its safety blowout. Every later attack on CybICS ends in a physical effect like this, so knowing the plant is the best preparation.
 
 ## The idea
 
-Think of a bicycle pump connected to a bottle. Every stroke takes air from the room and squeezes it into the bottle, and the pressure in the bottle rises. If you keep pumping and nothing lets the air out, something has to give. Real pressure vessels therefore carry a spring-loaded relief valve that opens on its own when the pressure gets too high.
+Think of a bicycle pump connected to a bottle. Every stroke squeezes more air into the bottle, and the pressure rises. If nothing lets the air out, something has to give. Real pressure vessels therefore carry a relief valve that opens on its own when the pressure gets too high.
 
-An industrial plant works the same way, only automated. A Programmable Logic Controller (PLC) reads the sensors many times a second and switches pumps and valves to keep the pressure inside a safe band. The operator watches all of this on the HMI, a screen that shows the tanks and offers buttons.
+An industrial plant works the same way, only automated. A Programmable Logic Controller (PLC) reads the sensors many times a second and switches pumps and valves to keep the pressure in a safe band. The operator watches this on the HMI, a screen with the tanks and some buttons.
 
-Most HMIs also have a **manual mode**. In manual mode the PLC stops deciding, and the operator's buttons switch the equipment directly. That is useful for maintenance, and it is exactly the kind of power an attacker wants: whoever controls the buttons controls the physics. MITRE ATT&CK for ICS calls this *Manipulation of Control* (T0831).
+Most HMIs also have a **manual mode**. In manual mode the PLC stops deciding, and the operator's buttons switch the equipment directly. That helps during maintenance, and it is exactly the power an attacker wants: whoever controls the buttons controls the physics. MITRE ATT&CK for ICS calls this *Manipulation of Control* (T0831).
 
 ## How it looks on CybICS
 
@@ -23,17 +23,20 @@ The plant has two tanks and four actuators:
 | GST supply signal (coil 3) | Refills the GST from an outside supply |
 | Blowout valve | Mechanical relief valve on the HPT; its state is register 1134 |
 
-In the Docker version the plant is simulated by the `hwio` container (172.18.0.2). It advances in steps of about one second, called ticks. In automatic mode the PLC program refills the GST when it falls below 60, runs the compressor when the HPT falls below 60 until it reaches 90, and opens the system valve only while the HPT is between 50 and 100.
+In the Docker version the `hwio` container (172.18.0.2) simulates the plant. It advances in steps of about one second, called ticks. In automatic mode the PLC refills the GST when it falls below 60. It runs the compressor when the HPT falls below 60, until it reaches 90. It opens the system valve only while the HPT is between 50 and 100.
 
 You can watch those values live here:
 
 <div data-widget="plant-live" data-fields="gst,hpt,compressor,systemValve,gstSig,boSen"></div>
 
-Now use what you see. From the compressor and the system valve alone you can tell where the pressure is heading:
+From the compressor and the system valve alone you can tell where the pressure is heading:
 
 <div data-widget="plant-predict"></div>
 
-The compressor has an exchange rate, and it matters. Each tick it takes two bar out of the GST and adds one to the HPT, and only while the GST still holds at least 50.
+The compressor has an exchange rate, and it matters. Each tick it takes two bar out of the GST and adds one to the HPT, and only while the GST still holds at least 50. So the storage tank limits how far the compressor can push.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: how far one full storage tank gets you</summary>
 
 <figure class="wide">
 <style>
@@ -77,6 +80,8 @@ The compressor has an exchange rate, and it matters. Each tick it takes two bar 
 <figcaption>Two units out, one unit in, and only while the storage tank holds at least 50. The PLC stops refilling storage at 240, so a full tank holds about 242 and buys 97 units of pressure. From the top of the normal band at 90 that reaches 187, short of the 221 the blowout needs. Keep this mass balance in mind when you plan.</figcaption>
 </figure>
 
+</details>
+
 <div data-widget="checkpoint" data-id="balance"></div>
 
 ## How to approach it
@@ -84,10 +89,13 @@ The compressor has an exchange rate, and it matters. Each tick it takes two bar 
 1. Open FUXA on port 1881 and log in with the operator account given in the challenge material.
 2. Open the system view and switch from automatic to manual. Three buttons appear: compressor, system valve and GST supply. Each one writes its coil directly.
 3. Before you press anything, ask three questions. What adds gas to the HPT? What takes gas out of it? What can stop the thing that adds gas?
-4. Make your changes and watch the HPT, the GST and the blowout indicator over a few minutes. The plant changes by about one bar a second, so be patient.
+4. Make your changes and watch the HPT, the GST and the blowout indicator for a few minutes. The plant changes by about one bar a second, so be patient.
 5. When the blowout valve opens, the HMI rewards you. Switch back to automatic afterwards.
 
-The blowout valve itself is worth understanding, because it does not behave like a ceiling.
+The blowout valve is not a ceiling. It is a latch: it opens above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, slower than a running compressor fills. Once it closes, nothing drains the tank while the system valve is shut, so the pressure rests near 200.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the relief valve, drawn</summary>
 
 <figure class="wide">
 <style>
@@ -125,6 +133,8 @@ The blowout valve itself is worth understanding, because it does not behave like
 <figcaption>The relief valve latches open above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, more slowly than a running compressor fills, so it cannot win against a compressor that never stops. Once it closes, the tank stays near 200 until something else drains it.</figcaption>
 </figure>
 
+</details>
+
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the rates per tick</summary>
 
@@ -141,11 +151,11 @@ Notice that the downstream draw only happens while the compressor is off. A tick
 
 ## Detect and defend
 
-A defender sees this attack in two places. The process itself is the first: an HPT climbing out of its 60 to 90 band with the system valve shut is abnormal no matter who caused it, and process monitoring that alarms on it catches operators and attackers alike. The second is the HMI: switching to manual mode is a rare, meaningful event that should be logged with the user who did it.
+A defender sees this attack in two places. The first is the process: an HPT climbing out of its 60 to 90 band with the system valve shut is abnormal, whoever caused it. Process monitoring that alarms on it catches operators and attackers alike. The second is the HMI: switching to manual mode is a rare event that should be logged with the user who did it.
 
 The defences follow from that:
 
-- **Independent safety functions.** The blowout valve works without the PLC or the HMI. That is the idea behind a Safety Instrumented System (SIS): a last line of defence that the control system cannot switch off.
+- **Independent safety functions.** The blowout valve works without the PLC or the HMI. That is the idea behind a Safety Instrumented System (SIS): a last line of defence the control system cannot switch off.
 - **Least privilege on the HMI.** Not every account needs manual mode. FUXA supports separate user roles, so a viewer cannot press buttons.
 - **Strong credentials.** The operator login is a weak, well-known password here on purpose. See the [password attack briefing](/theory/password_attack).
 - **Interlocks in the PLC.** A program can refuse to run the compressor with the valve shut above a limit, even in manual mode.

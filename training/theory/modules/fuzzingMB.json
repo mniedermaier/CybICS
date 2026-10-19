@@ -66,7 +66,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures help against fuzzing attacks on a PLC? (Select all that apply)",
+      "question": "Which measures help against fuzzing attacks on a PLC?",
       "options": [
         "Validating every field in the device firmware",
         "Allowing only the function codes the HMI uses",

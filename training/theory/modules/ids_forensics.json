@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these questions can you answer directly from the fields of a CybICS alert? (Select all that apply)",
+      "question": "Which of these questions can you answer directly from the fields of a CybICS alert?",
       "options": [
         "When did it happen?",
         "Which rule matched?",

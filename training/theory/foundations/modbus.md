@@ -6,7 +6,7 @@ Modbus is the protocol the CybICS PLC speaks most, and the one you will meet mos
 
 Modbus was designed in 1979 for a serial cable. Its network version, **Modbus TCP**, listens on TCP port **502**. A port is like a door number: the address finds the machine, the port finds the program.
 
-Modbus has no login, no encryption and no way to check who sent a message. In 1979 the "network" was a short cable in a locked cabinet, so touching the cable *was* the permission. The cable became Ethernet; the protocol stayed the same.
+Modbus has no login, no encryption and no way to check who sent a message. In 1979 the cable sat in a locked cabinet, so touching it *was* the permission. The cable became Ethernet; the protocol stayed the same.
 
 <div class="callout warning" markdown="1">
 **No authentication:** Modbus notices a frame that was damaged in transit, but nothing notices a frame that someone *forged*.
@@ -44,17 +44,22 @@ In CybICS the plant's values live in **holding registers** and **coils**:
 | 1134 | holding register | blow-out sensor |
 | 0 to 3 | coils | heartbeat, compressor, system valve, GST signal |
 
-The two tank pressures, live from the PLC:
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the two tank pressures, live</summary>
+
+These are the values in registers 1124 and 1126 right now, read from the PLC:
 
 <div data-widget="plant-live" data-fields="gst,hpt"></div>
 
-The HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register. The *Flood &amp; Overwrite* challenge lives in that gap: a sensor value anyone may write.
+</details>
+
+The HPT pressure at 1126 is a sensor reading, yet it sits in a writable *holding* register. Anyone may write it, and the *Flood &amp; Overwrite* challenge uses exactly that.
 
 <div data-widget="checkpoint" data-id="holding"></div>
 
 ## Request and response
 
-The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code** (what to do) and an address (where). There is no login: a client's very first request can already be a write.
+The **client** (older texts say "master") sends a request; the **server** (the PLC, or "slave") answers. The request names a **function code** (what to do) and an address (where). There is no login, so the very first request can already be a write.
 
 <figure class="wide">
 <style>
@@ -122,17 +127,17 @@ The **client** (older texts say "master") sends a request; the **server** (the P
           stroke="#ff6b00" stroke-width="1.5" stroke-dasharray="4 3"/>
   </g>
 </svg>
-<figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes it back. TCP delivered the bytes; nothing in Modbus asked who sent them. The missing login step is the whole attack surface.</figcaption>
+<figcaption>A Modbus write. Function code 6 writes one register; the PLC applies it and echoes it back. Nothing asked who sent it.</figcaption>
 </figure>
 
-The forged value does not last, though. The `hwio` container, which simulates the plant, writes the real HPT pressure back into register 1126 about fifty times a second. Nothing *defended* the register, so the *Flood &amp; Overwrite* attack is a loop, not a single packet.
+The forged value does not last, though. The `hwio` container, which simulates the plant, writes the real HPT pressure back into 1126 about fifty times a second. So the *Flood &amp; Overwrite* attack is a loop, not a single packet.
 
 ## The frame
 
 Every Modbus TCP message starts with a 7-byte **MBAP header** (Modbus Application Protocol header), followed by the **PDU** (Protocol Data Unit): the function code and its data.
 
 <div class="callout tip" markdown="1">
-**New to hex?** A **byte** is 8 bits and holds a number from 0 to 255. Network tools write bytes in **hexadecimal** (base 16), with the digits 0 to 9 and then A to F for 10 to 15. Every byte is two hex digits: `00` is 0, `0a` is 10, `5a` is 5 &times; 16 + 10 = 90, `ff` is 255. A 16-bit register needs two bytes, high byte first: 1126 is `04 66`, because 4 &times; 256 + 102 = 1126 and 102 is `66` in hex.
+**New to hex?** A **byte** is 8 bits and holds a number from 0 to 255. Network tools write bytes in **hexadecimal** (base 16): the digits 0 to 9, then A to F for 10 to 15. Every byte is two hex digits: `0a` is 10, `5a` is 5 &times; 16 + 10 = 90, `ff` is 255. A 16-bit register takes two bytes, high byte first: 1126 is `04 66`.
 </div>
 
 Only three fields have to be right: the **length** (how many bytes follow), the **function code** and the **data** (address and value). The transaction, protocol and unit fields can hold almost anything.
@@ -179,7 +184,7 @@ Only three fields have to be right: the **length** (how many bytes follow), the 
 
 </details>
 
-Try it. The builder starts with the write from the figure: function code 6, register 1126, value 90. Change a field and watch the bytes, or paste bytes to decode them.
+Try it. The builder starts with the write from the figure. Change a field and watch the bytes, or paste bytes to decode them.
 
 <div data-widget="modbus-frame" data-fc="6" data-address="1126" data-value="90"></div>
 
@@ -269,7 +274,7 @@ Compare the same write sent by `hwio` and by the attack machine:
 
 </details>
 
-Writing slowly stays below the write rules (the *IDS Evasion* challenge), and anyone on the same network can fake an IP address. The real defence is to keep untrusted hosts away from port 502, as [Defence in depth](/theory/defense-hardening) shows. Next, see how Siemens solved the same job in [S7comm](/theory/s7comm), and how [OPC-UA](/theory/opcua-protocol) adds the login that Modbus lacks.
+Writing slowly stays below the write rules (the *IDS Evasion* challenge), and an IP address is easy to fake. The real defence is to keep untrusted hosts away from port 502, as [Defence in depth](/theory/defense-hardening) shows. Next, compare [S7comm](/theory/s7comm), and [OPC-UA](/theory/opcua-protocol), which adds the login Modbus lacks.
 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>

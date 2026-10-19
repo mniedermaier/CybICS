@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures would have reduced the impact of an attack like this? (Select all that apply)",
+      "question": "Which measures would have reduced the impact of an attack like this?",
       "options": [
         "Removing unused VPN accounts and requiring multi-factor authentication",
         "A tested boundary between IT and OT",

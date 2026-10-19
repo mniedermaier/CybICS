@@ -77,7 +77,7 @@
     },
     {
       "type": "multi",
-      "question": "Which measures help a defender against unsafe manual control from the HMI? (Select all that apply)",
+      "question": "Which measures help a defender against unsafe manual control from the HMI?",
       "options": [
         "Alarming when the HPT leaves its normal band",
         "Giving only some accounts permission to use manual mode",

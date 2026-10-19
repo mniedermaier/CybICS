@@ -56,7 +56,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these are ATT&CK for ICS tactics? (Select all that apply)",
+      "question": "Which of these are ATT&CK for ICS tactics?",
       "options": ["Discovery", "Impair Process Control", "T0846", "Remote System Discovery", "Impact"],
       "answer": [0, 1, 4],
       "explanation": "Discovery, Impair Process Control and Impact are tactics, the attacker's goals. Remote System Discovery sounds like a tactic because it contains 'Discovery', but it is the name of technique T0846, one way to reach that goal."

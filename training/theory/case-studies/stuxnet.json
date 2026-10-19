@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which ATT&CK for ICS techniques describe what Stuxnet did once it reached the PLC? (Select all that apply)",
+      "question": "Which ATT&CK for ICS techniques describe what Stuxnet did once it reached the PLC?",
       "options": [
         "T0843 Program Download",
         "T0836 Modify Parameter",

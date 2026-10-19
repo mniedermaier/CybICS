@@ -64,7 +64,7 @@
     },
     {
       "type": "multi",
-      "question": "Which properties make an SIS independent of the control system? (Select all that apply)",
+      "question": "Which properties make an SIS independent of the control system?",
       "options": [
         "Its own sensors",
         "Its own logic solver",

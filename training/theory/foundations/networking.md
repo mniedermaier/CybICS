@@ -78,7 +78,7 @@ The program that *starts* a conversation, the **client**, also needs a port for 
 
 ## Packets: nested envelopes
 
-Data travels in **packets**, small pieces that each carry their own addresses. A single Modbus request fits into one. Each packet is built in layers, like envelopes inside envelopes:
+Data travels in **packets**, small pieces that each carry their own addresses. Each packet is built in layers, like envelopes inside envelopes:
 
 <figure class="wide">
 <svg viewBox="0 0 520 210" role="img"
@@ -104,9 +104,9 @@ Data travels in **packets**, small pieces that each carry their own addresses. A
 
 Each layer only reads its own envelope: the network card checks the MAC address, the operating system the IP address and the port, and only the Modbus program opens the innermost one.
 
-Every network card has a **MAC address** (Media Access Control address), six pairs of hex digits such as `02:42:ac:12:00:03`. It only works on the local segment, like the name on a door bell once the postman has found the house.
+Every network card also has a **MAC address** (Media Access Control address). It only works on the local segment, like the name on a door bell once the postman has found the house.
 
-To find the MAC address for an IP address, a computer asks the segment "who has 172.18.0.3?". That is the **Address Resolution Protocol (ARP)**. Nobody checks the answers, so an attacker can lie; see the [man-in-the-middle lesson](/theory/mitm).
+To find the MAC address for an IP address, a computer asks the segment "who has 172.18.0.3?". That is the **Address Resolution Protocol (ARP)**. Nobody checks the answers, so an attacker can lie ([man-in-the-middle](/theory/mitm)).
 
 ## TCP: a handshake first
 
@@ -138,24 +138,31 @@ The envelope with the ports belongs to the **Transmission Control Protocol (TCP)
 
 If nothing listens on the port, the computer answers the SYN with a reset (**RST**): "no one here". A port scanner sends a SYN to each port: SYN-ACK means open, RST means closed, silence often means a firewall. Many scanners never send the final ACK.
 
-The **User Datagram Protocol (UDP)** skips the handshake and the delivery check: faster, but nothing guarantees that a packet arrived.
+The **User Datagram Protocol (UDP)** skips the handshake: faster, but nothing guarantees delivery.
 
 <div data-widget="checkpoint" data-id="handshake"></div>
 
 ## The CybICS lab network
 
-In the virtual lab, each service runs in its own **container**: a small, sealed box that shares the host computer's operating system. Each gets its own network card and IP address, so openplc and fuxa look like separate computers on one machine.
+In the virtual lab, each service runs in its own **container**: a small, sealed box that shares the host computer's operating system. Each has its own network card and IP address, so openplc and fuxa look like separate computers.
 
-All containers plug into one virtual switch, a Docker **bridge network** with the subnet `172.18.0.0/24`. The attack machine sits on it too, with no router or firewall in between: the network is **flat**. A packet it sends to `172.18.0.3:502` reaches the Modbus program.
+All containers plug into one virtual switch, a Docker **bridge network** with the subnet `172.18.0.0/24`. The attack machine sits on it too, with no router or firewall in between: the network is **flat**.
 
-The landing page and the IDS are different: they use **host networking**, sharing the host computer's network instead of having a container address. That lets the IDS listen on the bridge, which every packet between two containers crosses, so it sees FUXA talk to the PLC.
+The landing page and the IDS use **host networking** instead: they share the host computer's network. That lets the IDS listen on the bridge, which every packet between two containers crosses.
 
-Add a protocol without a login, as the [Modbus lesson](/theory/modbus) shows, and you have the core problem of many real plants: reaching a port is the same as being allowed to use it. Click a host to see its address, ports and what targets it:
+Add a protocol without a login, as the [Modbus lesson](/theory/modbus) shows, and you have the core problem of many real plants: reaching a port is the same as being allowed to use it.
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: click through the lab hosts</summary>
+
+The map from [What is an ICS?](/theory/ics-basics) again. Click a host to see its address, its ports and what targets it:
 
 <div data-widget="purdue-explorer"></div>
 
+</details>
+
 <div class="callout cybics" markdown="1">
-**In CybICS:** the [Service Scanning challenge](/ctf/challenge/scanning) asks you to map this network yourself. Check your scanner's results against the tables and deep dives above.
+**In CybICS:** the [Service Scanning challenge](/ctf/challenge/scanning) asks you to map this network yourself. Check your results against the tables above.
 </div>
 
 <details class="deep-dive" markdown="1">

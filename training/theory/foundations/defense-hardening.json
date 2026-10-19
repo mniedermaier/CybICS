@@ -64,7 +64,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these are reasons security patches are installed slowly in plants? (Select all that apply)",
+      "question": "Which of these are reasons security patches are installed slowly in plants?",
       "options": [
         "A restart may stop a process that runs for months",
         "The vendor may only support tested software versions",

@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which situations leave a plant without detection even though the IDS container exists? (Select all that apply)",
+      "question": "Which situations leave a plant without detection even though the IDS container exists?",
       "options": [
         "Capture was stopped and never restarted",
         "The IDS listens on the wrong interface",

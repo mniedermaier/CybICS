@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which pieces of information does the CybICS Modbus write rule use? (Select all that apply)",
+      "question": "Which pieces of information does the CybICS Modbus write rule use?",
       "options": [
         "The source IP address",
         "The function code",

@@ -78,7 +78,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these are IEC 62443 foundational requirements? (Select all that apply)",
+      "question": "Which of these are IEC 62443 foundational requirements?",
       "options": [
         "Restricted data flow",
         "Identification and authentication control",

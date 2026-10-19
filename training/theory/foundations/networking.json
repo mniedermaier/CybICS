@@ -71,7 +71,7 @@
     },
     {
       "type": "multi",
-      "question": "Which of these does a packet from the attack machine to the PLC's Modbus port carry? (Select all that apply)",
+      "question": "Which of these does a packet from the attack machine to the PLC's Modbus port carry?",
       "options": [
         "The destination IP address 172.18.0.3",
         "The destination port 502",

@@ -53,7 +53,7 @@
     },
     {
       "type": "multi",
-      "question": "Which steps of the 2015 attack made recovery harder? (Select all that apply)",
+      "question": "Which steps of the 2015 attack made recovery harder?",
       "options": [
         "Wiping computers with KillDisk",
         "Loading broken firmware onto serial-to-Ethernet converters",
