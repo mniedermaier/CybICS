@@ -590,3 +590,12 @@ def test_core_lessons_stay_short(topic):
     from modules.theory_manager import TheoryManager
     rendered = TheoryManager._render_article(None, os.path.join(ROOT, topic["content"]))
     assert rendered["minutes"] <= 7, f"{topic['id']}: {rendered['minutes']} min of main text"
+
+
+@pytest.mark.parametrize("topic", [t for t in TOPICS if t.get("core")], ids=[t["id"] for t in TOPICS if t.get("core")])
+def test_core_lessons_end_with_three_short_takeaways(topic):
+    """The recap of a core lesson compresses it: three short sentences."""
+    takeaways = sidecar(topic)["takeaways"]
+    assert len(takeaways) == 3, topic["id"]
+    for line in takeaways:
+        assert len(line.split()) <= 22, f"{topic['id']}: {line}"

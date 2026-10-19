@@ -1,16 +1,14 @@
 {
   "level": "beginner",
   "objectives": [
-    "Explain what an IP address, a subnet, a MAC address and a port identify, using the CybICS lab network",
+    "Explain what an IP address, a subnet and a port identify, using the CybICS lab network",
     "Describe how a TCP connection starts and why a port scanner sends SYN packets",
-    "Explain how the CybICS containers share one Docker bridge network and why the attack machine can reach all of them"
+    "Explain why the attack machine on the flat CybICS lab network can reach every service"
   ],
   "takeaways": [
-    "The IP address finds the computer, the port finds the program on it; 172.18.0.3:502 is Modbus on the CybICS PLC.",
-    "In 172.18.0.0/24 the first three numbers name the network and the last one names the device, so every lab container starts with 172.18.0.",
-    "A packet is nested envelopes: Ethernet carries MAC addresses, IP carries IP addresses, TCP carries ports, and the protocol data sits inside.",
-    "TCP opens every connection with SYN, SYN-ACK, ACK; a SYN-ACK tells a scanner that a port is open.",
-    "The attack machine shares one flat bridge network with every CybICS container, while the landing page and the IDS use the host's network."
+    "The address finds the computer and the port the program: 172.18.0.3:502 is Modbus on the PLC.",
+    "Every packet carries both, nested in envelopes, and TCP shakes hands before any data flows.",
+    "On the flat lab network, any port the attack machine reaches is a port it can use."
   ],
   "checkpoints": [
     {
@@ -71,27 +69,27 @@
     },
     {
       "type": "multi",
-      "question": "Which of these does a packet from the attack machine to the PLC's Modbus port carry?",
+      "question": "Which of these does a Modbus packet from the attack machine to the PLC carry?",
       "options": [
         "The destination IP address 172.18.0.3",
         "The destination port 502",
         "A username and password for the PLC",
-        "The MAC address of the PLC's network card"
+        "The Modbus request itself"
       ],
       "answer": [0, 1, 3],
-      "explanation": "The IP layer carries 172.18.0.3, the TCP layer carries port 502, and on the local bridge the Ethernet frame carries the PLC's MAC address, found with ARP. Nothing in any of the envelopes carries a login: Modbus has none."
+      "explanation": "The IP envelope carries 172.18.0.3, the TCP envelope carries port 502, and the Modbus request sits in the middle. A login is the tempting extra, but none of the envelopes carries one: Modbus has none."
     },
     {
       "type": "single",
-      "question": "The IDS is neither FUXA nor OpenPLC. Why can it still see the Modbus traffic between them?",
+      "question": "Why can the attack machine at 172.18.0.100 send Modbus requests straight to the PLC?",
       "options": [
-        "It shares the host network and listens on the bridge",
-        "FUXA mirrors every Modbus request to the IDS",
-        "It is the gateway, so all traffic is routed through it",
-        "OpenPLC copies every packet it gets to the IDS"
+        "FUXA passes its requests on to the PLC",
+        "Both sit on one flat network, nothing in between",
+        "It first logs in to the PLC on port 502",
+        "The PLC trusts any address whose last number is 100"
       ],
-      "answer": 0,
-      "explanation": "The IDS uses host networking, so it can listen on the Docker bridge that every packet between two containers crosses. The gateway idea is tempting, but FUXA and OpenPLC are on the same subnet and talk directly; the gateway only sees traffic that leaves the street. Neither FUXA nor OpenPLC knows the IDS exists."
+      "answer": 1,
+      "explanation": "The attack machine shares the 172.18.0.0/24 network with the PLC, with no router or firewall between them, so it reaches port 502 directly. Logging in is the tempting idea, but Modbus has no login: reaching the port is enough. FUXA is just another client, and the PLC does not care about the last number."
     }
   ]
 }

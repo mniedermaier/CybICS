@@ -335,12 +335,14 @@ In **manual** mode the program stops assigning the compressor, the system valve 
 
 ## Reaching the PLC from outside
 
-Each variable in the program is bound to a PLC memory address, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus with a simple rule: output bit `%QX0.`*n* becomes **coil *n***, and memory word `%MW`*n* becomes **holding register 1024 + *n***. So `hpt AT %MW102` is register 1126.
+Each variable in the program lives at a fixed place in the PLC's memory. OpenPLC makes that memory reachable over Modbus: its outputs, such as the compressor, appear as **coils** (on/off values), and its memory words, such as the HPT pressure, as **holding registers** (numbers). Anyone who reaches the PLC can read and write them, without a password.
 
-Modbus is not the only door: S7comm, DNP3 and EtherNet/IP reach the same memory, and none of them asks for a password. The most powerful action is uploading a **new program**: it changes the plant's behaviour permanently, and watching register values never reveals it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
+Modbus is not the only door: other industrial protocols reach the same memory, and none of them asks for a password either. The most powerful action is uploading a **new program**: it changes the plant's behaviour permanently, and watching register values never reveals it. MITRE ATT&CK for ICS calls this **T0843 Program Download**.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: the full address map, the other ports and how the outputs reach the plant</summary>
+
+Each variable is bound to a PLC memory address, such as `compressor AT %QX0.1` or `hpt AT %MW102`. OpenPLC publishes that memory over Modbus with a simple rule: output bit `%QX0.`*n* becomes **coil *n***, and memory word `%MW`*n* becomes **holding register 1024 + *n***. So `hpt AT %MW102` is register 1126.
 
 | Variable | PLC address | Modbus address |
 |---|---|---|

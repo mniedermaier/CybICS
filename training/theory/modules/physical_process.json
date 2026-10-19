@@ -7,11 +7,9 @@
     "Name ways a defender notices and limits unsafe manual control"
   ],
   "takeaways": [
-    "In manual mode the PLC stops deciding, and whoever controls the HMI buttons controls the physical process.",
-    "The compressor trades two units of storage gas for one unit of pressure, so the storage tank limits how far it can push.",
-    "The blowout valve is a latch: it opens above 220, vents until 200 and then closes again.",
-    "Process monitoring catches unsafe states no matter whether an operator or an attacker caused them.",
-    "Independent safety functions and least privilege on the HMI limit what a stolen operator login can do."
+    "In manual mode the HMI buttons drive the equipment directly, so whoever holds them controls the physics.",
+    "The HPT pressure climbs while the compressor runs and nothing drains the tank, limited only by the gas in storage.",
+    "The blowout valve works on the real pressure without the PLC, but it vents more slowly than the compressor fills."
   ],
   "checkpoints": [
     {

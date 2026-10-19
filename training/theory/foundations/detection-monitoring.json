@@ -7,11 +7,9 @@
     "Balance false positives against false negatives when tuning a rule"
   ],
   "takeaways": [
-    "Because ICS protocols rarely authenticate, detection asks whether traffic looks normal rather than who sent it.",
-    "An IDS only watches a copy of the traffic, so a wrong decision never disturbs the process.",
-    "Most CybICS rules count events in a sliding window and fire at a threshold; a cooldown then limits how often you are told.",
-    "A threshold set too low floods the analyst with false alarms; set too high, it lets a slow attacker through.",
-    "Many rules trust traffic by source address, which is a shortcut an attacker will try to exploit."
+    "Modbus never says who is asking, so an IDS asks whether the traffic looks like the plant running normally.",
+    "An IDS watches a copy of the traffic and only raises alerts, so its mistakes never harm the process.",
+    "Thresholds trade false alarms against missed attacks, and an alert only helps if someone acts on it."
   ],
   "checkpoints": [
     {

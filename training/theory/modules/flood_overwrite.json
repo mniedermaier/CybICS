@@ -7,11 +7,9 @@
     "Describe how the IDS detects the flood and which controls prevent it"
   ],
   "takeaways": [
-    "A holding register has no owner: whoever writes it last decides what the PLC reads.",
-    "Writing more often than the real sensor wins the race, so the PLC acts on the forged value almost all the time.",
-    "The PLC does the damage itself by following its rules faithfully: compressor on, system valve shut.",
-    "The HMI shows the same forged register, so only signals derived from the true pressure, like the blowout indicator, reveal the attack.",
-    "Rate rules catch the flood easily, while allow-listed writers, plausibility checks and independent safety stop or limit it."
+    "Whoever writes register 1126 most often decides what pressure the PLC believes the HPT holds.",
+    "The PLC then does the damage itself, running the compressor and shutting the system valve as its rules say.",
+    "The HMI shows the lie too, so the flood alert, allow-listed writers and the blowout valve must catch it."
   ],
   "checkpoints": [
     {

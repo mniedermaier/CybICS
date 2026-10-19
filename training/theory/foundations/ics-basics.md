@@ -202,7 +202,7 @@ That cycle of **sensor, controller, actuator, process, sensor again** is the **c
 
 ## When someone takes over
 
-Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over: with the system valve shut and the compressor forced on, gas has nowhere to go. The blow-out valve opens at a high pressure, but it vents more slowly than a compressor that is forced on fills the tank.
+Left alone, the loop never nears the blow-out valve. Danger starts when someone takes over: with the system valve shut, the compressor forced on and the supply refilling the storage tank, gas has nowhere to go. The blow-out valve opens at a high pressure, but it vents more slowly than a compressor that is forced on fills the tank.
 
 No network attack is needed. Each step is allowed; the damage comes from the *combination*. The [Physical Process challenge](/ctf/challenge/physical_process) has you do it from the operator's own screen.
 

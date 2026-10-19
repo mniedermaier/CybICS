@@ -6,11 +6,9 @@
     "Explain why any host that reaches port 502 can change the plant, and what the IDS can still detect"
   ],
   "takeaways": [
-    "Modbus has no login and no way to prove who sent a frame: anyone who reaches port 502 can read and write.",
-    "Coils hold single bits, registers hold 16-bit numbers; CybICS keeps GST at holding register 1124 and HPT at 1126.",
-    "A Modbus TCP request is a 7-byte MBAP header followed by a function code and its data; length, function code and data must be right.",
-    "In CybICS, hwio rewrites the tank pressures about fifty times a second, so a forged value only lasts until the next update.",
-    "Because Modbus carries no identity, the IDS judges traffic by source IP address, rate and function code."
+    "Modbus has no login, so anyone who reaches port 502 can read and write the PLC's values.",
+    "The plant lives in numbered coils and registers; the HPT pressure sits in the writable holding register 1126.",
+    "A forged write looks exactly like a real one, so the real defence is keeping strangers away from port 502."
   ],
   "checkpoints": [
     {

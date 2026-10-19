@@ -7,11 +7,9 @@
     "Explain why an HMI is a high-value target and name ways to defend it"
   ],
   "takeaways": [
-    "An HMI is a client of the PLC: every number on the screen was read from PLC memory and every button is a write to it.",
-    "FUXA talks plain Modbus TCP to OpenPLC on port 502, so its login protects the screen, not the plant.",
-    "HMIs count Modbus addresses from one and the protocol from zero: FUXA's HPT at 1127 is register 1126 on the wire.",
-    "Whoever changes the PLC's memory changes what the operator sees; a value and its confirmation should travel different paths.",
-    "The HMI holds credentials, a network path and the operator's trust, which makes it a prime target."
+    "The HMI only shows and sends what is in the PLC's memory; it never sees the gas itself.",
+    "The FUXA login guards the screen, not the plant: anyone who reaches port 502 can send the same writes.",
+    "Whoever changes the PLC's memory changes the operator's picture, so confirm important values over a separate path."
   ],
   "checkpoints": [
     {

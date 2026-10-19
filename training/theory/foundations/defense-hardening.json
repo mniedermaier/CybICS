@@ -7,11 +7,9 @@
     "Explain zones and conduits as IEC 62443 uses them"
   ],
   "takeaways": [
-    "Defence in depth layers independent controls so that a failure in one is caught by the next.",
-    "An attacker needs only one open path, so every path to the controller has to be covered, and monitoring watches all of them.",
-    "Firewalls apply the first matching rule; a default-deny allow-list closes the ports you forgot.",
-    "Patches reach plants slowly, so segmentation, firewalls and monitoring act as compensating controls.",
-    "IEC 62443 groups devices into zones joined by controlled conduits and sets a target security level for each."
+    "Layer independent defences, because each one can fail and an attacker needs only one open path.",
+    "A firewall uses the first rule that matches; an allow-list that blocks everything else closes the gaps you forgot.",
+    "When a weak device cannot be patched, segmentation, firewalls and monitoring protect it without stopping the plant."
   ],
   "checkpoints": [
     {
@@ -99,5 +97,46 @@
       "answer": 1,
       "explanation": "hwio is not a monitoring tool: it exchanges the plant's sensor and actuator values with OpenPLC over Modbus. Blocking it leaves the control loop working on stale data and disrupts the process itself, which is exactly the availability failure a defender must avoid."
     }
-  ]
+  ],
+  "exercises": {
+    "capstone": {
+      "type": "sequence",
+      "title": "From the first scan to the defence",
+      "intro": "These steps take an attacker from the attack machine to an overfilled high-pressure tank. Put them in the order they happen, then give each one the defence from the core path that would stop or catch it.",
+      "labels": [
+        "Network segmentation",
+        "Strong, changed passwords",
+        "Firewall allowlist on port 502",
+        "IDS alert and a response",
+        "Independent safety (blow-out valve)"
+      ],
+      "steps": [
+        {
+          "text": "The attack machine at 172.18.0.100 can open connections to every container on the plant network, the controllers included.",
+          "label": "Network segmentation",
+          "explain": "Every later step needs this reach. CybICS puts all containers on one flat network; separate zones joined by a controlled conduit would keep the attack machine away from the controllers before anything else happens."
+        },
+        {
+          "text": "A guessed default password opens the FUXA editor, whose tag list shows the HPT at address 1127.",
+          "label": "Strong, changed passwords",
+          "explain": "Default credentials are one of the typical ways authentication fails. With a changed, strong password the attacker stays off the HMI. Without it, they learn the target: HMIs count from one, so address 1127 is holding register 1126 on the wire."
+        },
+        {
+          "text": "OpenPLC accepts a test write to register 1126 from 172.18.0.100, a host that is not one of the plant's Modbus clients.",
+          "label": "Firewall allowlist on port 502",
+          "explain": "Modbus asks for no login, so the network is its only gate. A default-deny rule on OpenPLC that accepts port 502 only from hwio (172.18.0.2), FUXA (172.18.0.4) and the OPC-UA server (172.18.0.5) drops this write, even from a host on the same network."
+        },
+        {
+          "text": "A script writes the value 10 into register 1126 hundreds of times a second.",
+          "label": "IDS alert and a response",
+          "explain": "Fifty Modbus writes within five seconds from a host other than hwio, FUXA or OpenPLC raise a critical modbus_flood alert. The IDS only watches a copy of the traffic, so the alert helps only if someone acts on it and stops the attacker."
+        },
+        {
+          "text": "The PLC runs the compressor with the system valve shut, and the real HPT pressure climbs past 220 bar.",
+          "label": "Independent safety (blow-out valve)",
+          "explain": "The PLC and the HMI both believe the forged 10. The blow-out valve works on the real pressure, not on a register, so it opens above 220 bar whatever the PLC reads. It vents more slowly than the compressor fills, so it limits the damage rather than ending the attack."
+        }
+      ]
+    }
+  }
 }

@@ -7,11 +7,9 @@
     "Relate Stuxnet's techniques to the PLC programming, Flood & Overwrite and MitM challenges on CybICS"
   ],
   "takeaways": [
-    "Stuxnet changed the program inside Siemens PLCs, not just the Windows computers around them.",
-    "It hid its changes from the engineers and replayed normal readings to the operators, so the plant looked healthy while centrifuges were damaged.",
-    "An air gap slowed the attack but did not stop it, because people carried data across it on USB sticks.",
-    "Knowing which program each PLC runs, and having an independent view of the process, are the defences that matter most.",
-    "Attribution to the United States and Israel is well-sourced reporting, never officially confirmed."
+    "Stuxnet crossed the air gap on USB sticks and rewrote the program inside the PLCs themselves.",
+    "It hid its code from the engineers and played normal readings to the operators while the centrifuges were damaged.",
+    "Defenders must know which program each PLC runs and keep a view of the process that bypasses the PLC."
   ],
   "checkpoints": [
     {

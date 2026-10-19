@@ -44,7 +44,7 @@
         <div class="t-tools">
             <label class="sr-only" for="search">Search lessons</label>
             <input id="search" class="t-search" type="search" placeholder="Search lessons, e.g. Modbus, firewall, Stuxnet">
-            <button class="t-btn" id="core" type="button" aria-pressed="false" title="The ten lessons to read first">&#11088; Core path only ({{ ns.core }} lessons, about {{ ns.core_minutes }} min)</button>
+            <button class="t-btn" id="core" type="button" aria-pressed="false" title="The {{ ns.core }} lessons to read first">&#11088; Core path only ({{ ns.core }} lessons, about {{ ns.core_minutes }} min)</button>
             <a class="t-btn" href="/theory/glossary">&#128214; Glossary</a>
             {% if ns.done %}<button class="t-btn" id="reset" type="button">Reset quiz progress</button>{% endif %}
         </div>

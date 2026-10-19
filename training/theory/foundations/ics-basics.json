@@ -7,11 +7,9 @@
     "Explain why most industrial protocols let anyone on the network read and write values"
   ],
   "takeaways": [
-    "An ICS acts on the physical world, so a wrong value can open a valve or burst a tank, not just corrupt a file.",
-    "OT ranks availability above integrity and confidentiality, and safety above all three.",
-    "The Purdue model stacks the network from enterprise IT (Level 4/5) down to the physical process (Level 0); the key wall belongs between the office and everything below it.",
-    "In CybICS, OpenPLC starts the compressor when the HPT pressure drops below 60 and stops it at 90; the blow-out valve opens at a high pressure but cannot keep up with a compressor that is forced on.",
-    "Modbus and S7comm have no authentication or encryption: anyone who reaches a controller can usually read and write its values."
+    "An ICS moves real equipment, so a wrong value can burst a tank instead of just corrupting a file.",
+    "In OT, safety comes first and availability next, so even a security tool must never stop the process.",
+    "Protocols like Modbus trust anyone who reaches a controller, which is why no office PC should reach one."
   ],
   "checkpoints": [
     {

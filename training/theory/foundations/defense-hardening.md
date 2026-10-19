@@ -160,3 +160,7 @@ Each defence challenge adds one layer:
 4. [IDS Monitoring & Tuning](/ctf/challenge/defense_ids_tuning): keep the watching layer running.
 
 Mind availability: if your Modbus rule also blocks `hwio`, the PLC stops receiving tank pressures: you have caused the outage an attacker wanted. Block the OPC-UA server, and its clients lose their view of the plant. In OT, a control that endangers the process is not a security win.
+
+To close the core path, follow one attack from the attack machine to an overfilled tank and pick the layer that stops each step:
+
+<div data-widget="sequence" data-id="capstone"></div>

@@ -4,14 +4,12 @@
     "Describe the three phases of the PLC scan cycle and how often OpenPLC runs it in CybICS",
     "Predict what the CybICS compressor rule does for a given HPT pressure, including the hysteresis between 60 and 90",
     "Explain why a forged coil is overwritten by the next scan while a forged register is overwritten by hwio",
-    "Translate an OpenPLC address such as %MW102 into its Modbus register number"
+    "Explain why anyone who reaches the PLC can change its values, and why a new program is the most powerful change"
   ],
   "takeaways": [
-    "A PLC runs an endless scan: read inputs, run the whole program on that snapshot, write outputs; in CybICS every 50 ms.",
-    "The compressor starts below 60, keeps running until 90 and never runs while the storage tank holds 50 or less.",
-    "Whether a forged value sticks depends on who writes that address next: the program for coil 1, hwio for register 1126.",
-    "In manual mode the program stops assigning the compressor, the system valve and the refill, so forced coils stay forced.",
-    "OpenPLC maps %QX0.n to coil n and %MWn to holding register 1024 + n, and uploading a new program (T0843 Program Download) changes the plant permanently."
+    "A PLC repeats one scan every 50 ms: read inputs, run the program on that snapshot, write outputs.",
+    "A forged value lasts only until its owner writes again: the scan for coil 1, hwio for the pressure.",
+    "Modbus reaches coils and registers without a password, and a new program changes the plant for good."
   ],
   "checkpoints": [
     {
@@ -53,10 +51,15 @@
     },
     {
       "type": "single",
-      "question": "Which Modbus holding register holds the variable declared as `gst AT %MW100`?",
-      "options": ["100", "1100", "1124", "1125"],
+      "question": "An attacker wants to switch the compressor coil off over Modbus. What do they need?",
+      "options": [
+        "The operator's password for the HMI",
+        "A copy of the PLC's plant program file",
+        "Nothing but a network path to the PLC",
+        "A login on the engineering workstation"
+      ],
       "answer": 2,
-      "explanation": "OpenPLC maps %MWn to holding register 1024 + n, so %MW100 is 1124. 1125 is tempting because it is the one-based number an HMI such as FUXA would show for the same word; 100 forgets the 1024 offset."
+      "explanation": "Modbus asks for no password: anyone who reaches the PLC can write its coils and registers. The HMI password is tempting, but it only protects FUXA's screens, not the PLC behind them. Neither the program nor a workstation login is needed to send a single write."
     },
     {
       "type": "multi",

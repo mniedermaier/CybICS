@@ -7,11 +7,9 @@
     "Explain why detecting an early stage is worth more than detecting a late one"
   ],
   "takeaways": [
-    "Real attacks on plants are campaigns with stages, not single tricks.",
-    "The ICS Cyber Kill Chain splits a campaign into an intrusion stage and an ICS attack stage that has to fit the specific process.",
-    "In ATT&CK, a tactic is the attacker's goal and a technique is how they reach it; technique IDs let defenders speak the same language.",
-    "The earlier in the chain you detect an attack, the cheaper it is to stop and the less the process is affected.",
-    "Some stages, such as passive sniffing or a program download that looks like normal engineering work, are hard or impossible to see on the network."
+    "A plant attack is a campaign of stages, and each stage needs what the one before found out.",
+    "ATT&CK names the attacker's goal (the tactic) and method (the technique), so defenders share one language.",
+    "Catching an early stage is cheap, but some stages stay invisible, so one control is never enough."
   ],
   "checkpoints": [
     {

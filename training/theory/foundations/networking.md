@@ -10,7 +10,7 @@ Every device on a network has an **IP address** (Internet Protocol address), fou
 **Analogy:** in the CybICS lab network `172.18.0.0/24`, the first three numbers `172.18.0` name the street and the last number names the house.
 </div>
 
-Such a street is a **subnet**; the `/24` means the first three numbers name it. Devices on the same subnet talk directly. To reach another street, a message goes to the **gateway**, a router; in CybICS that is the host computer.
+Such a street is a **subnet**; the `/24` means the first three numbers name it. Devices on the same subnet talk directly.
 
 The four hosts you meet first:
 
@@ -24,7 +24,9 @@ The four hosts you meet first:
 <div data-widget="checkpoint" data-id="subnet"></div>
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: every host on the lab network</summary>
+<summary>Deep dive: every host on the lab network, and the gateway</summary>
+
+To reach another street, a message goes to the **gateway**, a router; in CybICS that is the host computer, `172.18.0.1`.
 
 | Address | Device |
 |---|---|
@@ -99,12 +101,17 @@ Data travels in **packets**, small pieces that each carry their own addresses. E
   <text x="343" y="136" text-anchor="middle" font-size="12" font-weight="bold" fill="#1a1a1a">Modbus data</text>
   <text x="343" y="152" text-anchor="middle" font-size="11" fill="#1a1a1a">read register 1126</text>
 </svg>
-<figcaption>One Modbus request from the attack machine to the PLC: Ethernet (MAC addresses) crosses the local segment, IP finds the computer, TCP (ports) the program.</figcaption>
+<figcaption>One Modbus request from the attack machine to the PLC: IP finds the computer, TCP (ports) the program, and the outer Ethernet envelope carries it across the local network.</figcaption>
 </figure>
+
+<details class="deep-dive" markdown="1">
+<summary>Deep dive: the outer envelope, MAC addresses and ARP</summary>
 
 Every network card also has a **MAC address** (Media Access Control address). It only works on the local segment, like the name on a door bell once the postman has found the house.
 
 To find the MAC address for an IP address, a computer asks the segment "who has 172.18.0.3?". That is the **Address Resolution Protocol (ARP)**. Nobody checks the answers, so an attacker can lie ([man-in-the-middle](/theory/mitm)).
+
+</details>
 
 ## TCP: a handshake first
 
@@ -149,11 +156,7 @@ The **User Datagram Protocol (UDP)** skips the handshake: faster, but nothing gu
 
 ## The CybICS lab network
 
-In the virtual lab, each service runs in its own **container**: a small, sealed box that shares the host computer's operating system. Each has its own network card and IP address, so openplc and fuxa look like separate computers.
-
-All containers plug into one virtual switch, a Docker **bridge network** on the subnet `172.18.0.0/24`. The attack machine sits on it too, with no router or firewall in between: the network is **flat**.
-
-The landing page and the IDS use **host networking** instead: they share the host computer's network. That lets the IDS listen on the bridge, which every packet between two containers crosses.
+In the virtual lab, every service acts as a separate small computer with its own address on `172.18.0.0/24`. The attack machine sits on the same network, with no router or firewall in between: the network is **flat**.
 
 Add a protocol without a login, as the [Modbus lesson](/theory/modbus) shows, and you have the core problem of many real plants: reaching a port is the same as being allowed to use it.
 
@@ -171,7 +174,11 @@ The map from [What is an ICS?](/theory/ics-basics) again. Click a host to see it
 </div>
 
 <details class="deep-dive" markdown="1">
-<summary>Deep dive: names on the bridge, the IDS and published ports</summary>
+<summary>Deep dive: containers, the bridge, the IDS and published ports</summary>
+
+Each service runs in its own **container**: a small, sealed box that shares the host computer's operating system. Each has its own network card and IP address, so openplc and fuxa look like separate computers. All containers plug into one virtual switch, a Docker **bridge network** on the subnet `172.18.0.0/24`.
+
+The landing page and the IDS use **host networking** instead: they share the host computer's network. That lets the IDS listen on the bridge, which every packet between two containers crosses.
 
 The bridge is called `virt-cybics`. On it the containers can also find each other by name: FUXA reaches the PLC as `openplc:502` instead of `172.18.0.3:502`.
 
