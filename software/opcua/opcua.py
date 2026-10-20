@@ -17,6 +17,9 @@ from pymodbus.client import ModbusTcpClient
 #Trust Store is feature for GDS-Certificate support
 USE_TRUST_STORE = False
 
+# Built by the Dockerfile; asyncua creates it on first start if it is missing.
+ADDRESS_SPACE_SHELF = Path(__file__).parent / "address_space.shelf"
+
 async def main():
     # Wait for OpenPLC to start
     await asyncio.sleep(5)
@@ -40,7 +43,10 @@ async def main():
 
     # setup the cybics opcua our server
     server = Server(user_manager=cert_user_manager)
-    await server.init()
+    # The standard address space comes from a shelf built into the image, so
+    # nodes are only unpickled when a client touches them. Filling it from code
+    # held ~45 MB more RSS, most of it swapped out on a 512 MB board.
+    await server.init(ADDRESS_SPACE_SHELF)
     server.set_endpoint("opc.tcp://0.0.0.0:4840/freeopcua/server/")
     await server.set_application_uri(server_app_uri)
 
