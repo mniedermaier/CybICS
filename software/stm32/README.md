@@ -144,7 +144,7 @@ second whether or not anything had moved.
 ## LED brightness
 
 Every LED except the three status greens on the left edge (D11-D13, dimmed by
-their 20k resistors) is driven by software PWM at 100 Hz. Each colour has a
+their 20k resistors) is driven by software PWM at 200 Hz. Each colour has a
 share of the period, chosen per board revision in `src/main.c`. For v1.1 the
 shares are calculated from the LED datasheets by `scripts/led_brightness.py`,
 so that every colour matches the status greens; corrections judged by eye are

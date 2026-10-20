@@ -1017,16 +1017,26 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
  * others, still at one fifteenth, looked faint.  v1.1 therefore has its own
  * table, calculated from the LED datasheets, see led_brightness_v1_1.
  *
- * Values are percent of LED_PWM_PERIOD_US, 0 (never lit) to 100 (never
- * dimmed).  The kernel ticks at 10 kHz, so one percent of a 10 ms period is
- * exactly one tick; finer values would just round up.
+ * Values are percent of the period, 0 (never lit) to 100 (never dimmed).
+ * The period is 100 kernel ticks, so one percent is exactly one tick.  At
+ * the 20 kHz tick rate set in prj.conf that is 200 Hz: at the 100 Hz the
+ * default 10 kHz tick gave, the dimmest LEDs -- white is on for 9 % --
+ * visibly flickered when the eye moved across the board.
+ *
+ * Every edge is placed at an absolute tick counted from the start of the
+ * period.  The loop used to k_usleep() the gap to the next edge instead,
+ * and each sleep rounds up to the next tick and starts from wherever the
+ * previous one woke: the on time wandered by a tick or two from period to
+ * period, which is 10-20 % of a 9 % pulse and showed as flicker too.
  *
  * The three status greens on the left edge are not driven from here.  The
  * STM32 heartbeat D11 and the Raspberry Pi heartbeat D12 are dimmed by their
  * 20k series resistors (R11, R12) and are simply switched on and off; the
  * power LED D13 is wired straight to 3V3 through R20, also 20k.
  */
-#define LED_PWM_PERIOD_US 10000
+#define LED_PWM_PERIOD_TICKS 100
+BUILD_ASSERT(CONFIG_SYS_CLOCK_TICKS_PER_SEC == 20000,
+	     "LED_PWM_PERIOD_TICKS assumes a 20 kHz tick, see prj.conf");
 
 enum led_colour {
 	LED_GREEN,
@@ -1131,6 +1141,8 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 		brightness[LED_GREEN], brightness[LED_RED],
 		brightness[LED_YELLOW], brightness[LED_WHITE]);
 
+	int64_t period_start = k_uptime_ticks();
+
 	while (1) {
 		/* Start of the period: every LED that should be lit goes on. */
 		for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
@@ -1149,26 +1161,33 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 		 * still holds.
 		 */
 		uint32_t scale = led_scale_get();
-		uint32_t elapsed_us = 0;
 
 		for (int c = 0; c < LED_COLOURS; c++) {
 			uint32_t share = MIN(100U, brightness[order[c]] * scale / 100U);
-			uint32_t off_us = LED_PWM_PERIOD_US / 100 * share;
+			uint32_t off_ticks = LED_PWM_PERIOD_TICKS * share / 100U;
 
-			if (off_us >= LED_PWM_PERIOD_US) {
+			if (off_ticks >= LED_PWM_PERIOD_TICKS) {
 				break;	/* this colour and all after it stay on */
 			}
-			if (off_us > elapsed_us) {
-				k_usleep(off_us - elapsed_us);
-				elapsed_us = off_us;
-			}
+			/* Returns at once if the edge has already passed. */
+			k_sleep(K_TIMEOUT_ABS_TICKS(period_start + off_ticks));
 			for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
 				if (pwm_leds[i].colour == order[c]) {
 					gpio_pin_set_dt(pwm_leds[i].spec, 1);
 				}
 			}
 		}
-		k_usleep(LED_PWM_PERIOD_US - elapsed_us);
+
+		period_start += LED_PWM_PERIOD_TICKS;
+		/*
+		 * Something held the CPU for longer than a period, a flash
+		 * erase for instance: start afresh instead of running the
+		 * missed periods back to back.
+		 */
+		if (period_start < k_uptime_ticks()) {
+			period_start = k_uptime_ticks();
+		}
+		k_sleep(K_TIMEOUT_ABS_TICKS(period_start));
 	}
 }
 
