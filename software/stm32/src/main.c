@@ -963,10 +963,8 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
  * one fifteenth.  v1.1 replaced every LED with a JLCPCB Basic part, and its
  * green, C2297, is an order of magnitude more efficient than the one before
  * -- left fully on, it outshone everything else on the board, while the
- * others, still at one fifteenth, looked faint.  The v1.1 resistors were
- * meant to make all four colours similar at equal current (hardware commit
- * 69268e4), but on a real board they are not, so v1.1 has its own table, set
- * by eye.
+ * others, still at one fifteenth, looked faint.  v1.1 therefore has its own
+ * table, calculated from the LED datasheets, see led_brightness_v1_1.
  *
  * Values are percent of LED_PWM_PERIOD_US, 0 (never lit) to 100 (never
  * dimmed).  The kernel ticks at 10 kHz, so one percent of a 10 ms period is
@@ -996,16 +994,27 @@ static const uint8_t led_brightness_v1_0[LED_COLOURS] = {
 };
 
 /*
- * v1.1 and anything newer.  Tuned by eye on a v1.1 board under room light,
- * adjusting the shares live until no colour stood out.  The green needs far
- * less than its resistor calculation predicted (about 39 mcd at full duty,
- * against 28 for red), and the white far less than the red and yellow.
+ * v1.1 and anything newer.  Every colour is brought to the luminous
+ * intensity of the three status greens D11-D13, which run at full drive on
+ * 20k and set the reference for the board.  Calculated by
+ * software/stm32/scripts/led_brightness.py from the datasheet curves, the
+ * series resistors and the pin's output resistance:
+ *
+ *   colour  resistor  current  intensity at 100 %   share
+ *   green   1k        0.87 mA   88 mcd             18 %
+ *   red     330R      3.6 mA    26 mcd             61 %
+ *   yellow  330R      3.6 mA    25 mcd             64 %
+ *   white   100R      3.7 mA   175 mcd              9 %
+ *   status  20k       0.06 mA   16 mcd   (reference, not dimmed)
+ *
+ * The datasheets bin intensity over a 2.5x range per colour and the
+ * calculation uses the middle of each, so a given batch can differ.
  */
 static const uint8_t led_brightness_v1_1[LED_COLOURS] = {
-	[LED_GREEN] = 10,
-	[LED_RED] = 40,
-	[LED_YELLOW] = 50,
-	[LED_WHITE] = 15,
+	[LED_GREEN] = 18,
+	[LED_RED] = 61,
+	[LED_YELLOW] = 64,
+	[LED_WHITE] = 9,
 };
 
 struct pwm_led {
