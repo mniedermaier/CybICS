@@ -1006,7 +1006,8 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
  * Every LED on the board is lit through its own resistor from 3V3 and sinks
  * into its STM32 pin, so it is on while the pin is low.  thread_write_output
  * dims them with software PWM: each LED is switched on at the start of a
- * period and off again once its colour's share of the period has passed.
+ * period and off again once its share of the period has passed: its colour's
+ * share, scaled by the overall brightness and, at start-up, the animation.
  *
  * The share depends on the board revision, because the LEDs themselves do.
  * v1.0 carried a green that was far dimmer than its red, yellow and blue, so
@@ -1084,27 +1085,71 @@ struct pwm_led {
 	const struct gpio_dt_spec *spec;
 	const uint8_t *state;	/* non-zero = lit */
 	enum led_colour colour;
+	uint16_t y;		/* height on the v1.1 board, 0.1 mm from the top */
 };
 
-/* Colours per the schematic: D1-D19 without the status LEDs D11-D13. */
+/*
+ * Colours per the schematic: D1-D19 without the status LEDs D11-D13.
+ * Heights from kicad-cli pcb export pos on hardware/pcb/CybICS.kicad_pcb.
+ */
 static const struct pwm_led pwm_leds[] = {
-	{ &gst_low_led,      &GST_low,      LED_RED },	/* D1 */
-	{ &gst_normal_led,   &GST_normal,   LED_GREEN },	/* D2 */
-	{ &gst_full_led,     &GST_full,     LED_WHITE },	/* D3 */
-	{ &c_on_led,         &C_on,         LED_GREEN },	/* D4 */
-	{ &c_off_led,        &C_off,        LED_RED },	/* D5 */
-	{ &hpt_critical_led, &HPT_critical, LED_RED },	/* D6 */
-	{ &hpt_high_led,     &HPT_high,     LED_YELLOW },	/* D7 */
-	{ &hpt_normal_led,   &HPT_normal,   LED_GREEN },	/* D8 */
-	{ &hpt_low_led,      &HPT_low,      LED_YELLOW },	/* D9 */
-	{ &hpt_empty_led,    &HPT_empty,    LED_WHITE },	/* D10 */
-	{ &bo_red_led,       &BO_red,       LED_RED },	/* D14 */
-	{ &bo_green_led,     &BO_green,     LED_GREEN },	/* D15 */
-	{ &s_red_led,        &S_red,        LED_RED },	/* D16 */
-	{ &s_green_led,      &S_green,      LED_GREEN },	/* D17 */
-	{ &sv_red_led,       &SV_red,       LED_RED },	/* D18 */
-	{ &sv_green_led,     &SV_green,     LED_GREEN },	/* D19 */
+	{ &gst_low_led,      &GST_low,      LED_RED, 808 },	/* D1 */
+	{ &gst_normal_led,   &GST_normal,   LED_GREEN, 758 },	/* D2 */
+	{ &gst_full_led,     &GST_full,     LED_WHITE, 708 },	/* D3 */
+	{ &c_on_led,         &C_on,         LED_GREEN, 738 },	/* D4 */
+	{ &c_off_led,        &C_off,        LED_RED, 788 },	/* D5 */
+	{ &hpt_critical_led, &HPT_critical, LED_RED, 758 },	/* D6 */
+	{ &hpt_high_led,     &HPT_high,     LED_YELLOW, 808 },	/* D7 */
+	{ &hpt_normal_led,   &HPT_normal,   LED_GREEN, 858 },	/* D8 */
+	{ &hpt_low_led,      &HPT_low,      LED_YELLOW, 908 },	/* D9 */
+	{ &hpt_empty_led,    &HPT_empty,    LED_WHITE, 958 },	/* D10 */
+	{ &bo_red_led,       &BO_red,       LED_RED, 648 },	/* D14 */
+	{ &bo_green_led,     &BO_green,     LED_GREEN, 698 },	/* D15 */
+	{ &s_red_led,        &S_red,        LED_RED, 878 },	/* D16 */
+	{ &s_green_led,      &S_green,      LED_GREEN, 828 },	/* D17 */
+	{ &sv_red_led,       &SV_red,       LED_RED, 1088 },	/* D18 */
+	{ &sv_green_led,     &SV_green,     LED_GREEN, 1038 },	/* D19 */
 };
+
+/*
+ * Start-up animation, played alongside the LCD's.
+ *
+ * Until the Raspberry Pi first talks to us, a comet runs down the board and
+ * back up, its tail glowing out behind it -- a scanner looking for the Pi.
+ * It makes at least one full pass, so a board whose Pi is already up still
+ * shows that every LED works.  Once the Pi is there, every LED flashes and
+ * fades out, and the plant's own state takes over.
+ *
+ * Each LED keeps its colour's share and the overall scale; the animation is
+ * one more factor on top, so the comet looks the same brightness in every
+ * colour it crosses.
+ */
+#define LED_SCAN_MS 1600			/* down and back up */
+#define LED_SCAN_FROM 600			/* 0.1 mm, above D14 */
+#define LED_SCAN_TO 1140			/* below D18 */
+#define LED_SCAN_HEAD 40			/* glow ahead of the comet */
+#define LED_SCAN_TAIL 200			/* tail behind it */
+#define LED_HELLO_MS 600			/* the flash when the Pi arrives */
+
+/* Brightness of one LED in the comet, 0-100. */
+static uint8_t scan_level(const struct pwm_led *led, int64_t t_ms)
+{
+	const int32_t half = LED_SCAN_MS / 2;
+	int32_t phase = (int32_t)(t_ms % LED_SCAN_MS);
+	bool down = phase < half;
+	int32_t travelled = down ? phase : LED_SCAN_MS - phase;
+	int32_t pos = LED_SCAN_FROM + (LED_SCAN_TO - LED_SCAN_FROM) * travelled / half;
+	/* Positive behind the comet, the way it came from. */
+	int32_t behind = down ? pos - (int32_t)led->y : (int32_t)led->y - pos;
+	int32_t reach = behind >= 0 ? LED_SCAN_TAIL : LED_SCAN_HEAD;
+	int32_t d = abs(behind);
+
+	if (d >= reach) {
+		return 0;
+	}
+	/* Squared, so the tail fades out softly rather than in a straight ramp. */
+	return (uint8_t)(100 * (reach - d) * (reach - d) / (reach * reach));
+}
 
 /* Thread: Write Output (LED control with PWM) */
 void thread_write_output(void *arg1, void *arg2, void *arg3)
@@ -1121,60 +1166,83 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 	const uint8_t *brightness = hw_version_get() == HW_REV_1_0
 		? led_brightness_v1_0 : led_brightness_v1_1;
 
-	/*
-	 * The colours in the order they switch off within a period, dimmest
-	 * first, so a period needs one wake-up per colour rather than one per
-	 * percent.
-	 */
-	enum led_colour order[LED_COLOURS];
-	for (int i = 0; i < LED_COLOURS; i++) {
-		int j = i;
-		while (j > 0 && brightness[order[j - 1]] > brightness[i]) {
-			order[j] = order[j - 1];
-			j--;
-		}
-		order[j] = (enum led_colour)i;
-	}
-
 	LOG_INF("Starting thread_write_output, LED brightness green %u%%, red %u%%, "
 		"yellow %u%%, white %u%%",
 		brightness[LED_GREEN], brightness[LED_RED],
 		brightness[LED_YELLOW], brightness[LED_WHITE]);
 
 	int64_t period_start = k_uptime_ticks();
+	const int64_t anim_start = period_start;
+	int64_t hello_ms = -1;	/* when the scan ended, once it has */
 
 	while (1) {
-		/* Start of the period: every LED that should be lit goes on. */
+		int64_t t_ms = k_ticks_to_ms_floor64(period_start - anim_start);
+		uint32_t scale = led_scale_get();
+		uint8_t share[ARRAY_SIZE(pwm_leds)];
+		uint8_t order[ARRAY_SIZE(pwm_leds)];
+		int level_all = -1;	/* -1: each LED its own level */
+
+		if (hello_ms < 0 && t_ms >= LED_SCAN_MS && i2c_first_message_received) {
+			hello_ms = t_ms;
+		}
+		if (hello_ms >= 0) {
+			int64_t since = t_ms - hello_ms;
+
+			level_all = since < LED_HELLO_MS
+				? (int)(100 - 100 * since / LED_HELLO_MS) : 101;
+		}
+
+		/*
+		 * Every LED's share of this period: its colour's, the overall
+		 * scale and the animation's level.  101 means the plant state.
+		 */
 		for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
 			const struct pwm_led *led = &pwm_leds[i];
-			bool lit = *led->state && brightness[led->colour] > 0;
+			uint32_t level;
 
-			gpio_pin_set_dt(led->spec, lit ? 0 : 1);
+			if (level_all > 100) {
+				level = *led->state ? 100 : 0;
+			} else if (level_all >= 0) {
+				level = (uint32_t)level_all;
+			} else {
+				level = scan_level(led, t_ms);
+			}
+			share[i] = (uint8_t)MIN(100U, brightness[led->colour] * scale *
+						      level / 10000U);
+		}
+
+		/*
+		 * Dimmest first, so a period needs one wake-up per distinct
+		 * share rather than one per percent.
+		 */
+		for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
+			size_t j = i;
+
+			while (j > 0 && share[order[j - 1]] > share[i]) {
+				order[j] = order[j - 1];
+				j--;
+			}
+			order[j] = (uint8_t)i;
+		}
+
+		/* Start of the period: every LED with a share goes on. */
+		for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
+			gpio_pin_set_dt(pwm_leds[i].spec, share[i] > 0 ? 0 : 1);
 		}
 		gpio_pin_set_dt(&s_sen_pin, S_sen ? 1 : 0); // Sensor outputs not inverted
 		gpio_pin_set_dt(&bo_sen_pin, BO_sen ? 1 : 0); // Sensor outputs not inverted
 
-		/*
-		 * Then each colour goes off once its share has passed, scaled
-		 * by the overall brightness set from the front panel.  The
-		 * scale applies to every colour alike, so the order above
-		 * still holds.
-		 */
-		uint32_t scale = led_scale_get();
-
-		for (int c = 0; c < LED_COLOURS; c++) {
-			uint32_t share = MIN(100U, brightness[order[c]] * scale / 100U);
-			uint32_t off_ticks = LED_PWM_PERIOD_TICKS * share / 100U;
+		/* Then each goes off once its share of the period has passed. */
+		for (size_t k = 0; k < ARRAY_SIZE(pwm_leds); k++) {
+			uint32_t off_ticks = LED_PWM_PERIOD_TICKS * share[order[k]] / 100U;
 
 			if (off_ticks >= LED_PWM_PERIOD_TICKS) {
-				break;	/* this colour and all after it stay on */
+				break;	/* this LED and all after it stay on */
 			}
-			/* Returns at once if the edge has already passed. */
-			k_sleep(K_TIMEOUT_ABS_TICKS(period_start + off_ticks));
-			for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
-				if (pwm_leds[i].colour == order[c]) {
-					gpio_pin_set_dt(pwm_leds[i].spec, 1);
-				}
+			if (off_ticks > 0) {
+				/* Returns at once if the edge has already passed. */
+				k_sleep(K_TIMEOUT_ABS_TICKS(period_start + off_ticks));
+				gpio_pin_set_dt(pwm_leds[order[k]].spec, 1);
 			}
 		}
 
