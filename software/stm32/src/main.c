@@ -93,8 +93,6 @@ uint8_t HPT_high = 0;
 uint8_t HPT_normal = 0;
 uint8_t HPT_low = 0;
 uint8_t HPT_empty = 0;
-/* Toggled by thread_heartbeat, driven onto the LED by thread_write_output. */
-static uint8_t heartbeat_on = 0;
 
 /* Device handles */
 static const struct device *uart_dev;
@@ -285,7 +283,7 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Starting thread_heartbeat");
 
 	while (1) {
-		heartbeat_on = !heartbeat_on;
+		gpio_pin_toggle_dt(&heartbeat_led);
 		k_msleep(1000);
 	}
 }
@@ -974,9 +972,10 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
  * dimmed).  The kernel ticks at 10 kHz, so one percent of a 10 ms period is
  * exactly one tick; finer values would just round up.
  *
- * Two greens are not driven from here.  The Raspberry Pi's heartbeat, D12,
- * is dimmed by the Pi itself, see software/hwio-raspberry/status_led.py.  The
- * power LED, D13, is wired straight to 3V3 and cannot be dimmed at all.
+ * The three status greens on the left edge are not driven from here.  The
+ * STM32 heartbeat D11 and the Raspberry Pi heartbeat D12 are dimmed by their
+ * 20k series resistors (R11, R12) and are simply switched on and off; the
+ * power LED D13 is wired straight to 3V3 through R20, also 20k.
  */
 #define LED_PWM_PERIOD_US 10000
 
@@ -1015,7 +1014,7 @@ struct pwm_led {
 	enum led_colour colour;
 };
 
-/* Colours per the schematic, D1-D19 without the power LED D13 and D12 on the Pi. */
+/* Colours per the schematic: D1-D19 without the status LEDs D11-D13. */
 static const struct pwm_led pwm_leds[] = {
 	{ &gst_low_led,      &GST_low,      LED_RED },	/* D1 */
 	{ &gst_normal_led,   &GST_normal,   LED_GREEN },	/* D2 */
@@ -1027,7 +1026,6 @@ static const struct pwm_led pwm_leds[] = {
 	{ &hpt_normal_led,   &HPT_normal,   LED_GREEN },	/* D8 */
 	{ &hpt_low_led,      &HPT_low,      LED_YELLOW },	/* D9 */
 	{ &hpt_empty_led,    &HPT_empty,    LED_WHITE },	/* D10 */
-	{ &heartbeat_led,    &heartbeat_on, LED_GREEN },	/* D11 */
 	{ &bo_red_led,       &BO_red,       LED_RED },	/* D14 */
 	{ &bo_green_led,     &BO_green,     LED_GREEN },	/* D15 */
 	{ &s_red_led,        &S_red,        LED_RED },	/* D16 */
