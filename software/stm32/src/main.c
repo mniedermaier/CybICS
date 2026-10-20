@@ -1061,6 +1061,8 @@ void thread_i2c(void *arg1, void *arg2, void *arg3)
 #define LED_PWM_PERIOD_TICKS 100
 BUILD_ASSERT(CONFIG_SYS_CLOCK_TICKS_PER_SEC == 20000,
 	     "LED_PWM_PERIOD_TICKS assumes a 20 kHz tick, see prj.conf");
+#define LED_PWM_TICK_CYCLES \
+	(CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC / CONFIG_SYS_CLOCK_TICKS_PER_SEC)
 
 enum led_colour {
 	LED_GREEN,
@@ -1270,25 +1272,56 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 			order[j] = (uint8_t)i;
 		}
 
-		/* Start of the period: every LED with a share goes on. */
+		/*
+		 * Start of the period: every LED with a share goes on.  The
+		 * moment they do is taken from the cycle counter, and every
+		 * off edge below is timed from it, so a pulse is as long as its
+		 * share however late this thread woke.
+		 */
+		unsigned int key = irq_lock();
+
 		for (size_t i = 0; i < ARRAY_SIZE(pwm_leds); i++) {
 			gpio_pin_set_dt(pwm_leds[i].spec, share[i] > 0 ? 0 : 1);
 		}
+		const uint32_t on_cycles = k_cycle_get_32();
+
+		irq_unlock(key);
 		gpio_pin_set_dt(&s_sen_pin, S_sen ? 1 : 0); // Sensor outputs not inverted
 		gpio_pin_set_dt(&bo_sen_pin, BO_sen ? 1 : 0); // Sensor outputs not inverted
 
-		/* Then each goes off once its share of the period has passed. */
+		/*
+		 * Then each goes off once its share of the period has passed.
+		 *
+		 * Waking for an edge is late by whatever interrupt ran at the
+		 * time -- the Pi's I2C, the UART -- and at 50 % overall the
+		 * white LEDs are on for four ticks, 200 us, so 20-50 us of
+		 * that showed as flicker.  The thread therefore wakes a tick
+		 * early and spins with interrupts locked, for at most that
+		 * tick, to the exact cycle.
+		 */
 		for (size_t k = 0; k < ARRAY_SIZE(pwm_leds); k++) {
 			uint32_t off_ticks = LED_PWM_PERIOD_TICKS * share[order[k]] / 100U;
 
 			if (off_ticks >= LED_PWM_PERIOD_TICKS) {
 				break;	/* this LED and all after it stay on */
 			}
-			if (off_ticks > 0) {
-				/* Returns at once if the edge has already passed. */
-				k_sleep(K_TIMEOUT_ABS_TICKS(period_start + off_ticks));
-				gpio_pin_set_dt(pwm_leds[order[k]].spec, 1);
+			if (off_ticks == 0) {
+				continue;
 			}
+
+			const uint32_t off_cycles = on_cycles + off_ticks * LED_PWM_TICK_CYCLES;
+
+			/* Returns at once if that tick has already passed. */
+			k_sleep(K_TIMEOUT_ABS_TICKS(period_start + off_ticks - 1));
+			key = irq_lock();
+			while ((int32_t)(k_cycle_get_32() - off_cycles) < 0) {
+			}
+			gpio_pin_set_dt(pwm_leds[order[k]].spec, 1);
+			/* LEDs with the same share go off together. */
+			while (k + 1 < ARRAY_SIZE(pwm_leds) && share[order[k + 1]] == share[order[k]]) {
+				gpio_pin_set_dt(pwm_leds[order[++k]].spec, 1);
+			}
+			irq_unlock(key);
 		}
 
 		period_start += LED_PWM_PERIOD_TICKS;
