@@ -146,3 +146,14 @@ def test_theme_setting_says_whether_it_was_chosen():
     data = get("/api/settings/theme").json()
     assert data["theme"] in ("light", "dark")
     assert data["explicit"] is False
+
+
+def test_theme_setting_can_return_to_the_system_preference():
+    """Settings > Appearance stores light or dark, and 'system' forgets the choice."""
+    browser = requests.Session()
+    url = BASE + "/api/settings/theme"
+    assert browser.post(url, json={"theme": "light"}, timeout=READ_TIMEOUT).ok
+    assert browser.get(url, timeout=READ_TIMEOUT).json() == {"theme": "light", "explicit": True}
+    assert browser.post(url, json={"theme": "system"}, timeout=READ_TIMEOUT).ok
+    assert browser.get(url, timeout=READ_TIMEOUT).json()["explicit"] is False
+    assert browser.post(url, json={"theme": "<script>"}, timeout=READ_TIMEOUT).status_code == 400

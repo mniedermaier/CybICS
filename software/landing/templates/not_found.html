@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CybICS - Page not found</title>
+    <link rel="stylesheet" href="/static/css/brand.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+               background: var(--brand-ink); color: #e5e5e5; font-family: var(--brand-font); padding: 1rem; box-sizing: border-box; }
+        main { max-width: 32rem; text-align: center; }
+        img { height: 72px; image-rendering: pixelated; }
+        h1 { font-size: 1.5rem; margin: 1.25rem 0 0.5rem; color: #fff; }
+        p { color: #b8b8b8; line-height: 1.6; margin: 0 0 1.5rem; }
+        .links { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+        a { display: inline-block; padding: 0.6rem 1.1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; }
+        a.primary { background: var(--brand-accent); color: var(--brand-ink); }
+        a.secondary { border: 1px solid #555; color: #e5e5e5; }
+        a:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 3px; }
+        html.light-mode body { background: #f3f5f8; color: #172033; }
+        html.light-mode h1 { color: #172033; }
+        html.light-mode p { color: #4b5563; }
+        html.light-mode a.secondary { border-color: #b7bfcc; color: #172033; }
+    </style>
+    {% include 'theme_head.html' %}
+</head>
+<body>
+    <main>
+        <img src="/pics/cybics-mark.svg" alt="">
+        <h1>This page does not exist</h1>
+        <p>The link may be mistyped, or the lesson or challenge it pointed to has been renamed.</p>
+        <div class="links">
+            <a class="primary" href="/" target="_top">Back to the dashboard</a>
+            <a class="secondary" href="/#theory" target="_top">Theory Path</a>
+            <a class="secondary" href="/#ctf" target="_top">Challenges</a>
+        </div>
+    </main>
+</body>
+</html>

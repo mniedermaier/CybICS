@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - {{ challenge.title }}</title>
     <link rel="stylesheet" href="/static/css/brand.css">
+    {% include 'theme_head.html' %}
     <!-- Syntax highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="/static/vendor/atom-one-dark.min.css">
     <style>
         /* ===== Base ===== */
         * { box-sizing: border-box; }
@@ -69,13 +70,13 @@
         .badge-hard { background: rgba(239,68,68,0.15); color: #f87171; }
         /* Tags are labels, not signals: one neutral style (doc/brand/README.md) */
         .badge-tag-recon, .badge-tag-exploit, .badge-tag-analysis, .badge-tag-evasion, .badge-tag-defense, .badge-tag-hardware { background: rgba(255,255,255,0.08); color: #d1d5db; }
-        body.light-mode .badge-tag-recon, body.light-mode .badge-tag-exploit, body.light-mode .badge-tag-analysis,
-        body.light-mode .badge-tag-evasion, body.light-mode .badge-tag-defense, body.light-mode .badge-tag-hardware { background: #eef1f5; color: #394355; }
+        html.light-mode body .badge-tag-recon, html.light-mode body .badge-tag-exploit, html.light-mode body .badge-tag-analysis,
+        html.light-mode body .badge-tag-evasion, html.light-mode body .badge-tag-defense, html.light-mode body .badge-tag-hardware { background: #eef1f5; color: #394355; }
         /* Light mode: darker text on the same tints, and accent links at 5.5:1 */
-        body.light-mode .badge-easy { color: #166534; }
-        body.light-mode .badge-medium { color: #8a5a00; }
-        body.light-mode .badge-hard { color: #b91c1c; }
-        body.light-mode a, body.light-mode .training-content a { color: var(--brand-accent-text-light); }
+        html.light-mode body .badge-easy { color: #166534; }
+        html.light-mode body .badge-medium { color: #8a5a00; }
+        html.light-mode body .badge-hard { color: #b91c1c; }
+        html.light-mode body a, html.light-mode body .training-content a { color: var(--brand-accent-text-light); }
 
         /* ===== Layout: Sidebar + Content ===== */
         .page-layout {
@@ -206,11 +207,11 @@
         .tc-section[data-type="solution"] .tc-section-title { color: #f87171; }
         .tc-section[data-type="security"] { border-left: 3px solid #9ca3af; }
         .tc-section[data-type="security"] .tc-section-title { color: #d1d5db; }
-        body.light-mode .tc-section[data-type="overview"] .tc-section-title { color: var(--brand-accent-text-light); }
-        body.light-mode .tc-section[data-type="task"] .tc-section-title { color: #8a5a00; }
-        body.light-mode .tc-section[data-type="hint"] .tc-section-title,
-        body.light-mode .tc-section[data-type="security"] .tc-section-title { color: #394355; }
-        body.light-mode .tc-section[data-type="solution"] .tc-section-title { color: #b91c1c; }
+        html.light-mode body .tc-section[data-type="overview"] .tc-section-title { color: var(--brand-accent-text-light); }
+        html.light-mode body .tc-section[data-type="task"] .tc-section-title { color: #8a5a00; }
+        html.light-mode body .tc-section[data-type="hint"] .tc-section-title,
+        html.light-mode body .tc-section[data-type="security"] .tc-section-title { color: #394355; }
+        html.light-mode body .tc-section[data-type="solution"] .tc-section-title { color: #b91c1c; }
 
         /* ===== Training content typography ===== */
         .training-content h1 { font-size: 1.5rem; color: #ff6b00; margin: 1.5rem 0 0.75rem; }
@@ -527,35 +528,35 @@
             header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
         }
         /* Shared dashboard light theme */
-        body.light-mode { background: #f3f5f8 !important; color: #172033 !important; }
-        body.light-mode header { background: #ffffff !important; border-bottom-color: #d45a00; }
-        body.light-mode header h1, body.light-mode .training-content h1, body.light-mode .training-content h2, body.light-mode .success-text { color: #b34700; }
-        body.light-mode .back-btn { color: #b34700; border-color: #d45a00; }
-        body.light-mode .back-btn:hover { background: #d45a00; color: #fff; }
-        body.light-mode .page-layout { background: transparent; }
-        body.light-mode .sidebar, body.light-mode .tc-section, body.light-mode .training-content pre, body.light-mode .code-block-wrapper, body.light-mode .flag-form, body.light-mode .verify-section { background: #ffffff !important; border-color: #d8dde6; }
-        body.light-mode .sidebar-title, body.light-mode .training-content h3, body.light-mode .training-content h4 { color: #394355; }
-        body.light-mode .toc-link, body.light-mode .training-content, body.light-mode .training-content p, body.light-mode .training-content li { color: #394355; }
-        body.light-mode .toc-link:hover, body.light-mode .tc-section-header:hover { background: #eef1f5; }
-        body.light-mode .tc-section-header { background: #f7f8fa; border-bottom-color: #d8dde6; }
-        body.light-mode .tc-section-title { color: #b34700 !important; }
-        body.light-mode .training-content strong { color: #172033; }
-        body.light-mode .training-content code, body.light-mode .inline-code { background: #eef1f5; color: #7c3f00; }
-        body.light-mode .training-content blockquote { background: #f7f8fa; border-left-color: #d45a00; color: #4b5565; }
-        body.light-mode .training-content th { background: #eef1f5; color: #394355; }
-        body.light-mode .training-content td { border-color: #d8dde6; }
-        body.light-mode .flag-input { background: #ffffff; color: #172033; border-color: #b7bfcc; }
-        body.light-mode .copy-btn, body.light-mode .sidebar-action { background: #f7f8fa; color: #596273; border-color: #b7bfcc; }
-        body.light-mode .copy-btn:hover, body.light-mode .sidebar-action:hover { background: #eef1f5; }
-        body.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
-        body.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
+        html.light-mode body { background: #f3f5f8 !important; color: #172033 !important; }
+        html.light-mode body header { background: #ffffff !important; border-bottom-color: #d45a00; }
+        html.light-mode body header h1, html.light-mode body .training-content h1, html.light-mode body .training-content h2, html.light-mode body .success-text { color: #b34700; }
+        html.light-mode body .back-btn { color: #b34700; border-color: #d45a00; }
+        html.light-mode body .back-btn:hover { background: #d45a00; color: #fff; }
+        html.light-mode body .page-layout { background: transparent; }
+        html.light-mode body .sidebar, html.light-mode body .tc-section, html.light-mode body .training-content pre, html.light-mode body .code-block-wrapper, html.light-mode body .flag-form, html.light-mode body .verify-section { background: #ffffff !important; border-color: #d8dde6; }
+        html.light-mode body .sidebar-title, html.light-mode body .training-content h3, html.light-mode body .training-content h4 { color: #394355; }
+        html.light-mode body .toc-link, html.light-mode body .training-content, html.light-mode body .training-content p, html.light-mode body .training-content li { color: #394355; }
+        html.light-mode body .toc-link:hover, html.light-mode body .tc-section-header:hover { background: #eef1f5; }
+        html.light-mode body .tc-section-header { background: #f7f8fa; border-bottom-color: #d8dde6; }
+        html.light-mode body .tc-section-title { color: #b34700 !important; }
+        html.light-mode body .training-content strong { color: #172033; }
+        html.light-mode body .training-content code, html.light-mode body .inline-code { background: #eef1f5; color: #7c3f00; }
+        html.light-mode body .training-content blockquote { background: #f7f8fa; border-left-color: #d45a00; color: #4b5565; }
+        html.light-mode body .training-content th { background: #eef1f5; color: #394355; }
+        html.light-mode body .training-content td { border-color: #d8dde6; }
+        html.light-mode body .flag-input { background: #ffffff; color: #172033; border-color: #b7bfcc; }
+        html.light-mode body .copy-btn, html.light-mode body .sidebar-action { background: #f7f8fa; color: #596273; border-color: #b7bfcc; }
+        html.light-mode body .copy-btn:hover, html.light-mode body .sidebar-action:hover { background: #eef1f5; }
+        html.light-mode body ::-webkit-scrollbar-track { background: #e7eaf0; }
+        html.light-mode body ::-webkit-scrollbar-thumb { background: #b7bfcc; }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header>
         <div class="header-left">
-            <a href="/ctf" class="back-btn" onclick="event.preventDefault(); window.parent.postMessage({type:'navigate',url:'/ctf'},'*');">&#8592; Back</a>
+            <a href="/ctf" class="back-btn" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({type:'navigate',url:'/ctf'},window.location.origin); }">&#8592; Back</a>
             <h1>{{ challenge.title }}</h1>
         </div>
         <div class="header-right">
@@ -641,15 +642,13 @@
     </div>
 
     <!-- highlight.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="/static/vendor/highlight.min.js"></script>
     <script>
-    function applyTheme(theme) {
-        document.body.classList.toggle('light-mode', theme === 'light');
+    // Back to the challenge list: through the dashboard when embedded, directly otherwise
+    function backToList() {
+        if (window.parent !== window) window.parent.postMessage({type:'navigate',url:'/ctf'}, window.location.origin);
+        else window.location.href = '/ctf';
     }
-    fetch('/api/settings/theme').then(r => r.json()).then(data => applyTheme(data.theme || 'dark')).catch(() => {});
-    window.addEventListener('message', function(event) {
-        if (event.source === window.parent && event.data && event.data.type === 'theme') applyTheme(event.data.theme);
-    });
     document.addEventListener('DOMContentLoaded', function() {
         const content = document.getElementById('training-content');
         if (!content) return;
@@ -660,6 +659,13 @@
         content.querySelectorAll('h1, h2, h3, h4').forEach(h => {
             const t = Array.from(h.childNodes).find(n => n.nodeType === 3 && n.textContent.trim());
             if (t) t.textContent = t.textContent.replace(leadingEmoji, '');
+        });
+
+        // Links into the dashboard (/#fuxa, /#theory:...) open it in a new tab,
+        // so these instructions stay on screen next to the tool
+        content.querySelectorAll('a[href^="/#"]').forEach(a => {
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener');
         });
 
         // ===== 1. Split content into sections by H2 headings =====
@@ -905,7 +911,7 @@
         fetch('/ctf/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({challenge_id:challengeId, flag:flag}) })
         .then(r => r.json()).then(d => {
             showMsg(d.message, d.success);
-            if (d.success) { flagInput.disabled = true; submitButton.textContent = 'Solved!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
+            if (d.success) { flagInput.disabled = true; submitButton.textContent = 'Solved!'; showSuccess(); setTimeout(backToList, 4000); }
             else { submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; flagInput.focus(); }
         }).catch(() => { showMsg('Error. Try again.', false); submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; });
     }
@@ -922,7 +928,7 @@
                 d.checks.forEach(c => { h += '<div class="verify-check ' + (c.passed?'passed':'failed') + '">' + (c.passed?'✓':'✕') + ' <strong>' + c.name + '</strong>: ' + c.detail + '</div>'; });
                 results.innerHTML = h;
             }
-            if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '✓ Verified!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
+            if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '✓ Verified!'; showSuccess(); setTimeout(backToList, 4000); }
             else { showMsg(d.message, false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; }
         }).catch(() => { showMsg('Error. Try again.', false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; });
     }

@@ -1,6 +1,7 @@
 """
 Network capture API routes
 """
+import ipaddress
 import netifaces
 from flask import jsonify, request, send_file
 from datetime import datetime
@@ -9,6 +10,17 @@ import struct
 
 from utils.config import UPLINK_INTERFACE
 from utils.logger import logger
+
+# The lab's Docker network (see .devcontainer/virtual/docker-compose.yml). The
+# host's bridge on it is the interface Sharky should offer first.
+LAB_NETWORK = ipaddress.ip_network('172.18.0.0/24')
+
+
+def _on_lab_network(ip):
+    try:
+        return ip is not None and ipaddress.ip_address(ip) in LAB_NETWORK
+    except ValueError:
+        return False
 
 def register_network_routes(app, network_capture):
     """Register network-related API routes"""
@@ -30,7 +42,9 @@ def register_network_routes(app, network_capture):
                     ip = addrs[netifaces.AF_INET][0].get('addr')
 
                 # Determine interface type
-                if interface.startswith('docker'):
+                if interface.startswith('br-') and _on_lab_network(ip):
+                    iface_type = 'ics_bridge'
+                elif interface.startswith('docker'):
                     iface_type = 'docker'
                 elif interface.startswith('br-'):
                     iface_type = 'bridge'

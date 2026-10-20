@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.title or 'CybICS - CTF Training' }}</title>
     <link rel="stylesheet" href="/static/css/brand.css">
-    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
+    {% include 'theme_head.html' %}
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -53,7 +53,7 @@
         /* ── Category Tiles Grid ── */
         .categories-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
             gap: 1.25rem;
         }
 
@@ -99,6 +99,7 @@
         /* ── Challenge Row ── */
         .challenge-row {
             display: flex; align-items: center; gap: 0.75rem;
+            color: inherit; text-decoration: none;
             padding: 0.6rem 0.75rem; border-radius: 0.5rem;
             cursor: pointer; transition: background 0.15s;
         }
@@ -116,13 +117,31 @@
 
         .challenge-info { flex: 1; min-width: 0; }
         .challenge-name {
-            font-size: 0.875rem; font-weight: 600;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e5e5e5;
+            font-size: 0.875rem; font-weight: 600; color: #e5e5e5;
         }
         .challenge-row.solved .challenge-name { color: #aaa; }
         .challenge-desc {
-            font-size: 0.7rem; color: #777;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+            font-size: 0.75rem; color: #a3a3a3; margin-top: 1px;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .challenge-row:focus-visible { outline: 2px solid #ff6b00; outline-offset: 2px; }
+        .challenge-row.next { box-shadow: inset 3px 0 0 #ff6b00; }
+        .next-badge, .board-badge {
+            display: inline-block; margin-left: 0.5rem; padding: 0.05rem 0.4rem; border-radius: 0.2rem;
+            font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; vertical-align: 0.1em;
+        }
+        .next-badge { background: #ff6b00; color: #1a1a1a; }
+        .board-badge { background: rgba(255,255,255,0.08); color: #d1d5db; }
+        .challenge-row.board-only .challenge-name, .challenge-row.board-only .challenge-desc { opacity: 0.6; }
+        html.light-mode .board-badge { background: #eef1f5; color: #394355; }
+        /* Phones: the badges go under the title instead of squeezing it */
+        @media (max-width: 600px) {
+            header { flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1rem; }
+            .header-stats { flex-wrap: wrap; gap: 0.75rem; }
+            main { padding: 1rem; }
+            .challenge-row { flex-wrap: wrap; }
+            .challenge-info { flex-basis: calc(100% - 40px); }
+            .challenge-meta { padding-left: 40px; }
         }
 
         .challenge-meta { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
@@ -197,7 +216,9 @@
 
     <main>
         <div class="categories-grid" id="categories-grid">
-            {% set ns = namespace(step=1) %}
+            {% set ns = namespace(step=1, next_id=none) %}
+            {# The recommended next challenge: the first unsolved one that can be done on this setup #}
+            {% for category_id, category in challenges.items() %}{% for c in category.challenges|sort(attribute='points') %}{% if ns.next_id is none and c.id not in solved and (on_board or c.get('tag') != 'hardware') %}{% set ns.next_id = c.id %}{% endif %}{% endfor %}{% endfor %}
             {% for category_id, category in challenges.items() %}
             {% set cat_solved = category.challenges|selectattr('id', 'in', solved)|list|length %}
             {% set cat_total = category.challenges|length %}
@@ -215,21 +236,23 @@
                     </div>
                 </div>
                 <div class="category-body">
-                    {% for challenge in category.challenges %}
+                    {% for challenge in category.challenges|sort(attribute='points') %}
                     {% set is_solved = challenge.id in solved %}
+                    {% set board_only = challenge.get('tag') == 'hardware' and not on_board %}
                     {% set difficulty = 'easy' if challenge.points <= 150 else ('medium' if challenge.points <= 250 else 'hard') %}
-                    <div class="challenge-row {% if is_solved %}solved{% endif %}"
+                    <a class="challenge-row {% if is_solved %}solved{% endif %}{% if board_only %} board-only{% endif %}{% if challenge.id == ns.next_id %} next{% endif %}"
+                         href="/ctf/challenge/{{ challenge.id }}"
                          data-tag="{{ challenge.get('tag', '') }}"
                          data-difficulty="{{ difficulty }}"
                          data-solved="{{ 'true' if is_solved else 'false' }}"
-                         onclick="window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ challenge.id }}' }, '*')">
+                         onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ challenge.id }}' }, window.location.origin); }">
 
                         <div class="challenge-status {% if is_solved %}done{% else %}unsolved{% endif %}">
                             {% if is_solved %}✓{% endif %}
                         </div>
 
                         <div class="challenge-info">
-                            <div class="challenge-name">{{ challenge.title }}</div>
+                            <div class="challenge-name">{{ challenge.title }}{% if challenge.id == ns.next_id %}<span class="next-badge">Next up</span>{% endif %}{% if board_only %}<span class="board-badge" title="Needs the physical CybICS board">Board only</span>{% endif %}</div>
                             <div class="challenge-desc">{{ challenge.description }}</div>
                         </div>
 
@@ -246,7 +269,7 @@
                             {% endif %}
                             <span class="badge badge-points">{{ challenge.points }}</span>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
             </div>
@@ -260,10 +283,7 @@
             document.documentElement.classList.toggle('light-mode', theme === 'light');
         }
 
-        fetch('/api/settings/theme')
-            .then(response => response.json())
-            .then(data => applyTheme(data.theme || 'dark'))
-            .catch(() => applyTheme('dark'));
+        // The initial theme comes from theme_head.html, rendered by the server
 
         window.addEventListener('message', function(event) {
             if (event.source === window.parent && event.data && event.data.type === 'theme') {

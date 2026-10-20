@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - Sharky Network Analyzer</title>
     <link rel="stylesheet" href="/static/css/brand.css">
-    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
+    {% include 'theme_head.html' %}
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         * {
@@ -683,6 +683,12 @@
             padding: 0 0.5rem;
         }
 
+        /* Phones: the tabs scroll sideways instead of cutting their labels */
+        @media (max-width: 600px) {
+            .details-tabs { overflow-x: auto; }
+            .details-tab { white-space: nowrap; flex-shrink: 0; padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+        }
+
         .details-tab {
             background: none;
             border: none;
@@ -1339,7 +1345,7 @@
         function applyDashboardTheme(theme) {
             document.documentElement.classList.toggle('light-mode', theme === 'light');
         }
-        fetch('/api/settings/theme').then(function (response) { return response.json(); }).then(function (data) { applyDashboardTheme(data.theme || 'dark'); }).catch(function () {});
+        // The initial theme comes from theme_head.html, rendered by the server
         window.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'theme') applyDashboardTheme(event.data.theme);
         });

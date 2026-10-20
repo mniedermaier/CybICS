@@ -26,3 +26,9 @@
     --brand-font: 'InterVariable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --brand-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
 }
+
+/* A visible keyboard focus on every page that loads this file */
+:focus-visible {
+    outline: 2px solid var(--brand-accent);
+    outline-offset: 2px;
+}

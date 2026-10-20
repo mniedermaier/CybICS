@@ -3,21 +3,19 @@
 > **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/)
 
 ## Overview
-In an industrial environment, the physical process refers to the actual operations and mechanisms involved in manufacturing, processing, or producing goods.
-This includes activities such as the movement of raw materials through conveyor belts, the operation of machinery to shape or assemble components, and the monitoring of variables like temperature, pressure, and flow rates to ensure optimal performance.
-These processes are often controlled and monitored by industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) systems, which provide real-time data and automation capabilities to enhance efficiency and safety.
+Every attack on an industrial facility ends in the physical world: a tank that overfills, a valve that opens at the wrong time, a machine that stops. Before attacking CybICS, learn what it controls.
 
-The physical process is critical to the overall productivity and quality of an industrial operation.
-Ensuring that all components work harmoniously and efficiently is essential to maintain high standards of output and to avoid downtime or accidents.
-Regular maintenance, calibration, and monitoring of the equipment are necessary to keep the physical process running smoothly and to detect any potential issues before they escalate into major problems.
+The CybICS plant moves gas from a gas storage tank (GST) into a high-pressure tank (HPT). A compressor pushes gas from the GST into the HPT, a system valve lets the downstream process draw it off again, and a supply signal refills the GST. The OpenPLC controller reads the two pressures and switches these actuators to keep the HPT in its normal band. A mechanical blow-out valve protects the HPT if the pressure gets too high.
 
-Read through the process description in the main [readme](../../README.md) and understand how the control loop works.
+The operator watches all of this on the FUXA HMI, and can take over in manual mode. In this challenge you are that operator.
+
+The [Theory Path lesson on the process](/#theory:/theory/physical_process) explains the control rules and the numbers behind them.
 
 ## Manual Control Exercise
 Try to control the process manually as an operator via the FUXA HMI.
 
 ### Steps
-1. Open a web browser and connect to the FUXA HMI `http://<IP>:1881`
+1. Open **FUXA** from the dashboard's sidebar ([open FUXA in a new tab](/#fuxa)), or browse to port 1881 of the CybICS host
 2. Login with the credentials `operator:operator`
 3. Switch to the system view
 4. Click the red button "Manual / Automatic"
@@ -30,9 +28,9 @@ The flag has the format `CybICS(flag)`.
 
 Your objective is to trigger the blowout on the system. The physical process works as follows:
 
-- The **System Valve (SV)** controls whether compressed air can flow out of the High Pressure Tank (HPT).
-- The **Compressor (C)** pumps air into the system, increasing pressure.
-- If the System Valve is **closed** while the **Compressor is running**, pressure in the High Pressure Tank (HPT) will rise continuously because the air has no path to escape.
+- The **System Valve (SV)** controls whether gas can flow out of the High Pressure Tank (HPT).
+- The **Compressor (C)** pumps gas from the storage tank into the HPT, increasing its pressure.
+- If the System Valve is **closed** while the **Compressor is running**, pressure in the High Pressure Tank (HPT) will rise continuously because the gas has no path to escape.
 - When the pressure exceeds a critical threshold, the **Blowout (BO)** safety event is triggered.
 
 Using the manual control mode on the FUXA HMI, manipulate the valves and compressor to create the unsafe overpressure condition that causes the blowout.
