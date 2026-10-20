@@ -26,6 +26,9 @@ Assumptions:
     points, and intensity a power law through the 5 and 10 mA points.
   - Intensity is the geometric middle of each datasheet's min-max bin range.
   - The pin's output resistance is the STM32G070 limit, VOL <= 0.4 V at 8 mA.
+
+Corrections by eye are kept separate from the calculation in CORRECTION, so
+the datasheet result stays visible next to what the board actually needed.
 """
 
 import math
@@ -65,6 +68,16 @@ PROCESS_LEDS = [
     ("white", 100, "D3 D10"),
 ]
 REFERENCE = ("green", 20000, "D11 D12 D13")
+
+# Factor on the calculated share, judged by eye on a v1.1 board. Perceived
+# brightness goes roughly with the cube root of intensity, so 0.7 is about
+# 10 % dimmer to the eye.
+CORRECTION = {
+    # The calculated 61 % looked slightly too bright. Red is the least certain
+    # colour: its datasheet has no curves (the yellow's are used) and bins
+    # intensity from 50 to 230 mcd, against the typical 115 used here.
+    "red": 0.7,
+}
 
 
 def interpolate(points, x):
@@ -111,16 +124,17 @@ def intensity(colour, current):
 def main():
     reference_current = operating_current(*REFERENCE[:2])
     target = intensity(REFERENCE[0], reference_current)
-    print(f"{'colour':7}{'R':>7}{'I':>9}{'Vf':>7}{'Iv':>10}{'share':>8}  LEDs")
+    print(f"{'colour':7}{'R':>7}{'I':>9}{'Vf':>7}{'Iv':>10}{'calc':>10}{'share':>7}  LEDs")
     for colour, resistor, leds in PROCESS_LEDS:
         current = operating_current(colour, resistor)
         mcd = intensity(colour, current)
-        share = min(100, round(100 * target / mcd))
+        calculated = 100 * target / mcd
+        share = min(100, round(calculated * CORRECTION.get(colour, 1.0)))
         print(f"{colour:7}{resistor:>7}{current:>7.2f}mA{forward_voltage(colour, current):>6.2f}V"
-              f"{mcd:>7.1f}mcd{share:>7}%  {leds}")
+              f"{mcd:>7.1f}mcd{calculated:>9.0f}%{share:>7}%  {leds}")
     print(f"{'status':7}{REFERENCE[1]:>7}{reference_current:>7.2f}mA"
           f"{forward_voltage(REFERENCE[0], reference_current):>6.2f}V{target:>7.1f}mcd"
-          f"{'ref':>8}  {REFERENCE[2]}")
+          f"{'ref':>10}{'ref':>7}  {REFERENCE[2]}")
 
 
 if __name__ == "__main__":

@@ -1000,19 +1000,21 @@ static const uint8_t led_brightness_v1_0[LED_COLOURS] = {
  * software/stm32/scripts/led_brightness.py from the datasheet curves, the
  * series resistors and the pin's output resistance:
  *
- *   colour  resistor  current  intensity at 100 %   share
- *   green   1k        0.87 mA   88 mcd             18 %
- *   red     330R      3.6 mA    26 mcd             61 %
- *   yellow  330R      3.6 mA    25 mcd             64 %
- *   white   100R      3.7 mA   175 mcd              9 %
+ *   colour  resistor  current  intensity at 100 %   calculated  share
+ *   green   1k        0.87 mA   88 mcd             18 %       18 %
+ *   red     330R      3.6 mA    26 mcd             61 %       43 %
+ *   yellow  330R      3.6 mA    25 mcd             64 %       64 %
+ *   white   100R      3.7 mA   175 mcd              9 %        9 %
  *   status  20k       0.06 mA   16 mcd   (reference, not dimmed)
  *
  * The datasheets bin intensity over a 2.5x range per colour and the
- * calculation uses the middle of each, so a given batch can differ.
+ * calculation uses the middle of each, so a given batch can differ.  Red
+ * looked slightly too bright on the board at its calculated share and is
+ * scaled by 0.7, the correction the script records.
  */
 static const uint8_t led_brightness_v1_1[LED_COLOURS] = {
 	[LED_GREEN] = 18,
-	[LED_RED] = 61,
+	[LED_RED] = 43,
 	[LED_YELLOW] = 64,
 	[LED_WHITE] = 9,
 };
