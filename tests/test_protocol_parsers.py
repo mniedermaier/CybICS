@@ -84,7 +84,33 @@ def test_s7comm_reads_the_tpkt_length_big_endian():
 def test_s7comm_reports_cotp_only_when_the_s7_header_is_absent():
     """A COTP connection request carries no S7 header; saying so beats guessing."""
     got = pp.parse_s7comm(S7_JOB[:11])
-    assert got == {"protocol": "S7comm", "type": "COTP"}
+    assert "protocol_id" not in got
+    assert got["message_type_name"] == "Data"
+
+
+# TPKT | COTP 0e e0 (Connection Request) ...: the setup before any S7comm.
+COTP_CR = bytes.fromhex("0300001611e00000000100c0010ac1020100c2020101")
+
+
+def test_cotp_connection_request_is_not_called_s7comm():
+    got = pp.parse_s7comm(COTP_CR)
+    assert "protocol_id" not in got
+    assert got["message_type_name"] == "Connection Request"
+
+
+# MBAP 0001 0000 0003 01 | 83 02: Read Holding Registers, Illegal Data Address.
+MODBUS_EXCEPTION = bytes.fromhex("000100000003018302")
+
+
+def test_modbus_exception_responses_are_named():
+    got = pp.parse_modbus_tcp(MODBUS_EXCEPTION)
+    assert got["exception"] is True
+    assert got["function_name"] == "Read Holding Registers Exception: Illegal Data Address"
+
+
+def test_modbus_counts_the_adus_in_one_segment():
+    assert pp.parse_modbus_tcp(MODBUS_READ)["pdu_count"] == 1
+    assert pp.parse_modbus_tcp(MODBUS_READ + MODBUS_READ)["pdu_count"] == 2
 
 
 @pytest.mark.parametrize("size", [0, 9])

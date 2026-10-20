@@ -50,7 +50,7 @@ Register values are just 16-bit numbers. A program can put anything into them, i
 
 Where you capture matters. A network switch forwards each packet only to its destination, so a random machine on the same network does not see other machines' conversations. You need a position on the path. On CybICS there are three:
 
-- **The landing page's network analyzer** (Sharky, at `/network`) runs on the host and sees the container network. It can export a capture file for Wireshark.
+- **The landing page's network analyzer** (Sharky, at `/network`) runs on the host and sees the container network. It shows the newest thousand packets live, which is only a couple of seconds of this plant, and understands simple display filters such as `modbus` or `modbus.func_code == 6`. Export PCAP saves the whole capture, about five minutes of it at most, for Wireshark.
 - **The host itself.** On the board, the README shows how to run `tcpdump` on the `br-cybics` bridge over SSH and pipe it into Wireshark.
 - **A man in the middle**, which redirects traffic through your machine. That is a separate challenge: [Man in the middle](/theory/mitm).
 

@@ -277,4 +277,12 @@ STATS_COLLECTION_INTERVAL = 15  # seconds
 DOCKER_STATS_INTERVAL = 30  # seconds
 
 # Network Capture Configuration (optimized for Raspberry Pi)
-MAX_PACKETS_IN_MEMORY = 1000  # Maximum number of packets to keep in memory (~2MB with full raw bytes)
+# Packets the page shows (~2 MB with raw bytes). The lab bridge carries about
+# 600 packets a second, so this is the newest ~2 s; the export holds more.
+MAX_PACKETS_IN_MEMORY = 1000
+# The capture file behind the export, on disk: at ~100 bytes a packet, about
+# five minutes of lab traffic. Capturing continues for the page when it is full.
+PCAP_MAX_BYTES = 16 * 1024 * 1024
+# Stop a capture whose page has not polled for this long, a closed tab say:
+# dissecting the lab bridge costs the Pi a good share of a core.
+CAPTURE_IDLE_STOP_SECONDS = 30

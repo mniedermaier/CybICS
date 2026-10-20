@@ -3,11 +3,10 @@ Network capture API routes
 """
 import ipaddress
 import netifaces
-from flask import jsonify, request, send_file
+from flask import Response, jsonify, request
 from datetime import datetime
-import io
-import struct
 
+from modules.network_capture import CAPTURE_FILTERS, CaptureError, capturable_interfaces
 from utils.config import UPLINK_INTERFACE
 from utils.logger import logger
 
@@ -27,15 +26,14 @@ def register_network_routes(app, network_capture):
 
     @app.route('/api/network/interfaces')
     def get_network_interfaces():
-        """Get available network interfaces"""
+        """The interfaces Sharky can capture on.
+
+        The uplink to the CTF server is never among them, and neither is an
+        interface that is not Ethernet: the export declares Ethernet frames.
+        """
         try:
             interfaces_list = []
-            for interface in netifaces.interfaces():
-                # Skip loopback, and the board's uplink to the central CTF
-                # server: participants must not capture the event network.
-                if interface.startswith('lo') or interface == UPLINK_INTERFACE:
-                    continue
-
+            for interface in capturable_interfaces():
                 addrs = netifaces.ifaddresses(interface)
                 ip = None
                 if netifaces.AF_INET in addrs:
@@ -65,30 +63,28 @@ def register_network_routes(app, network_capture):
             logger.error(f"Error getting network interfaces: {e}", exc_info=True)
             return jsonify({'error': 'An internal error occurred'}), 500
 
+    @app.route('/api/network/filters')
+    def get_capture_filters():
+        """The capture filters a capture can be started with."""
+        return jsonify(sorted(name for name in CAPTURE_FILTERS if name))
+
     @app.route('/api/network/start', methods=['POST'])
     def start_network_capture():
-        """Start network packet capture"""
+        """Start a capture, replacing any that is running."""
+        data = request.get_json(silent=True) or {}
+        interface = data.get('interface', 'all')
+        filter_name = data.get('filter', '')
+        if interface == UPLINK_INTERFACE:
+            return jsonify({'error': 'This interface cannot be captured'}), 403
         try:
-            data = request.get_json() or {}
-            interface = data.get('interface', 'all')
-            filter_str = data.get('filter', '')
-            if interface == UPLINK_INTERFACE:
-                return jsonify({'error': 'This interface cannot be captured'}), 403
-
-            if network_capture.active:
-                logger.info("Capture start requested while active - stopping current capture")
-                network_capture.stop()
-
-            success = network_capture.start(interface, filter_str)
-
-            if success:
-                return jsonify({'success': True, 'message': 'Capture started'})
-            else:
-                return jsonify({'error': 'Failed to start capture'}), 500
-
+            network_capture.start(interface, filter_name)
+        except CaptureError as e:
+            logger.warning(f"Capture refused: {e}")
+            return jsonify({'error': str(e)}), 400
         except Exception as e:
             logger.error(f"Error starting network capture: {e}", exc_info=True)
             return jsonify({'error': 'An internal error occurred'}), 500
+        return jsonify({'success': True, 'message': 'Capture started'})
 
     @app.route('/api/network/stop', methods=['POST'])
     def stop_network_capture():
@@ -104,21 +100,27 @@ def register_network_routes(app, network_capture):
 
     @app.route('/api/network/packets')
     def get_network_packets():
-        """Get captured network packets"""
+        """Packets newer than ?since=<id>, and the capture's state.
+
+        The page used to fetch the whole buffer twice a second -- about
+        240 KB of JSON each time, serialised on the Pi -- although all but a
+        few hundred packets were already on screen.
+        """
         try:
-            packets = network_capture.get_packets()
-            logger.debug(f"Retrieving {len(packets)} packets")
-
-            # Remove raw bytes from packets for JSON serialization (keep for PCAP export only)
-            packets_for_json = []
-            for packet in packets:
-                packet_copy = {k: v for k, v in packet.items() if k != 'raw'}
-                packets_for_json.append(packet_copy)
-
-            return jsonify({'packets': packets_for_json})
+            since = request.args.get('since', default=0, type=int)
+            packets, stats = network_capture.packets_since(since)
+            return jsonify({'packets': packets, 'stats': stats})
         except Exception as e:
             logger.error(f"Error getting network packets: {e}", exc_info=True)
             return jsonify({'error': 'An internal error occurred'}), 500
+
+    @app.route('/api/network/packet/<int:packet_id>/raw')
+    def get_network_packet_raw(packet_id):
+        """One packet's bytes as hex, for the hex dump, read from the capture file."""
+        raw = network_capture.packet_raw(packet_id)
+        if raw is None:
+            return jsonify({'error': 'Packet is not in the capture file'}), 404
+        return jsonify({'id': packet_id, 'raw_hex': raw.hex()})
 
     @app.route('/api/network/clear', methods=['POST'])
     def clear_network_capture():
@@ -142,123 +144,30 @@ def register_network_routes(app, network_capture):
 
     @app.route('/api/network/export')
     def export_network_capture():
-        """Export captured packets as PCAP file"""
-        try:
-            packets = network_capture.get_packets()
-            logger.info(f"Exporting {len(packets)} packets to PCAP")
+        """The capture so far as a pcap file, the frames as they were received.
 
-            # Create PCAP file in memory
-            pcap_buffer = io.BytesIO()
+        Streamed from the capture file on disk, up to the size it had when
+        the request came in, so a capture still running cannot make the body
+        longer than its Content-Length.
+        """
+        snapshot = network_capture.pcap_snapshot()
+        if snapshot is None:
+            return jsonify({'error': 'Nothing has been captured'}), 404
+        path, size = snapshot
 
-            # PCAP Global Header
-            pcap_buffer.write(struct.pack('I', 0xa1b2c3d4))  # Magic number
-            pcap_buffer.write(struct.pack('HH', 2, 4))  # Version
-            pcap_buffer.write(struct.pack('I', 0))  # Timezone
-            pcap_buffer.write(struct.pack('I', 0))  # Timestamp accuracy
-            pcap_buffer.write(struct.pack('I', 65535))  # Snapshot length
-            pcap_buffer.write(struct.pack('I', 1))  # Data link type (Ethernet)
+        def chunks():
+            remaining = size
+            with open(path, 'rb') as handle:
+                while remaining > 0:
+                    chunk = handle.read(min(65536, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
 
-            # Write packet data
-            for packet in packets:
-                # Parse timestamp
-                try:
-                    from dateutil import parser as date_parser
-                    ts = date_parser.parse(packet.get('timestamp', datetime.now().isoformat()))
-                    ts_sec = int(ts.timestamp())
-                    ts_usec = ts.microsecond
-                except:
-                    ts_sec = int(datetime.now().timestamp())
-                    ts_usec = 0
-
-                # Use raw packet data if available, otherwise reconstruct
-                if 'raw' in packet and packet['raw']:
-                    packet_data = packet['raw']
-                else:
-                    packet_data = _reconstruct_packet_data(packet)
-
-                packet_length = len(packet_data)
-
-                # PCAP Packet Header
-                pcap_buffer.write(struct.pack('I', ts_sec))
-                pcap_buffer.write(struct.pack('I', ts_usec))
-                pcap_buffer.write(struct.pack('I', packet_length))
-                pcap_buffer.write(struct.pack('I', packet_length))
-                pcap_buffer.write(packet_data)
-
-            pcap_buffer.seek(0)
-            filename = f"capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pcap"
-
-            logger.info(f"PCAP export successful: {filename}")
-            return send_file(
-                pcap_buffer,
-                mimetype='application/vnd.tcpdump.pcap',
-                as_attachment=True,
-                download_name=filename
-            )
-        except Exception as e:
-            logger.error(f"Error exporting network capture: {e}", exc_info=True)
-            return jsonify({'error': 'An internal error occurred'}), 500
-
-def _reconstruct_packet_data(packet):
-    """Reconstruct minimal packet data from parsed information"""
-    packet_bytes = bytearray()
-
-    # Ethernet header (14 bytes) - use default values since we don't store layers anymore
-    packet_bytes.extend(b'\xff\xff\xff\xff\xff\xff')  # Dst MAC
-    packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00')  # Src MAC
-    packet_bytes.extend(struct.pack('!H', 0x0800))    # IPv4
-
-    # IPv4 header (20 bytes minimum)
-    src_ip = packet.get('source', '0.0.0.0')
-    dst_ip = packet.get('destination', '0.0.0.0')
-
-    packet_bytes.append(0x45)  # Version 4, header length 5
-    packet_bytes.append(0x00)  # DSCP/ECN
-    total_length = max(packet.get('length', 60), 60)
-    packet_bytes.extend(struct.pack('!H', total_length))
-    packet_bytes.extend(struct.pack('!H', packet.get('id', 0)))
-    packet_bytes.extend(struct.pack('!H', 0x4000))  # Flags
-    packet_bytes.append(64)  # TTL
-
-    # Protocol
-    proto = 6  # TCP default
-    if packet.get('protocol') == 'UDP' or packet.get('protocol') == 'DNS':
-        proto = 17
-    elif packet.get('protocol') == 'ICMP':
-        proto = 1
-    packet_bytes.append(proto)
-
-    packet_bytes.extend(struct.pack('!H', 0x0000))  # Checksum
-
-    # Source and Destination IP
-    try:
-        for octet in src_ip.split('.'):
-            packet_bytes.append(int(octet))
-        for octet in dst_ip.split('.'):
-            packet_bytes.append(int(octet))
-    except:
-        packet_bytes.extend(b'\x00\x00\x00\x00\x00\x00\x00\x00')
-
-    # TCP/UDP header using direct port fields
-    if packet.get('protocol') in ['TCP', 'HTTP', 'MODBUS', 'S7COMM', 'OPCUA', 'ENIP']:
-        # TCP header (20 bytes)
-        packet_bytes.extend(struct.pack('!H', packet.get('source_port', 0)))
-        packet_bytes.extend(struct.pack('!H', packet.get('dest_port', 0)))
-        packet_bytes.extend(struct.pack('!I', 0))  # Seq
-        packet_bytes.extend(struct.pack('!I', 0))  # Ack
-        packet_bytes.extend(struct.pack('!H', 0x5000))  # Data offset, flags
-        packet_bytes.extend(struct.pack('!H', 8192))  # Window
-        packet_bytes.extend(struct.pack('!H', 0))  # Checksum
-        packet_bytes.extend(struct.pack('!H', 0))  # Urgent pointer
-    elif packet.get('protocol') in ['UDP', 'DNS']:
-        # UDP header (8 bytes)
-        packet_bytes.extend(struct.pack('!H', packet.get('source_port', 0)))
-        packet_bytes.extend(struct.pack('!H', packet.get('dest_port', 0)))
-        packet_bytes.extend(struct.pack('!H', 8))  # Length
-        packet_bytes.extend(struct.pack('!H', 0))  # Checksum
-
-    # Pad to minimum size
-    while len(packet_bytes) < 60:
-        packet_bytes.append(0)
-
-    return bytes(packet_bytes)
+        filename = f"capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pcap"
+        logger.info(f"Exporting {size} bytes of capture as {filename}")
+        return Response(chunks(), mimetype='application/vnd.tcpdump.pcap', headers={
+            'Content-Disposition': f'attachment; filename={filename}',
+            'Content-Length': str(size),
+        })

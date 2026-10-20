@@ -488,6 +488,11 @@
         .protocol-modbus { color: #ff6b6b; font-weight: bold; }
         .protocol-s7comm { color: #ffd93d; font-weight: bold; }
         .protocol-opcua { color: #a8e6cf; font-weight: bold; }
+        .protocol-cotp { color: #ffd93d; }
+        .protocol-enip { color: #ff8b94; font-weight: bold; }
+        #filterInput.filter-invalid { border-color: #ff4444; }
+        #filterHint { font-size: 0.8rem; color: #ff8888; white-space: nowrap; }
+        #bufferNote { color: #ffcc66; }
         .protocol-enip { color: #ff8b94; font-weight: bold; }
         .protocol-other { color: #cccccc; }
 
@@ -958,6 +963,18 @@
             <select id="interfaceSelect" style="min-width: 150px;">
                 <option value="all">All</option>
             </select>
+            <label for="captureFilter" style="color: #ff6b00;" title="What is recorded. Set before starting; the display filter below only hides packets.">Capture:</label>
+            <select id="captureFilter" title="What is recorded. Set before starting; the display filter below only hides packets.">
+                <option value="">Everything</option>
+                <option value="modbus">Modbus (502)</option>
+                <option value="s7comm">S7comm (102)</option>
+                <option value="opcua">OPC-UA (4840)</option>
+                <option value="enip">EtherNet/IP (44818)</option>
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="icmp">ICMP</option>
+                <option value="arp">ARP</option>
+            </select>
         </div>
 
         <div style="flex: 1;"></div>
@@ -971,8 +988,9 @@
         <!-- Display Filter -->
         <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; max-width: 600px;">
             <label for="filterInput" style="color: #ff6b00; white-space: nowrap;">Display Filter:</label>
-            <input type="text" id="filterInput" placeholder="e.g., ip.src == 192.168.1.1, tcp.port == 502" style="flex: 1;">
+            <input type="text" id="filterInput" placeholder="e.g. modbus, modbus.func_code == 6, ip.src == 172.18.0.2 && tcp.port == 502" style="flex: 1;" onkeypress="if(event.key==='Enter') applyFilter()">
             <button onclick="applyFilter()">Apply</button>
+            <span id="filterHint"></span>
         </div>
 
         <div style="border-left: 1px solid #606060; height: 30px; margin: 0 1rem;"></div>
@@ -1338,6 +1356,9 @@
         <div class="status-item">
             <span>Capture Time: <strong id="captureTime">0:00</strong></span>
         </div>
+        <div class="status-item">
+            <span id="bufferNote"></span>
+        </div>
     </div>
 
     <script>
@@ -1357,9 +1378,26 @@
         let captureStartTime = null;
         let captureTimer = null;
         let updateInterval = null;
+        // Newest packet id the page has; the server sends only newer ones.
+        let lastPacketId = 0;
+        // The first packet's capture time: relative times count from it. Packet
+        // times come from the board's clock, which need not agree with the browser's.
+        let firstPacketTime = null;
+        // The server keeps this many for the page; the export holds more.
+        let maxPackets = 1000;
+        let displayFilter = () => true;
+        let displayFilterActive = false;
+        const POLL_MS = 1000;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
 
         // New features state
-        let timeFormat = 'delta';
+        // Matches the selector's first option, which is what it shows on load.
+        let timeFormat = 'relative';
         let visibleColumns = {
             'no': true, 'time': true, 'source': true, 'source-port': false,
             'destination': true, 'dest-port': false, 'protocol': true,
@@ -1476,7 +1514,7 @@
 
         async function startCapture() {
             const interface_ = document.getElementById('interfaceSelect').value;
-            const filter = document.getElementById('filterInput').value;
+            const filter = document.getElementById('captureFilter').value;
 
             try {
                 const response = await fetch('/api/network/start', {
@@ -1485,46 +1523,55 @@
                     body: JSON.stringify({ interface: interface_, filter: filter })
                 });
 
-                if (response.ok) {
-                    capturing = true;
-                    captureStartTime = Date.now();
-
-                    document.getElementById('startBtn').disabled = true;
-                    document.getElementById('stopBtn').disabled = false;
-                    document.getElementById('recordingIndicator').classList.add('active');
-                    document.getElementById('statusText').textContent = 'Capturing...';
-
-                    // Start updating packet list
-                    updateInterval = setInterval(fetchPackets, 500);
-
-                    // Start capture timer
-                    captureTimer = setInterval(updateCaptureTime, 1000);
+                if (!response.ok) {
+                    const body = await response.json().catch(() => ({}));
+                    document.getElementById('statusText').textContent = 'Not started';
+                    alert(`Capture could not start: ${body.error || response.statusText}`);
+                    return;
                 }
+
+                // The server starts every capture empty.
+                packets = [];
+                displayedPackets = [];
+                lastPacketId = 0;
+                firstPacketTime = null;
+                selectedPacketId = null;
+                updatePacketTable();
+
+                capturing = true;
+                captureStartTime = Date.now();
+                setCapturingUi(true, 'Capturing...');
+
+                updateInterval = setInterval(fetchPackets, POLL_MS);
+                captureTimer = setInterval(updateCaptureTime, 1000);
             } catch (error) {
                 console.error('Error starting capture:', error);
-                alert('Failed to start capture. Make sure you have necessary permissions.');
+                alert('Failed to start capture. Is the landing page reachable?');
             }
+        }
+
+        function setCapturingUi(on, status) {
+            document.getElementById('startBtn').disabled = on;
+            document.getElementById('stopBtn').disabled = !on;
+            document.getElementById('recordingIndicator').classList.toggle('active', on);
+            document.getElementById('statusText').textContent = status;
         }
 
         async function stopCapture() {
             try {
                 await fetch('/api/network/stop', { method: 'POST' });
-
-                capturing = false;
-
-                document.getElementById('startBtn').disabled = false;
-                document.getElementById('stopBtn').disabled = true;
-                document.getElementById('recordingIndicator').classList.remove('active');
-                document.getElementById('statusText').textContent = 'Stopped';
-
-                clearInterval(updateInterval);
-                clearInterval(captureTimer);
-
-                // Fetch final packets
-                await fetchPackets();
             } catch (error) {
                 console.error('Error stopping capture:', error);
             }
+            captureEnded('Stopped');
+            await fetchPackets();
+        }
+
+        function captureEnded(status) {
+            capturing = false;
+            clearInterval(updateInterval);
+            clearInterval(captureTimer);
+            setCapturingUi(false, status);
         }
 
         async function clearCapture() {
@@ -1534,6 +1581,8 @@
 
             packets = [];
             displayedPackets = [];
+            lastPacketId = 0;
+            firstPacketTime = null;
             packetCounter = 0;
             selectedPacketId = null;
 
@@ -1547,6 +1596,7 @@
             document.getElementById('packetCount').textContent = '0';
             document.getElementById('displayedCount').textContent = '0';
             document.getElementById('captureTime').textContent = '0:00';
+            document.getElementById('bufferNote').textContent = '';
 
             try {
                 await fetch('/api/network/clear', { method: 'POST' });
@@ -1556,18 +1606,95 @@
         }
 
         async function fetchPackets() {
+            let data;
             try {
-                const response = await fetch('/api/network/packets');
-                const data = await response.json();
-
-                packets = data.packets || [];
-                displayedPackets = packets;
-
-                updatePacketTable();
-                document.getElementById('packetCount').textContent = packets.length;
-                document.getElementById('displayedCount').textContent = displayedPackets.length;
+                const response = await fetch(`/api/network/packets?since=${lastPacketId}`);
+                data = await response.json();
             } catch (error) {
                 console.error('Error fetching packets:', error);
+                return;
+            }
+
+            const fresh = data.packets || [];
+            const stats = data.stats || {};
+            maxPackets = stats.max_packets || maxPackets;
+
+            if (fresh.length > 0) {
+                if (firstPacketTime === null) firstPacketTime = new Date(fresh[0].timestamp);
+                lastPacketId = fresh[fresh.length - 1].id;
+                packets.push(...fresh);
+                if (packets.length > maxPackets) {
+                    packets.splice(0, packets.length - maxPackets);
+                }
+                // The display filter applies to what keeps arriving, not
+                // only to what was there when it was set.
+                const shown = displayFilterActive ? fresh.filter(displayFilter) : fresh;
+                displayedPackets = displayFilterActive ? packets.filter(displayFilter) : packets.slice();
+                appendPacketRows(shown);
+            }
+
+            updateCounts(stats);
+
+            // The server stops a capture by itself when the page stops polling,
+            // or when the sniffer fails; follow it.
+            if (capturing && stats.active === false) {
+                const reason = stats.error ? `Failed: ${stats.error}` :
+                    stats.stopped_reason === 'idle' ? 'Stopped (idle)' : 'Stopped';
+                captureEnded(reason);
+            }
+        }
+
+        function updateCounts(stats) {
+            const total = stats.total_packets ?? packets.length;
+            document.getElementById('packetCount').textContent = total;
+            document.getElementById('displayedCount').textContent = displayedPackets.length;
+
+            let note = '';
+            if (total > packets.length) {
+                note = `Showing the newest ${packets.length} of ${total}; Export PCAP has all of them`;
+                if (stats.pcap_full) note = `Showing the newest ${packets.length} of ${total}; the export file is full (16 MB), newer packets are only shown`;
+            }
+            document.getElementById('bufferNote').textContent = note;
+        }
+
+        function packetRowHtml(packet, index) {
+            packet.expert_info = analyzeExpertInfo(packet);
+
+            const selected = selectedPacketId === packet.id ? 'selected' : '';
+            const protocolClass = `protocol-${packet.protocol.toLowerCase()}`;
+            const colorClass = getPacketRowClass(packet);
+            const time = formatPacketTime(packet, index);
+            const expertBadge = getExpertBadge(packet.expert_info);
+
+            let rowHtml = `<tr class="${selected} ${colorClass}" data-packet-id="${packet.id}" onclick="selectPacket(${packet.id})">`;
+            if (visibleColumns.no) rowHtml += `<td>${packet.id}</td>`;
+            if (visibleColumns.time) rowHtml += `<td>${time}</td>`;
+            if (visibleColumns.source) rowHtml += `<td>${escapeHtml(packet.source)}</td>`;
+            if (visibleColumns['source-port']) rowHtml += `<td>${packet.source_port || ''}</td>`;
+            if (visibleColumns.destination) rowHtml += `<td>${escapeHtml(packet.destination)}</td>`;
+            if (visibleColumns['dest-port']) rowHtml += `<td>${packet.dest_port || ''}</td>`;
+            if (visibleColumns.protocol) rowHtml += `<td class="${protocolClass}">${escapeHtml(packet.protocol)}</td>`;
+            if (visibleColumns.length) rowHtml += `<td>${packet.length}</td>`;
+            if (visibleColumns.info) rowHtml += `<td>${escapeHtml(packet.info)}${expertBadge}</td>`;
+            rowHtml += `</tr>`;
+            return rowHtml;
+        }
+
+        // Add rows for newly arrived packets and drop the rows of packets that
+        // aged out, instead of rebuilding a thousand rows every poll.
+        function appendPacketRows(fresh) {
+            const tbody = document.getElementById('packetTableBody');
+            if (!tbody.querySelector('tr[data-packet-id]')) {
+                updatePacketTable();
+                return;
+            }
+            const start = displayedPackets.length - fresh.length;
+            tbody.insertAdjacentHTML('beforeend',
+                fresh.map((packet, i) => packetRowHtml(packet, start + i)).join(''));
+            const oldest = packets.length ? packets[0].id : Infinity;
+            while (tbody.firstElementChild &&
+                   Number(tbody.firstElementChild.dataset.packetId) < oldest) {
+                tbody.removeChild(tbody.firstElementChild);
             }
         }
 
@@ -1594,32 +1721,7 @@
             if (visibleColumns.info) headerHtml += '<th>Info</th>';
             thead.innerHTML = headerHtml;
 
-            const html = displayedPackets.map((packet, index) => {
-                // Analyze expert info
-                packet.expert_info = analyzeExpertInfo(packet);
-
-                const selected = selectedPacketId === packet.id ? 'selected' : '';
-                const protocolClass = `protocol-${packet.protocol.toLowerCase()}`;
-                const colorClass = getPacketRowClass(packet);
-                const time = formatPacketTime(packet, index);
-                const expertBadge = getExpertBadge(packet.expert_info);
-
-                let rowHtml = `<tr class="${selected} ${colorClass}" data-packet-id="${packet.id}" onclick="selectPacket(${packet.id})">`;
-                if (visibleColumns.no) rowHtml += `<td>${packet.id}</td>`;
-                if (visibleColumns.time) rowHtml += `<td>${time}</td>`;
-                if (visibleColumns.source) rowHtml += `<td>${packet.source}</td>`;
-                if (visibleColumns['source-port']) rowHtml += `<td>${packet.source_port || ''}</td>`;
-                if (visibleColumns.destination) rowHtml += `<td>${packet.destination}</td>`;
-                if (visibleColumns['dest-port']) rowHtml += `<td>${packet.dest_port || ''}</td>`;
-                if (visibleColumns.protocol) rowHtml += `<td class="${protocolClass}">${packet.protocol}</td>`;
-                if (visibleColumns.length) rowHtml += `<td>${packet.length}</td>`;
-                if (visibleColumns.info) rowHtml += `<td>${packet.info}${expertBadge}</td>`;
-                rowHtml += `</tr>`;
-
-                return rowHtml;
-            }).join('');
-
-            tbody.innerHTML = html;
+            tbody.innerHTML = displayedPackets.map(packetRowHtml).join('');
         }
 
         function selectPacket(packetId) {
@@ -1628,6 +1730,9 @@
 
             if (packet) {
                 displayPacketDetails(packet);
+                if (document.getElementById('hexContent').classList.contains('active')) {
+                    displayHexDump(packet);
+                }
             }
 
             // Update selected row
@@ -1714,7 +1819,8 @@
                         <div class="field"><span class="field-name">Transaction ID:</span> <span class="field-value">${modbus.transaction_id}</span></div>
                         <div class="field"><span class="field-name">Protocol ID:</span> <span class="field-value">${modbus.protocol_id}</span></div>
                         <div class="field"><span class="field-name">Unit ID:</span> <span class="field-value">${modbus.unit_id}</span></div>
-                        <div class="field"><span class="field-name">Function Code:</span> <span class="field-value">${modbus.function_code} (${modbus.function_name})</span></div>
+                        <div class="field"><span class="field-name">Function Code:</span> <span class="field-value">${modbus.function_code} (${escapeHtml(modbus.function_name)})</span></div>
+                        ${modbus.pdu_count > 1 ? `<div class="field"><span class="field-name">ADUs in segment:</span> <span class="field-value">${modbus.pdu_count} (only the first is decoded)</span></div>` : ''}
                         <div class="field"><span class="field-name">Length:</span> <span class="field-value">${modbus.length} bytes</span></div>
                     </div>
                 `;
@@ -1725,9 +1831,10 @@
                 const s7 = packet.layers.s7comm;
                 html += `
                     <div class="layer" style="border-left-color: #ffd93d;">
-                        <div class="layer-title" style="color: #ffd93d;">S7 Communication Protocol</div>
+                        <div class="layer-title" style="color: #ffd93d;">${s7.protocol_id === 0x32 ? 'S7 Communication Protocol' : 'ISO Transport (TPKT/COTP)'}</div>
                         ${s7.tpkt_length ? `<div class="field"><span class="field-name">TPKT Length:</span> <span class="field-value">${s7.tpkt_length} bytes</span></div>` : ''}
                         ${s7.protocol_id !== undefined ? `<div class="field"><span class="field-name">Protocol ID:</span> <span class="field-value">0x${s7.protocol_id.toString(16).padStart(2, '0')}</span></div>` : ''}
+                        ${s7.cotp_pdu_type !== undefined ? `<div class="field"><span class="field-name">COTP PDU:</span> <span class="field-value">0x${s7.cotp_pdu_type.toString(16)}${s7.message_type === undefined ? ` (${s7.message_type_name})` : ''}</span></div>` : ''}
                         ${s7.message_type !== undefined ? `<div class="field"><span class="field-name">Message Type:</span> <span class="field-value">${s7.message_type} (${s7.message_type_name})</span></div>` : ''}
                     </div>
                 `;
@@ -1764,8 +1871,8 @@
             if (packet.data) {
                 html += `
                     <div class="layer">
-                        <div class="layer-title">Payload Data</div>
-                        <div class="field"><span class="field-value">${packet.data}</span></div>
+                        <div class="layer-title">Payload (first 64 bytes, hex)</div>
+                        <div class="field"><span class="field-value" style="font-family: monospace; word-break: break-all;">${escapeHtml(packet.data.match(/../g).join(' '))}</span></div>
                     </div>
                 `;
             }
@@ -1783,16 +1890,17 @@
         }
 
         function applyFilter() {
-            const filterText = document.getElementById('filterInput').value;
+            const input = document.getElementById('filterInput');
+            const hint = document.getElementById('filterHint');
+            const parsed = parseDisplayFilter(input.value);
 
-            if (!filterText) {
-                displayedPackets = packets;
-            } else {
-                // Use advanced Wireshark-like filter parser
-                const filterFunc = parseDisplayFilter(filterText);
-                displayedPackets = packets.filter(filterFunc);
-            }
+            input.classList.toggle('filter-invalid', !!parsed.error);
+            hint.textContent = parsed.error || '';
+            if (parsed.error) return;  // keep showing what the last valid filter showed
 
+            displayFilter = parsed.match;
+            displayFilterActive = input.value.trim() !== '';
+            displayedPackets = displayFilterActive ? packets.filter(displayFilter) : packets.slice();
             updatePacketTable();
             document.getElementById('displayedCount').textContent = displayedPackets.length;
         }
@@ -2663,56 +2771,119 @@
             updatePacketTable();
         }
 
-        // 2. Advanced Filtering (Wireshark-like syntax)
+        // 2. Display filter, a small subset of Wireshark's syntax:
+        //   protocol names         modbus, s7comm, cotp, opcua, enip, tcp, udp, icmp, arp, dns
+        //   field op value         ip.src, ip.dst, ip.addr, tcp.port, udp.port,
+        //                          tcp.srcport, tcp.dstport, modbus.func_code,
+        //                          modbus.unit_id, frame.len  with == != < > <= >=
+        //   info contains "text"
+        //   combined with && / and, || / or, ! / not
+        // Returns { match } or { error }; an unknown term is an error rather
+        // than a filter that silently matches everything.
+        const TCP_PROTOCOLS = ['TCP', 'MODBUS', 'S7COMM', 'COTP', 'OPCUA', 'ENIP'];
+        const UDP_PROTOCOLS = ['UDP', 'DNS', 'ENIP'];
+        const PROTOCOL_TERMS = {
+            modbus: p => p.protocol === 'MODBUS',
+            s7comm: p => p.protocol === 'S7COMM',
+            cotp: p => p.protocol === 'COTP' || p.protocol === 'S7COMM',
+            opcua: p => p.protocol === 'OPCUA',
+            enip: p => p.protocol === 'ENIP',
+            tcp: p => !!(p.layers && p.layers.tcp) || TCP_PROTOCOLS.includes(p.protocol),
+            udp: p => !!(p.layers && p.layers.udp) || UDP_PROTOCOLS.includes(p.protocol),
+            icmp: p => p.protocol === 'ICMP',
+            arp: p => p.protocol === 'ARP',
+            dns: p => p.protocol === 'DNS',
+            ip: p => !!(p.layers && p.layers.ip),
+        };
+        const isTcp = p => PROTOCOL_TERMS.tcp(p);
+        const isUdp = p => PROTOCOL_TERMS.udp(p);
+        // Each field gives the packet's value(s); a term matches if any does.
+        const FIELDS = {
+            'ip.src': p => [p.source],
+            'ip.dst': p => [p.destination],
+            'ip.addr': p => [p.source, p.destination],
+            'tcp.port': p => isTcp(p) ? [p.source_port, p.dest_port] : [],
+            'tcp.srcport': p => isTcp(p) ? [p.source_port] : [],
+            'tcp.dstport': p => isTcp(p) ? [p.dest_port] : [],
+            'udp.port': p => isUdp(p) ? [p.source_port, p.dest_port] : [],
+            'modbus.func_code': p => p.layers && p.layers.modbus ? [p.layers.modbus.function_code] : [],
+            'modbus.unit_id': p => p.layers && p.layers.modbus ? [p.layers.modbus.unit_id] : [],
+            'frame.len': p => [p.length],
+        };
+        const OPERATORS = {
+            '==': (a, b) => a === b, '!=': (a, b) => a !== b,
+            '<': (a, b) => a < b, '>': (a, b) => a > b,
+            '<=': (a, b) => a <= b, '>=': (a, b) => a >= b,
+        };
+
+        function parseFilterTerm(term) {
+            term = term.trim();
+            let negate = false;
+            const not = term.match(/^(!|not\s+)(.*)$/);
+            if (not) { negate = true; term = not[2].trim(); }
+
+            let test = null;
+            const contains = term.match(/^info\s+contains\s+"([^"]*)"$/);
+            const compare = term.match(/^([a-z0-9_.]+)\s*(==|!=|<=|>=|<|>)\s*(\S+)$/);
+            if (PROTOCOL_TERMS[term]) {
+                test = PROTOCOL_TERMS[term];
+            } else if (contains) {
+                const needle = contains[1].toLowerCase();
+                test = p => String(p.info || '').toLowerCase().includes(needle);
+            } else if (compare) {
+                const [, field, op, raw] = compare;
+                if (!FIELDS[field]) return { error: `unknown field "${field}"` };
+                const numeric = /^\d+$/.test(raw);
+                if (field !== 'ip.src' && field !== 'ip.dst' && field !== 'ip.addr' && !numeric) {
+                    return { error: `"${field}" needs a number` };
+                }
+                const value = numeric ? Number(raw) : raw;
+                const cmp = OPERATORS[op];
+                // != holds when the field is there and no value equals it, as in
+                // Wireshark: tcp.port != 502 drops both directions and every non-TCP packet.
+                test = op === '!='
+                    ? p => { const values = FIELDS[field](p); return values.length > 0 && values.every(v => v !== value); }
+                    : p => FIELDS[field](p).some(v => v !== undefined && cmp(v, value));
+            } else {
+                return { error: `cannot read "${term}"` };
+            }
+            return { match: negate ? p => !test(p) : test };
+        }
+
         function parseDisplayFilter(filterStr) {
-            if (!filterStr) return () => true;
+            filterStr = (filterStr || '').toLowerCase().trim();
+            if (!filterStr) return { match: () => true };
 
-            filterStr = filterStr.toLowerCase().trim();
-
-            return (packet) => {
-                // ip.src == X or ip.dst == X
-                const ipSrcMatch = filterStr.match(/ip\.src\s*==\s*([0-9.]+)/);
-                if (ipSrcMatch && packet.source !== ipSrcMatch[1]) return false;
-
-                const ipDstMatch = filterStr.match(/ip\.dst\s*==\s*([0-9.]+)/);
-                if (ipDstMatch && packet.destination !== ipDstMatch[1]) return false;
-
-                // tcp.port == X or udp.port == X
-                const tcpPortMatch = filterStr.match(/tcp\.port\s*==\s*(\d+)/);
-                if (tcpPortMatch) {
-                    const port = parseInt(tcpPortMatch[1]);
-                    if (packet.protocol !== 'TCP' || (packet.source_port !== port && packet.dest_port !== port)) return false;
+            // || binds looser than &&, as in Wireshark. No parentheses.
+            const alternatives = [];
+            for (const alt of filterStr.split(/\s*(?:\|\||\bor\b)\s*/)) {
+                const terms = [];
+                for (const term of alt.split(/\s*(?:&&|\band\b)\s*/)) {
+                    if (!term) return { error: 'empty term' };
+                    const parsed = parseFilterTerm(term);
+                    if (parsed.error) return parsed;
+                    terms.push(parsed.match);
                 }
-
-                const udpPortMatch = filterStr.match(/udp\.port\s*==\s*(\d+)/);
-                if (udpPortMatch) {
-                    const port = parseInt(udpPortMatch[1]);
-                    if (packet.protocol !== 'UDP' || (packet.source_port !== port && packet.dest_port !== port)) return false;
-                }
-
-                // tcp, udp, modbus, etc (protocol filter)
-                if (filterStr === 'tcp' && packet.protocol !== 'TCP') return false;
-                if (filterStr === 'udp' && packet.protocol !== 'UDP') return false;
-                if (filterStr === 'modbus' && packet.protocol !== 'MODBUS') return false;
-                if (filterStr === 's7comm' && packet.protocol !== 'S7COMM') return false;
-                if (filterStr === 'opcua' && packet.protocol !== 'OPCUA') return false;
-
-                // Simple keyword search in info
-                if (filterStr.includes('contains')) {
-                    const containsMatch = filterStr.match(/contains\s+"([^"]+)"/);
-                    if (containsMatch && !packet.info.toLowerCase().includes(containsMatch[1])) return false;
-                }
-
-                return true;
-            };
+                alternatives.push(p => terms.every(t => t(p)));
+            }
+            return { match: p => alternatives.some(a => a(p)) };
         }
 
         // 3. Hex Dump Viewer
-        function displayHexDump(packet) {
+        async function displayHexDump(packet) {
+            const hexContent = document.getElementById('hexContent');
             if (!packet.raw_data) {
-                document.getElementById('hexContent').innerHTML = '<div class="no-data">No raw data available for this packet</div>';
-                return;
+                try {
+                    const response = await fetch(`/api/network/packet/${packet.id}/raw`);
+                    if (!response.ok) throw new Error(response.statusText);
+                    const body = await response.json();
+                    packet.raw_data = body.raw_hex.match(/../g).map(h => parseInt(h, 16));
+                } catch (error) {
+                    hexContent.innerHTML = '<div class="no-data">This packet is not in the capture file (it was full, or the capture was cleared)</div>';
+                    return;
+                }
             }
+            if (selectedPacketId !== packet.id) return;  // another packet was picked meanwhile
 
             const bytes = packet.raw_data;
             let html = '<div class="hex-dump">';
@@ -2726,7 +2897,7 @@
                     if (i + j < bytes.length) {
                         const byte = bytes[i + j];
                         hexBytes.push(byte.toString(16).padStart(2, '0'));
-                        asciiChars.push(byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.');
+                        asciiChars.push(byte >= 32 && byte <= 126 ? escapeHtml(String.fromCharCode(byte)) : '.');
                     } else {
                         hexBytes.push('  ');
                         asciiChars.push(' ');
@@ -2763,7 +2934,8 @@
                 html += `<span style="color: ${color};">[${idx + 1}] ${direction}</span> `;
                 html += `<span style="color: #cccccc;">${p.time} - ${p.length} bytes</span>`;
                 if (p.data) {
-                    html += `<div style="color: #ffffff; margin-top: 0.25rem; font-family: monospace; font-size: 0.85rem;">${p.data}</div>`;
+                    // The first 64 payload bytes, as hex.
+                    html += `<div style="color: #ffffff; margin-top: 0.25rem; font-family: monospace; font-size: 0.85rem; word-break: break-all;">${escapeHtml(p.data.match(/../g).join(' '))}</div>`;
                 }
                 html += `</div>`;
             });
@@ -2794,8 +2966,8 @@
                     return delta.toFixed(6);
                 case 'relative':
                 default:
-                    if (!captureStartTime) return packet.time;
-                    const relative = (packetTime - captureStartTime) / 1000;
+                    if (!firstPacketTime) return packet.time;
+                    const relative = (packetTime - firstPacketTime) / 1000;
                     return relative.toFixed(6);
             }
         }
@@ -3014,18 +3186,24 @@
             searchResults = [];
 
             if (searchType === 'display') {
-                const filter = parseDisplayFilter(query);
-                searchResults = packets.filter(filter).map(p => p.id);
+                const parsed = parseDisplayFilter(query);
+                if (parsed.error) {
+                    alert(`Display filter: ${parsed.error}`);
+                    return;
+                }
+                searchResults = packets.filter(parsed.match).map(p => p.id);
             } else if (searchType === 'string') {
+                // p.data is the payload's first 64 bytes as hex.
+                const needle = query.toLowerCase();
+                const needleHex = Array.from(new TextEncoder().encode(query))
+                    .map(b => b.toString(16).padStart(2, '0')).join('');
                 searchResults = packets.filter(p =>
-                    p.info.toLowerCase().includes(query.toLowerCase()) ||
-                    (p.data && p.data.toLowerCase().includes(query.toLowerCase()))
+                    p.info.toLowerCase().includes(needle) ||
+                    (p.data && p.data.includes(needleHex))
                 ).map(p => p.id);
             } else if (searchType === 'hex') {
-                // Simplified hex search
-                searchResults = packets.filter(p =>
-                    p.raw_data && p.raw_data.toString('hex').includes(query.replace(/\s/g, ''))
-                ).map(p => p.id);
+                const needleHex = query.replace(/\s|0x/gi, '').toLowerCase();
+                searchResults = packets.filter(p => p.data && p.data.includes(needleHex)).map(p => p.id);
             }
 
             currentSearchIndex = 0;
