@@ -346,9 +346,19 @@ static struct {
 	uint32_t frame;
 } run;
 
+/*
+ * An HD44780's liquid crystal takes 200-300 ms to switch, so a character
+ * moving faster than that smears into a grey streak the player cannot read.
+ * The game starts at 450 ms a column and never goes below 260 ms, the
+ * fastest an obstacle still shows as a shape.
+ */
+#define RUN_PERIOD_START_MS 450
+#define RUN_PERIOD_MIN_MS 260
+#define RUN_PERIOD_STEP_MS 6
+
 static int run_period_ms(void)
 {
-	return MAX(90, 220 - (int)run.points * 4);
+	return MAX(RUN_PERIOD_MIN_MS, RUN_PERIOD_START_MS - (int)run.points * RUN_PERIOD_STEP_MS);
 }
 
 static void run_start(int64_t now)
