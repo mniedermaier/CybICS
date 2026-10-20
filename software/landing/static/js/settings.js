@@ -8,7 +8,7 @@
 (function () {
     'use strict';
 
-    const SECTIONS = ['mgmt', 'assistant', 'system'];
+    const SECTIONS = ['mgmt', 'assistant', 'appearance', 'system'];
     const loaded = new Set();
     const loaders = {};
     const $ = id => document.getElementById(id);
@@ -146,11 +146,40 @@
     function applyTheme(theme) {
         document.documentElement.classList.toggle('light-mode', theme === 'light');
     }
-    fetch('/api/settings/theme').then(r => r.json()).then(d => applyTheme(d.theme || 'dark')).catch(() => {});
+    // The initial theme comes from theme_head.html, rendered by the server
     window.addEventListener('message', event => {
         if (event.origin === window.location.origin && event.data && event.data.type === 'theme') {
             applyTheme(event.data.theme);
         }
+    });
+
+    // ---------- appearance ----------
+    // The dashboard applies and stores the choice, and passes the theme on to
+    // every embedded page, this one included. Opened on its own, the page
+    // stores it itself.
+
+    async function loadAppearance() {
+        try {
+            const data = await request('/api/settings/theme');
+            const value = data.explicit ? data.theme : 'system';
+            const input = document.querySelector(`input[name="theme"][value="${value}"]`);
+            if (input) input.checked = true;
+        } catch (error) { /* the radios keep their default, "system" */ }
+    }
+
+    document.querySelectorAll('input[name="theme"]').forEach(input => {
+        input.addEventListener('change', async () => {
+            const theme = input.value;
+            if (window.parent !== window) {
+                tellDashboard({type: 'set-theme', theme});
+            } else {
+                applyTheme(theme === 'system'
+                    ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme);
+                try { await post('/api/settings/theme', {theme}); } catch (error) { /* applied for now */ }
+            }
+            $('themeMsg').textContent = theme === 'system' ? 'Following your system setting.'
+                : `${theme[0].toUpperCase()}${theme.slice(1)} theme on.`;
+        });
     });
 
     // ---------- AI assistant ----------
@@ -395,6 +424,7 @@
     });
 
     loaders.system = loadSystem;
+    loaders.appearance = loadAppearance;
 
     // ---------- start ----------
 

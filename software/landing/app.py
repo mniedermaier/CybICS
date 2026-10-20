@@ -43,6 +43,28 @@ def custom_version_string(self):
 
 WSGIRequestHandler.version_string = custom_version_string
 
+
+@app.errorhandler(404)
+def not_found(error):
+    """A page with a way back instead of Werkzeug's bare 404; JSON for the API."""
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    return render_template('not_found.html'), 404
+
+
+@app.after_request
+def deny_foreign_framing(response):
+    """Only the landing page itself may frame its pages.
+
+    The dashboard embeds its own views (CTF, Theory, Settings) in iframes and
+    listens for their postMessages; a foreign page that framed it could
+    otherwise drive it, and from here the webshell and the Docker socket are
+    one step away.
+    """
+    response.headers.setdefault('Content-Security-Policy', "frame-ancestors 'self'")
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    return response
+
 logger.info('='*60)
 logger.info('CybICS Application Starting')
 logger.info(f'Services configured: {list(SERVICES.keys())}')
@@ -143,6 +165,32 @@ def main_page():
 def get_services():
     """Get service configuration"""
     return jsonify(SERVICES)
+
+
+def _accepts_connections(port, timeout=0.5):
+    """True when something listens on the port on this host."""
+    import socket
+    try:
+        with socket.create_connection(('127.0.0.1', port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+@app.route('/api/services/health')
+def get_services_health():
+    """Which lab services accept connections, for the dashboard's status line.
+
+    The landing container uses host networking, so every service's published
+    port is reachable on 127.0.0.1. On a board the Docker-only services do not
+    exist and are left out rather than reported as down.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    on_board = read_hardware_version().get('detected', False)
+    ids = [sid for sid, svc in SERVICES.items() if not (on_board and svc.get('virtual_only'))]
+    with ThreadPoolExecutor(max_workers=max(1, len(ids))) as pool:
+        up = list(pool.map(lambda sid: _accepts_connections(SERVICES[sid]['port']), ids))
+    return jsonify({'services': dict(zip(ids, up)), 'up': sum(up), 'total': len(ids)})
 
 # ========== STATS ROUTES ==========
 
@@ -374,7 +422,8 @@ def ctf_page():
                          config=ctf_manager.config,
                          challenges=ctf_manager.challenges,
                          solved=session['solved_challenges'],
-                         total_points=session['total_points'])
+                         total_points=session['total_points'],
+                         on_board=read_hardware_version().get('detected', False))
 
 @app.route('/theory')
 def theory_page():
@@ -409,7 +458,7 @@ def theory_topic(topic_id):
     topic, section = theory_manager.get_topic(topic_id)
     if not topic:
         logger.warning(f'Theory topic not found: {topic_id}')
-        return "Topic not found", 404
+        abort(404)
     before, after = theory_manager.neighbours(topic_id)
     core_before, core_after = theory_manager.neighbours(topic_id, core=True)
     prerequisites = [theory_manager.get_topic(p)[0] for p in topic.get('prerequisites', [])]
@@ -494,7 +543,7 @@ def challenge_detail(challenge_id):
 
     if not challenge:
         logger.warning(f'Challenge not found: {challenge_id}')
-        return "Challenge not found", 404
+        abort(404)
 
     # Load training content
     training_content = ""
@@ -660,11 +709,20 @@ def settings_page():
 
 @app.route('/api/settings/theme', methods=['GET', 'POST'])
 def theme_settings():
-    """Get or set theme preference"""
+    """Get or set the theme for this browser session.
+
+    'light' and 'dark' are stored; 'system' forgets the choice, so the pages
+    follow the operating system's preference again.
+    """
     if request.method == 'POST':
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         theme = data.get('theme', 'dark')
-        session['theme'] = theme
+        if theme not in ('light', 'dark', 'system'):
+            return jsonify({'success': False, 'error': 'theme must be light, dark or system'}), 400
+        if theme == 'system':
+            session.pop('theme', None)
+        else:
+            session['theme'] = theme
         session.modified = True
         logger.info(f'Theme changed to: {theme}')
         return jsonify({'success': True, 'theme': theme})

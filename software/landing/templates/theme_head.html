@@ -1,0 +1,34 @@
+{# Theme for the pages the dashboard embeds (Theory Path, CTF challenges) and
+   the dashboard itself; sets html.light-mode. The dashboard opens pages in an
+   iframe with ?theme=light and later posts
+   {type: 'theme'} messages when the user switches; opened on their own, they
+   follow the setting stored in the session, rendered in by the server, or the
+   system preference when none was ever chosen. Runs in <head> so the page never
+   flashes the wrong theme. #}
+<script>
+(function () {
+    var root = document.documentElement;
+    function apply(theme) { root.classList.toggle('light-mode', theme === 'light'); }
+    var param = new URLSearchParams(location.search).get('theme');
+    // The choice stored in the session is rendered in, so there is no flash
+    var chosen = {{ (session.get('theme') or '')|tojson }};
+    if (param) {
+        apply(param);
+    } else if (chosen) {
+        apply(chosen);
+    } else if (window.parent === window) {
+        // No choice stored: follow the system, also when it changes later.
+        // Embedded pages get their theme from the dashboard instead.
+        try {
+            var query = matchMedia('(prefers-color-scheme: light)');
+            apply(query.matches ? 'light' : 'dark');
+            query.addEventListener('change', function (e) { apply(e.matches ? 'light' : 'dark'); });
+        } catch (e) {}
+    } else {
+        try { apply(matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); } catch (e) {}
+    }
+    window.addEventListener('message', function (event) {
+        if (event.source === window.parent && event.data && event.data.type === 'theme') apply(event.data.theme);
+    });
+})();
+</script>

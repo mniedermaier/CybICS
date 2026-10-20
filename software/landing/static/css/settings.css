@@ -453,6 +453,7 @@ input:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; border
 .model input { margin: 0.25rem 0 0; accent-color: var(--accent); }
 .model-name { font-weight: 600; font-family: var(--font-mono); font-size: 0.9rem; }
 .model-desc { grid-column: 2 / 4; color: var(--text-subtle); font-size: 0.85rem; }
+.choice .model-name { font-family: inherit; font-size: 0.95rem; }
 .badges { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
 .badge {
     font-size: 0.72rem;
@@ -479,7 +480,7 @@ input:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; border
         z-index: 5;
         background: var(--bg);
         padding: 0.4rem 0;
-        overflow-x: auto;
+        flex-wrap: wrap;
         border-bottom: 1px solid var(--border);
     }
     .subnav-link {

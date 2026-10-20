@@ -467,53 +467,53 @@
 }
 
 /* Light mode overrides */
-body.light-mode .chat-widget {
+html.light-mode body .chat-widget {
     background: #1a1a1a;
 }
 
-body.light-mode .chat-widget.expanded {
+html.light-mode body .chat-widget.expanded {
     background: rgba(255, 255, 255, 0.98);
 }
 
-body.light-mode .chat-widget.expanded .chat-header {
+html.light-mode body .chat-widget.expanded .chat-header {
     background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 140, 0, 0.05));
 }
 
-body.light-mode .chat-status {
+html.light-mode body .chat-status {
     background: rgba(245, 245, 245, 0.8);
 }
 
-body.light-mode .message-text { color: #333; }
+html.light-mode body .message-text { color: #333; }
 
-body.light-mode .user-message .message-text {
+html.light-mode body .user-message .message-text {
     background: rgba(255, 107, 0, 0.1);
 }
 
-body.light-mode .agent-message .message-text {
+html.light-mode body .agent-message .message-text {
     background: rgba(245, 245, 245, 0.9);
 }
 
-body.light-mode .message-text h1,
-body.light-mode .message-text h2,
-body.light-mode .message-text h3,
-body.light-mode .message-text h4 { color: #ff6b00; }
+html.light-mode body .message-text h1,
+html.light-mode body .message-text h2,
+html.light-mode body .message-text h3,
+html.light-mode body .message-text h4 { color: #ff6b00; }
 
-body.light-mode .message-text code { background: rgba(0, 0, 0, 0.08); color: #c7254e; }
-body.light-mode .message-text pre { background: rgba(0, 0, 0, 0.05); border-left-color: #ff6b00; }
-body.light-mode .message-text pre code { background: none; color: #333; }
-body.light-mode .message-text strong { color: #d45500; }
-body.light-mode .message-text em { color: #997000; }
-body.light-mode .message-text blockquote { color: #666; }
-body.light-mode .message-text table th { background: rgba(255, 107, 0, 0.15); }
+html.light-mode body .message-text code { background: rgba(0, 0, 0, 0.08); color: #c7254e; }
+html.light-mode body .message-text pre { background: rgba(0, 0, 0, 0.05); border-left-color: #ff6b00; }
+html.light-mode body .message-text pre code { background: none; color: #333; }
+html.light-mode body .message-text strong { color: #d45500; }
+html.light-mode body .message-text em { color: #997000; }
+html.light-mode body .message-text blockquote { color: #666; }
+html.light-mode body .message-text table th { background: rgba(255, 107, 0, 0.15); }
 
-body.light-mode .message-text table th,
-body.light-mode .message-text table td { border-color: rgba(255, 107, 0, 0.25); }
+html.light-mode body .message-text table th,
+html.light-mode body .message-text table td { border-color: rgba(255, 107, 0, 0.25); }
 
-body.light-mode .chat-input-container { background: rgba(245, 245, 245, 0.8); }
-body.light-mode .chat-input { background: rgba(255, 255, 255, 0.9); color: #333; }
-body.light-mode .chat-send-btn { color: #ff6b00; }
-body.light-mode .chat-clear-btn { background: rgba(255, 107, 0, 0.08); border-color: rgba(255, 107, 0, 0.3); }
-body.light-mode .chat-clear-btn:hover { background: rgba(255, 107, 0, 0.15); }
+html.light-mode body .chat-input-container { background: rgba(245, 245, 245, 0.8); }
+html.light-mode body .chat-input { background: rgba(255, 255, 255, 0.9); color: #333; }
+html.light-mode body .chat-send-btn { color: #ff6b00; }
+html.light-mode body .chat-clear-btn { background: rgba(255, 107, 0, 0.08); border-color: rgba(255, 107, 0, 0.3); }
+html.light-mode body .chat-clear-btn:hover { background: rgba(255, 107, 0, 0.15); }
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -541,6 +541,20 @@ body.light-mode .chat-clear-btn:hover { background: rgba(255, 107, 0, 0.15); }
     padding-top: 0.2rem;
 }
 
-body.light-mode .chat-you {
+html.light-mode body .chat-you {
     color: #b34700;
+}
+
+/* Phones: a smaller bubble that covers less of the page */
+@media (max-width: 600px) {
+    .chat-widget:not(.expanded) {
+        width: 48px;
+        height: 48px;
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    .chat-widget:not(.expanded) .chat-icon .cybics-mark {
+        height: 22px;
+    }
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - System Statistics</title>
     <link rel="stylesheet" href="/static/css/brand.css">
-    <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
+    {% include 'theme_head.html' %}
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="/static/js/chart.umd.min.js"></script>
     <style>
@@ -64,6 +64,11 @@
             margin-top: 0.5rem;
         }
 
+        .stats-scope { color: #a3a3a3; font-size: 0.9rem; margin: 0.25rem 0 1rem; }
+        .host-details { margin-bottom: 1.5rem; }
+        .host-details > summary { cursor: pointer; font-weight: 700; color: #ff6b00; padding: 0.75rem 0; font-size: 1.1rem; }
+        html.light-mode .host-details > summary { color: #b34700; }
+        html.light-mode .stats-scope, body.light-mode .stats-scope { color: #4b5563; }
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #ff6b00, #ff8c42);
@@ -197,6 +202,11 @@
             display: flex;
             gap: 1rem;
             align-items: center;
+        }
+
+        /* Phones: the refresh note goes under the title */
+        @media (max-width: 600px) {
+            header { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
         }
 
         nav .text-sm {
@@ -383,13 +393,34 @@
         <!-- Navigation menu -->
         <nav>
             <span class="text-sm text-gray-400">
-                <span class="refresh-indicator">●</span> Auto-refresh: 1s
+                <span class="refresh-indicator">●</span> Auto-refresh: 3s
             </span>
         </nav>
     </header>
 
     <!-- Main container -->
     <main>
+        <!-- Service Monitoring Section: every lab service, checked by the server -->
+        <div class="stat-card mb-6">
+            <h2>Service Monitoring</h2>
+            <p class="text-sm text-gray-400 mb-3">Whether each lab service accepts connections on this host. Checked every 10 seconds.</p>
+            <div id="service-grid" class="grid grid-cols-1 md:grid-cols-3"></div>
+        </div>
+
+        <!-- Docker Containers Section -->
+        <div class="stat-card mb-6">
+            <h2>Docker Containers (CybICS)</h2>
+            <div id="containers-list">
+                <div class="text-center text-gray-400 py-8">
+                    Loading container statistics...
+                </div>
+            </div>
+        </div>
+
+        <!-- The host machine: useful to instructors, alarming to students, so folded -->
+        <details class="host-details">
+            <summary>Host machine: CPU, memory, disk and network</summary>
+            <p class="stats-scope">These figures are for the whole machine the lab runs on: your computer in the Docker setup, the Raspberry Pi on a board. A full disk or busy swap there is usually not caused by the lab.</p>
         <!-- System Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             <!-- Uptime Card -->
@@ -407,7 +438,6 @@
                 <div class="stat-value" id="cpu-value">0%</div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="cpu-progress" style="width: 0%">
-                        <span id="cpu-progress-text">0%</span>
                     </div>
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
@@ -421,7 +451,6 @@
                 <div class="stat-value" id="memory-value">0 GB</div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="memory-progress" style="width: 0%">
-                        <span id="memory-progress-text">0%</span>
                     </div>
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
@@ -435,7 +464,6 @@
                 <div class="stat-value" id="swap-value">0 GB</div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="swap-progress" style="width: 0%">
-                        <span id="swap-progress-text">0%</span>
                     </div>
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
@@ -449,7 +477,6 @@
                 <div class="stat-value" id="disk-value">0 GB</div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="disk-progress" style="width: 0%">
-                        <span id="disk-progress-text">0%</span>
                     </div>
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
@@ -461,8 +488,8 @@
             <div class="stat-card">
                 <div class="stat-label">Network I/O</div>
                 <div class="stat-value">
-                    <span class="text-green-400">↓</span> <span id="network-rx">0 GB</span>
-                    <span class="ml-4 text-blue-400">↑</span> <span id="network-tx">0 GB</span>
+                    <span style="white-space: nowrap;"><span class="text-green-400" aria-label="received">↓</span> <span id="network-rx">0 GB</span></span>
+                    <span style="white-space: nowrap;" class="ml-4"><span class="text-blue-400" aria-label="sent">↑</span> <span id="network-tx">0 GB</span></span>
                 </div>
                 <div class="text-sm text-gray-400 mt-2">
                     <div>Packets RX: <span id="network-packets-rx">0</span></div>
@@ -501,87 +528,7 @@
             </div>
         </div>
 
-        <!-- Service Monitoring Section -->
-        <div class="stat-card mb-6">
-            <h2>Service Monitoring</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3">
-                <!-- OpenPLC Service -->
-                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-lg font-bold text-[#ff6b00]">OpenPLC</h3>
-                        <div id="openplc-status" class="status-badge status-running">CHECKING</div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Port:</span>
-                            <span class="text-white">8080</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Response Time:</span>
-                            <span id="openplc-response" class="text-white">-</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Last Check:</span>
-                            <span id="openplc-lastcheck" class="text-white">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FUXA Service -->
-                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-lg font-bold text-[#ff6b00]">FUXA</h3>
-                        <div id="fuxa-status" class="status-badge status-running">CHECKING</div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Port:</span>
-                            <span class="text-white">1881</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Response Time:</span>
-                            <span id="fuxa-response" class="text-white">-</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Last Check:</span>
-                            <span id="fuxa-lastcheck" class="text-white">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Virtual Hardware IO Service -->
-                <div class="bg-[#1a1a1a] border border-[#404040] rounded p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-lg font-bold text-[#ff6b00]">Virtual Hardware IO</h3>
-                        <div id="vhardware-status" class="status-badge status-running">CHECKING</div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Port:</span>
-                            <span class="text-white">8090</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Response Time:</span>
-                            <span id="vhardware-response" class="text-white">-</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Last Check:</span>
-                            <span id="vhardware-lastcheck" class="text-white">-</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Docker Containers Section -->
-        <div class="stat-card">
-            <h2>Docker Containers (CybICS)</h2>
-            <div id="containers-list">
-                <div class="text-center text-gray-400 py-8">
-                    Loading container statistics...
-                </div>
-            </div>
-        </div>
+        </details>
     </main>
 
     <script>
@@ -591,12 +538,19 @@
             document.documentElement.classList.toggle('light-mode', theme === 'light');
         }
 
-        fetch('/api/settings/theme').then(function (response) { return response.json(); }).then(function (data) { applyDashboardTheme(data.theme || 'dark'); }).catch(function () {});
+        // The initial theme comes from theme_head.html, rendered by the server
         window.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'theme') applyDashboardTheme(event.data.theme);
         });
         let updateInterval;
         let cpuChart, memoryChart, diskChart, networkChart;
+        // Charts drawn while folded have no size; redraw when the host section opens
+        document.addEventListener('DOMContentLoaded', () => {
+            const host = document.querySelector('.host-details');
+            if (host) host.addEventListener('toggle', () => {
+                [cpuChart, memoryChart, diskChart, networkChart].forEach(c => { if (c) c.resize(); });
+            });
+        });
 
         // Chart configuration
         const chartConfig = {
@@ -840,25 +794,21 @@
                     document.getElementById('cpu-value').textContent = data.cpu.percent + '%';
                     document.getElementById('cpu-cores').textContent = data.cpu.count;
                     document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
-                    document.getElementById('cpu-progress-text').textContent = data.cpu.percent + '%';
 
                     // Update Memory stats
                     document.getElementById('memory-value').textContent = data.memory.used_gb.toFixed(2) + ' GB';
                     document.getElementById('memory-total').textContent = data.memory.total_gb.toFixed(2) + ' GB';
                     document.getElementById('memory-progress').style.width = data.memory.percent + '%';
-                    document.getElementById('memory-progress-text').textContent = data.memory.percent.toFixed(1) + '%';
 
                     // Update Swap stats
                     document.getElementById('swap-value').textContent = data.swap.used_gb.toFixed(2) + ' GB';
                     document.getElementById('swap-total').textContent = data.swap.total_gb.toFixed(2) + ' GB';
                     document.getElementById('swap-progress').style.width = data.swap.percent + '%';
-                    document.getElementById('swap-progress-text').textContent = data.swap.percent.toFixed(1) + '%';
 
                     // Update Disk stats
                     document.getElementById('disk-value').textContent = data.disk.used_gb.toFixed(2) + ' GB';
                     document.getElementById('disk-total').textContent = data.disk.total_gb.toFixed(2) + ' GB';
                     document.getElementById('disk-progress').style.width = data.disk.percent + '%';
-                    document.getElementById('disk-progress-text').textContent = data.disk.percent.toFixed(1) + '%';
 
                     // Update Network stats
                     document.getElementById('network-rx').textContent = data.network.bytes_recv_gb.toFixed(2) + ' GB';
@@ -924,56 +874,50 @@
                 });
         }
 
-        // Service monitoring
-        const services = [
-            { id: 'openplc', port: 8080 },
-            { id: 'fuxa', port: 1881 },
-            { id: 'vhardware', port: 8090 }
-        ];
-
-        function checkService(service) {
-            const startTime = performance.now();
-            const hostname = window.location.hostname;
-            const url = `http://${hostname}:${service.port}`;
-
-            fetch(url, {
-                mode: 'no-cors',
-                cache: 'no-cache',
-                signal: AbortSignal.timeout(5000)
-            })
-                .then(() => {
-                    const responseTime = Math.round(performance.now() - startTime);
-                    document.getElementById(`${service.id}-status`).className = 'status-badge status-online';
-                    document.getElementById(`${service.id}-status`).textContent = 'ONLINE';
-                    document.getElementById(`${service.id}-response`).textContent = `${responseTime}ms`;
-                    document.getElementById(`${service.id}-lastcheck`).textContent = new Date().toLocaleTimeString();
-                })
-                .catch(() => {
-                    document.getElementById(`${service.id}-status`).className = 'status-badge status-offline';
-                    document.getElementById(`${service.id}-status`).textContent = 'OFFLINE';
-                    document.getElementById(`${service.id}-response`).textContent = 'N/A';
-                    document.getElementById(`${service.id}-lastcheck`).textContent = new Date().toLocaleTimeString();
-                });
-        }
+        // Service monitoring: the landing server probes the ports, so this works
+        // over HTTPS too and covers every service, not three
+        let serviceNames = {};
+        fetch('/api/services').then(r => r.json()).then(d => {
+            Object.keys(d).forEach(id => { serviceNames[id] = { name: d[id].name, port: d[id].port }; });
+            checkAllServices();
+        }).catch(() => {});
 
         function checkAllServices() {
-            services.forEach(service => checkService(service));
+            fetch('/api/services/health', { cache: 'no-store' })
+                .then(r => r.json())
+                .then(d => {
+                    const grid = document.getElementById('service-grid');
+                    const time = new Date().toLocaleTimeString();
+                    grid.innerHTML = '';
+                    Object.keys(d.services).forEach(id => {
+                        const up = d.services[id];
+                        const info = serviceNames[id] || { name: id, port: '' };
+                        const card = document.createElement('div');
+                        card.className = 'bg-[#1a1a1a] border border-[#404040] rounded p-4';
+                        card.innerHTML = `<div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-bold text-[#ff6b00]"></h3>
+                                <div class="status-badge ${up ? 'status-online' : 'status-offline'}">${up ? 'ONLINE' : 'OFFLINE'}</div>
+                            </div>
+                            <div class="text-sm text-gray-400">Port ${info.port} &middot; checked ${time}</div>`;
+                        card.querySelector('h3').textContent = info.name;
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(() => {});
         }
 
         // Initial load
         initCharts();
         updateStats();
-        checkAllServices();
         updateCharts();
 
-        // Update stats every second
-        updateInterval = setInterval(updateStats, 1000);
-
-        // Check services every 5 seconds
-        setInterval(checkAllServices, 5000);
+        // Every 3 seconds is enough to watch an attack, and light on a Pi Zero;
+        // nothing is polled while the tab is hidden
+        updateInterval = setInterval(() => { if (!document.hidden) updateStats(); }, 3000);
+        setInterval(() => { if (!document.hidden) checkAllServices(); }, 10000);
 
         // Update charts every 10 seconds
-        setInterval(updateCharts, 10000);
+        setInterval(() => { if (!document.hidden) updateCharts(); }, 10000);
 
         // Clean up on page unload
         window.addEventListener('beforeunload', function() {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - Industrial Control Systems</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    {% include 'theme_head.html' %}
     <link rel="apple-touch-icon" href="/pics/apple-touch-icon.png">
     <meta name="theme-color" content="#1a1a1a">
     <style>
@@ -31,7 +32,7 @@
         }
 
         /* ---- Design tokens ------------------------------------------------------
-           Semantic color scale. Dark is the default (no class); `body.light-mode`
+           Semantic color scale. Dark is the default (no class); `html.light-mode body`
            (applied by the theme JS) overrides the same names so every surface and
            text color flows from one place and stays contrast-consistent. */
         :root {
@@ -475,6 +476,21 @@
             color: var(--on-accent);
         }
 
+        .error-help {
+            text-align: left;
+            max-width: 34rem;
+            margin: 1rem auto 0;
+            padding-left: 1.2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .error-help code {
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+        }
+
         .error-message {
             color: var(--accent);
             font-size: 1.2rem;
@@ -552,6 +568,14 @@
             flex-shrink: 0;
         }
 
+        .hero-status-dot.checking {
+            background: var(--text-subtle);
+        }
+
+        .hero-status-dot.degraded {
+            background: var(--brand-amber, #ffb300);
+        }
+
         .hero-status-sep {
             color: var(--border-strong);
         }
@@ -595,6 +619,52 @@
             justify-content: center;
             gap: 0.75rem;
             flex-wrap: wrap;
+        }
+
+        .hero-reference {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .hero-reference-label {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
+            margin-right: 0.25rem;
+        }
+
+        .hero-reference .hero-btn {
+            padding: 0.45rem 0.85rem;
+            font-size: 0.85rem;
+        }
+
+        .home-footer {
+            display: flex;
+            justify-content: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            padding: 2rem 1rem 2.5rem;
+            color: var(--text-subtle);
+            font-size: 0.85rem;
+        }
+
+        .home-footer a {
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .home-footer svg {
+            width: 16px;
+            height: 16px;
         }
 
         .hero-btn {
@@ -652,11 +722,11 @@
             display: none;
         }
 
-        body.light-mode .if-light {
+        html.light-mode body .if-light {
             display: inline;
         }
 
-        body.light-mode .if-dark {
+        html.light-mode body .if-dark {
             display: none;
         }
 
@@ -709,33 +779,33 @@
             color: var(--text);
         }
 
-        body.light-mode .hero-banner p {
+        html.light-mode body .hero-banner p {
             color: var(--text-muted);
         }
 
         /* Keep the one gradient brand moment, but with darker stops so it stays
            legible (AA for large text) on the light background. */
-        body.light-mode .hero-banner h1 {
+        html.light-mode body .hero-banner h1 {
             background: linear-gradient(135deg, #d45a00, #b34700);
             -webkit-background-clip: text;
             background-clip: text;
         }
 
-        body.light-mode .info-box {
+        html.light-mode body .info-box {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 245, 245, 0.95));
             border-color: rgba(255, 107, 0, 0.3);
         }
 
-        body.light-mode .info-box p,
-        body.light-mode .info-box ul {
+        html.light-mode body .info-box p,
+        html.light-mode body .info-box ul {
             color: #333;
         }
 
-        body.light-mode .info-box strong {
+        html.light-mode body .info-box strong {
             color: #111;
         }
 
-        body.light-mode .hero-btn-secondary {
+        html.light-mode body .hero-btn-secondary {
             color: #111;
         }
 
@@ -756,7 +826,7 @@
             white-space: nowrap;
         }
 
-        body.light-mode .badge {
+        html.light-mode body .badge {
             background-color: rgba(255, 107, 0, 0.12);
             color: #b45400;
         }
@@ -819,16 +889,16 @@
             margin-top: 0.6rem;
         }
 
-        body.light-mode .access-table td {
+        html.light-mode body .access-table td {
             color: #333;
         }
 
-        body.light-mode .access-table th,
-        body.light-mode .access-table a {
+        html.light-mode body .access-table th,
+        html.light-mode body .access-table a {
             color: #b45400;
         }
 
-        body.light-mode .access-caption {
+        html.light-mode body .access-caption {
             color: #777;
         }
 
@@ -837,6 +907,19 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 0.85rem;
+        }
+
+        button.learning-card {
+            font: inherit;
+            color: inherit;
+            text-align: left;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .learning-card:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
         }
 
         .learning-card {
@@ -901,7 +984,7 @@
         }
 
         .learning-card-cta .badge,
-        body.light-mode .learning-card-cta .badge {
+        html.light-mode body .learning-card-cta .badge {
             background-color: rgba(0, 0, 0, 0.12);
             color: #1a1a1a;
             border-color: rgba(0, 0, 0, 0.3);
@@ -979,36 +1062,36 @@
             margin: 0;
         }
 
-        body.light-mode .learning-card {
+        html.light-mode body .learning-card {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 245, 245, 0.95));
         }
 
-        body.light-mode .learning-card-title {
+        html.light-mode body .learning-card-title {
             color: #111;
         }
 
-        body.light-mode .learning-card-desc {
+        html.light-mode body .learning-card-desc {
             color: #444;
         }
 
-        body.light-mode .learning-card-cta {
+        html.light-mode body .learning-card-cta {
             background: linear-gradient(135deg, #ff8c42 0%, #ff6b00 35%, #ff6b00 100%);
         }
 
-        body.light-mode .learning-card-cta .learning-card-title,
-        body.light-mode .learning-card-cta .learning-card-desc {
+        html.light-mode body .learning-card-cta .learning-card-title,
+        html.light-mode body .learning-card-cta .learning-card-desc {
             color: #1a1a1a;
         }
 
-        body.light-mode .learning-card-cta.onboarding-done {
+        html.light-mode body .learning-card-cta.onboarding-done {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 245, 245, 0.95));
         }
 
-        body.light-mode .learning-card-cta.onboarding-done .learning-card-title {
+        html.light-mode body .learning-card-cta.onboarding-done .learning-card-title {
             color: #111;
         }
 
-        body.light-mode .learning-card-cta.onboarding-done .learning-card-desc {
+        html.light-mode body .learning-card-cta.onboarding-done .learning-card-desc {
             color: #444;
         }
 
@@ -1084,43 +1167,43 @@
             fill: #ff6b00;
         }
 
-        body.light-mode .topo-trunk {
+        html.light-mode body .topo-trunk {
             stroke: rgba(255, 107, 0, 0.55);
         }
 
-        body.light-mode .topo-link {
+        html.light-mode body .topo-link {
             stroke: rgba(255, 107, 0, 0.5);
         }
 
-        body.light-mode .topology-wrapper {
+        html.light-mode body .topology-wrapper {
             background: rgba(255, 255, 255, 0.8);
         }
 
-        body.light-mode .topo-band {
+        html.light-mode body .topo-band {
             fill: rgba(0, 0, 0, 0.03);
             stroke: rgba(0, 0, 0, 0.15);
         }
 
-        body.light-mode .topo-zone-ot .topo-band {
+        html.light-mode body .topo-zone-ot .topo-band {
             fill: rgba(255, 107, 0, 0.08);
             stroke: rgba(255, 107, 0, 0.35);
         }
 
-        body.light-mode .topo-zone-external .topo-band {
+        html.light-mode body .topo-zone-external .topo-band {
             fill: rgba(255, 69, 58, 0.1);
             stroke: rgba(255, 69, 58, 0.4);
         }
 
-        body.light-mode .topo-node {
+        html.light-mode body .topo-node {
             fill: rgba(255, 255, 255, 0.95);
             stroke: rgba(255, 107, 0, 0.4);
         }
 
-        body.light-mode .topo-node-name {
+        html.light-mode body .topo-node-name {
             fill: #111;
         }
 
-        body.light-mode .topo-node-ip {
+        html.light-mode body .topo-node-ip {
             fill: #666;
         }
 
@@ -1185,48 +1268,20 @@
 
         /* Fixed control bar, top-center — stays put while the highlight/tooltip
            move around the page from step to step. */
-        .tour-navbar {
-            display: none;
-            position: fixed;
-            top: 14px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 503;
-            align-items: center;
-            gap: 0.9rem;
-            background: var(--surface);
-            border: 1px solid var(--border-accent);
-            border-radius: 0.6rem;
-            padding: 0.55rem 0.9rem;
-            box-shadow: var(--shadow-pop);
-            max-width: calc(100vw - 24px);
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        body.tour-active .tour-navbar {
-            display: flex;
-        }
-
-        .tour-dots {
-            display: flex;
-            gap: 0.35rem;
-        }
-
-        .tour-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.25);
-        }
-
-        .tour-dot.active {
-            background: #ff6b00;
+        .tour-count {
+            margin: 0 0 0.3rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-subtle);
         }
 
         .tour-btns {
             display: flex;
             gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 0.9rem;
         }
 
         .tour-btn {
@@ -1240,11 +1295,12 @@
 
         .tour-btn-skip {
             background: transparent;
-            color: #999;
+            color: var(--text-muted);
+            margin-right: auto;
         }
 
         .tour-btn-skip:hover {
-            color: #fff;
+            color: var(--text);
         }
 
         .tour-btn-prev {
@@ -1265,27 +1321,24 @@
             background: linear-gradient(135deg, #ff8c42, #ffa500);
         }
 
-        body.light-mode .tour-tooltip {
+        html.light-mode body .tour-tooltip {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 245, 245, 0.98));
             color: #111;
         }
 
-        body.light-mode .tour-tooltip h4 {
+        html.light-mode body .tour-tooltip h4 {
             color: #b45400;
         }
 
-        body.light-mode .tour-tooltip p {
+        html.light-mode body .tour-tooltip p {
             color: var(--text);
         }
 
-        body.light-mode .tour-btn-prev {
+        html.light-mode body .tour-btn-prev {
             background: rgba(0, 0, 0, 0.06);
             color: #333;
         }
 
-        body.light-mode .tour-navbar {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 245, 245, 0.98));
-        }
 
         /* ---- Vertical left sidebar -------------------------------------------- */
         :root {
@@ -1400,8 +1453,23 @@
         }
 
         /* Settings pinned to the bottom of the sidebar */
-        .settings-btn {
+        .nav-bottom {
             margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+
+        .nav-bottom [hidden] {
+            display: none;
+        }
+
+        /* Inside a view the chat opens from the sidebar; the floating bubble
+           would sit on top of the embedded tool's own controls. */
+        body.in-view .chat-widget:not(.expanded),
+        body.nav-open .chat-widget,
+        body.tour-active .chat-widget {
+            display: none !important;
         }
 
         .settings-btn:hover .settings-icon {
@@ -1507,56 +1575,6 @@
             }
         }
 
-        /* Floating Detach Button */
-        .detach-floating-btn {
-            position: fixed;
-            bottom: 7rem;
-            right: 2rem;
-            background: linear-gradient(135deg, #ff6b00, #ff8c42);
-            color: #1a1a1a;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 100;
-            display: none;
-        }
-
-        .detach-floating-btn:hover {
-            transform: scale(1.1) translateY(-2px);
-            box-shadow: 0 6px 30px rgba(255, 107, 0, 0.6);
-            background: linear-gradient(135deg, #ff8c42, #ffa500);
-        }
-
-        .detach-floating-btn:active {
-            transform: scale(0.95);
-        }
-
-        .detach-tooltip {
-            position: absolute;
-            right: 70px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(45, 45, 45, 0.95);
-            color: #ffffff;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            white-space: nowrap;
-            font-size: 0.875rem;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            border: 1px solid rgba(255, 107, 0, 0.3);
-        }
-
-        .detach-floating-btn:hover .detach-tooltip {
-            opacity: 1;
-        }
-
         /* Narrow screens: auto-collapse the sidebar to a slim icon-only rail so
            embedded service views keep their width. Mirrors body.nav-collapsed. */
         @media (max-width: 1024px) {
@@ -1583,6 +1601,158 @@
 
             .header-mark {
                 display: block;
+            }
+        }
+
+        /* ---- Skip link and phone drawer ------------------------------------- */
+        .skip-link {
+            position: fixed;
+            top: -100px;
+            left: 12px;
+            z-index: 2000;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            background: var(--accent);
+            color: #1a1a1a;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .skip-link:focus {
+            top: 12px;
+        }
+
+        main:focus {
+            outline: none;
+        }
+
+        .mobile-bar,
+        .nav-scrim,
+        .drawer-close {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .mobile-bar {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 52px;
+                padding: 0 0.75rem;
+                z-index: 60;
+                background: var(--surface-2);
+                border-bottom: 1px solid var(--border);
+            }
+
+            .mobile-menu-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.4rem;
+                height: 40px;
+                padding: 0 0.75rem;
+                font: inherit;
+                font-weight: 600;
+                border: 1px solid var(--border-strong);
+                border-radius: 0.5rem;
+                background: transparent;
+                color: var(--text);
+                cursor: pointer;
+            }
+
+            .mobile-bar-logo {
+                height: 22px;
+                width: auto;
+            }
+
+            .drawer-close {
+                display: block;
+                margin-left: auto;
+                width: 40px;
+                height: 40px;
+                border: 1px solid var(--border-strong);
+                border-radius: 0.5rem;
+                background: transparent;
+                color: var(--text);
+                font-size: 1.1rem;
+                cursor: pointer;
+            }
+
+            /* The reference label on its own line above its three buttons */
+            .hero-reference-label {
+                flex-basis: 100%;
+                text-align: center;
+                margin: 0;
+            }
+
+            /* A smaller assistant bubble, and room below the content for it */
+            .home-screen {
+                padding-bottom: 5rem;
+            }
+
+            main {
+                padding-left: 0;
+                padding-top: 52px;
+            }
+
+            .services-container {
+                height: calc(100dvh - 52px);
+            }
+
+            /* The labelled sidebar, off screen until the menu button opens it */
+            .sidebar,
+            body.nav-collapsed .sidebar {
+                width: 264px;
+                z-index: 80;
+                transform: translateX(-100%);
+                transition: transform 0.2s ease;
+            }
+
+            body.nav-open .sidebar {
+                transform: none;
+            }
+
+            body.nav-open .nav-scrim {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 70;
+                background: rgba(0, 0, 0, 0.5);
+            }
+
+            .sidebar .nav-label,
+            body.nav-collapsed .nav-label {
+                display: inline;
+            }
+
+            .sidebar .nav-section-label,
+            body.nav-collapsed .nav-section-label,
+            .sidebar .header-logo,
+            body.nav-collapsed .header-logo {
+                display: block;
+            }
+
+            .sidebar .header-mark,
+            body.nav-collapsed .header-mark,
+            .nav-toggle {
+                display: none !important;
+            }
+
+            .sidebar .nav-button,
+            body.nav-collapsed .nav-button {
+                justify-content: flex-start;
+                gap: 0.75rem;
+                padding: 0.65rem 0.7rem;
+            }
+
+            .sidebar .sidebar-brand,
+            body.nav-collapsed .sidebar-brand {
+                flex-direction: row;
+                justify-content: flex-start;
             }
         }
 
@@ -1622,6 +1792,63 @@
 
         #networkTopologyModal {
             width: min(92vw, 860px);
+        }
+
+        .dropdown-panel h2:focus {
+            outline: none;
+        }
+
+        .process-note a {
+            color: inherit;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        /* Phones: the panels open as a full-screen sheet instead of hanging
+           off a button halfway down the page, and the login table becomes cards */
+        @media (max-width: 600px) {
+            .dropdown-panel,
+            #networkTopologyModal {
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw;
+                height: 100dvh;
+                max-height: none;
+                border-radius: 0;
+                border: none;
+                padding: 1rem 1rem 2rem;
+            }
+
+            .access-table,
+            .access-table tbody,
+            .access-table tr,
+            .access-table td {
+                display: block;
+                white-space: normal;
+            }
+
+            .access-table thead {
+                display: none;
+            }
+
+            .access-table tr {
+                padding: 0.6rem 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .access-table td {
+                border: none;
+                padding: 0.15rem 0;
+            }
+
+            .access-table td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-subtle);
+            }
         }
 
         .process-modal-body h3 {
@@ -1700,27 +1927,27 @@
         .dot-green { background: var(--signal-ok); }
         .dot-blue { background: var(--signal-info); }
 
-        body.light-mode .process-modal-body h3 {
+        html.light-mode body .process-modal-body h3 {
             color: #b45400;
         }
 
-        body.light-mode .process-modal-body p {
+        html.light-mode body .process-modal-body p {
             color: var(--text);
         }
 
-        body.light-mode .process-table td {
+        html.light-mode body .process-table td {
             color: #333;
         }
 
-        body.light-mode .process-table th {
+        html.light-mode body .process-table th {
             color: #b45400;
         }
 
-        body.light-mode .process-note {
+        html.light-mode body .process-note {
             color: #555;
         }
 
-        body.light-mode .process-note-danger {
+        html.light-mode body .process-note-danger {
             color: #7a1f14;
         }
 
@@ -1758,7 +1985,7 @@
 
         /* ---- Light Mode: override the tokens; everything themed via var() flips
            automatically. Only element-specific tweaks live below. ------------- */
-        body.light-mode {
+        html.light-mode body {
             --bg: #eef0f4;
             --bg-glow: #ffffff;
             --surface: #ffffff;
@@ -1787,139 +2014,130 @@
             --shadow-pop: 0 16px 44px rgba(15, 23, 42, 0.16);
         }
 
-        body.light-mode::before {
+        html.light-mode body::before {
             background-image:
                 repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.05) 0 1px, transparent 1px 64px),
                 repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.05) 0 1px, transparent 1px 64px),
                 radial-gradient(900px 600px at 85% -5%, rgba(255, 107, 0, 0.04), transparent 60%);
         }
 
-        body.light-mode .sidebar {
+        html.light-mode body .sidebar {
             background: rgba(250, 250, 252, 0.97);
             border-right: 1px solid rgba(0, 0, 0, 0.08);
             box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
         }
 
-        body.light-mode .sidebar-brand {
+        html.light-mode body .sidebar-brand {
             border-bottom-color: rgba(0, 0, 0, 0.08);
         }
 
-        body.light-mode .service-card {
+        html.light-mode body .service-card {
             background: rgba(255, 255, 255, 0.9);
             border: 1px solid rgba(255, 107, 0, 0.3);
             color: #333;
         }
 
-        body.light-mode .service-header {
+        html.light-mode body .service-header {
             background: rgba(255, 107, 0, 0.1);
         }
 
-        body.light-mode .service-header h2 {
+        html.light-mode body .service-header h2 {
             color: #b34700;
         }
 
-        body.light-mode .nav-button {
+        html.light-mode body .nav-button {
             background: transparent;
             color: #4b5563;
         }
 
-        body.light-mode .nav-button:hover {
+        html.light-mode body .nav-button:hover {
             background: rgba(0, 0, 0, 0.05);
             color: #111827;
         }
 
-        body.light-mode .nav-button.active {
+        html.light-mode body .nav-button.active {
             background: var(--accent-soft);
             color: var(--text);
         }
 
-        body.light-mode .nav-section-label {
+        html.light-mode body .nav-section-label {
             color: #9199a6;
         }
 
-        body.light-mode .nav-toggle {
+        html.light-mode body .nav-toggle {
             color: #6b7280;
         }
 
-        body.light-mode .nav-toggle:hover {
+        html.light-mode body .nav-toggle:hover {
             background: rgba(0, 0, 0, 0.06);
             color: #111827;
         }
 
-        body.light-mode .dropdown-panel {
-            background: rgba(255, 255, 255, 0.98);
+        html.light-mode body .dropdown-panel {
+            background: #ffffff;
             color: #333;
         }
 
-        body.light-mode ::-webkit-scrollbar-track {
+        html.light-mode body ::-webkit-scrollbar-track {
             background: #e0e0e0;
         }
 
-        body.light-mode ::-webkit-scrollbar-thumb {
+        html.light-mode body ::-webkit-scrollbar-thumb {
             background: #b0b0b0;
         }
 
-        body.light-mode ::-webkit-scrollbar-thumb:hover {
+        html.light-mode body ::-webkit-scrollbar-thumb:hover {
             background: #ff6b00;
         }
 
-        body.light-mode .settings-btn {
-            background: rgba(255, 107, 0, 0.1);
-            color: #b34700;
-            border-color: rgba(255, 107, 0, 0.3);
-        }
 
-        body.light-mode .settings-btn:hover {
-            background: rgba(255, 107, 0, 0.2);
-        }
-
-        body.light-mode .settings-header h2 {
+        html.light-mode body .settings-header h2 {
             color: #b45400;
         }
 
-        body.light-mode .close-btn {
+        html.light-mode body .close-btn {
             background: rgba(255, 107, 0, 0.1);
             border-color: rgba(255, 107, 0, 0.3);
             color: #b34700;
         }
 
-        body.light-mode .close-btn:hover {
+        html.light-mode body .close-btn:hover {
             background: rgba(255, 107, 0, 0.3);
         }
 
-        body.light-mode .home-header h2 {
+        html.light-mode body .home-header h2 {
             color: var(--heading);
         }
 
-        body.light-mode .home-header p {
+        html.light-mode body .home-header p {
             color: var(--text-muted);
         }
 
-        body.light-mode .section-title {
+        html.light-mode body .section-title {
             color: var(--heading);
         }
 
-        body.light-mode .section-description {
+        html.light-mode body .section-description {
             color: var(--text-muted);
         }
 
-        body.light-mode .service-preview h3 {
+        html.light-mode body .service-preview h3 {
             color: #b34700;
         }
 
-        body.light-mode .service-preview p {
+        html.light-mode body .service-preview p {
             color: #666;
         }
 
-        body.light-mode .service-status {
+        html.light-mode body .service-status {
             color: #666;
         }
 
-        body.light-mode .status-indicator {
+        html.light-mode body .status-indicator {
             border-color: rgba(255, 107, 0, 0.3);
         }
 
-        body.light-mode iframe {
+        html.light-mode body iframe {
             border-color: rgba(255, 107, 0, 0.3);
         }
 
@@ -1988,11 +2206,20 @@
     </style>
     <link rel="stylesheet" href="/static/css/chat.css">
     <!-- Markdown + sanitizer (chat.js depends on these) -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="/static/vendor/marked.min.js"></script>
+    <script src="/static/vendor/purify.min.js"></script>
     <script>marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });</script>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <!-- Phones: a top bar with a menu button opens the labelled sidebar as a drawer -->
+    <div class="mobile-bar">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileNav()" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-menu"/></svg><span>Menu</span>
+        </button>
+        <img src="/pics/cybics-wordmark.svg" alt="CybICS" class="mobile-bar-logo">
+    </div>
+    <div class="nav-scrim" onclick="toggleMobileNav(false)"></div>
     <!-- Banners from CybICS-mgmt jobs (identify, message); filled by static/js/mgmt-banner.js. -->
     <div class="mgmt-banners" id="mgmtBanners" aria-live="polite"></div>
     <!-- Restore the saved sidebar collapse state before paint (avoids flash). -->
@@ -2041,6 +2268,12 @@
         <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 21V4"/><path d="M5 4h11l-2 3.5L16 11H5"/>
         </symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+        </symbol>
+        <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </symbol>
         <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/>
         </symbol>
@@ -2083,74 +2316,84 @@
     </svg>
 
     <!-- Sidebar -->
-    <header class="sidebar">
+    <header class="sidebar" id="site-nav">
         <div class="sidebar-brand">
             <img src="/pics/cybics-wordmark.svg" alt="CybICS" class="header-logo">
             <img src="/pics/cybics-mark.svg" alt="CybICS" class="header-mark">
+            <button class="drawer-close" onclick="toggleMobileNav(false); document.getElementById('mobile-menu-btn').focus();" aria-label="Close menu">✕</button>
             <button class="nav-toggle" onclick="toggleSidebar()" title="Collapse menu" aria-label="Collapse menu">
                 <svg class="nav-icon"><use href="#i-panel"/></svg>
             </button>
         </div>
 
         <!-- Navigation menu -->
-        <nav>
+        <nav aria-label="Main">
             <!-- Home -->
-            <button id="all-btn" class="nav-button active" onclick="updateView('all')" title="Home">
+            <button id="all-btn" class="nav-button active" aria-current="page" onclick="updateView('all')" title="Home">
                 <svg class="nav-icon"><use href="#i-home"/></svg><span class="nav-label">Home</span>
             </button>
 
             {% set nav_icons = {'openplc':'cpu','fuxa':'gauge','vhardware':'plug','engineeringws':'monitor','attackmachine':'target','ids':'shield'} %}
 
             <!-- Core -->
-            <div class="nav-section-label">Core</div>
+            <div class="nav-section-label" id="nav-section-core">Core</div>
             {% for service_id, service in services.items() %}
             {% if not service.virtual_only %}
-            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')" title="{{ service.name }}">
+            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')" title="{{ service.name }}: {{ service.description }}">
                 <svg class="nav-icon"><use href="#i-{{ nav_icons.get(service_id, 'cpu') }}"/></svg><span class="nav-label">{{ service.name }}</span>
             </button>
             {% endif %}
             {% endfor %}
 
             <!-- Virtual Only -->
-            <div class="nav-section-label">Virtual</div>
+            <div class="nav-section-label" id="nav-section-virtual">Virtual</div>
             {% for service_id, service in services.items() %}
             {% if service.virtual_only %}
-            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')" title="{{ service.name }}">
+            <button id="{{ service_id }}-btn" class="nav-button" onclick="updateView('{{ service_id }}')" title="{{ service.name }}: {{ service.description }}">
                 <svg class="nav-icon"><use href="#i-{{ nav_icons.get(service_id, 'cpu') }}"/></svg><span class="nav-label">{{ service.name }}</span>
             </button>
             {% endif %}
             {% endfor %}
 
             <!-- Tools -->
-            <div class="nav-section-label">Tools</div>
-            <button id="stats-btn" class="nav-button" onclick="updateView('stats')" title="System Stats">
+            <div class="nav-section-label" id="nav-section-tools">Tools</div>
+            <button id="stats-btn" class="nav-button" onclick="updateView('stats')" title="System Stats: CPU, memory and the state of each container">
                 <svg class="nav-icon"><use href="#i-activity"/></svg><span class="nav-label">System Stats</span>
             </button>
-            <button id="network-btn" class="nav-button" onclick="updateView('network')" title="Sharky">
+            <button id="network-btn" class="nav-button" onclick="updateView('network')" title="Sharky: capture and inspect the lab's network packets">
                 <svg class="nav-icon"><use href="#i-network"/></svg><span class="nav-label">Sharky</span>
             </button>
-            <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')" title="WebShell">
+            <button id="webshell-btn" class="nav-button" onclick="updateView('webshell')" title="WebShell: a terminal with the training scripts">
                 <svg class="nav-icon"><use href="#i-terminal"/></svg><span class="nav-label">WebShell</span>
             </button>
 
             <!-- Training -->
-            <div class="nav-section-label">Training</div>
-            <button id="theory-btn" class="nav-button" onclick="updateView('theory')" title="Theory Path">
+            <div class="nav-section-label" id="nav-section-training">Training</div>
+            <button id="theory-btn" class="nav-button" onclick="updateView('theory')" title="Theory Path: lessons that explain each challenge">
                 <svg class="nav-icon"><use href="#i-book"/></svg><span class="nav-label">Theory Path</span>
             </button>
-            <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')" title="CTF Training">
+            <button id="ctf-btn" class="nav-button" onclick="updateView('ctf')" title="CTF Training: hands-on challenges with flags to capture">
                 <svg class="nav-icon"><use href="#i-flag"/></svg><span class="nav-label">CTF Training</span>
             </button>
 
-            <!-- Settings (pinned to bottom) -->
-            <button id="settings-btn" class="nav-button settings-btn" onclick="updateView('settings')" title="Settings">
-                <svg class="nav-icon settings-icon"><use href="#i-settings"/></svg><span class="nav-label">Settings</span>
-            </button>
+            <!-- Pinned to the bottom: view actions and Settings. These used to float
+                 over the content and covered controls in the embedded tools. -->
+            <div class="nav-bottom">
+                <button id="detach-nav-btn" class="nav-button" onclick="detachView()" title="Open this view in a new tab" hidden>
+                    <svg class="nav-icon"><use href="#i-external"/></svg><span class="nav-label">Open in new tab</span>
+                </button>
+                <button id="assistant-nav-btn" class="nav-button" onclick="toggleChat()" title="CybICS Assistant" hidden>
+                    <svg class="nav-icon"><use href="#i-chat"/></svg><span class="nav-label">Assistant</span>
+                </button>
+                <button id="settings-btn" class="nav-button settings-btn" onclick="updateView('settings')" title="Settings">
+                    <svg class="nav-icon settings-icon"><use href="#i-settings"/></svg><span class="nav-label">Settings</span>
+                </button>
+            </div>
         </nav>
     </header>
 
     <!-- Main container -->
-    <main>
+    <main id="main-content" tabindex="-1">
         <!-- Service cards container -->
         <div class="services-container">
             <!-- Home Screen -->
@@ -2159,31 +2402,37 @@
                     <!-- Greeting banner -->
                     <div class="hero-banner">
                         <div class="hero-status">
-                            <span class="hero-status-dot"></span>
-                            <span>Lab online</span>
-                            <span class="hero-status-sep">&middot;</span>
-                            <span>{{ services|length }} systems</span>
-                            <span class="hero-status-sep">&middot;</span>
-                            <span>IEC 62443</span>
+                            <span class="hero-status-dot" id="lab-status-dot"></span>
+                            <span id="lab-status-text">Checking the lab&hellip;</span>
                         </div>
                         <h1>Welcome to <img src="/pics/cybics-wordmark.svg" alt="CybICS" class="hero-logo"></h1>
                         <p><strong>A complete industrial facility on your desk. Attack it. Detect it. Defend it.</strong><span class="hero-sub"><br>A hands-on training lab for ICS/OT security, from PLC basics to full attack &amp; defense scenarios.</span></p>
                         <div class="hero-actions">
-                            <a class="hero-btn hero-btn-primary" href="{{ github_url }}" target="_blank" rel="noopener">
-                                <svg><use href="#i-github"/></svg> GitHub
-                            </a>
-                            <button class="hero-btn hero-btn-secondary" id="physical-process-btn" onclick="togglePhysicalProcess()">
-                                <svg><use href="#i-gauge"/></svg> Physical Process
+                            {% if first_challenge_solved %}
+                            <button class="hero-btn hero-btn-primary" id="hero-start-btn" onclick="updateView('ctf')">
+                                <svg><use href="#i-flag"/></svg> Continue the challenges
                             </button>
-                            <button class="hero-btn hero-btn-secondary" id="network-topology-btn" onclick="toggleNetworkTopology()">
-                                <svg><use href="#i-network"/></svg> Network Topology
+                            {% else %}
+                            <button class="hero-btn hero-btn-primary" id="hero-start-btn" onclick="startOnboarding()">
+                                <svg><use href="#i-compass"/></svg> Start here
                             </button>
-                            <button class="hero-btn hero-btn-secondary" id="systems-access-btn" onclick="toggleSystemsAccess()">
-                                <svg><use href="#i-key"/></svg> Systems Access
-                            </button>
+                            {% endif %}
                             <button class="hero-btn hero-btn-secondary hero-btn-icon" onclick="toggleTheme()" title="Toggle light / dark theme" aria-label="Toggle light / dark theme">
                                 <svg class="if-dark"><use href="#i-sun"/></svg>
                                 <svg class="if-light"><use href="#i-moon"/></svg>
+                            </button>
+                        </div>
+                        <!-- Reference material, kept apart from the one thing to do first -->
+                        <div class="hero-reference" role="group" aria-labelledby="lab-reference-label">
+                            <span class="hero-reference-label" id="lab-reference-label">Lab reference</span>
+                            <button class="hero-btn hero-btn-secondary" id="physical-process-btn" aria-expanded="false" aria-controls="physicalProcessModal" onclick="togglePhysicalProcess()">
+                                <svg><use href="#i-gauge"/></svg> Physical Process
+                            </button>
+                            <button class="hero-btn hero-btn-secondary" id="network-topology-btn" aria-expanded="false" aria-controls="networkTopologyModal" onclick="toggleNetworkTopology()">
+                                <svg><use href="#i-network"/></svg> Network Topology
+                            </button>
+                            <button class="hero-btn hero-btn-secondary" id="systems-access-btn" aria-expanded="false" aria-controls="systemsAccessModal" onclick="toggleSystemsAccess()">
+                                <svg><use href="#i-key"/></svg> Systems Access
                             </button>
                         </div>
                     </div>
@@ -2218,31 +2467,36 @@
                     <div class="service-section" id="learning-path-section">
                         <div class="section-eyebrow">Step 02 &middot; Training path</div>
                         <div class="section-title">Learning path</div>
-                        <div class="section-description">Two ways to build your ICS/OT security skills</div>
+                        <div class="section-description">Take the short tour first, then learn and practise side by side</div>
                         <div class="learning-grid">
-                            <div class="learning-card learning-card-cta{% if first_challenge_solved %} onboarding-done{% endif %}" id="first-lab-cta" onclick="startOnboarding()">
+                            <button type="button" class="learning-card learning-card-cta{% if first_challenge_solved %} onboarding-done{% endif %}" id="first-lab-cta" onclick="startOnboarding()">
                                 <div class="learning-card-icon"><svg><use href="#i-compass"/></svg></div>
                                 <div class="learning-card-body">
-                                    <div class="learning-card-title">Start your first lab<span class="badge">15 MIN</span></div>
-                                    <p class="learning-card-desc">Launch a guided 15-minute introduction to CybICS.</p>
+                                    <div class="learning-card-title">Start here<span class="badge">1 MIN TOUR</span></div>
+                                    <p class="learning-card-desc">A short tour of the dashboard, then straight into your first challenge.</p>
                                 </div>
-                            </div>
-                            <div class="learning-card" onclick="updateView('theory')">
+                            </button>
+                            <button type="button" class="learning-card" onclick="updateView('theory')">
                                 <div class="learning-card-icon"><svg><use href="#i-book"/></svg></div>
                                 <div class="learning-card-body">
                                     <div class="learning-card-title">Theory Path</div>
                                     <p class="learning-card-desc">Structured background reading covering ICS protocols, architectures, and threats, with diagrams. Each topic links to the matching challenge.</p>
                                 </div>
-                            </div>
-                            <div class="learning-card" onclick="updateView('ctf')">
+                            </button>
+                            <button type="button" class="learning-card" onclick="updateView('ctf')">
                                 <div class="learning-card-icon"><svg><use href="#i-flag"/></svg></div>
                                 <div class="learning-card-body">
                                     <div class="learning-card-title">CTF Challenges</div>
                                     <p class="learning-card-desc">Capture The Flag: find hidden flags such as <code>CybICS(...)</code> across recon, exploitation, and defense challenges against the lab's PLC, HMI, and network.</p>
                                 </div>
-                            </div>
+                            </button>
                         </div>
                     </div>
+
+                    <footer class="home-footer">
+                        <a id="github-btn" href="{{ github_url }}" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-github"/></svg>Source, setup guide and training material on GitHub</a>
+                        <span>Aligned with IEC 62443 and MITRE ATT&amp;CK for ICS</span>
+                    </footer>
 
                 </div>
             </div>
@@ -2264,11 +2518,13 @@
                 ></iframe>
                 <div id="{{ service_id }}-error" class="service-error">
                     <div class="error-icon"><svg><use href="#i-alert-triangle"/></svg></div>
-                    <div class="error-message">Service Unavailable</div>
-                    <div class="error-details">{{ service.name }} is not responding</div>
-                    <div class="error-details" style="margin-top: 1rem;">
-                        <span id="{{ service_id }}-url"></span>
-                    </div>
+                    <div class="error-message">{{ service.name }} is not responding</div>
+                    <div class="error-details"><span id="{{ service_id }}-url"></span></div>
+                    <ul class="error-help">
+                        <li>It may still be starting. The desktops and the PLC can take a minute after boot; press Refresh.</li>
+                        {% if service.virtual_only %}<li>It only exists in the Docker setup. On a CybICS board this view stays empty.</li>{% endif %}
+                        <li>On the machine running the lab, <code>./cybics.sh status</code> shows which containers are up, and <code>./cybics.sh logs</code> why one stopped.</li>
+                    </ul>
                     <button onclick="refreshService('{{ service_id }}')" class="error-refresh-btn" style="margin-top: 1rem;">
                         <svg class="nav-icon"><use href="#i-refresh"/></svg> Refresh
                     </button>
@@ -2354,13 +2610,29 @@
         </div>
     </main>
 
-    <!-- Floating Detach Button -->
-    <button id="detach-floating-btn" class="detach-floating-btn" onclick="detachView()" aria-label="Open in new tab">
-        <svg width="22" height="22" aria-hidden="true"><use href="#i-external"/></svg>
-        <span class="detach-tooltip">Open in New Tab</span>
-    </button>
 
     <script>
+        // Phones: open or close the sidebar drawer
+        function toggleMobileNav(open, quiet) {
+            const isOpen = typeof open === 'boolean' ? open : !document.body.classList.contains('nav-open');
+            document.body.classList.toggle('nav-open', isOpen);
+            const btn = document.getElementById('mobile-menu-btn');
+            if (btn) {
+                btn.setAttribute('aria-expanded', String(isOpen));
+                btn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+            }
+            if (isOpen && !quiet) {
+                const active = document.querySelector('.sidebar .nav-button.active') || document.querySelector('.sidebar .nav-button');
+                if (active) active.focus();
+            }
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && document.body.classList.contains('nav-open')) {
+                toggleMobileNav(false);
+                document.getElementById('mobile-menu-btn').focus();
+            }
+        });
+
         // Collapse/expand the sidebar (manual toggle) and remember the choice.
         function toggleSidebar() {
             const collapsed = document.body.classList.toggle('nav-collapsed');
@@ -2446,7 +2718,7 @@
             if (!url) return;
 
             const themedUrl = new URL(url, window.location.href);
-            themedUrl.searchParams.set("theme", document.body.classList.contains("light-mode") ? "light" : "dark");
+            themedUrl.searchParams.set("theme", document.documentElement.classList.contains("light-mode") ? "light" : "dark");
 
             const serviceId = iframe.getAttribute('data-service');
             if (serviceId) {
@@ -2499,7 +2771,7 @@
                 if (urlEl) urlEl.textContent = iframeUrl(iframe);
                 iframe.addEventListener('error', function() { showIframeError(iframe); });
                 iframe.addEventListener('load', function () {
-                    const theme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+                    const theme = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
                     if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'theme', theme: theme }, '*');
                 });
             });
@@ -2581,27 +2853,20 @@
             // Track current view
             currentView = view;
 
-            // Update floating detach button visibility
-            const detachBtn = document.getElementById('detach-floating-btn');
-            if (view === 'all') {
-                detachBtn.style.display = 'none';
-            } else {
-                detachBtn.style.display = 'block';
-            }
+            // View actions in the sidebar, and no floating chat bubble over a view
+            document.getElementById('detach-nav-btn').hidden = (view === 'all');
+            document.body.classList.toggle('in-view', view !== 'all');
 
-            // Update button styles
-            document.getElementById('all-btn').classList.remove('active');
-            allViewIds.forEach(viewId => {
+            // Update button styles, and tell assistive technology which view is open
+            ['all', ...allViewIds].forEach(viewId => {
                 const btn = document.getElementById(`${viewId}-btn`);
-                if (btn) btn.classList.remove('active');
+                if (!btn) return;
+                const on = viewId === view;
+                btn.classList.toggle('active', on);
+                if (on) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
             });
-
-            if (view === 'all') {
-                document.getElementById('all-btn').classList.add('active');
-            } else {
-                const btn = document.getElementById(`${view}-btn`);
-                if (btn) btn.classList.add('active');
-            }
+            // Choosing a view closes the phone drawer
+            if (document.body.classList.contains('nav-open')) toggleMobileNav(false);
 
             // Update card visibility
             const homeScreen = document.getElementById('home-screen');
@@ -2633,18 +2898,32 @@
             }
         }
 
+        // Paths the CTF view may show. Anything else, a javascript: URL in
+        // particular, would run in this page's origin, next to the webshell API.
+        function safeCtfPath(url) {
+            return typeof url === "string" && /^\/ctf(\/challenge\/[A-Za-z0-9_-]+)?$/.test(url) ? url : null;
+        }
+
+        function safeTheoryPath(url) {
+            if (typeof url !== "string") return null;
+            url = url.replace(/\/$/, '') || '/theory';
+            return /^\/theory(\/[A-Za-z0-9_-]+)?$/.test(url) ? url : null;
+        }
+
         // Handle postMessage from CTF iframe for navigation
         window.addEventListener("message", (event) => {
+            if (event.origin !== window.location.origin || !event.data) return;
             if (event.data.type === "navigate") {
+                const url = safeCtfPath(event.data.url);
                 const ctfIframe = document.getElementById("ctf-iframe");
-                if (ctfIframe) {
-                    ctfIframe.src = event.data.url;
+                if (ctfIframe && url) {
+                    ctfIframe.src = url;
                     // Push to browser history so back/forward works
-                    const hash = '#ctf' + (event.data.url !== '/ctf' ? ':' + event.data.url : '');
-                    history.pushState({ view: 'ctf', ctfUrl: event.data.url }, '', hash);
+                    const hash = '#ctf' + (url !== '/ctf' ? ':' + url : '');
+                    history.pushState({ view: 'ctf', ctfUrl: url }, '', hash);
                     // Landing back on the challenge list happens right after a solve
                     // redirects there, so this is the natural point to re-check progress.
-                    if (event.data.url === '/ctf') refreshOnboardingCta();
+                    if (url === '/ctf') refreshOnboardingCta();
                 }
             }
         });
@@ -2657,6 +2936,8 @@
                 location.reload();
             } else if (data.type === "agent-enabled") {
                 showChatWidget(data.enabled);
+            } else if (data.type === "set-theme" && ['light', 'dark', 'system'].includes(data.theme)) {
+                setTheme(data.theme);
             } else if (data.type === "agent-model-changed") {
                 if (typeof checkAgentStatus === "function") checkAgentStatus();
             } else if (data.type === "settings-section" && currentView === "settings") {
@@ -2686,18 +2967,26 @@
                     if (iframe) iframe.setAttribute("data-last-src", "/settings#" + event.state.section);
                 }
                 _origUpdateView(view);
-                if (view === 'ctf' && event.state.ctfUrl) {
+                if (view === 'theory' && safeTheoryPath(event.state.theoryUrl)) {
+                    const iframe = document.getElementById("theory-iframe");
+                    if (iframe) iframe.setAttribute("data-last-src", event.state.theoryUrl);
+                }
+                if (view === 'ctf' && safeCtfPath(event.state.ctfUrl)) {
                     const ctfIframe = document.getElementById("ctf-iframe");
                     if (ctfIframe) ctfIframe.src = event.state.ctfUrl;
                 }
+            } else if (location.hash) {
+                // A hash typed or followed by a link, not one we pushed
+                applyHash();
             } else {
                 // No state — go to home
                 _origUpdateView('all');
             }
         });
 
-        // On initial load, restore from hash
-        (function() {
+        // Open the view a #hash names: on load, and when a link or the user
+        // changes the hash while the dashboard is open
+        function applyHash() {
             const hash = location.hash.slice(1);
             if (hash) {
                 if (hash.startsWith('settings:')) {
@@ -2707,100 +2996,104 @@
                     history.replaceState({ view: 'settings', section: hash.slice(9) }, '', location.hash);
                 } else if (hash.startsWith('ctf:')) {
                     _origUpdateView('ctf');
-                    const ctfUrl = hash.slice(4);
+                    const ctfUrl = safeCtfPath(hash.slice(4));
                     const ctfIframe = document.getElementById("ctf-iframe");
                     if (ctfIframe && ctfUrl) ctfIframe.src = ctfUrl;
-                    history.replaceState({ view: 'ctf', ctfUrl: ctfUrl }, '', location.hash);
-                } else {
+                    history.replaceState({ view: 'ctf', ctfUrl: ctfUrl }, '', ctfUrl ? location.hash : '#ctf');
+                } else if (hash.startsWith('theory:')) {
+                    const theoryUrl = safeTheoryPath(hash.slice(7));
+                    const iframe = document.getElementById("theory-iframe");
+                    if (iframe && theoryUrl) {
+                        iframe.setAttribute("data-last-src", theoryUrl);
+                        // Already showing a lesson: switch it rather than keep the old one
+                        const cur = iframe.getAttribute('src');
+                        if (cur && cur !== 'about:blank') iframe.removeAttribute('src');
+                    }
+                    _origUpdateView('theory');
+                    history.replaceState({ view: 'theory', theoryUrl: theoryUrl }, '', theoryUrl ? location.hash : '#theory');
+                } else if (allViewIds.includes(hash)) {
                     _origUpdateView(hash);
                     history.replaceState({ view: hash }, '', location.hash);
+                } else {
+                    // An unknown or mistyped link: show Home instead of an empty page.
+                    _origUpdateView('all');
+                    history.replaceState({ view: 'all' }, '', location.pathname);
                 }
             }
+        }
+        applyHash();
+
+        // Keep the open Theory lesson in the address bar, as the CTF view does,
+        // so a reload or Back returns to it.
+        (function() {
+            const iframe = document.getElementById("theory-iframe");
+            if (!iframe) return;
+            iframe.addEventListener("load", () => {
+                let path;
+                try { path = iframe.contentWindow.location.pathname; } catch (e) { return; }
+                const url = safeTheoryPath(path);
+                if (!url || currentView !== 'theory') return;
+                iframe.setAttribute("data-last-src", url);
+                const hash = url === '/theory' ? '#theory' : '#theory:' + url;
+                if (location.hash !== hash) history.replaceState({ view: 'theory', theoryUrl: url }, '', hash);
+            });
         })();
 
         // ---- Guided tour ----------------------------------------------------
         // Core / Virtual system steps are generated from the same service config
         // that renders the sidebar, so the tour can't drift out of sync with it.
-        const coreSystemSteps = [
-            {% for service_id, service in services.items() %}
-            {% if not service.virtual_only %}
-            { selector: '#{{ service_id }}-btn', title: {{ service.name|tojson }}, text: {{ service.description|tojson }} },
-            {% endif %}
-            {% endfor %}
-        ];
-        const virtualSystemSteps = [
-            {% for service_id, service in services.items() %}
-            {% if service.virtual_only %}
-            { selector: '#{{ service_id }}-btn', title: {{ service.name|tojson }}, text: {{ service.description|tojson }} },
-            {% endif %}
-            {% endfor %}
-        ];
-        const toolsSteps = [
-            {
-                selector: '#stats-btn',
-                title: 'System Stats',
-                text: 'Live CPU, memory, and per-container resource usage for every system in the lab.'
-            },
-            {
-                selector: '#network-btn',
-                title: 'Sharky',
-                text: 'Capture and inspect live network traffic across the lab\'s industrial network, packet by packet.'
-            },
-            {
-                selector: '#webshell-btn',
-                title: 'WebShell',
-                text: 'A browser-based terminal with direct access to recon and exploitation tools inside the lab network.'
-            }
-        ];
+        // The tour shows the dashboard in a few groups instead of button by
+        // button. A step names the elements whose combined box it highlights.
+        const coreIds = [{% for service_id, service in services.items() %}{% if not service.virtual_only %}'#{{ service_id }}-btn', {% endif %}{% endfor %}];
+        const virtualIds = [{% for service_id, service in services.items() %}{% if service.virtual_only %}'#{{ service_id }}-btn', {% endif %}{% endfor %}];
         const tourSteps = [
             {
-                selector: '.sidebar',
-                title: 'Left menu bar',
-                text: 'Every system in the lab opens right here in the sidebar, without leaving this page. Let\'s walk through what\'s in it.'
-            },
-            ...coreSystemSteps,
-            ...virtualSystemSteps,
-            ...toolsSteps,
-            {
-                selector: '.hero-btn-primary',
-                title: 'GitHub repository',
-                text: 'Full source code, setup docs, and training material for CybICS live on GitHub.'
+                selectors: ['#nav-section-core', ...coreIds],
+                title: 'The facility',
+                text: 'The systems of the plant itself: the PLC that runs the process, the operator screen (HMI) and the intrusion detection system. Each opens right here, inside this page.'
             },
             {
-                selector: '#physical-process-btn',
-                title: 'Physical Process',
-                text: 'See the live gas-pressure process the lab\'s PLC controls — tank pressures, safety thresholds, and the blowout valve interlock.'
+                selectors: ['#nav-section-virtual', ...virtualIds],
+                title: 'Hardware, engineering and attacker',
+                text: 'The simulated board, the engineering workstation that programs the PLC, and the attack machine you work from in the challenges.'
             },
             {
-                selector: '#network-topology-btn',
-                title: 'Network Topology',
-                text: 'Every lab system mapped to the ISA-95 / Purdue model, wired to a shared network backbone.'
+                selectors: ['#nav-section-tools', '#stats-btn', '#network-btn', '#webshell-btn'],
+                title: 'Tools',
+                text: 'System figures, Sharky to capture network packets, and a terminal with the training scripts.'
             },
             {
-                selector: '#systems-access-btn',
-                title: 'Systems access',
-                text: 'Addresses, ports, and default login credentials for every system in the lab, all in one place.'
+                selectors: ['#physical-process-btn', '#network-topology-btn', '#systems-access-btn'],
+                title: 'Lab reference',
+                text: 'How the process works, how the network is laid out, and the logins for every system. Come back here whenever a challenge asks for an address or a password.'
             },
             {
-                selector: '#learning-path-section',
-                title: 'Learning path',
-                text: 'Start with the CTF challenges to learn ICS/OT security hands-on by capturing flags across reconnaissance, exploitation, and defense.'
+                selectors: ['#nav-section-training', '#theory-btn', '#ctf-btn'],
+                title: 'Learn, then practise',
+                text: 'Each Theory Path lesson explains one technique; the matching CTF challenge lets you try it on the plant.'
             }
         ];
-        // "Start your first lab" onboarding: a brief CybICS primer, then the regular
-        // tour, then a hand-off into the first CTF challenge.
+        // "Start your first lab": what CybICS is, the tour, then the first challenge.
         const onboardingSteps = [
             {
-                selector: '#about-cybics-section',
+                selectors: ['#about-cybics-section'],
                 title: 'What is CybICS?',
-                text: 'An open-source, hands-on training lab for ICS/OT security — from PLC basics to full attack & defense scenarios, aligned with IEC 62443.'
+                text: 'A complete industrial facility to practise on: you attack it, detect the attacks and defend it.'
             }
-        ].concat(tourSteps);
+        ].concat(tourSteps, [
+            {
+                selectors: ['#ctf-btn'],
+                title: 'Your first challenge',
+                text: 'Next you open "Understanding the Physical Process": take over the operator screen and drive the plant into its safety valve. Press Start when you are ready.',
+                last: 'Start'
+            }
+        ]);
 
         let tourIndex = 0;
         let tourEls = null;
         let activeTourSteps = tourSteps;
         let tourCompleteCallback = null;
+        let tourReturnFocus = null;
 
         function ensureTourDom() {
             if (tourEls) return tourEls;
@@ -2808,37 +3101,50 @@
             backdrop.className = 'tour-backdrop';
             const highlight = document.createElement('div');
             highlight.className = 'tour-highlight';
+            // One dialog holds the text and the controls, so focus and screen
+            // readers stay with the tour
             const tooltip = document.createElement('div');
             tooltip.className = 'tour-tooltip';
+            tooltip.setAttribute('role', 'dialog');
+            tooltip.setAttribute('aria-modal', 'true');
+            tooltip.setAttribute('aria-labelledby', 'tour-title');
             tooltip.innerHTML =
+                '<p class="tour-count" id="tour-count" aria-live="polite"></p>' +
                 '<h4 id="tour-title"></h4>' +
-                '<p id="tour-text"></p>';
-            const navbar = document.createElement('div');
-            navbar.className = 'tour-navbar';
-            navbar.innerHTML =
-                '<div class="tour-dots" id="tour-dots"></div>' +
+                '<p id="tour-text"></p>' +
                 '<div class="tour-btns">' +
-                '<button class="tour-btn tour-btn-skip" onclick="endTour()">Skip</button>' +
-                '<button class="tour-btn tour-btn-prev" id="tour-prev-btn" onclick="tourPrev()">Prev</button>' +
+                '<button class="tour-btn tour-btn-skip" onclick="endTour()">Skip tour</button>' +
+                '<button class="tour-btn tour-btn-prev" id="tour-prev-btn" onclick="tourPrev()">Back</button>' +
                 '<button class="tour-btn tour-btn-next" id="tour-next-btn" onclick="tourNext()">Next</button>' +
                 '</div>';
             document.body.appendChild(backdrop);
             document.body.appendChild(highlight);
             document.body.appendChild(tooltip);
-            document.body.appendChild(navbar);
-            tourEls = { backdrop: backdrop, highlight: highlight, tooltip: tooltip, navbar: navbar };
+            tourEls = { backdrop: backdrop, highlight: highlight, tooltip: tooltip };
             return tourEls;
         }
 
         function tourKeyHandler(e) {
-            if (e.key === 'Escape') endTour();
+            if (e.key === 'Escape') { endTour(); return; }
+            if (e.key === 'ArrowRight') { e.preventDefault(); tourNext(); return; }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); tourPrev(); return; }
+            if (e.key === 'Tab') {
+                // Keep Tab inside the tour's buttons
+                const buttons = Array.from(tourEls.tooltip.querySelectorAll('button')).filter(b => b.offsetParent && getComputedStyle(b).visibility !== 'hidden');
+                const i = buttons.indexOf(document.activeElement);
+                e.preventDefault();
+                const next = e.shiftKey ? (i <= 0 ? buttons.length - 1 : i - 1) : (i + 1) % buttons.length;
+                buttons[next].focus();
+            }
         }
 
         function startTour(steps, onComplete) {
             activeTourSteps = steps || tourSteps;
             tourCompleteCallback = onComplete || null;
+            tourReturnFocus = document.activeElement;
             tourIndex = 0;
             ensureTourDom();
+            if (currentView !== 'all') updateView('all');
             document.body.classList.add('tour-active');
             renderTourStep();
             document.addEventListener('keydown', tourKeyHandler);
@@ -2847,9 +3153,11 @@
 
         function endTour() {
             document.body.classList.remove('tour-active');
+            if (document.body.classList.contains('nav-open')) toggleMobileNav(false, true);
             document.removeEventListener('keydown', tourKeyHandler);
             window.removeEventListener('resize', renderTourStep);
             tourCompleteCallback = null;
+            if (tourReturnFocus && document.contains(tourReturnFocus)) tourReturnFocus.focus();
         }
 
         function tourNext() {
@@ -2858,6 +3166,7 @@
                 renderTourStep();
             } else {
                 const onComplete = tourCompleteCallback;
+                tourReturnFocus = null;
                 endTour();
                 if (onComplete) onComplete();
             }
@@ -2870,37 +3179,78 @@
             }
         }
 
+        // The box around every visible element a step names
+        function tourTargetRect(step) {
+            const rects = step.selectors
+                .map(sel => document.querySelector(sel))
+                .filter(el => el && el.offsetParent !== null)
+                .map(el => el.getBoundingClientRect());
+            if (!rects.length) return null;
+            const top = Math.min(...rects.map(r => r.top)), left = Math.min(...rects.map(r => r.left));
+            const bottom = Math.max(...rects.map(r => r.bottom)), right = Math.max(...rects.map(r => r.right));
+            return { top: top, left: left, bottom: bottom, right: right, width: right - left, height: bottom - top };
+        }
+
         function renderTourStep() {
             const step = activeTourSteps[tourIndex];
             const els = ensureTourDom();
-            const target = document.querySelector(step.selector);
-            if (target) target.scrollIntoView({ block: 'center', inline: 'nearest' });
-            const rect = target ? target.getBoundingClientRect() : {
-                top: window.innerHeight / 2 - 40, left: window.innerWidth / 2 - 160, width: 320, height: 80
+            // Phones: sidebar steps need the drawer open, the others need it shut.
+            // Wait for its slide before measuring.
+            if (window.innerWidth <= 600) {
+                const inSidebar = step.selectors.some(sel => {
+                    const el = document.querySelector(sel);
+                    return el && el.closest('.sidebar');
+                });
+                if (inSidebar !== document.body.classList.contains('nav-open')) {
+                    toggleMobileNav(inSidebar, true);
+                    // Measure once the drawer has finished sliding
+                    setTimeout(renderTourStep, 320);
+                    return;
+                }
+            }
+            const first = document.querySelector(step.selectors[0]);
+            if (first) first.scrollIntoView({ block: 'center', inline: 'nearest' });
+            const rect = tourTargetRect(step) || {
+                top: window.innerHeight / 2 - 40, left: window.innerWidth / 2 - 160, width: 320, height: 80,
+                bottom: window.innerHeight / 2 + 40, right: window.innerWidth / 2 + 160
             };
-            const pad = 8;
+            const pad = 6;
             els.highlight.style.top = (rect.top - pad) + 'px';
             els.highlight.style.left = (rect.left - pad) + 'px';
             els.highlight.style.width = (rect.width + pad * 2) + 'px';
             els.highlight.style.height = (rect.height + pad * 2) + 'px';
 
+            els.tooltip.querySelector('#tour-count').textContent = 'Step ' + (tourIndex + 1) + ' of ' + activeTourSteps.length;
             els.tooltip.querySelector('#tour-title').textContent = step.title;
             els.tooltip.querySelector('#tour-text').textContent = step.text;
-            const dotsEl = els.navbar.querySelector('#tour-dots');
-            dotsEl.innerHTML = activeTourSteps.map(function(_, i) {
-                return '<span class="tour-dot' + (i === tourIndex ? ' active' : '') + '"></span>';
-            }).join('');
-            els.navbar.querySelector('#tour-prev-btn').style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
-            els.navbar.querySelector('#tour-next-btn').textContent = tourIndex === activeTourSteps.length - 1 ? 'Done' : 'Next';
+            els.tooltip.querySelector('#tour-prev-btn').style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
+            const isLast = tourIndex === activeTourSteps.length - 1;
+            els.tooltip.querySelector('#tour-next-btn').textContent = isLast ? (step.last || 'Done') : 'Next';
 
-            const ttWidth = 320;
-            let top = rect.bottom + pad * 2;
-            if (top + 130 > window.innerHeight) top = Math.max(pad, rect.top - pad * 2 - 130);
-            // Keep the tooltip clear of the fixed top-center nav bar.
-            top = Math.max(top, 68);
-            let left = Math.min(Math.max(rect.left, 12), window.innerWidth - ttWidth - 12);
-            els.tooltip.style.top = top + 'px';
-            els.tooltip.style.left = left + 'px';
+            // Place the dialog where it hides nothing: right of the sidebar for
+            // sidebar groups, otherwise below or above the target
+            const tt = els.tooltip;
+            const ttWidth = Math.min(340, window.innerWidth - 24);
+            const ttHeight = tt.offsetHeight || 180;
+            let top, left;
+            if (window.innerWidth <= 600) {
+                // Bottom of the screen, unless that would cover the target:
+                // then just below the top bar
+                top = window.innerHeight - ttHeight - 12;
+                if (rect.bottom > top - 12) top = 64;
+                left = 12;
+            } else if (rect.right + 16 + ttWidth < window.innerWidth && rect.width < 320) {
+                left = rect.right + 16;
+                top = Math.min(Math.max(rect.top, 12), window.innerHeight - ttHeight - 12);
+            } else {
+                left = Math.min(Math.max(rect.left, 12), window.innerWidth - ttWidth - 12);
+                top = rect.bottom + 16;
+                if (top + ttHeight > window.innerHeight - 12) top = Math.max(12, rect.top - ttHeight - 16);
+            }
+            tt.style.top = top + 'px';
+            tt.style.left = left + 'px';
+            tt.style.width = ttWidth + 'px';
+            tt.querySelector('#tour-next-btn').focus({ preventScroll: true });
         }
 
         // ---- "Start your first lab" onboarding CTA --------------------------
@@ -2938,61 +3288,49 @@
 
     <!-- Settings Modal -->
     <!-- Physical Process Modal -->
-    <div id="physicalProcessModal" class="dropdown-panel process-modal-content">
+    <div id="physicalProcessModal" class="dropdown-panel process-modal-content" role="dialog" aria-labelledby="physicalProcess-title">
             <div class="settings-header">
-                <h2>Physical Process</h2>
-                <button class="close-btn" onclick="closePhysicalProcess()">✕</button>
+                <h2 id="physicalProcess-title" tabindex="-1">Physical Process</h2>
+                <button class="close-btn" onclick="closePhysicalProcess()" aria-label="Close Physical Process">✕</button>
             </div>
             <div class="process-modal-body">
-                <p>CybICS simulates a gas pressure control system commonly found in industrial environments. This simple yet realistic process provides an excellent foundation for learning ICS cybersecurity concepts.</p>
-
-                <h3>System overview</h3>
-                <p>The system maintains gas pressure in a High Pressure Tank (HPT) using gas from a Gas Storage Tank (GST). A PLC controls a compressor that transfers gas between tanks while monitoring pressure levels and safety conditions.</p>
-
-                <h3>Gas Storage Tank (GST)</h3>
-                <p>Buffer tank for the external gas supply. The PLC maintains GST pressure between 60–240 bar.</p>
+                <p>The plant moves gas from a Gas Storage Tank (GST) into a High Pressure Tank (HPT). The PLC switches a supply signal, a compressor and a system valve to keep the HPT in its target band. The numbers below come from the PLC program (<code>cybICS.st</code>) and the process model.</p>
+                <h3>What the PLC aims for</h3>
                 <table class="process-table">
                     <thead>
-                        <tr><th>Pressure (bar)</th><th>Status</th><th>Indicator</th></tr>
+                        <tr><th>Actuator</th><th>Rule in automatic mode</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>&lt; 50</td><td>Low</td><td><span class="dot dot-red"></span>Red</td></tr>
-                        <tr><td>50 – 149</td><td>Normal</td><td><span class="dot dot-green"></span>Green</td></tr>
-                        <tr><td>150+</td><td>Full</td><td><span class="dot dot-blue"></span>Blue</td></tr>
+                        <tr><td>GST supply</td><td>On when GST falls below 60 bar, off at 240 bar</td></tr>
+                        <tr><td>Compressor</td><td>On when HPT falls below 60 bar, off at 90 bar; only while GST is above 50 bar</td></tr>
+                        <tr><td>System valve</td><td>Open only while HPT is between 50 and 100 bar</td></tr>
                     </tbody>
                 </table>
-                <p class="process-note"><strong>Control loop:</strong> below 60 bar the PLC starts filling from the external supply until GST reaches 240 bar; filling is prevented when GST is too low, to protect the compressor.</p>
-
-                <h3>High Pressure Tank (HPT)</h3>
-                <p>Main buffer tank providing pressure to the system. Target range: 60–90 bar.</p>
+                <p class="process-note">So in normal operation the GST sits near the top of its range and the HPT moves between 60 and 90 bar.</p>
+                <h3>What the board's LEDs show</h3>
+                <p>The LEDs (and the virtual hardware view) show bands, not the control targets above.</p>
                 <table class="process-table">
                     <thead>
-                        <tr><th>Pressure (bar)</th><th>Status</th><th>Meaning</th></tr>
+                        <tr><th>Tank</th><th>Band (bar)</th><th>LED</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>0</td><td>Empty</td><td>System offline</td></tr>
-                        <tr><td>1 – 49</td><td>Low</td><td>Below operating range</td></tr>
-                        <tr><td>50 – 99</td><td>Normal</td><td>Safe operating range</td></tr>
-                        <tr><td>100 – 149</td><td>High</td><td>Above target, but safe</td></tr>
-                        <tr><td>150+</td><td>Critical</td><td>Dangerous overpressure</td></tr>
+                        <tr><td>GST</td><td>below 50 / 50–149 / 150 and above</td><td>Low / Normal / Full</td></tr>
+                        <tr><td>HPT</td><td>0 / 1–49 / 50–99 / 100–149 / 150 and above</td><td>Empty / Low / Normal / High / Critical</td></tr>
+                        <tr><td>System</td><td>HPT between 50 and 100 with the system valve open</td><td>Working (otherwise Error)</td></tr>
                     </tbody>
                 </table>
-                <p class="process-note"><strong>Control loop:</strong> the compressor starts when HPT drops below 60 bar (and GST is above 50 bar), and stops once HPT reaches 90 bar. It is disabled entirely if GST falls below 50 bar, as a safety interlock.</p>
-
-                <h3>System operation</h3>
-                <p>The system operates normally while HPT stays between 50–100 bar. Below 50 bar there isn't enough pressure to run; above 100 bar the system is at risk of damage.</p>
-
-                <h3>Safety: blowout valve (BO)</h3>
-                <p>A mechanical safety valve — not PLC-controlled — prevents catastrophic failure: it opens above 220 bar to vent toxic gas to atmosphere, and closes again once HPT drops below 200 bar.</p>
-                <p class="process-note process-note-danger"><strong>Security implication:</strong> triggering the blowout releases toxic gas.</p>
+                <p class="process-note">A full GST is therefore normal. HPT "Critical" means far above target; it does not yet open the blow-out valve.</p>
+                <h3>Safety: blow-out valve (BO)</h3>
+                <p>A mechanical relief valve, not controlled by the PLC. It opens above 220 bar and stays open, venting gas, until the HPT is back at 200 bar.</p>
+                <p class="process-note process-note-danger"><strong>Security implication:</strong> an attacker who drives the HPT past 220 bar forces a gas release. The <a href="#theory:/theory/physical_process" onclick="closePhysicalProcess()">Theory Path lesson</a> shows how.</p>
             </div>
     </div>
 
     <!-- Network Topology Modal -->
-    <div id="networkTopologyModal" class="dropdown-panel process-modal-content">
+    <div id="networkTopologyModal" class="dropdown-panel process-modal-content" role="dialog" aria-labelledby="networkTopology-title">
             <div class="settings-header">
-                <h2>Network Topology</h2>
-                <button class="close-btn" onclick="closeNetworkTopology()">✕</button>
+                <h2 id="networkTopology-title" tabindex="-1">Network Topology</h2>
+                <button class="close-btn" onclick="closeNetworkTopology()" aria-label="Close Network Topology">✕</button>
             </div>
             <div class="process-modal-body">
                 <p>CybICS systems mapped to the ISA-95 / Purdue model.</p>
@@ -3034,10 +3372,10 @@
     </div>
 
     <!-- Systems Access Modal -->
-    <div id="systemsAccessModal" class="dropdown-panel process-modal-content">
+    <div id="systemsAccessModal" class="dropdown-panel process-modal-content" role="dialog" aria-labelledby="systemsAccess-title">
             <div class="settings-header">
-                <h2>Systems Access</h2>
-                <button class="close-btn" onclick="closeSystemsAccess()">✕</button>
+                <h2 id="systemsAccess-title" tabindex="-1">Systems Access</h2>
+                <button class="close-btn" onclick="closeSystemsAccess()" aria-label="Close Systems Access">✕</button>
             </div>
             <div class="process-modal-body">
                 <p>Login data for every system in the lab.</p>
@@ -3053,8 +3391,8 @@
                             {% for row in access_info %}
                             {% if row.username or row.password %}
                             <tr>
-                                <td>{{ row.system }}{% if row.virtual_only %}<span class="badge">VIRTUAL</span>{% elif row.hardware_only %}<span class="badge">HARDWARE</span>{% endif %}</td>
-                                <td>{% if row.username %}{{ row.username }} / {{ row.password }}{% else %}{{ row.password }}{% endif %}</td>
+                                <td data-label="System">{{ row.system }}{% if row.virtual_only %}<span class="badge">VIRTUAL</span>{% elif row.hardware_only %}<span class="badge">HARDWARE</span>{% endif %}</td>
+                                <td data-label="Login">{% if row.username %}{{ row.username }} / {{ row.password }}{% else %}{{ row.password }}{% endif %}</td>
                             </tr>
                             {% endif %}
                             {% endfor %}
@@ -3083,12 +3421,27 @@
             left = Math.max(left, 12);
             panel.style.top = (rect.bottom + 10) + 'px';
             panel.style.left = left + 'px';
+            // Never run past the bottom of the window (phones get a full-screen sheet)
+            panel.style.maxHeight = window.innerWidth > 600
+                ? Math.max(200, window.innerHeight - rect.bottom - 26) + 'px' : '';
+        }
+
+        // Close one panel; give focus back to its button when it was inside the panel
+        function closeDropdown(id) {
+            const cfg = dropdownConfigs.find(c => c.id === id);
+            const panel = document.getElementById(id);
+            if (!panel.classList.contains('active')) return;
+            const hadFocus = panel.contains(document.activeElement);
+            panel.classList.remove('active');
+            const btn = document.querySelector(cfg.btnSelector);
+            if (btn) {
+                btn.setAttribute('aria-expanded', 'false');
+                if (hadFocus) btn.focus();
+            }
         }
 
         function closeAllDropdowns() {
-            dropdownConfigs.forEach(cfg => {
-                document.getElementById(cfg.id).classList.remove('active');
-            });
+            dropdownConfigs.forEach(cfg => closeDropdown(cfg.id));
         }
 
         function toggleDropdown(id, btnSelector) {
@@ -3096,17 +3449,25 @@
             const wasOpen = panel.classList.contains('active');
             closeAllDropdowns();
             if (!wasOpen) {
-                positionDropdown(panel, document.querySelector(btnSelector));
+                const btn = document.querySelector(btnSelector);
+                positionDropdown(panel, btn);
                 panel.classList.add('active');
+                btn.setAttribute('aria-expanded', 'true');
+                const heading = panel.querySelector('h2');
+                if (heading) heading.focus({ preventScroll: true });
             }
         }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeAllDropdowns();
+        });
 
         function togglePhysicalProcess() {
             toggleDropdown('physicalProcessModal', '#physical-process-btn');
         }
 
         function closePhysicalProcess() {
-            document.getElementById('physicalProcessModal').classList.remove('active');
+            closeDropdown('physicalProcessModal');
         }
 
         function toggleNetworkTopology() {
@@ -3114,7 +3475,7 @@
         }
 
         function closeNetworkTopology() {
-            document.getElementById('networkTopologyModal').classList.remove('active');
+            closeDropdown('networkTopologyModal');
         }
 
         function toggleSystemsAccess() {
@@ -3122,7 +3483,7 @@
         }
 
         function closeSystemsAccess() {
-            document.getElementById('systemsAccessModal').classList.remove('active');
+            closeDropdown('systemsAccessModal');
         }
 
         // Click anywhere outside an open panel (and outside its own trigger
@@ -3133,7 +3494,7 @@
                 if (!panel.classList.contains('active')) return;
                 const btn = document.querySelector(cfg.btnSelector);
                 if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
-                panel.classList.remove('active');
+                closeDropdown(cfg.id);
             });
         });
 
@@ -3153,11 +3514,7 @@
 
         // Theme Management
         function applyTheme(theme) {
-            if (theme === 'light') {
-                document.body.classList.add('light-mode');
-            } else {
-                document.body.classList.remove('light-mode');
-            }
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
 
             // Keep embedded service pages in sync with the dashboard theme.
             document.querySelectorAll('.service-iframe').forEach(function (iframe) {
@@ -3165,8 +3522,21 @@
             });
         }
 
+        // What the user chose for this browser; 'system' when nothing is stored
+        let themeChoice = {{ (session.get('theme') or 'system')|tojson }};
+        try {
+            matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+                if (themeChoice === 'system') applyTheme(e.matches ? 'light' : 'dark');
+            });
+        } catch (e) {}
+
+        // theme is 'light', 'dark' or 'system' (follow the operating system)
         function setTheme(theme) {
-            applyTheme(theme);
+            themeChoice = theme;
+            const effective = theme === 'system'
+                ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+                : theme;
+            applyTheme(effective);
 
             // Save to server
             fetch('/api/settings/theme', {
@@ -3186,37 +3556,52 @@
         }
 
         function toggleTheme() {
-            const current = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+            const current = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
             setTheme(current === 'light' ? 'dark' : 'light');
         }
 
-        function loadThemePreference() {
-            fetch('/api/settings/theme')
-                .then(response => response.json())
-                .then(data => {
-                    applyTheme(data.theme || 'dark');
-                })
-                .catch(error => {
-                    console.error('Error loading theme:', error);
-                });
-        }
-
-        // Initialize theme on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadThemePreference();
-        });
+        // The theme is set in <head> by theme_head.html, from the session or the
+        // system preference, before anything is drawn.
 
         // The chat button follows the per-session switch in Settings -> AI
         // Assistant; the settings view reports changes with a postMessage.
         function showChatWidget(enabled) {
             const chatWidget = document.getElementById('chatWidget');
             if (chatWidget) chatWidget.style.display = enabled ? 'flex' : 'none';
+            const navBtn = document.getElementById('assistant-nav-btn');
+            if (navBtn) navBtn.hidden = !enabled;
         }
         window.addEventListener('DOMContentLoaded', () => {
             fetch('/api/settings/agent')
                 .then(response => response.json())
                 .then(data => showChatWidget(data.enabled !== false))
                 .catch(() => {});
+        });
+
+        // The status line under the hero reports what is actually reachable.
+        function refreshLabStatus() {
+            const dot = document.getElementById('lab-status-dot');
+            const text = document.getElementById('lab-status-text');
+            if (!dot || !text) return;
+            fetch('/api/services/health', { cache: 'no-store' })
+                .then(r => r.json())
+                .then(d => {
+                    const down = Object.keys(d.services).filter(id => !d.services[id]);
+                    dot.classList.remove('checking');
+                    dot.classList.toggle('degraded', down.length > 0);
+                    if (!down.length) {
+                        text.textContent = `Lab online · ${d.total} systems`;
+                    } else {
+                        const names = down.map(id => (document.getElementById(`${id}-btn`) || {}).textContent || id).map(n => n.trim());
+                        text.textContent = `${d.up} of ${d.total} systems up · down: ${names.join(', ')}`;
+                    }
+                })
+                .catch(() => { dot.classList.add('degraded'); text.textContent = 'Lab status unknown'; });
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('lab-status-dot')?.classList.add('checking');
+            refreshLabStatus();
+            setInterval(() => { if (!document.hidden && currentView === 'all') refreshLabStatus(); }, 15000);
         });
 
         // Chat widget functions moved to static/js/chat.js
@@ -3228,7 +3613,7 @@
         <div class="chat-resize-handle-left" id="chatResizeLeft"></div>
         <div class="chat-resize-corner" id="chatResizeCorner"></div>
         <span class="chat-tooltip">CybICS Assistant</span>
-        <div class="chat-header" onclick="toggleChat()">
+        <div class="chat-header" onclick="toggleChat()" role="button" tabindex="0" aria-label="CybICS Assistant" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleChat(); }">
             <span class="chat-icon"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""></span>
             <span class="chat-title"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""> CybICS Assistant</span>
             <button class="chat-clear-btn" onclick="event.stopPropagation(); clearChatHistory();" title="Clear chat history">Clear</button>

@@ -91,7 +91,7 @@ SERVICES = {
         'description': 'Simulated hardware interface. Test PLC programs without physical hardware in the virtual environment.'
     },
     'engineeringws': {
-        'name': 'EngWS',
+        'name': 'Engineering WS',
         'port': 6080,
         'tls_port': 16080,
         'virtual_only': True,
@@ -100,7 +100,7 @@ SERVICES = {
         'description': 'Engineering workstation - Full desktop environment with OpenPLC Editor. Develop and modify PLC programs using Beremiz.'
     },
     'attackmachine': {
-        'name': 'Attack Box',
+        'name': 'Attack Machine',
         'port': 6081,
         'tls_port': 16081,
         'virtual_only': True,
@@ -212,7 +212,7 @@ ACCESS_INFO = [
         'virtual_only': True,
     },
     {
-        'system': 'Attack Box',
+        'system': 'Attack Machine',
         'url': 'http://localhost:6081/vnc.html',
         'ip': '172.18.0.100',
         'ports': '6081 (noVNC), 5902 (VNC)',
@@ -266,7 +266,7 @@ PURDUE_LEVELS = [
         'level': 'External - Enterprise / Attacker',
         'zone': 'external',
         'systems': [
-            {'name': 'Attack Box', 'ip': '172.18.0.100'},
+            {'name': 'Attack Machine', 'ip': '172.18.0.100'},
         ],
     },
 ]
