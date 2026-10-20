@@ -48,19 +48,19 @@ function checkAgentStatus() {
         .then(data => {
             const statusDiv = document.getElementById('agentStatus');
             if (data.available && data.enabled) {
-                statusDiv.innerHTML = `✅ Agent Ready (${data.model})`;
+                statusDiv.innerHTML = `Assistant ready (${data.model})`;
                 statusDiv.style.color = '#4ade80';
             } else if (!data.enabled) {
-                statusDiv.innerHTML = '❌ Agent Disabled';
+                statusDiv.innerHTML = 'Assistant disabled';
                 statusDiv.style.color = '#f87171';
             } else {
-                statusDiv.innerHTML = '⚠️ Agent Unavailable';
+                statusDiv.innerHTML = 'Assistant unavailable';
                 statusDiv.style.color = '#fbbf24';
             }
         })
         .catch(() => {
             const statusDiv = document.getElementById('agentStatus');
-            statusDiv.innerHTML = '❌ Agent Offline';
+            statusDiv.innerHTML = 'Assistant offline';
             statusDiv.style.color = '#f87171';
         });
 }
@@ -73,7 +73,7 @@ function showTyping() {
     typingDiv.className = 'chat-message agent-message typing-indicator';
     typingDiv.id = 'typingIndicator';
     typingDiv.innerHTML = `
-        <span class="message-avatar">🤖</span>
+        <span class="message-avatar"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""></span>
         <span class="message-text">
             <span class="typing-dot"></span>
             <span class="typing-dot"></span>
@@ -96,7 +96,7 @@ function addMessageToChat(sender, message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${sender}-message`;
 
-    const avatar = sender === 'user' ? '👤' : '🤖';
+    const avatar = sender === 'user' ? '<span class="chat-you">You</span>' : '<img class="cybics-mark" src="/pics/cybics-mark.svg" alt="">';
     const messageContent = sender === 'agent'
         ? safeMarkdown(message)
         : escapeHtml(message);
@@ -116,7 +116,7 @@ function createStreamingMessage() {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message agent-message';
     messageDiv.innerHTML = `
-        <span class="message-avatar">🤖</span>
+        <span class="message-avatar"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""></span>
         <span class="message-text"></span>
     `;
     messages.appendChild(messageDiv);
@@ -182,7 +182,7 @@ function loadChatHistory() {
     messages.forEach(msg => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${msg.sender}-message`;
-        const avatar = msg.sender === 'user' ? '👤' : '🤖';
+        const avatar = msg.sender === 'user' ? '<span class="chat-you">You</span>' : '<img class="cybics-mark" src="/pics/cybics-mark.svg" alt="">';
         const messageContent = msg.sender === 'agent'
             ? safeMarkdown(msg.message)
             : escapeHtml(msg.message);
@@ -208,14 +208,14 @@ function clearChatHistory() {
     const messagesContainer = document.getElementById('chatMessages');
     messagesContainer.innerHTML = `
         <div class="chat-message agent-message">
-            <span class="message-avatar">🤖</span>
-            <span class="message-text">Hi! I'm the CybICS AI Assistant. Ask me anything about CybICS!</span>
+            <span class="message-avatar"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""></span>
+            <span class="message-text">Hi! I'm the CybICS Assistant. Ask me anything about CybICS!</span>
         </div>
     `;
 
     const statusDiv = document.getElementById('agentStatus');
     const originalStatus = statusDiv.innerHTML;
-    statusDiv.innerHTML = '✅ Chat history cleared';
+    statusDiv.innerHTML = 'Chat history cleared';
     statusDiv.style.color = '#4ade80';
 
     setTimeout(() => {

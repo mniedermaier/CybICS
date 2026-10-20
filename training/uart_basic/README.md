@@ -1,21 +1,21 @@
-# 🔌 UART Training Guide (Hardware Required)
+# UART Training Guide (Hardware Required)
 
 > **MITRE ATT&CK for ICS:** `Initial Access` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0822 - External Remote Services](https://attack.mitre.org/techniques/T0822/)
 
-## 📋 Overview
+## Overview
 This guide covers how to connect to the CybICS micro controller using UART (Universal Asynchronous Receiver-Transmitter) communication.
 
-## 🔗 Connecting to the System
+## Connecting to the System
 
-### 🔐 SSH Connection
+### SSH Connection
 1. Connect to the Raspberry Pi:
    ```bash
    ssh pi@cybics
    ```
-   - 🔑 Default password: `raspberry`
-   - 🌐 If using a different hostname, replace 'cybics' with the correct IP address
+   - Default password: `raspberry`
+   - If using a different hostname, replace 'cybics' with the correct IP address
 
-### 📡 UART Communication
+### UART Communication
 1. Install picocom if not already installed:
    ```bash
    sudo apt-get install picocom
@@ -29,7 +29,7 @@ This guide covers how to connect to the CybICS micro controller using UART (Univ
 3. Common picocom commands:
    - `Ctrl+A Ctrl+X`: Exit picocom
 
-## 🎯 Task
+## Task
 The flag has the format `CybICS(flag)`.
 
 ### Steps
@@ -51,7 +51,7 @@ This means there are only 26^3 = 17,576 possible combinations, making brute-forc
 ### Brute-Force Approach
 Given the small keyspace, you can automate the login attempts using the provided `bruteforce_login.py` script, which systematically tries all lowercase 3-character combinations over the serial connection. At approximately 1-2 passwords per second, expect the process to take up to a few hours in the worst case.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -87,11 +87,11 @@ Given the small keyspace, you can automate the login attempts using the provided
 </details>
 
 
-## 💡 Hints
+## Hints
 
 Run `python3 bruteforce_login.py /dev/serial0 3 3` to brute-force the 3-character lowercase password over the UART serial connection.
 
-## 🔍 Solution
+## Solution
 
 Run the script:
   ```bash

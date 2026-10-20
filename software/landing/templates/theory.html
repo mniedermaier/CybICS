@@ -20,7 +20,7 @@
     {% endfor %}{% endfor %}
     <header class="t-header">
         <div class="t-header-inner">
-            <h1>&#128218; Theory Path</h1>
+            <h1>Theory Path</h1>
             <div class="t-progress" aria-label="{{ ns.done }} of {{ ns.total }} lessons completed">
                 <span>{{ ns.done }} / {{ ns.total }} completed</span>
                 <div class="t-bar"><div style="width: {{ (ns.done / ns.total * 100) if ns.total else 0 }}%"></div></div>
@@ -44,8 +44,8 @@
         <div class="t-tools">
             <label class="sr-only" for="search">Search lessons</label>
             <input id="search" class="t-search" type="search" placeholder="Search lessons, e.g. Modbus, firewall, Stuxnet">
-            <button class="t-btn" id="core" type="button" aria-pressed="false" title="The {{ ns.core }} lessons to read first">&#11088; Core path only ({{ ns.core }} lessons, about {{ ns.core_minutes }} min)</button>
-            <a class="t-btn" href="/theory/glossary">&#128214; Glossary</a>
+            <button class="t-btn" id="core" type="button" aria-pressed="false" title="The {{ ns.core }} lessons to read first">Core path only ({{ ns.core }} lessons, about {{ ns.core_minutes }} min)</button>
+            <a class="t-btn" href="/theory/glossary">Glossary</a>
             {% if ns.done %}<button class="t-btn" id="reset" type="button">Reset quiz progress</button>{% endif %}
         </div>
         <p class="w-note t-store-note">Quiz progress is saved on this CybICS board, not in your browser, and is shared by everyone who uses the board.</p>
@@ -68,13 +68,13 @@
                         <div class="t-card-summary">{{ topic.summary }}</div>
                         <div class="t-meta">
                             {% if topic.core %}<span class="t-core">&#11088; core</span>{% endif %}
-                            {% if card.briefing %}<span class="t-brief">&#127937; challenge briefing</span>{% endif %}
+                            {% if card.briefing %}<span class="t-brief">challenge briefing</span>{% endif %}
                             <span class="t-level {{ card.level }}">{{ card.level }}</span>
                             <span>{{ card.minutes }} min</span>
                             {% if card.questions %}<span>{{ card.questions }}-question quiz</span>{% endif %}
                             {% if p.get('passed') %}<span class="t-solved">&#10003; Quiz {{ (p.best * 100)|round|int }}%</span>
                             {% elif p.get('attempts') %}<span>Best {{ (p.best * 100)|round|int }}%</span>{% endif %}
-                            {% for r in topic.related if r.id in solved %}{% if loop.first %}<span class="t-solved">&#127937; Challenge solved</span>{% endif %}{% endfor %}
+                            {% for r in topic.related if r.id in solved %}{% if loop.first %}<span class="t-solved">Challenge solved</span>{% endif %}{% endfor %}
                         </div>
                     </div>
                 </a>

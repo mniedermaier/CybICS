@@ -1,15 +1,15 @@
-# 🏭 OPC UA Security & Attack Guide
+# OPC UA Security & Attack Guide
 
 > **MITRE ATT&CK for ICS:** `Initial Access` `Lateral Movement` | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/) | [T0866 - Exploitation of Remote Services](https://attack.mitre.org/techniques/T0866/)
 
-## 📋 Overview
+## Overview
 An OPC UA client is a software application that connects to an OPC UA server to read, write, and monitor data within industrial systems.
 This client can interact with various devices and systems, enabling seamless communication and data exchange across different platforms and manufacturers.
 OPC UA clients are integral to industrial automation, as they facilitate real-time data access and control, which is essential for efficient and safe operations.
 
 In this example, we aim to perform an attack on an OPC UA system.
 
-## 🛠️ Setup: OPC UA Client
+## Setup: OPC UA Client
 To proceed, install the opcua-client, which we will use for interaction following a successful attack.
 
 ```sh
@@ -21,7 +21,7 @@ Remove configuration file for the OpcUaClient if there is any:
 rm -rf .config/FreeOpcUa/OpcUaClient.conf
 ```
 
-## 🔗 Simple Communication
+## Simple Communication
 ```
 +------------------+       OPC UA Protocol     +------------------+
 |                  | <------------------------>|                  |
@@ -30,7 +30,7 @@ rm -rf .config/FreeOpcUa/OpcUaClient.conf
 +------------------+                           +------------------+
 ```
 
-## 🕵️‍♂️ Brute Forcing User Password
+## Brute Forcing User Password
 Brute forcing an OPC UA system involves repeatedly attempting to guess the username and password until the correct combination is found.
 This type of attack can give an unauthorized user access to sensitive industrial control systems, allowing them to manipulate device settings, disrupt operations, or steal critical data.
 Due to the automated nature of brute force attacks, they can quickly compromise systems that lack strong password policies or account lockout mechanisms.
@@ -46,7 +46,7 @@ If this is successful, follow step 4 and use *opcua_login* to brute force creden
 
 In the case of a successful brute force attack, you should see the username and password labeled *success* as output. This procedure can also be traced in Wireshark. On the unencrypted endpoint the usernames are readable, but the server asks clients to encrypt the password with its public key, so whether you can read a password depends on whether your client follows that request. Check your own capture. 
 
-## 🎯 Task
+## Task
 Brute-force OPC-UA credentials, explore the server security configuration, and use leaked certificates to gain admin access.
 
 The flag has the format `CybICS(flag)`.
@@ -59,7 +59,7 @@ The flag has the format `CybICS(flag)`.
 5. Use the opcua_server_config module to investigate the server's security configuration
 6. Locate the leaked certificates and use them to authenticate as admin
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -95,11 +95,11 @@ The flag has the format `CybICS(flag)`.
 </details>
 
 
-## 💡 Hints
+## Hints
 
 The flag is readable on the OPC UA system of the user, which you need to brute force.
 
-## 🔍 Solution (User Flag)
+## Solution (User Flag)
 
 Check if connection to OPC UA works with:
   ```
@@ -141,10 +141,10 @@ Check if connection to OPC UA works with:
 
   ![Flag opcua](doc/opcua_user.png)
 
-## 🛡️ Getting an Overview of the Security Configuration
+## Getting an Overview of the Security Configuration
 Use the metasploit module `auxiliary/scanner/opcua/opcua_server_config` for this investigation
 
-## 🔍 Solution (Security Configuration)
+## Solution (Security Configuration)
 
 ```
   msf6 > use auxiliary/scanner/opcua/opcua_server_config
@@ -156,42 +156,42 @@ Use the metasploit module `auxiliary/scanner/opcua/opcua_server_config` for this
   msf6 auxiliary(scanner/opcua/opcua_server_config) > run
   ```
 
-## 🛡️ Getting Admin Access
+## Getting Admin Access
 Previously, you had read-only access to the variables, which meant you could view but not modify them.
 The next step is to obtain admin access to the OPC UA device.
 This will allow you to change the variables and acquire the admin flag.
 From previous investigation, you found certificates used for the OPC-UA communication under `CybICS/software/opcua/certificates/trusted`.
 Use the leaked certificates to authenticated to the OPC-UA system.
 
-### 🔐 Certificates in OPC UA
+### Certificates in OPC UA
 Certificates in OPC UA (Open Platform Communications Unified Architecture) are crucial for ensuring secure and trusted communication between clients and servers. OPC UA is designed with robust security features to protect data integrity, confidentiality, and authentication, and certificates play a key role in implementing these features.
 
-#### 📝 Purpose of Certificates
+#### Purpose of Certificates
 - **Authentication**: Certificates authenticate the identities of OPC UA clients and servers. They verify that each party in a communication session is who they claim to be, helping to prevent unauthorized access and man-in-the-middle attacks.
 - **Encryption**: Certificates enable encryption of data transmitted over OPC UA networks. This ensures that sensitive information is protected from eavesdropping and tampering by encrypting the communication channels between clients and servers.
 - **Integrity**: Certificates help ensure data integrity by allowing both parties to validate that the data has not been altered during transmission. This is crucial for maintaining the reliability and accuracy of the information exchanged.
 
-#### 🏷️ Types of Certificates
+#### Types of Certificates
 - **Application Instance Certificates**: These certificates are issued to individual OPC UA applications or devices. They help in uniquely identifying and authenticating each application instance within the OPC UA network.
 - **Trust List Certificates**: OPC UA systems use trust lists to manage and verify certificates. Trust lists contain the certificates of trusted entities, such as clients and servers, and are used to establish trust relationships between them.
 - **Self-Signed Certificates**: In some cases, OPC UA systems may use self-signed certificates. These are certificates signed by the entity itself rather than by a third-party certificate authority (CA). While self-signed certificates are useful for internal testing or development, they are typically less trusted than certificates issued by recognized CAs.
 - **CA-Signed Certificates**: For more secure deployments, OPC UA systems often use certificates signed by a Certificate Authority (CA). CAs are trusted organizations that issue certificates after verifying the identities of the entities requesting them. CA-signed certificates are generally considered more reliable and secure.
 
-#### 🛡️ Certificate Management
+#### Certificate Management
 - **Issuance**: Certificates are issued either by a trusted CA or through internal mechanisms within an organization. The issuance process involves generating a certificate signing request (CSR), verifying the requester's identity, and issuing the certificate.
 - **Revocation**: If a certificate is compromised or no longer needed, it should be revoked. Certificate revocation lists (CRLs) or online certificate status protocols (OCSP) are used to manage and communicate revoked certificates.
 - **Renewal**: Certificates have expiration dates and need to be renewed periodically. Renewal ensures continued security and compliance with best practices.
 - **Storage**: Certificates must be securely stored to prevent unauthorized access or tampering. OPC UA systems typically use secure storage mechanisms to protect certificates and their associated private keys.
 
-#### ⚙️ Implementation in OPC UA
+#### Implementation in OPC UA
 - **Security Policies**: OPC UA supports various security policies that define how certificates are used for encryption, signing, and authentication. These policies help tailor the security approach to meet specific requirements and use cases.
 - **Key Pair Generation**: OPC UA applications generate and use asymmetric key pairs (public and private keys) in conjunction with certificates. The public key is included in the certificate, while the private key remains confidential.
 - **Configuration**: OPC UA clients and servers must be properly configured to use certificates. This includes setting up trust lists, managing certificate expirations, and ensuring that all parties are using compatible security settings.
 
-#### 📝 Summary
+#### Summary
 Certificates in OPC UA are essential for establishing secure, authenticated, and encrypted communication channels in industrial environments. They play a vital role in protecting data integrity, confidentiality, and authenticity. Effective management of certificates, including their issuance, storage, revocation, and renewal, is crucial for maintaining a secure OPC UA network and ensuring reliable operation of industrial control systems.
 
-## 🔍 Solution (Admin Access)
+## Solution (Admin Access)
 
 Use opcua-client and configure on `Connect option` the usage of the certificate.
   ```

@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - WebShell</title>
+    <link rel="stylesheet" href="/static/css/brand.css">
     <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         body {
             background-color: #1a1a1a;
             color: #ffffff;
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font-mono);
             margin: 0;
             padding: 0;
             height: 100vh;
@@ -126,7 +127,7 @@
             border: 1px solid #404040;
             border-radius: 0.25rem;
             padding: 0.75rem;
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font-mono);
             font-size: 14px;
         }
 
@@ -144,7 +145,7 @@
             cursor: pointer;
             font-weight: bold;
             transition: all 0.2s;
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font-mono);
         }
 
         .execute-button:hover {
@@ -165,7 +166,7 @@
             padding: 0.75rem 1.5rem;
             cursor: pointer;
             transition: all 0.2s;
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font-mono);
         }
 
         .clear-button:hover {
@@ -188,7 +189,7 @@
             cursor: pointer;
             font-size: 12px;
             transition: all 0.2s;
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font-mono);
         }
 
         .quick-command-btn:hover {

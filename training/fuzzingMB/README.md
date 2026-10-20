@@ -1,33 +1,33 @@
-# 🧪 Network Fuzzing Guide
+# Network Fuzzing Guide
 
 > **MITRE ATT&CK for ICS:** `Impair Process Control` `Impact` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0814 - Denial of Service](https://attack.mitre.org/techniques/T0814/)
 
-## 📋 Introduction
+## Introduction
 Network fuzzing is a security testing technique used to identify vulnerabilities in network protocols, services, and applications by sending malformed or unexpected data. The goal is to discover security flaws such as buffer overflows, denial-of-service (DoS) vulnerabilities, and other unintended behaviors.
 
-## 🔄 How It Works
+## How It Works
 Network fuzzing involves the following steps:
 
-1. **🎯 Selecting a Target** – Identify the network service, protocol, or application to be tested
-2. **🧩 Generating Test Cases** – Create malformed, randomized, or unexpected inputs
-3. **📤 Sending Inputs** – Transmit the test cases to the target over the network
-4. **👀 Monitoring Responses** – Observe how the target handles the malformed data
-5. **📊 Analyzing Results** – Identify potential security vulnerabilities
+1. **Selecting a Target** – Identify the network service, protocol, or application to be tested
+2. **Generating Test Cases** – Create malformed, randomized, or unexpected inputs
+3. **Sending Inputs** – Transmit the test cases to the target over the network
+4. **Monitoring Responses** – Observe how the target handles the malformed data
+5. **Analyzing Results** – Identify potential security vulnerabilities
 
-## 📚 Types of Network Fuzzing
+## Types of Network Fuzzing
 There are different approaches to network fuzzing:
 
-- **🔄 Mutation-based Fuzzing** – Modifies existing valid inputs to generate test cases
-- **🏗️ Generation-based Fuzzing** – Constructs test cases from scratch based on protocol specifications
-- **🔗 Stateful vs. Stateless Fuzzing** – Maintains session states vs. individual test cases
+- **Mutation-based Fuzzing** – Modifies existing valid inputs to generate test cases
+- **Generation-based Fuzzing** – Constructs test cases from scratch based on protocol specifications
+- **Stateful vs. Stateless Fuzzing** – Maintains session states vs. individual test cases
 
-## ⚠️ Challenges and Considerations
-- **❌ False Positives** – Some anomalies may not indicate real vulnerabilities
-- **💻 Target Stability** – Frequent crashes may disrupt testing
-- **📖 Protocol Complexity** – Some protocols require deep understanding
-- **⚖️ Legal and Ethical Considerations** – Unauthorized fuzzing can violate laws
+## Challenges and Considerations
+- **False Positives** – Some anomalies may not indicate real vulnerabilities
+- **Target Stability** – Frequent crashes may disrupt testing
+- **Protocol Complexity** – Some protocols require deep understanding
+- **Legal and Ethical Considerations** – Unauthorized fuzzing can violate laws
 
-## 🎯 Task
+## Task
 The target for this exercise is the **OpenPLC Modbus service running on port 502**. Your goal is to run the Modbus fuzzer against the PLC's Modbus port to test how the device handles malformed or unexpected Modbus/TCP messages. After fuzzing, you verify the attack on the challenge page to receive the flag.
 
 The flag has the format `CybICS(flag)`.
@@ -39,9 +39,9 @@ The flag has the format `CybICS(flag)`.
 4. Select a fuzzing mode from the menu and let the fuzzer run to completion
 5. Include the diagnostic function-code fuzzing (Modbus FC 0x08) in your run, then click **Verify** on the challenge page. It confirms the fuzzer reached the PLC and reveals the flag.
 
-## 🚀 Using the Modbus Fuzzer
+## Using the Modbus Fuzzer
 
-### 🔧 Setup Steps
+### Setup Steps
 1. Clone the repository:
    ```sh
    git clone https://github.com/s-e-knudsen/Modbus_network_fuzzer
@@ -57,7 +57,7 @@ The flag has the format `CybICS(flag)`.
    python3 -m pip install -r requirements.txt
    ```
 
-### 🎮 Running the Fuzzer
+### Running the Fuzzer
 Select the proper fuzzing method (e.g., 1 for all):
 ```sh
         --------------------------------------
@@ -90,10 +90,10 @@ Select the proper fuzzing method (e.g., 1 for all):
         0. Exit
 ```
 
-### ⏳ Time to Wait
+### Time to Wait
 Grab a coffee ☕☕☕☕ while the fuzzer runs
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -128,10 +128,10 @@ Grab a coffee ☕☕☕☕ while the fuzzer runs
 </details>
 
 
-## 💡 Hints
+## Hints
 
 Run the fuzzer with `python3 modbus_fuzzer.py`, enter the target IP and port 502 when prompted, then select option 1 from the interactive menu to fuzz all function codes.
 
-## 🔍 Solution
+## Solution
 
 Fuzz the OpenPLC Modbus service on port 502, including the diagnostic function codes, then click **Verify** on the challenge page. The flag is revealed once the fuzzing traffic has been observed.

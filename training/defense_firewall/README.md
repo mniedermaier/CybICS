@@ -1,13 +1,13 @@
-# 🔥 Modbus Firewall Rules
+# Modbus Firewall Rules
 
 > **MITRE D3FEND:** `Harden` | [D3-ITF - Inbound Traffic Filtering](https://d3fend.mitre.org/technique/d3f:InboundTrafficFiltering/) | [D3-NTF - Network Traffic Filtering](https://d3fend.mitre.org/technique/d3f:NetworkTrafficFiltering/)
 
-## 📋 Overview
+## Overview
 Modbus TCP (port 502) is an unauthenticated protocol — any device on the network can read and write PLC registers without credentials. In the previous attack challenges, you exploited this to flood registers and overwrite process values.
 
 This challenge requires you to apply **firewall rules** on the OpenPLC container to restrict Modbus access, ensuring only the authorized HMI (FUXA at 172.18.0.4) can communicate with the PLC.
 
-## 🏗️ Network Architecture
+## Network Architecture
 
 ```
 172.18.0.2  (hwio)       ──── Authorized (sensor data)
@@ -17,13 +17,13 @@ This challenge requires you to apply **firewall rules** on the OpenPLC container
 172.18.0.100 (Attacker)  ──── BLOCK this
 ```
 
-## 🎯 Task
+## Task
 
 Add iptables rules on the **OpenPLC container** to restrict access to Modbus TCP (port 502). Only authorized hosts should be able to reach the PLC.
 
 The flag has the format `CybICS(flag)`.
 
-### ⚙️ Understanding iptables Rule Order
+### Understanding iptables Rule Order
 
 **iptables evaluates rules top to bottom, and the first matching rule wins.** This means the order in which you add rules is critical:
 
@@ -31,7 +31,7 @@ The flag has the format `CybICS(flag)`.
 - A common pattern is to explicitly ACCEPT traffic from authorized sources first, then add a final DROP rule that blocks everything else.
 - If you add the DROP rule first, all traffic to that port will be blocked regardless of any ACCEPT rules added afterward.
 
-### 📝 Steps
+### Steps
 
 1. Access the OpenPLC container shell:
    ```bash
@@ -56,12 +56,12 @@ The flag has the format `CybICS(flag)`.
 
 5. Click **Verify Defense** on this challenge page to confirm.
 
-### ⚠️ Important Notes
+### Important Notes
 - The `hwio` service (172.18.0.2) must be able to write sensor values to OpenPLC via Modbus. Do not block it.
 - The `FUXA` HMI (172.18.0.4) needs Modbus access for process monitoring and control. Do not block it.
 - These rules are **not persistent** — they will be lost when the container restarts. In production, you would save them with `iptables-save`.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -92,7 +92,7 @@ The flag has the format `CybICS(flag)`.
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - What happens if the FUXA HMI is compromised? The attacker now has authorized Modbus access.
@@ -101,11 +101,11 @@ After completing this challenge, consider:
 - How would you make these rules persistent across container restarts?
 
 
-## 💡 Hints
+## Hints
 
 Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. Then use `iptables -A INPUT` rules to ACCEPT traffic from authorized IPs (FUXA and hwio) on port 502 first, and DROP everything else to that port last. Remember: iptables processes rules top to bottom, first match wins.
 
-## 🔍 Solution
+## Solution
 
 1. Access the OpenPLC container shell:
    ```bash

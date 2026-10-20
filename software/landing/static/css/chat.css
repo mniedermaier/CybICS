@@ -6,10 +6,11 @@
     right: 2rem;
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #4a90e2, #357abd);
-    border: none;
+    /* Ink tile with the pixel C, like the app icon in doc/brand/ */
+    background: #1a1a1a;
+    border: 2px solid #ff6b00;
     border-radius: 50%;
-    box-shadow: 0 4px 20px rgba(74, 144, 226, 0.4);
+    box-shadow: 0 4px 20px rgba(230, 81, 0, 0.4);
     z-index: 999;
     display: flex;
     flex-direction: column;
@@ -39,7 +40,7 @@
 
 .chat-widget:hover:not(.expanded) {
     transform: scale(1.1) translateY(-2px);
-    box-shadow: 0 6px 30px rgba(74, 144, 226, 0.6);
+    box-shadow: 0 6px 30px rgba(230, 81, 0, 0.6);
 }
 
 .chat-widget:active:not(.expanded) {
@@ -69,8 +70,24 @@
 }
 
 .chat-icon {
-    font-size: 1.8rem;
-    display: block;
+    display: flex;
+}
+
+.chat-icon .cybics-mark {
+    height: 28px;
+    width: auto;
+}
+
+.chat-title .cybics-mark {
+    height: 18px;
+    width: auto;
+    vertical-align: -3px;
+    margin-right: 0.35rem;
+}
+
+.message-avatar .cybics-mark {
+    height: 22px;
+    width: auto;
 }
 
 .chat-widget.expanded .chat-icon {
@@ -142,7 +159,7 @@
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.2s;
-    border: 1px solid rgba(74, 144, 226, 0.3);
+    border: 1px solid rgba(230, 81, 0, 0.3);
 }
 
 .chat-widget:hover:not(.expanded) .chat-tooltip {
@@ -451,7 +468,7 @@
 
 /* Light mode overrides */
 body.light-mode .chat-widget {
-    background: linear-gradient(135deg, #4a90e2, #357abd);
+    background: #1a1a1a;
 }
 
 body.light-mode .chat-widget.expanded {
@@ -513,4 +530,17 @@ body.light-mode .chat-clear-btn:hover { background: rgba(255, 107, 0, 0.15); }
         right: 1rem;
         bottom: 2rem;
     }
+}
+
+/* The user's side of the conversation: a label, no emoji (doc/brand/README.md) */
+.chat-you {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #ff8c42;
+    padding-top: 0.2rem;
+}
+
+body.light-mode .chat-you {
+    color: #b34700;
 }

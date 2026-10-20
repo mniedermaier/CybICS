@@ -1,15 +1,15 @@
-# 🕵️‍♂️ Man-in-the-Middle (MitM) Attack Guide
+# Man-in-the-Middle (MitM) Attack Guide
 
 > **MITRE ATT&CK for ICS:** `Collection` `Evasion` | [T0830 - Adversary-in-the-Middle](https://attack.mitre.org/techniques/T0830/) | [T1692.002 - Unauthorized Message: Reporting Message](https://attack.mitre.org/techniques/T1692/002/)
 
-## 📋 Overview
+## Overview
 This guide explains how to create a Modbus TCP proxy in Python that listens on all network interfaces (`0.0.0.0`).
 The proxy intercepts Modbus traffic between a Modbus client and a Modbus server, allowing you to manipulate the traffic (requests and responses) like a "man-in-the-middle" attack.
 
-## 🧑‍💻 What is a Man-in-the-Middle Attack?
+## What is a Man-in-the-Middle Attack?
 A Man-in-the-Middle (MITM) attack is a type of cyberattack where a malicious actor secretly intercepts and possibly alters the communication between two parties, without either party realizing it. In the context of Modbus TCP, a widely used protocol in industrial control systems (ICS) for communication between controllers (like PLCs) and devices (like sensors or actuators), a MITM attack can be particularly dangerous.
 
-### 🔄 Modbus TCP MITM Flow
+### Modbus TCP MITM Flow
 Modbus TCP works over a TCP/IP network and follows a client-server model, where:
 - **Client** (usually the Human-Machine Interface (HMI) or SCADA system) sends Modbus requests (like read/write commands) to control devices.
 - **Server** (typically a Programmable Logic Controller (PLC) or other field devices) responds to these commands.
@@ -31,7 +31,7 @@ This shows the basic flow:
 - Server responds (<-----) to the Attacker.
 - Attacker potentially modifies and sends the response back to the Client.
 
-## 🔧 ARP Spoofing: Becoming the Man-in-the-Middle
+## ARP Spoofing: Becoming the Man-in-the-Middle
 
 To position yourself between the client (FUXA HMI) and server (OpenPLC), you need to redirect their network traffic through your machine. This is accomplished using **ARP spoofing** (also called ARP cache poisoning).
 
@@ -55,7 +55,7 @@ Common tools include:
 
 You will need to run ARP spoofing in **both directions** (one for each target) so that traffic flows through your machine bidirectionally. You also need IP forwarding enabled on your machine so that intercepted packets are forwarded rather than dropped.
 
-## 🛠️ Two-Step Attack Process
+## Two-Step Attack Process
 
 The full MITM attack requires two steps running simultaneously:
 
@@ -67,14 +67,14 @@ Use ARP spoofing to redirect traffic between FUXA and OpenPLC through your machi
 
 Once traffic is flowing through your machine, run the Modbus TCP proxy to intercept and optionally manipulate the traffic.
 
-## 🛠️ Prerequisite: Admin Access on FUXA HMI
+## Prerequisite: Admin Access on FUXA HMI
 Before setting up the Python proxy for intercepting Modbus traffic, you need administrator access on the FUXA HMI. This is necessary to modify the IP settings of the connected PLC, directing its communication through the Python proxy.
 
 With admin access, you'll be able to change the PLC's configuration to use the proxy's IP address and port, ensuring all traffic is routed through the proxy for monitoring and manipulation.
 
 ![FUXA IP Configuration](doc/fuxa_ip.png)
 
-## 🚀 Example: Running the Proxy
+## Example: Running the Proxy
 An example of this proxy can be found in the `mitm.py` file.
 By default, it does not modify or manipulate any values, allowing the proxy to only focus on significant traffic changes. You can easily extend it to customize the manipulations as needed for your specific use case.
 For this, a good understanding of Modbus/TCP is required.
@@ -83,7 +83,7 @@ For this, a good understanding of Modbus/TCP is required.
 python3 mitm.py
 ```
 
-## 🎯 Task
+## Task
 Perform a Man-in-the-Middle attack using ARP spoofing and the provided Modbus proxy to intercept and analyze PLC communication.
 
 The flag has the format `CybICS(flag)`.
@@ -95,7 +95,7 @@ The flag has the format `CybICS(flag)`.
 4. Start the provided mitm.py Modbus proxy script
 5. With the ARP man-in-the-middle running, click **Verify** on the challenge page. It confirms the IDS saw the ARP poisoning between FUXA and the PLC and reveals the flag.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -131,10 +131,10 @@ The flag has the format `CybICS(flag)`.
 </details>
 
 
-## 💡 Hints
+## Hints
 
 Use `arpspoof -i eth0 -t <FUXA_IP> <OpenPLC_IP>` in one terminal and `arpspoof -i eth0 -t <OpenPLC_IP> <FUXA_IP>` in another. Enable IP forwarding with `echo 1 > /proc/sys/net/ipv4/ip_forward`. Then run `python3 mitm.py` in a third terminal.
 
-## 🔍 Solution
+## Solution
 
 Run the arpspoof man-in-the-middle between FUXA and the PLC (the `arpspoof` steps above), then click **Verify** on the challenge page. The flag is revealed once the ARP poisoning has been observed on the wire.

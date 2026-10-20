@@ -1,8 +1,8 @@
-# 🔍 Service Scanning Guide
+# Service Scanning Guide
 
 > **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T0840 - Network Connection Enumeration](https://attack.mitre.org/techniques/T0840/)
 
-## 📋 Overview
+## Overview
 Network scanning in industrial environments involves systematically probing the network to identify connected devices, open ports, and potential vulnerabilities.
 This process is crucial for maintaining the security and integrity of industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) networks.
 By performing regular network scans, organizations can detect unauthorized devices, assess the security posture of their systems, and identify weak points that could be exploited by attackers.
@@ -11,12 +11,12 @@ Effective network scanning helps ensure that only approved devices are connected
 It also aids in discovering misconfigurations and vulnerabilities that could be exploited in a cyber attack.
 To maximize security, network scans should be conducted periodically and after any significant changes to the network infrastructure, and results should be analyzed to inform ongoing security measures and improvements.
 
-## ⚠️ Security Considerations
-- 🔒 Only scan authorized devices! Unauthorized scanning may violate network security policies
-- ⏰ Avoid scanning production systems during working hours to prevent disruptions
-- 🔐 Use a VPN or secure network when scanning remote devices
+## Security Considerations
+- Only scan authorized devices! Unauthorized scanning may violate network security policies
+- Avoid scanning production systems during working hours to prevent disruptions
+- Use a VPN or secure network when scanning remote devices
 
-## 🛠️ Using Nmap
+## Using Nmap
 To identify open ports and services within the CybICS testbed you can use nmap. Nmap (Network Mapper) is an open-source tool for network discovery and security auditing.
 
 ### Service Version Detection with `-sV`
@@ -35,7 +35,7 @@ In ICS environments, services expose identification information through **banner
 
 When performing service version detection, pay close attention to any unusual or non-standard version strings in the scan results, as these may contain valuable information.
 
-## 🎯 Task
+## Task
 Your goal is to perform service version detection against the CybICS testbed using nmap's `-sV` flag and discover the flag hidden in a service banner.
 
 ### Steps
@@ -48,7 +48,7 @@ Your goal is to perform service version detection against the CybICS testbed usi
 
 The flag has the format `CybICS(flag)`.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -83,18 +83,18 @@ The flag has the format `CybICS(flag)`.
 </details>
 
 
-## 💡 Hints
+## Hints
 
 Pay attention to the HTTP server banner on port 80.
 
-## 🔍 Solution
+## Solution
 
 Execute the following nmap command to perform service version detection:
   ```sh
   nmap -sV $DEVICE_IP
   ```
 
-  ### 📝 Command Breakdown
+  ### Command Breakdown
   The `nmap -sV` command is used with Nmap to perform service version detection on common ports:
 
   - `nmap`: The command-line tool for network discovery and security auditing
@@ -102,7 +102,7 @@ Execute the following nmap command to perform service version detection:
 
   This scan probes open ports and attempts to determine what service is running and its version by analyzing service banners and responses.
 
-  ### 📊 Scan Results
+  ### Scan Results
   When you scan the system, you'll see something like:
   ```sh
   PORT      STATE SERVICE       VERSION
@@ -116,12 +116,12 @@ Execute the following nmap command to perform service version detection:
   44818/tcp open  EtherNetIP-2?
   ```
 
-  ### 🔎 Key Discovery
+  ### Key Discovery
   Notice **80/tcp** shows an unusual service version string: `CybICS(scanning_d0ne)`
 
   This is the flag! The `-sV` flag triggers nmap to perform service version detection by connecting to the HTTP service and reading the Server header, which has been configured to contain the CTF flag.
 
-  ### 🔎 Port Analysis
+  ### Port Analysis
   - **80/tcp**: HTTP service - Landing page with flag in Server header
   - **102/tcp**: S7 Communication (S7comm) - Siemens PLC communication protocol
   - **502/tcp**: Modbus TCP - Industrial device communication

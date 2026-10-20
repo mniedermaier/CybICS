@@ -184,9 +184,9 @@ A Kali Linux-based environment with cybersecurity tools for penetration testing 
 
 **Available in:** Full mode, Without AI mode
 
-### CybICS AI Agent
+### CybICS Assistant (AI agent)
 
-The AI Agent provides an interactive assistant that can answer questions about CybICS, ICS security, and help with training scenarios.
+The CybICS Assistant is the AI chat on the landing page, served by the `cybicsagent` container. It answers questions about CybICS and ICS security, and helps with the training scenarios.
 
 **Available in:** Full mode only
 

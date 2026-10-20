@@ -1,14 +1,14 @@
-# 🔍 S7 Communication Scanning Guide
+# S7 Communication Scanning Guide
 
 > **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T0861 - Point & Tag Identification](https://attack.mitre.org/techniques/T0861/)
 
-## 📋 Overview
+## Overview
 Siemens **S7 Communication (S7comm)** typically operates on **port 102**, but can also run on custom ports. In this environment, the S7 service runs on **port 1102**. Nmap provides an **NSE script (`s7-info`)** to scan for and retrieve information from **S7 PLCs**.
 
-## ⚙️ Prerequisites
+## Prerequisites
 Before scanning, ensure you have:
 
-### 🛠️ Required Tools
+### Required Tools
 1. **Nmap Installation**
    - On Debian-based systems (Ubuntu, Kali, etc.):
      ```bash
@@ -27,16 +27,16 @@ Before scanning, ensure you have:
 3. **Access Requirements**
    - Root or administrator access may be required
 
-## ⚠️ Security Considerations
-- 🔒 Only scan authorized devices! Unauthorized scanning may violate network security policies
-- ⏰ Avoid scanning production systems during working hours to prevent disruptions
-- 🔐 Use a VPN or secure network when scanning remote devices
+## Security Considerations
+- Only scan authorized devices! Unauthorized scanning may violate network security policies
+- Avoid scanning production systems during working hours to prevent disruptions
+- Use a VPN or secure network when scanning remote devices
 
-## 🚀 Background: S7comm and Nmap's s7-info Script
+## Background: S7comm and Nmap's s7-info Script
 
 There are two S7 services running on port 102 and 1102 (the standard port 102 is used by OpenPLC). Nmap's `s7-info` NSE script can query S7 PLCs to retrieve detailed device information. However, the script's `portrule` is hardcoded for port 102 only, which means it will not automatically run against the S7 service on port 1102.
 
-### 📊 Understanding the Output
+### Understanding the Output
 The s7-info script returns several fields about the PLC:
   - **Module**: Hardware module identifier (e.g., 6ES7 315-2AG10-0AB0)
   - **Basic Hardware**: Basic hardware type (e.g., SIMATIC 300)
@@ -44,7 +44,7 @@ The s7-info script returns several fields about the PLC:
   - **System Name**: System identifier (e.g., SIMATIC 300(1))
   - **Module Type**: Extended module type - **Contains the CTF flag!** 🚩
 
-## 🎯 Task
+## Task
 Your goal is to use nmap's `s7-info` NSE script to query the Siemens S7 PLC running on a non-standard port and retrieve the CTF flag from the device identification fields.
 
 The flag has the format `CybICS(flag)` and is found in the **Module Type** field of the s7-info output.
@@ -72,7 +72,7 @@ The flag has the format `CybICS(flag)` and is found in the **Module Type** field
 
 4. **Find the flag** in the scan output. Look at the **Module Type** field in the s7-info results for port 1102.
 
-### ✅ Conclusion
+### Conclusion
 Using Nmap's s7-info script, you can:
   - Identify Siemens S7 PLCs on the network
   - Retrieve detailed system information including module type, version, and serial number
@@ -85,7 +85,7 @@ Using Nmap's s7-info script, you can:
 
   **Security Best Practice**: Always restrict access to S7 communication ports (102, 1102, or custom ports) and monitor S7 communication for unauthorized scanning attempts.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -120,11 +120,11 @@ Using Nmap's s7-info script, you can:
 </details>
 
 
-## 💡 Hints
+## Hints
 
 After modifying the portrule, run: `nmap --script s7-info -p 102,1102 $DEVICE_IP` and look at the **Module Type** field in the output.
 
-## 🔍 Solution
+## Solution
 
 Submit the flag found in the Module Type field:
 

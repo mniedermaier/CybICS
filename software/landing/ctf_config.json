@@ -3,7 +3,7 @@
   "description": "Industrial Control Systems Security Training Platform",
   "categories": {
     "basic_understanding": {
-      "name": "\ud83c\udfed Basic Understanding",
+      "name": "Basic Understanding",
       "description": "Fundamental understanding of industrial processes and control systems",
       "challenges": [
         {
@@ -31,7 +31,7 @@
       ]
     },
     "network_analysis": {
-      "name": "\ud83d\udd0d Network Analysis",
+      "name": "Network Analysis",
       "description": "Network reconnaissance and traffic analysis techniques",
       "challenges": [
         {
@@ -67,7 +67,7 @@
       ]
     },
     "security_testing": {
-      "name": "\u2694\ufe0f Security Testing",
+      "name": "Security Testing",
       "description": "Test system resilience and security mechanisms",
       "challenges": [
         {
@@ -127,7 +127,7 @@
       ]
     },
     "advanced_security": {
-      "name": "\ud83d\udd10 Advanced Security",
+      "name": "Advanced Security",
       "description": "Advanced attack and detection techniques",
       "challenges": [
         {
@@ -175,7 +175,7 @@
       ]
     },
     "ids_challenges": {
-      "name": "\ud83d\udd0d IDS Challenges",
+      "name": "IDS Challenges",
       "description": "Interact with the Intrusion Detection System \u2014 trigger alerts, analyze incidents, and evade detection",
       "challenges": [
         {
@@ -211,7 +211,7 @@
       ]
     },
     "defense": {
-      "name": "\ud83d\udee1\ufe0f Defense & Hardening",
+      "name": "Defense & Hardening",
       "description": "Harden the ICS environment by applying defensive security measures",
       "challenges": [
         {

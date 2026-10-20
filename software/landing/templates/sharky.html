@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Analyzer - CybICS</title>
+    <title>CybICS - Sharky Network Analyzer</title>
+    <link rel="stylesheet" href="/static/css/brand.css">
     <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
@@ -16,7 +17,7 @@
         body {
             background-color: #1a1a1a;
             color: #ffffff;
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font);
             overflow: hidden;
             /* Flex column so toolbars can grow/wrap without clipping the main area */
             display: flex;
@@ -536,7 +537,7 @@
 
         /* Hex dump viewer */
         .hex-dump {
-            font-family: 'Courier New', monospace;
+            font-family: var(--brand-font-mono);
             font-size: 0.8rem;
             background-color: #1a1a1a;
             padding: 0.5rem;
@@ -880,6 +881,13 @@
             }
         }
         /* Dashboard theme bridge */
+        .capture-label { color: #ff6b00; }
+        /* #ff6b00 is 2.9:1 on white; accent text in light mode uses #b34700 (doc/brand/README.md) */
+        html.light-mode header h1, html.light-mode .capture-label, html.light-mode .tab-button.active,
+        html.light-mode .graph-controls button, html.light-mode .legend-title, html.light-mode .stat-card h3,
+        html.light-mode .endpoint-table th, html.light-mode th, html.light-mode .packet-details h3,
+        html.light-mode .packet-details .layer-title, html.light-mode .hex-offset, html.light-mode .modal-close,
+        html.light-mode .details-tab.active { color: #b34700 !important; }
         html.light-mode, html.light-mode body { background: #f3f5f8 !important; color: #172033 !important; }
         html.light-mode header, html.light-mode .toolbar, html.light-mode .view-tabs, html.light-mode .panel, html.light-mode .modal-content, html.light-mode .legend { background-color: #ffffff !important; color: #172033 !important; border-color: #d8dde6; }
         html.light-mode .toolbar button, html.light-mode .toolbar input, html.light-mode .toolbar select, html.light-mode .nav-button, html.light-mode .filter-input, html.light-mode .column-toggle { background-color: #eef1f5 !important; color: #172033 !important; border-color: #b7bfcc; }
@@ -930,10 +938,10 @@
     <div class="toolbar" style="padding: 0.5rem 1rem;">
         <!-- Capture Controls -->
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <strong style="color: #ff6b00; margin-right: 0.5rem;">Capture:</strong>
+            <strong class="capture-label" style="margin-right: 0.5rem;">Capture:</strong>
             <button id="startBtn" onclick="startCapture()">▶ Start</button>
             <button id="stopBtn" onclick="stopCapture()" disabled>⏹ Stop</button>
-            <button onclick="clearCapture()">🗑 Clear</button>
+            <button onclick="clearCapture()">Clear</button>
         </div>
 
         <div style="border-left: 1px solid #606060; height: 30px; margin: 0 1rem;"></div>
@@ -949,7 +957,7 @@
         <div style="flex: 1;"></div>
 
         <!-- Export -->
-        <button onclick="exportCapture()" style="background-color: #ff6b00; color: #1a1a1a; border-color: #ff6b00;">💾 Export PCAP</button>
+        <button onclick="exportCapture()" style="background-color: #ff6b00; color: #1a1a1a; border-color: #ff6b00;">Export PCAP</button>
     </div>
 
     <!-- Filter and Tools Toolbar -->
@@ -971,8 +979,8 @@
                 <option value="absolute">Absolute</option>
                 <option value="delta">Delta</option>
             </select>
-            <button onclick="showSearch()" title="Find packets">🔍 Find</button>
-            <button onclick="showColumnSettings()" title="Customize columns">⚙️ Columns</button>
+            <button onclick="showSearch()" title="Find packets">Find</button>
+            <button onclick="showColumnSettings()" title="Customize columns">Columns</button>
         </div>
     </div>
 
@@ -995,17 +1003,17 @@
     <div class="view-tabs" style="display: flex; gap: 0; background-color: #2d2d2d; padding: 0.5rem 1rem; border-bottom: 2px solid #404040;">
         <!-- Main Analysis -->
         <div style="display: flex; gap: 0.25rem; margin-right: 1rem;">
-            <button class="tab-button active" onclick="switchView('packets', event)">📊 Packets</button>
-            <button class="tab-button" onclick="switchView('graph', event)">🔗 Network Graph</button>
+            <button class="tab-button active" onclick="switchView('packets', event)">Packets</button>
+            <button class="tab-button" onclick="switchView('graph', event)">Network Graph</button>
         </div>
 
         <div style="border-left: 1px solid #606060; margin: 0 0.5rem;"></div>
 
         <!-- Statistics & Analysis -->
         <div style="display: flex; gap: 0.25rem;">
-            <button class="tab-button" onclick="switchView('conversations', event)">💬 Conversations</button>
-            <button class="tab-button" onclick="switchView('hierarchy', event)">🌳 Hierarchy</button>
-            <button class="tab-button" onclick="switchView('statistics', event)">📈 Statistics</button>
+            <button class="tab-button" onclick="switchView('conversations', event)">Conversations</button>
+            <button class="tab-button" onclick="switchView('hierarchy', event)">Hierarchy</button>
+            <button class="tab-button" onclick="switchView('statistics', event)">Statistics</button>
         </div>
     </div>
 
@@ -1107,7 +1115,7 @@
             <div class="statistics-container">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h3>📦 Capture Summary</h3>
+                        <h3>Capture Summary</h3>
                         <div class="stat-row">
                             <span class="stat-label">Total Packets</span>
                             <span class="stat-value" id="stats-total-packets">0</span>
@@ -1131,12 +1139,12 @@
                     </div>
 
                     <div class="stat-card">
-                        <h3>🔌 Protocol Distribution</h3>
+                        <h3>Protocol Distribution</h3>
                         <div id="protocol-stats"></div>
                     </div>
 
                     <div class="stat-card">
-                        <h3>🌐 Endpoints</h3>
+                        <h3>Endpoints</h3>
                         <div class="stat-row">
                             <span class="stat-label">Unique IP Addresses</span>
                             <span class="stat-value" id="stats-unique-ips">0</span>
@@ -1152,13 +1160,13 @@
                     </div>
 
                     <div class="stat-card">
-                        <h3>⚡ Top Ports</h3>
+                        <h3>Top Ports</h3>
                         <div id="port-stats"></div>
                     </div>
                 </div>
 
                 <div class="stat-card">
-                    <h3>📊 Endpoint Details</h3>
+                    <h3>Endpoint Details</h3>
                     <table class="endpoint-table">
                         <thead>
                             <tr>
@@ -1177,7 +1185,7 @@
                 </div>
 
                 <div class="stat-card" style="margin-top: 1rem;">
-                    <h3>🔗 Connection Matrix</h3>
+                    <h3>Connection Matrix</h3>
                     <table class="endpoint-table">
                         <thead>
                             <tr>
@@ -1199,7 +1207,7 @@
         <div id="conversationsView" class="view-content">
             <div class="statistics-container">
                 <div class="stat-card">
-                    <h3>💬 TCP Conversations</h3>
+                    <h3>TCP Conversations</h3>
                     <table class="endpoint-table">
                         <thead>
                             <tr>
@@ -1219,7 +1227,7 @@
                 </div>
 
                 <div class="stat-card" style="margin-top: 1rem;">
-                    <h3>📡 UDP Conversations</h3>
+                    <h3>UDP Conversations</h3>
                     <table class="endpoint-table">
                         <thead>
                             <tr>
@@ -1243,7 +1251,7 @@
         <div id="hierarchyView" class="view-content">
             <div class="statistics-container">
                 <div class="stat-card">
-                    <h3>🌳 Protocol Hierarchy Statistics</h3>
+                    <h3>Protocol Hierarchy Statistics</h3>
                     <table class="endpoint-table">
                         <thead>
                             <tr>
@@ -1383,7 +1391,7 @@
                 // Add ICS bridges FIRST (prioritized for ICS traffic capture)
                 if (ics_bridges.length > 0) {
                     const icsGroup = document.createElement('optgroup');
-                    icsGroup.label = '🏭 ICS Networks (Docker Bridges)';
+                    icsGroup.label = 'ICS Networks (Docker Bridges)';
                     ics_bridges.forEach(iface => {
                         const option = document.createElement('option');
                         option.value = iface.name;

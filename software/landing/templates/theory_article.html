@@ -83,7 +83,7 @@
             <section class="t-box t-related">
                 <h2>Put it into practice</h2>
                 {% for r in topic.related %}
-                <a class="{{ 'solved' if r.id in solved }}" href="/ctf/challenge/{{ r.id }}">{{ '✓' if r.id in solved else '🏁' }} {{ r.label }}</a>
+                <a class="{{ 'solved' if r.id in solved }}" href="/ctf/challenge/{{ r.id }}">{{ '✓ ' if r.id in solved }}{{ r.label }}</a>
                 {% endfor %}
             </section>
             {% endif %}

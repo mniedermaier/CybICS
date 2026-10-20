@@ -1,26 +1,26 @@
-# 🥷 IDS Evasion Challenge
+# IDS Evasion Challenge
 
 > **MITRE ATT&CK for ICS:** `Evasion` | [T0820 - Exploitation for Evasion](https://attack.mitre.org/techniques/T0820/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
-## 📋 Overview
+## Overview
 
 Real-world attackers study intrusion detection systems to understand their detection logic and thresholds. By operating below these thresholds ("low-and-slow" attacks), they can manipulate industrial processes without triggering alerts.
 
 This challenge simulates that scenario: you must write to Modbus registers on the PLC while staying invisible to the CybICS IDS. Understanding the detection rules and their exact thresholds is the key to success.
 
-## 📦 Prerequisites
+## Prerequisites
 
 - The IDS must be running (check the IDS dashboard at http://localhost:8443)
 - Access to the attack machine (http://localhost:6081/vnc.html) or webshell
 - Python with `pymodbus` library (`pip install pymodbus`)
 
-## 🎯 Task
+## Task
 
 Perform a stealth Modbus write operation against the OpenPLC controller without triggering any IDS alerts.
 
 The flag has the format `CybICS(flag)`.
 
-### 📝 Step 1: Study the Detection Rules
+### Step 1: Study the Detection Rules
 
 Before attempting evasion, study the IDS rules on the **Rules tab** of the dashboard. The relevant rules are:
 
@@ -33,7 +33,7 @@ Before attempting evasion, study the IDS rules on the **Rules tab** of the dashb
 
 **Key Insight:** The `modbus_unauth_write` rule triggers when **10 or more** write operations are detected from a non-service IP within a 30-second sliding window. If you send **fewer than 10 writes within any 30-second period**, this rule will not fire.
 
-### 📝 Step 2: Start the Evasion Window
+### Step 2: Start the Evasion Window
 
 Start a 2-minute evasion challenge via the API or the Challenges tab:
 
@@ -43,7 +43,7 @@ curl -X POST http://localhost:8443/api/evasion/start
 
 This records the current alert count and begins monitoring for your stealth Modbus writes.
 
-### 📝 Step 3: Send Stealth Modbus Writes
+### Step 3: Send Stealth Modbus Writes
 
 From the attack machine, send **at least 3** Modbus write commands to OpenPLC, staying below the detection thresholds.
 
@@ -85,7 +85,7 @@ print('Write 1 done')
 # Repeat 2 more times
 ```
 
-### 📝 Step 4: Verify Success
+### Step 4: Verify Success
 
 Check the evasion challenge status:
 
@@ -100,14 +100,14 @@ curl http://localhost:8443/api/evasion/check
 
 If successful, the flag will be included in the response.
 
-### ⚠️ Common Mistakes
+### Common Mistakes
 
 1. **Too many writes too fast**: Sending 10+ writes within 30 seconds triggers `modbus_unauth_write`
 2. **Port scanning first**: If you nmap the target during the evasion window, `port_scan` fires
 3. **Connecting to multiple ports**: Stick to port 502 only
 4. **Running flooding scripts**: Scripts like `flooding_hpt.py` send writes in tight loops, triggering `modbus_flood`
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -141,7 +141,7 @@ If successful, the flag will be included in the response.
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - **Timing analysis**: How does the sliding window work? Can you send 9 writes, wait 31 seconds, then send 9 more?
@@ -152,11 +152,11 @@ After completing this challenge, consider:
 - What role does behavioral baselining play in detecting evasion?
 
 
-## 💡 Hints
+## Hints
 
 The key threshold is `modbus_unauth_write`: 10 writes in 30 seconds. Send only 3 writes with 5-second delays between them — this keeps you well under the limit. Use a single TCP connection to port 502 only, and don't run any scans during the evasion window.
 
-## 🔍 Solution
+## Solution
 
 After sending 3 or more stealth Modbus writes without triggering alerts, query the evasion check endpoint:
 

@@ -1,15 +1,15 @@
-# 🌊 Flood & Overwrite Attack Guide
+# Flood & Overwrite Attack Guide
 
 > **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0836 - Modify Parameter](https://attack.mitre.org/techniques/T0836/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0806 - Brute Force I/O](https://attack.mitre.org/techniques/T0806/)
 
-## 📋 Overview
+## Overview
 A flooding attack in an industrial security context can have devastating consequences, disrupting critical operations and compromising safety.
 By overwhelming industrial control systems (ICS) or Supervisory Control and Data Acquisition (SCADA) networks with excessive traffic, attackers can cause delays or complete halts in manufacturing processes, energy distribution, or other essential industrial functions.
 These disruptions can lead to significant financial losses, damage to equipment, and potential safety hazards for workers and the surrounding community.
 
 In this scenario, an attacker is continuously flooding the Modbus server (e.g., a PLC) with malicious commands to override a specific register value.
 
-## 🔄 Attack Flow
+## Attack Flow
 ```
 Client       Attacker           PLC (Server)
    |            |                      |
@@ -29,33 +29,33 @@ Client       Attacker           PLC (Server)
    |            |  -------------------->
 ```
 
-### 🎯 How It Works
+### How It Works
 - The Attacker floods the PLC (Modbus server) with write commands targeting a specific Modbus register (e.g., Register X)
 - The attacker's command overrides the correct value of Register X, continuously forcing it to a specific value (e.g., 0)
 - This continuous flood makes it impossible for the legitimate Client to write or control the register normally
 
 The attacker's goal is to override the register and control the behavior of the device by continuously sending malicious write commands to the PLC.
 
-## 🎭 Spoofing
+## Spoofing
 Spoofing a Modbus register involves an attacker sending fraudulent data to a Modbus device, tricking it into believing the data is legitimate.
 This type of attack can severely disrupt industrial processes by manipulating the readings or settings of critical devices such as sensors, actuators, or controllers.
 For instance, an attacker could alter temperature or pressure readings, causing a system to operate outside safe parameters, potentially leading to equipment damage or safety hazards.
 
-## 🚀 Example Implementation
+## Example Implementation
 
-### 📝 Script Overview
+### Script Overview
 The provided script `flooding_hpt.py` floods via modbus the high pressure tank (HPT) values to 10.
 With this flooding, the OpenPLC does not get the correct values and enables the compressor (C) all the time.
 This is leading to a critical pressure value in the HPT.
 
-### ⚙️ Configuration
+### Configuration
 The script uses the `.dev.env` file in the root folder of the git.
 Check if these settings are correct, before executing the flooding script.
 
-### 📚 Prerequisites
+### Prerequisites
 A basic understanding of Modbus/TCP is required for this example.
 
-## 🎯 Task
+## Task
 The flag has the format `CybICS(flag)`.
 
 1. Run the provided `flooding_hpt.py` script to flood Modbus registers on the PLC
@@ -63,7 +63,7 @@ The flag has the format `CybICS(flag)`.
 3. You should see the high pressure tank (HPT) register values being overwritten, causing the compressor (C) to remain enabled continuously, which drives the HPT toward a critical pressure value
 4. After the flood, click **Verify** on the challenge page. It confirms the IDS saw the write flood and reveals the flag.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -99,19 +99,19 @@ The flag has the format `CybICS(flag)`.
 </details>
 
 
-## 💡 Hints
+## Hints
 
 Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pressure readings.
 
-## 🔍 Solution
+## Solution
 
-### 🚀 Running the Attack
+### Running the Attack
   Execute the provided script to flood the sensor values of the high pressure tank (HPT):
   ```sh
   python3 flooding_hpt.py
   ```
 
-  ### 📊 Script Details
+  ### Script Details
   This script is designed to:
   - Continuously send a specific value to a Modbus TCP device
   - Simulate flooding a high-pressure tank (HPT) in a system controlled by an OpenPLC
@@ -119,16 +119,16 @@ Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pr
   - Connect to a Modbus TCP device using the IP address from the environment file
   - Perform flooding operations at a very high frequency
 
-  ### 👀 Observations
+  ### Observations
   What can be observed on the FUXA HMI and what happens to the physical process?
 
-  #### 📈 Historical Data and Trends
+  #### Historical Data and Trends
   - The interface provides access to historical data and trend analysis
   - Enables operators to review past performance
   - Helps analyze trends over time
   - Supports data-driven decisions to optimize process efficiency
 
-  #### ⚠️ Response to Alerts
+  #### Response to Alerts
   - When an alert is triggered, it prompts immediate action
   - Example: Temperature sensor anomaly detection
   - Operator notifications for corrective measures

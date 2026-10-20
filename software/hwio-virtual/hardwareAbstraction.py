@@ -522,6 +522,13 @@ def index_page():
   global gst, hpt, sysSen, boSen, heartbeat, compressor, systemValve, gstSig, delay, timer, consecutive_failures
 
   ui.add_head_html("""<script>(function(){if(new URLSearchParams(location.search).get(\"theme\")==\"light\")document.documentElement.classList.add(\"light-mode\");})();</script>""")
+  # Brand: Inter and the accent orange; buttons set ink text through their
+  # props, as Quasar's colour classes win over plain CSS (doc/brand/README.md)
+  ui.add_head_html("""<style>
+    @font-face { font-family: 'InterVariable'; src: url('/static/fonts/InterVariable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+    body, .q-btn, .q-tab__label { font-family: 'InterVariable', -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  </style>""")
+  ui.colors(primary='#ff6b00')
 
   # Create container for the content
   with ui.element('div').style('text-align: center; min-width: 1024px; width: 1200px; margin: 0 auto;'):
@@ -530,12 +537,10 @@ def index_page():
     with ui.row().style('width: 100%; align-items: center; justify-content: space-between; margin-bottom: 20px;'):
       # Left side: Spinner and Logo
       with ui.row().style('align-items: center;'):
-        ui.spinner('dots', size='lg', color='red')
-        ui.image('pics/CybICS_logo.png').classes('w-64')
-        ui.spinner('dots', size='lg', color='red')
+        ui.image('pics/cybics-wordmark.svg').classes('w-64')
 
       # Right side: Tabs
-      with ui.tabs().style('background-color: #1a1a2e;') as tabs:
+      with ui.tabs().style('background-color: #1a1a1a;') as tabs:
         classic_tab = ui.tab('Classic View', icon='dashboard').style('color: white; font-size: 16px;')
         viz_3d_tab = ui.tab('3D Visualization', icon='view_in_ar').style('color: white; font-size: 16px;')
 
@@ -571,9 +576,9 @@ def index_page():
             ui.image('pics/pcb.png').style('width: 100%; height: auto; display: block; width: 800px; height: 500px; margin: auto;')
 
             # Reset button
-            ui.button('reset', on_click=button_reset).style(
+            ui.button('reset', on_click=button_reset).props('text-color=black').style(
               'position: absolute; top: 240px; left: 0px;'
-              'background-color: red; color: white; width: 40px; height: 5px;'
+              'width: 40px; height: 5px; padding: 0; font-size: 9px;'
               'display: block;'
             )
 
@@ -608,20 +613,20 @@ def index_page():
             # 160 x 100 mm outline is 96 % across and 53 % down, which lands
             # here on the 800 x 500 photograph.
             nav_button_style = (
-              'position: absolute; background-color: #444; color: white;'
+              'position: absolute;'
               'width: 22px; height: 22px; min-width: 22px; padding: 0;'
               'font-size: 14px; line-height: 22px;'
               'display: block;'
             )
-            ui.button('^', on_click=lambda: nav_event('prev')).style(
+            ui.button('^', on_click=lambda: nav_event('prev')).props('text-color=black').style(
               'top: 240px; left: 745px;' + nav_button_style).tooltip('Up: previous screen')
-            ui.button('<', on_click=lambda: nav_event('prev')).style(
+            ui.button('<', on_click=lambda: nav_event('prev')).props('text-color=black').style(
               'top: 264px; left: 721px;' + nav_button_style).tooltip('Left: previous screen')
-            ui.button('O', on_click=lambda: nav_event('next')).style(
+            ui.button('O', on_click=lambda: nav_event('next')).props('text-color=black').style(
               'top: 264px; left: 745px;' + nav_button_style).tooltip('Centre: next screen')
-            ui.button('>', on_click=lambda: nav_event('next')).style(
+            ui.button('>', on_click=lambda: nav_event('next')).props('text-color=black').style(
               'top: 264px; left: 769px;' + nav_button_style).tooltip('Right: next screen')
-            ui.button('v', on_click=lambda: nav_event('next')).style(
+            ui.button('v', on_click=lambda: nav_event('next')).props('text-color=black').style(
               'top: 288px; left: 745px;' + nav_button_style).tooltip('Down: next screen')
 
             # Overlay GST
@@ -1151,4 +1156,4 @@ if __name__ == "__main__":
   static_dir = os.path.join(os.path.dirname(__file__), 'static')
   app.add_static_files('/static', static_dir)
 
-  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS VIRT")
+  ui.run(port=8090,reload=False,show=False,dark=True,favicon="pics/favicon.ico",title="CybICS - Virtual Hardware")

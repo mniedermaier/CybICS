@@ -4,8 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS IDS - Intrusion Detection System</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
     <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <style>
+        @font-face {
+            font-family: 'InterVariable';
+            src: url('/static/fonts/InterVariable.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
         :root {
             --bg: #1a1a1a;
             --surface: #2d2d2d;
@@ -16,7 +26,7 @@
             --text-secondary: #cccccc;
             --text-muted: #999999;
             --text-dim: #666666;
-            --orange: #ff6b00;
+            --orange: #ff6b00; /* the brand Accent, doc/brand/README.md */
             --orange-hover: #ff8c42;
             --orange-dim: rgba(255, 107, 0, 0.15);
             --green: #10b981;
@@ -43,7 +53,7 @@
         *::-webkit-scrollbar-corner { background: var(--bg); }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'InterVariable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
             overflow: hidden;
@@ -78,6 +88,16 @@
             font-size: 1.25rem;
             text-decoration: none;
             letter-spacing: 0.5px;
+        }
+
+        .header-logo {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .header-logo img {
+            height: 24px;
+            width: auto;
         }
 
         .header-logo span {
@@ -322,7 +342,7 @@
             text-align: right;
             font-size: 0.8rem;
             font-weight: bold;
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
         }
 
         /* ===== TOP SOURCES ===== */
@@ -341,7 +361,7 @@
         }
 
         .source-ip {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-size: 0.8rem;
         }
 
@@ -410,7 +430,7 @@
         .severity-badge.low { background: var(--blue-dim); color: var(--blue); }
 
         .mitre-tag {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-size: 0.7rem;
             color: var(--text-muted);
             background: var(--bg);
@@ -419,13 +439,13 @@
         }
 
         .rule-tag {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
 
         .ip-cell {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-size: 0.75rem;
         }
 
@@ -479,7 +499,7 @@
         }
 
         .rule-name {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-weight: 600;
             color: var(--orange);
             font-size: 0.85rem;
@@ -530,7 +550,7 @@
             font-size: 1.3rem;
             font-weight: 700;
             color: var(--orange);
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             min-width: 40px;
         }
 
@@ -545,7 +565,7 @@
         .rule-last-seen {
             font-size: 0.65rem;
             color: var(--text-dim);
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             margin-left: auto;
         }
 
@@ -558,7 +578,7 @@
 
         .rule-source-chip {
             font-size: 0.65rem;
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             background: var(--orange-dim);
             color: var(--orange);
             padding: 0.1rem 0.4rem;
@@ -625,7 +645,7 @@
         .rule-dist-name {
             width: 130px;
             font-size: 0.7rem;
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
@@ -659,7 +679,7 @@
             text-align: right;
             font-size: 0.75rem;
             font-weight: bold;
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             color: var(--text-secondary);
         }
 
@@ -831,7 +851,7 @@
             border-radius: 0.25rem;
             padding: 0.35rem 0.5rem;
             font-size: 0.8rem;
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             width: 140px;
         }
 
@@ -855,7 +875,7 @@
         }
 
         .ch-flag-value {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-size: 0.85rem;
             color: var(--green);
             font-weight: 600;
@@ -871,12 +891,12 @@
         }
 
         .ch-info-label { color: var(--text-muted); }
-        .ch-info-value { color: var(--text); font-family: 'Courier New', monospace; }
+        .ch-info-value { color: var(--text); font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace; }
         .ch-info-value.danger { color: var(--red); }
         .ch-info-value.success { color: var(--green); }
 
         .ch-timer {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
             font-size: 1.1rem;
             font-weight: bold;
             color: var(--orange);
@@ -937,7 +957,7 @@
     <!-- HEADER -->
     <div class="header">
         <div class="header-left">
-            <a class="header-logo" href="/" target="_top">CybICS<span>IDS</span></a>
+            <a class="header-logo" href="/" target="_top"><img src="/static/cybics-wordmark.svg" alt="CybICS"><span>IDS</span></a>
             <div class="header-nav">
                 <button class="active-tab" data-tab="overview" onclick="switchTab('overview', this)">Overview</button>
                 <button data-tab="alerts" onclick="switchTab('alerts', this)">Alerts</button>
@@ -1486,7 +1506,7 @@
 
         if (timeline.length === 0) {
             ctx.fillStyle = '#666';
-            ctx.font = '12px Segoe UI, sans-serif';
+            ctx.font = '12px InterVariable, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('No alert data to display', W/2, H/2);
             return;
@@ -1509,7 +1529,7 @@
 
         // Y-axis labels
         ctx.fillStyle = '#666';
-        ctx.font = '10px Courier New, monospace';
+        ctx.font = '10px ui-monospace, Menlo, Consolas, monospace';
         ctx.textAlign = 'right';
         ctx.fillText('CRIT', 35, 0.15 * H + 4);
         ctx.fillText('HIGH', 35, 0.35 * H + 4);
@@ -1565,7 +1585,7 @@
         const idCol = showId ? `<td style="color:var(--text-dim)">${a.id}</td>` : '';
         return `<tr class="alert-new">
             ${idCol}
-            <td style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-muted)">${ts}</td>
+            <td style="font-family:ui-monospace,Menlo,Consolas,monospace; font-size:0.75rem; color:var(--text-muted)">${ts}</td>
             <td><span class="severity-badge ${a.severity}">${a.severity}</span></td>
             <td><span class="rule-tag">${a.rule}</span></td>
             <td class="ip-cell">${a.src || ''}${srcExtra}</td>

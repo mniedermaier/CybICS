@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - {{ challenge.title }}</title>
+    <link rel="stylesheet" href="/static/css/brand.css">
     <!-- Syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <style>
@@ -12,7 +13,7 @@
         body {
             background: #1a1a1a;
             color: #e0e0e0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--brand-font);
             margin: 0;
             line-height: 1.6;
         }
@@ -66,12 +67,15 @@
         .badge-easy { background: rgba(34,197,94,0.15); color: #4ade80; }
         .badge-medium { background: rgba(245,158,11,0.15); color: #fbbf24; }
         .badge-hard { background: rgba(239,68,68,0.15); color: #f87171; }
-        .badge-tag-recon { background: rgba(139,92,246,0.15); color: #a78bfa; }
-        .badge-tag-exploit { background: rgba(239,68,68,0.15); color: #f87171; }
-        .badge-tag-analysis { background: rgba(59,130,246,0.15); color: #60a5fa; }
-        .badge-tag-evasion { background: rgba(245,158,11,0.15); color: #fbbf24; }
-        .badge-tag-defense { background: rgba(34,197,94,0.15); color: #4ade80; }
-        .badge-tag-hardware { background: rgba(236,72,153,0.15); color: #f472b6; }
+        /* Tags are labels, not signals: one neutral style (doc/brand/README.md) */
+        .badge-tag-recon, .badge-tag-exploit, .badge-tag-analysis, .badge-tag-evasion, .badge-tag-defense, .badge-tag-hardware { background: rgba(255,255,255,0.08); color: #d1d5db; }
+        body.light-mode .badge-tag-recon, body.light-mode .badge-tag-exploit, body.light-mode .badge-tag-analysis,
+        body.light-mode .badge-tag-evasion, body.light-mode .badge-tag-defense, body.light-mode .badge-tag-hardware { background: #eef1f5; color: #394355; }
+        /* Light mode: darker text on the same tints, and accent links at 5.5:1 */
+        body.light-mode .badge-easy { color: #166534; }
+        body.light-mode .badge-medium { color: #8a5a00; }
+        body.light-mode .badge-hard { color: #b91c1c; }
+        body.light-mode a, body.light-mode .training-content a { color: var(--brand-accent-text-light); }
 
         /* ===== Layout: Sidebar + Content ===== */
         .page-layout {
@@ -190,16 +194,23 @@
         .tc-section.open .tc-section-body { display: block; }
 
         /* Section type accents */
-        .tc-section[data-type="task"] { border-left: 3px solid #3b82f6; }
-        .tc-section[data-type="task"] .tc-section-title { color: #60a5fa; }
-        .tc-section[data-type="hint"] { border-left: 3px solid #f59e0b; }
-        .tc-section[data-type="hint"] .tc-section-title { color: #fbbf24; }
+        /* Section accents from the brand palette (doc/brand/README.md); red stays
+           as the one warning colour, for spoilers */
+        .tc-section[data-type="overview"] { border-left: 3px solid var(--brand-accent); }
+        .tc-section[data-type="overview"] .tc-section-title { color: #ff8c42; }
+        .tc-section[data-type="task"] { border-left: 3px solid var(--brand-amber); }
+        .tc-section[data-type="task"] .tc-section-title { color: var(--brand-yellow); }
+        .tc-section[data-type="hint"] { border-left: 3px solid #9ca3af; }
+        .tc-section[data-type="hint"] .tc-section-title { color: #d1d5db; }
         .tc-section[data-type="solution"] { border-left: 3px solid #ef4444; }
         .tc-section[data-type="solution"] .tc-section-title { color: #f87171; }
-        .tc-section[data-type="security"] { border-left: 3px solid #8b5cf6; }
-        .tc-section[data-type="security"] .tc-section-title { color: #a78bfa; }
-        .tc-section[data-type="overview"] { border-left: 3px solid #22c55e; }
-        .tc-section[data-type="overview"] .tc-section-title { color: #4ade80; }
+        .tc-section[data-type="security"] { border-left: 3px solid #9ca3af; }
+        .tc-section[data-type="security"] .tc-section-title { color: #d1d5db; }
+        body.light-mode .tc-section[data-type="overview"] .tc-section-title { color: var(--brand-accent-text-light); }
+        body.light-mode .tc-section[data-type="task"] .tc-section-title { color: #8a5a00; }
+        body.light-mode .tc-section[data-type="hint"] .tc-section-title,
+        body.light-mode .tc-section[data-type="security"] .tc-section-title { color: #394355; }
+        body.light-mode .tc-section[data-type="solution"] .tc-section-title { color: #b91c1c; }
 
         /* ===== Training content typography ===== */
         .training-content h1 { font-size: 1.5rem; color: #ff6b00; margin: 1.5rem 0 0.75rem; }
@@ -264,7 +275,7 @@
             text-transform: uppercase;
             font-weight: 600;
             letter-spacing: 0.04em;
-            font-family: -apple-system, sans-serif;
+            font-family: var(--brand-font);
         }
         .copy-btn {
             background: transparent;
@@ -275,7 +286,7 @@
             font-size: 0.65rem;
             cursor: pointer;
             transition: all 0.15s;
-            font-family: -apple-system, sans-serif;
+            font-family: var(--brand-font);
         }
         .copy-btn:hover { border-color: #ff6b00; color: #ff6b00; }
         .copy-btn.copied { border-color: #22c55e; color: #22c55e; }
@@ -598,13 +609,13 @@
                 {% if solved %}
                 <h2>{% if challenge_type == 'defense' %}Defense Verified{% else %}Challenge Completed{% endif %}</h2>
                 <div class="msg msg-ok">
-                    <strong>&#127881; Challenge Completed!</strong> You earned {{ challenge.points }} points.
+                    <strong>Challenge Completed!</strong> You earned {{ challenge.points }} points.
                 </div>
                 {% elif challenge_type in ['defense', 'verify'] %}
                 {% set verify_word = 'Verify Defense' if challenge_type == 'defense' else 'Verify' %}
-                <h2>&#128737; {{ verify_word }}</h2>
+                <h2>{{ verify_word }}</h2>
                 <p style="color:#999; font-size:0.9rem; margin-bottom:0.75rem;">{% if challenge_type == 'defense' %}Complete the defensive actions above, then verify your work.{% else %}Complete the task above, then verify your work.{% endif %}</p>
-                <button id="verify-button" class="verify-btn" data-label="&#128737; {{ verify_word }}">&#128737; {{ verify_word }}</button>
+                <button id="verify-button" class="verify-btn" data-label="{{ verify_word }}">{{ verify_word }}</button>
                 <div id="verify-results"></div>
                 <div id="message-container"></div>
                 {% else %}
@@ -622,7 +633,7 @@
     <div id="success-animation" class="success-overlay">
         <div class="fireworks" id="fireworks"></div>
         <div class="success-inner">
-            <div class="success-icon">&#127881;</div>
+            <div class="success-icon"><img src="/pics/cybics-mark.svg" alt="" height="96"></div>
             <div class="success-text">Challenge Completed!</div>
             <div class="success-pts">+{{ challenge.points }} points</div>
             <div style="color:#999; font-size:0.9rem;">Redirecting...</div>
@@ -642,6 +653,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         const content = document.getElementById('training-content');
         if (!content) return;
+
+        // Module READMEs start many headings with an emoji; the interface uses
+        // none (doc/brand/README.md), so drop a leading one from each heading.
+        const leadingEmoji = /^\s*(?:(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\u200D|\uFE0F)+\s*)+/u;
+        content.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+            const t = Array.from(h.childNodes).find(n => n.nodeType === 3 && n.textContent.trim());
+            if (t) t.textContent = t.textContent.replace(leadingEmoji, '');
+        });
 
         // ===== 1. Split content into sections by H2 headings =====
         const children = Array.from(content.childNodes);
@@ -900,10 +919,10 @@
         .then(r => r.json()).then(d => {
             if (d.checks && d.checks.length) {
                 let h = '';
-                d.checks.forEach(c => { h += '<div class="verify-check ' + (c.passed?'passed':'failed') + '">' + (c.passed?'&#9989;':'&#10060;') + ' <strong>' + c.name + '</strong>: ' + c.detail + '</div>'; });
+                d.checks.forEach(c => { h += '<div class="verify-check ' + (c.passed?'passed':'failed') + '">' + (c.passed?'✓':'✕') + ' <strong>' + c.name + '</strong>: ' + c.detail + '</div>'; });
                 results.innerHTML = h;
             }
-            if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '&#9989; Verified!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
+            if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '✓ Verified!'; showSuccess(); setTimeout(() => { window.parent.postMessage({type:'navigate',url:'/ctf'},'*'); }, 4000); }
             else { showMsg(d.message, false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; }
         }).catch(() => { showMsg('Error. Try again.', false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; });
     }

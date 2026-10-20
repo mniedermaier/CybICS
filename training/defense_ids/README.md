@@ -1,13 +1,13 @@
-# 🔍 IDS Monitoring & Tuning
+# IDS Monitoring & Tuning
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-PMAD - Protocol Metadata Anomaly Detection](https://d3fend.mitre.org/technique/d3f:ProtocolMetadataAnomalyDetection/)
 
-## 📋 Overview
+## Overview
 An Intrusion Detection System (IDS) is only effective when it is properly configured, actively monitoring, and tuned to detect relevant threats. A misconfigured or disabled IDS provides a false sense of security.
 
 This challenge requires you to ensure the CybICS IDS is fully operational and capable of detecting multiple types of attacks against the industrial network.
 
-## 🎯 Task
+## Task
 
 Ensure the IDS meets all three criteria:
 
@@ -16,7 +16,7 @@ The flag has the format `CybICS(flag)`.
 2. **Capturing** — The IDS is actively monitoring network traffic
 3. **Detecting** — At least 3 different detection rules have been triggered
 
-### 📝 Steps
+### Steps
 
 #### Step 1: Access the IDS Dashboard
 Open a web browser and navigate to `http://<DEVICE_IP>:8443`
@@ -55,7 +55,7 @@ client.close()
 #### Step 4: Verify Detection
 Check the IDS dashboard to confirm alerts have been generated from at least 3 different rules. Then click **Verify Defense** on this challenge page.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -87,7 +87,7 @@ Check the IDS dashboard to confirm alerts have been generated from at least 3 di
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - What is the difference between signature-based and anomaly-based detection in ICS?
@@ -96,11 +96,11 @@ After completing this challenge, consider:
 - How would you integrate IDS alerts with a SIEM for centralized monitoring?
 
 
-## 💡 Hints
+## Hints
 
 Start the IDS capture via `curl -X POST http://localhost:8443/api/start`, then trigger attacks from the webshell or attack machine. A quick port scan (`nmap -sS 172.18.0.3`), some Modbus writes, and an S7 access attempt will each trigger a different rule. Check the IDS dashboard to confirm 3+ rules have fired.
 
-## 🔍 Solution
+## Solution
 
 1. Start the IDS capture:
    ```bash

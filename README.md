@@ -1,20 +1,17 @@
 <p align="center">
-  <img alt="CybICS Logo" src="doc/pics/CybICS_logo.png" height="120" />
-  <p align="center">Understanding industrial Cybersecurity.</p>
+  <img alt="CybICS" src="doc/brand/cybics-wordmark.svg" height="96" />
 </p>
-
----
+<p align="center">
+  <b>A complete industrial facility on your desk. Attack it. Detect it. Defend it.</b><br/>
+  Open-source ICS security training, on a Raspberry Pi board or in Docker.<br/>
+  <sub>CybICS is pronounced "Cybix".</sub>
+</p>
 
 <div align="center">
 
 [![License](https://img.shields.io/badge/license-MIT%20License-32c955)](/LICENSE)
-[![KiBot](https://github.com/mniedermaier/CybICS/actions/workflows/kibotVerify.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/kibotVerify.yml)
-[![C/C++ CI](https://github.com/mniedermaier/CybICS/actions/workflows/buildTest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/buildTest.yml)
-[![flawFinder C](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml)
-[![TruffleHog](https://github.com/mniedermaier/CybICS/actions/workflows/trufflehog.yaml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/trufflehog.yaml)
 [![devContainer](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/devContainer.yml)
 [![pytest](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/pytest.yml)
-[![CodeQL](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mniedermaier)
 </div>
 
@@ -24,19 +21,21 @@
 
 CybICS (Cybersecurity for Industrial Control Systems) is an open-source training platform designed to help cybersecurity professionals, students, and researchers understand the unique challenges of securing industrial control systems (ICS) and SCADA environments.
 
-The platform simulates a realistic industrial gas pressure control system complete with:
+The platform recreates a complete industrial facility, from the physical process up to the operator's screen:
+- **Physical process** - a gas pressure process with tanks, a compressor and valves, run by an STM32 on the board or simulated in Docker
 - **PLC** (Programmable Logic Controller) - OpenPLC
 - **HMI** (Human-Machine Interface) - FUXA
-- **Physical Process Simulation** - Gas pressure control system
-- **Multiple Industrial Protocols** - Modbus TCP, OPC-UA, S7comm, DNP3, EtherNet/IP
+- **Gateways and services** - an OPC-UA server and an S7comm endpoint
+- **Engineering workstation and attack machine** - the tools of the operator and of the attacker
+- **Intrusion detection** - a rule-based IDS watching the plant network
+- **Industrial protocols** - Modbus TCP, OPC-UA and S7comm, plus DNP3 and EtherNet/IP via OpenPLC
 
 ### Why CybICS?
 
-- ✅ **Hands-on Learning**: Practice real-world ICS security techniques in a safe environment
-- ✅ **Cost-Effective**: Free and open-source
-- ✅ **Flexible**: Choose between virtual (Docker) or physical (Raspberry Pi + STM32) deployment
-- ✅ **Comprehensive**: Covers reconnaissance, exploitation, and defense
-- ✅ **CTF-Ready**: Built-in capture-the-flag challenges for training exercises
+- **A real plant, not only a VM.** The physical board is the process diagram: LEDs show the tanks, the compressor and the valves as you attack them. The same process runs in Docker when no board is at hand.
+- **Learn, attack, detect, defend.** 38 Theory Path lessons, 22 CTF challenges and a built-in IDS, mapped to MITRE ATT&CK for ICS, D3FEND and NIST SP 800-82r3.
+- **Real industrial protocols.** Modbus TCP, S7comm and OPC-UA against OpenPLC and a FUXA HMI.
+- **Free and open source.** The CybICS hardware, firmware and software are MIT licensed.
 
 ---
 
@@ -44,7 +43,7 @@ The platform simulates a realistic industrial gas pressure control system comple
 
 - [What is CybICS?](#what-is-cybics)
 - [Deployment Options](#deployment-options)
-- [Quick Start - Virtual Testbed](#-quick-start---virtual-testbed)
+- [Quick Start - Virtual Testbed](#quick-start---virtual-testbed)
 - [Physical Process Description](#physical-process-description)
 - [Hardware](#hardware)
 - [Software Components](#software-components)
@@ -65,7 +64,7 @@ CybICS offers two deployment modes to suit different learning needs and budgets:
 <tr>
 <td width="50%" valign="top">
 
-### 💻 Virtual (Recommended for Beginners)
+### Virtual (Recommended for Beginners)
 **Docker-based deployment for easy setup**
 
 <img src="doc/pics/landing.png" width="100%">
@@ -73,7 +72,7 @@ CybICS offers two deployment modes to suit different learning needs and budgets:
 </td>
 <td width="50%" valign="top">
 
-### 🔧 Physical (Advanced)
+### Physical (Advanced)
 **Hardware-based deployment with Raspberry Pi**
 
 <img src="doc/pics/cybics.png" width="100%">
@@ -84,21 +83,21 @@ CybICS offers two deployment modes to suit different learning needs and budgets:
 <td width="50%" valign="top">
 
 **Advantages**:
-- ✅ No hardware required
-- ✅ Quick setup (5 minutes)
-- ✅ Easy to reset and reproduce
-- ✅ Perfect for classroom/online training
-- ✅ Runs on Windows, Linux, macOS
+- No hardware required
+- Quick setup (5 minutes)
+- Easy to reset and reproduce
+- Suited to classroom and online training
+- Runs on Windows, Linux, macOS
 
 </td>
 <td width="50%" valign="top">
 
 **Advantages**:
-- ✅ Realistic physical hardware
-- ✅ Learn embedded systems security
-- ✅ Practice hardware attacks (UART, SWD)
-- ✅ Portable standalone device
-- ✅ Visual LED indicators
+- Realistic physical hardware
+- Learn embedded systems security
+- Practice hardware attacks (UART, SWD)
+- Portable standalone device
+- Visual LED indicators
 
 </td>
 </tr>
@@ -145,7 +144,7 @@ CybICS offers two deployment modes to suit different learning needs and budgets:
 
 ---
 
-## 🚀 Quick Start - Virtual Testbed
+## Quick Start - Virtual Testbed
 
 Get CybICS running in under 5 minutes using the virtual environment!
 
@@ -265,10 +264,10 @@ For those choosing the physical deployment, CybICS uses affordable, off-the-shel
 CybICS includes 13+ hands-on training modules covering the full ICS security lifecycle:
 
 Each module includes:
-- 📖 Background theory
-- 🎯 Hands-on exercises
-- 🚩 CTF-style flags
-- 💡 Hints and solutions
+- Background theory
+- Hands-on exercises
+- CTF-style flags
+- Hints and solutions
 
 **Start training**: [Training Overview](training/README.md)
 
@@ -279,22 +278,22 @@ Each module includes:
 Comprehensive documentation is available for all components:
 
 ### Getting Started
-- 📘 [Quick Start Guide](doc/README.md) - Detailed installation instructions
-- 🎓 [Training Overview](training/README.md) - All training modules
-- 🧪 [Testing Guide](tests/README.md) - Automated testing
+- [Quick Start Guide](doc/README.md) - Detailed installation instructions
+- [Training Overview](training/README.md) - All training modules
+- [Testing Guide](tests/README.md) - Automated testing
 
 ### Hardware
-- 🔧 [Hardware Overview](hardware/README.md) - BOM, assembly, specifications
-- 📟 [PCB Ordering Guide](hardware/pcb/README.md) - Step-by-step JLCPCB ordering
-- 📦 [3D Case Files](hardware/case/README.md) - Printable enclosure
+- [Hardware Overview](hardware/README.md) - BOM, assembly, specifications
+- [PCB Ordering Guide](hardware/pcb/README.md) - Step-by-step JLCPCB ordering
+- [3D Case Files](hardware/case/README.md) - Printable enclosure
 
 ### Software
-- 💾 [Software Overview](software/README.md) - Setup and configuration
-- 🎛️ [OpenPLC Integration](software/OpenPLC/README.md) - PLC programming and configuration
-- 🖥️ [FUXA HMI](software/FUXA/README.md) - HMI configuration
-- 🔌 [Virtual Hardware I/O](software/hwio-virtual/README.md) - Virtual process simulation
-- 🍓 [Raspberry Pi I/O](software/hwio-raspberry/README.md) - Physical hardware interface
-- 🔬 [STM32 Firmware](software/stm32/README.md) - Embedded firmware (Zephyr RTOS)
+- [Software Overview](software/README.md) - Setup and configuration
+- [OpenPLC Integration](software/OpenPLC/README.md) - PLC programming and configuration
+- [FUXA HMI](software/FUXA/README.md) - HMI configuration
+- [Virtual Hardware I/O](software/hwio-virtual/README.md) - Virtual process simulation
+- [Raspberry Pi I/O](software/hwio-raspberry/README.md) - Physical hardware interface
+- [STM32 Firmware](software/stm32/README.md) - Embedded firmware (Zephyr RTOS)
 
 ---
 
@@ -328,12 +327,12 @@ We welcome contributions from the community! Here's how you can help:
 
 ### Ways to Contribute
 
-- 🐛 **Report bugs** via GitHub Issues
-- 💡 **Suggest features** or improvements
-- 📝 **Improve documentation** (typos, clarity, examples)
-- 🎓 **Create training modules** for new attack/defense techniques
-- 🔧 **Submit code improvements** via Pull Requests
-- 🌍 **Translate documentation** to other languages
+- **Report bugs** via GitHub Issues
+- **Suggest features** or improvements
+- **Improve documentation** (typos, clarity, examples)
+- **Create training modules** for new attack/defense techniques
+- **Submit code improvements** via Pull Requests
+- **Translate documentation** to other languages
 
 ### Development Setup
 
@@ -351,6 +350,14 @@ conventions, including the places that must be changed together, is in
 [CLAUDE.md](CLAUDE.md). It is written for AI assistants but applies to everyone.
 
 ---
+
+## Build Status
+
+[![KiBot](https://github.com/mniedermaier/CybICS/actions/workflows/kibotVerify.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/kibotVerify.yml)
+[![C/C++ CI](https://github.com/mniedermaier/CybICS/actions/workflows/buildTest.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/buildTest.yml)
+[![flawFinder C](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/flawfinder.yml)
+[![TruffleHog](https://github.com/mniedermaier/CybICS/actions/workflows/trufflehog.yaml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/trufflehog.yaml)
+[![CodeQL](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml/badge.svg)](https://github.com/mniedermaier/CybICS/actions/workflows/codeql.yml)
 
 ## License
 
@@ -378,7 +385,7 @@ CybICS is developed for educational purposes to improve ICS cybersecurity awaren
 </p>
 
 <p align="center">
-  <a href="doc/README.md">📘 Detailed Setup Guide</a> •
-  <a href="training/README.md">🎓 Training Modules</a> •
-  <a href="https://github.com/mniedermaier/CybICS/issues">🐛 Report Issues</a>
+  <a href="doc/README.md">Detailed Setup Guide</a> •
+  <a href="training/README.md">Training Modules</a> •
+  <a href="https://github.com/mniedermaier/CybICS/issues">Report Issues</a>
 </p>

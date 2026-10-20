@@ -1,15 +1,15 @@
-# 🔑 Password Attack Guide
+# Password Attack Guide
 
 > **MITRE ATT&CK for ICS:** `Initial Access` `Persistence` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
 
-## 📋 Overview
+## Overview
 A dictionary attack is a common method used to crack passwords by systematically attempting all the words in a pre-defined list, or "dictionary," until the correct one is found.
 This type of attack leverages the tendency of users to choose simple, common passwords, such as "password," "123456," or "qwerty." By using a comprehensive dictionary that includes common words, phrases, and variations, attackers can quickly break into accounts that are protected by weak or predictable passwords.
 
-## 🎯 OpenPLC Password Attack
+## OpenPLC Password Attack
 In this example we try to get the password of the OpenPLC login using the password fuzzer [ffuf](https://github.com/ffuf/ffuf).
 
-### 🔍 Analyzing the Target
+### Analyzing the Target
 OpenPLC is running at [http://<DEVICE_IP>:8080/login](http://<DEVICE_IP>:8080/login).
 After entering wrong credentials, this page is displayed:  
 ![Bad Credentials](doc/wrong_login.png)
@@ -20,7 +20,7 @@ When the browser's built-in developer console is open during the request, we can
 And the sent payload:  
 ![Login Payload](doc/login_payload.png)
 
-### 🛠️ Setup Steps
+### Setup Steps
 On the CybICS attack machine `ffuf` and the `rockyou` wordlist are already
 installed, so no download is needed:
 
@@ -36,7 +36,7 @@ tar xf ffuf_2.1.0_linux_amd64.tar.gz
 wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
 ```
 
-### 🚀 Running the Attack
+### Running the Attack
 Start ffuf with:
 - `-w /usr/share/wordlists/rockyou.txt`: The wordlist
 - `-X POST -H "Content-Type: application/x-www-form-urlencoded"`: Information from the login request
@@ -50,7 +50,7 @@ ffuf -v -w /usr/share/wordlists/rockyou.txt -X POST -H "Content-Type: applicatio
 
 For more info, run `ffuf` without parameters.
 
-## 🎯 Task
+## Task
 This module covers two scored challenges, both solved with an ffuf dictionary attack. Flags have the format `CybICS(flag)`:
 
 - **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the user account. Flag: `CybICS(0penPLC)`.
@@ -64,7 +64,7 @@ This module covers two scored challenges, both solved with an ffuf dictionary at
 5. Apply the same approach to the FUXA HMI at port 1881
 6. Log in to FUXA and find the flag
 
-## 🔍 Solution: OpenPLC Password Attack
+## Solution: OpenPLC Password Attack
 
 Brute-force `admin` at `http://$DEVICE_IP:8080/login`, log in with the recovered password, open the **Users** page and read the admin account's details.
 
@@ -72,13 +72,13 @@ Brute-force `admin` at `http://$DEVICE_IP:8080/login`, log in with the recovered
 
   ![Flag OpenPLC Password](doc/flag.png)
 
-## 🎯 FUXA Password Attack
+## FUXA Password Attack
 Use the previous knowledge to fuzz the admin login of FUXA.
 FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 
 **Note:** FUXA uses a different authentication mechanism than OpenPLC. While OpenPLC accepts form-encoded POST data at `/login`, FUXA uses a JSON-based API at `/api/signin`. This means you need to change the `Content-Type` header to `application/json`, format the payload as a JSON object, and use a different filter flag (e.g., `-fr "error"` instead of `-fs`) to distinguish successful from failed attempts.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -114,12 +114,12 @@ FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 </details>
 
 
-## 💡 Hints
+## Hints
 
 - **OpenPLC**: The flag is part of the user information.
 - **FUXA**: The flag appears after successful login on the HMI.
 
-## 🔍 Solution: FUXA Password Attack
+## Solution: FUXA Password Attack
 
 Run the attack:
   ```sh
