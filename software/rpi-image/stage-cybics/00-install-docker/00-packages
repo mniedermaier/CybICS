@@ -5,7 +5,6 @@ docker.io
 # (installRPI.sh does not hit this because it installs docker via
 # get.docker.com, which bundles the plugin.)
 docker-compose
-zram-tools
 tcpdump
 btop
 socat

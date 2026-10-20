@@ -111,19 +111,35 @@ EOF
 ###
 ### Configure zram swap
 ###
+# Raspberry Pi OS Trixie ships rpi-swap, which already sets up /dev/zram0 (zstd,
+# with writeback to /var/swap). zram-tools next to it fails on every boot
+# because the device is in use, so only older releases get it.
 echo -ne "${GREEN}# Configure zram swap ... \n${ENDCOLOR}"
 ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
     set -e
+    if dpkg -s rpi-swap > /dev/null 2>&1; then
+        sudo systemctl disable zramswap 2> /dev/null || true
+        sudo apt-get purge -y zram-tools 2> /dev/null || true
+        sudo rm -f /etc/default/zramswap
+        # rpi-swap sets no algorithm; pin zstd instead of the kernel default.
+        sudo install -d -m 755 /etc/systemd/zram-generator.conf.d
+        printf '[zram0]\ncompression-algorithm=zstd\n' \
+            | sudo tee /etc/systemd/zram-generator.conf.d/30-cybics-zram.conf > /dev/null
+        exit 0
+    fi
+
     # Install zram-tools if not present
     if ! dpkg -l | grep -q zram-tools; then
         sudo apt-get update
         sudo apt-get install -y zram-tools
     fi
 
-    # Configure zram - use 1024 MB, lz4 compression
+    # Configure zram - use 1024 MB, zstd compression. Memory, not CPU, is
+    # what the Zero 2 W runs out of, and zstd packs more into the same RAM
+    # than lz4 (4.75:1 measured on a board running the stack).
     sudo tee /etc/default/zramswap > /dev/null <<'ZRAMCONF'
 # Compression algorithm
-ALGO=lz4
+ALGO=zstd
 # Fixed size in MB for zram swap
 SIZE=1024
 # Priority (higher = preferred over disk swap)
@@ -134,6 +150,32 @@ ZRAMCONF
     sudo systemctl stop zramswap || true
     sudo swapoff /dev/zram0 2>/dev/null || true
     sudo systemctl start zramswap
+EOF
+
+###
+### Free memory on the headless board
+###
+# Same settings as the SD image (rpi-image/stage-cybics/01-configure-system):
+# CMA cut from the default 256 MB to 64 MB and no KMS driver; no docker-proxy process
+# per published port; a persistent, capped journal; no unused services. The
+# CMA change takes effect after the next reboot.
+echo -ne "${GREEN}# Free memory on the headless board ... \n${ENDCOLOR}"
+ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<'EOF'
+    set -e
+    sudo sed -i -e 's/^dtoverlay=vc4-kms-v3d.*$/dtoverlay=cma,cma-64/' \
+                -e 's/^camera_auto_detect=1/camera_auto_detect=0/' \
+                -e 's/^display_auto_detect=1/display_auto_detect=0/' \
+                -e 's/^dtparam=audio=on/dtparam=audio=off/' /boot/firmware/config.txt
+    sudo install -d -m 755 /etc/docker
+    echo '{ "userland-proxy": false }' | sudo tee /etc/docker/daemon.json > /dev/null
+    sudo install -d -m 755 /etc/systemd/journald.conf.d
+    printf '[Journal]\nStorage=persistent\nSystemMaxUse=32M\n' \
+        | sudo tee /etc/systemd/journald.conf.d/50-cybics-persistent.conf > /dev/null
+    for unit in bluetooth.service hciuart.service ModemManager.service udisks2.service; do
+        sudo systemctl disable --now "$unit" 2> /dev/null || true
+    done
+    # The containers are already down; pick up daemon.json if Docker runs.
+    sudo systemctl try-restart docker
 EOF
 
 ###
