@@ -30,6 +30,8 @@ UPLINK_INTERFACE = os.environ.get('CYBICS_UPLINK_IFACE', 'ctfwlan0')
 UPLINK_DIR = os.environ.get('CYBICS_UPLINK_DIR', '/var/lib/cybics-uplink')
 REQUEST = 'request.json'
 STATUS = 'status.json'
+# Seconds between status refreshes while no request is pending (see Uplink.run).
+STATUS_REFRESH = 15
 
 # Kept in step with the keyfile the image ships
 # (software/rpi-image/stage-cybics/01-configure-system/files/), autoconnect
@@ -175,15 +177,24 @@ class Uplink:
 
         _write_status(self.directory, self.status())
 
-    def run(self, interval=3):
-        """Thread body. Does nothing on a stack without the shared volume."""
+    def run(self, interval=3, refresh=STATUS_REFRESH):
+        """Thread body. Does nothing on a stack without the shared volume.
+
+        A request is picked up within `interval` seconds and answered at once.
+        Without one, the status is only rebuilt every `refresh` seconds: it
+        takes four nmcli processes, which is real CPU on a Pi Zero 2 W.
+        """
         if not os.path.isdir(self.directory):
             logger.info('Uplink  : %s is not mounted, CTF uplink support is off', self.directory)
             return
         logger.info('Uplink  : watching %s for the CTF uplink on %s', self.directory, self.interface)
+        last_status = None
         while True:
             try:
-                self.poll()
+                pending = os.path.exists(os.path.join(self.directory, REQUEST))
+                if pending or last_status is None or time.monotonic() - last_status >= refresh:
+                    self.poll()
+                    last_status = time.monotonic()
             except Exception as error:
                 logger.error('Uplink  : %s', error)
             time.sleep(interval)

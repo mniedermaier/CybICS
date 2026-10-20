@@ -266,3 +266,48 @@ def test_the_default_network_matches_the_landing_page():
     assert ssid == 'cybics-mgmt'
     assert ctf_uplink.PROFILE_OPTIONS['wifi.ssid'] == ssid
     assert ctf_uplink.PROFILE_AUTOCONNECT is True
+
+
+class _Stop(Exception):
+    pass
+
+
+def _run_passes(uplink, monkeypatch, passes, before_pass=None):
+    """Run Uplink.run for a fixed number of 3-second passes on a fake clock."""
+    clock = {'now': 1000.0, 'pass': 0}
+    monkeypatch.setattr(ctf_uplink.time, 'monotonic', lambda: clock['now'])
+
+    def sleep(seconds):
+        clock['now'] += seconds
+        clock['pass'] += 1
+        if clock['pass'] >= passes:
+            raise _Stop
+        if before_pass:
+            before_pass(clock['pass'])
+    monkeypatch.setattr(ctf_uplink.time, 'sleep', sleep)
+    polls = []
+    real_poll = uplink.poll
+    monkeypatch.setattr(uplink, 'poll', lambda: (polls.append(clock['now']), real_poll()))
+    with pytest.raises(_Stop):
+        uplink.run(interval=3, refresh=15)
+    return polls
+
+
+def test_the_status_is_not_rebuilt_on_every_pass(shared, monkeypatch):
+    """Each status costs four nmcli processes; idle, it is refreshed every 15 s."""
+    polls = _run_passes(ctf_uplink.Uplink(FakeNmcli(), str(shared)), monkeypatch, passes=10)
+    # Ten passes 3 s apart cover 27 s: a status at the start and after 15 s.
+    assert polls == [1000.0, 1015.0]
+
+
+def test_a_request_is_answered_on_the_next_pass(shared, monkeypatch):
+    nm = FakeNmcli()
+
+    def write_request(n):
+        if n == 2:
+            request(shared, {'enabled': False, 'id': 7})
+    polls = _run_passes(ctf_uplink.Uplink(nm, str(shared)), monkeypatch, passes=4,
+                        before_pass=write_request)
+    assert polls == [1000.0, 1006.0]
+    assert status(shared)['request'] == 7
+    assert not (shared / ctf_uplink.REQUEST).exists()

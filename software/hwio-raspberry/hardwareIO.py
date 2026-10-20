@@ -219,6 +219,8 @@ def thread_openplc():
 # The AP profile, and the station profile the image ships as a starting point.
 AP_CONNECTION = 'cybics'
 SHIPPED_STATION_CONNECTION = 'cybics-station'
+# Seconds between nmcli lookups of the wlan0 IP and the station profile.
+NETWORK_REFRESH = 10
 
 
 def detect_station_connection():
@@ -280,27 +282,33 @@ def thread_network():
   except Exception as e:
     logging.error("No current connection " + str(e))
 
+  # The mode button is checked every second, but the IP and the station
+  # profile only every NETWORK_REFRESH seconds and right after a switch. Each
+  # lookup starts an nmcli process; at one pass a second, those and the
+  # uplink's took ~24 % of a core on a Pi Zero 2 W, plus NetworkManager and
+  # dbus answering them.
+  last_refresh = None
+
   logging.info("Entering while true in network thread")
   while True:
-    try:
-      # Get IP address of wlan0
-      ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
-      ip = ip.split('/')[0] # remove the network CIDR suffix
-      listIp = list(ip) + ['\0']  # Add null terminator for STM32 strlen()
+    if last_refresh is None or time.monotonic() - last_refresh >= NETWORK_REFRESH:
+      last_refresh = time.monotonic()
+      try:
+        # Get IP address of wlan0
+        ip = nmcli.device.show('wlan0').get('IP4.ADDRESS[1]', "unknown")
+        ip = ip.split('/')[0] # remove the network CIDR suffix
+        listIp = list(ip) + ['\0']  # Add null terminator for STM32 strlen()
+      except Exception as e:
+        logging.error("Error in getting IP of wlan0 - " + str(e))
 
-      
-
-    except Exception as e:
-      logging.error("Error in getting IP of wlan0 - " + str(e))
-
-    previous_station = station_connection
-    station_connection = detect_station_connection()
-    if station_connection != previous_station:
-      if station_connection is None:
-        logging.warning(
-          f"No Station mode WiFi profile found; only the {AP_CONNECTION} AP exists")
-      else:
-        logging.info(f"Using {station_connection} for Station mode")
+      previous_station = station_connection
+      station_connection = detect_station_connection()
+      if station_connection != previous_station:
+        if station_connection is None:
+          logging.warning(
+            f"No Station mode WiFi profile found; only the {AP_CONNECTION} AP exists")
+        else:
+          logging.info(f"Using {station_connection} for Station mode")
 
     # The i2c thread fills dataID asynchronously, and on a fresh board that
     # takes a while -- the stm32 container has to flash the firmware first.
@@ -337,6 +345,7 @@ def thread_network():
         nmcli.connection.up(connection, 0) # do not wait for connection
         logging.info(f"Enable connection - " + str(nmcli.connection.show(connection)))
         current_connection = connection
+        last_refresh = None  # the IP changes with the connection; look again now
       except Exception as e:
         logging.error("Enable connection failed - " + str(e))
         time.sleep(1)
