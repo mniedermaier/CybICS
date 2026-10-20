@@ -2,10 +2,13 @@
 
 # Copy configuration files to rootfs (runs on host, not in chroot)
 
-# No zram configuration here: on Trixie rpi-swap sets up /dev/zram0 (zstd, with
+# Swap: on Trixie rpi-swap sets up /dev/zram0 (zstd, with
 # writeback to /var/swap). zram-tools used to be installed next to it with an
 # lz4 config, and its zramswap.service failed on every boot because the device
-# was already in use - the lz4 setting never took effect.
+# was already in use - the lz4 setting never took effect. rpi-swap sets no
+# algorithm itself, so pin zstd here rather than rely on the kernel default.
+install -d -m 755 "${ROOTFS_DIR}/etc/systemd/zram-generator.conf.d"
+install -m 644 files/30-cybics-zram.conf "${ROOTFS_DIR}/etc/systemd/zram-generator.conf.d/"
 
 # Docker: route published ports with iptables only. The userland proxy starts
 # one docker-proxy process per port and address family, 35 on this stack,

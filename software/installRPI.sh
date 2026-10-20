@@ -121,6 +121,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<EOF
         sudo systemctl disable zramswap 2> /dev/null || true
         sudo apt-get purge -y zram-tools 2> /dev/null || true
         sudo rm -f /etc/default/zramswap
+        # rpi-swap sets no algorithm; pin zstd instead of the kernel default.
+        sudo install -d -m 755 /etc/systemd/zram-generator.conf.d
+        printf '[zram0]\ncompression-algorithm=zstd\n' \
+            | sudo tee /etc/systemd/zram-generator.conf.d/30-cybics-zram.conf > /dev/null
         exit 0
     fi
 
