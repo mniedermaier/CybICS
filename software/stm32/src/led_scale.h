@@ -9,10 +9,7 @@
  * sunlit room or dimmer for a dark one without touching that balance.  100 %
  * is the calculated balance itself, and the range is 50-150 % in 10 % steps.
  *
- * The value lives in the "storage" partition at the end of flash, through
- * Zephyr's NVS.  Reflashing the firmware does not touch it: OpenOCD only
- * erases the pages the image covers, and the image ends far below the
- * partition.
+ * The value is kept across resets and reflashes through persist.h.
  */
 
 #ifndef LED_SCALE_H
@@ -26,10 +23,10 @@
 #define LED_SCALE_DEFAULT 100
 
 /*
- * Mount the storage and load the saved value.  Call once from main() before
- * any thread reads the scale.  Returns 0, or a negative errno if the storage
- * could not be mounted -- the scale then stays at the default and changes are
- * kept until the next reset only.
+ * Load the saved value.  Call once from main(), after persist_init() and
+ * before any thread reads the scale.  Returns 0, or a negative errno if the
+ * storage could not be read -- the scale then stays at the default and
+ * changes are kept until the next reset only.
  */
 int led_scale_init(void);
 

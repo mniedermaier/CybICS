@@ -17,7 +17,9 @@
 #include "lcd_hd44780.h"
 #include "version.h"
 #include "hw_version.h"
+#include "games.h"
 #include "led_scale.h"
+#include "persist.h"
 #include "ui_input.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
@@ -356,6 +358,11 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 /* Leave edit mode, keeping the value, when the switch is left alone this long. */
 #define LED_EDIT_TIMEOUT_MS         15000
 
+/* The games screen, v1.1 and newer like the one before it, see games.h. */
+#define LCD_SCREEN_GAMES            (LCD_SCREEN_COUNT + 1)
+#define LCD_TXT_GAMES_L0            "Games"
+#define LCD_TXT_GAMES_L1            "3 to play  OK:go"
+
 /*
  * Boot animation.
  *
@@ -593,9 +600,9 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 
 	uint8_t displayScreen = 0;
 	uint8_t wifiPressed = 0;
-	/* v1.0 has one button and cannot edit a value, see LCD_SCREEN_LED. */
+	/* v1.0 has one button: no value to edit, no game to play. */
 	const uint8_t screen_count = hw_version_get() == HW_REV_1_0
-		? LCD_SCREEN_COUNT : LCD_SCREEN_COUNT + 1;
+		? LCD_SCREEN_COUNT : LCD_SCREEN_COUNT + 2;
 	bool led_editing = false;
 	int64_t led_edit_last_ms = 0;
 	char line0[LCD_COLS + 1];
@@ -690,7 +697,9 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		uint32_t uptime_s;
 
 		if (ui_input_poll(&ev, &key)) {
-			if (led_editing) {
+			if (games_active()) {
+				games_key(key);
+			} else if (led_editing) {
 				/*
 				 * Every step shows on the LEDs at once; only
 				 * confirming writes it to flash.
@@ -707,6 +716,8 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			} else if (displayScreen == LCD_SCREEN_LED && key == UI_KEY_CENTRE) {
 				led_editing = true;
 				led_edit_last_ms = k_uptime_get();
+			} else if (displayScreen == LCD_SCREEN_GAMES && key == UI_KEY_CENTRE) {
+				games_open(&lcd);
 			} else if (ev == UI_EVENT_NEXT) {
 				displayScreen = (uint8_t)((displayScreen + 1) % screen_count);
 			} else {
@@ -742,6 +753,11 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 		uptime_s = (uint32_t)((k_uptime_get() - uptime_base_ms) / 1000);
 
 		line1[0] = '\0';
+
+		if (games_active()) {
+			games_render(line0, line1);
+			goto draw;
+		}
 
 		switch (displayScreen) {
 		/* CybICS string and uptime */
@@ -804,6 +820,12 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 				 led_scale_get());
 			break;
 
+		/* The game menu, v1.1 and newer */
+		case LCD_SCREEN_GAMES:
+			snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_GAMES_L0);
+			snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_GAMES_L1);
+			break;
+
 		/* Build and board information */
 		default:
 			/* BUILD_DATE and BUILD_TIME are defined by CMake */
@@ -818,6 +840,7 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			break;
 		}
 
+draw:
 		lcd_line(&lcd, 0, shown0, line0);
 		lcd_line(&lcd, 1, shown1, line1);
 
@@ -1151,6 +1174,26 @@ static uint8_t scan_level(const struct pwm_led *led, int64_t t_ms)
 	return (uint8_t)(100 * (reach - d) * (reach - d) / (reach * reach));
 }
 
+/*
+ * A game borrowing the plant LEDs, see games.h.  The levels are written by
+ * the display thread and read every PWM period here; a period that reads a
+ * half-written table shows one LED a frame early, which nobody can see.
+ */
+BUILD_ASSERT(ARRAY_SIZE(pwm_leds) == GAME_LED_COUNT, "games.h names every PWM LED");
+static uint8_t game_level[GAME_LED_COUNT];
+static atomic_t game_owns_leds;
+
+void game_leds_set(const uint8_t level[GAME_LED_COUNT])
+{
+	memcpy(game_level, level, sizeof(game_level));
+	atomic_set(&game_owns_leds, 1);
+}
+
+void game_leds_release(void)
+{
+	atomic_set(&game_owns_leds, 0);
+}
+
 /* Thread: Write Output (LED control with PWM) */
 void thread_write_output(void *arg1, void *arg2, void *arg3)
 {
@@ -1200,7 +1243,9 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 			const struct pwm_led *led = &pwm_leds[i];
 			uint32_t level;
 
-			if (level_all > 100) {
+			if (atomic_get(&game_owns_leds)) {
+				level = MIN(game_level[i], 100U);
+			} else if (level_all > 100) {
 				level = *led->state ? 100 : 0;
 			} else if (level_all >= 0) {
 				level = (uint32_t)level_all;
@@ -1484,9 +1529,10 @@ int main(void)
 	}
 
 	/* Before the LED thread starts, so it begins at the saved brightness. */
-	if (led_scale_init() < 0) {
+	if (persist_init() < 0 || led_scale_init() < 0) {
 		errors++;
 	}
+	games_init();
 
 	/* Get UART device */
 	uart_dev = DEVICE_DT_GET(DT_NODELABEL(usart1));

@@ -21,4 +21,6 @@ target_sources(app PRIVATE
     src/hw_version.c
     src/ui_input.c
     src/led_scale.c
+    src/persist.c
+    src/games.c
 )
