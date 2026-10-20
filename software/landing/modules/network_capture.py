@@ -178,7 +178,10 @@ class NetworkCapture:
         """Start a capture, ending any that is running. Raises CaptureError."""
         _check_request(interface, filter_name)
 
-        from scapy.all import AsyncSniffer, conf
+        # Not scapy.all: that loads every protocol Scapy knows, some 12 MB
+        # more in a container limited to 64 MB on the board.
+        from scapy.config import conf
+        from scapy.sendrecv import AsyncSniffer
         from scapy.layers.dns import DNS
         from scapy.layers.inet import ICMP, IP, TCP, UDP
         from scapy.layers.l2 import ARP, Ether
