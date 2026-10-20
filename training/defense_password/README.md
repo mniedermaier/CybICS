@@ -1,45 +1,45 @@
-# 🔐 Credential Hardening
+# Credential Hardening
 
 > **MITRE D3FEND:** `Harden` | [D3-SPP - Strong Password Policy](https://d3fend.mitre.org/technique/d3f:StrongPasswordPolicy/)
 
-## 📋 Overview
+## Overview
 Default credentials are one of the most common vulnerabilities in Industrial Control Systems. Many ICS devices ship with well-known default usernames and passwords that are documented in manuals and online databases. Attackers routinely scan for and exploit default credentials to gain unauthorized access to PLCs, HMIs, and engineering workstations.
 
 This challenge requires you to change the default passwords on two critical systems in the CybICS testbed: the **OpenPLC runtime** and the **FUXA HMI**.
 
 The flag has the format `CybICS(flag)`.
 
-## 🎯 Task 1: Harden OpenPLC Credentials
+## Task 1: Harden OpenPLC Credentials
 
 The OpenPLC web interface runs on port **8080** and uses the default credentials:
 - **Username:** `openplc`
 - **Password:** `openplc`
 
-### 📝 Steps
+### Steps
 1. Open a web browser and navigate to `http://<DEVICE_IP>:8080`
 2. Log in with the default credentials
 3. Navigate to **Settings** > **Users**
 4. Change the password for the `openplc` user
 5. Click **Verify Defense** on this challenge page to confirm
 
-## 🎯 Task 2: Harden FUXA Credentials
+## Task 2: Harden FUXA Credentials
 
 The FUXA HMI runs on port **1881** and uses the default admin credentials:
 - **Username:** `admin`
 - **Password:** `123456`
 
-### 📝 Steps
+### Steps
 1. Open a web browser and navigate to `http://<DEVICE_IP>:1881`
 2. Log in with the default admin credentials
 3. Open the **top-right menu** and navigate to the user settings to change the admin password
 4. Click **Verify Defense** on this challenge page to confirm
 
-## ⚠️ Important Notes
+## Important Notes
 - Remember your new passwords! If you forget them, you may need to restart the containers.
 - Choose passwords that are strong enough to resist dictionary attacks (the same attack you performed in the Password Attack challenge).
 - Do not change the usernames — only the passwords need to be changed.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -71,7 +71,7 @@ The FUXA HMI runs on port **1881** and uses the default admin credentials:
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - How would you enforce a password policy on ICS devices that don't support it natively?
@@ -80,11 +80,11 @@ After completing this challenge, consider:
 - What role does multi-factor authentication play in ICS environments?
 
 
-## 💡 Hints
+## Hints
 
 For OpenPLC, navigate to the web UI at port 8080, log in with `openplc`/`openplc`, then go to **Users** in the sidebar to find the password change option. For FUXA, access port 1881 and look for user settings in the top-right menu.
 
-## 🔍 Solution
+## Solution
 
 1. **OpenPLC** — Navigate to `http://<DEVICE_IP>:8080`, log in with the default credentials (`openplc`/`openplc`), go to **Settings** > **Users**, and change the password for the `openplc` user to something non-default.
 2. **FUXA** — Navigate to `http://<DEVICE_IP>:1881`, log in with the default credentials (`admin`/`123456`), open the top-right menu, navigate to user settings, and change the admin password.

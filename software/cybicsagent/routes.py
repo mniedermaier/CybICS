@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # OpenAPI specification (generated dynamically)
 def _get_openapi_spec():
-    """Generate OpenAPI 3.0 specification for the CybICS AI Agent API."""
+    """Generate OpenAPI 3.0 specification for the CybICS Assistant API."""
     schemes = get_ollama_tool_schemas()
     
     # Build tool schemas for OpenAPI
@@ -46,7 +46,7 @@ def _get_openapi_spec():
                                 'schema': {
                                     'type': 'object',
                                     'properties': {
-                                        'message': {'type': 'string', 'example': 'CybICS AI Agent API'},
+                                        'message': {'type': 'string', 'example': 'CybICS Assistant API'},
                                         'version': {'type': 'string', 'example': '3.0.0'},
                                         'docs': {'type': 'string', 'format': 'uri'},
                                         'health': {'type': 'string', 'format': 'uri'}
@@ -201,7 +201,7 @@ def _get_openapi_spec():
                                 'schema': {
                                     'type': 'object',
                                     'properties': {
-                                        'name': {'type': 'string', 'example': 'CybICS AI Agent'},
+                                        'name': {'type': 'string', 'example': 'CybICS Assistant'},
                                         'version': {'type': 'string', 'example': '3.0.0'},
                                         'model': {'type': 'string'},
                                         'default_model': {'type': 'string'},
@@ -376,9 +376,9 @@ def _get_openapi_spec():
     return {
         'openapi': '3.0.0',
         'info': {
-            'title': 'CybICS AI Agent API',
+            'title': 'CybICS Assistant API',
             'description': (
-                'The CybICS AI Agent provides an intelligent assistant for the CybICS ICS training platform. '
+                'The CybICS Assistant (service `cybicsagent`) is the AI chat for the CybICS ICS training platform. '
                 'It supports native Ollama tool calling, keyword-based tool dispatch, RAG knowledge base, '
                 'conversation history, and streaming responses. The agent includes ICS-specific tools for '
                 'interacting with Modbus, OPC-UA, IDS, and the physical process simulation.'
@@ -414,7 +414,7 @@ def register_routes(app):
     def index():
         """Redirect to OpenAPI documentation"""
         return jsonify({
-            'message': 'CybICS AI Agent API',
+            'message': 'CybICS Assistant API',
             'version': '3.0.0',
             'docs': url_for('openapi_spec', _external=True),
             'health': url_for('health', _external=True)
@@ -702,7 +702,7 @@ def register_routes(app):
             coll = get_collection()
             current = config.current_model()
             return jsonify({
-                'name': 'CybICS AI Agent',
+                'name': 'CybICS Assistant',
                 'version': '3.0.0',
                 'model': current,
                 'default_model': config.OLLAMA_MODEL,

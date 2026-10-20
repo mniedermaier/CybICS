@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - System Statistics</title>
+    <link rel="stylesheet" href="/static/css/brand.css">
     <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="/static/js/chart.umd.min.js"></script>
@@ -11,7 +12,7 @@
         body {
             background-color: #1a1a1a;
             color: #ffffff;
-            font-family: Arial, sans-serif;
+            font-family: var(--brand-font);
             margin: 0;
             padding: 0;
         }
@@ -103,23 +104,23 @@
         }
 
         .status-running {
-            background-color: #10b981;
+            background-color: #22c55e;
             color: #ffffff;
         }
 
         .status-online {
-            background-color: #10b981;
-            color: #ffffff;
+            background-color: #22c55e;
+            color: #1a1a1a;
         }
 
         .status-offline {
             background-color: #ef4444;
-            color: #ffffff;
+            color: #1a1a1a;
         }
 
         .status-checking {
-            background-color: #f59e0b;
-            color: #ffffff;
+            background-color: #ffb300;
+            color: #1a1a1a;
         }
 
         .stat-row {
@@ -321,7 +322,7 @@
         }
 
         .text-green-400 {
-            color: #10b981;
+            color: #22c55e;
         }
 
         .text-blue-400 {
@@ -696,15 +697,15 @@
                         {
                             label: 'Memory %',
                             data: [],
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
                             fill: true
                         },
                         {
                             label: 'Swap %',
                             data: [],
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderColor: '#ffb300',
+                            backgroundColor: 'rgba(255, 179, 0, 0.1)',
                             fill: true
                         }
                     ]
@@ -769,8 +770,8 @@
                         {
                             label: 'RX (Download)',
                             data: [],
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
                             fill: false
                         },
                         {

@@ -1,8 +1,8 @@
-# 🔎 IDS Forensics Challenge
+# IDS Forensics Challenge
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/)
 
-## 📋 Overview
+## Overview
 
 Security Operations Center (SOC) analysts regularly triage alerts from intrusion detection systems to understand the scope and nature of attacks. This challenge simulates a real-world incident investigation where you must analyze IDS data programmatically.
 
@@ -23,7 +23,7 @@ The CybICS IDS exposes a REST API that provides alert data, summary statistics, 
 | Network Traffic Analysis | D3-NTA | Analyzing captured network alert data |
 | Alert Triage | D3-AT | Prioritizing and classifying security alerts |
 
-## 📦 Prerequisites
+## Prerequisites
 
 Before starting this challenge, you need alert data in the IDS. Complete the **IDS Challenge** first or trigger multiple different attacks to generate diverse alerts:
 
@@ -34,7 +34,7 @@ Before starting this challenge, you need alert data in the IDS. Complete the **I
 
 You need at least **5 alerts** from at least **3 different rule types**.
 
-## 🎯 Task
+## Task
 
 The flag has the format `CybICS(flag)`.
 
@@ -106,7 +106,7 @@ If all answers are correct, the flag will be revealed.
 
 You can also submit via the **Challenges tab** on the IDS dashboard.
 
-### 🐍 Python Scripting Approach
+### Python Scripting Approach
 
 For a more programmatic approach:
 
@@ -141,7 +141,7 @@ result = requests.post(f"{BASE}/api/forensics/submit", json={
 print(result)
 ```
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -172,7 +172,7 @@ print(result)
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - How would you automate alert triage to reduce analyst workload?
@@ -181,11 +181,11 @@ After completing this challenge, consider:
 - What metrics would you track to measure IDS effectiveness over time?
 
 
-## 💡 Hints
+## Hints
 
 Query `/api/summary` to get aggregated data — it contains `top_sources` (sorted by alert count), `rules` (unique rule names), and `severity` (counts per level). The three answers can all be derived from this single endpoint without parsing raw alerts.
 
-## 🔍 Solution
+## Solution
 
 Submit correct answers to the 3 investigation questions via POST to `/api/forensics/submit`. The flag is returned in the response when all answers are correct:
 

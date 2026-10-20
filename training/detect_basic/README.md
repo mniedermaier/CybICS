@@ -1,8 +1,8 @@
-# 🔍 Detect Port Scan
+# Detect Port Scan
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-CAA - Connection Attempt Analysis](https://d3fend.mitre.org/technique/d3f:ConnectionAttemptAnalysis/)
 
-## 📋 Overview
+## Overview
 
 Network scanning is typically the **earliest indicator** of an attack — adversaries must discover targets before they can exploit them. In this challenge you will perform a port scan against the ICS network, then verify that the CybICS IDS detected your scan and find the flag hidden in the IDS rule statistics.
 
@@ -12,7 +12,7 @@ This teaches the full detection loop: **attacker action → network packets → 
 
 The IDS triggers the `port_scan` rule when it observes **5 or more unique destination ports** probed by a single source IP within a **10-second sliding window**.
 
-## 🎯 Task
+## Task
 
 Perform a port scan, observe the IDS detection, and retrieve the flag from the IDS API.
 
@@ -76,7 +76,7 @@ This demonstrates the detection pipeline:
 Your scan (6 ports) → IDS sees SYN packets → 6 > 5 threshold → port_scan rule fires → Alert + Flag
 ```
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
 <summary>Click to expand</summary>
@@ -106,7 +106,7 @@ Your scan (6 ports) → IDS sees SYN packets → 6 > 5 threshold → port_scan r
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - What if the attacker scanned only 4 ports (below the threshold)? Would the IDS detect it?
@@ -115,11 +115,11 @@ After completing this challenge, consider:
 - How does the IDS distinguish a legitimate service check from a malicious scan?
 
 
-## 💡 Hints
+## Hints
 
 Run the scan, then query `http://localhost:8443/api/rules/stats`. Look at the `port_scan` entry — when `count > 0`, a `flag` field appears in the JSON response with the CTF flag.
 
-## 🔍 Solution
+## Solution
 
 Run a port scan against the target, then query the IDS rule statistics API:
 

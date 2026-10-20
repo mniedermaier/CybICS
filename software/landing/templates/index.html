@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CybICS - Industrial Control Systems</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/pics/apple-touch-icon.png">
+    <meta name="theme-color" content="#1a1a1a">
     <style>
         /* Self-hosted so the lab renders correctly with no internet access
            (offline/air-gapped classroom use). */
@@ -571,6 +573,13 @@
             margin-left: 0.5rem;
         }
 
+        /* On a phone the claim alone carries the hero */
+        @media (max-width: 600px) {
+            .hero-sub {
+                display: none;
+            }
+        }
+
         .hero-banner p {
             color: var(--text-muted);
             font-size: 1.05rem;
@@ -604,7 +613,7 @@
 
         .hero-btn-primary {
             background: linear-gradient(135deg, #ff6b00, #ff8c42);
-            color: #ffffff;
+            color: #1a1a1a;
             box-shadow: 0 4px 16px rgba(255, 107, 0, 0.35);
         }
 
@@ -877,23 +886,25 @@
             box-shadow: 0 6px 22px rgba(255, 107, 0, 0.5);
         }
 
+        /* Ink on the orange fill: white on #ff6b00 is only 2.9:1 (doc/brand/README.md) */
         .learning-card-cta .learning-card-icon {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.12);
         }
 
         .learning-card-cta .learning-card-icon svg {
-            stroke: #ffffff;
+            stroke: #1a1a1a;
         }
 
         .learning-card-cta .learning-card-title,
         .learning-card-cta .learning-card-desc {
-            color: #ffffff;
+            color: #1a1a1a;
         }
 
-        .learning-card-cta .badge {
-            background-color: rgba(255, 255, 255, 0.22);
-            color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.4);
+        .learning-card-cta .badge,
+        body.light-mode .learning-card-cta .badge {
+            background-color: rgba(0, 0, 0, 0.12);
+            color: #1a1a1a;
+            border-color: rgba(0, 0, 0, 0.3);
         }
 
         /* Once the guided intro has been completed, fold the CTA back into a normal card —
@@ -986,7 +997,7 @@
 
         body.light-mode .learning-card-cta .learning-card-title,
         body.light-mode .learning-card-cta .learning-card-desc {
-            color: #ffffff;
+            color: #1a1a1a;
         }
 
         body.light-mode .learning-card-cta.onboarding-done {
@@ -1247,7 +1258,7 @@
 
         .tour-btn-next {
             background: linear-gradient(135deg, #ff6b00, #ff8c42);
-            color: #fff;
+            color: #1a1a1a;
         }
 
         .tour-btn-next:hover {
@@ -1442,6 +1453,18 @@
 
         body.nav-collapsed .sidebar-brand {
             justify-content: center;
+            flex-direction: column;
+        }
+
+        /* The pixel C stands in for the wordmark on the icon rail */
+        .header-mark {
+            display: none;
+            height: 24px;
+            width: auto;
+        }
+
+        body.nav-collapsed .header-mark {
+            display: block;
         }
 
         /* ---- Content area offset by the sidebar ------------------------------- */
@@ -1490,7 +1513,7 @@
             bottom: 7rem;
             right: 2rem;
             background: linear-gradient(135deg, #ff6b00, #ff8c42);
-            color: #ffffff;
+            color: #1a1a1a;
             border: none;
             border-radius: 50%;
             width: 60px;
@@ -1555,6 +1578,11 @@
 
             .sidebar-brand {
                 justify-content: center;
+                flex-direction: column;
+            }
+
+            .header-mark {
+                display: block;
             }
         }
 
@@ -1745,6 +1773,11 @@
             --text-muted: #4b5563;
             --text-subtle: #6b7280;
 
+            /* #ff6b00 is 2.9:1 on white; accent text in light mode uses the darker
+               accent from doc/brand/README.md (5.5:1) */
+            --accent: #b34700;
+            --accent-2: #b34700;
+            --accent-hover: #c2410c;
             --accent-soft: rgba(255, 107, 0, 0.12);
             --accent-softer: rgba(255, 107, 0, 0.07);
             --accent-line: rgba(255, 107, 0, 0.4);
@@ -1782,7 +1815,7 @@
         }
 
         body.light-mode .service-header h2 {
-            color: #ff6b00;
+            color: #b34700;
         }
 
         body.light-mode .nav-button {
@@ -1832,7 +1865,7 @@
 
         body.light-mode .settings-btn {
             background: rgba(255, 107, 0, 0.1);
-            color: #ff6b00;
+            color: #b34700;
             border-color: rgba(255, 107, 0, 0.3);
         }
 
@@ -1847,7 +1880,7 @@
         body.light-mode .close-btn {
             background: rgba(255, 107, 0, 0.1);
             border-color: rgba(255, 107, 0, 0.3);
-            color: #ff6b00;
+            color: #b34700;
         }
 
         body.light-mode .close-btn:hover {
@@ -1871,7 +1904,7 @@
         }
 
         body.light-mode .service-preview h3 {
-            color: #ff6b00;
+            color: #b34700;
         }
 
         body.light-mode .service-preview p {
@@ -2008,6 +2041,9 @@
         <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 21V4"/><path d="M5 4h11l-2 3.5L16 11H5"/>
         </symbol>
+        <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/>
+        </symbol>
         <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/>
             <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>
@@ -2049,7 +2085,8 @@
     <!-- Sidebar -->
     <header class="sidebar">
         <div class="sidebar-brand">
-            <img src="/pics/CybICS_logo.png" alt="CybICS" class="header-logo">
+            <img src="/pics/cybics-wordmark.svg" alt="CybICS" class="header-logo">
+            <img src="/pics/cybics-mark.svg" alt="CybICS" class="header-mark">
             <button class="nav-toggle" onclick="toggleSidebar()" title="Collapse menu" aria-label="Collapse menu">
                 <svg class="nav-icon"><use href="#i-panel"/></svg>
             </button>
@@ -2129,8 +2166,8 @@
                             <span class="hero-status-sep">&middot;</span>
                             <span>IEC 62443</span>
                         </div>
-                        <h1>Welcome to <img src="/pics/CybICS_logo.png" alt="CybICS" class="hero-logo"></h1>
-                        <p>Understanding industrial Cybersecurity — a hands-on training lab for ICS/OT security, from PLC basics to full attack &amp; defense scenarios.</p>
+                        <h1>Welcome to <img src="/pics/cybics-wordmark.svg" alt="CybICS" class="hero-logo"></h1>
+                        <p><strong>A complete industrial facility on your desk. Attack it. Detect it. Defend it.</strong><span class="hero-sub"><br>A hands-on training lab for ICS/OT security, from PLC basics to full attack &amp; defense scenarios.</span></p>
                         <div class="hero-actions">
                             <a class="hero-btn hero-btn-primary" href="{{ github_url }}" target="_blank" rel="noopener">
                                 <svg><use href="#i-github"/></svg> GitHub
@@ -2159,13 +2196,13 @@
                         <div class="service-grid">
                             <div class="info-box">
                                 <div class="info-box-title"><svg><use href="#i-target"/></svg>Purpose</div>
-                                <p>CybICS is an open-source training platform that helps cybersecurity professionals, students, and researchers understand the unique challenges of securing industrial control systems (ICS) and SCADA environments through realistic, hands-on exercises.</p>
+                                <p>CybICS is an open-source ICS security training platform: a complete industrial facility with a physical process, PLC, HMI, gateways and an IDS. You attack it, detect the attacks and defend it in hands-on exercises.</p>
                             </div>
                             <div class="info-box">
                                 <div class="info-box-title"><svg><use href="#i-cpu"/></svg>Physical &amp; virtual</div>
                                 <p>Run the full lab either way:</p>
                                 <ul>
-                                    <li><strong>Physical</strong> — Raspberry Pi + a custom CybICS PCB (STM32) driving a real gas-pressure process, for hardware-level attacks (UART, SWD).</li>
+                                    <li><strong>Physical</strong> — Raspberry Pi + a custom CybICS PCB (STM32) running the physical process of the facility, for hardware-level attacks (UART, SWD).</li>
                                     <li><strong>Virtual</strong> — the same stack fully containerized with Docker Compose, ready in minutes on any OS.</li>
                                 </ul>
                             </div>
@@ -2318,8 +2355,8 @@
     </main>
 
     <!-- Floating Detach Button -->
-    <button id="detach-floating-btn" class="detach-floating-btn" onclick="detachView()">
-        🔗
+    <button id="detach-floating-btn" class="detach-floating-btn" onclick="detachView()" aria-label="Open in new tab">
+        <svg width="22" height="22" aria-hidden="true"><use href="#i-external"/></svg>
         <span class="detach-tooltip">Open in New Tab</span>
     </button>
 
@@ -3190,19 +3227,19 @@
         <div class="chat-resize-handle" id="chatResizeHandle"></div>
         <div class="chat-resize-handle-left" id="chatResizeLeft"></div>
         <div class="chat-resize-corner" id="chatResizeCorner"></div>
-        <span class="chat-tooltip">CybICS AI Agent</span>
+        <span class="chat-tooltip">CybICS Assistant</span>
         <div class="chat-header" onclick="toggleChat()">
-            <span class="chat-icon">🤖</span>
-            <span class="chat-title">🤖 CybICS Agent</span>
-            <button class="chat-clear-btn" onclick="event.stopPropagation(); clearChatHistory();" title="Clear chat history">🗑️ Clear</button>
+            <span class="chat-icon"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""></span>
+            <span class="chat-title"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""> CybICS Assistant</span>
+            <button class="chat-clear-btn" onclick="event.stopPropagation(); clearChatHistory();" title="Clear chat history">Clear</button>
             <span class="chat-toggle">▲</span>
         </div>
         <div class="chat-body">
             <div class="chat-status" id="agentStatus">Checking status...</div>
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-message agent-message">
-                    <span class="message-avatar">🤖</span>
-                    <span class="message-text">Hi! I'm the CybICS AI Assistant. Ask me anything about CybICS!</span>
+                    <span class="message-avatar"><img class="cybics-mark" src="/pics/cybics-mark.svg" alt=""></span>
+                    <span class="message-text">Hi! I'm the CybICS Assistant. Ask me anything about CybICS!</span>
                 </div>
             </div>
             <div class="chat-input-container">

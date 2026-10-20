@@ -14,7 +14,7 @@ from session import session_manager
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    'You are the CybICS AI Training Coach, an expert on Industrial Control Systems (ICS) '
+    'You are the CybICS Assistant, an expert on Industrial Control Systems (ICS) '
     'and SCADA cybersecurity. Your primary role is to help students learn ICS security '
     'through the CybICS training platform.\n\n'
     'When helping with training:\n'

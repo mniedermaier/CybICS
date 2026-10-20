@@ -1,13 +1,13 @@
-# 🌐 Network Segmentation
+# Network Segmentation
 
 > **MITRE D3FEND:** `Isolate` | [D3-NI - Network Isolation](https://d3fend.mitre.org/technique/d3f:NetworkIsolation/)
 
-## 📋 Overview
+## Overview
 Network segmentation is a fundamental security principle that limits lateral movement by dividing a network into isolated zones. In ICS environments, proper segmentation prevents an attacker who compromises one system from easily accessing critical control systems.
 
 In the CybICS testbed, the attack machine (172.18.0.100) currently has unrestricted access to all services on the network. This challenge requires you to implement network-level controls that block the attack machine from reaching critical ICS services.
 
-## 🏗️ Network Architecture
+## Network Architecture
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -27,7 +27,7 @@ In the CybICS testbed, the attack machine (172.18.0.100) currently has unrestric
 └──────────────────────────────────────────────────────┘
 ```
 
-## 🎯 Task
+## Task
 
 Block the attack machine (172.18.0.100) from accessing the following critical services:
 
@@ -36,7 +36,7 @@ The flag has the format `CybICS(flag)`.
 2. **Modbus TCP** (172.18.0.3:502)
 3. **OPC-UA Server** (172.18.0.5:4840)
 
-### 📝 Steps
+### Steps
 
 Apply iptables rules on each **target container** to drop inbound traffic from the attack machine. In a real ICS environment, these rules would be applied on network firewalls or switches — here we apply them directly on the containers to simulate the same effect.
 
@@ -59,12 +59,12 @@ Apply iptables rules on each **target container** to drop inbound traffic from t
 
 4. Click **Verify Defense** on this challenge page to confirm.
 
-## ⚠️ Important Notes
+## Important Notes
 - Do not block legitimate traffic between authorized services (hwio, FUXA, etc.)
 - These rules are not persistent — they will be lost when containers restart
 - In production, you would use a dedicated firewall or SDN (Software-Defined Networking) for segmentation
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -96,7 +96,7 @@ Apply iptables rules on each **target container** to drop inbound traffic from t
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - What if the attacker compromises an authorized host (e.g., FUXA) first? How does segmentation help then?
@@ -105,11 +105,11 @@ After completing this challenge, consider:
 - How does micro-segmentation differ from traditional VLAN-based segmentation?
 
 
-## 💡 Hints
+## Hints
 
 Add `iptables -A INPUT -s 172.18.0.100 -j DROP` on both the OpenPLC and OPC-UA containers. This blocks all traffic from the attack machine to those services.
 
-## 🔍 Solution
+## Solution
 
 1. Block the attacker on the OpenPLC container:
    ```bash

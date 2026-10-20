@@ -13,10 +13,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p pics
 RUN mkdir -p static/js
 COPY hardwareAbstraction.py ./
-COPY pics/CybICS_logo.png pics/CybICS_logo.png
+COPY pics/cybics-wordmark.svg pics/cybics-wordmark.svg
 COPY pics/favicon.ico pics/favicon.ico
 COPY pics/pcb.png pics/pcb.png
 COPY static/js/*.js static/js/
 COPY static/plant3d.html static/
+COPY static/fonts/ static/fonts/
 
 CMD [ "python", "-u", "./hardwareAbstraction.py" ]

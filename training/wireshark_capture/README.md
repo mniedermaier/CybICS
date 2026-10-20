@@ -1,8 +1,8 @@
-# 📡 Network Traffic Analysis Guide
+# Network Traffic Analysis Guide
 
 > **MITRE ATT&CK for ICS:** `Collection` | [T0842 - Network Sniffing](https://attack.mitre.org/techniques/T0842/)
 
-## 📋 Overview
+## Overview
 In the context of industrial security, network traffic analysis is crucial for safeguarding industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) networks.
 By monitoring and analyzing network traffic, security professionals can detect anomalies and unauthorized access attempts that may indicate a potential cyber attack or system breach.
 This proactive approach helps in identifying unusual patterns or communication behaviors that could signify malicious activities, such as attempts to compromise critical infrastructure or disrupt operational processes.
@@ -11,7 +11,7 @@ Network traffic analysis in industrial environments also aids in ensuring compli
 It enables the identification of vulnerabilities within the network, such as outdated protocols or unprotected communication channels, and supports the implementation of effective security measures.
 By leveraging advanced traffic analysis techniques, organizations can enhance their ability to detect and respond to threats, optimize network performance, and protect the integrity and availability of their industrial operations.
 
-## 🛠️ Wireshark Installation
+## Wireshark Installation
 Wireshark is a widely-used network protocol analyzer that provides detailed insights into network traffic by capturing and examining data packets.
 It allows users to monitor, analyze, and troubleshoot network communications in real-time, making it an invaluable tool for network administrators, security professionals, and developers.
 With its extensive protocol support and powerful filtering capabilities, Wireshark can dissect complex network protocols and identify issues such as performance bottlenecks, security vulnerabilities, and misconfigurations.
@@ -20,7 +20,7 @@ The user-friendly graphical interface of Wireshark enables users to visualize pa
 Additionally, it supports a wide range of export options for further analysis and reporting.
 By leveraging Wireshark, organizations can enhance their network security posture, optimize performance, and ensure reliable and efficient network operations.
 
-### 🔧 Setup Steps
+### Setup Steps
 1. Install Wireshark:
    ```sh
    sudo apt install wireshark
@@ -31,13 +31,13 @@ By leveraging Wireshark, organizations can enhance their network security postur
    ssh-copy-id -i <path to id file> pi@$DEVICE_IP
    ```
 
-## 📊 Network Capture
+## Network Capture
 Start remote capture with:
 ```sh
 ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | sudo wireshark -k -i -
 ```
 
-### 🔍 Command Breakdown
+### Command Breakdown
 - **SSH Connection**:
   - `ssh pi@$DEVICE_IP -p 22`: Initiates SSH connection to remote device
   - Uses default port 22 for SSH communication
@@ -54,9 +54,9 @@ ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | su
   - `-k`: Starts capture immediately
   - `-i -`: Reads from standard input
 
-## 🔄 Modbus/TCP Protocol
+## Modbus/TCP Protocol
 
-### 📝 Protocol Structure
+### Protocol Structure
 1. **Modbus Application Protocol (AP) Layer**
    - Defines data communication rules
    - Formats requests and responses
@@ -71,11 +71,11 @@ ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | su
      - Function Code (1 byte)
      - Data (variable length)
 
-### 🔄 Communication Process
+### Communication Process
 1. **Request**: Client sends request to server
 2. **Response**: Server processes and responds
 
-### 📋 Function Codes
+### Function Codes
 - **01**: Read Coils
 - **02**: Read Discrete Inputs
 - **03**: Read Holding Registers
@@ -85,13 +85,13 @@ ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | su
 - **15**: Write Multiple Coils
 - **16**: Write Multiple Registers
 
-### ⚠️ Error Handling
+### Error Handling
 - Exception responses for error conditions
 - Includes original function code and error type
 
 ![Wireshark Capture](doc/wireshark.png)
 
-## 🎯 Task
+## Task
 Capture and analyze network traffic to find the flag hidden in Modbus register write operations.
 
 The flag has the format `CybICS(flag)`.
@@ -118,7 +118,7 @@ modbus.func_code == 6 || modbus.func_code == 16
 
 Examine the **data values** being written to registers — in a CTF context, flag data is typically embedded in these write operations. Look at the register values for ASCII-encoded text that matches the flag format `CybICS(flag)`.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -152,11 +152,11 @@ Examine the **data values** being written to registers — in a CTF context, fla
 </details>
 
 
-## 💡 Hints
+## Hints
 
 Filter for `modbus.func_code == 6 || modbus.func_code == 16` (Write Single Register and Write Multiple Registers) and inspect the register data values for ASCII text.
 
-## 🔍 Solution
+## Solution
 
 **Flag:** `CybICS(m0dbu$)`
 

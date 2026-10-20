@@ -1,8 +1,8 @@
-# 🔥 Detect Modbus Flooding
+# Detect Modbus Flooding
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-OPM - Operational Process Monitoring](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/)
 
-## 📋 Overview
+## Overview
 
 Modbus TCP has **no authentication** — any device on the network can write to PLC registers. A flooding attack sends hundreds or thousands of write commands per second to overwrite process values, disrupting the physical process.
 
@@ -19,7 +19,7 @@ The IDS has two rules that detect Modbus write attacks:
 
 The flooding script sends ~1000 writes/second — far above both thresholds.
 
-## 🎯 Task
+## Task
 
 Launch the attack, observe the IDS detection, capture and analyze the traffic, and find the flag.
 
@@ -128,7 +128,7 @@ Connect your findings across all three data sources:
 - Your attack machine is not in the authorized Modbus writers list (hwio, fuxa)
 - Any write from your IP triggers this rule after 10 writes
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
 <summary>Click to expand</summary>
@@ -160,7 +160,7 @@ Connect your findings across all three data sources:
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing this challenge, consider:
 - The attack sends ~1000 writes/second but the threshold is only 50/5s. How would you lower the threshold without causing false positives from legitimate FUXA polling?
@@ -169,11 +169,11 @@ After completing this challenge, consider:
 - What process-level indicators (register values, control loop behavior) could supplement network detection?
 
 
-## 💡 Hints
+## Hints
 
 Run `override.py` against the PLC, then query `http://localhost:8443/api/rules/stats`. Look at the `modbus_flood` entry — when `count > 0`, a `flag` field appears in the JSON response. For the PCAP analysis, use Wireshark filter `modbus.func_code == 16` to isolate the write commands.
 
-## 🔍 Solution
+## Solution
 
 Run the Modbus flooding attack, then query the IDS rule statistics API:
 

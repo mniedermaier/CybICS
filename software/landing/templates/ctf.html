@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.title or 'CybICS - CTF Training' }}</title>
+    <link rel="stylesheet" href="/static/css/brand.css">
     <script>(function(){if(new URLSearchParams(location.search).get("theme")==="light")document.documentElement.classList.add("light-mode");})();</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,7 +12,7 @@
         body {
             background-color: #1a1a1a;
             color: #ffffff;
-            font-family: Arial, sans-serif;
+            font-family: var(--brand-font);
         }
 
         ::-webkit-scrollbar { width: 8px; }
@@ -136,17 +137,20 @@
         .badge-easy { background: rgba(34,197,94,0.15); color: #22c55e; }
         .badge-medium { background: rgba(245,158,11,0.15); color: #f59e0b; }
         .badge-hard { background: rgba(239,68,68,0.15); color: #ef4444; }
+        html.light-mode .badge-points { color: #b34700; }
+        html.light-mode .badge-easy { color: #166534; }
+        html.light-mode .step-badge { color: #b34700; }
+        html.light-mode .badge-medium { color: #8a5a00; }
+        html.light-mode .badge-hard { color: #b91c1c; }
 
         .badge-tag {
             font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 0.15rem;
             text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
         }
-        .tag-recon { background: rgba(139,92,246,0.15); color: #a78bfa; }
-        .tag-exploit { background: rgba(239,68,68,0.15); color: #f87171; }
-        .tag-analysis { background: rgba(59,130,246,0.15); color: #60a5fa; }
-        .tag-evasion { background: rgba(245,158,11,0.15); color: #fbbf24; }
-        .tag-defense { background: rgba(34,197,94,0.15); color: #4ade80; }
-        .tag-hardware { background: rgba(236,72,153,0.15); color: #f472b6; }
+        /* Tags are labels, not signals: one neutral style (doc/brand/README.md) */
+        .tag-recon, .tag-exploit, .tag-analysis, .tag-evasion, .tag-defense, .tag-hardware { background: rgba(255,255,255,0.08); color: #d1d5db; }
+        html.light-mode .tag-recon, html.light-mode .tag-exploit, html.light-mode .tag-analysis,
+        html.light-mode .tag-evasion, html.light-mode .tag-defense, html.light-mode .tag-hardware { background: #eef1f5; color: #394355; }
 
         /* Shared dashboard theme */
         :root { --ctf-bg: #1a1a1a; --ctf-surface: #232323; --ctf-surface-2: #2d2d2d; --ctf-surface-3: #282828; --ctf-border: #333; --ctf-row-hover: #333; --ctf-text: #e5e5e5; --ctf-muted: #777; }

@@ -1,8 +1,8 @@
-# 🏭 Understanding the Physical Process
+# Understanding the Physical Process
 
 > **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/)
 
-## 📋 Overview
+## Overview
 In an industrial environment, the physical process refers to the actual operations and mechanisms involved in manufacturing, processing, or producing goods.
 This includes activities such as the movement of raw materials through conveyor belts, the operation of machinery to shape or assemble components, and the monitoring of variables like temperature, pressure, and flow rates to ensure optimal performance.
 These processes are often controlled and monitored by industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) systems, which provide real-time data and automation capabilities to enhance efficiency and safety.
@@ -13,19 +13,19 @@ Regular maintenance, calibration, and monitoring of the equipment are necessary 
 
 Read through the process description in the main [readme](../../README.md) and understand how the control loop works.
 
-## 🎮 Manual Control Exercise
+## Manual Control Exercise
 Try to control the process manually as an operator via the FUXA HMI.
 
-### 📝 Steps
-1. 🌐 Open a web browser and connect to the FUXA HMI `http://<IP>:1881`
-2. 🔑 Login with the credentials `operator:operator`
-3. 🔄 Switch to the system view
-4. ⚡ Click the red button "Manual / Automatic"
-5. 🎛️ Control the different valves and operate the system manually
+### Steps
+1. Open a web browser and connect to the FUXA HMI `http://<IP>:1881`
+2. Login with the credentials `operator:operator`
+3. Switch to the system view
+4. Click the red button "Manual / Automatic"
+5. Control the different valves and operate the system manually
 
 ![FUXA system view](doc/fuxa.png)
 
-## 🎯 Task
+## Task
 The flag has the format `CybICS(flag)`.
 
 Your objective is to trigger the blowout on the system. The physical process works as follows:
@@ -37,7 +37,7 @@ Your objective is to trigger the blowout on the system. The physical process wor
 
 Using the manual control mode on the FUXA HMI, manipulate the valves and compressor to create the unsafe overpressure condition that causes the blowout.
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -69,11 +69,11 @@ Using the manual control mode on the FUXA HMI, manipulate the valves and compres
 </details>
 
 
-## 💡 Hints
+## Hints
 
 The flag appears on the FUXA HMI when the blowout is triggered.
 
-## 🔍 Solution
+## Solution
 
 After login on the FUXA dashboard switch to the "System" view.
   By closing the "System Valve" (SV) and enabling the Compressor (C),

@@ -1,14 +1,14 @@
-# 🔍 Intrusion Detection System Challenge
+# Intrusion Detection System Challenge
 
 > **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
-## 📋 Overview
+## Overview
 
 Industrial Control Systems (ICS) are often deployed without proper network monitoring. An IDS watches network traffic for signs of reconnaissance, unauthorized access, and attacks against industrial protocols like Modbus TCP, S7comm, and OPC-UA.
 
 The CybICS IDS is a lightweight, purpose-built IDS designed for ICS environments. It monitors the CybICS network (172.18.0.0/24) and applies detection rules based on MITRE ATT&CK for ICS.
 
-## 🎯 Task
+## Task
 
 Learn how intrusion detection systems work in ICS environments by interacting with the CybICS IDS and triggering real detection rules.
 
@@ -23,7 +23,7 @@ The flag has the format `CybICS(flag)`.
    curl http://localhost:8443/api/flag
    ```
 
-### 📝 Suggested Attacks to Trigger
+### Suggested Attacks to Trigger
 
 From the attack machine (http://localhost:6081/vnc.html) or webshell:
 
@@ -53,7 +53,7 @@ for i in range(15):
 client.close()
 ```
 
-## 📖 Detection Rules
+## Detection Rules
 
 The CybICS IDS implements 9 detection rules:
 
@@ -67,7 +67,7 @@ The CybICS IDS implements 9 detection rules:
 8. **ARP Spoofing** — Detects multiple MAC addresses for a single IP
 9. **OPC-UA Unauthorized Access** — Detects OPC-UA connections from unknown hosts
 
-## 🛡️ Security Framework References
+## Security Framework References
 
 <details>
   <summary>Click to expand</summary>
@@ -94,7 +94,7 @@ The CybICS IDS implements 9 detection rules:
 
 </details>
 
-## 🔍 Defensive Thinking
+## Defensive Thinking
 
 After completing the offensive tasks, consider:
 - Which attacks were detected? Which were missed?
@@ -104,11 +104,11 @@ After completing the offensive tasks, consider:
 - What is the trade-off between detection sensitivity and false positives?
 
 
-## 💡 Hints
+## Hints
 
 You need to trigger at least 3 different IDS rules. Try a port scan (nmap), Modbus writes (pymodbus), and S7 access (nmap s7-info script). After triggering alerts, check the flag endpoint at `/api/flag`.
 
-## 🔍 Solution
+## Solution
 
 After triggering 3 or more detection rules (e.g., port scan, Modbus writes, S7 enumeration), retrieve the flag:
 
