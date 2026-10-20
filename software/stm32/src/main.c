@@ -17,6 +17,7 @@
 #include "lcd_hd44780.h"
 #include "version.h"
 #include "hw_version.h"
+#include "led_scale.h"
 #include "ui_input.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
@@ -342,6 +343,20 @@ void thread_heartbeat(void *arg1, void *arg2, void *arg3)
 /* LCD_SCREENS_END */
 
 /*
+ * The LED brightness screen, v1.1 and newer only.  It needs the navigation
+ * switch to edit a value, and the virtual plant has no LEDs to dim, so it
+ * comes after the shared screens and its strings sit outside the block that
+ * tests/test_display_parity.py compares.  0x7F and 0x7E are the left and
+ * right arrows in the HD44780's character ROM.
+ */
+#define LCD_SCREEN_LED              LCD_SCREEN_COUNT
+#define LCD_TXT_LED_L0              "LED brightness"
+#define LCD_FMT_LED_VIEW_L1         "%3u%%     OK:edit"
+#define LCD_FMT_LED_EDIT_L1         "\x7f%3u%%\x7e   OK:save"
+/* Leave edit mode, keeping the value, when the switch is left alone this long. */
+#define LED_EDIT_TIMEOUT_MS         15000
+
+/*
  * Boot animation.
  *
  * Eight characters, each a bar filled from the bottom to height 1..8.  An
@@ -578,6 +593,11 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 
 	uint8_t displayScreen = 0;
 	uint8_t wifiPressed = 0;
+	/* v1.0 has one button and cannot edit a value, see LCD_SCREEN_LED. */
+	const uint8_t screen_count = hw_version_get() == HW_REV_1_0
+		? LCD_SCREEN_COUNT : LCD_SCREEN_COUNT + 1;
+	bool led_editing = false;
+	int64_t led_edit_last_ms = 0;
 	char line0[LCD_COLS + 1];
 	char line1[LCD_COLS + 1];
 	/* What the panel is currently showing, so we only write what changed. */
@@ -666,16 +686,39 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 	 */
 	while (1) {
 		enum ui_event ev;
+		enum ui_key key;
 		uint32_t uptime_s;
 
-		if (ui_input_poll(&ev)) {
-			if (ev == UI_EVENT_NEXT) {
-				displayScreen = (uint8_t)((displayScreen + 1) % LCD_SCREEN_COUNT);
+		if (ui_input_poll(&ev, &key)) {
+			if (led_editing) {
+				/*
+				 * Every step shows on the LEDs at once; only
+				 * confirming writes it to flash.
+				 */
+				led_edit_last_ms = k_uptime_get();
+				if (key == UI_KEY_UP || key == UI_KEY_RIGHT) {
+					led_scale_adjust(LED_SCALE_STEP);
+				} else if (key == UI_KEY_DOWN || key == UI_KEY_LEFT) {
+					led_scale_adjust(-LED_SCALE_STEP);
+				} else {
+					led_scale_save();
+					led_editing = false;
+				}
+			} else if (displayScreen == LCD_SCREEN_LED && key == UI_KEY_CENTRE) {
+				led_editing = true;
+				led_edit_last_ms = k_uptime_get();
+			} else if (ev == UI_EVENT_NEXT) {
+				displayScreen = (uint8_t)((displayScreen + 1) % screen_count);
 			} else {
-				displayScreen = (uint8_t)((displayScreen + LCD_SCREEN_COUNT - 1) %
-							  LCD_SCREEN_COUNT);
+				displayScreen = (uint8_t)((displayScreen + screen_count - 1) %
+							  screen_count);
 			}
 			LOG_DBG("screen %u", displayScreen);
+		}
+
+		if (led_editing && k_uptime_get() - led_edit_last_ms > LED_EDIT_TIMEOUT_MS) {
+			led_scale_save();
+			led_editing = false;
 		}
 
 		/* Switch between station and AP mode of Wifi */
@@ -751,6 +794,14 @@ void thread_display(void *arg1, void *arg2, void *arg3)
 			} else {
 				snprintf(line1, sizeof(line1), "%-16s", LCD_TXT_STATUS_PRESS_LOW);
 			}
+			break;
+
+		/* Overall LED brightness, v1.1 and newer */
+		case LCD_SCREEN_LED:
+			snprintf(line0, sizeof(line0), "%-16s", LCD_TXT_LED_L0);
+			snprintf(line1, sizeof(line1),
+				 led_editing ? LCD_FMT_LED_EDIT_L1 : LCD_FMT_LED_VIEW_L1,
+				 led_scale_get());
 			break;
 
 		/* Build and board information */
@@ -1091,11 +1142,18 @@ void thread_write_output(void *arg1, void *arg2, void *arg3)
 		gpio_pin_set_dt(&s_sen_pin, S_sen ? 1 : 0); // Sensor outputs not inverted
 		gpio_pin_set_dt(&bo_sen_pin, BO_sen ? 1 : 0); // Sensor outputs not inverted
 
-		/* Then each colour goes off once its share has passed. */
+		/*
+		 * Then each colour goes off once its share has passed, scaled
+		 * by the overall brightness set from the front panel.  The
+		 * scale applies to every colour alike, so the order above
+		 * still holds.
+		 */
+		uint32_t scale = led_scale_get();
 		uint32_t elapsed_us = 0;
 
 		for (int c = 0; c < LED_COLOURS; c++) {
-			uint32_t off_us = LED_PWM_PERIOD_US / 100 * brightness[order[c]];
+			uint32_t share = MIN(100U, brightness[order[c]] * scale / 100U);
+			uint32_t off_us = LED_PWM_PERIOD_US / 100 * share;
 
 			if (off_us >= LED_PWM_PERIOD_US) {
 				break;	/* this colour and all after it stay on */
@@ -1335,6 +1393,11 @@ int main(void)
 	 * on the answer.
 	 */
 	if (hw_version_init() < 0) {
+		errors++;
+	}
+
+	/* Before the LED thread starts, so it begins at the saved brightness. */
+	if (led_scale_init() < 0) {
 		errors++;
 	}
 

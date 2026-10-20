@@ -20,4 +20,5 @@ target_sources(app PRIVATE
     src/lcd_hd44780.c
     src/hw_version.c
     src/ui_input.c
+    src/led_scale.c
 )

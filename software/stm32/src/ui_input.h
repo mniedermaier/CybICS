@@ -39,6 +39,20 @@ enum ui_event {
 };
 
 /*
+ * Which contact produced an event.  Screens only need the event; the one
+ * screen that edits a value (the LED brightness, v1.1 and newer) needs to tell
+ * the directions and the centre apart.  A v1.0 board only ever reports
+ * UI_KEY_CENTRE.
+ */
+enum ui_key {
+	UI_KEY_CENTRE,
+	UI_KEY_UP,
+	UI_KEY_DOWN,
+	UI_KEY_LEFT,
+	UI_KEY_RIGHT,
+};
+
+/*
  * UI_EVENT_PREV is the one event a v1.0 board cannot emit, and that is
  * intentional rather than an oversight: with five screens, "back" is the same
  * as pressing "next" four more times.  Nothing is reachable only with the
@@ -62,15 +76,15 @@ int ui_input_init(void);
 /*
  * Sample every contact once and report at most one press.
  *
- * Returns true and fills *ev when a contact has just been pressed, false
- * otherwise.  Call it every UI_INPUT_POLL_INTERVAL_MS from a single thread.
+ * Returns true and fills *ev and *key when a contact has just been pressed,
+ * false otherwise.  Call it every UI_INPUT_POLL_INTERVAL_MS from a single thread.
  *
  * This is a function the caller drives rather than a thread of its own on
  * purpose.  A thread would want its own stack, and this board links at 90 % of
  * its 36 KB of RAM -- the display thread already has a stack and a loop, and
  * lending them costs nothing.
  */
-bool ui_input_poll(enum ui_event *ev);
+bool ui_input_poll(enum ui_event *ev, enum ui_key *key);
 
 /* "1 button" or "5-way switch", for the boot log. Never NULL. */
 const char *ui_input_backend_name(void);

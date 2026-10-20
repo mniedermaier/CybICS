@@ -112,7 +112,7 @@ would invent presses out of nothing.
 
 ## The LCD
 
-Five screens, cycled with the front panel:
+Five screens, cycled with the front panel, and a sixth on v1.1 and newer:
 
 | # | Line 0 | Line 1 |
 |---|---|---|
@@ -121,11 +121,17 @@ Five screens, cycled with the front panel:
 | 2 | `Physical/real:` | `GST:nnn HPT:nnn` |
 | 3 | `Status:` | blowout / operational / valve closed / pressure high / low |
 | 4 | `Build <date>` | `<time> HW <revision>` |
+| 5 | `LED brightness` | `100%     OK:edit` -- v1.1 and newer only |
 
 The strings live in one marked block in `src/main.c`, and
 `software/hwio-virtual` declares the same block, so the panel reads the same in
 front of the board and in the browser. `tests/test_display_parity.py` parses
 both and fails if they drift apart.
+
+Screen 5 is the one exception to that parity: it sets the overall LED
+brightness, which needs the navigation switch and has no counterpart in a
+browser, so its strings sit outside the shared block and a v1.0 board cycles
+through the first five screens only.
 
 The uptime comes from `k_uptime_get()`. It used to be a count of loop
 iterations labelled as seconds, which drifted by however long the LCD writes
@@ -134,6 +140,30 @@ took -- minutes a day.
 A line is written to the panel only when its text changed. A static screen
 therefore costs nothing, where the old code rewrote all 32 characters every
 second whether or not anything had moved.
+
+## LED brightness
+
+Every LED except the three status greens on the left edge (D11-D13, dimmed by
+their 20k resistors) is driven by software PWM at 100 Hz. Each colour has a
+share of the period, chosen per board revision in `src/main.c`. For v1.1 the
+shares are calculated from the LED datasheets by `scripts/led_brightness.py`,
+so that every colour matches the status greens; corrections judged by eye are
+kept in that script's `CORRECTION` table, next to the calculated value.
+
+On top of that balance sits one overall factor, set on screen 5:
+
+1. Navigate to `LED brightness` and press the centre.
+2. The line changes to `<100%>   OK:save`. Up or right adds 10 %, down or left
+   takes 10 % off, between 50 % and 150 %. The LEDs follow at once.
+3. Press the centre again to save. Leaving the switch alone for 15 s saves as
+   well.
+
+The value is kept in the 4 KB `storage` partition at the end of flash through
+Zephyr's NVS (`src/led_scale.c`), so it survives a reset and a power cycle.
+Flashing new firmware leaves it alone too, because OpenOCD only erases the
+pages the image covers. Writing to flash stalls this single-bank part for a
+page erase, about 20 ms, so the value is written once when it is confirmed,
+not on every step.
 
 The authoritative code table is in
 [`hardware/README.md`](../../hardware/README.md#version-coding). Keep the two
