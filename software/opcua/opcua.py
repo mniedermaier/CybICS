@@ -5,8 +5,11 @@ import logging
 import socket
 import user_manager
 
+from datetime import datetime, timezone
+
 from pathlib import Path
 from asyncua import Server, ua
+from asyncua.common.utils import ServiceError
 from asyncua.crypto.permission_rules import SimpleRoleRuleset
 from asyncua.crypto.cert_gen import setup_self_signed_certificate
 from asyncua.crypto.validator import CertificateValidator, CertificateValidatorOptions
@@ -19,6 +22,22 @@ USE_TRUST_STORE = False
 
 # Built by the Dockerfile; asyncua creates it on first start if it is missing.
 ADDRESS_SPACE_SHELF = Path(__file__).parent / "address_space.shelf"
+
+
+async def validate_client_certificate(cert, app_description):
+    """Accept any client certificate that is within its validity period.
+
+    asyncua's CertificateValidator reads the SubjectAlternativeName extension
+    even when none of the selected options uses it, and answers
+    BadCertificateInvalid when it is missing.  The admin certificate the opcua
+    challenge leaks has no SAN, so the server rejected the very certificate the
+    challenge is about, over every security policy.  Which certificate gets
+    admin rights is decided by the user manager, by comparing it with the
+    registered one; this only keeps the time check.
+    """
+    now = datetime.now(timezone.utc)
+    if not cert.not_valid_before_utc <= now <= cert.not_valid_after_utc:
+        raise ServiceError(ua.StatusCodes.BadCertificateTimeInvalid)
 
 async def main():
     # Wait for OpenPLC to start
@@ -91,9 +110,7 @@ async def main():
         validator = CertificateValidator(options=CertificateValidatorOptions.TRUSTED_VALIDATION | CertificateValidatorOptions.PEER_CLIENT,
                                          trust_store = trust_store)
     else:
-        # Use PEER_CLIENT only (removed EXT_VALIDATION to support certificates without Extended Key Usage)
-        # This allows certificate-based user authentication to work in various environments
-        validator = CertificateValidator(options=CertificateValidatorOptions.PEER_CLIENT)
+        validator = validate_client_certificate
     server.set_certificate_validator(validator)
 
     # populating the cybics address space
