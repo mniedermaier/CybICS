@@ -256,6 +256,10 @@ class LoggingDocker(FakeDocker):
         if cmd[1] == "inspect" and cmd[-1] != OWN_ID:
             return SimpleNamespace(returncode=0, stdout=f"mniedermaier1337/{cmd[-1]}:1.2.4\n", stderr="")
         if cmd[1] == "logs":
+            # Only the end of each log: the whole of one once got landing
+            # OOM-killed on a board. A damaged log must not fail the download.
+            assert cmd[cmd.index("--tail") + 1] == str(restart.LOG_TAIL_LINES)
+            assert kwargs.get("errors") == "replace"
             return SimpleNamespace(returncode=0, stdout=f"log of {cmd[-1]}\n",
                                    stderr="warning\n" if cmd[-1] == "virtual-hwio-1" else "")
         return super().__call__(cmd, **kwargs)

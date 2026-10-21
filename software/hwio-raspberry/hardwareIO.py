@@ -23,6 +23,7 @@ import threading
 from cybics_pb2 import PressureData, DeviceInfo, IPAddress
 import hw_version
 import ctf_uplink
+import log_throttle
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -486,6 +487,9 @@ if __name__ == "__main__":
   format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
   logging.basicConfig(format=format, level=logging.INFO,
                         datefmt="%H:%M:%S")
+  # Repeats of one message within a minute are counted, not written; see
+  # log_throttle.py.
+  log_throttle.install()
   
   publish_hardware_version()
   # Once for every thread: the container has nmcli but no sudo.

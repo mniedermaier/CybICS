@@ -262,8 +262,15 @@ def restart_service(service, run=subprocess.run, mountinfo=MOUNTINFO):
     return " and ".join([f"restarted {name}"] + followers)
 
 
+# Lines of each container's log in the bundle. The bundle is built in
+# landing's memory, 64 MB on a board, and one container's full log once was
+# 225 MB: hwio's, while OpenPLC was down. Landing was OOM-killed building it.
+LOG_TAIL_LINES = 2000
+
+
 def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
-    """The text of Settings -> Download logs: every project container's logs.
+    """The text of Settings -> Download logs: the end of every project
+    container's log.
 
     Raises RestartError if the project cannot be determined, and
     subprocess.TimeoutExpired if docker hangs.
@@ -276,8 +283,10 @@ def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
         versions[container] = result.stdout.strip() if result.returncode == 0 else "unknown"
     parts = []
     for container in containers:
-        result = run(["docker", "logs", "--timestamps", container],
-                     capture_output=True, text=True, timeout=30)
+        # errors="replace": a log file damaged by a power cut holds bytes
+        # that are not UTF-8, and one such line must not fail the download.
+        result = run(["docker", "logs", "--timestamps", "--tail", str(LOG_TAIL_LINES), container],
+                     capture_output=True, text=True, errors="replace", timeout=30)
         parts.append(f"{'=' * 80}\nContainer: {container}\n{'=' * 80}\n{result.stdout}")
         if result.stderr:
             parts.append(f"\nSTDERR:\n{result.stderr}")
@@ -286,6 +295,7 @@ def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
         "CybICS Docker Logs",
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"Containers: {len(containers)}",
+        f"Last {LOG_TAIL_LINES} lines of each container's log",
         "=" * 80, "",
         "CONTAINER VERSIONS",
         "=" * 80,

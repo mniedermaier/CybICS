@@ -167,7 +167,10 @@ ssh "$DEVICE_USER"@"$DEVICE_IP" /bin/bash <<'EOF'
                 -e 's/^display_auto_detect=1/display_auto_detect=0/' \
                 -e 's/^dtparam=audio=on/dtparam=audio=off/' /boot/firmware/config.txt
     sudo install -d -m 755 /etc/docker
-    echo '{ "userland-proxy": false }' | sudo tee /etc/docker/daemon.json > /dev/null
+    # Same as files/daemon.json in the SD image: no userland proxy, and
+    # container logs capped at 3 x 10 MB each.
+    echo '{ "userland-proxy": false, "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }' \
+        | sudo tee /etc/docker/daemon.json > /dev/null
     sudo install -d -m 755 /etc/systemd/journald.conf.d
     printf '[Journal]\nStorage=persistent\nSystemMaxUse=32M\n' \
         | sudo tee /etc/systemd/journald.conf.d/50-cybics-persistent.conf > /dev/null
