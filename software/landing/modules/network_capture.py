@@ -87,6 +87,10 @@ def matches(packet, filter_name):
     return in_lab and CAPTURE_MATCHERS[filter_name](proto, ports)
 
 
+# How long a capture may take to start: Scapy compiles the BPF filter with
+# tcpdump, once per interface, which is slow on a Pi Zero.
+SNIFFER_START_TIMEOUT = 15
+
 # Linux ARPHRD_ETHER. The exported pcap declares Ethernet for every frame, so
 # an interface of another type (tailscale0, wg0, ppp0, ...) would write
 # frames Wireshark cannot read.
@@ -203,6 +207,9 @@ class NetworkCapture:
         self.sniffer = None
         self.pcap = None
         self.packet_id = 0
+        # Which capture the packets belong to. A sniffer that outlives its
+        # capture must not add to the next one; see _handle().
+        self.generation = 0
         # Where packet id n's frame starts in the capture file: offsets[n - 1],
         # NO_OFFSET once the file was full. Four bytes a packet instead of the
         # frame itself, and the hex dump works for any packet in the file,
@@ -246,6 +253,8 @@ class NetworkCapture:
             # keep running, adding a thread and duplicate packets per restart.
             self._stop_sniffer('restarted')
             with self.lock:
+                self.generation += 1
+                generation = self.generation
                 if self.pcap is not None:
                     self.pcap.close()
                 self.packets.clear()
@@ -255,18 +264,34 @@ class NetworkCapture:
                 self.stopped_reason = None
                 self.pcap = _PcapFile()
                 self.last_poll = time.monotonic()
+            # Scapy's stop() does nothing to a sniffer that has not finished
+            # starting: it returns before the sniffer has a way to be told.
+            # On a Pi Zero, compiling the filter with tcpdump takes longer
+            # than the 0.3 s this used to wait, so a quick restart left the old
+            # sniffer running and adding its packets to the new capture. Wait
+            # until Scapy reports it is sniffing.
+            started = threading.Event()
             sniffer = AsyncSniffer(iface=iface, filter=bpf, store=False,
                                    lfilter=lambda packet: matches(packet, filter_name),
-                                   prn=self._handle)
+                                   prn=lambda packet: self._handle(packet, generation),
+                                   started_callback=started.set)
             self.sniffer = sniffer
             sniffer.start()
 
-            # A filter or interface the kernel refuses ends the thread at once.
-            time.sleep(0.3)
-            if not sniffer.running:
-                self.error = str(sniffer.exception or 'capture ended at once')
-                self._stop_sniffer('failed')
-                raise CaptureError(f'capture could not start: {self.error}')
+            deadline = time.monotonic() + SNIFFER_START_TIMEOUT
+            while not started.wait(0.1):
+                # A filter or interface the kernel refuses ends the thread.
+                thread = sniffer.thread
+                if (thread is not None and not thread.is_alive()) or time.monotonic() > deadline:
+                    self.error = str(sniffer.exception or 'capture did not start')
+                    self.sniffer = None
+                    try:
+                        sniffer.stop(join=False)
+                    except Exception:
+                        pass  # ended already, or not far enough to be told
+                    with self.lock:
+                        self.generation += 1
+                    raise CaptureError(f'capture could not start: {self.error}')
 
         threading.Thread(target=self._watch, args=(sniffer,), daemon=True).start()
         logger.info(f"Started capture on {iface}, BPF '{bpf}'")
@@ -279,6 +304,9 @@ class NetworkCapture:
         sniffer, self.sniffer = self.sniffer, None
         if sniffer is None:
             return
+        # Whatever Scapy does, nothing this sniffer still hands over counts.
+        with self.lock:
+            self.generation += 1
         try:
             sniffer.stop(join=True)
         except Exception:
@@ -352,7 +380,7 @@ class NetworkCapture:
             'stopped_reason': None if self.active else self.stopped_reason,
         }
 
-    def _handle(self, packet):
+    def _handle(self, packet, generation):
         try:
             frame = bytes(packet)
             timestamp = float(packet.time)
@@ -362,7 +390,7 @@ class NetworkCapture:
             return
 
         with self.lock:
-            if self.pcap is None:
+            if self.pcap is None or generation != self.generation:
                 return
             self.packet_id += 1
             # The kernel's receive time, not when Python got round to it.
