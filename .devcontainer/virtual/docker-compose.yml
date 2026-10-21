@@ -10,6 +10,9 @@ services:
       dockerfile: software/attack-shell/Dockerfile
     hostname: attack-machine
     restart: always
+    # ttyd is PID 1 and does not reap: every tmux server that ended stayed
+    # behind as a zombie. Docker's init process reaps them.
+    init: true
     cap_add:
       - NET_ADMIN
       - NET_RAW

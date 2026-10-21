@@ -89,6 +89,9 @@ services:
     image: cybics-attack-shell:latest
     hostname: attack-machine
     restart: always
+    # ttyd is PID 1 and does not reap: every tmux server that ended stayed
+    # behind as a zombie. Docker's init process reaps them.
+    init: true
     mem_limit: 64m
     depends_on:
     - openplc
