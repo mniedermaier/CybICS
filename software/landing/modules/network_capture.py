@@ -1,314 +1,418 @@
 """
-Network packet capture module with memory management for Raspberry Pi Zero 2
+Network packet capture for Sharky, sized for a Raspberry Pi Zero 2 W.
+
+The page shows the newest MAX_PACKETS_IN_MEMORY packets, dissected into
+the fields it displays. Every captured frame is also appended to a pcap file
+on disk, up to PCAP_MAX_BYTES, so an export holds the whole capture rather
+than the ~2 s of lab traffic that fit in the display buffer.
+
+Two things are never left to the client: which interfaces can be captured
+(never the uplink to the CTF server) and the BPF filter (always confined to
+the lab subnet, built from a fixed list of presets). Both used to come from
+the request, and a list or a filter with a closing parenthesis was enough to
+capture the event network or the host LAN.
 """
+import os
+import struct
+from array import array
+import tempfile
 import threading
 import time
-import sys
-import psutil
-from datetime import datetime
 from collections import deque
+from datetime import datetime
 
+from utils.config import (CAPTURE_IDLE_STOP_SECONDS, MAX_PACKETS_IN_MEMORY,
+                          PCAP_MAX_BYTES, UPLINK_INTERFACE)
 from utils.logger import logger
-from utils.config import MAX_PACKETS_IN_MEMORY
 
-class NetworkCapture:
-    """Network packet capture with memory limits for low-resource devices"""
+# Everything Sharky captures is confined to the lab network.
+LAB_FILTER = "net 172.18.0.0/24"
+
+# Capture filters a student can pick. The values are BPF; the keys are all
+# the request may name, so nothing typed in the browser reaches the compiler.
+CAPTURE_FILTERS = {
+    '': None,
+    'modbus': 'tcp port 502',
+    's7comm': 'tcp port 102',
+    'opcua': 'tcp port 4840',
+    'enip': 'tcp port 44818 or udp port 44818',
+    'tcp': 'tcp',
+    'udp': 'udp',
+    'icmp': 'icmp',
+    'arp': 'arp',
+}
+
+# Linux ARPHRD_ETHER. The exported pcap declares Ethernet for every frame, so
+# an interface of another type (tailscale0, wg0, ppp0, ...) would write
+# frames Wireshark cannot read.
+_ARPHRD_ETHER = '1'
+
+_NO_OFFSET = 0xFFFFFFFF
+
+# Bytes of transport payload kept per packet for Follow Stream.
+_PAYLOAD_PREVIEW = 64
+
+
+class CaptureError(ValueError):
+    """A capture request that names an interface or filter it may not."""
+
+
+def _is_ethernet(name):
+    try:
+        with open(f'/sys/class/net/{name}/type', encoding='ascii') as handle:
+            return handle.read().strip() == _ARPHRD_ETHER
+    except OSError:
+        return False
+
+
+def capturable_interfaces():
+    """Every interface a student may capture on, veth ends included."""
+    import netifaces
+
+    return [
+        name for name in netifaces.interfaces()
+        if not name.startswith('lo') and name != UPLINK_INTERFACE and _is_ethernet(name)
+    ]
+
+
+def all_interfaces():
+    """The interfaces "All" captures on.
+
+    Scapy reads iface=None as its one default interface (conf.iface, the one
+    with the default route), not as every interface, so "All" used to sniff
+    the board's Wi-Fi or the host's LAN, where nothing matches the lab
+    filter, and captured nothing at all. The veth ends of the containers are
+    left out: every packet on one also crosses the lab bridge, so they would
+    only show each packet twice.
+    """
+    return [name for name in capturable_interfaces() if not name.startswith('veth')]
+
+
+def _check_request(interface, filter_name):
+    if not isinstance(interface, str) or not isinstance(filter_name, str):
+        raise CaptureError('interface and filter must be strings')
+    if filter_name not in CAPTURE_FILTERS:
+        raise CaptureError(f"unknown capture filter '{filter_name}'")
+    if interface != 'all' and interface not in capturable_interfaces():
+        raise CaptureError(f"interface '{interface}' cannot be captured")
+
+
+class _PcapFile:
+    """A pcap file on disk that stops growing at PCAP_MAX_BYTES."""
 
     def __init__(self):
-        self.active = False
-        self.packets = deque(maxlen=MAX_PACKETS_IN_MEMORY)
-        self.lock = threading.Lock()
-        self.capture_thread = None
-        self.packet_id = 0
-        self.dropped_packets = 0
-        # Fixed average packet size estimate in KB (includes raw packet bytes + metadata)
-        self.avg_packet_size_kb = 2.0  # ~2KB per packet on average (raw bytes + fields)
+        handle, self.path = tempfile.mkstemp(prefix='sharky-', suffix='.pcap')
+        self.file = os.fdopen(handle, 'wb')
+        # Magic, version 2.4, UTC, no accuracy, snap length, Ethernet.
+        self.file.write(struct.pack('<IHHiIII', 0xa1b2c3d4, 2, 4, 0, 0, 65535, 1))
+        self.size = self.file.tell()
+        self.full = False
 
-        # Memory monitoring
-        self.last_memory_log = time.time()
-        self.process = psutil.Process()
+    def write(self, timestamp, frame):
+        """Append a record; return the frame's offset, or None when full."""
+        record = 16 + len(frame)
+        if self.size + record > PCAP_MAX_BYTES:
+            self.full = True
+            return None
+        seconds = int(timestamp)
+        micros = int((timestamp - seconds) * 1_000_000)
+        self.file.write(struct.pack('<IIII', seconds, micros, len(frame), len(frame)))
+        self.file.write(frame)
+        offset = self.size + 16
+        self.size += record
+        return offset
 
-        logger.info(f"NetworkCapture initialized with max {MAX_PACKETS_IN_MEMORY} packets (~{MAX_PACKETS_IN_MEMORY * self.avg_packet_size_kb / 1024:.1f}MB max)")
-        self._log_memory_stats("Initialization")
+    def read(self, offset, length):
+        self.file.flush()
+        with open(self.path, 'rb') as handle:
+            handle.seek(offset)
+            return handle.read(length)
 
-    def _log_memory_stats(self, context=""):
-        """Log detailed memory statistics"""
+    def snapshot(self):
+        """Flush and return how many bytes are complete records."""
+        self.file.flush()
+        return self.size
+
+    def close(self):
         try:
-            mem_info = self.process.memory_info()
-            mem_percent = self.process.memory_percent()
-            system_mem = psutil.virtual_memory()
+            self.file.close()
+        finally:
+            try:
+                os.unlink(self.path)
+            except OSError:
+                pass
 
-            logger.info(
-                f"Memory Stats [{context}] - "
-                f"Process RSS: {mem_info.rss / 1024 / 1024:.1f}MB, "
-                f"Process VMS: {mem_info.vms / 1024 / 1024:.1f}MB, "
-                f"Process %: {mem_percent:.1f}%, "
-                f"System Available: {system_mem.available / 1024 / 1024:.1f}MB, "
-                f"System %: {system_mem.percent:.1f}%, "
-                f"Packets in buffer: {len(self.packets)}"
-            )
-        except Exception as e:
-            logger.error(f"Error logging memory stats: {e}")
 
-    def add_packet(self, packet_data):
-        """Add a packet with automatic overflow handling via deque maxlen"""
-        with self.lock:
-            # deque with maxlen automatically drops oldest when full
-            old_len = len(self.packets)
-            self.packets.append(packet_data)
+class NetworkCapture:
+    """One capture at a time, shown from memory and exported from disk.
 
-            # Track if packet was dropped due to maxlen
-            if old_len == MAX_PACKETS_IN_MEMORY:
-                self.dropped_packets += 1
+    `control` serialises starting and stopping; `lock` guards the captured
+    data. They are separate because stopping joins the sniffer thread, and
+    that thread takes `lock` for every packet it hands over.
+    """
 
-                if self.dropped_packets % 1000 == 0:
-                    logger.warning(f"Packet buffer full. Dropped {self.dropped_packets} packets (keeping newest {MAX_PACKETS_IN_MEMORY})")
-                    self._log_memory_stats("Buffer Full")
-            elif len(self.packets) % 500 == 0:
-                # Log memory every 500 packets when growing
-                estimated_mb = len(self.packets) * self.avg_packet_size_kb / 1024
-                logger.debug(f"Captured {len(self.packets)} packets (~{estimated_mb:.1f}MB)")
+    def __init__(self):
+        self.control = threading.Lock()
+        self.lock = threading.Lock()
+        self.packets = deque(maxlen=MAX_PACKETS_IN_MEMORY)
+        self.sniffer = None
+        self.pcap = None
+        self.packet_id = 0
+        # Where packet id n's frame starts in the capture file: offsets[n - 1],
+        # NO_OFFSET once the file was full. Four bytes a packet instead of the
+        # frame itself, and the hex dump works for any packet in the file,
+        # not only the ~2 s still in the display buffer.
+        self.offsets = array('I')
+        self.error = None
+        self.stopped_reason = None
+        self.last_poll = 0.0
+        logger.info(f"NetworkCapture initialized, showing up to {MAX_PACKETS_IN_MEMORY} packets, "
+                    f"exporting up to {PCAP_MAX_BYTES // (1024 * 1024)} MB")
 
-                # Detailed memory log every 1000 packets or every 30 seconds
-                current_time = time.time()
-                if len(self.packets) % 1000 == 0 or (current_time - self.last_memory_log) > 30:
-                    self._log_memory_stats(f"Packet #{len(self.packets)}")
-                    self.last_memory_log = current_time
+    @property
+    def active(self):
+        sniffer = self.sniffer
+        return sniffer is not None and sniffer.running
 
-    def get_packets(self):
-        """Get all captured packets"""
-        with self.lock:
-            packet_list = list(self.packets)
+    def start(self, interface='all', filter_name=''):
+        """Start a capture, ending any that is running. Raises CaptureError."""
+        _check_request(interface, filter_name)
 
-        # Log memory stats periodically when packets are retrieved
-        current_time = time.time()
-        if (current_time - self.last_memory_log) > 60:  # Every 60 seconds during active retrieval
-            self._log_memory_stats(f"Retrieving {len(packet_list)} packets")
-            self.last_memory_log = current_time
+        # Not scapy.all: that loads every protocol Scapy knows, some 12 MB
+        # more in a container limited to 64 MB on the board.
+        from scapy.config import conf
+        from scapy.sendrecv import AsyncSniffer
+        from scapy.layers.dns import DNS
+        from scapy.layers.inet import ICMP, IP, TCP, UDP
+        from scapy.layers.l2 import ARP, Ether
 
-        return packet_list
+        # Dissect only the layers Sharky shows. Scapy's per-packet cost is
+        # mostly dissection, and the lab bridge carries ~600 packets a second.
+        # Scapy refuses to filter twice, and the setting is process-wide.
+        if not conf.layers.filtered:
+            conf.layers.filter([Ether, ARP, IP, TCP, UDP, ICMP, DNS])
+
+        iface = all_interfaces() if interface == 'all' else interface
+        bpf = CAPTURE_FILTERS[filter_name]
+        bpf = f"({LAB_FILTER}) and ({bpf})" if bpf else LAB_FILTER
+
+        with self.control:
+            # The old sniffer is joined before the new one starts: it used to
+            # keep running, adding a thread and duplicate packets per restart.
+            self._stop_sniffer('restarted')
+            with self.lock:
+                if self.pcap is not None:
+                    self.pcap.close()
+                self.packets.clear()
+                self.packet_id = 0
+                self.offsets = array('I')
+                self.error = None
+                self.stopped_reason = None
+                self.pcap = _PcapFile()
+                self.last_poll = time.monotonic()
+            sniffer = AsyncSniffer(iface=iface, filter=bpf, prn=self._handle, store=False)
+            self.sniffer = sniffer
+            sniffer.start()
+
+            # A filter or interface the kernel refuses ends the thread at once.
+            time.sleep(0.3)
+            if not sniffer.running:
+                self.error = str(sniffer.exception or 'capture ended at once')
+                self._stop_sniffer('failed')
+                raise CaptureError(f'capture could not start: {self.error}')
+
+        threading.Thread(target=self._watch, args=(sniffer,), daemon=True).start()
+        logger.info(f"Started capture on {iface}, BPF '{bpf}'")
+
+    def stop(self, reason='stopped'):
+        with self.control:
+            self._stop_sniffer(reason)
+
+    def _stop_sniffer(self, reason):
+        sniffer, self.sniffer = self.sniffer, None
+        if sniffer is None:
+            return
+        try:
+            sniffer.stop(join=True)
+        except Exception:
+            # Not running any more: the thread ended by itself.
+            pass
+        self.stopped_reason = reason
+        logger.info(f"Capture {reason} after {self.packet_id} packets")
+
+    def _watch(self, sniffer):
+        """Stop a capture nobody is looking at any more."""
+        while self.sniffer is sniffer and sniffer.running:
+            time.sleep(5)
+            idle = time.monotonic() - self.last_poll
+            if self.sniffer is sniffer and idle > CAPTURE_IDLE_STOP_SECONDS:
+                logger.info(f"No poll for {CAPTURE_IDLE_STOP_SECONDS} s, stopping the capture")
+                with self.control:
+                    if self.sniffer is sniffer:
+                        self._stop_sniffer('idle')
 
     def clear(self):
-        """Clear all captured packets"""
+        """Forget the shown packets, and the capture file if nothing is capturing."""
         with self.lock:
-            packet_count = len(self.packets)
             self.packets.clear()
-            self.dropped_packets = 0
+            if not self.active and self.pcap is not None:
+                self.pcap.close()
+                self.pcap = None
+                self.packet_id = 0
+                self.offsets = array('I')
 
-        logger.info(f"Cleared {packet_count} captured packets")
-        self._log_memory_stats("After Clear")
+    def packets_since(self, since):
+        """Packets newer than id `since`, and the capture's state."""
+        with self.lock:
+            self.last_poll = time.monotonic()
+            new = [p for p in self.packets if p['id'] > since]
+            return new, self._stats_locked()
 
-    def start(self, interface='all', filter_str=''):
-        """Start packet capture"""
-        if self.active:
-            logger.warning("Capture already active")
-            return False
+    def packet_raw(self, packet_id):
+        """A captured frame's bytes, or None if the capture file lacks it."""
+        with self.lock:
+            if self.pcap is None or not 0 < packet_id <= len(self.offsets):
+                return None
+            offset = self.offsets[packet_id - 1]
+            if offset == _NO_OFFSET:
+                return None
+            # The record header before the frame says how long it is.
+            header = self.pcap.read(offset - 16, 16)
+            return self.pcap.read(offset, struct.unpack('<IIII', header)[2])
 
-        self.clear()
-        self.active = True
-        self.packet_id = 1
+    def pcap_snapshot(self):
+        """(path, size) of the capture file so far, or None."""
+        with self.lock:
+            if self.pcap is None:
+                return None
+            return self.pcap.path, self.pcap.snapshot()
 
-        self.capture_thread = threading.Thread(
-            target=self._capture_packets,
-            args=(interface, filter_str),
-            daemon=True
-        )
-        self.capture_thread.start()
+    def get_stats(self):
+        with self.lock:
+            return self._stats_locked()
 
-        logger.info(f"Started network capture on interface: {interface}, filter: '{filter_str}'")
-        self._log_memory_stats("Capture Start")
-        return True
+    def _stats_locked(self):
+        return {
+            'active': self.active,
+            'total_packets': self.packet_id,
+            'buffered_packets': len(self.packets),
+            # Packets that aged out of the display buffer; the export still has them.
+            'dropped_packets': self.packet_id - len(self.packets),
+            'max_packets': MAX_PACKETS_IN_MEMORY,
+            'pcap_bytes': self.pcap.size if self.pcap else 0,
+            'pcap_full': bool(self.pcap and self.pcap.full),
+            'error': self.error,
+            'stopped_reason': None if self.active else self.stopped_reason,
+        }
 
-    def stop(self):
-        """Stop packet capture"""
-        self.active = False
-        logger.info(f"Stopped network capture. Captured {len(self.packets)} packets, Dropped {self.dropped_packets} packets")
-        self._log_memory_stats("Capture Stop")
-        return True
-
-    def _capture_packets(self, interface='all', filter_str=''):
-        """Background thread to capture network packets"""
+    def _handle(self, packet):
         try:
-            # Try to import scapy
-            try:
-                from scapy.all import sniff, IP, TCP, UDP, ICMP, ARP, DNS, Raw
-                has_scapy = True
-                logger.info("Using Scapy for packet capture")
-            except ImportError:
-                logger.warning("Scapy not available, using simulated packet capture")
-                has_scapy = False
-
-            if has_scapy:
-                self._capture_with_scapy(interface, filter_str)
-            else:
-                self._capture_simulated()
-
+            frame = bytes(packet)
+            timestamp = float(packet.time)
+            data = _dissect(packet)
         except Exception as e:
-            logger.error(f"Error in packet capture: {e}", exc_info=True)
-            self.active = False
+            logger.error(f"Error processing packet: {e}", exc_info=True)
+            return
 
-    def _capture_with_scapy(self, interface, filter_str):
-        """Capture packets using Scapy"""
-        from scapy.all import sniff, IP, TCP, UDP, ICMP, ARP, DNS, Raw
-        from modules.protocol_parsers import parse_modbus_tcp, parse_s7comm, parse_opcua, parse_enip
-
-        def packet_handler(packet):
-            if not self.active:
-                return True  # Stop sniffing
-
-            try:
-                ts = datetime.now()
-                packet_data = {
-                    'id': self.packet_id,
-                    'time': ts.strftime('%H:%M:%S.%f')[:-3],
-                    'timestamp': ts.isoformat(),
-                    'length': len(packet),
-                    'raw': bytes(packet)  # Store raw packet bytes for PCAP export
-                }
-
-                # Store only essential parsed fields for display
-
-                # Extract IP layer
-                if packet.haslayer(IP):
-                    ip_layer = packet[IP]
-                    packet_data['source'] = ip_layer.src
-                    packet_data['destination'] = ip_layer.dst
-
-                    # Handle TCP packets
-                    if packet.haslayer(TCP):
-                        tcp_layer = packet[TCP]
-                        packet_data['protocol'] = 'TCP'
-                        packet_data['source_port'] = tcp_layer.sport
-                        packet_data['dest_port'] = tcp_layer.dport
-                        packet_data['info'] = f"{tcp_layer.sport} → {tcp_layer.dport} [{tcp_layer.flags}]"
-
-                        # Check for industrial protocols on TCP
-                        if packet.haslayer(Raw):
-                            payload = bytes(packet[Raw].load)
-
-                            # Modbus TCP (port 502)
-                            if tcp_layer.sport == 502 or tcp_layer.dport == 502:
-                                modbus_data = parse_modbus_tcp(payload)
-                                if modbus_data:
-                                    packet_data['protocol'] = 'MODBUS'
-                                    packet_data['info'] = f"Modbus: {modbus_data['function_name']} (Unit {modbus_data['unit_id']})"
-
-                            # S7comm (port 102)
-                            elif tcp_layer.sport == 102 or tcp_layer.dport == 102:
-                                s7_data = parse_s7comm(payload)
-                                if s7_data:
-                                    packet_data['protocol'] = 'S7COMM'
-                                    packet_data['info'] = f"S7comm: {s7_data.get('message_type_name', 'Unknown')}"
-
-                            # OPC-UA (port 4840)
-                            elif tcp_layer.sport == 4840 or tcp_layer.dport == 4840:
-                                opcua_data = parse_opcua(payload)
-                                if opcua_data:
-                                    packet_data['protocol'] = 'OPCUA'
-                                    packet_data['info'] = f"OPC-UA: {opcua_data['message_type_name']} ({opcua_data['chunk_type_name']})"
-
-                            # EtherNet/IP (port 44818)
-                            elif tcp_layer.sport == 44818 or tcp_layer.dport == 44818:
-                                enip_data = parse_enip(payload)
-                                if enip_data:
-                                    packet_data['protocol'] = 'ENIP'
-                                    packet_data['info'] = f"EtherNet/IP: {enip_data['command_name']}"
-
-                    # Handle UDP packets
-                    elif packet.haslayer(UDP):
-                        udp_layer = packet[UDP]
-                        packet_data['protocol'] = 'UDP'
-                        packet_data['source_port'] = udp_layer.sport
-                        packet_data['dest_port'] = udp_layer.dport
-                        packet_data['info'] = f"{udp_layer.sport} → {udp_layer.dport}"
-
-                        # Check for DNS
-                        if packet.haslayer(DNS):
-                            packet_data['protocol'] = 'DNS'
-                            packet_data['info'] = "DNS Query/Response"
-
-                    # Handle ICMP packets
-                    elif packet.haslayer(ICMP):
-                        packet_data['protocol'] = 'ICMP'
-                        packet_data['info'] = f"Type {packet[ICMP].type}"
-                    else:
-                        packet_data['protocol'] = 'IP'
-                        packet_data['info'] = f"Protocol {ip_layer.proto}"
-
-                # Handle ARP packets
-                elif packet.haslayer(ARP):
-                    arp_layer = packet[ARP]
-                    packet_data['protocol'] = 'ARP'
-                    packet_data['source'] = arp_layer.psrc
-                    packet_data['destination'] = arp_layer.pdst
-                    packet_data['info'] = f"Who has {arp_layer.pdst}? Tell {arp_layer.psrc}"
-                else:
-                    packet_data['protocol'] = 'OTHER'
-                    packet_data['source'] = 'N/A'
-                    packet_data['destination'] = 'N/A'
-                    packet_data['info'] = 'Unknown protocol'
-
-                # Add packet with memory management
-                self.add_packet(packet_data)
-                self.packet_id += 1
-
-            except Exception as e:
-                logger.error(f"Error processing packet: {e}", exc_info=True)
-
-        # Start sniffing
-        iface = None if interface == 'all' else interface
-
-        # Build BPF filter (Berkeley Packet Filter for performance)
-        # Always filter to Docker subnet 172.18.0.0/24 to avoid capturing host traffic
-        subnet_filter = "net 172.18.0.0/24"
-
-        if filter_str:
-            bpf_filter = f"({subnet_filter}) and ({filter_str})"
-        else:
-            bpf_filter = subnet_filter
-
-        logger.info(f"Starting Scapy sniff on interface: {iface}, BPF filter: {bpf_filter}")
-        sniff(prn=packet_handler, store=False, iface=iface, filter=bpf_filter, stop_filter=lambda x: not self.active)
-
-    def _capture_simulated(self):
-        """Simulated packet capture for demonstration"""
-        import random
-
-        protocols = ['TCP', 'UDP', 'ICMP', 'DNS', 'HTTP', 'ARP']
-
-        while self.active:
-            # Generate simulated packet
-            protocol = random.choice(protocols)
-            ts = datetime.now()
-            packet_data = {
+        with self.lock:
+            if self.pcap is None:
+                return
+            self.packet_id += 1
+            # The kernel's receive time, not when Python got round to it.
+            ts = datetime.fromtimestamp(timestamp)
+            data.update({
                 'id': self.packet_id,
                 'time': ts.strftime('%H:%M:%S.%f')[:-3],
                 'timestamp': ts.isoformat(),
-                'source': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
-                'destination': f"192.168.{random.randint(1, 254)}.{random.randint(1, 254)}",
-                'protocol': protocol,
-                'length': random.randint(64, 1500),
-                'info': f"Simulated {protocol} packet"
-            }
+                'length': len(frame),
+            })
+            self.packets.append(data)
+            offset = self.pcap.write(timestamp, frame)
+            self.offsets.append(_NO_OFFSET if offset is None else offset)
 
-            if protocol in ['TCP', 'UDP', 'HTTP', 'DNS']:
-                sport = random.randint(1024, 65535)
-                dport = 80 if protocol == 'HTTP' else (53 if protocol == 'DNS' else random.randint(1024, 65535))
-                packet_data['source_port'] = sport
-                packet_data['dest_port'] = dport
-                packet_data['info'] = f"{sport} → {dport}"
 
-            self.add_packet(packet_data)
-            self.packet_id += 1
-            time.sleep(random.uniform(0.1, 1.0))  # Random interval between packets
+def _dissect(packet):
+    """The fields the page shows, from the layers Scapy dissected."""
+    from scapy.layers.dns import DNS
+    from scapy.layers.inet import ICMP, IP, TCP, UDP
+    from scapy.layers.l2 import ARP, Ether
+    from scapy.packet import Raw
+    from modules.protocol_parsers import parse_enip, parse_modbus_tcp, parse_opcua, parse_s7comm
 
-    def get_stats(self):
-        """Get capture statistics"""
-        with self.lock:
-            estimated_mb = len(self.packets) * self.avg_packet_size_kb / 1024
-            return {
-                'total_packets': len(self.packets),
-                'dropped_packets': self.dropped_packets,
-                'memory_mb': round(estimated_mb, 2),
-                'max_packets': MAX_PACKETS_IN_MEMORY
-            }
+    layers = {}
+    data = {'source': 'N/A', 'destination': 'N/A', 'protocol': 'OTHER',
+            'info': 'Unknown protocol', 'layers': layers}
+
+    if packet.haslayer(Ether):
+        eth = packet[Ether]
+        layers['ethernet'] = {'src': eth.src, 'dst': eth.dst, 'type': f"0x{eth.type:04x}"}
+
+    if packet.haslayer(ARP):
+        arp = packet[ARP]
+        data.update(protocol='ARP', source=arp.psrc, destination=arp.pdst,
+                    info=f"Who has {arp.pdst}? Tell {arp.psrc}" if arp.op == 1
+                    else f"{arp.psrc} is at {arp.hwsrc}")
+        return data
+
+    if not packet.haslayer(IP):
+        return data
+
+    ip = packet[IP]
+    layers['ip'] = {'version': ip.version, 'proto': ip.proto, 'ttl': ip.ttl}
+    data.update(source=ip.src, destination=ip.dst, protocol='IP', info=f"Protocol {ip.proto}")
+    payload = bytes(packet[Raw].load) if packet.haslayer(Raw) else b''
+    if payload:
+        data['data'] = payload[:_PAYLOAD_PREVIEW].hex()
+
+    if packet.haslayer(TCP):
+        tcp = packet[TCP]
+        flags = str(tcp.flags)
+        layers['tcp'] = {'sport': tcp.sport, 'dport': tcp.dport, 'flags': flags,
+                         'seq': tcp.seq, 'ack': tcp.ack}
+        data.update(protocol='TCP', source_port=tcp.sport, dest_port=tcp.dport,
+                    info=f"{tcp.sport} → {tcp.dport} [{flags}]")
+        if not payload:
+            return data
+        ports = {tcp.sport, tcp.dport}
+        if 502 in ports:
+            modbus = parse_modbus_tcp(payload)
+            if modbus:
+                layers['modbus'] = modbus
+                more = f" +{modbus['pdu_count'] - 1} more" if modbus['pdu_count'] > 1 else ''
+                data.update(protocol='MODBUS',
+                            info=f"Modbus: {modbus['function_name']} (Unit {modbus['unit_id']}){more}")
+        elif 102 in ports:
+            s7 = parse_s7comm(payload)
+            if s7:
+                layers['s7comm'] = s7
+                if s7.get('protocol_id') == 0x32:
+                    data.update(protocol='S7COMM', info=f"S7comm: {s7['message_type_name']}")
+                else:
+                    data.update(protocol='COTP', info=f"COTP: {s7['message_type_name']}")
+        elif 4840 in ports:
+            opcua = parse_opcua(payload)
+            if opcua:
+                layers['opcua'] = opcua
+                data.update(protocol='OPCUA',
+                            info=f"OPC-UA: {opcua['message_type_name']} ({opcua['chunk_type_name']})")
+        elif 44818 in ports:
+            enip = parse_enip(payload)
+            if enip:
+                layers['enip'] = enip
+                data.update(protocol='ENIP', info=f"EtherNet/IP: {enip['command_name']}")
+    elif packet.haslayer(UDP):
+        udp = packet[UDP]
+        layers['udp'] = {'sport': udp.sport, 'dport': udp.dport, 'len': udp.len}
+        data.update(protocol='UDP', source_port=udp.sport, dest_port=udp.dport,
+                    info=f"{udp.sport} → {udp.dport}")
+        if packet.haslayer(DNS):
+            data.update(protocol='DNS', info="DNS Query/Response")
+        elif 44818 in (udp.sport, udp.dport) and payload:
+            enip = parse_enip(payload)
+            if enip:
+                layers['enip'] = enip
+                data.update(protocol='ENIP', info=f"EtherNet/IP: {enip['command_name']}")
+    elif packet.haslayer(ICMP):
+        data.update(protocol='ICMP', info=f"Type {packet[ICMP].type}")
+
+    return data
