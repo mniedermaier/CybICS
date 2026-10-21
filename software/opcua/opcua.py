@@ -126,6 +126,11 @@ async def main():
                 manual = client.read_holding_registers(1130)
             except Exception as e:
               logging.error("Read from OpenPLC failed - " + str(e))
+              # Keep serving the last values until OpenPLC answers again;
+              # falling through crashed on the unbound registers and put the
+              # container in a restart loop whenever Modbus was not up yet.
+              await asyncio.sleep(2)
+              continue
             await gstvar.write_value(ua.UInt16(gst.registers[0]))
             await hptvar.write_value(ua.UInt16(hpt.registers[0]))
             await systemSenvar.write_value(ua.UInt16(systemSen.registers[0]))
