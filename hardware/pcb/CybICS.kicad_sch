@@ -11405,7 +11405,7 @@
 				)
 			)
 		)
-		(property "Value" "1kR"
+		(property "Value" "20kR"
 			(at 233.68 129.54 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11448,7 +11448,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17513"
+		(property "JLCPCB Part #" "C4328"
 			(at 233.68 133.35 90)
 			(hide yes)
 			(show_name no)
@@ -20789,7 +20789,7 @@
 				)
 			)
 		)
-		(property "Value" "1kR"
+		(property "Value" "20kR"
 			(at 224.79 153.67 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -20832,7 +20832,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17513"
+		(property "JLCPCB Part #" "C4328"
 			(at 224.79 157.48 90)
 			(hide yes)
 			(show_name no)
@@ -21645,7 +21645,7 @@
 				)
 			)
 		)
-		(property "Value" "1kR"
+		(property "Value" "20kR"
 			(at 233.68 142.24 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21688,7 +21688,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C17513"
+		(property "JLCPCB Part #" "C4328"
 			(at 233.68 146.05 90)
 			(hide yes)
 			(show_name no)
