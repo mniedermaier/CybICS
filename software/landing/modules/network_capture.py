@@ -42,6 +42,51 @@ CAPTURE_FILTERS = {
     'arp': 'arp',
 }
 
+# LAB_FILTER's network as a string prefix: the check runs for every packet,
+# on a CPU that has about 600 of them a second to keep up with.
+LAB_PREFIX = "172.18.0."
+
+# The same filters again, in Python, for the packets the kernel's BPF filter
+# never saw. Scapy opens the raw socket first and attaches the filter after
+# it, and without libpcap it compiles the filter by running tcpdump, which
+# takes long enough on a Pi Zero for HTTP and the previous capture's traffic
+# to arrive in between: a Modbus-only capture started with port 80 packets.
+# Each is a predicate on the transport ("tcp", "udp", "icmp", "arp", "ip") and
+# the (sport, dport) pair, empty without ports.
+CAPTURE_MATCHERS = {
+    '': lambda proto, ports: True,
+    'modbus': lambda proto, ports: proto == 'tcp' and 502 in ports,
+    's7comm': lambda proto, ports: proto == 'tcp' and 102 in ports,
+    'opcua': lambda proto, ports: proto == 'tcp' and 4840 in ports,
+    'enip': lambda proto, ports: proto in ('tcp', 'udp') and 44818 in ports,
+    'tcp': lambda proto, ports: proto == 'tcp',
+    'udp': lambda proto, ports: proto == 'udp',
+    'icmp': lambda proto, ports: proto == 'icmp',
+    'arp': lambda proto, ports: proto == 'arp',
+}
+
+
+def matches(packet, filter_name):
+    """Whether `packet` belongs in a capture with this filter preset."""
+    from scapy.layers.inet import ICMP, IP, TCP, UDP
+    from scapy.layers.l2 import ARP
+
+    if ARP in packet:
+        addresses, proto, ports = (packet[ARP].psrc, packet[ARP].pdst), 'arp', ()
+    elif IP in packet:
+        addresses = (packet[IP].src, packet[IP].dst)
+        if TCP in packet:
+            proto, ports = 'tcp', (packet[TCP].sport, packet[TCP].dport)
+        elif UDP in packet:
+            proto, ports = 'udp', (packet[UDP].sport, packet[UDP].dport)
+        else:
+            proto, ports = ('icmp' if ICMP in packet else 'ip'), ()
+    else:
+        return False
+    in_lab = any(a.startswith(LAB_PREFIX) for a in addresses)
+    return in_lab and CAPTURE_MATCHERS[filter_name](proto, ports)
+
+
 # Linux ARPHRD_ETHER. The exported pcap declares Ethernet for every frame, so
 # an interface of another type (tailscale0, wg0, ppp0, ...) would write
 # frames Wireshark cannot read.
@@ -210,7 +255,9 @@ class NetworkCapture:
                 self.stopped_reason = None
                 self.pcap = _PcapFile()
                 self.last_poll = time.monotonic()
-            sniffer = AsyncSniffer(iface=iface, filter=bpf, prn=self._handle, store=False)
+            sniffer = AsyncSniffer(iface=iface, filter=bpf, store=False,
+                                   lfilter=lambda packet: matches(packet, filter_name),
+                                   prn=self._handle)
             self.sniffer = sniffer
             sniffer.start()
 
