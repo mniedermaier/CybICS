@@ -45,6 +45,7 @@ struct source {
 	const struct gpio_dt_spec *spec;
 	const char *name;
 	enum ui_event event;
+	enum ui_key key;
 	/* Debounce state. */
 	bool stable_pressed;
 	bool candidate;
@@ -68,11 +69,11 @@ static const struct gpio_dt_spec nav_right = GPIO_DT_SPEC_GET(DT_NODELABEL(nav_r
  * floating inputs would invent presses out of nothing.
  */
 static struct source sources[] = {
-	{ .spec = &display_in, .name = "centre", .event = UI_EVENT_NEXT },
-	{ .spec = &nav_right, .name = "right", .event = UI_EVENT_NEXT },
-	{ .spec = &nav_down, .name = "down", .event = UI_EVENT_NEXT },
-	{ .spec = &nav_left, .name = "left", .event = UI_EVENT_PREV },
-	{ .spec = &nav_up, .name = "up", .event = UI_EVENT_PREV },
+	{ .spec = &display_in, .name = "centre", .event = UI_EVENT_NEXT, .key = UI_KEY_CENTRE },
+	{ .spec = &nav_right, .name = "right", .event = UI_EVENT_NEXT, .key = UI_KEY_RIGHT },
+	{ .spec = &nav_down, .name = "down", .event = UI_EVENT_NEXT, .key = UI_KEY_DOWN },
+	{ .spec = &nav_left, .name = "left", .event = UI_EVENT_PREV, .key = UI_KEY_LEFT },
+	{ .spec = &nav_up, .name = "up", .event = UI_EVENT_PREV, .key = UI_KEY_UP },
 };
 
 #define SOURCE_CENTRE_ONLY 1
@@ -130,7 +131,7 @@ static bool debounce(struct source *src)
 	return now;
 }
 
-bool ui_input_poll(enum ui_event *ev)
+bool ui_input_poll(enum ui_event *ev, enum ui_key *key)
 {
 	/*
 	 * Round-robin the starting point so that two contacts closed in the
@@ -149,6 +150,7 @@ bool ui_input_poll(enum ui_event *ev)
 
 		LOG_DBG("%s pressed", src->name);
 		*ev = src->event;
+		*key = src->key;
 		next = (i + 1) % source_count;
 		return true;
 	}
