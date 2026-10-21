@@ -123,8 +123,8 @@ class TestNetworkPosition:
 
     def test_forwarding_is_on_for_a_man_in_the_middle(self, shell):
         """/proc/sys is read-only in the container, so compose has to set it."""
-        out = shell.run("cat /proc/sys/net/ipv4/ip_forward /proc/sys/net/ipv4/conf/all/send_redirects")
-        assert out.split() == ["1", "0"]
+        out = shell.run("echo FWD $(cat /proc/sys/net/ipv4/ip_forward) $(cat /proc/sys/net/ipv4/conf/all/send_redirects)")
+        assert "FWD 1 0" in out
 
     def test_plc_answers_modbus_from_the_shell(self, shell):
         out = shell.run(
@@ -150,9 +150,10 @@ class TestTools:
         assert "IMPORTS 3.11.3" in out
 
     def test_training_material_and_wordlist_are_present(self, shell):
-        out = shell.run("ls /CybICS/training/README.md && wc -l < /usr/share/wordlists/passwords.txt")
+        out = shell.run("ls /CybICS/training/README.md && echo WORDS $(wc -l < /usr/share/wordlists/passwords.txt)")
         assert "/CybICS/training/README.md" in out
-        assert int(out.split()[-1]) > 1000
+        # Matched rather than split: tmux may redraw its status line in between.
+        assert int(re.search(r"WORDS (\d+)", out).group(1)) > 1000
 
     def test_s7_info_script_is_available(self, shell):
         """scanning2 patches a copy of nmap's s7-info script."""
