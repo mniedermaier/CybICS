@@ -24,6 +24,14 @@ from pymodbus.exceptions import ConnectionException, ModbusException
 
 SERVER_IP = os.getenv("TEST_SERVER_IP", "127.0.0.1")
 
+# "physical" for a Raspberry Pi board.  A board has no virtual hardware (hwio
+# runs as hwio-raspberry, without the 8090 web view), so the suite neither
+# waits for it nor tests it there.
+PLATFORM = os.getenv("TEST_PLATFORM", "virtual")
+if PLATFORM not in ("virtual", "physical"):
+    raise ValueError(f"TEST_PLATFORM must be 'virtual' or 'physical', not {PLATFORM!r}")
+ON_BOARD = PLATFORM == "physical"
+
 # Connection timeout for protocol clients.  This used to be 20 in two files and
 # 10 in a third, for no stated reason.
 CONNECTION_TIMEOUT = 20
@@ -71,6 +79,8 @@ REQUIRED_SERVICES = {
     "nginx-proxy": NGINX_PROXY_PORT,
     "attack-shell": ATTACK_SHELL_PORT,
 }
+if ON_BOARD:
+    del REQUIRED_SERVICES["hwio"]
 
 STACK_READY_TIMEOUT = int(os.getenv("TEST_STACK_TIMEOUT", "180"))
 
