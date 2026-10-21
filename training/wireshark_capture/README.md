@@ -54,6 +54,14 @@ ssh pi@$DEVICE_IP -p 22 sudo tcpdump -U -s0 'not port 22' -i br-cybics -w - | su
   - `-k`: Starts capture immediately
   - `-i -`: Reads from standard input
 
+### Without SSH or Wireshark
+The **Sharky** view of the landing page captures the plant network
+(`br-cybics`) in the browser, dissects Modbus/TCP and exports the capture as a
+pcap file for Wireshark. Use it when you work from the attack shell: a
+`tcpdump` in the attack shell only sees the attack shell's own traffic, because
+the plant network is switched like a real one and does not copy other hosts'
+frames to it.
+
 ## Modbus/TCP Protocol
 
 ### Protocol Structure

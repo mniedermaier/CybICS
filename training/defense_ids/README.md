@@ -2,6 +2,10 @@
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-PMAD - Protocol Metadata Anomaly Detection](https://d3fend.mitre.org/technique/d3f:ProtocolMetadataAnomalyDetection/)
 
+> **From the attack shell:** the IDS runs on the host, so `localhost` in the
+> commands below does not reach it there; use `$DEVICE_IP` (`172.18.0.1`)
+> instead, e.g. `curl http://$DEVICE_IP:8443/api/rules/stats`.
+
 ## Overview
 An Intrusion Detection System (IDS) is only effective when it is properly configured, actively monitoring, and tuned to detect relevant threats. A misconfigured or disabled IDS provides a false sense of security.
 

@@ -40,6 +40,10 @@ Note the output — which ports are **open** and which are **closed**?
 
 ### Phase 2: Verify IDS Detection
 
+From the attack shell, the IDS is not on `localhost`; use `$DEVICE_IP:8443`
+(`172.18.0.1`) in the `curl` commands below. `recon.py` and its `python-nmap`
+dependency are already installed there.
+
 Your scan triggered the IDS. Open the IDS dashboard at [http://localhost:8443](http://localhost:8443) and check the **Alerts** tab. You should see a `port_scan` alert with your source IP.
 
 Query the IDS API to confirm:

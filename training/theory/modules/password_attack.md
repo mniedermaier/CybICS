@@ -23,7 +23,7 @@ Two web interfaces have a login:
 | OpenPLC | 172.18.0.3, port 8080, `/login` | An HTML form, sent as a form-encoded POST |
 | FUXA HMI | 172.18.0.4, port 1881, `/api/signin` | A JSON request to the HMI's API |
 
-Each challenge has its own flag, shown once you are logged in with the right account. The attack machine already has `ffuf` and the `rockyou` wordlist in `/usr/share/wordlists/`.
+Each challenge has its own flag, shown once you are logged in with the right account. The Kali attack machine already has `ffuf` and the `rockyou` wordlist in `/usr/share/wordlists/`; the attack shell has `ffuf` and a shorter list of common passwords, `/usr/share/wordlists/passwords.txt`.
 
 <figure class="wide">
 <svg viewBox="0 0 520 150" role="img" aria-label="ffuf takes one password after another from a wordlist and sends each as a login request to the OpenPLC or FUXA login. Most answers are failures and look the same; the one answer that differs in size or content marks the correct password.">

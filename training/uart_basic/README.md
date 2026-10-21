@@ -26,6 +26,10 @@ This guide covers how to connect to the CybICS micro controller using UART (Univ
    picocom -b 115200 /dev/serial0
    ```
 
+   picocom is also installed in the attack shell. If `ls /dev/serial0` shows
+   the port there, you can skip the SSH step and connect from the attack shell
+   directly.
+
 3. Common picocom commands:
    - `Ctrl+A Ctrl+X`: Exit picocom
 

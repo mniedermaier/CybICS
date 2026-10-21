@@ -2,6 +2,11 @@
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/)
 
+> **From the attack shell:** the IDS runs on the host, so `localhost` in the
+> commands below does not reach it there; use `$DEVICE_IP` (`172.18.0.1`)
+> instead, e.g. `curl http://$DEVICE_IP:8443/api/rules/stats`, and pass
+> `http://$DEVICE_IP:8443` to the solve script.
+
 ## Overview
 
 Security Operations Center (SOC) analysts regularly triage alerts from intrusion detection systems to understand the scope and nature of attacks. This challenge simulates a real-world incident investigation where you must analyze IDS data programmatically.

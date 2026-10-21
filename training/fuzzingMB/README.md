@@ -93,6 +93,24 @@ Select the proper fuzzing method (e.g., 1 for all):
 ### Time to Wait
 Grab a coffee ☕☕☕☕ while the fuzzer runs
 
+### From the attack shell
+The attack shell has no internet access on a board, so the fuzzer above cannot
+be cloned there. `modbus_fuzzer.py` in this folder is a small fuzzer that needs
+no menu: it mixes requests with random and boundary values, truncated or
+overlong bodies and broken MBAP headers, and reports how OpenPLC answered.
+Its default set of function codes includes the diagnostic ones (0x08 and 0x2B).
+
+```sh
+cd /CybICS/training/fuzzingMB
+python3 modbus_fuzzer.py 172.18.0.3                       # 300 cases at 20 per second
+python3 modbus_fuzzer.py 172.18.0.3 --fc 0x08 --count 50  # only Diagnostics
+python3 modbus_fuzzer.py --help
+```
+
+At the end it prints how many requests got a normal response, a Modbus
+exception or a dropped connection, and whether OpenPLC still answers a plain
+read. `--seed` repeats a run exactly.
+
 ## Security Framework References
 
 <details>
@@ -130,7 +148,7 @@ Grab a coffee ☕☕☕☕ while the fuzzer runs
 
 ## Hints
 
-Run the fuzzer with `python3 modbus_fuzzer.py`, enter the target IP and port 502 when prompted, then select option 1 from the interactive menu to fuzz all function codes.
+Run the cloned fuzzer with `python3 modbus.py`, enter the target IP and port 502 when prompted, then select option 1 from the interactive menu to fuzz all function codes. In the attack shell, `python3 modbus_fuzzer.py 172.18.0.3` from this folder does the same without a menu.
 
 ## Solution
 

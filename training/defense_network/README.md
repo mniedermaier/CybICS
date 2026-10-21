@@ -45,6 +45,11 @@ Apply iptables rules on each **target container** to drop inbound traffic from t
    docker exec -it <openplc_container> bash
    iptables -A INPUT -s 172.18.0.100 -j DROP
    ```
+   Run `docker exec` from the landing page's admin shell (WebShell view,
+   *Admin shell*); the attack shell has no access to Docker. The admin shell
+   has no interactive terminal, so skip `-it ... bash` there and prefix each
+   command instead, for example
+   `docker exec <openplc_container> iptables -A INPUT -s 172.18.0.100 -j DROP`.
 
 2. Access the OPC-UA container and block the attacker:
    The OPC-UA container is Alpine-based and has no `bash`, so run iptables directly:

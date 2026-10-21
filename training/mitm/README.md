@@ -63,6 +63,16 @@ The full MITM attack requires two steps running simultaneously:
 
 Use ARP spoofing to redirect traffic between FUXA and OpenPLC through your machine. This must remain running for the duration of the attack.
 
+**From the attack shell**, where arpspoof is not installed, `arp_spoof.py` in
+this folder poisons both directions in one process and restores the ARP caches
+on Ctrl-C. IP forwarding is already on in the attack shell; its container
+cannot switch it itself.
+
+```sh
+cd /CybICS/training/mitm
+python3 arp_spoof.py 172.18.0.4 172.18.0.3    # FUXA <-> OpenPLC
+```
+
 ### Step 2: Run the Modbus Proxy
 
 Once traffic is flowing through your machine, run the Modbus TCP proxy to intercept and optionally manipulate the traffic.
@@ -81,6 +91,13 @@ For this, a good understanding of Modbus/TCP is required.
 
 ```sh
 python3 mitm.py
+```
+
+`mitm.py` forwards to `172.17.0.1` by default. Inside the plant network, from
+the attack shell, point it at OpenPLC directly:
+
+```sh
+MODBUS_SERVER_HOST=172.18.0.3 python3 mitm.py
 ```
 
 ## Task
@@ -133,7 +150,7 @@ The flag has the format `CybICS(flag)`.
 
 ## Hints
 
-Use `arpspoof -i eth0 -t <FUXA_IP> <OpenPLC_IP>` in one terminal and `arpspoof -i eth0 -t <OpenPLC_IP> <FUXA_IP>` in another. Enable IP forwarding with `echo 1 > /proc/sys/net/ipv4/ip_forward`. Then run `python3 mitm.py` in a third terminal.
+Use `arpspoof -i eth0 -t <FUXA_IP> <OpenPLC_IP>` in one terminal and `arpspoof -i eth0 -t <OpenPLC_IP> <FUXA_IP>` in another. Enable IP forwarding with `echo 1 > /proc/sys/net/ipv4/ip_forward`. Then run `python3 mitm.py` in a third terminal. In the attack shell, `python3 arp_spoof.py 172.18.0.4 172.18.0.3` replaces both arpspoof terminals, and IP forwarding is already on; open a second tab or use `tmux` for `mitm.py`.
 
 ## Solution
 
