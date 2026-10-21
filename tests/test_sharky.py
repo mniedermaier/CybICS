@@ -17,9 +17,14 @@ BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
 CAPTURE_SECONDS = 5
 
 
+# The first capture after landing starts imports Scapy and compiles the BPF
+# filter with tcpdump: about 7 s on a Pi Zero, more while the suite loads it.
+START_TIMEOUT = 30
+
+
 def capture(interface):
     response = requests.post(BASE + "/api/network/start", json={"interface": interface},
-                             timeout=READ_TIMEOUT)
+                             timeout=START_TIMEOUT)
     assert response.status_code == 200, response.text
     try:
         time.sleep(CAPTURE_SECONDS)
@@ -46,7 +51,7 @@ def test_all_interfaces_shows_traffic():
 
 
 def start(body):
-    return requests.post(BASE + "/api/network/start", json=body, timeout=READ_TIMEOUT + 5)
+    return requests.post(BASE + "/api/network/start", json=body, timeout=START_TIMEOUT)
 
 
 @pytest.mark.parametrize("body", [

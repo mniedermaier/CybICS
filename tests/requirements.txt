@@ -19,3 +19,6 @@ nh3==0.3.7
 # tests/test_attack_shell.py types into the attack shell's browser terminal,
 # which ttyd serves over a WebSocket.
 websocket-client==1.9.0
+# tests/test_sharky_filters.py builds packets to check Sharky's filters in
+# Python. Pinned to the landing container's version.
+scapy==2.7.0rc1
