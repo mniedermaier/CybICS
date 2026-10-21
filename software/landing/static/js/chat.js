@@ -21,9 +21,16 @@ function escapeHtml(text) {
 
 /* ── Session ── */
 
+// crypto.randomUUID() exists only in secure contexts. A board's dashboard is
+// http://10.0.0.1, so there it threw and stopped the rest of this script.
+function newSessionId() {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+}
+
 let chatSessionId = sessionStorage.getItem('cybics_session_id');
 if (!chatSessionId) {
-    chatSessionId = crypto.randomUUID();
+    chatSessionId = newSessionId();
     sessionStorage.setItem('cybics_session_id', chatSessionId);
 }
 
@@ -202,7 +209,7 @@ function clearChatHistory() {
     }
 
     sessionStorage.removeItem('cybics_chat_history');
-    chatSessionId = crypto.randomUUID();
+    chatSessionId = newSessionId();
     sessionStorage.setItem('cybics_session_id', chatSessionId);
 
     const messagesContainer = document.getElementById('chatMessages');
