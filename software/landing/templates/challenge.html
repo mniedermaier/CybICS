@@ -556,7 +556,7 @@
     <!-- Header -->
     <header>
         <div class="header-left">
-            <a href="/ctf" class="back-btn" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({type:'navigate',url:'/ctf'},window.location.origin); }">&#8592; Back</a>
+            <a href="/ctf" class="back-btn" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({type:'navigate',url:'/ctf',back:true},window.location.origin); }">&#8592; Back</a>
             <h1>{{ challenge.title }}</h1>
         </div>
         <div class="header-right">
