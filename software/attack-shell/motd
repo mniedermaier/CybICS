@@ -1,0 +1,13 @@
+
+  CybICS attack shell, 172.18.0.100 inside the plant network 172.18.0.0/24
+
+  hwio (plant)  172.18.0.2   Modbus 502 (client)
+  OpenPLC       172.18.0.3   Modbus 502, S7 102, web 8080, DNP3 20000, ENIP 44818
+  FUXA HMI      172.18.0.4   web 1881
+  OPC-UA        172.18.0.5   4840
+  S7 gateway    172.18.0.6   1102
+  host/gateway  172.18.0.1   IDS 8443, landing page 80
+
+  Training material: /CybICS/training   Wordlists: /usr/share/wordlists
+  Tools: nmap, hydra, ffuf, curl, nc, socat, tcpdump, scapy, pymodbus, asyncua
+

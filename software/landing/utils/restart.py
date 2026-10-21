@@ -128,9 +128,53 @@ def project_containers(run=subprocess.run, mountinfo=MOUNTINFO):
     return project, others + [own]
 
 
+def _netns_followers(names, run):
+    """Map each container to the containers that share its network namespace.
+
+    A container started with network_mode "service:x" joins x's namespace by
+    container ID.  When x restarts, it gets a new namespace and the follower
+    is left with loopback only until it restarts too; in the virtual stack
+    that is the Kali desktop, which shares the attack shell's 172.18.0.100.
+    Best effort: if docker inspect fails, nothing has followers.
+    """
+    if not names:
+        return {}
+    try:
+        rows = _docker(run, "inspect", "--format",
+                       "{{.Name}} {{.Id}} {{.HostConfig.NetworkMode}}", *names)
+    except (RestartError, subprocess.TimeoutExpired) as error:
+        logger.warning("Cannot read the containers' network modes: %s", error)
+        return {}
+    by_id, modes = {}, {}
+    for row in rows.splitlines():
+        parts = row.split()
+        if len(parts) == 3:
+            name = parts[0].lstrip("/")
+            by_id[parts[1]] = name
+            modes[name] = parts[2]
+    followers = {}
+    for name, mode in modes.items():
+        owner = by_id.get(mode.removeprefix("container:")) if mode.startswith("container:") else None
+        if owner:
+            followers.setdefault(owner, []).append(name)
+    return followers
+
+
+def _owners_first(names, run):
+    """`names` with every container after the one whose namespace it shares."""
+    followers = _netns_followers(names, run)
+    later = {f for fs in followers.values() for f in fs}
+    ordered = []
+    for name in names:
+        if name not in later:
+            ordered.append(name)
+            ordered.extend(f for f in followers.get(name, []) if f in names)
+    return ordered + [name for name in names if name not in ordered]
+
+
 def _restart_all(others, own, run):
     try:
-        for name in others:
+        for name in _owners_first(others, run):
             try:
                 _docker(run, "restart", name, timeout=90)
                 logger.info("Restarted %s", name)
@@ -207,10 +251,15 @@ def restart_service(service, run=subprocess.run, mountinfo=MOUNTINFO):
         return f"restarting {own}"
     try:
         _docker(run, "restart", name, timeout=90)
+        logger.info("Restarted %s", name)
+        # Without this the containers sharing its namespace lose the network.
+        followers = _netns_followers(others, run).get(name, [])
+        for follower in followers:
+            _docker(run, "restart", follower, timeout=90)
+            logger.info("Restarted %s, which shares %s's network", follower, name)
     finally:
         _running.release()
-    logger.info("Restarted %s", name)
-    return f"restarted {name}"
+    return " and ".join([f"restarted {name}"] + followers)
 
 
 def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):

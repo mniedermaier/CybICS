@@ -425,8 +425,8 @@
               attacks: ['uart_basic'], ids: 'Not on the network at all, so the network IDS never sees it. Its UART console is a wire on the board.' },
         ] },
     ];
-    const ATTACKER = { id: 'attack', name: 'Attack machine', ip: '172.18.0.100', ports: '6081 (noVNC)',
-        role: 'Your Kali machine, playing a compromised office PC. It sits on the same flat network as everything else, so it can reach every level directly. That is the most important lesson of this picture.',
+    const ATTACKER = { id: 'attack', name: 'Attack machine', ip: '172.18.0.100', ports: '7681 (terminal), 6081 (noVNC)',
+        role: 'Your attacker host: the attack shell, and on a PC the Kali desktop too, playing a compromised office PC. It sits on the same flat network as everything else, so it can reach every level directly. That is the most important lesson of this picture.',
         attacks: ['scanning', 'mitm', 'flood_overwrite'], ids: 'Named in the IDS host table, but not an expected Modbus writer or OPC-UA client, so its writes and sessions are flagged.' };
     register('purdue-explorer', function (node) {
         const { body } = frame(node, 'Purdue explorer: the CybICS network',

@@ -225,6 +225,80 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .shell-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .shell-tab {
+            background-color: #1a1a1a;
+            color: #cccccc;
+            border: 1px solid #404040;
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: var(--brand-font-mono);
+            font-size: 13px;
+        }
+
+        .shell-tab[aria-selected="true"] {
+            background-color: #ff6b00;
+            border-color: #ff6b00;
+            color: #1a1a1a;
+            font-weight: bold;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .pane[hidden] {
+            display: none;
+        }
+
+        .attack-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            min-height: 0;
+        }
+
+        .attack-frame {
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+            border: 2px solid #404040;
+            border-radius: 0.5rem;
+            background-color: #0a0a0a;
+        }
+
+        .attack-frame[hidden] {
+            display: none;
+        }
+
+        .attack-down {
+            border: 1px solid #ff4444;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            color: #cccccc;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .attack-down code, .info-banner code {
+            color: #ff6b00;
+        }
+
+        @media (max-width: 640px) {
+            header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .attack-container, .terminal-container { padding: 0.5rem; }
+        }
         /* Dashboard theme bridge */
         html.light-mode, html.light-mode body { background: #f3f5f8 !important; color: #172033 !important; }
         html.light-mode header, html.light-mode .input-container, html.light-mode .info-banner, html.light-mode .quick-command-btn { background-color: #ffffff !important; color: #172033 !important; border-color: #d8dde6; }
@@ -241,29 +315,52 @@
         html.light-mode h1, html.light-mode .info-banner strong { color: #b34700; }
         html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
         html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
+        html.light-mode .shell-tab { background-color: #eef1f5; color: #394355; border-color: #b7bfcc; }
+        html.light-mode .shell-tab[aria-selected="true"] { background-color: #b34700; border-color: #b34700; color: #ffffff; }
+        html.light-mode .attack-down { background-color: #ffffff; color: #394355; }
+        html.light-mode .attack-down code, html.light-mode .info-banner code { color: #b34700; }
     </style>
 </head>
 <body>
     <header>
-        <h1>WebShell - Attack Tools</h1>
+        <h1>WebShell</h1>
+        <div class="shell-tabs" role="tablist">
+            <button class="shell-tab" role="tab" id="tab-attack" aria-controls="attack-pane" onclick="showPane('attack')">Attack shell (172.18.0.100)</button>
+            <button class="shell-tab" role="tab" id="tab-admin" aria-controls="admin-pane" onclick="showPane('admin')">Admin shell (host)</button>
+        </div>
     </header>
 
+    <!-- The attacker's terminal: ttyd in the attack-shell container, inside the
+         plant network.  It has its own origin (port 7681, or 17681 through the
+         TLS proxy), so it is embedded rather than driven from this page. -->
+    <section class="pane" id="attack-pane" role="tabpanel" aria-labelledby="tab-attack" hidden>
+        <div class="attack-container">
+            <iframe class="attack-frame" id="attack-frame" title="Attack shell terminal" hidden></iframe>
+            <div class="attack-down" id="attack-down" hidden>
+                <strong>The attack shell is not reachable.</strong><br>
+                It runs in its own container, <code>attack-shell</code>, at 172.18.0.100.
+                Start it with <code>./cybics.sh start</code> on a PC, or with
+                <code>docker compose up -d attack-shell</code> in <code>~/CybICS</code> on a board.
+                The admin shell still works for the defense challenges.
+            </div>
+        </div>
+    </section>
+
+    <section class="pane" id="admin-pane" role="tabpanel" aria-labelledby="tab-admin" hidden>
     <div class="terminal-container">
         <div class="info-banner">
-            <strong>WebShell Terminal</strong> - Execute attack tools like nmap, netcat, curl, flooding_hpt.py, etc.
+            <strong>Admin shell</strong> - runs on the host, in the landing page's container, with access to Docker.
+            Use it for the defense challenges, e.g. <code>docker exec &lt;container&gt; iptables -L INPUT -n</code>.
+            Attack from the attack shell instead: it sits in the plant network, so the IDS and your defenses see it as 172.18.0.100.
         </div>
 
         <div class="quick-commands">
-            <button class="quick-command-btn" onclick="insertCommand('flooding_hpt.py localhost --duration 10')">flooding_hpt.py 10s</button>
-            <button class="quick-command-btn" onclick="insertCommand('flooding_hpt.py localhost --duration 60')">flooding_hpt.py 60s</button>
-            <button class="quick-command-btn" onclick="insertCommand('nmap -sV localhost')">nmap -sV</button>
-            <button class="quick-command-btn" onclick="insertCommand('nmap -p- localhost')">nmap -p-</button>
+            <button class="quick-command-btn" onclick="insertCommand('docker ps')">docker ps</button>
+            <button class="quick-command-btn" onclick="insertCommand('docker exec $(docker ps -qf name=openplc) iptables -L INPUT -n --line-numbers')">openplc iptables</button>
+            <button class="quick-command-btn" onclick="insertCommand('docker exec $(docker ps -qf name=opcua) iptables -L INPUT -n --line-numbers')">opcua iptables</button>
             <button class="quick-command-btn" onclick="insertCommand('ip a')">ip a</button>
             <button class="quick-command-btn" onclick="insertCommand('netstat -tulpn')">netstat</button>
             <button class="quick-command-btn" onclick="insertCommand('ps aux')">ps aux</button>
-            <button class="quick-command-btn" onclick="insertCommand('whoami')">whoami</button>
-            <button class="quick-command-btn" onclick="insertCommand('pwd')">pwd</button>
-            <button class="quick-command-btn" onclick="insertCommand('ls -la')">ls -la</button>
         </div>
 
         <div class="terminal-output" id="terminal-output">
@@ -283,7 +380,7 @@
                 type="text"
                 class="terminal-input"
                 id="command-input"
-                placeholder="Enter command (e.g., nmap -sV 10.0.0.10)"
+                placeholder="Enter command (e.g., docker ps)"
                 autocomplete="off"
             >
             <button class="execute-button" id="execute-btn" onclick="executeCommand()">Execute</button>
@@ -291,6 +388,7 @@
             <button class="clear-button" onclick="clearTerminal()">Clear</button>
         </div>
     </div>
+    </section>
 
     <script>
         function applyDashboardTheme(theme) {
@@ -521,10 +619,52 @@
         });
         observer.observe(terminalOutput, { childList: true, subtree: true });
 
+        // The attack shell is served by ttyd on its own port; over HTTPS the
+        // proxy's TLS listener (service port + 10000) avoids mixed content.
+        const ATTACK_SHELL_URL = location.protocol === 'https:'
+            ? `https://${location.hostname}:17681/`
+            : `http://${location.hostname}:7681/`;
+        const PANE_KEY = 'cybics_webshell_pane';
+        let attackLoaded = false;
+
+        function loadAttackShell() {
+            if (attackLoaded) return;
+            const frame = document.getElementById('attack-frame');
+            const down = document.getElementById('attack-down');
+            fetch(ATTACK_SHELL_URL, { mode: 'no-cors', cache: 'no-cache' })
+                .then(() => {
+                    attackLoaded = true;
+                    frame.src = ATTACK_SHELL_URL;
+                    frame.hidden = false;
+                    down.hidden = true;
+                    frame.focus();
+                })
+                .catch(() => { frame.hidden = true; down.hidden = false; });
+        }
+
+        function showPane(name) {
+            if (name !== 'admin') name = 'attack';
+            document.getElementById('attack-pane').hidden = name !== 'attack';
+            document.getElementById('admin-pane').hidden = name !== 'admin';
+            document.getElementById('tab-attack').setAttribute('aria-selected', String(name === 'attack'));
+            document.getElementById('tab-admin').setAttribute('aria-selected', String(name === 'admin'));
+            try { localStorage.setItem(PANE_KEY, name); } catch (e) {}
+            if (name === 'attack') {
+                loadAttackShell();
+                document.getElementById('attack-frame').focus();
+            } else {
+                commandInput.focus();
+            }
+        }
+
         // Restore previous session output and reattach to any running job.
         restoreLog();
         resumeActiveJob();
-        commandInput.focus();
+        let initialPane = 'attack';
+        try { initialPane = localStorage.getItem(PANE_KEY) || 'attack'; } catch (e) {}
+        // A job still running in the admin shell is what the user came back for.
+        if (getActiveJob()) initialPane = 'admin';
+        showPane(initialPane);
     </script>
 </body>
 </html>

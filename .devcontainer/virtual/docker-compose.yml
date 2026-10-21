@@ -1,26 +1,51 @@
 services:
+  # The attacker host, 172.18.0.100: a terminal in the browser on 7681 with
+  # the command-line tools and the training scripts.  The board runs the same
+  # image; Kali below joins its network namespace, so both are one host to the
+  # plant, the IDS and the defense checks.
+  attack-shell:
+    image: mniedermaier1337/cybics-attack-shell:${CYBICS_VERSION:-latest}
+    build:
+      context: ../..
+      dockerfile: software/attack-shell/Dockerfile
+    hostname: attack-machine
+    restart: always
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # /proc/sys is read-only in the container.  Forwarding is what an ARP
+    # man-in-the-middle needs, and without redirects off the kernel would
+    # point the victims back at each other.
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.send_redirects=0
+    ports:
+      - 7681:7681
+      # Kali's noVNC and VNC; the ports of a shared network namespace are
+      # published by the container that owns it.
+      - 6081:6081
+      - 5902:5902
+    networks:
+      virt-cybics:
+        ipv4_address: 172.18.0.100
+
   attack-machine:
     image: mniedermaier1337/cybics-attack-machine:${CYBICS_VERSION:-latest}
     build:
       context: ../../software/attack-machine
       dockerfile: Dockerfile
-    hostname: attack-machine
     restart: always
     stdin_open: true
     tty: true
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    ports:
-      - 6081:6081
-      - 5902:5902
+    network_mode: service:attack-shell
     volumes:
       - ../../:/CybICS
       - ../../software/attack-machine/workspace:/root/Desktop/workspace
-    networks:
-      virt-cybics:
-        ipv4_address: 172.18.0.100
     depends_on:
+      - attack-shell
       - openplc
       - fuxa
       - hwio
@@ -199,6 +224,7 @@ services:
       - 18080:18080
       - 18090:18090
       - 18443:18443
+      - 17681:17681
     extra_hosts:
       - "hostnet:host-gateway"
     depends_on:

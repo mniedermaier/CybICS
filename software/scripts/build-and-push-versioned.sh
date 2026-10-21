@@ -111,6 +111,7 @@ echo "========================================"
 
 # Build and push all images
 build_and_push "mniedermaier1337/cybics-attack-machine" "software/attack-machine" "software/attack-machine/Dockerfile"
+build_and_push "mniedermaier1337/cybics-attack-shell" "." "software/attack-shell/Dockerfile"
 build_and_push "mniedermaier1337/cybicsopenplc" "software/OpenPLC" "software/OpenPLC/Dockerfile"
 build_and_push "mniedermaier1337/cybicsopcua" "software/opcua" "software/opcua/Dockerfile"
 build_and_push "mniedermaier1337/cybicss7com" "software/s7com" "software/s7com/Dockerfile"

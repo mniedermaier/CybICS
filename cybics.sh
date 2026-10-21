@@ -225,6 +225,7 @@ display_services() {
     print_message "OpenPLC: http://localhost:8080" "$GREEN"
     print_message "FUXA: http://localhost:1881" "$GREEN"
     print_message "HWIO: http://localhost:8090" "$GREEN"
+    print_message "Attack shell (terminal, 172.18.0.100): http://localhost:7681" "$GREEN"
 
     # Display optional services based on mode
     if [[ "$CYBICS_MODE" == "full" || "$CYBICS_MODE" == "withoutai" ]]; then
