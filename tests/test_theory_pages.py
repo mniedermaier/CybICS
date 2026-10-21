@@ -100,6 +100,16 @@ def test_lesson_links_onwards_and_to_its_challenges():
     assert f'href="/theory/{second["id"]}"' in html
     for related in first.get("related", []):
         assert f'href="/ctf/challenge/{related["id"]}"' in html
+        # Inside the dashboard the link asks it to open the CTF view; a plain
+        # link loaded the challenge into the Theory view, where its Back
+        # button switched to a hidden CTF view and seemed to do nothing.
+        assert f"postMessage({{ type: 'navigate', url: '/ctf/challenge/{related['id']}' }}" in html
+
+
+def test_challenge_back_button_asks_for_the_previous_view():
+    """The dashboard sends Back to the lesson a challenge was opened from."""
+    html = get("/ctf/challenge/scanning").text
+    assert "type:'navigate',url:'/ctf',back:true" in html
 
 
 def test_unknown_lesson_is_404():

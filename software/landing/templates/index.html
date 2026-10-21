@@ -2706,11 +2706,30 @@
             }
         }
 
+        // What an iframe shows, as far as this page has navigated it.
+        function frameSrc(iframe) {
+            return iframe.dataset.current !== undefined ? iframe.dataset.current : iframe.getAttribute('src');
+        }
+
+        // Navigate an iframe without adding a browser history entry. Setting
+        // src on an iframe that already shows a document adds one, so the
+        // browser's Back stepped through iframe loads, blank unloaded views
+        // included, before it reached the dashboard's own #view entries.
+        // location.replace() is allowed on a cross-origin frame too.
+        function setIframeSrc(iframe, url) {
+            iframe.dataset.current = url;
+            if (iframe.getAttribute('src')) {
+                try { iframe.contentWindow.location.replace(url); return; } catch (e) { /* fall back */ }
+            }
+            // The first load replaces the initial about:blank; no entry either.
+            iframe.src = url;
+        }
+
         // Load a view's iframe if it isn't already loaded.
         function loadViewIframe(view) {
             const iframe = document.getElementById(`${view}-iframe`);
             if (!iframe) return;
-            const cur = iframe.getAttribute('src');
+            const cur = frameSrc(iframe);
             if (cur && cur !== 'about:blank') return; // already loaded
 
             // Prefer the last URL we had (preserves e.g. CTF challenge navigation).
@@ -2729,7 +2748,7 @@
                 const requestUrl = (serviceId === 'engineeringws' || serviceId === 'attackmachine') ? url : themedUrl.href;
                 fetch(requestUrl, { mode: 'no-cors', cache: 'no-cache' })
                     .then(() => {
-                        iframe.src = requestUrl;
+                        setIframeSrc(iframe, requestUrl);
                         setTimeout(function() {
                             try {
                                 const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -2740,7 +2759,7 @@
                     .catch(() => showIframeError(iframe));
             } else {
                 // Same-origin local page (ctf/stats/network/webshell): just load it.
-                iframe.src = themedUrl.href;
+                setIframeSrc(iframe, themedUrl.href);
             }
         }
 
@@ -2748,7 +2767,7 @@
         function unloadViewIframe(view) {
             const iframe = document.getElementById(`${view}-iframe`);
             if (!iframe) return;
-            const cur = iframe.getAttribute('src');
+            const cur = frameSrc(iframe);
             if (cur && cur !== 'about:blank') {
                 // Remember where the page actually is, not where it started:
                 // the src attribute misses navigation inside the iframe, such
@@ -2760,7 +2779,7 @@
                 } catch (e) { /* cross-origin service: keep the src */ }
                 iframe.setAttribute('data-last-src', last); // remember for restore
             }
-            iframe.src = 'about:blank';
+            setIframeSrc(iframe, 'about:blank');
         }
 
         // Populate the error-panel URL labels (does not load anything).
@@ -2806,7 +2825,7 @@
             fetch(url, { mode: 'no-cors', cache: 'no-cache' })
                 .then(() => {
                     // Service appears to be available, reload the iframe
-                    iframe.src = url;
+                    setIframeSrc(iframe, url);
 
                     // Still check after a timeout in case the page doesn't load
                     setTimeout(function() {
@@ -2910,17 +2929,51 @@
             return /^\/theory(\/[A-Za-z0-9_-]+)?$/.test(url) ? url : null;
         }
 
+        // Show a Theory Path lesson, as a new history entry.
+        function openTheoryLesson(url) {
+            url = safeTheoryPath(url) || '/theory';
+            const iframe = document.getElementById("theory-iframe");
+            if (iframe) {
+                iframe.setAttribute("data-last-src", url);
+                // A lesson still loaded would be kept; make it load this one.
+                if (currentView === 'theory') setIframeSrc(iframe, url);
+            }
+            _origUpdateView('theory');
+            history.pushState({ view: 'theory', theoryUrl: url }, '', url === '/theory' ? '#theory' : '#theory:' + url);
+        }
+
         // Handle postMessage from CTF iframe for navigation
         window.addEventListener("message", (event) => {
             if (event.origin !== window.location.origin || !event.data) return;
             if (event.data.type === "navigate") {
                 const url = safeCtfPath(event.data.url);
                 const ctfIframe = document.getElementById("ctf-iframe");
+                // A challenge's Back button, on a challenge opened from a
+                // Theory Path lesson: return to that lesson, not to the list.
+                // Not history.back(): every src change of an iframe adds a
+                // history entry of its own, so Back would step the iframe.
+                const returnTo = history.state && history.state.returnTo;
+                if (event.data.back && returnTo) {
+                    openTheoryLesson(returnTo);
+                    return;
+                }
                 if (ctfIframe && url) {
-                    ctfIframe.src = url;
+                    // A lesson's "Put it into practice" link comes from the
+                    // Theory view; the challenge opens in the CTF view, and
+                    // remembers the lesson for its Back button.
+                    let lesson = null;
+                    if (currentView === 'theory') {
+                        try {
+                            lesson = safeTheoryPath(document.getElementById("theory-iframe").contentWindow.location.pathname);
+                        } catch (e) { /* not loaded */ }
+                        lesson = lesson || '/theory';
+                    }
+                    if (currentView !== 'ctf') _origUpdateView('ctf');
+                    setIframeSrc(ctfIframe, url);
                     // Push to browser history so back/forward works
                     const hash = '#ctf' + (url !== '/ctf' ? ':' + url : '');
-                    history.pushState({ view: 'ctf', ctfUrl: url }, '', hash);
+                    history.pushState(lesson ? { view: 'ctf', ctfUrl: url, returnTo: lesson }
+                                             : { view: 'ctf', ctfUrl: url }, '', hash);
                     // Landing back on the challenge list happens right after a solve
                     // redirects there, so this is the natural point to re-check progress.
                     if (url === '/ctf') refreshOnboardingCta();
@@ -2973,7 +3026,7 @@
                 }
                 if (view === 'ctf' && safeCtfPath(event.state.ctfUrl)) {
                     const ctfIframe = document.getElementById("ctf-iframe");
-                    if (ctfIframe) ctfIframe.src = event.state.ctfUrl;
+                    if (ctfIframe) setIframeSrc(ctfIframe, event.state.ctfUrl);
                 }
             } else if (location.hash) {
                 // A hash typed or followed by a link, not one we pushed
@@ -2998,7 +3051,7 @@
                     _origUpdateView('ctf');
                     const ctfUrl = safeCtfPath(hash.slice(4));
                     const ctfIframe = document.getElementById("ctf-iframe");
-                    if (ctfIframe && ctfUrl) ctfIframe.src = ctfUrl;
+                    if (ctfIframe && ctfUrl) setIframeSrc(ctfIframe, ctfUrl);
                     history.replaceState({ view: 'ctf', ctfUrl: ctfUrl }, '', ctfUrl ? location.hash : '#ctf');
                 } else if (hash.startsWith('theory:')) {
                     const theoryUrl = safeTheoryPath(hash.slice(7));
@@ -3006,8 +3059,8 @@
                     if (iframe && theoryUrl) {
                         iframe.setAttribute("data-last-src", theoryUrl);
                         // Already showing a lesson: switch it rather than keep the old one
-                        const cur = iframe.getAttribute('src');
-                        if (cur && cur !== 'about:blank') iframe.removeAttribute('src');
+                        const cur = frameSrc(iframe);
+                        if (cur && cur !== 'about:blank') iframe.dataset.current = 'about:blank';
                     }
                     _origUpdateView('theory');
                     history.replaceState({ view: 'theory', theoryUrl: theoryUrl }, '', theoryUrl ? location.hash : '#theory');
