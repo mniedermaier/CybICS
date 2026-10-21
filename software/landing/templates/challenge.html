@@ -819,7 +819,7 @@
             copyBtn.className = 'copy-btn';
             copyBtn.textContent = 'Copy';
             copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(block.textContent).then(() => {
+                copyText(block.textContent).then(() => {
                     copyBtn.textContent = 'Copied!';
                     copyBtn.classList.add('copied');
                     setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
@@ -848,7 +848,7 @@
             copyBtn.className = 'copy-btn';
             copyBtn.textContent = 'Copy';
             copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(code.textContent).then(() => {
+                copyText(code.textContent).then(() => {
                     copyBtn.textContent = 'Copied!';
                     copyBtn.classList.add('copied');
                     setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
@@ -859,6 +859,25 @@
             wrapper.appendChild(pre);
         });
     });
+
+    // navigator.clipboard exists only in secure contexts, and a board's
+    // dashboard is http://10.0.0.1: there every Copy button threw. Fall back
+    // to a selected textarea and execCommand('copy').
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+        return new Promise((resolve, reject) => {
+            const area = document.createElement('textarea');
+            area.value = text;
+            area.setAttribute('readonly', '');
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            const ok = document.execCommand('copy');
+            area.remove();
+            ok ? resolve() : reject(new Error('copy failed'));
+        });
+    }
 
     // ===== Flag submission / Defense verification =====
     const challengeId = '{{ challenge.id }}';
