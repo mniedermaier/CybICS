@@ -24,6 +24,14 @@ from pymodbus.exceptions import ConnectionException, ModbusException
 
 SERVER_IP = os.getenv("TEST_SERVER_IP", "127.0.0.1")
 
+# "physical" for a Raspberry Pi board.  A board has no virtual hardware (hwio
+# runs as hwio-raspberry, without the 8090 web view), so the suite neither
+# waits for it nor tests it there.
+PLATFORM = os.getenv("TEST_PLATFORM", "virtual")
+if PLATFORM not in ("virtual", "physical"):
+    raise ValueError(f"TEST_PLATFORM must be 'virtual' or 'physical', not {PLATFORM!r}")
+ON_BOARD = PLATFORM == "physical"
+
 # Connection timeout for protocol clients.  This used to be 20 in two files and
 # 10 in a third, for no stated reason.
 CONNECTION_TIMEOUT = 20
@@ -47,6 +55,8 @@ HWIO_PORT = _port("HWIO", 8090)
 # The reverse proxy fronts the landing page; 8082 is its plain-HTTP listener,
 # chosen over 443 so a certificate problem does not read as a dead stack.
 NGINX_PROXY_PORT = _port("NGINX_PROXY", 8082)
+# The attack shell's browser terminal (ttyd), the attacker host 172.18.0.100.
+ATTACK_SHELL_PORT = _port("ATTACK_SHELL", 7681)
 
 OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
 
@@ -67,7 +77,10 @@ REQUIRED_SERVICES = {
     "fuxa": FUXA_PORT,
     "hwio": HWIO_PORT,
     "nginx-proxy": NGINX_PROXY_PORT,
+    "attack-shell": ATTACK_SHELL_PORT,
 }
+if ON_BOARD:
+    del REQUIRED_SERVICES["hwio"]
 
 STACK_READY_TIMEOUT = int(os.getenv("TEST_STACK_TIMEOUT", "180"))
 

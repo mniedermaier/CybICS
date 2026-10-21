@@ -154,6 +154,7 @@ CONTAINERS=(
     "cybics-s7com"
     "cybics-fuxa"
     "cybics-landing"
+    "cybics-attack-shell"
     "cybics-stm32"
     "cybics-nginx-proxy"
     "cybics-ids"

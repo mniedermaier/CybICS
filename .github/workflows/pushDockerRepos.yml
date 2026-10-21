@@ -7,6 +7,7 @@ on:
 env:
   IMAGES: >-
     cybics-attack-machine:software/attack-machine:software/attack-machine/Dockerfile
+    cybics-attack-shell:.:software/attack-shell/Dockerfile
     cybicsopenplc:software/OpenPLC:software/OpenPLC/Dockerfile
     cybicsopcua:software/opcua:software/opcua/Dockerfile
     cybicss7com:software/s7com:software/s7com/Dockerfile

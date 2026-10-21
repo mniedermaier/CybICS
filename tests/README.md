@@ -50,6 +50,14 @@ $env:TEST_SERVER_IP="192.168.1.100"
 pytest -v
 ```
 
+Against a Raspberry Pi board, also set `TEST_PLATFORM=physical`. A board has
+no virtual hardware view on port 8090, so the suite neither waits for it nor
+tests it:
+
+```bash
+TEST_SERVER_IP=10.0.0.1 TEST_PLATFORM=physical pytest tests/ -v
+```
+
 ## Test Coverage
 
 ### Connection Tests

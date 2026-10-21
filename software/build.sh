@@ -76,6 +76,8 @@ build_image "cybics-fuxa" "./FUXA"
 build_image "cybics-stm32" "./stm32"
 # Build landing service from root context
 build_image "cybics-landing" ".." "./landing/Dockerfile"
+# Root context too: the attack shell carries its own copy of training/.
+build_image "cybics-attack-shell" ".." "./attack-shell/Dockerfile"
 build_image "cybics-nginx-proxy" "./nginx-proxy"
 build_image "cybics-ids" "./ids"
 

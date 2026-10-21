@@ -46,6 +46,22 @@ If this is successful, follow step 4 and use *opcua_login* to brute force creden
 
 In the case of a successful brute force attack, you should see the username and password labeled *success* as output. This procedure can also be traced in Wireshark. On the unencrypted endpoint the usernames are readable, but the server asks clients to encrypt the password with its public key, so whether you can read a password depends on whether your client follows that request. Check your own capture. 
 
+### From the attack shell
+Metasploit is not part of the attack shell. `opcua_login.py` in this folder
+does the same three jobs with asyncua; the server is at `172.18.0.5`:
+
+```sh
+cd /CybICS/training/opcua
+python3 opcua_login.py hello 172.18.0.5                    # like opcua_hello and opcua_server_config
+python3 opcua_login.py login 172.18.0.5 credentials.txt    # like opcua_login
+python3 opcua_login.py read 172.18.0.5 --user <user> --password <password>
+```
+
+`hello` lists the endpoints with their security policy, security mode and the
+login types they accept. `login` prints a `Success` line for every pair that
+logs in. `read` logs in and lists the variables of the `CybICS Variables`
+object, and replaces the opcua-client GUI.
+
 ## Task
 Brute-force OPC-UA credentials, explore the server security configuration, and use leaked certificates to gain admin access.
 
@@ -196,6 +212,14 @@ Certificates in OPC UA are essential for establishing secure, authenticated, and
 Use opcua-client and configure on `Connect option` the usage of the certificate.
   ```
   opcua-client
+  ```
+
+From the attack shell, `opcua_login.py read` logs in with the certificate and
+can write the variable in the same call:
+  ```sh
+  C=/CybICS/software/opcua/certificates/trusted
+  python3 opcua_login.py read 172.18.0.5 --cert $C/cert_admin.der --key $C/key_admin.pem \
+          --write "Set > 0 to obtain flag!=1"
   ```
 
   Now you can change the variable `Set > 0 to obtain flag!` to a value bigger than zero and access the variable for the admin flag `adminFLAG`

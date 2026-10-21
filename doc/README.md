@@ -116,7 +116,8 @@ Once started, the following services are available:
 | **OpenPLC** | [http://localhost:8080](http://localhost:8080) | PLC programming and runtime environment |
 | **FUXA HMI** | [http://localhost:1881](http://localhost:1881) | SCADA/HMI interface |
 | **Engineering Workstation** | [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html) | VNC desktop environment (full/withoutai modes) |
-| **Attack Machine** | [http://localhost:6081/vnc.html](http://localhost:6081/vnc.html) | Kali-based attack environment (full/withoutai modes) |
+| **Attack Shell** | [http://localhost:7681](http://localhost:7681) | Browser terminal of the attacker host 172.18.0.100, also under **WebShell** on the landing page (all modes, and on the board) |
+| **Attack Machine** | [http://localhost:6081/vnc.html](http://localhost:6081/vnc.html) | Kali desktop on the same address, 172.18.0.100 (full/withoutai modes) |
 | **OPC UA Server** | opc.tcp://localhost:4840 | OPC UA protocol endpoint |
 | **S7 Communication** | localhost:102 | Siemens S7 protocol endpoint |
 

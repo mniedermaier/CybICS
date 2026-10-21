@@ -16,3 +16,6 @@ flask==3.1.3
 # tests/test_theory_content.py renders every lesson the way the landing page
 # does, to check its reading time. Pinned to the landing container's version.
 nh3==0.3.7
+# tests/test_attack_shell.py types into the attack shell's browser terminal,
+# which ttyd serves over a WebSocket.
+websocket-client==1.9.0

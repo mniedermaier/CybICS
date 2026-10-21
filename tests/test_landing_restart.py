@@ -41,15 +41,22 @@ def mountinfo(tmp_path, *ids):
 class FakeDocker:
     """Answers docker inspect/ps/restart like a host running two projects."""
 
-    def __init__(self, project="virtual", fail_restart=()):
+    def __init__(self, project="virtual", fail_restart=(), shares_netns=None):
         self.project = project
         self.fail_restart = set(fail_restart)
+        # {follower: owner}: follower runs with network_mode "service:owner".
+        self.shares_netns = shares_netns or {}
         self.restarted = []
         self.done = threading.Event()
 
     def __call__(self, cmd, **_kwargs):
         assert cmd[0] == "docker"
         verb = cmd[1]
+        if verb == "inspect" and "{{.HostConfig.NetworkMode}}" in cmd[3]:
+            rows = [f"/{name} id-{name} " + (f"container:id-{self.shares_netns[name]}"
+                                             if name in self.shares_netns else "bridge")
+                    for name in cmd[4:]]
+            return SimpleNamespace(returncode=0, stdout="\n".join(rows) + "\n", stderr="")
         if verb == "inspect":
             assert cmd[-1] == OWN_ID
             return SimpleNamespace(returncode=0, stdout=self.project + "\n", stderr="")
@@ -60,6 +67,10 @@ class FakeDocker:
             rows = [f"{OWN_ID[:12]} virtual-landing-1",
                     "111111111111 virtual-openplc-1",
                     "222222222222 virtual-hwio-1"]
+            # docker ps lists the newest first, so a container that joined
+            # another's network namespace comes before it.
+            rows[1:1] = [f"{n:0>12} {name}" for n, name in enumerate(self.shares_netns)]
+            rows += [f"{n:0>12}x {owner}" for n, owner in enumerate(set(self.shares_netns.values()))]
             return SimpleNamespace(returncode=0, stdout="\n".join(rows) + "\n", stderr="")
         if verb == "restart":
             name = cmd[2]
@@ -178,6 +189,27 @@ def test_resolve_service(service, expected):
     assert restart.resolve_service(service, "virtual", names) == expected
 
 
+def test_restart_runs_a_namespace_owner_before_its_followers(tmp_path):
+    """Kali shares the attack shell's namespace; restarted first, it would
+    rejoin the old one and be left without a network."""
+    docker = FakeDocker(shares_netns={"virtual-attack-machine-1": "virtual-attack-shell-1"})
+    restart.start_restart(docker, mountinfo(tmp_path, OWN_ID))
+    assert docker.done.wait(5)
+    order = docker.restarted
+    assert order.index("virtual-attack-shell-1") < order.index("virtual-attack-machine-1")
+    assert order[-1] == "virtual-landing-1"
+    assert sorted(order) == sorted(set(order))
+    _wait_until_idle()
+
+
+def test_restarting_a_namespace_owner_restarts_its_followers(tmp_path):
+    docker = FakeDocker(shares_netns={"virtual-attack-machine-1": "virtual-attack-shell-1"})
+    assert restart.restart_service("attack-shell", docker, mountinfo(tmp_path, OWN_ID)) == \
+        "restarted virtual-attack-shell-1 and virtual-attack-machine-1"
+    assert docker.restarted == ["virtual-attack-shell-1", "virtual-attack-machine-1"]
+    assert not restart._running.locked()
+
+
 def test_restart_one_service(tmp_path):
     docker = FakeDocker()
     assert restart.restart_service("openplc", docker, mountinfo(tmp_path, OWN_ID)) == \
@@ -224,6 +256,10 @@ class LoggingDocker(FakeDocker):
         if cmd[1] == "inspect" and cmd[-1] != OWN_ID:
             return SimpleNamespace(returncode=0, stdout=f"mniedermaier1337/{cmd[-1]}:1.2.4\n", stderr="")
         if cmd[1] == "logs":
+            # Only the end of each log: the whole of one once got landing
+            # OOM-killed on a board. A damaged log must not fail the download.
+            assert cmd[cmd.index("--tail") + 1] == str(restart.LOG_TAIL_LINES)
+            assert kwargs.get("errors") == "replace"
             return SimpleNamespace(returncode=0, stdout=f"log of {cmd[-1]}\n",
                                    stderr="warning\n" if cmd[-1] == "virtual-hwio-1" else "")
         return super().__call__(cmd, **kwargs)

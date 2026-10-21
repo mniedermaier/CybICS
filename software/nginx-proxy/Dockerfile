@@ -11,6 +11,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # 80 is published as 8082 (plain, TCP passthrough), 443 is HTTPS.
-EXPOSE 80 443 11881 16080 16081 18080 18090 18443
+EXPOSE 80 443 11881 16080 16081 17681 18080 18090 18443
 
 ENTRYPOINT ["/entrypoint.sh"]

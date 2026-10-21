@@ -2,6 +2,11 @@
 
 > **MITRE ATT&CK for ICS:** `Evasion` | [T0820 - Exploitation for Evasion](https://attack.mitre.org/techniques/T0820/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
+> **From the attack shell:** the IDS runs on the host, so `localhost` in the
+> commands below does not reach it there; use `$DEVICE_IP` (`172.18.0.1`)
+> instead, e.g. `curl http://$DEVICE_IP:8443/api/rules/stats`, and pass
+> `--ids-url http://$DEVICE_IP:8443` to the solve script.
+
 ## Overview
 
 Real-world attackers study intrusion detection systems to understand their detection logic and thresholds. By operating below these thresholds ("low-and-slow" attacks), they can manipulate industrial processes without triggering alerts.

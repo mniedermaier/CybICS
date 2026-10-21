@@ -36,7 +36,9 @@ PROXY_HOST = '0.0.0.0'   # The address to bind the proxy on
 # The port to expose for Modbus traffic (standard Modbus TCP port is 502)
 PROXY_PORT = 5020
 
-MODBUS_SERVER_HOST = '172.17.0.1'  # Address of the real Modbus server (PLC)
+# Address of the real Modbus server (PLC). From the attack shell, inside the
+# plant network, run with MODBUS_SERVER_HOST=172.18.0.3.
+MODBUS_SERVER_HOST = os.environ.get('MODBUS_SERVER_HOST', '172.17.0.1')
 MODBUS_SERVER_PORT = 502    # Port of the real Modbus server
 
 BUFFER_SIZE = 1024  # Buffer size for receiving data

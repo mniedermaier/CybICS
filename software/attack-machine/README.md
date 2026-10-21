@@ -97,6 +97,10 @@ Tool for injecting malicious code into PLCs via Modbus.
    ```
 
 The attack machine is connected to the CybICS network (172.18.0.0/24) with IP address **172.18.0.100**.
+It shares that address with the [attack shell](../attack-shell/README.md): Kali
+runs in the attack shell's network namespace, so the plant, the IDS and the
+defense checks see one attacker, whichever of the two you work from. The
+attack shell therefore publishes Kali's ports 6081 and 5902 as well.
 
 ### Common Attack Scenarios
 

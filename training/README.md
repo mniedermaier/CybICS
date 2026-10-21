@@ -60,6 +60,28 @@ pip install -r training/requirements.txt
 
 Alternatively, each training module has its own `requirements.txt` if you only want dependencies for a specific exercise.
 
+### Where to work from
+
+There are two places to run the attacks from. Both sit at **172.18.0.100**
+inside the plant network, so the IDS and the defense challenges see the same
+attacker either way.
+
+- **The attack shell** (the **WebShell** view of the landing page): a terminal
+  in a small container, on the virtual stack and on a Raspberry Pi board. It
+  has nmap with the ICS scripts, ffuf, hydra, socat, tcpdump, picocom, git, and
+  Python with pymodbus, asyncua and scapy. The modules are in
+  `/CybICS/training`, the dependencies are already installed, and
+  `$DEVICE_IP` is preset to `172.18.0.1`, the host that publishes every
+  service's port. There is no Metasploit, Wireshark or desktop, and no
+  internet access on a board; the modules note where the attack shell takes a
+  different route.
+- **The Kali attack machine** (virtual stack, `--mode full`): a full desktop
+  with Wireshark, Metasploit and a browser.
+
+The defense challenges change the target containers with `docker exec`. That
+needs the Docker host, so run those commands from the landing page's admin
+shell (WebShell view, *Admin shell*), not from the attack shell.
+
 ## 📚 Training Modules
 
 ### 🏭 Basic Understanding

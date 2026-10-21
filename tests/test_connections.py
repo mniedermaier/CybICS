@@ -24,7 +24,7 @@ from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
 from conftest import (SERVER_IP, MODBUS_SERVER_PORT, OPCUA_SERVER_PORT, S7_SERVER_PORT,
                       OPENPLC_PORT, FUXA_PORT, HWIO_PORT, CONNECTION_TIMEOUT,
-                      READ_TIMEOUT, OPCUA_SERVER_URL, modbus_call)
+                      READ_TIMEOUT, OPCUA_SERVER_URL, ON_BOARD, modbus_call)
 from asyncua import Client, ua
 
 # Every test in this module talks to the running stack. Wait for it once and
@@ -54,8 +54,9 @@ URLS = [
     f"http://{SERVER_IP}",                 # landing
     f"http://{SERVER_IP}:{FUXA_PORT}",     # FUXA
     f"http://{SERVER_IP}:{OPENPLC_PORT}",  # OpenPLC web
-    f"http://{SERVER_IP}:{HWIO_PORT}",     # hardware I/O
-]
+] + ([] if ON_BOARD else [
+    f"http://{SERVER_IP}:{HWIO_PORT}",     # virtual hardware, Docker only
+])
 
 # ===============================================================================
 # Web Services Connectivity Tests

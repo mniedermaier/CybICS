@@ -70,6 +70,14 @@ The flag has the format `CybICS(flag)` and is found in the **Module Type** field
    nmap --script s7-info -p 102,1102 $DEVICE_IP
    ```
 
+   **From the attack shell**, patch a copy instead of the installed script and
+   pass the copy to nmap:
+   ```bash
+   cp /usr/share/nmap/scripts/s7-info.nse ~/s7-info.nse
+   sed -i 's/version_port_or_service(102,/version_port_or_service({102, 1102},/' ~/s7-info.nse
+   nmap -Pn --script ~/s7-info.nse -p 102,1102 $DEVICE_IP
+   ```
+
 4. **Find the flag** in the scan output. Look at the **Module Type** field in the s7-info results for port 1102.
 
 ### Conclusion

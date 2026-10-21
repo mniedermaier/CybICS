@@ -128,9 +128,53 @@ def project_containers(run=subprocess.run, mountinfo=MOUNTINFO):
     return project, others + [own]
 
 
+def _netns_followers(names, run):
+    """Map each container to the containers that share its network namespace.
+
+    A container started with network_mode "service:x" joins x's namespace by
+    container ID.  When x restarts, it gets a new namespace and the follower
+    is left with loopback only until it restarts too; in the virtual stack
+    that is the Kali desktop, which shares the attack shell's 172.18.0.100.
+    Best effort: if docker inspect fails, nothing has followers.
+    """
+    if not names:
+        return {}
+    try:
+        rows = _docker(run, "inspect", "--format",
+                       "{{.Name}} {{.Id}} {{.HostConfig.NetworkMode}}", *names)
+    except (RestartError, subprocess.TimeoutExpired) as error:
+        logger.warning("Cannot read the containers' network modes: %s", error)
+        return {}
+    by_id, modes = {}, {}
+    for row in rows.splitlines():
+        parts = row.split()
+        if len(parts) == 3:
+            name = parts[0].lstrip("/")
+            by_id[parts[1]] = name
+            modes[name] = parts[2]
+    followers = {}
+    for name, mode in modes.items():
+        owner = by_id.get(mode.removeprefix("container:")) if mode.startswith("container:") else None
+        if owner:
+            followers.setdefault(owner, []).append(name)
+    return followers
+
+
+def _owners_first(names, run):
+    """`names` with every container after the one whose namespace it shares."""
+    followers = _netns_followers(names, run)
+    later = {f for fs in followers.values() for f in fs}
+    ordered = []
+    for name in names:
+        if name not in later:
+            ordered.append(name)
+            ordered.extend(f for f in followers.get(name, []) if f in names)
+    return ordered + [name for name in names if name not in ordered]
+
+
 def _restart_all(others, own, run):
     try:
-        for name in others:
+        for name in _owners_first(others, run):
             try:
                 _docker(run, "restart", name, timeout=90)
                 logger.info("Restarted %s", name)
@@ -207,14 +251,26 @@ def restart_service(service, run=subprocess.run, mountinfo=MOUNTINFO):
         return f"restarting {own}"
     try:
         _docker(run, "restart", name, timeout=90)
+        logger.info("Restarted %s", name)
+        # Without this the containers sharing its namespace lose the network.
+        followers = _netns_followers(others, run).get(name, [])
+        for follower in followers:
+            _docker(run, "restart", follower, timeout=90)
+            logger.info("Restarted %s, which shares %s's network", follower, name)
     finally:
         _running.release()
-    logger.info("Restarted %s", name)
-    return f"restarted {name}"
+    return " and ".join([f"restarted {name}"] + followers)
+
+
+# Lines of each container's log in the bundle. The bundle is built in
+# landing's memory, 64 MB on a board, and one container's full log once was
+# 225 MB: hwio's, while OpenPLC was down. Landing was OOM-killed building it.
+LOG_TAIL_LINES = 2000
 
 
 def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
-    """The text of Settings -> Download logs: every project container's logs.
+    """The text of Settings -> Download logs: the end of every project
+    container's log.
 
     Raises RestartError if the project cannot be determined, and
     subprocess.TimeoutExpired if docker hangs.
@@ -227,8 +283,10 @@ def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
         versions[container] = result.stdout.strip() if result.returncode == 0 else "unknown"
     parts = []
     for container in containers:
-        result = run(["docker", "logs", "--timestamps", container],
-                     capture_output=True, text=True, timeout=30)
+        # errors="replace": a log file damaged by a power cut holds bytes
+        # that are not UTF-8, and one such line must not fail the download.
+        result = run(["docker", "logs", "--timestamps", "--tail", str(LOG_TAIL_LINES), container],
+                     capture_output=True, text=True, errors="replace", timeout=30)
         parts.append(f"{'=' * 80}\nContainer: {container}\n{'=' * 80}\n{result.stdout}")
         if result.stderr:
             parts.append(f"\nSTDERR:\n{result.stderr}")
@@ -237,6 +295,7 @@ def logs_bundle(run=subprocess.run, mountinfo=MOUNTINFO):
         "CybICS Docker Logs",
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"Containers: {len(containers)}",
+        f"Last {LOG_TAIL_LINES} lines of each container's log",
         "=" * 80, "",
         "CONTAINER VERSIONS",
         "=" * 80,

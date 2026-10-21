@@ -344,7 +344,6 @@ async def test_opcua_anonymous_access_denied():
 # ===============================================================================
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Certificate auth requires server-side trust configuration not yet available in CI")
 async def test_opcua_certificate_auth():
     """
     Test OPC UA authentication using X.509 certificates.
@@ -480,6 +479,12 @@ async def test_opcua_certificate_auth():
                                     print(f"Write operation failed: {write_error}")
         except Exception as e:
             print(f"\nNote: Could not verify admin access to CybICS variables: {e}")
+
+        # The opcua challenge's admin step is exactly this write; a server that
+        # connects but never grants it fails the challenge.
+        assert admin_access_verified, (
+            "Connected with the admin certificate, but writing the admin control variable did not succeed"
+        )
 
         print(f"\n✓ OPC-UA Certificate Authentication Successful")
         print(f"  Server: {OPCUA_SERVER_URL}")

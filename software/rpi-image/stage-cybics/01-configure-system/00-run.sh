@@ -12,7 +12,9 @@ install -m 644 files/30-cybics-zram.conf "${ROOTFS_DIR}/etc/systemd/zram-generat
 
 # Docker: route published ports with iptables only. The userland proxy starts
 # one docker-proxy process per port and address family, 35 on this stack,
-# which held ~50 MB on a board with 463 MB of RAM.
+# which held ~50 MB on a board with 463 MB of RAM. Container logs rotate at
+# 3 x 10 MB: Docker keeps them unbounded by default, and hwio once wrote 225 MB
+# in a day while OpenPLC was down.
 install -d -m 755 "${ROOTFS_DIR}/etc/docker"
 install -m 644 files/daemon.json "${ROOTFS_DIR}/etc/docker/daemon.json"
 

@@ -2,6 +2,10 @@
 
 > **MITRE D3FEND:** `Detect` | [D3-NTA - Network Traffic Analysis](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | [D3-OPM - Operational Process Monitoring](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/)
 
+> **From the attack shell:** the IDS runs on the host, so `localhost` in the
+> commands below does not reach it there; use `$DEVICE_IP` (`172.18.0.1`)
+> instead, e.g. `curl http://$DEVICE_IP:8443/api/rules/stats`.
+
 ## Overview
 
 Modbus TCP has **no authentication** — any device on the network can write to PLC registers. A flooding attack sends hundreds or thousands of write commands per second to overwrite process values, disrupting the physical process.

@@ -73,7 +73,7 @@ jobs:
     # services, which is exactly `cybics.sh --mode minimal`.
     #
     # bake ignores compose profiles, so the targets are named explicitly; with
-    # no arguments it would build all eleven again.
+    # no arguments it would build all twelve again.
     #
     # --allow: the build contexts are ../../software/*, outside the directory
     # holding the compose file, and bake refuses to read across that boundary
@@ -92,7 +92,7 @@ jobs:
           --set "*.cache-from=type=gha,scope=pytest" \
           --set "*.cache-to=type=gha,mode=max,scope=pytest" \
           --load \
-          fuxa hwio ids landing nginx-proxy opcua openplc s7com
+          attack-shell fuxa hwio ids landing nginx-proxy opcua openplc s7com
 
     - name: Start containers
       run: docker compose -f "docker-compose.yml" up -d

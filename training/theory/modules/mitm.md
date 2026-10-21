@@ -34,7 +34,7 @@ Step through the attack yourself. Watch both ARP caches, the path of the frames 
 
 1. **Map the conversation.** Note the addresses of FUXA and OpenPLC and confirm the polling with a short `tcpdump` or Wireshark capture.
 2. **Let traffic pass through you.** Turn on IP forwarding on the attack machine. Otherwise you swallow every packet and the HMI goes dark, which is noticed at once.
-3. **Poison both ARP caches.** Tell FUXA that the PLC's IP is at your MAC, and the PLC the same about FUXA, and keep both running. Tools: `arpspoof`, `ettercap` or a small `scapy` script.
+3. **Poison both ARP caches.** Tell FUXA that the PLC's IP is at your MAC, and the PLC the same about FUXA, and keep both running. Tools: `arpspoof`, `ettercap` or a small `scapy` script such as the challenge folder's `arp_spoof.py`.
 4. **Watch the traffic cross your machine.** A capture on the attack machine should now show FUXA's polls.
 5. **Rewrite, if you want to see the deception.** Read the settings of `mitm.py` and run it. Poisoning alone does not hand it the traffic; the deep dive below says why.
 6. **Verify on the challenge page.** It asks the IDS whether it saw the ARP poisoning.

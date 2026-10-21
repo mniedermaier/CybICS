@@ -78,6 +78,32 @@ services:
       br-cybics:
         ipv4_address: 172.18.0.4
 
+  # The attacker host, 172.18.0.100, with a terminal in the browser on 7681.
+  # The board has no room for the Kali attack machine; this is its stand-in.
+  # Attack tools run here, in their own memory limit, rather than in the
+  # landing container's webshell, where one scan could exhaust landing's.
+  attack-shell:
+    image: localhost:5000/cybics-attack-shell:latest
+    hostname: attack-machine
+    restart: always
+    mem_limit: 64m
+    depends_on:
+    - openplc
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # /proc/sys is read-only in the container.  Forwarding is what an ARP
+    # man-in-the-middle needs, and without redirects off the kernel would
+    # point the victims back at each other.
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.send_redirects=0
+    ports:
+      - 7681:7681
+    networks:
+      br-cybics:
+        ipv4_address: 172.18.0.100
+
   landing:
     image: localhost:5000/cybics-landing:latest
     restart: always
@@ -117,6 +143,7 @@ services:
       - 18080:18080
       - 18090:18090
       - 18443:18443
+      - 17681:17681
     extra_hosts:
       - "hostnet:host-gateway"
     depends_on:

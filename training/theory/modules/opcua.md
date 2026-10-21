@@ -55,7 +55,7 @@ The OPC-UA server runs in the `opcua` container at `172.18.0.5` and listens on T
 
 1. **Find and fingerprint the server.** Confirm port 4840 is open on the OPC-UA container and ask the server for its endpoints. The answer lists its security policies and the login types it accepts.
 2. **Try the cheap doors first.** Check whether an anonymous session is accepted. On CybICS it is not, so move on.
-3. **Guess a password.** The challenge folder ships a list of common username and password pairs. The Metasploit OPC-UA modules from COMSYS (`opcua_hello`, `opcua_login`) try each pair against the username login for you.
+3. **Guess a password.** The challenge folder ships a list of common username and password pairs. The Metasploit OPC-UA modules from COMSYS (`opcua_hello`, `opcua_login`) try each pair against the username login for you; in the attack shell, without Metasploit, the folder's `opcua_login.py` does the same.
 4. **Log in and browse.** Connect with a graphical client such as `opcua-client` using the account you found. Walk the address space and read what a user may read. Try to write a value and notice what happens.
 5. **Look for a better identity.** Investigate the server's security configuration, then think about where certificates and keys live on a real site: engineering laptops, project folders, backups, code repositories. A certificate *with its private key* is all a client needs to log in as its owner.
 6. **Log in as that identity** with the client's certificate options and see which nodes become writable.

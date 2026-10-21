@@ -37,6 +37,11 @@ The flag has the format `CybICS(flag)`.
    ```bash
    docker exec -it <openplc_container_name> bash
    ```
+   Run `docker exec` from the landing page's admin shell (WebShell view,
+   *Admin shell*); the attack shell has no access to Docker. The admin shell
+   has no interactive terminal, so skip `-it ... bash` there and prefix each
+   command instead, for example
+   `docker exec <openplc_container_name> iptables -L INPUT -n`.
 
 2. Allow Modbus access from the hardware I/O service (172.18.0.2) and FUXA HMI (172.18.0.4):
    ```bash

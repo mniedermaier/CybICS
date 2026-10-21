@@ -1,0 +1,8 @@
+# Login shell of the attack shell.
+[ -f /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion
+
+PS1='\[\e[1;31m\]\u@attack-machine\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '
+export HISTSIZE=5000
+
+# Show the target list once per tmux window.
+cat /etc/motd
