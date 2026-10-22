@@ -75,12 +75,16 @@ def test_join_needs_a_team():
 
 def test_uplink_only_exists_on_a_board():
     platform = requests.get(BASE + "/api/settings/mgmt", timeout=READ_TIMEOUT).json()["platform"]
-    response = post("/api/settings/mgmt/uplink", {"enabled": False})
+    # A request the board rejects, so it changes nothing: {"enabled": False}
+    # switched the uplink off for good, and a board the suite had run against
+    # no longer joined cybics-mgmt on its own.
+    response = post("/api/settings/mgmt/uplink", {"enabled": True, "ssid": "", "psk": ""})
     if platform == "virtual":
         assert response.status_code == 404
         assert response.json()["code"] == "not_physical"
     else:
-        assert response.status_code == 200
+        assert response.status_code == 400
+        assert response.json()["code"] == "invalid_input"
 
 
 def test_the_uplink_interface_cannot_be_captured():
