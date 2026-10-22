@@ -246,6 +246,7 @@ def _empty_ctf():
         "announcements": [],
         "last_announcement_id": 0,
         "left_local": None,      # local solves when the user left; see _adopt()
+        "leaving": None,         # instance the user left that the server may not know yet about
     }
 
 
@@ -303,6 +304,10 @@ class MgmtClient:
         self._work = threading.Event()
         self._stop = threading.Event()
         self._threads = []
+        # Bumped whenever the user joins, leaves or enrols (and when the device
+        # is adopted into a team): a heartbeat answer computed before that
+        # says nothing about the CTF state now.
+        self._ctf_gen = 0
         self.state = self._load()
         self._finish_interrupted()
 
@@ -403,6 +408,8 @@ class MgmtClient:
             ctf["removed"] = ctf["joined"] or ctf["removed"]
             ctf["joined"] = False
             ctf["instance_id"] = None
+            ctf["leaving"] = None   # the old device leaves altogether (below)
+            self._ctf_gen += 1
             self.state = _empty_state()
             self.state.update({
                 "enabled": True, "server_url": server_url, "device_id": resp["device_id"],
@@ -411,6 +418,13 @@ class MgmtClient:
                 "heartbeat_interval": _interval(resp.get("heartbeat_interval")), "ctf": ctf,
             })
             self._save_or_raise()
+        if prev.get("token") and prev.get("server_url"):
+            # Connected again while connected: retire the old device, so its
+            # event membership does not linger on the server. Best effort.
+            try:
+                _http(self._ssl, prev["server_url"], "DELETE", "/device", token=prev["token"])
+            except MgmtClientError:
+                pass
         self._wake.set()
         return resp
 
@@ -487,22 +501,38 @@ class MgmtClient:
         The sync bookkeeping is kept in case the user joins the same team again.
         """
         with self._lock:
-            was_in = self.state["ctf"]["joined"]
             self.state["ctf"] = self._ctf_left(self.state["ctf"])
             token = self.state["token"]
             self._save_or_raise()
-        if was_in and token:
-            try:
-                self._request("DELETE", "/ctf/join", token=token)
-            except MgmtClientError:
-                pass
+        if token:
+            # If this does not get through, the sync loop retries it, and
+            # heartbeats naming that instance are ignored meanwhile.
+            self._send_leave(token)
+
+    def _send_leave(self, token):
+        """Tell the server about the instance the user left. Best effort."""
+        with self._lock:
+            instance_id = self.state["ctf"].get("leaving")
+        if not instance_id:
+            return
+        try:
+            self._request("DELETE", "/ctf/join", token=token, body={"instance_id": instance_id})
+        except MgmtClientError as exc:
+            if exc.status is None or exc.status >= 500 or exc.status == 429 or not exc.from_server:
+                return   # try again later
+        with self._lock:
+            if self.state["token"] == token and self.state["ctf"].get("leaving") == instance_id:
+                self.state["ctf"]["leaving"] = None
+                self._try_save()
 
     def _ctf_left(self, ctf):
         """The CTF state after the user left on purpose (call with the lock held)."""
         left = _empty_ctf()
         left.update({k: ctf[k] for k in CARRY_OVER if k in ctf})
         left.update({"event": ctf.get("event"), "team": ctf.get("team"),
-                     "left_local": sorted(set(self._safe_local_solves()))})
+                     "left_local": sorted(set(self._safe_local_solves())),
+                     "leaving": ctf.get("instance_id") if ctf.get("joined") else ctf.get("leaving")})
+        self._ctf_gen += 1
         return left
 
     def _adopt(self, instance_id, event, team, baseline):
@@ -532,6 +562,7 @@ class MgmtClient:
         ctf.update({"joined": True, "instance_id": instance_id, "event": event,
                     "team": {k: team.get(k) for k in ("id", "name")}})
         self.state["ctf"] = ctf
+        self._ctf_gen += 1
 
     def report_solve(self, challenge_id, flag):
         """
@@ -561,7 +592,7 @@ class MgmtClient:
         with self._lock:
             view = {k: v for k, v in self.state.items() if k not in ("token", "signing_key", "results", "ctf")}
             ctf = self.state["ctf"]
-            view["ctf"] = {k: v for k, v in ctf.items() if k not in ("baseline", "left_local", "outbox")}
+            view["ctf"] = {k: v for k, v in ctf.items() if k not in ("baseline", "left_local", "outbox", "leaving")}
             view["ctf"]["pending"] = len(ctf["outbox"])
             view["ctf"]["outbox"] = [item["challenge_id"] for item in ctf["outbox"]]
             view["queue"] = [j["action"] for j in self.state["queue"]]
@@ -735,6 +766,7 @@ class MgmtClient:
             management = {"allowed": list(self.state["allowed"]), "key_fingerprint": self.fingerprint(),
                           "client": CLIENT_VERSION}
             after = self.state["ctf"]["last_announcement_id"]
+            gen = self._ctf_gen
         try:
             status = dict(self.status() or {})
         except Exception:
@@ -755,7 +787,8 @@ class MgmtClient:
                 for job in sorted((j for j in jobs if isinstance(j, dict) and isinstance(j.get("seq"), int)),
                                   key=lambda j: j["seq"]):
                     self._accept(job)
-            self._apply_ctf(resp.get("ctf"))
+            if self._ctf_gen == gen:   # else the user joined or left while this was on its way
+                self._apply_ctf(resp.get("ctf"))
             queued = bool(self.state["queue"])
             self._try_save()
         if queued:
@@ -765,6 +798,7 @@ class MgmtClient:
         """The CTF part of a heartbeat answer (call with the lock held)."""
         ctf = self.state["ctf"]
         if not isinstance(block, dict):
+            ctf["leaving"] = None   # the server agrees: the device is in no event
             if ctf["joined"]:
                 # Taken out of the event (the organiser, or the team or event
                 # was deleted): stop sending, keep queuing until it is back.
@@ -774,6 +808,8 @@ class MgmtClient:
         event, team = block.get("event"), block.get("team")
         if not (isinstance(block.get("instance_id"), str) and isinstance(event, dict) and isinstance(team, dict)):
             return
+        if block["instance_id"] == ctf.get("leaving"):
+            return   # the user left it; the sync loop tells the server again
         if not ctf["joined"] or block["instance_id"] != ctf["instance_id"]:
             # The organiser put the device into a team (or moved it).
             try:
@@ -828,7 +864,18 @@ class MgmtClient:
                 return False
             token = self.state["token"]
         try:
-            self._heartbeat()
+            try:
+                self._heartbeat()
+            except MgmtClientError as exc:
+                if exc.status is not None and exc.status >= 500:
+                    # Solves do not depend on the heartbeat (a server that
+                    # cannot sign jobs still takes them): send them anyway.
+                    try:
+                        self._flush_outbox()
+                    except MgmtClientError:
+                        pass
+                raise
+            self._send_leave(token)
             self._flush_outbox()
         except MgmtClientError as exc:
             with self._lock:
