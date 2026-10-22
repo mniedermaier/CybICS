@@ -297,6 +297,11 @@ class AutoEnrol:
     purpose, or after the organiser retired the device, nothing is sent. A
     refused enrolment is not retried until the uplink reconnects or landing
     restarts, so a disabled code does not cause a stream of attempts.
+
+    A retired board makes one exception: when the server on the default
+    network names a signing key other than the one the board pinned, it is
+    another server (a CybICS-mgmt Pi flashed anew answers 401 for every old
+    token), not the one that retired the board, and the board enrols again.
     """
 
     def __init__(self, client, platform=None, uplink=None, device_uid=None, optout_path=None,
@@ -308,6 +313,8 @@ class AutoEnrol:
         self.optout_path = optout_path or MGMT_OPTOUT_FILE
         self.ssid, self.url, self.code = ssid, url, code
         self._refused_on = None     # the uplink connection (its address) a refusal happened on
+        self._probed_on = None      # the connection whose server was compared with the pinned key
+        self._replaced = False      # ... and whether it was another server
         self._stop = threading.Event()
 
     def connection(self):
@@ -333,13 +340,14 @@ class AutoEnrol:
         connection = self.connection()
         if connection is None:
             self._refused_on = None     # off the network: a reconnect may try again
+            self._probed_on = None
             return 'not_on_default_network'
         if opted_out(self.optout_path):
             return 'opted_out'
         snap = self.client.snapshot()
         if snap.get('enabled'):
             return 'enrolled'
-        if snap.get('revoked'):
+        if snap.get('revoked') and not self.server_replaced(connection, snap.get('key_fingerprint')):
             return 'revoked'
         if self._refused_on == connection:
             return 'refused_before'
@@ -355,6 +363,25 @@ class AutoEnrol:
             return 'refused'
         logger.info('cybics-mgmt: enrolled with %s on the default network %s', self.url, self.ssid)
         return 'enrolled_now'
+
+    def server_replaced(self, connection, pinned):
+        """True when the server on the default network does not hold the key
+        this board pinned. Asked once per connection; a server that does not
+        answer yet (still starting) is asked again on the next round. A server
+        that does not name its key (CybICS-mgmt 0.2.0) never counts as another.
+        """
+        if self._probed_on != connection:
+            try:
+                info = self.client.test_connection(self.url)
+            except MgmtClientError:
+                return False
+            self._probed_on = connection
+            self._replaced = ('signing_key_fingerprint' in info
+                              and info['signing_key_fingerprint'] != pinned)
+            if self._replaced:
+                logger.info('cybics-mgmt: the server on %s holds another signing key than the one '
+                            'that retired this board; enrolling again', self.ssid)
+        return self._replaced
 
     def run(self, interval=15):
         """Thread body: one check every `interval` seconds, until stop()."""
