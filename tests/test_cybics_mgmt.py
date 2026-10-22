@@ -335,10 +335,11 @@ def test_reset_progress_clears_the_progress_file(tmp_path, monkeypatch):
 class FakeClient:
     """What AutoEnrol and the settings routes use of MgmtClient."""
 
-    def __init__(self, enabled=False, revoked=False, fail=None):
+    def __init__(self, enabled=False, revoked=False, fail=None, info=None):
         self.state = {"enabled": enabled, "revoked": revoked, "server_url": None,
                       "device": None, "allowed": []}
         self.fail = fail
+        self.info = info or {}      # extra fields of the server's /info
         self.calls = []
 
     def _maybe_fail(self):
@@ -352,12 +353,12 @@ class FakeClient:
     def test_connection(self, url):
         self.calls.append(("test", url))
         self._maybe_fail()
-        return {"service": "cybics-mgmt", "name": "Workshop", "version": "0.1.0"}
+        return dict({"service": "cybics-mgmt", "name": "Workshop", "version": "0.1.0"}, **self.info)
 
     def enroll(self, url, code, label=None):
         self.calls.append(("enroll", url, code, label))
         self._maybe_fail()
-        self.state.update({"enabled": True, "server_url": url, "device": {"label": label}})
+        self.state.update({"enabled": True, "revoked": False, "server_url": url, "device": {"label": label}})
         return {"device": {"label": label}}
 
     def join_event(self, join_code, team_name, team_password):
@@ -447,10 +448,46 @@ def test_the_opt_out_is_respected(tmp_path):
     assert auto(client, tmp_path).check() == "enrolled_now"
 
 
-def test_a_retired_board_does_not_come_back_by_itself(tmp_path):
-    client = FakeClient(revoked=True)
-    assert auto(client, tmp_path).check() == "revoked"
-    assert client.calls == []
+@pytest.mark.parametrize("info", [
+    {},                                         # CybICS-mgmt 0.2.0 does not name its key
+    {"signing_key_fingerprint": "ab" * 32},     # the server that retired the board
+])
+def test_a_retired_board_does_not_come_back_by_itself(tmp_path, info):
+    client = FakeClient(revoked=True, info=info)
+    enrol = auto(client, tmp_path)
+    for _ in range(3):
+        assert enrol.check() == "revoked"
+    assert client.calls == [("test", "http://10.42.0.1")]     # asked once per connection
+
+
+@pytest.mark.parametrize("fingerprint", ["cd" * 32, None])
+def test_a_retired_board_enrols_with_a_server_set_up_anew(tmp_path, fingerprint):
+    # A reflashed CybICS-mgmt Pi: same address, empty database, another key (or none yet).
+    client = FakeClient(revoked=True, info={"signing_key_fingerprint": fingerprint})
+    assert auto(client, tmp_path).check() == "enrolled_now"
+    assert client.calls == [("test", "http://10.42.0.1"),
+                            ("enroll", "http://10.42.0.1", "CYBICS-BOARDS", "cybics-0042001a3133")]
+
+
+def test_a_server_still_starting_is_asked_again(tmp_path):
+    client = FakeClient(revoked=True, fail=("unreachable", "Connection refused."))
+    enrol = auto(client, tmp_path)
+    assert enrol.check() == "revoked"
+    client.fail, client.info = None, {"signing_key_fingerprint": "cd" * 32}
+    assert enrol.check() == "enrolled_now"
+
+
+def test_a_reconnect_asks_the_server_again(tmp_path):
+    client = FakeClient(revoked=True, info={"signing_key_fingerprint": "ab" * 32})
+    uplink = Uplink()
+    enrol = auto(client, tmp_path, uplink=uplink)
+    assert enrol.check() == "revoked"
+    uplink.status["state"] = "disconnected"
+    assert enrol.check() == "not_on_default_network"
+    uplink.status["state"] = "connected"
+    client.info = {"signing_key_fingerprint": "cd" * 32}
+    assert enrol.check() == "enrolled_now"
+    assert [c[0] for c in client.calls] == ["test", "test", "enroll"]
 
 
 def test_without_a_board_id_it_waits(tmp_path):
