@@ -289,6 +289,15 @@ def set_opted_out(value, path=None):
         logger.warning('cybics-mgmt: cannot update %s: %s', path, exc)
 
 
+def refusal(exc):
+    """True when a MgmtClientError is the server deciding against the request:
+    its own JSON error with a 4xx status other than 429. Transport errors,
+    5xx, 429 and a proxy's error page say nothing about a later attempt."""
+    status = exc.status
+    return (exc.from_server and isinstance(status, int) and 400 <= status < 500
+            and status != 429)
+
+
 class AutoEnrol:
     """Enrol a board on its own while its uplink is on the default network.
 
@@ -296,7 +305,10 @@ class AutoEnrol:
     any other network, on a virtual instance, after the user disconnected on
     purpose, or after the organiser retired the device, nothing is sent. A
     refused enrolment is not retried until the uplink reconnects or landing
-    restarts, so a disabled code does not cause a stream of attempts.
+    restarts, so a disabled code does not cause a stream of attempts. Only the
+    server's own answer refuses: a server that does not answer yet (the Pi's
+    access point is up before its server), is busy (5xx, 429) or hides behind
+    a proxy's error page is asked again at the next check.
 
     A retired board makes one exception: when the server on the default
     network names a signing key other than the one the board pinned, it is
@@ -313,6 +325,7 @@ class AutoEnrol:
         self.optout_path = optout_path or MGMT_OPTOUT_FILE
         self.ssid, self.url, self.code = ssid, url, code
         self._refused_on = None     # the uplink connection (its address) a refusal happened on
+        self._failed_on = None      # ... and one an attempt failed on, logged once per connection
         self._probed_on = None      # the connection whose server was compared with the pinned key
         self._replaced = False      # ... and whether it was another server
         self._stop = threading.Event()
@@ -340,6 +353,7 @@ class AutoEnrol:
         connection = self.connection()
         if connection is None:
             self._refused_on = None     # off the network: a reconnect may try again
+            self._failed_on = None
             self._probed_on = None
             return 'not_on_default_network'
         if opted_out(self.optout_path):
@@ -357,6 +371,12 @@ class AutoEnrol:
         try:
             self.client.enroll(self.url, self.code, label=f'cybics-{uid}')
         except MgmtClientError as exc:
+            if not refusal(exc):
+                if self._failed_on != connection:
+                    self._failed_on = connection
+                    logger.warning('cybics-mgmt: enrolling on %s failed (%s): %s; trying again',
+                                   self.ssid, exc.code, exc.message)
+                return 'failed'
             self._refused_on = connection
             logger.warning('cybics-mgmt: enrolling on %s was refused (%s): %s; not retrying until '
                            'the uplink reconnects', self.ssid, exc.code, exc.message)
