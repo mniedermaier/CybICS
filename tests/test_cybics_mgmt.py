@@ -13,6 +13,7 @@ None of this needs a running stack.
 """
 import hashlib
 import json
+import logging
 import os
 import random
 import re
@@ -343,8 +344,10 @@ class FakeClient:
         self.calls = []
 
     def _maybe_fail(self):
+        # fail = (code, message[, status, from_server]): the server's own 403 by default.
         if self.fail:
-            raise MgmtClientError(self.fail[0], self.fail[1], 403, True)
+            code, message, status, from_server = (tuple(self.fail) + (403, True))[:4]
+            raise MgmtClientError(code, message, status, from_server)
 
     def snapshot(self):
         return dict(self.state, history=[], available=sorted(cybics_mgmt.ACTIONS),
@@ -377,6 +380,10 @@ class FakeClient:
     def leave(self):
         self.calls.append(("leave",))
         self.state.update({"enabled": False})
+
+
+# What MgmtClient raises when nothing answers: no status, not from the server.
+UNREACHABLE = ("unreachable", "Cannot reach the server: Connection refused.", None, False)
 
 
 class Uplink:
@@ -470,7 +477,7 @@ def test_a_retired_board_enrols_with_a_server_set_up_anew(tmp_path, fingerprint)
 
 
 def test_a_server_still_starting_is_asked_again(tmp_path):
-    client = FakeClient(revoked=True, fail=("unreachable", "Connection refused."))
+    client = FakeClient(revoked=True, fail=UNREACHABLE)
     enrol = auto(client, tmp_path)
     assert enrol.check() == "revoked"
     client.fail, client.info = None, {"signing_key_fingerprint": "cd" * 32}
@@ -496,7 +503,7 @@ def test_without_a_board_id_it_waits(tmp_path):
     assert client.calls == []
 
 
-@pytest.mark.parametrize("code", ["code_disabled", "invalid_code", "unreachable"])
+@pytest.mark.parametrize("code", ["code_disabled", "invalid_code"])
 def test_no_retry_after_a_refusal_until_the_uplink_reconnects(tmp_path, code):
     client = FakeClient(fail=(code, "The enrolment code is disabled."))
     uplink = Uplink()
@@ -518,6 +525,35 @@ def test_no_retry_after_a_refusal_until_the_uplink_reconnects(tmp_path, code):
     client.fail = None
     assert enrol.check() == "enrolled_now"
     assert len(client.calls) == 3
+
+
+@pytest.mark.parametrize("fail", [
+    UNREACHABLE,                                                # the Pi's server is still starting
+    ("http_502", "Server answered HTTP 502.", 502, False),       # nginx up, gunicorn not yet
+    ("internal", "Internal error.", 500, True),
+    ("rate_limited", "Too many requests.", 429, True),
+    ("http_403", "Server answered HTTP 403.", 403, False),      # a proxy's page, not the server
+    ("bad_response", "The server did not answer with a JSON object.", None, False),
+])
+def test_a_failed_attempt_is_tried_again_on_the_same_connection(tmp_path, caplog, fail):
+    client = FakeClient(fail=fail)
+    enrol = auto(client, tmp_path)
+    with caplog.at_level(logging.WARNING, logger="cybics_mgmt"):
+        for _ in range(3):
+            assert enrol.check() == "failed"
+    assert len(client.calls) == 3
+    assert len(caplog.records) == 1         # logged once per connection, not every round
+    client.fail = None
+    assert enrol.check() == "enrolled_now"
+
+
+def test_refusal_needs_the_servers_own_4xx():
+    assert mgmt.refusal(MgmtClientError("code_disabled", "Disabled.", 403, True))
+    assert mgmt.refusal(MgmtClientError("invalid_code", "Unknown code.", 404, True))
+    assert not mgmt.refusal(MgmtClientError("rate_limited", "Slow down.", 429, True))
+    assert not mgmt.refusal(MgmtClientError("internal", "Oops.", 500, True))
+    assert not mgmt.refusal(MgmtClientError("http_404", "Server answered HTTP 404.", 404, False))
+    assert not mgmt.refusal(MgmtClientError(*UNREACHABLE))
 
 
 def test_a_restart_of_landing_tries_again(tmp_path):
