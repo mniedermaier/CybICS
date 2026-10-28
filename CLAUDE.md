@@ -202,6 +202,16 @@ fork PRs fall back to anonymous pulls. Keep it that way.
   `software/ids/ids_server.py`, `software/landing/app.py` and the firmware. A new
   challenge needs its `ctf_config.json` entry and a place where the flag is
   actually obtainable. Watch for `0` versus `O`.
+- A challenge that ends in a fact the student found (a register, a port, a
+  function code) rather than a state the stack can check is answer-graded:
+  give its `verify` entry an `answers` list in `ctf_config.json` (`name`,
+  `label`, `placeholder`, `max_length`) and grade in its verify module with
+  `grade()` from `software/landing/modules/defense_checks/_answers.py`, using
+  `number()`/`one_of()` rather than bare ints. Expected values live only in
+  that module, never in the config, the README or a Theory lesson. Keep the
+  default `feedback=False`; per-field feedback lets a student solve a field
+  with few possible values one at a time. A graded module must not touch the
+  stack; `tests/test_ctf_answers.py` grades every one with a wrong answer.
 - `tests/test_training.py` exercises the attack scenarios; add a test when a
   module has a verifiable effect.
 - Every challenge also has a briefing in the Theory Path

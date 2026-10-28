@@ -22,7 +22,8 @@ from utils.logger import logger
 # Import modules
 from modules.stats_collector import StatsCollector
 from modules.network_capture import NetworkCapture
-from modules.ctf_manager import CTFManager
+from modules.ctf_manager import AnswerError, CTFManager, answer_fields
+from modules.ctf_routes import register_verify_route
 from modules.theory_manager import TheoryManager, PlantReader
 from modules.network_routes import register_network_routes
 from modules.cybics_mgmt import MgmtClient
@@ -233,6 +234,8 @@ def network_page():
 # Register network-specific routes
 register_network_routes(app, network_capture)
 register_mgmt_routes(app, mgmt, mgmt_banners)
+# POST /ctf/verify/<id>; report_solve never raises or blocks, it queues for CybICS-mgmt.
+register_verify_route(app, ctf_manager, mgmt.report_solve)
 
 # ========== WEBSHELL ROUTES ==========
 
@@ -555,39 +558,17 @@ def challenge_detail(challenge_id):
                          category=category,
                          training_content=training_content,
                          solved=challenge_id in session['solved_challenges'],
-                         challenge_type=challenge.get('type', 'offensive'))
+                         challenge_type=challenge.get('type', 'offensive'),
+                         answer_fields=_answer_fields_or_empty(challenge))
 
-@app.route('/ctf/verify/<challenge_id>', methods=['POST'])
-def verify_defense(challenge_id):
-    """Verify a defense challenge and auto-submit flag on success"""
-    initialize_session()
 
-    current_progress = get_current_progress()
-
-    # Check if already solved
-    if challenge_id in current_progress.get('solved_challenges', []):
-        return jsonify({'success': True, 'message': 'Challenge already solved!', 'checks': []})
-
-    # Run verification
-    result = ctf_manager.verify_defense(challenge_id)
-
-    # If verification passed, auto-submit the flag
-    if result.get('success') and result.get('flag'):
-        submit_result = ctf_manager.submit_flag(challenge_id, result['flag'], current_progress)
-        if submit_result['success']:
-            session['solved_challenges'].append(challenge_id)
-            session['total_points'] += submit_result['points']
-            session.modified = True
-            ctf_manager.save_progress({
-                'solved_challenges': session['solved_challenges'],
-                'total_points': session['total_points']
-            })
-            result['points'] = submit_result['points']
-            # Never raises or blocks; queued for CybICS-mgmt while in an event.
-            mgmt.report_solve(challenge_id, result['flag'])
-            result['message'] = f"{result['message']} You earned {submit_result['points']} points!"
-
-    return jsonify(result)
+def _answer_fields_or_empty(challenge):
+    """The page's answer inputs; a misconfigured entry shows none (verify then refuses)."""
+    try:
+        return answer_fields(challenge)
+    except AnswerError:
+        logger.error(f"Challenge {challenge.get('id')}: answer fields are misconfigured")
+        return []
 
 @app.route('/ctf/submit', methods=['POST'])
 def submit_flag():

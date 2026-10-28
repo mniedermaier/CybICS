@@ -49,6 +49,18 @@ def verify_defense_challenge(challenge_id):
             f'{_landing_url()}/ctf/verify/{challenge_id}',
             timeout=30
         )
+        if 400 <= resp.status_code < 500:
+            # Landing explains a refusal in "message": an unknown id (404), a
+            # challenge that needs typed answers on its page (400), too many
+            # attempts (429). Pass that on instead of a generic failure.
+            try:
+                message = str(resp.json().get('message') or '')
+            except ValueError:
+                message = ''
+            if resp.status_code == 400 and 'answer' in message.lower():
+                message = ('This challenge is graded from a typed answer. Enter it in the '
+                           'answer fields on the challenge page; the assistant cannot verify it.')
+            return {'error': message or f'Verification refused (HTTP {resp.status_code})'}
         resp.raise_for_status()
         result = resp.json()
 
