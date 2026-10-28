@@ -135,6 +135,26 @@
           "flag": "CybICS(s7_s1d3_d00r)",
           "hint": "OpenPLC's Snap7 server maps the %MW memory words to data block DB1002, two bytes per word. Write 1 to the stop flag over S7comm, click Verify while the plant is stopped, then write 0 back.",
           "training_content": "training/s7_sidedoor/README.md"
+        },
+        {
+          "id": "fuxa_jwt",
+          "title": "Forged HMI Token",
+          "description": "FUXA trusts any session token signed with its key, and the default key is in its public source code. Forge an administrator token for a user that does not exist and paste it here.",
+          "points": 250,
+          "type": "verify",
+          "verify_module": "check_fuxa_jwt",
+          "tag": "exploit",
+          "flag": "CybICS(f0rg3d_s3ss10n)",
+          "hint": "FUXA is open source. When nobody sets a signing key in its settings, which key does it fall back to, and where in its code is that written down?",
+          "answers": [
+            {
+              "name": "token",
+              "label": "Forged FUXA token (JWT)",
+              "placeholder": "eyJhbGciOiJIUzI1NiIs...",
+              "max_length": 200
+            }
+          ],
+          "training_content": "training/fuxa_jwt/README.md"
         }
       ]
     },
@@ -249,6 +269,18 @@
           "flag": "CybICS(FUXA_s3cur3d)",
           "hint": "Access FUXA at port 1881 and change the admin password from its default value",
           "training_content": "training/defense_password/README.md"
+        },
+        {
+          "id": "defense_fuxa_jwt",
+          "title": "Rotate the FUXA Token Key",
+          "description": "Give FUXA a signing key of its own so tokens forged with the published default key are refused",
+          "points": 200,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_fuxa_jwt_secret",
+          "flag": "CybICS(k3y_r0t4t3d)",
+          "hint": "The key lives in /_appdata/settings.js inside the FUXA container (admin shell, docker exec). Put it on its own line straight after 'module.exports = {' rather than uncommenting the example further down, check the file still loads with node, then restart FUXA.",
+          "training_content": "training/defense_fuxa_jwt/README.md"
         },
         {
           "id": "defense_firewall",

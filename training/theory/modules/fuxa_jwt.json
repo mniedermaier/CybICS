@@ -1,0 +1,91 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain how a JSON Web Token proves a session and what its signature protects",
+    "Read the claims of a token and identify which ones decide a user's role",
+    "Explain why a published default signing key lets anyone become administrator"
+  ],
+  "takeaways": [
+    "A JWT payload is only encoded, not encrypted: anyone can read the claims.",
+    "With HS256 the same key signs and checks tokens, so whoever knows the key can create sessions.",
+    "A default signing key is a default credential: it is the same in every installation that never changed it.",
+    "A forged token never passes a login, so a strong password does not stop it.",
+    "Signing keys must be long and random, because a captured token lets an attacker guess the key offline."
+  ],
+  "checkpoints": [
+    {
+      "id": "readable",
+      "question": "You captured a FUXA token. What can you do with it without knowing the key?",
+      "options": [
+        "Read the user name and role in it",
+        "Change the role to administrator",
+        "Find the key by decoding the signature",
+        "Nothing, the token is encrypted"
+      ],
+      "answer": 0,
+      "explanation": "The header and payload are base64url, an encoding anyone can reverse. Changing the payload breaks the signature, which only the key can repair. The signature is a hash, so decoding it reveals nothing about the key."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "The FUXA admin changes their password to a long passphrase. Does that stop a token forged with the default key?",
+      "options": [
+        "Yes, FUXA checks the password on every request",
+        "No, the forged token never goes through a login",
+        "Yes, the password is part of the signature",
+        "No, but it makes the token expire sooner"
+      ],
+      "answer": 1,
+      "explanation": "FUXA checks only the token's signature on later requests. The password is checked once, at login, and is not part of the signature. A forged token skips the login, so only a new signing key helps."
+    },
+    {
+      "type": "single",
+      "question": "Which part of a JWT stops an attacker from turning a viewer token into an administrator token?",
+      "options": [
+        "The header, because it names HS256",
+        "The payload, because it is encoded",
+        "The signature, because it needs the key",
+        "The expiry time, because it is short"
+      ],
+      "answer": 2,
+      "explanation": "Changing the role changes the payload, and the signature no longer matches. Only someone with the key can compute a new one. Encoding is not protection: anyone can decode and re-encode a payload."
+    },
+    {
+      "type": "single",
+      "question": "Why is FUXA's built-in signing key classified as a default credential?",
+      "options": [
+        "It is the same in every installation that did not change it",
+        "It can only be used from the default network",
+        "It belongs to the default admin account",
+        "It is stored in the default user database"
+      ],
+      "answer": 0,
+      "explanation": "Like a factory password, the key ships with the product, is published, and works everywhere the owner left it in place. It is not tied to an account or a network; it signs sessions for any account."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures help a defender against forged session tokens on the HMI?",
+      "options": [
+        "Setting a long random signing key",
+        "Logging which user each request is for",
+        "Raising the IDS write threshold",
+        "Allowing only operator stations to reach port 1881"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "A new key makes forged tokens invalid, logging the user exposes sessions for names that do not exist, and restricting access shrinks who can try. The IDS write threshold concerns Modbus writes; a forged token is an ordinary HTTP request."
+    },
+    {
+      "type": "single",
+      "question": "An attacker captured one token signed with a key of eight lower-case letters. What can they do?",
+      "options": [
+        "Nothing without access to the server's files",
+        "Guess the key offline and then forge tokens",
+        "Only replay that token until it expires",
+        "Ask the server to reveal the key"
+      ],
+      "answer": 1,
+      "explanation": "Each guess can be checked against the captured token without contacting the server, so nobody notices. Eight lower-case letters are about 200 billion combinations, minutes of work on a graphics card. Replay is possible too, but it is not the worst outcome."
+    }
+  ]
+}

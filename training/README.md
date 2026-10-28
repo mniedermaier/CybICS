@@ -39,11 +39,13 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts | T0859 |
 | [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
 | [S7 Side Door](s7_sidedoor/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T1692.001, T0831, T0826 |
+| [Forged HMI Token](fuxa_jwt/README.md) | Persistence, Lateral Movement, Collection | Insecure Credentials: Default Credentials, Data from Information Repositories | T1694.001, T0811 |
 | [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Unauthorized Message: Reporting Message | T0830, T1692.002 |
 | [UART Training](uart_basic/README.md) | Initial Access | Insecure Credentials: Hardcoded Credentials | T1694.002 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
 | [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
 | [Credential Hardening](defense_password/README.md) | *Defensive* | D3FEND: Strong Password Policy, Credential Rotation | D3-SPP |
+| [Rotate the FUXA Token Key](defense_fuxa_jwt/README.md) | *Defensive* | D3FEND: Credential Rotation, Application Configuration Hardening | D3-CRO, D3-ACH |
 | [Modbus Firewall](defense_firewall/README.md) | *Defensive* | D3FEND: Inbound Traffic Filtering, Network Traffic Filtering | D3-ITF, D3-NTF |
 | [Network Segmentation](defense_network/README.md) | *Defensive* | D3FEND: Network Isolation | D3-NI |
 | [IDS Monitoring](defense_ids/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA, D3-PMAD |
@@ -100,23 +102,25 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 8. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
 9. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
 10. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
+11. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
 
 ### 🔐 Advanced Security
-11. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
-12. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
-13. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
-14. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+12. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
+13. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
+14. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
+15. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
 
 ### 🔍 IDS Challenges
-15. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
-16. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
-17. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+16. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+17. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+18. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
 
 ### 🛡️ Defense & Hardening
-18. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-19. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-20. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-21. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+19. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+20. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
+21. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+22. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+23. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

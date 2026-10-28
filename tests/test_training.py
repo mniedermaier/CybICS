@@ -315,8 +315,51 @@ STOP_REGISTER = 1128
 MANUAL_REGISTER = 1130
 
 
+class _CtfProgress:
+    """Save and restore the board's CTF progress around a verify test.
+
+    A successful POST /ctf/verify/<id> records the solve, and on a challenge
+    that is already solved it answers "already solved" without running the
+    check. A test takes its challenges out of the progress first and puts the
+    progress back exactly as it was afterwards: /ctf/reset, then the recorded
+    flags submitted again in their original order. A board connected to a
+    CybICS-mgmt event would report those re-submissions; do not run the suite
+    against one.
+    """
+
+    BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
+
+    def _progress(self):
+        r = requests.get(f"{self.BASE}/ctf/progress", timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.text[:200]
+        return list(r.json()["solved_challenge_ids"]), r.json()["total_points"]
+
+    def _set_progress(self, solved):
+        """Make the board's solved list exactly `solved`, in that order."""
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        flags = {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                 for c in cat["challenges"]}
+        assert requests.post(f"{self.BASE}/ctf/reset", timeout=READ_TIMEOUT).json()["success"]
+        for challenge_id in solved:
+            r = requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
+                              json={"challenge_id": challenge_id, "flag": flags[challenge_id]})
+            assert r.json().get("success"), f"could not restore {challenge_id}: {r.text[:200]}"
+
+    def _without(self, *challenge_ids):
+        """Take challenge_ids out of the progress; return the progress before."""
+        before = self._progress()
+        if any(c in before[0] for c in challenge_ids):
+            self._set_progress([c for c in before[0] if c not in challenge_ids])
+        return before
+
+    def _restore(self, before):
+        if self._progress() != before:
+            self._set_progress(before[0])
+        assert self._progress() == before, "the board's CTF progress was not restored"
+
+
 @pytest.mark.usefixtures("stack_ready")
-class TestS7SideDoor:
+class TestS7SideDoor(_CtfProgress):
     """
     The S7 Side Door challenge end to end: stop the plant with an S7comm
     write to OpenPLC's port 102, see the IDS name the write, get the flag
@@ -379,22 +422,6 @@ class TestS7SideDoor:
         r = requests.post(f"{self.BASE}/ctf/verify/s7_sidedoor", json={}, timeout=30)
         assert r.status_code == 200, r.text[:300]
         return r.json()
-
-    def _progress(self):
-        r = requests.get(f"{self.BASE}/ctf/progress", timeout=READ_TIMEOUT)
-        assert r.status_code == 200, r.text[:200]
-        return list(r.json()["solved_challenge_ids"]), r.json()["total_points"]
-
-    def _set_progress(self, solved):
-        """Make the board's solved list exactly `solved`, in that order."""
-        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
-        flags = {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
-                 for c in cat["challenges"]}
-        assert requests.post(f"{self.BASE}/ctf/reset", timeout=READ_TIMEOUT).json()["success"]
-        for challenge_id in solved:
-            r = requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
-                              json={"challenge_id": challenge_id, "flag": flags[challenge_id]})
-            assert r.json().get("success"), f"could not restore {challenge_id}: {r.text[:200]}"
 
     def _ids_last_alert_id(self):
         alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
@@ -473,6 +500,219 @@ class TestS7SideDoor:
                 requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
 
         assert self._modbus_words() == (0, 0), "stop and manual are not back to 0"
+
+
+# ===============================================================================
+# Forged HMI Token / Rotate the FUXA Token Key
+# ===============================================================================
+
+def _fuxa_forge(payload, secret="frangoteam751"):
+    """An HS256 JWT, built independently of the landing module under test."""
+    import base64
+    import hashlib
+    import hmac
+
+    def b64(data):
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+    header = b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    body = b64(json.dumps(payload, separators=(",", ":")).encode())
+    signature = hmac.new(secret.encode(), f"{header}.{body}".encode(), hashlib.sha256).digest()
+    return f"{header}.{body}.{b64(signature)}"
+
+
+def _readme_command(module, marker):
+    """The first line of a fenced command in training/<module>/README.md containing marker."""
+    readme = Path(__file__).resolve().parent.parent / "training" / module / "README.md"
+    for line in readme.read_text(encoding="utf-8").splitlines():
+        if marker in line:
+            return line.strip()
+    raise AssertionError(f"{module}/README.md has no command with {marker!r}")
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestFuxaJwt(_CtfProgress):
+    """
+    Both FUXA token challenges end to end.
+
+    The attack forges an administrator token for a made-up user with FUXA's
+    default key and pastes it into the landing page's verify route, which must
+    hand out the flag, after refusing a token for a real account, one signed
+    with a wrong key, one shaped exactly like a token FUXA issues itself and
+    one FUXA's unauthenticated token refresh signed. Both tests also
+    pin that refresh flaw before and after the key rotation, as the READMEs
+    describe it, so a FUXA upgrade that changes it is noticed.
+
+    The defence runs the README's commands through the landing page's admin
+    shell (POST /api/webshell/execute, the route the WebShell page uses): back
+    up settings.js, add a random secretCode, check the file loads, restart
+    FUXA. Verify must then pass and the forged token must be refused. A finally
+    block puts the original settings.js back and restarts FUXA, whatever
+    failed, so the default key works again for the attack test, the Harden
+    FUXA Credentials check and every later test. The admin password is never
+    touched; the test asserts that its state is the same before and after.
+    """
+
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    BACKUP = "/_appdata/settings.js.cybics-test"
+
+    # --- helpers ---------------------------------------------------------
+
+    def _admin(self, command, timeout=90):
+        """Run command in the admin shell; return (exit code, output)."""
+        r = requests.post(f"{self.BASE}/api/webshell/execute", json={"command": command},
+                          timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and r.json().get("success"), r.text[:200]
+        job, output, offset = r.json()["job_id"], "", 0
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            state = requests.get(f"{self.BASE}/api/webshell/jobs/{job}", params={"offset": offset},
+                                 timeout=READ_TIMEOUT).json()
+            output += state["chunk"]
+            offset = state["offset"]
+            if not state["running"]:
+                return state["exit_code"], output
+            time.sleep(0.5)
+        pytest.fail(f"admin shell command did not finish: {command}")
+
+    def _container(self):
+        code, out = self._admin("docker ps --filter name=fuxa --format '{{.Names}}'")
+        names = [n for n in out.split() if "fuxa" in n]
+        assert code == 0 and names, f"no FUXA container: {out!r}"
+        return names[0]
+
+    def _fuxa_ready(self, timeout=120):
+        """Wait until FUXA serves its API with authentication on."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                settings = requests.get(f"{self.FUXA}/api/settings", timeout=READ_TIMEOUT)
+                users = requests.get(f"{self.FUXA}/api/users", timeout=READ_TIMEOUT)
+                if settings.status_code == 200 and users.status_code == 401:
+                    return
+            except requests.exceptions.RequestException:
+                pass
+            time.sleep(2)
+        pytest.fail("FUXA did not come back with authentication on")
+
+    def _restart_fuxa(self, container):
+        code, out = self._admin(f"docker restart {container}")
+        assert code == 0, out
+        time.sleep(3)
+        self._fuxa_ready()
+
+    def _users_status(self, token):
+        return requests.get(f"{self.FUXA}/api/users", headers={"x-access-token": token},
+                            timeout=READ_TIMEOUT).status_code
+
+    def _refresh_mint(self):
+        """FUXA 1.2.6's unauthenticated token refresh, as documented in the READMEs.
+
+        An invalid token skips the x-auth-user check in verifyToken, and the
+        heartbeat refresh signs {id, groups} straight from that header. If a
+        FUXA upgrade closes or changes this, the assertions using it fail:
+        then update training/fuxa_jwt/README.md, defense_fuxa_jwt/README.md,
+        both Theory lessons and the docstrings of _fuxa_jwt.fuxa_could_issue.
+        """
+        r = requests.post(f"{self.FUXA}/api/heartbeat", json={"params": True}, timeout=READ_TIMEOUT,
+                          headers={"x-access-token": "garbage",
+                                   "x-auth-user": json.dumps({"user": "cybics-test-refresh",
+                                                              "groups": -1})})
+        assert r.status_code == 200 and r.json().get("message") == "tokenRefresh", (
+            f"FUXA's documented token-refresh flaw no longer behaves as described: "
+            f"{r.status_code} {r.text[:200]}")
+        return r.json()["token"]
+
+    def _default_password_works(self):
+        r = requests.post(f"{self.FUXA}/api/signin", json={"username": "admin", "password": "123456"},
+                          timeout=READ_TIMEOUT)
+        return r.status_code == 200 and "error" not in r.text.lower() and r.text.strip() != ""
+
+    def _verify(self, challenge_id, answers=None):
+        body = {"answers": answers} if answers is not None else {}
+        r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json=body, timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    # --- the attack ------------------------------------------------------
+
+    def test_forged_token_is_verified(self):
+        before = self._without("fuxa_jwt")
+        try:
+            ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
+            assert self._users_status(ghost) == 200, "FUXA refuses a token signed with its default key"
+
+            now = int(time.time())
+            refused = {
+                "real account": _fuxa_forge({"id": "admin", "groups": -1}),
+                "wrong key": _fuxa_forge({"id": "cybics-test-ghost", "groups": -1}, "not the key"),
+                "FUXA-issued shape": _fuxa_forge({"id": "cybics-test-ghost", "groups": -1,
+                                                  "iat": now, "exp": now + 3600}),
+            }
+            # Documented in the READMEs: FUXA signs an admin token for anyone,
+            # without key or password. It works, and verify must refuse it.
+            minted = self._refresh_mint()
+            assert self._users_status(minted) == 200, "FUXA's refresh token is not an admin token"
+            refused["FUXA token refresh"] = minted
+            for case, token in refused.items():
+                result = self._verify("fuxa_jwt", {"token": token})
+                assert not result["success"] and "flag" not in result, (case, result)
+
+            result = self._verify("fuxa_jwt", {"token": ghost})
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+    # --- the defence -----------------------------------------------------
+
+    def test_rotated_key_passes_the_defence_and_stops_the_attack(self):
+        before = self._without("defense_fuxa_jwt", "fuxa_jwt")
+        password_state = self._default_password_works()
+        container = self._container()
+        code, out = self._admin(f"docker exec {container} cp /_appdata/settings.js {self.BACKUP}")
+        assert code == 0, out
+        try:
+            result = self._verify("defense_fuxa_jwt")
+            assert not result["success"] and "flag" not in result, result
+
+            # README step 3, verbatim but for the container name.
+            add_key = _readme_command("defense_fuxa_jwt", "KEY=$(").replace("<fuxa>", container)
+            code, out = self._admin(add_key)
+            assert code == 0, out
+            # README step 4: the file still loads, with a 48-character key.
+            code, out = self._admin(
+                f"docker exec {container} node -e \"const s=require('/_appdata/settings.js'); "
+                f"console.log('ok, key length', s.secretCode.length)\"")
+            assert code == 0 and "ok, key length 48" in out, out
+
+            self._restart_fuxa(container)
+
+            ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
+            assert self._users_status(ghost) == 401, "a token signed with the default key still works"
+            result = self._verify("fuxa_jwt", {"token": ghost})
+            assert not result["success"] and "flag" not in result, result
+
+            # What defense_fuxa_jwt/README.md says the key does not fix: the
+            # refresh flaw still mints an admin token, now with the new key,
+            # and the attack's verify still refuses it.
+            minted = self._refresh_mint()
+            assert self._users_status(minted) == 200, "the refresh flaw no longer works after rotation"
+            result = self._verify("fuxa_jwt", {"token": minted})
+            assert not result["success"] and "flag" not in result, result
+
+            result = self._verify("defense_fuxa_jwt")
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            code, out = self._admin(f"docker exec {container} mv {self.BACKUP} /_appdata/settings.js")
+            self._restart_fuxa(container)
+            assert code == 0, f"settings.js not restored: {out}"
+            self._restore(before)
+
+        ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
+        assert self._users_status(ghost) == 200, "FUXA is not back on its default key"
+        assert self._default_password_works() == password_state, "the FUXA admin password state changed"
 
 
 # ===============================================================================

@@ -392,6 +392,23 @@
           ]
         },
         {
+          "id": "fuxa_jwt",
+          "title": "Forged session tokens",
+          "summary": "Signing your own HMI administrator session with FUXA's published default key.",
+          "content": "training/theory/modules/fuxa_jwt.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "fuxa_jwt",
+              "label": "Forged HMI Token"
+            }
+          ],
+          "prerequisites": [
+            "hmi-scada",
+            "password_attack"
+          ]
+        },
+        {
           "id": "plc_programming",
           "title": "Programming the controller",
           "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",
@@ -599,6 +616,23 @@
           "prerequisites": [
             "hmi-scada",
             "password_attack"
+          ]
+        },
+        {
+          "id": "defense_fuxa_jwt",
+          "title": "Rotating a signing key",
+          "summary": "Giving the HMI a signing key of its own, without breaking its configuration.",
+          "content": "training/theory/modules/defense_fuxa_jwt.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_fuxa_jwt",
+              "label": "Rotate the FUXA Token Key"
+            }
+          ],
+          "prerequisites": [
+            "defense_password",
+            "fuxa_jwt"
           ]
         },
         {

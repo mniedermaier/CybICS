@@ -540,5 +540,13 @@
     "aliases": [
       "host network"
     ]
+  },
+  {
+    "term": "JWT",
+    "definition": "JSON Web Token: a session token made of a readable header and payload plus a signature. Whoever holds the signing key can create valid ones.",
+    "link": "/theory/fuxa_jwt",
+    "aliases": [
+      "JSON Web Token"
+    ]
   }
 ]
