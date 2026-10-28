@@ -1825,4 +1825,131 @@ def test_password_attack_readme_exists():
     assert 'OpenPLC' in content, "README missing OpenPLC attack information"
     assert 'FUXA' in content, "README missing FUXA attack information"
     assert 'CybICS(0penPLC)' in content, "README missing OpenPLC flag"
-    assert 'CybICS(FU##A)' in content, "README missing FUXA flag"
+    # FUXA Password Attack is answer-graded: its page shows this README, so
+    # the flag must not be in it (it comes from Verify).
+    assert 'CybICS(FU##A)' not in content, "README gives away the FUXA flag"
+
+
+# ===============================================================================
+# Flags off the HMI: Password Attack and Physical Process
+# ===============================================================================
+
+HPT_REGISTER = 1126
+BLOWOUT_REGISTER = 1134
+COMPRESSOR_COIL, SYSTEM_VALVE_COIL, GST_SUPPLY_COIL = 1, 2, 3
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestFlagsOffTheHmi(_CtfProgress):
+    """
+    FUXA sends its whole project to anyone without a login (GET /api/project),
+    so no flag may live in it. Password Attack and Physical Process used to
+    show theirs as HMI text; their flags now come from verify modules (see
+    tests/test_hmi_flags.py). This runs both against the live stack: the
+    anonymous project holds no flag, the recovered FUXA login is graded, and
+    a real blow-out, driven over Modbus the way the HMI's buttons do it, is
+    what returns the Physical Process flag.
+
+    The blow-out run takes several minutes: the plant moves about one bar a
+    second, from the normal band to 220 and back under 100. Afterwards the
+    plant is back in automatic mode in its normal band and the CTF progress
+    is as before.
+    """
+
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    RISE_TIMEOUT = 600
+    DRAIN_TIMEOUT = 600
+
+    def _flags(self):
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        return {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                for c in cat["challenges"]}
+
+    def _verify(self, challenge_id, answers=None):
+        body = {"answers": answers} if answers is not None else {}
+        r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json=body, timeout=30)
+        assert r.status_code == 200, r.text[:200]
+        return r.json()
+
+    def test_the_anonymous_hmi_project_holds_no_flag(self):
+        r = requests.get(f"{self.FUXA}/api/project", timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and "devices" in r.json()
+        leaked = sorted(cid for cid, flag in self._flags().items() if flag in r.text)
+        assert not leaked, f"FUXA hands out the flags of {leaked} without a login"
+        assert "CybICS(" not in r.text
+
+    def test_the_recovered_fuxa_login_returns_the_flag(self):
+        # The graded login is the one FUXA really accepts.
+        r = requests.post(f"{self.FUXA}/api/signin", json={"username": "admin", "password": "123456"},
+                          timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and r.json().get("data", {}).get("token"), r.text[:200]
+
+        before = self._without("password_attack")
+        try:
+            wrong = self._verify("password_attack", {"username": "operator", "password": "operator"})
+            assert wrong["success"] is False and "flag" not in wrong
+            right = self._verify("password_attack", {"username": "admin", "password": "123456"})
+            assert right["success"] is True, right
+            assert right["flag"] == self._flags()["password_attack"]
+        finally:
+            self._restore(before)
+
+    @staticmethod
+    def _plant(client):
+        result = modbus_call(client, client.read_holding_registers, HPT_REGISTER,
+                             count=BLOWOUT_REGISTER - HPT_REGISTER + 1)
+        assert not result.isError(), result
+        return result.registers[0], result.registers[-1]   # hpt, blow-out sensor
+
+    @staticmethod
+    def _set(client, manual=None, **coils):
+        if manual is not None:
+            assert not modbus_call(client, client.write_register, MANUAL_REGISTER, manual).isError()
+        for coil, value in coils.items():
+            address = {"compressor": COMPRESSOR_COIL, "valve": SYSTEM_VALVE_COIL,
+                       "supply": GST_SUPPLY_COIL}[coil]
+            assert not modbus_call(client, client.write_coil, address, value).isError()
+
+    @pytest.mark.slow
+    def test_a_real_blowout_returns_the_flag(self):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        assert client.connect(), "Modbus not reachable to drive the plant"
+        before = self._without("physical_process")
+        try:
+            hpt, blowout = self._plant(client)
+            assert not blowout and hpt < 200, f"the plant is not in its normal state (HPT {hpt})"
+            calm = self._verify("physical_process")
+            assert calm["success"] is False and "flag" not in calm
+            assert calm["checks"][0]["passed"], calm   # the plant was read, it just is not blowing out
+
+            # What the operator does on the SystemView: manual, compressor on,
+            # system valve shut, supply on. Repeated in the loop, the way an
+            # operator would press a button again.
+            deadline = time.monotonic() + self.RISE_TIMEOUT
+            while True:
+                self._set(client, manual=1, compressor=True, valve=False, supply=True)
+                hpt, blowout = self._plant(client)
+                if blowout:
+                    break
+                assert time.monotonic() < deadline, f"no blow-out after {self.RISE_TIMEOUT}s (HPT {hpt})"
+                time.sleep(3)
+
+            result = self._verify("physical_process")
+            assert result["success"] is True, result
+            assert result["flag"] == self._flags()["physical_process"]
+        finally:
+            try:
+                # Drain through the system valve, then hand back to the PLC
+                # inside its band: automatic keeps the valve shut above 100.
+                deadline = time.monotonic() + self.DRAIN_TIMEOUT
+                while True:
+                    self._set(client, manual=1, compressor=False, valve=True)
+                    hpt, _ = self._plant(client)
+                    if hpt < 95 or time.monotonic() > deadline:
+                        break
+                    time.sleep(3)
+                self._set(client, manual=0)
+                assert hpt < 95, f"the HPT did not drain back to its band (HPT {hpt})"
+            finally:
+                client.close()
+                self._restore(before)

@@ -67,7 +67,7 @@ For more info, run `ffuf` without parameters.
 This module covers two scored challenges, both solved with an ffuf dictionary attack. Flags have the format `CybICS(flag)`:
 
 - **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the user account. Flag: `CybICS(0penPLC)`.
-- **FUXA Password Attack** — brute-force the FUXA HMI login (port 1881) and read the flag shown after login. Flag: `CybICS(FU##A)`.
+- **FUXA Password Attack** — brute-force the FUXA HMI login (port 1881), then enter the user name and password you recovered on the challenge page and click **Verify**, which reveals the flag.
 
 ### Steps
 1. Analyze the OpenPLC login page at port 8080 (examine the request and response in the browser developer console)
@@ -75,7 +75,7 @@ This module covers two scored challenges, both solved with an ffuf dictionary at
 3. Run ffuf against the OpenPLC login to brute-force the admin password
 4. Log in with the discovered credentials and find the flag in the user information
 5. Apply the same approach to the FUXA HMI at port 1881
-6. Log in to FUXA and find the flag
+6. Log in to FUXA with the recovered credentials to confirm them (the admin-only **Flag** view says the admin login works), then enter them on the *FUXA Password Attack* challenge page and click **Verify**
 
 ## Solution: OpenPLC Password Attack
 
@@ -130,7 +130,7 @@ FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 ## Hints
 
 - **OpenPLC**: The flag is part of the user information.
-- **FUXA**: The flag appears after successful login on the HMI.
+- **FUXA**: A failed login answers with an error message, a successful one with a token. The challenge page asks for the user name and password that worked.
 
 ## Solution: FUXA Password Attack
 
@@ -140,6 +140,4 @@ Run the attack:
   ```
   From the attack shell, use `-w /usr/share/wordlists/passwords.txt`.
 
-**Flag:** `CybICS(FU##A)` (submit for the *FUXA Password Attack* challenge)
-
-  ![Flag FUXA Password](doc/flag2.png)
+ffuf prints the one password whose answer carries no error. Enter `admin` and that password on the *FUXA Password Attack* challenge page and click **Verify**; it reveals the flag.

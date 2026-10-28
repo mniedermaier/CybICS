@@ -24,16 +24,19 @@ Try to control the process manually as an operator via the FUXA HMI.
 ![FUXA system view](doc/fuxa.png)
 
 ## Task
-The flag has the format `CybICS(flag)`.
+The flag has the format `CybICS(flag)`. You get it from the challenge page: trigger the blowout, then click **Verify** while it is still happening. The check reads the HPT pressure and the blowout sensor from the plant.
 
 Your objective is to trigger the blowout on the system. The physical process works as follows:
 
 - The **System Valve (SV)** controls whether gas can flow out of the High Pressure Tank (HPT).
 - The **Compressor (C)** pumps gas from the storage tank into the HPT, increasing its pressure.
 - If the System Valve is **closed** while the **Compressor is running**, pressure in the High Pressure Tank (HPT) will rise continuously because the gas has no path to escape.
+- The compressor only moves gas while the **Gas Storage Tank (GST)** still holds enough pressure, so the supply (**GST** button) has to keep refilling it.
 - When the pressure exceeds a critical threshold, the **Blowout (BO)** safety event is triggered.
 
-Using the manual control mode on the FUXA HMI, manipulate the valves and compressor to create the unsafe overpressure condition that causes the blowout.
+Using the manual control mode on the FUXA HMI, manipulate the valves and compressor to create the unsafe overpressure condition that causes the blowout. The HMI shows **BLOW-OUT** while the valve is open. Leave the plant in that state and click **Verify** on the challenge page; the valve has to be open on every read the check takes over about two seconds.
+
+Afterwards, put the plant back: open the system valve, switch the compressor off, wait until the HPT pressure is back under 100 bar and switch back to automatic.
 
 ## Security Framework References
 
@@ -69,16 +72,18 @@ Using the manual control mode on the FUXA HMI, manipulate the valves and compres
 
 ## Hints
 
-The flag appears on the FUXA HMI when the blowout is triggered.
+The blowout valve vents more slowly than the compressor fills. It takes a few minutes of pumping into a closed tank, and the storage tank must not run dry on the way.
 
 ## Solution
 
 After login on the FUXA dashboard switch to the "System" view.
   By closing the "System Valve" (SV) and enabling the Compressor (C),
   the pressure is rising.
-  After a certain time, the pressure in the High Pressure Tank (HPT)
-  gets a critical level and the Blowout (BO) will be opened.
+  Keep the GST supply on so the storage tank does not run dry.
+  After a few minutes, the pressure in the High Pressure Tank (HPT)
+  gets a critical level and the Blowout (BO) will be opened; the HMI
+  shows BLOW-OUT. Click **Verify** on the challenge page while it does.
 
-**Flag:** `CybICS(Bl0w0ut)`
+**Flag:** revealed by **Verify** on the challenge page while the blowout lasts.
 
   ![Flag OpenPLC Password](doc/flag.png)

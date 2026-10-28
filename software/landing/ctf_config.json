@@ -12,8 +12,10 @@
           "description": "Learn about industrial processes and control systems",
           "points": 100,
           "tag": "analysis",
+          "type": "verify",
+          "verify_module": "check_physical_process",
           "flag": "CybICS(Bl0w0ut)",
-          "hint": "Examine the physical process simulation and look for anomalies",
+          "hint": "Log in to the FUXA HMI as operator, switch the plant to manual and give the gas nowhere to go. Click Verify while the HMI shows BLOW-OUT.",
           "training_content": "training/physical_process/README.md"
         },
         {
@@ -85,11 +87,27 @@
         {
           "id": "password_attack",
           "title": "FUXA Password Attack",
-          "description": "Brute-force the FUXA HMI login and recover the flag shown after login",
+          "description": "Brute-force the FUXA HMI login and enter the administrator credentials you recovered",
           "points": 150,
+          "type": "verify",
+          "verify_module": "check_fuxa_login",
           "tag": "exploit",
           "flag": "CybICS(FU##A)",
-          "hint": "Look for common passwords in authentication attempts",
+          "hint": "FUXA logs in with JSON at /api/signin. Run ffuf with a JSON body and filter out the answers that contain an error, then enter the user name and password that worked.",
+          "answers": [
+            {
+              "name": "username",
+              "label": "FUXA user name",
+              "placeholder": "user name",
+              "max_length": 64
+            },
+            {
+              "name": "password",
+              "label": "Password",
+              "placeholder": "password",
+              "max_length": 64
+            }
+          ],
           "training_content": "training/password_attack/README.md"
         },
         {
