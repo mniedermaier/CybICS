@@ -33,6 +33,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [PLC Programming](plc_programming/README.md) | Execution, Persistence | Modify Program, Program Download | T0889, T0843 |
 | [Service Scanning](scanning/README.md) | Discovery | Remote System Discovery, Network Connection Enumeration | T0846, T0840 |
 | [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Remote System Information Discovery | T0846, T0888 |
+| [HMI Project Recon](hmi_project_recon/README.md) | Collection | Data from Information Repositories, Point & Tag Identification, Monitor Process State | T0811, T0861, T0801 |
 | [Wireshark Capture](wireshark_capture/README.md) | Collection | Network Sniffing | T0842 |
 | [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control, Evasion | Brute Force I/O, Unauthorized Message: Command Message, Manipulation of View | T0806, T1692.001, T0832 |
 | [Password Attack](password_attack/README.md) | Persistence, Lateral Movement | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
@@ -98,37 +99,38 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 ### 🔍 Network Analysis
 3. [Service scanning](scanning/README.md) - Discover network services and open ports
 4. [S7comm scanning](scanning2/README.md) - Analyze Siemens S7 communication
-5. [Wireshark capture](wireshark_capture/README.md) - Learn network traffic analysis
+5. [HMI project recon](hmi_project_recon/README.md) - Download the HMI's project without a login and map every register and button of the plant
+6. [Wireshark capture](wireshark_capture/README.md) - Learn network traffic analysis
 
 ### 🛡️ Security Testing
-6. [Flood & overwrite](flood_overwrite/README.md) - Test system resilience against flooding attacks
-7. [Password attack](password_attack/README.md) - Practice password security testing
-8. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
-9. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
-10. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
-11. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
-12. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
-13. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
-14. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
+7. [Flood & overwrite](flood_overwrite/README.md) - Test system resilience against flooding attacks
+8. [Password attack](password_attack/README.md) - Practice password security testing
+9. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
+10. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
+11. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
+12. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
+13. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
+14. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
+15. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
 
 ### 🔐 Advanced Security
-15. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
-16. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
-17. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
-18. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+16. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
+17. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
+18. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
+19. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
 
 ### 🔍 IDS Challenges
-19. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
-20. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
-21. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+20. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+21. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+22. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
 
 ### 🛡️ Defense & Hardening
-22. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-23. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
-24. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-25. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
-26. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-27. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+23. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+24. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
+25. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+26. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
+27. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+28. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

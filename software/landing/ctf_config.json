@@ -57,6 +57,44 @@
           "training_content": "training/scanning2/README.md"
         },
         {
+          "id": "hmi_project_recon",
+          "title": "HMI Project Recon",
+          "description": "The HMI knows every register of the plant and which button writes which one. Get its project without logging in, map the plant from it and enter what you found.",
+          "points": 150,
+          "type": "verify",
+          "verify_module": "check_hmi_project_recon",
+          "tag": "recon",
+          "flag": "CybICS(hm1_bluepr1nt)",
+          "hint": "An HMI page in a browser has to get its screens from somewhere. Watch the requests it makes while it loads, then repeat the big one yourself without a token.",
+          "answers": [
+            {
+              "name": "plc",
+              "label": "PLC endpoint the HMI polls (host:port)",
+              "placeholder": "name-or-ip:port",
+              "max_length": 64
+            },
+            {
+              "name": "stop_register",
+              "label": "Holding register the STOP / SHUTDOWN button writes (wire address, from 0)",
+              "placeholder": "e.g. 1000",
+              "max_length": 16
+            },
+            {
+              "name": "compressor_coil",
+              "label": "Coil the SystemView \"Comp.\" button toggles (wire address, from 0)",
+              "placeholder": "e.g. 7",
+              "max_length": 16
+            },
+            {
+              "name": "hpt_tag_id",
+              "label": "FUXA tag ID of the HPT tag",
+              "placeholder": "t_...",
+              "max_length": 64
+            }
+          ],
+          "training_content": "training/hmi_project_recon/README.md"
+        },
+        {
           "id": "wireshark_capture",
           "title": "Wireshark Capture",
           "description": "Learn network traffic analysis",

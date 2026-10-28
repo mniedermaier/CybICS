@@ -359,6 +359,24 @@
           ]
         },
         {
+          "id": "hmi_project_recon",
+          "title": "HMI project recon",
+          "summary": "Downloading the HMI's project without a login and turning it into a labelled map of the plant.",
+          "content": "training/theory/modules/hmi_project_recon.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "hmi_project_recon",
+              "label": "HMI Project Recon"
+            }
+          ],
+          "prerequisites": [
+            "hmi-scada",
+            "modbus",
+            "scanning"
+          ]
+        },
+        {
           "id": "s7_sidedoor",
           "title": "The S7 side door",
           "summary": "Writing the PLC's memory over S7comm when Modbus is firewalled: one memory, several protocols.",

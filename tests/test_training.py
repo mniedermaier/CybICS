@@ -1241,6 +1241,85 @@ class TestOpenplcRestApi(_CtfProgress):
 
 
 # ===============================================================================
+# HMI Project Recon
+# ===============================================================================
+
+@pytest.mark.usefixtures("stack_ready")
+class TestHmiProjectRecon(_CtfProgress):
+    """
+    HMI Project Recon end to end: FUXA hands its project to a client without
+    a token, the solution script (landing's copy of training/, run in the
+    admin shell, which like the attack shell reaches 172.18.0.4) turns it into
+    the four answers, the plant confirms the wire addresses with a read, and
+    verify refuses FUXA's 1-based numbers before it hands out the flag for
+    the right ones. Nothing is written to FUXA or the PLC; only the CTF
+    progress changes and it is put back.
+    """
+
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    SCRIPT = "python3 /CybICS/training/hmi_project_recon/hmi_recon.py --live"
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/hmi_project_recon", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_project_is_anonymous_and_its_map_earns_the_flag(self):
+        # README step 2: no token, the whole project; the user list stays locked.
+        r = requests.get(f"{self.FUXA}/api/project", timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and "devices" in r.json(), r.text[:200]
+        assert requests.get(f"{self.FUXA}/api/users", timeout=READ_TIMEOUT).status_code == 401
+
+        code, out = self._admin(self.SCRIPT)
+        assert code == 0, out
+        plc = re.search(r"OpenPLC\s+ModbusTCP\s+address=(\S+)", out)
+        stop = re.search(r"STOP / SHUTDOWN\s+onToggleValue\s+-> OpenPLC/stop \(holding register (\d+)\)", out)
+        comp = re.search(r"SystemView\s+Comp\.\s+onToggleValue\s+-> OpenPLC/compressor \(coil (\d+)\)", out)
+        hpt = re.search(r"OpenPLC\s+HPT\s+holding register\s+(\d+)\s+(\d+)\s+(t_[0-9a-f-]+)", out)
+        assert plc and stop and comp and hpt, out
+        answers = {"plc": plc.group(1), "stop_register": stop.group(1),
+                   "compressor_coil": comp.group(1), "hpt_tag_id": hpt.group(3)}
+
+        # README step 5: FUXA reads the tag for anyone by its ID, and the wire
+        # address holds the same pressure while FUXA's own number reads 0.
+        fuxa_address, wire = int(hpt.group(1)), int(hpt.group(2))
+        assert wire == fuxa_address - 1
+        r = requests.get(f"{self.FUXA}/api/getTagValue", timeout=READ_TIMEOUT,
+                         params={"ids": json.dumps([answers["hpt_tag_id"]])})
+        assert r.status_code == 200 and r.json()[0]["id"] == answers["hpt_tag_id"], r.text[:200]
+        hpt_hmi = r.json()[0]["value"]
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        assert client.connect(), "cannot reach the PLC's Modbus server"
+        try:
+            reply = modbus_call(client, client.read_holding_registers, wire, count=2)
+        finally:
+            client.close()
+        assert not reply.isError(), reply
+        hpt_wire, hpt_neighbour = reply.registers
+        # FUXA polls once a second and the plant moves about one bar per
+        # second, so the two reads differ by a few units at most; 20 leaves
+        # room for a slow poll. HR 1127 is %MW103, the word between hpt
+        # (%MW102) and stop (%MW104): software/OpenPLC/cybICS.st declares
+        # nothing there and nothing writes it, so it reads 0. If the register
+        # map ever puts a variable there, this neighbour check must change.
+        assert abs(hpt_wire - hpt_hmi) <= 20 and hpt_neighbour == 0, (hpt_hmi, hpt_wire, hpt_neighbour)
+
+        before = self._without("hmi_project_recon")
+        try:
+            for wrong in ({**answers, "stop_register": str(int(answers["stop_register"]) + 1)},
+                          {**answers, "compressor_coil": str(int(answers["compressor_coil"]) + 1)},
+                          {**answers, "plc": "172.18.0.4:1881"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
 # Close the Side Doors (defense_unused_protocols)
 # ===============================================================================
 
