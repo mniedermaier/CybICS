@@ -60,7 +60,7 @@ client.close()
 
 ## Detection Rules
 
-The CybICS IDS implements 11 detection rules:
+The CybICS IDS implements 12 detection rules:
 
 1. **Port Scan** — Detects SYN packets to multiple ports on a single target
 2. **SYN Flood** — Detects excessive SYN packets from a single source
@@ -73,6 +73,7 @@ The CybICS IDS implements 11 detection rules:
 9. **OPC-UA Unauthorized Access** — Detects OPC-UA connections from unknown hosts
 10. **S7comm Write** — Detects S7comm write requests and reports what was written
 11. **DNP3 Control** — Detects DNP3 control requests (operate, select, write) and reports the points and values
+12. **S7comm CPU Control** — Detects S7comm requests that change the CPU operating mode (PLC STOP, warm or cold restart)
 
 ## Security Framework References
 

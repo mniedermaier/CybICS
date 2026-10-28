@@ -493,3 +493,117 @@ def test_port_20000_is_captured():
     with open(os.path.join(IDS_DIR, "detector.py"), encoding="utf-8") as fh:
         ports = re.search(r"_IDS_PORTS = \(([^)]*)\)", fh.read()).group(1)
     assert "20000" in ports, "DNP3 traffic would be dropped before any rule runs"
+
+
+# ---- Rule 12: S7comm CPU operating mode (s7_cpu_control) ----
+#
+# TCP payloads captured with tcpdump on the plant bridge while python-snap7
+# 3.3.0 in the attack shell called plc_stop(), plc_hot_start() and
+# plc_cold_start() against OpenPLC's Snap7 server (172.18.0.3:102).
+
+# PLC Stop (function 0x29), PI service "P_PROGRAM".
+S7_PLC_STOP = bytes.fromhex(
+    "0300002102f0803201000000030010000029000000000009505f50524f4752414d")
+# PLC Control (0x28), no argument, "P_PROGRAM": warm (hot) restart.
+S7_PLC_HOT_START = bytes.fromhex(
+    "0300002502f0803201000000060014000028000000000000fd000009505f50524f4752414d")
+# PLC Control (0x28), argument "C ", "P_PROGRAM": cold restart.
+S7_PLC_COLD_START = bytes.fromhex(
+    "0300002702f0803201000000080016000028000000000000fd0002432009505f50524f4752414d")
+# Read SZL 0x0424 (CPU operating mode): a userdata request, not a job.
+S7_READ_SZL_0424 = bytes.fromhex(
+    "0300002102f080320700000002000800080001120411440100ff09000404240000")
+
+
+def _controls(alerts):
+    return [a for a in alerts if a["rule"] == "s7_cpu_control"]
+
+
+@pytest.mark.parametrize("payload, action, argument", [
+    (S7_PLC_STOP, "stop", ""),
+    (S7_PLC_HOT_START, "warm_start", ""),
+    (S7_PLC_COLD_START, "cold_start", "C "),
+])
+def test_parse_s7_control_decodes_captured_requests(payload, action, argument):
+    assert rules.parse_s7_control(payload) == [
+        {"action": action, "pi_service": "P_PROGRAM", "argument": argument}]
+
+
+@pytest.mark.parametrize("payload", [S7_READ_SZL_0424, S7_READ_STOP, S7_WRITE_STOP,
+                                     S7_COTP_CONNECT, S7_SETUP],
+                         ids=["szl-read", "read", "write", "cotp", "setup"])
+def test_parse_s7_control_ignores_everything_else(payload):
+    assert rules.parse_s7_control(payload) == []
+    assert not _controls(rules.RuleEngine().check_packet(_s7_packet(payload)))
+
+
+def test_plc_stop_is_a_critical_alert_with_the_mode_change():
+    alerts = rules.RuleEngine().check_packet(_s7_packet(S7_PLC_STOP))
+    controls = _controls(alerts)
+    assert len(controls) == 1
+    alert = controls[0]
+    assert alert["severity"] == rules.SEVERITY_CRITICAL
+    assert alert["mitre"] == "T0858"
+    assert (alert["src"], alert["dst"], alert["dport"]) == (ATTACK_MACHINE, OPENPLC, 102)
+    assert alert["s7_control"] == "stop" and "STOP" in alert["message"]
+    assert any(a["rule"] == "s7_enumeration" for a in alerts)
+    assert not _s7_writes(alerts)
+
+
+def test_restarts_are_high_alerts():
+    for payload, action in ((S7_PLC_HOT_START, "warm_start"), (S7_PLC_COLD_START, "cold_start")):
+        alert = _controls(rules.RuleEngine().check_packet(_s7_packet(payload)))[0]
+        assert alert["severity"] == rules.SEVERITY_HIGH and alert["s7_control"] == action
+
+
+def test_unknown_pi_service_is_reported_by_name():
+    # PLC Control with another PI service (_GARB, compress memory).
+    garb = bytes.fromhex("0300002102f08032010000000a0010000028000000000000fd000005") + b"_GARB"
+    garb = garb[:2] + len(garb).to_bytes(2, "big") + garb[4:]
+    garb = garb[:13] + (len(garb) - 17).to_bytes(2, "big") + garb[15:]
+    alert = _controls(rules.RuleEngine().check_packet(_s7_packet(garb)))[0]
+    assert alert["s7_control"] == "pi_service" and alert["s7_pi_service"] == "_GARB"
+    assert alert["severity"] == rules.SEVERITY_HIGH
+
+
+def test_s7_control_cooldown_suppresses_only_an_exact_repeat():
+    """stop, stop, start, stop, other host: four alerts, newest names the last mode.
+
+    The Stop Means Stop? verify check lets the newest s7_cpu_control alert to
+    the PLC decide, so a restart must never be folded into an earlier STOP.
+    """
+    engine = rules.RuleEngine()
+    seen = [_controls(engine.check_packet(_s7_packet(p, src=s)))
+            for p, s in ((S7_PLC_STOP, ATTACK_MACHINE), (S7_PLC_STOP, ATTACK_MACHINE),
+                         (S7_PLC_HOT_START, ATTACK_MACHINE), (S7_PLC_STOP, ATTACK_MACHINE),
+                         (S7_PLC_STOP, OUTSIDE))]
+    assert [len(s) for s in seen] == [1, 0, 1, 1, 1]
+    assert [s[0]["s7_control"] for s in seen if s] == ["stop", "warm_start", "stop", "stop"]
+
+
+def test_s7_control_on_the_gateway_port_alerts_too():
+    assert _controls(rules.RuleEngine().check_packet(_s7_packet(S7_PLC_STOP, dport=1102)))
+
+
+@pytest.mark.parametrize("cut", range(1, len(S7_PLC_COLD_START)))
+def test_truncated_s7_control_never_raises(cut):
+    payload = S7_PLC_COLD_START[:cut]
+    assert isinstance(rules.parse_s7_control(payload), list)
+    rules.RuleEngine().check_packet(_s7_packet(payload))
+
+
+@pytest.mark.parametrize("payload", [
+    S7_PLC_STOP[:2] + b"\x00\x05" + S7_PLC_STOP[4:],             # TPKT length too short
+    S7_PLC_STOP[:13] + b"\xff\xff" + S7_PLC_STOP[15:],           # parameter length too long
+    S7_PLC_COLD_START[:25] + b"\xff\xff" + S7_PLC_COLD_START[27:],  # argument length too long
+    S7_PLC_STOP[:-10] + b"\xff",                                  # PI name length too long
+    S7_PLC_STOP + S7_PLC_HOT_START + b"\x03\x00",                # trailing garbage
+])
+def test_malformed_s7_control_never_raises(payload):
+    assert isinstance(rules.parse_s7_control(payload), list)
+    rules.RuleEngine().check_packet(_s7_packet(payload))
+
+
+def test_two_controls_in_one_segment_are_both_seen():
+    actions = [c["action"] for c in rules.parse_s7_control(S7_PLC_STOP + S7_PLC_HOT_START)]
+    assert actions == ["stop", "warm_start"]

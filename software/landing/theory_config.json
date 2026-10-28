@@ -220,6 +220,11 @@
               "type": "ctf",
               "id": "s7_sidedoor",
               "label": "S7 Side Door"
+            },
+            {
+              "type": "ctf",
+              "id": "s7_cpu_stop",
+              "label": "Stop Means Stop?"
             }
           ],
           "prerequisites": [
@@ -366,6 +371,24 @@
             }
           ],
           "prerequisites": [
+            "s7comm",
+            "scanning2"
+          ]
+        },
+        {
+          "id": "s7_cpu_stop",
+          "title": "Stop means stop?",
+          "summary": "Sending a PLC a remote STOP over S7comm, and why a controller's report about itself is not proof of what the plant does.",
+          "content": "training/theory/modules/s7_cpu_stop.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "s7_cpu_stop",
+              "label": "Stop Means Stop?"
+            }
+          ],
+          "prerequisites": [
+            "plc-fundamentals",
             "s7comm",
             "scanning2"
           ]

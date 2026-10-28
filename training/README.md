@@ -39,6 +39,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts | T0859 |
 | [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
 | [S7 Side Door](s7_sidedoor/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T1692.001, T0831, T0826 |
+| [Stop Means Stop?](s7_cpu_stop/README.md) | Execution, Evasion, Impair Process Control, Collection | Change Operating Mode, Unauthorized Message: Command Message, Detect Operating Mode | T0858, T1692.001, T0868 |
 | [Forged HMI Token](fuxa_jwt/README.md) | Persistence, Lateral Movement, Collection | Insecure Credentials: Default Credentials, Data from Information Repositories | T1694.001, T0811 |
 | [The Forgotten API](openplc_restapi/README.md) | Discovery, Initial Access, Persistence, Lateral Movement | Remote System Discovery: Port Scan, Exploitation of Remote Services, Valid Accounts, Remote System Information Discovery | T0846.001, T0866, T0859, T0888 |
 | [DNP3 Side Door](dnp3_sidedoor/README.md) | Discovery, Impair Process Control, Impact | Remote System Discovery, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T0846, T1692.001, T0831, T0826 |
@@ -107,24 +108,25 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 11. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
 12. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
 13. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
+14. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
 
 ### 🔐 Advanced Security
-14. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
-15. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
-16. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
-17. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+15. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
+16. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
+17. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
+18. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
 
 ### 🔍 IDS Challenges
-18. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
-19. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
-20. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+19. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+20. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+21. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
 
 ### 🛡️ Defense & Hardening
-21. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-22. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
-23. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-24. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-25. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+22. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+23. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
+24. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+25. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+26. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

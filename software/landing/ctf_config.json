@@ -193,6 +193,18 @@
           "flag": "CybICS(dnp3_s1d3_d00r)",
           "hint": "A DNP3 station only answers frames addressed to its own link address and coming from the master it is configured for. Link-layer requests are cheap: ask every pair in a small range and see which one answers. The README explains the frame format and the CRC.",
           "training_content": "training/dnp3_sidedoor/README.md"
+        },
+        {
+          "id": "s7_cpu_stop",
+          "title": "Stop Means Stop?",
+          "description": "Send the PLC an S7comm CPU STOP. It will acknowledge it and swear it has stopped. Prove from the plant whether that is true, then start the CPU again.",
+          "points": 200,
+          "type": "verify",
+          "verify_module": "check_s7_cpu_stop",
+          "tag": "exploit",
+          "flag": "CybICS(st0p_m34ns_g0)",
+          "hint": "Do not trust a status your client library reports without asking the PLC: read the CPU's status list (SZL 0x0424) yourself. Verify while the PLC says STOP, then warm-restart it.",
+          "training_content": "training/s7_cpu_stop/README.md"
         }
       ]
     },

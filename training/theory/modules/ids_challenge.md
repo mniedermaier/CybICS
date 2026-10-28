@@ -25,7 +25,7 @@ A single rule only covers a single behaviour. Real attacks have several stages: 
 
 ## How it looks on CybICS
 
-The IDS runs on the CybICS host and listens to all traffic on the plant network `172.18.0.0/24`. Its dashboard is on port **8443**. It has eleven rules:
+The IDS runs on the CybICS host and listens to all traffic on the plant network `172.18.0.0/24`. Its dashboard is on port **8443**. It has twelve rules:
 
 | Rule | What sets it off | Severity |
 |---|---|---|
@@ -40,11 +40,12 @@ The IDS runs on the CybICS host and listens to all traffic on the plant network 
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low |
 | `s7_write` | an S7comm write request to port 102 or 1102; the alert names the address and value written | high |
 | `dnp3_operate` | a DNP3 control request (operate, select or write) to port 20000 with correct CRCs; the alert names the points and values | high |
+| `s7_cpu_control` | an S7comm request that changes the CPU's operating mode: PLC STOP or a warm or cold restart | critical (STOP), high (restart) |
 
 Every alert records the rule, the source and target, a severity and a MITRE ATT&CK for ICS technique. The dashboard shows them live; the API at `/api/alerts`, `/api/summary` and `/api/rules/stats` returns the same data for scripts.
 
 <div class="callout cybics" markdown="1">
-**On CybICS:** the IDS raises at most one alert per rule and source every 30 seconds (for `s7_write`, only an exact repeat of the previous write is folded). Repeating the same scan ten times in a row therefore gives you one alert, not ten. Different attacks are the faster way to more alerts.
+**On CybICS:** the IDS raises at most one alert per rule and source every 30 seconds (for `s7_write` and `s7_cpu_control`, only an exact repeat of the previous request is folded). Repeating the same scan ten times in a row therefore gives you one alert, not ten. Different attacks are the faster way to more alerts.
 </div>
 
 <div data-widget="checkpoint" data-id="cooldown"></div>

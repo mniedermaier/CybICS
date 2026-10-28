@@ -411,7 +411,7 @@
         { level: 'Level 1', name: 'Basic control', hint: 'PLCs and controllers', hosts: [
             { id: 'openplc', name: 'OpenPLC', ip: '172.18.0.3', ports: '502 (Modbus), 8080 (web), 102 (S7), 20000 (DNP3), 44818 (EtherNet/IP)',
               role: 'The PLC: it runs the control program every 50 ms, reads the sensors and switches the compressor and valves.',
-              attacks: ['flood_overwrite', 'fuzzingMB', 'password_openplc', 'plc_programming', 'scanning', 's7_sidedoor', 'dnp3_sidedoor'], ids: 'Modbus write floods, unauthorised writes and diagnostic function codes raise alerts, and so does any S7comm access on port 102; an S7comm write raises a second, high-severity alert that names what was written. A DNP3 command on port 20000 raises a high-severity alert too; DNP3 reads do not. A program upload over the web interface raises none.' },
+              attacks: ['flood_overwrite', 'fuzzingMB', 'password_openplc', 'plc_programming', 'scanning', 's7_sidedoor', 's7_cpu_stop', 'dnp3_sidedoor'], ids: 'Modbus write floods, unauthorised writes and diagnostic function codes raise alerts, and so does any S7comm access on port 102; an S7comm write raises a second, high-severity alert that names what was written, and an S7 CPU STOP a critical one. A DNP3 command on port 20000 raises a high-severity alert too; DNP3 reads do not. A program upload over the web interface raises none.' },
             { id: 's7com', name: 'S7 server', ip: '172.18.0.6', ports: '1102 (S7comm)',
               role: 'Plays a Siemens S7 PLC, so you can practise S7comm enumeration.',
               attacks: ['scanning2'], ids: 'Every S7comm access raises an enumeration alert.' },

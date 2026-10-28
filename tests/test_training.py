@@ -519,6 +519,147 @@ class TestS7SideDoor(_CtfProgress):
         assert self._modbus_words() == (0, 0), "stop and manual are not back to 0"
 
 
+# ===============================================================================
+# Stop Means Stop? (S7 CPU STOP) Training Tests
+# ===============================================================================
+
+def _load_s7_cpu_stop_script():
+    """training/s7_cpu_stop/s7_cpu_stop.py as a module, so the test uses its SZL decoding."""
+    import importlib.util
+    path = Path(__file__).resolve().parent.parent / "training" / "s7_cpu_stop" / "s7_cpu_stop.py"
+    spec = importlib.util.spec_from_file_location("s7_cpu_stop_solution", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestS7CpuStop(_CtfProgress):
+    """
+    Stop Means Stop?: send OpenPLC an S7comm PLC STOP, see the PLC's status
+    list (SZL 0x0424) report STOP while the program keeps running the plant,
+    get the flag from the verify route, and restart the CPU.
+
+    Before the solve it replays what must not pass: verify while the CPU is in
+    RUN, and a STOP followed by a warm restart. The CPU is restarted in a
+    finally block, so the newest s7_cpu_control alert in the IDS buffer is a
+    restart and the status list reads RUN again for the S7comm challenges.
+    Snap7's mode is the only thing the STOP changes; the plant itself is never
+    touched. CTF progress is saved and restored as in TestS7SideDoor.
+    """
+
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+    RUN, STOP = 0x08, 0x04
+
+    @staticmethod
+    def _s7_client():
+        import snap7  # tests/requirements.txt; a missing library is a failure, not a skip
+        client = snap7.client.Client()
+        client.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        return client
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/s7_cpu_stop", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _controls_since(self, before, count, timeout=10):
+        deadline = time.time() + timeout
+        found = []
+        while time.time() < deadline:
+            alerts = requests.get(f"{self.IDS}/api/alerts", params={"since_id": before},
+                                  timeout=READ_TIMEOUT).json()["alerts"]
+            found = sorted((a for a in alerts if a["rule"] == "s7_cpu_control"
+                            and a.get("dst") == "172.18.0.3" and a.get("dport") == 102),
+                           key=lambda a: a["id"])
+            if len(found) >= count:
+                break
+            time.sleep(0.5)
+        return found
+
+    @staticmethod
+    def _heartbeats(seconds=3.0):
+        """The values the heartbeat output %QX0.0 (coil 0) takes over a few seconds."""
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        beats = set()
+        try:
+            assert client.connect(), "Modbus not reachable to watch the plant"
+            end = time.time() + seconds
+            while time.time() < end:
+                coils = modbus_call(client, client.read_coils, 0, count=1)
+                assert not coils.isError(), coils
+                beats.add(bool(coils.bits[0]))
+                time.sleep(0.2)
+        finally:
+            client.close()
+        return beats
+
+    def test_stop_is_acknowledged_reported_and_ignored_then_restarted(self):
+        before = self._without("s7_cpu_stop")
+        try:
+            self._stop_verify_restart()
+        finally:
+            self._restore(before)
+
+    def _stop_verify_restart(self):
+        script = _load_s7_cpu_stop_script()
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+
+        plc = self._s7_client()
+        try:
+            assert script.cpu_mode(plc) == self.RUN, "the PLC was not in RUN before the test"
+
+            # A CPU in RUN does not pass.
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+
+            # A STOP that was undone by a restart does not pass either.
+            first = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+            before = max((a["id"] for a in first), default=0)
+            assert plc.plc_stop() == 0
+            assert plc.plc_hot_start() == 0
+            controls = self._controls_since(before, 2)
+            assert [a["s7_control"] for a in controls[-2:]] == ["stop", "warm_start"], controls
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "restarted" in json.dumps(result["checks"]), result
+
+            # The attack: PLC STOP. The PLC acknowledges it and reports STOP.
+            before = controls[-1]["id"]
+            assert plc.plc_stop() == 0, "the PLC refused the STOP job"
+            assert script.cpu_mode(plc) == self.STOP, "SZL 0x0424 does not report STOP"
+            controls = self._controls_since(before, 1)
+            assert controls and controls[-1]["s7_control"] == "stop", controls
+            assert controls[-1]["severity"] == "critical" and controls[-1]["mitre"] == "T0858"
+
+            # ...and the program keeps running: the heartbeat still toggles.
+            beats = self._heartbeats()
+            assert beats == {True, False}, f"heartbeat frozen while in STOP: {beats}"
+            assert script.cpu_mode(plc) == self.STOP
+
+            # The challenge: verify passes and hands out the flag.
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            # Back to RUN whatever failed above; the restart is the newest
+            # control alert, so the challenge is not left armed.
+            plc.plc_hot_start()
+            mode = script.cpu_mode(plc)
+            plc.disconnect()
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert mode == self.RUN, "the PLC is not back in RUN"
+        newest = self._controls_since(0, 1)
+        assert newest and newest[-1]["s7_control"] == "warm_start", (
+            f"the newest S7 CPU control alert is not the restart: {newest[-1:]}")
+
+
 DNP3_PORT = 20000
 DNP3_OUTSTATION = 10     # OpenPLC dnp3.cfg local_address
 DNP3_MASTER = 1          # dnp3.cfg remote_address

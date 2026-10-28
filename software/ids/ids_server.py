@@ -130,6 +130,7 @@ ALL_RULE_IDS = [
     "port_scan", "syn_flood", "modbus_flood", "modbus_unauth_write",
     "modbus_diagnostic", "s7_enumeration", "http_brute_force",
     "arp_spoof", "opcua_access", "s7_write", "dnp3_operate",
+    "s7_cpu_control",
 ]
 
 

@@ -27,6 +27,7 @@ MITRE_BRUTE_FORCE = "T0812"
 # Unauthorized Message: Command Message.  The catalogue folded the older T0855
 # into this sub-technique; the Modbus rules above still carry T0855.
 MITRE_COMMAND_MESSAGE = "T1692.001"
+MITRE_CHANGE_OPERATING_MODE = "T0858"
 
 # CybICS network constants
 CYBICS_SUBNET = "172.18.0."
@@ -58,6 +59,12 @@ S7_AREAS = {0x81: "PE", 0x82: "PA", 0x83: "MK", 0x84: "DB", 0x1C: "CT", 0x1D: "T
 # and at most this many data bytes of each item.
 S7_MAX_ITEMS = 8
 S7_MAX_DATA = 16
+# S7comm job functions that change the CPU's operating mode: PLC Control
+# (0x28, a PI service call -- "P_PROGRAM" with no argument is a warm restart,
+# with argument "C " a cold restart) and PLC Stop (0x29).
+S7_FUNC_PLC_CONTROL = 0x28
+S7_FUNC_PLC_STOP = 0x29
+S7_MAX_PI_NAME = 32
 
 # DNP3 on TCP 20000 (OpenPLC's outstation).  Application function codes that
 # act on the outstation; a READ (0x01) does not and is ignored, the same way
@@ -138,6 +145,7 @@ class RuleEngine:
         self.recent_alerts = {}  # (rule, src) -> last_alert_time
         self.s7_last_write = {}  # (dst, port) -> ((src, items), time) of the last write
         self.dnp3_last_request = {}  # (dst, port) -> ((src, requests), time), as for S7
+        self.s7_last_control = {}  # (dst, port) -> ((src, action, service, arg), time)
         self.ALERT_COOLDOWN = 30
 
     def _should_alert(self, rule_name, source_ip, now):
@@ -197,7 +205,7 @@ class RuleEngine:
             # Modbus rules 3, 4, 5 (merged)
             self._check_modbus(pkt, src_ip, alerts)
         elif dport == 102 or dport == 1102:
-            # S7comm rule 6
+            # S7comm rules 6, 10 and 12
             self._check_s7(pkt, src_ip, dport, alerts)
         elif dport == 8080 or dport == 1881:
             # HTTP brute force rule 7
@@ -312,7 +320,7 @@ class RuleEngine:
                     "message": f"Modbus diagnostic function 0x{func_code:02X} from {src_ip}",
                 })
 
-    # ---- Rules 6 + 10: S7comm access and S7comm writes ----
+    # ---- Rules 6, 10 + 12: S7comm access, writes and CPU control ----
 
     def _check_s7(self, pkt, src_ip, dport, alerts):
         payload = pkt[_PAYLOAD]
@@ -329,6 +337,10 @@ class RuleEngine:
                 "message": f"S7comm access from {src_ip} to port {dport}",
             })
 
+        dst_ip = pkt[_DST_IP]
+        # Rule 12: PLC STOP / PLC Control jobs change the CPU's operating mode.
+        self._check_s7_control(payload, src_ip, dst_ip, dport, now, alerts)
+
         # Rule 10: a WriteVar job changes controller memory.  No plant
         # service speaks S7comm, so every write is worth an alert of its own.
         # Only an exact repeat of the previous write to this server -- same
@@ -340,7 +352,7 @@ class RuleEngine:
         items = parse_s7_write(payload)
         if not items:
             return
-        dst_ip = pkt[_DST_IP]
+
         written = (src_ip, tuple((i["area"], i["db"], i["start"], i["bit"], i["data"])
                                  for i in items))
         last = self.s7_last_write.get((dst_ip, dport))
@@ -356,6 +368,39 @@ class RuleEngine:
                 "dport": dport,
                 "message": f"S7comm write from {src_ip} to {dst_ip}:{dport}: {where}",
                 "s7_items": items,
+            })
+
+    # ---- Rule 12: S7comm CPU operating mode (s7_cpu_control) ----
+
+    def _check_s7_control(self, payload, src_ip, dst_ip, dport, now, alerts):
+        """Alert on every S7comm PLC STOP / PLC Control (start) job.
+
+        A mode change is a command no plant service sends.  As for s7_write,
+        only an exact repeat of the previous control request to this server
+        (same host, same action) within the cooldown is folded, so stop,
+        start and stop again are three alerts and the newest alert always
+        names the mode the CPU was last told to take.  The verify check of
+        the S7 CPU Stop challenge relies on it.
+        """
+        for control in parse_s7_control(payload):
+            key = (dst_ip, dport)
+            sent = (src_ip, control["action"], control["pi_service"], control["argument"])
+            last = self.s7_last_control.get(key)
+            if last is not None and last[0] == sent and now - last[1] < self.ALERT_COOLDOWN:
+                continue
+            self.s7_last_control[key] = (sent, now)
+            label = S7_CONTROL_LABELS.get(control["action"],
+                                          f"PI service {control['pi_service'] or '?'}")
+            alerts.append({
+                "rule": "s7_cpu_control",
+                "severity": SEVERITY_CRITICAL if control["action"] == "stop" else SEVERITY_HIGH,
+                "mitre": MITRE_CHANGE_OPERATING_MODE,
+                "src": src_ip,
+                "dst": dst_ip,
+                "dport": dport,
+                "message": f"S7comm CPU {label} request from {src_ip} to {dst_ip}:{dport}",
+                "s7_control": control["action"],
+                "s7_pi_service": control["pi_service"],
             })
 
     # ---- Rule 7: HTTP brute force ----
@@ -591,6 +636,75 @@ def parse_s7_write(payload):
     except (IndexError, ValueError):
         return []
     return items[:S7_MAX_ITEMS]
+
+
+# ---- S7comm CPU control parsing (rule 12) ----
+
+S7_CONTROL_LABELS = {"stop": "STOP", "warm_start": "warm restart (START)",
+                     "cold_start": "cold restart (START)"}
+
+
+def _s7_control_of(pdu):
+    """The CPU control request in one S7comm PDU, or None if it is not one.
+
+    pdu starts at the protocol id (0x32).  PLC Stop (0x29) parameters are the
+    function, five unused bytes, then the PI service name (length byte and
+    name, normally "P_PROGRAM").  PLC Control (0x28) parameters are the
+    function, seven unused bytes (the last 0xFD), a 16-bit argument length
+    and the argument, then the PI service name.  Snap7 stops the CPU on any
+    0x29 and starts it on a 0x28 of the start form.
+    """
+    if len(pdu) < 11 or pdu[0] != 0x32 or pdu[1] != 0x01:
+        return None
+    par_len = int.from_bytes(pdu[6:8], "big")
+    params = pdu[10:10 + par_len]
+    if not params or params[0] not in (S7_FUNC_PLC_STOP, S7_FUNC_PLC_CONTROL):
+        return None
+
+    def name_at(pos):
+        if pos >= len(params):
+            return ""
+        raw = params[pos + 1:pos + 1 + params[pos]][:S7_MAX_PI_NAME]
+        return raw.decode("ascii", "replace")
+
+    if params[0] == S7_FUNC_PLC_STOP:
+        return {"action": "stop", "pi_service": name_at(6), "argument": ""}
+    if len(params) < 10:
+        return {"action": "pi_service", "pi_service": "", "argument": ""}
+    arg_len = int.from_bytes(params[8:10], "big")
+    argument = params[10:10 + arg_len]
+    service = name_at(10 + arg_len)
+    if service == "P_PROGRAM":
+        action = "cold_start" if argument.startswith(b"C") else "warm_start"
+    else:
+        action = "pi_service"
+    return {"action": action, "pi_service": service,
+            "argument": argument[:S7_MAX_PI_NAME].decode("ascii", "replace")}
+
+
+def parse_s7_control(payload):
+    """CPU control requests (stop, start, other PI services) in a TCP payload.
+
+    Walks the TPKT/COTP frames like parse_s7_write.  Anything that does not
+    parse yields [], so a malformed packet can never raise in the sniffer.
+    """
+    found = []
+    pos = 0
+    try:
+        while pos + 7 <= len(payload) and payload[pos] == 0x03:
+            frame_len = int.from_bytes(payload[pos + 2:pos + 4], "big")
+            if frame_len < 7:
+                break
+            frame = payload[pos:pos + frame_len]
+            cotp_len = frame[4]
+            if len(frame) > 5 and frame[5] == 0xF0:
+                control = _s7_control_of(frame[5 + cotp_len:])
+                if control:
+                    found.append(control)
+            pos += frame_len
+    except (IndexError, ValueError):
+        return []
+    return found[:S7_MAX_ITEMS]
 
 
 # ---- DNP3 parsing (rule 11) ----
