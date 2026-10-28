@@ -12,6 +12,8 @@ Tests include:
 
 import json
 import pytest
+import re
+import shlex
 import time
 import os
 import requests
@@ -1236,6 +1238,235 @@ class TestOpenplcRestApi(_CtfProgress):
             if not self._unclaimed():
                 self._reset()
         assert self._unclaimed()
+
+
+# ===============================================================================
+# Close the Side Doors (defense_unused_protocols)
+# ===============================================================================
+
+@pytest.mark.usefixtures("stack_ready")
+class TestDefenseUnusedProtocols(_CtfProgress):
+    """
+    Close the Side Doors end to end: switch S7, DNP3 and EtherNet/IP off in
+    OpenPLC's Settings page (the same form POST a browser sends), block the
+    REST API on 8443 with the README's iptables rule, see verify refuse a
+    firewall rule in front of a running S7 server and pass the real
+    hardening, then undo it the README's way.
+
+    The defence closes the doors that the S7, DNP3 and REST API challenges
+    and conftest's readiness gate (port 102) need, so the PLC is reopened in
+    a finally block whatever fails, and the test asserts S7, DNP3 and
+    EtherNet/IP answer again, 8443 is reachable and the heartbeat toggles.
+    The second test runs the README's Reset command (settings back in
+    openplc.db, docker restart of the PLC) and waits for the whole PLC.
+
+    The web login is the shipped openplc/openplc, like TestPasswordAttack;
+    a board whose password was changed fails here on purpose.
+    """
+
+    WEB = f"http://{SERVER_IP}:{OPENPLC_PORT}"
+    SIDE_DOORS = (102, 20000, 44818)
+    FIND_PLC = "docker ps --filter name=openplc --format '{{.Names}}' | head -n1"
+    FIND_ATTACKER = "docker ps --filter name=attack-shell --format '{{.Names}}' | head -n1"
+
+    # -- helpers -----------------------------------------------------------
+
+    def _plc(self):
+        code, out = self._admin(self.FIND_PLC)
+        assert code == 0 and out.strip(), out
+        return out.strip()
+
+    def _readme(self, heading):
+        return _readme_block("defense_unused_protocols", heading).replace("<openplc>", self._plc())
+
+    def _web(self):
+        session = requests.Session()
+        r = session.post(f"{self.WEB}/login", data={"username": "openplc", "password": "openplc"},
+                         timeout=READ_TIMEOUT, allow_redirects=False)
+        assert r.status_code == 302 and "login" not in r.headers.get("Location", ""), (
+            "cannot log in to OpenPLC with openplc/openplc")
+        return session
+
+    def _save_settings(self, s7, dnp3, enip):
+        """Submit OpenPLC's Settings form like a browser: an unticked server's
+        port field is disabled and not sent; everything else is kept."""
+        session = self._web()
+        page = session.get(f"{self.WEB}/settings", timeout=READ_TIMEOUT).text
+
+        def value(field):
+            m = re.search(rf"id='{field}' name='{field}' value='([^']*)'", page)
+            assert m, f"no {field} on the settings page"
+            return m.group(1)
+
+        form = {"device_hostname": value("device_hostname"),
+                "modbus_server_port": value("modbus_server_port"),
+                "snap7_run_text": "true" if s7 else "false",
+                "auto_run_text": "true",
+                "slave_polling_period": value("slave_polling_period"),
+                "slave_timeout": value("slave_timeout")}
+        if dnp3:
+            form["dnp3_server_port"] = "20000"
+        if enip:
+            form["enip_server_port"] = "44818"
+        if 'id="pstorage_thread" type="checkbox" checked' in page:
+            form["pstorage_thread_poll"] = value("pstorage_thread_poll")
+        r = session.post(f"{self.WEB}/settings", data=form, timeout=30, allow_redirects=False)
+        assert r.status_code == 302, r.text[:300]
+
+    def _open_ports(self, ports):
+        """The ports among `ports` that accept a TCP connect at 172.18.0.3.
+
+        Asked from the admin shell, on the board's host network like the verify
+        module, because the ports published on SERVER_IP go through Docker's
+        userland proxy, which accepts a connection even when nothing listens
+        behind it."""
+        probe = ("import socket\n"
+                 f"for p in {sorted(ports)!r}:\n"
+                 "    s = socket.socket(); s.settimeout(3)\n"
+                 "    print(p, 'OPEN' if s.connect_ex(('172.18.0.3', p)) == 0 else 'CLOSED')\n"
+                 "    s.close()\n")
+        code, out = self._admin(f"python3 -c {shlex.quote(probe)}")
+        assert code == 0, out
+        return {int(p) for p, state in re.findall(r"^(\d+) (OPEN|CLOSED)$", out, re.M) if state == "OPEN"}
+
+    def _wait(self, ports, want_open, timeout=60):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            is_open = self._open_ports(ports)
+            if (is_open == set(ports)) if want_open else not is_open:
+                return True
+            time.sleep(1)
+        return False
+
+    def _rest_reachable(self):
+        return self._open_ports([8443]) == {8443}
+
+    @staticmethod
+    def _heartbeat_toggles():
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            deadline = time.monotonic() + 30
+            while not client.connect():
+                assert time.monotonic() < deadline, "Modbus did not come back"
+                time.sleep(1)
+            seen = set()
+            end = time.monotonic() + 4
+            while time.monotonic() < end and len(seen) < 2:
+                result = modbus_call(client, client.read_coils, 0, count=1)
+                if not result.isError():
+                    seen.add(bool(result.bits[0]))
+                time.sleep(0.2)
+            return len(seen) == 2
+        finally:
+            client.close()
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/defense_unused_protocols", json={}, timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    @staticmethod
+    def _failed(result):
+        return {c["name"] for c in result.get("checks", []) if not c["passed"]}
+
+    def _iptables(self):
+        code, out = self._admin(f"docker exec {self._plc()} iptables -S INPUT")
+        assert code == 0, out
+        return out
+
+    def _reopen(self):
+        """Undo whatever the test left: README's way, then a guard for the 102 rule."""
+        self._save_settings(s7=True, dnp3=True, enip=True)
+        rules = self._iptables()
+        if "--dport 8443" in rules:
+            self._admin(self._readme("### Undoing it"))
+        if "--dport 102" in rules:
+            self._admin(f"docker exec {self._plc()} iptables -D INPUT -p tcp --dport 102 "
+                        "-j REJECT --reject-with tcp-reset")
+
+    def _assert_reopened(self):
+        assert self._wait(self.SIDE_DOORS + (MODBUS_PORT, OPENPLC_PORT), True), \
+            "S7, DNP3 or EtherNet/IP did not come back"
+        import snap7  # tests/requirements.txt
+        client = snap7.client.Client()
+        client.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        try:
+            assert client.get_connected()
+        finally:
+            client.disconnect()
+        assert self._rest_reachable(), "port 8443 is still blocked"
+        assert "8443" not in self._iptables()
+        assert self._heartbeat_toggles(), "the PLC's heartbeat stopped"
+
+    # -- tests -------------------------------------------------------------
+
+    def test_side_doors_are_closed_verified_and_reopened(self):
+        assert self._wait(self.SIDE_DOORS, True, timeout=10), "the PLC is not as shipped"
+        before = self._without("defense_unused_protocols")
+        try:
+            assert not self._verify()["success"]
+
+            # README step 2: the inventory sees three Modbus clients and idle side doors.
+            code, out = self._admin(f"docker exec -i {self._plc()} python3 - < "
+                                    "/CybICS/training/defense_unused_protocols/plc_ports.py")
+            assert code == 0, out
+            modbus = next(line for line in out.splitlines() if line.strip().startswith("502 "))
+            for client in ("hwio", "fuxa", "opcua"):
+                assert client in modbus, out
+            for port in ("102", "8443", "20000", "44818"):
+                line = next(line for line in out.splitlines() if line.strip().startswith(port + " "))
+                assert "nobody connected" in line, out
+
+            # A firewall rule in front of the running S7 server is not enough.
+            code, out = self._admin(self._readme("4. **Block the REST API.**"))
+            assert code == 0, out
+            code, out = self._admin(f"docker exec {self._plc()} iptables -I INPUT -p tcp "
+                                    "--dport 102 -j REJECT --reject-with tcp-reset")
+            assert code == 0, out
+            self._save_settings(s7=True, dnp3=False, enip=False)
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert self._failed(result) == {"S7comm (port 102) switched off"}, result
+            code, out = self._admin(f"docker exec {self._plc()} iptables -D INPUT -p tcp "
+                                    "--dport 102 -j REJECT --reject-with tcp-reset")
+            assert code == 0, out
+
+            # README step 3 in full: the S7 checkbox too.
+            self._save_settings(s7=False, dnp3=False, enip=False)
+            assert self._wait(self.SIDE_DOORS, False, timeout=15)
+
+            # README step 5: from the attacker only Modbus and the web interface are left.
+            code, out = self._admin(f"docker exec $({self.FIND_ATTACKER}) nmap -p- -T4 172.18.0.3")
+            assert code == 0, out
+            assert sorted(re.findall(r"^(\d+)/tcp\s+open", out, re.M), key=int) == ["502", "8080"], out
+
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._reopen()
+            self._restore(before)
+        self._assert_reopened()
+
+    def test_readme_reset_brings_the_shipped_plc_back(self):
+        assert self._wait(self.SIDE_DOORS, True, timeout=10), "the PLC is not as shipped"
+        try:
+            self._save_settings(s7=False, dnp3=False, enip=False)
+            code, out = self._admin(self._readme("4. **Block the REST API.**"))
+            assert code == 0, out
+            assert self._wait(self.SIDE_DOORS, False, timeout=15)
+
+            code, out = self._admin(_readme_block("defense_unused_protocols", "### Reset"),
+                                    timeout=120)
+            assert code == 0, out
+        finally:
+            if not self._wait(self.SIDE_DOORS, True, timeout=90):
+                self._reopen()
+        self._assert_reopened()
+        code, out = self._admin(
+            f"docker exec {self._plc()} sqlite3 'file:/CybICS/OpenPLC_v3/webserver/openplc.db?mode=ro' "
+            "\"SELECT Key || '=' || Value FROM Settings WHERE Key IN ('snap7','Dnp3_port','Enip_port')\"")
+        assert code == 0 and sorted(out.split()) == ["Dnp3_port=20000", "Enip_port=44818", "snap7=true"], out
 
 
 # ===============================================================================

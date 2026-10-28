@@ -345,6 +345,18 @@
           "training_content": "training/defense_firewall/README.md"
         },
         {
+          "id": "defense_unused_protocols",
+          "title": "Close the Side Doors",
+          "description": "The PLC speaks six protocols and the plant needs two. Find out which ones are really used, switch off S7, DNP3 and EtherNet/IP, block the REST API that has no switch, and keep the plant running.",
+          "points": 300,
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_unused_protocols",
+          "flag": "CybICS(s1d3_d00rs_cl0s3d)",
+          "hint": "Three of the unused services have a checkbox on OpenPLC's Settings page. The REST API on 8443 has none: block it with an iptables rule at the top of the PLC container's INPUT chain. Keep Modbus (502) and the web interface (8080) on.",
+          "training_content": "training/defense_unused_protocols/README.md"
+        },
+        {
           "id": "defense_network_segmentation",
           "title": "Network Segmentation",
           "description": "Block the attack machine from reaching critical ICS services",

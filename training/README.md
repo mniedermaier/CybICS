@@ -50,6 +50,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [Credential Hardening](defense_password/README.md) | *Defensive* | D3FEND: Strong Password Policy, Credential Rotation | D3-SPP |
 | [Rotate the FUXA Token Key](defense_fuxa_jwt/README.md) | *Defensive* | D3FEND: Credential Rotation, Application Configuration Hardening | D3-CRO, D3-ACH |
 | [Modbus Firewall](defense_firewall/README.md) | *Defensive* | D3FEND: Inbound Traffic Filtering, Network Traffic Filtering | D3-ITF, D3-NTF |
+| [Close the Side Doors](defense_unused_protocols/README.md) | *Defensive* | D3FEND: Application Configuration Hardening, Inbound Traffic Filtering | D3-ACH, D3-ITF |
 | [Network Segmentation](defense_network/README.md) | *Defensive* | D3FEND: Network Isolation | D3-NI |
 | [IDS Monitoring](defense_ids/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA, D3-PMAD |
 | [IDS Challenge](ids_challenge/README.md) | Discovery, Impair Process Control | Remote System Discovery, Denial of Service, Unauthorized Message: Command Message | T0846, T0814, T1692.001 |
@@ -125,8 +126,9 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 22. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
 23. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
 24. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-25. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-26. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+25. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
+26. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+27. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

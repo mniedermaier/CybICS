@@ -1,0 +1,105 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain what an attack surface is and why switching off unused services shrinks it",
+    "Find out which of a PLC's services are in use, from outside and from inside",
+    "Tell switching a service off apart from hiding it behind a firewall",
+    "Harden the CybICS PLC without cutting the services the plant needs"
+  ],
+  "takeaways": [
+    "Every network service is a door; a service that is switched off cannot be attacked at all.",
+    "Decide from what the plant is designed to need, not only from a short look at who is connected.",
+    "Switch off what has a switch; firewall only what has none, because a rule hides a service rather than removing it.",
+    "Settings stored on the device survive a restart, a firewall rule inside a container does not.",
+    "Check afterwards that the plant still runs: Modbus feeds the HMI, the OPC-UA gateway and the plant simulation."
+  ],
+  "checkpoints": [
+    {
+      "id": "nobody-connected",
+      "question": "Your snapshot shows nobody connected to the PLC's web interface on 8080. Should you switch it off?",
+      "options": [
+        "Yes, unused is unused",
+        "No, engineers use it now and then to upload programs",
+        "Yes, but only on weekends",
+        "No, switching off a web interface is impossible"
+      ],
+      "answer": 1,
+      "explanation": "A snapshot only shows who is connected at that moment. The web interface is part of how the plant is maintained, so it stays; it is better protected by a strong password and by limiting who can reach it."
+    },
+    {
+      "id": "hide-or-remove",
+      "question": "Instead of unticking DNP3 in the Settings page, you block port 20000 with a firewall rule. What is the difference?",
+      "options": [
+        "None, both close the port",
+        "The DNP3 server keeps running behind the rule and is back as soon as the rule is gone",
+        "The firewall rule also stops Modbus",
+        "The setting only works after a firmware update"
+      ],
+      "answer": 1,
+      "explanation": "A firewall rule hides the service; the server still runs. A flushed rule, a container restart or a host the rule allows brings it back into reach. Switching it off removes it."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why can OpenPLC's REST API on 8443 only be closed with a firewall rule?",
+      "options": [
+        "Because it uses HTTPS",
+        "Because OpenPLC starts it every time and has no setting for it",
+        "Because the plant needs it",
+        "Because firewall rules are always better than settings"
+      ],
+      "answer": 1,
+      "explanation": "OpenPLC's Settings page has switches for Modbus, S7comm, DNP3 and EtherNet/IP, but none for the REST API. Without an off switch, refusing the connections in front of it is the remaining option."
+    },
+    {
+      "type": "multi",
+      "question": "Which services does the CybICS plant need on the PLC?",
+      "options": [
+        "Modbus/TCP on 502",
+        "The web interface on 8080",
+        "S7comm on 102",
+        "DNP3 on 20000",
+        "EtherNet/IP on 44818"
+      ],
+      "answer": [0, 1],
+      "explanation": "The plant simulation, the HMI and the OPC-UA gateway use Modbus; engineers use the web interface. Nothing in the plant is built to speak S7comm, DNP3 or EtherNet/IP to this PLC."
+    },
+    {
+      "type": "single",
+      "question": "The PLC container restarts. Which part of your defence is gone?",
+      "options": [
+        "The settings that switch off S7, DNP3 and EtherNet/IP",
+        "The firewall rule for port 8443",
+        "Both",
+        "Neither"
+      ],
+      "answer": 1,
+      "explanation": "The settings are stored in OpenPLC's database inside the container and survive a restart. The firewall rule lives only in the running container's network stack. A real plant keeps such rules in a firewall configuration that is loaded at boot."
+    },
+    {
+      "type": "single",
+      "question": "After hardening, the IDS reports an S7comm connection attempt to the PLC. How do you rate it?",
+      "options": [
+        "Normal traffic, the HMI uses S7",
+        "Suspicious: no legitimate system uses S7 on this PLC any more",
+        "Harmless, because S7 is read-only",
+        "A sign the hardening failed"
+      ],
+      "answer": 1,
+      "explanation": "Nothing in the plant speaks S7comm to this PLC, so an attempt comes from someone who is looking for a way in. It failed, but it tells you that someone is exploring the network."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these belong to reducing a device's attack surface?",
+      "options": [
+        "Switching off protocols the process does not use",
+        "Blocking a management port that has no off switch",
+        "Turning off Modbus because it has no password",
+        "Re-scanning the device after every update"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Removing and blocking what is not needed, and checking that updates did not bring it back, shrink the attack surface. Turning off Modbus would stop the plant: it is protected by other means, such as firewall rules for its legitimate clients."
+    }
+  ]
+}

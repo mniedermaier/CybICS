@@ -710,6 +710,25 @@
           ]
         },
         {
+          "id": "defense_unused_protocols",
+          "title": "Closing unused services",
+          "summary": "Switching off the PLC protocols the plant does not use, and firewalling the one without a switch.",
+          "content": "training/theory/modules/defense_unused_protocols.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_unused_protocols",
+              "label": "Close the Side Doors"
+            }
+          ],
+          "prerequisites": [
+            "defense_firewall",
+            "s7_sidedoor",
+            "dnp3_sidedoor",
+            "openplc_restapi"
+          ]
+        },
+        {
           "id": "defense_network",
           "title": "Network segmentation",
           "summary": "Blocking the attack host from the controllers.",
