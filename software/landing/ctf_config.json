@@ -181,6 +181,18 @@
             }
           ],
           "training_content": "training/openplc_restapi/README.md"
+        },
+        {
+          "id": "dnp3_sidedoor",
+          "title": "DNP3 Side Door",
+          "description": "OpenPLC also runs a DNP3 outstation that nothing in the plant uses. Find it, learn its link addresses, and stop the plant with a DNP3 frame you build yourself.",
+          "points": 350,
+          "type": "verify",
+          "verify_module": "check_dnp3_sidedoor",
+          "tag": "exploit",
+          "flag": "CybICS(dnp3_s1d3_d00r)",
+          "hint": "A DNP3 station only answers frames addressed to its own link address and coming from the master it is configured for. Link-layer requests are cheap: ask every pair in a small range and see which one answers. The README explains the frame format and the CRC.",
+          "training_content": "training/dnp3_sidedoor/README.md"
         }
       ]
     },

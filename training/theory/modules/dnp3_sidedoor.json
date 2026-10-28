@@ -1,0 +1,108 @@
+{
+  "level": "advanced",
+  "objectives": [
+    "Explain why a PLC that speaks several protocols has several attack surfaces",
+    "Describe the three layers of a DNP3 frame and the role of its block CRC",
+    "Identify how a DNP3 analog-output operate reaches the same memory as a Modbus write",
+    "Find a DNP3 outstation's link address and the master address it accepts without being told them"
+  ],
+  "takeaways": [
+    "A device often answers more protocols than the plant uses, and each one reaches the same memory.",
+    "DNP3 runs on TCP 20000, frames start with 05 64, and a CRC-16/DNP protects every 16-byte block; a frame also only works when addressed to the outstation from the master it expects.",
+    "In OpenPLC a DNP3 analog-output index of 1024 + n maps onto the memory word %MWn, the same word Modbus calls holding register 1024 + n, so the stop flag can be reached over DNP3 too.",
+    "A firewall or IDS scoped to one protocol is blind to every other protocol the device still exposes.",
+    "The best defence is to disable unused protocols; detecting them is the fallback."
+  ],
+  "checkpoints": [
+    {
+      "id": "which-door",
+      "question": "You have firewalled Modbus port 502 so only FUXA may reach it. Why can the attack machine still stop the plant?",
+      "options": [
+        "It guesses the Modbus password instead",
+        "DNP3 on port 20000 reaches the same registers and is not filtered",
+        "The firewall rule also blocks FUXA",
+        "It writes the register over OPC-UA, which has no registers"
+      ],
+      "answer": 1,
+      "explanation": "The DNP3 outstation on port 20000 maps onto the same memory as Modbus and the firewall only covers 502, so the command gets through. Modbus has no password to guess, and OPC-UA exposes nodes, not the holding registers this attack writes."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Which two bytes begin every DNP3 link-layer frame, so you can spot DNP3 in a hex dump?",
+      "options": [
+        "03 00",
+        "05 64",
+        "00 00",
+        "C4 0A"
+      ],
+      "answer": 1,
+      "explanation": "DNP3 frames start with 05 64. 03 00 begins a TPKT header (S7comm), 00 00 is the protocol identifier in a Modbus TCP header, and C4 0A are just bytes that happen to appear later in a frame."
+    },
+    {
+      "type": "single",
+      "question": "Why does a single wrong byte in a hand-built DNP3 frame usually produce no error message?",
+      "options": [
+        "The outstation emails the error to the master",
+        "A failed block CRC makes the outstation drop the frame silently",
+        "DNP3 has no error handling at all",
+        "The TCP layer resends it until it is correct"
+      ],
+      "answer": 1,
+      "explanation": "Each 16-byte block carries a CRC-16/DNP. If a byte is wrong the CRC no longer matches and the outstation discards the frame without replying, which is why the checksums must be exact. TCP resends lost packets, not corrupt application data."
+    },
+    {
+      "type": "single",
+      "question": "Your DNP3 frame reaches 172.18.0.3:20000 with correct CRCs, but the outstation never answers. What is the most likely reason?",
+      "options": [
+        "DNP3 needs a password first",
+        "The link addresses in the frame are not the pair the outstation is configured for",
+        "Port 20000 only accepts UDP",
+        "The outstation only answers in the morning"
+      ],
+      "answer": 1,
+      "explanation": "An outstation ignores frames that are not addressed to its own link address or that come from a master address it does not expect. DNP3 as used here has no password, and the outstation listens on TCP. Sweeping small address pairs with link status requests finds the pair that gets an answer."
+    },
+    {
+      "type": "single",
+      "question": "The Modbus firewall challenge restricts port 502 to FUXA only. What does that do to this DNP3 attack?",
+      "options": [
+        "It blocks it, because DNP3 rides on Modbus",
+        "Nothing, because DNP3 uses a different port the rule never mentions",
+        "It slows it down but still allows it",
+        "It turns the DNP3 outstation off"
+      ],
+      "answer": 1,
+      "explanation": "The firewall rule names only port 502, and DNP3 listens on 20000, so the attack is untouched. DNP3 is an independent protocol, not something layered on Modbus, and a port filter does not disable a service."
+    },
+    {
+      "type": "single",
+      "question": "In OpenPLC, why can a DNP3 operate on an analog-output index of 1024 or more change the plant?",
+      "options": [
+        "Those indexes are only written to a DNP3 event log",
+        "An index of 1024 + n is the memory word %MWn, where the PLC program keeps commands such as the stop flag",
+        "DNP3 has a dedicated stop command at those indexes",
+        "Indexes above 1024 are rejected, so it cannot"
+      ],
+      "answer": 1,
+      "explanation": "OpenPLC maps analog output 1024 + n onto the memory word %MWn, the same word Modbus reaches as holding register 1024 + n. The PLC program keeps its commands in memory words, so an operate there writes real process memory. There is no separate DNP3 stop command, and the write does not end in a log."
+    },
+    {
+      "type": "multi",
+      "question": "Which defences would actually stop this DNP3 attack?",
+      "options": [
+        "Disabling the DNP3 outstation the plant does not use",
+        "Filtering TCP port 20000",
+        "Lowering the Modbus write threshold in the IDS",
+        "Adding an IDS rule that inspects DNP3 control requests"
+      ],
+      "answer": [
+        0,
+        1,
+        3
+      ],
+      "explanation": "Turning the outstation off or filtering its port removes the surface, and a DNP3-aware IDS rule detects the command. Changing a Modbus threshold does nothing, because this attack never sends Modbus."
+    }
+  ]
+}

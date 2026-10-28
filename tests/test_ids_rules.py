@@ -273,3 +273,223 @@ def test_every_rule_is_listed_by_the_server_and_the_dashboard():
         page = set(re.findall(r"\{ id: '(\w+)', name: '[^']*', severity:", fh.read()))
     assert emitted == listed, f"ALL_RULE_IDS differs from rules.py: {emitted ^ listed}"
     assert emitted <= page, f"rules missing on the dashboard: {emitted - page}"
+
+
+# ---- Rule 11: DNP3 control requests (dnp3_operate) ----
+#
+# OpenPLC runs a DNP3 outstation on TCP 20000 (link address 10, master 1)
+# mapped onto the same memory as Modbus: an Analog Output Int16 (g41v2) at
+# index 1128 is %MW104, the plant's stop flag.  DNP3_STOP is the TCP payload
+# captured with tcpdump in the attack shell while
+# training/dnp3_sidedoor/dnp3_stop.py stopped the plant on the virtual stack;
+# the outstation answered it with control status 0 (success).  The builder
+# below is an independent implementation used for the variations.
+import struct  # noqa: E402
+
+DNP3_STOP = bytes.fromhex(
+    "056412c40a000100" "5686" "c0c105290228010068040100" "00" "0e1e")
+
+
+def _dnp3_crc(data):
+    crc = 0
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = (crc >> 1) ^ 0xA6BC if crc & 1 else crc >> 1
+    return struct.pack("<H", ~crc & 0xFFFF)
+
+
+def _dnp3_frame(user, control=0xC4, dest=10, source=1):
+    header = bytes([0x05, 0x64, 5 + len(user), control]) + struct.pack("<HH", dest, source)
+    frame = header + _dnp3_crc(header)
+    for i in range(0, len(user), 16):
+        block = user[i:i + 16]
+        frame += block + _dnp3_crc(block)
+    return frame
+
+
+def _ao_points(*points, variation=2, qualifier=0x28):
+    """Object header g41v<variation> plus (index, value) points, prefix/count per qualifier."""
+    width = 2 if qualifier == 0x28 else 1
+    fmt = {1: "<i", 2: "<h", 3: "<f", 4: "<d"}[variation]
+    body = bytes([41, variation, qualifier]) + len(points).to_bytes(width, "little")
+    for index, value in points:
+        body += index.to_bytes(width, "little") + struct.pack(fmt, value) + b"\x00"
+    return body
+
+
+def _dnp3_request(objects, func=0x05):
+    # transport FIR|FIN seq 0, application FIR|FIN seq 1, function code
+    return _dnp3_frame(bytes([0xC0, 0xC1, func]) + objects)
+
+
+def _dnp3_packet(payload, src=ATTACK_MACHINE):
+    return (src, OPENPLC, 51000, 20000, "PA", 6, payload, None)
+
+
+def _dnp3_alerts(alerts):
+    return [a for a in alerts if a["rule"] == "dnp3_operate"]
+
+
+def test_dnp3_crc_matches_the_reference_vector():
+    """CRC-16/DNP check value: crc("123456789") = 0xEA82."""
+    assert rules.dnp3_crc(b"123456789") == 0xEA82
+
+
+def test_builder_reproduces_the_captured_stop_frame():
+    """The test builder and the solution script agree byte for byte."""
+    assert _dnp3_request(_ao_points((1128, 1))) == DNP3_STOP
+
+
+def test_dnp3_captured_direct_operate_decodes_index_and_value():
+    assert rules.parse_dnp3_requests(DNP3_STOP) == [{
+        "function": 0x05, "function_name": "DIRECT_OPERATE",
+        "link_dst": 10, "link_src": 1, "seq": 1,
+        "objects_crc": rules.dnp3_crc(DNP3_STOP[13:23]),
+        "objects": [{"group": 41, "variation": 2, "index": 1128, "value": 1}],
+    }]
+
+
+def test_dnp3_sequence_number_and_object_crc_pair_select_with_operate():
+    """The verify check pairs SELECT and OPERATE as the outstation does.
+
+    opendnp3 runs an OPERATE only after a SELECT with the previous application
+    sequence number and the same object bytes, so the parser reports both.
+    """
+    objects = _ao_points((1128, 1))
+    select = _dnp3_frame(bytes([0xC0, 0xC4, 0x03]) + objects)
+    operate = _dnp3_frame(bytes([0xC0, 0xC5, 0x04]) + objects)
+    other = _dnp3_frame(bytes([0xC0, 0xC5, 0x04]) + _ao_points((1128, 2)))
+    (s,), (o,), (x,) = map(rules.parse_dnp3_requests, (select, operate, other))
+    assert (s["seq"], o["seq"]) == (4, 5)
+    assert s["objects_crc"] == o["objects_crc"] == rules.dnp3_crc(objects)
+    assert x["objects_crc"] != o["objects_crc"]
+
+
+def test_a_select_resent_with_a_new_sequence_number_is_logged_again():
+    engine = rules.RuleEngine()
+    objects = _ao_points((1128, 1))
+    first = engine.check_packet(_dnp3_packet(_dnp3_frame(bytes([0xC0, 0xC4, 0x03]) + objects)))
+    retry = engine.check_packet(_dnp3_packet(_dnp3_frame(bytes([0xC0, 0xC4, 0x03]) + objects)))
+    fresh = engine.check_packet(_dnp3_packet(_dnp3_frame(bytes([0xC0, 0xC6, 0x03]) + objects)))
+    assert len(_dnp3_alerts(first)) == 1 and not _dnp3_alerts(retry)
+    assert _dnp3_alerts(fresh)[0]["dnp3"][0]["seq"] == 6
+
+
+def test_dnp3_operate_alerts_with_the_point_and_value():
+    alerts = _dnp3_alerts(rules.RuleEngine().check_packet(_dnp3_packet(DNP3_STOP)))
+    assert len(alerts) == 1
+    alert = alerts[0]
+    assert alert["severity"] == "high"
+    assert alert["mitre"] == rules.MITRE_COMMAND_MESSAGE == "T1692.001"
+    assert (alert["src"], alert["dst"], alert["dport"]) == (ATTACK_MACHINE, OPENPLC, 20000)
+    assert alert["dnp3"][0]["objects"][0] == {
+        "group": 41, "variation": 2, "index": 1128, "value": 1}
+    assert "index 1128 = 1" in alert["message"] and "link 1 -> 10" in alert["message"]
+
+
+def test_dnp3_object_header_past_the_first_crc_block():
+    """Two points push the data across a 16-byte block boundary."""
+    reqs = rules.parse_dnp3_requests(_dnp3_request(_ao_points((1128, 1), (1130, -5))))
+    assert [(o["index"], o["value"]) for o in reqs[0]["objects"]] == [(1128, 1), (1130, -5)]
+
+
+@pytest.mark.parametrize("variation,value", [(1, 70000), (3, 1.5), (4, -2.25)])
+def test_dnp3_other_analog_output_variations(variation, value):
+    reqs = rules.parse_dnp3_requests(_dnp3_request(_ao_points((2050, value), variation=variation)))
+    assert reqs[0]["objects"] == [
+        {"group": 41, "variation": variation, "index": 2050, "value": value}]
+
+
+def test_dnp3_one_octet_qualifier_and_crob():
+    crob = bytes([12, 1, 0x17, 1, 3, 0x03, 1]) + (100).to_bytes(4, "little") * 2 + b"\x00"
+    reqs = rules.parse_dnp3_requests(_dnp3_request(_ao_points((7, 9), qualifier=0x17) + crob))
+    assert reqs[0]["objects"] == [
+        {"group": 41, "variation": 2, "index": 7, "value": 9},
+        {"group": 12, "variation": 1, "index": 3, "code": 0x03}]
+
+
+def test_dnp3_one_octet_count_with_qualifier_0x28_is_not_a_write():
+    """The mistake an earlier README taught: 0x28 with a 1-octet count.
+
+    OpenPLC answers it with 'Not enough data for specified objects' and
+    writes nothing, so the IDS must not decode a point out of it either.
+    """
+    wrong = bytes([41, 2, 0x28, 1]) + struct.pack("<Hh", 1128, 1) + b"\x00"
+    reqs = rules.parse_dnp3_requests(_dnp3_request(wrong))
+    assert reqs and reqs[0]["objects"] == []
+
+
+@pytest.mark.parametrize("func", [0x02, 0x03, 0x04, 0x05, 0x06])
+def test_dnp3_every_control_function_alerts(func):
+    alerts = rules.RuleEngine().check_packet(
+        _dnp3_packet(_dnp3_request(_ao_points((1128, 1)), func=func)))
+    assert _dnp3_alerts(alerts)[0]["dnp3"][0]["function"] == func
+
+
+def test_dnp3_read_link_status_and_responses_are_silent():
+    integrity_poll = _dnp3_request(bytes([60, 1, 0x06]), func=0x01)
+    link_status = _dnp3_frame(b"", control=0xC9)
+    # An outstation response (PRM clear) echoing the operate.
+    response = _dnp3_frame(bytes([0xC0, 0xC1, 0x81, 0, 0]) + _ao_points((1128, 1)),
+                           control=0x44, dest=1, source=10)
+    for payload in (integrity_poll, link_status, response):
+        assert not _dnp3_alerts(rules.RuleEngine().check_packet(_dnp3_packet(payload)))
+
+
+def test_dnp3_bad_crc_is_not_a_command():
+    """The outstation drops a frame with a wrong CRC, so the IDS ignores it too."""
+    for pos in (8, 20, len(DNP3_STOP) - 1):
+        broken = bytearray(DNP3_STOP)
+        broken[pos] ^= 0x01
+        assert rules.parse_dnp3_requests(bytes(broken)) == []
+
+
+@pytest.mark.parametrize("cut", range(1, len(DNP3_STOP)))
+def test_truncated_dnp3_never_raises(cut):
+    payload = DNP3_STOP[:cut]
+    assert rules.parse_dnp3_requests(payload) == []
+    rules.RuleEngine().check_packet(_dnp3_packet(payload))
+
+
+@pytest.mark.parametrize("payload", [
+    b"\x05\x64\x00\xc4" + b"\x00" * 20,                  # length below 5
+    b"\x05\x64\xff\xc4\x0a\x00\x01\x00" + b"\xff" * 40,  # length beyond payload
+    _dnp3_request(bytes([41, 2, 0x28, 0xff, 0xff])),   # 65535 points announced
+    _dnp3_request(bytes([99, 9, 0x28, 1, 0])),         # unknown object
+    bytes(range(256)),
+], ids=["short-length", "long-length", "count", "unknown-object", "noise"])
+def test_malformed_dnp3_never_raises(payload):
+    assert isinstance(rules.parse_dnp3_requests(payload), list)
+    rules.RuleEngine().check_packet(_dnp3_packet(payload))
+
+
+def test_two_dnp3_frames_in_one_segment_are_both_parsed():
+    restore = _dnp3_request(_ao_points((1128, 0)))
+    reqs = rules.parse_dnp3_requests(DNP3_STOP + restore)
+    assert [r["objects"][0]["value"] for r in reqs] == [1, 0]
+
+
+def test_dnp3_cooldown_suppresses_only_an_exact_repeat():
+    """Set, restore and set again are three alerts; a repeat is folded.
+
+    The DNP3 Side Door verify check lets the newest alert for the stop flag
+    decide, exactly as the S7 one does.
+    """
+    engine = rules.RuleEngine()
+    restore = _dnp3_request(_ao_points((1128, 0)))
+    first = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    repeat = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    back = _dnp3_alerts(engine.check_packet(_dnp3_packet(restore)))
+    again = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    other_host = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP, src=OUTSIDE)))
+    assert len(first) == 1 and not repeat
+    assert len(back) == 1 and back[0]["dnp3"][0]["objects"][0]["value"] == 0
+    assert len(again) == 1 and again[0]["dnp3"][0]["objects"][0]["value"] == 1
+    assert len(other_host) == 1
+
+
+def test_port_20000_is_captured():
+    with open(os.path.join(IDS_DIR, "detector.py"), encoding="utf-8") as fh:
+        ports = re.search(r"_IDS_PORTS = \(([^)]*)\)", fh.read()).group(1)
+    assert "20000" in ports, "DNP3 traffic would be dropped before any rule runs"

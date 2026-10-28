@@ -20,7 +20,7 @@ MAX_ALERTS = 500
 CLEANUP_PACKET_INTERVAL = 5000  # run cleanup every N packets
 
 # Ports the rule engine cares about
-_IDS_PORTS = (502, 102, 1102, 8080, 1881, 4840)
+_IDS_PORTS = (502, 102, 1102, 8080, 1881, 4840, 20000)
 
 # Known legitimate Modbus polling pairs (src, dst) to exclude in BPF.
 # These generate ~99% of traffic but never trigger any rule.

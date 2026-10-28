@@ -30,7 +30,7 @@ An **intrusion detection system** watches traffic and compares it with **rules**
 
 ## How it looks on CybICS
 
-The CybICS IDS runs on the host and listens to all traffic on the plant network `172.18.0.0/24`. It has ten rules; the one for this challenge is called `port_scan`.
+The CybICS IDS runs on the host and listens to all traffic on the plant network `172.18.0.0/24`. It has eleven rules; the one for this challenge is called `port_scan`.
 
 | Part of the rule | Value on CybICS |
 |---|---|

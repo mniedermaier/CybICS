@@ -4,6 +4,7 @@ Lightweight rule engine optimized for Raspberry Pi Zero 2 W
 """
 
 from collections import deque
+import struct
 import time
 import logging
 
@@ -57,6 +58,30 @@ S7_AREAS = {0x81: "PE", 0x82: "PA", 0x83: "MK", 0x84: "DB", 0x1C: "CT", 0x1D: "T
 # and at most this many data bytes of each item.
 S7_MAX_ITEMS = 8
 S7_MAX_DATA = 16
+
+# DNP3 on TCP 20000 (OpenPLC's outstation).  Application function codes that
+# act on the outstation; a READ (0x01) does not and is ignored, the same way
+# the Modbus rules ignore reads.  Only the three operate codes change memory --
+# a SELECT just arms a later OPERATE -- but every one of them is a command a
+# plant without a DNP3 master should never see.
+DNP3_PORT = 20000
+DNP3_CONTROL_FUNCTIONS = {
+    0x02: "WRITE",
+    0x03: "SELECT",
+    0x04: "OPERATE",
+    0x05: "DIRECT_OPERATE",
+    0x06: "DIRECT_OPERATE_NR",
+}
+DNP3_OPERATE_FUNCTIONS = frozenset((0x04, 0x05, 0x06))
+# Point sizes of the control objects the parser decodes, by (group, variation):
+# g12v1 Control Relay Output Block, g41v1-4 Analog Output Int32/Int16/
+# Float32/Double64, each with the trailing status byte.
+_DNP3_OBJECT_SIZES = {(12, 1): 11, (41, 1): 5, (41, 2): 3, (41, 3): 5, (41, 4): 9}
+# Qualifiers used for control requests: index prefix and count, both 1 octet
+# (0x17) or both 2 octets (0x28).
+_DNP3_QUALIFIERS = {0x17: 1, 0x28: 2}
+DNP3_MAX_FRAMES = 16
+DNP3_MAX_POINTS = 8
 
 # Services that legitimately write to Modbus at high rates
 _MODBUS_WRITERS = frozenset(("hwio", "fuxa", "openplc"))
@@ -112,6 +137,7 @@ class RuleEngine:
         # Deduplication: avoid repeating same alert
         self.recent_alerts = {}  # (rule, src) -> last_alert_time
         self.s7_last_write = {}  # (dst, port) -> ((src, items), time) of the last write
+        self.dnp3_last_request = {}  # (dst, port) -> ((src, requests), time), as for S7
         self.ALERT_COOLDOWN = 30
 
     def _should_alert(self, rule_name, source_ip, now):
@@ -179,6 +205,9 @@ class RuleEngine:
         elif dport == 4840:
             # OPC-UA rule 9
             self._check_opcua(pkt, src_ip, alerts)
+        elif dport == DNP3_PORT:
+            # DNP3 rule 11
+            self._check_dnp3(pkt, src_ip, dport, alerts)
 
         return alerts
 
@@ -402,6 +431,44 @@ class RuleEngine:
                     "message": f"OPC-UA access from non-service host {src_ip}",
                 })
 
+    # ---- Rule 11: DNP3 control requests (dnp3_operate) ----
+
+    def _check_dnp3(self, pkt, src_ip, dport, alerts):
+        # No plant service speaks DNP3, so every control request is an alert.
+        # Suppression works exactly as for s7_write: only an exact repeat of
+        # the previous request to this outstation (same host, function, link
+        # addresses, application sequence number, object bytes) within the
+        # cooldown is folded, so the newest alert that covers a point carries
+        # the value last sent to it, and a SELECT resent with a new sequence
+        # number is logged again.  The rule logs requests, not their outcome:
+        # an OPERATE without a matching SELECT is logged although the
+        # outstation refuses it.  The DNP3 Side Door verify check relies on
+        # both and pairs SELECT and OPERATE itself.
+        requests = parse_dnp3_requests(pkt[_PAYLOAD])
+        if not requests:
+            return
+        now = time.time()
+        dst_ip = pkt[_DST_IP]
+        signature = (src_ip, tuple(
+            (r["function"], r["link_dst"], r["link_src"], r["seq"], r["objects_crc"],
+             tuple(tuple(sorted(o.items())) for o in r["objects"]))
+            for r in requests))
+        last = self.dnp3_last_request.get((dst_ip, dport))
+        if last is not None and last[0] == signature and now - last[1] < self.ALERT_COOLDOWN:
+            return
+        self.dnp3_last_request[(dst_ip, dport)] = (signature, now)
+        what = "; ".join(_describe_dnp3_request(r) for r in requests)
+        alerts.append({
+            "rule": "dnp3_operate",
+            "severity": SEVERITY_HIGH,
+            "mitre": MITRE_COMMAND_MESSAGE,
+            "src": src_ip,
+            "dst": dst_ip,
+            "dport": dport,
+            "message": f"DNP3 control from {src_ip} to {dst_ip}:{dport}: {what}",
+            "dnp3": requests,
+        })
+
     # ---- Stats & cleanup ----
 
     def get_stats(self):
@@ -524,3 +591,145 @@ def parse_s7_write(payload):
     except (IndexError, ValueError):
         return []
     return items[:S7_MAX_ITEMS]
+
+
+# ---- DNP3 parsing (rule 11) ----
+
+def _dnp3_crc_table():
+    table = []
+    for byte in range(256):
+        crc = byte
+        for _ in range(8):
+            crc = (crc >> 1) ^ 0xA6BC if crc & 1 else crc >> 1
+        table.append(crc)
+    return table
+
+
+_DNP3_CRC_TABLE = _dnp3_crc_table()
+
+
+def dnp3_crc(data):
+    """CRC-16/DNP of a block, as the integer sent little-endian after it."""
+    crc = 0
+    for byte in data:
+        crc = (crc >> 8) ^ _DNP3_CRC_TABLE[(crc ^ byte) & 0xFF]
+    return ~crc & 0xFFFF
+
+
+def _dnp3_objects(data):
+    """Control points in the object headers of a request, best effort.
+
+    Decodes g12v1 (CROB) and g41v1-4 (analog output) with qualifier 0x17 or
+    0x28, the forms a control request uses.  Parsing stops at the first header
+    it cannot size, and a header whose points do not fit in the data yields
+    none of them: an outstation rejects such a request, so it must not look
+    like a write here either.
+    """
+    objects = []
+    pos = 0
+    while pos + 3 <= len(data) and len(objects) < DNP3_MAX_POINTS:
+        group, variation, qualifier = data[pos], data[pos + 1], data[pos + 2]
+        size = _DNP3_OBJECT_SIZES.get((group, variation))
+        width = _DNP3_QUALIFIERS.get(qualifier)
+        if size is None or width is None:
+            break
+        pos += 3
+        if pos + width > len(data):
+            break
+        count = int.from_bytes(data[pos:pos + width], "little")
+        pos += width
+        end = pos + count * (width + size)
+        if count == 0 or end > len(data):
+            break
+        for _ in range(count):
+            index = int.from_bytes(data[pos:pos + width], "little")
+            point = data[pos + width:pos + width + size]
+            pos += width + size
+            obj = {"group": group, "variation": variation, "index": index}
+            if group == 12:
+                obj["code"] = point[0]   # control code: latch on 0x03, off 0x04, ...
+            elif variation == 1:
+                obj["value"] = int.from_bytes(point[0:4], "little", signed=True)
+            elif variation == 2:
+                obj["value"] = int.from_bytes(point[0:2], "little", signed=True)
+            elif variation == 3:
+                obj["value"] = struct.unpack("<f", point[0:4])[0]
+            else:
+                obj["value"] = struct.unpack("<d", point[0:8])[0]
+            if len(objects) < DNP3_MAX_POINTS:
+                objects.append(obj)
+    return objects
+
+
+def parse_dnp3_requests(payload):
+    """Control requests in a TCP payload to a DNP3 outstation, or [] if none.
+
+    The payload is one or more link-layer frames: 05 64, length, control,
+    destination and source address (little-endian), a CRC over those eight
+    bytes, then the user data in blocks of up to 16 bytes, each followed by its
+    own CRC.  Only frames from a master carrying user data, with every CRC
+    correct, are read -- the outstation drops anything else, so the IDS must
+    not count it as a command either.  The user data starts with the transport
+    header; the first segment of a message (FIR) carries the application
+    control byte and the function code, then the object headers.
+    """
+    requests = []
+    pos = 0
+    try:
+        for _ in range(DNP3_MAX_FRAMES):
+            if pos + 10 > len(payload) or payload[pos:pos + 2] != b"\x05\x64":
+                break
+            length, control = payload[pos + 2], payload[pos + 3]
+            if length < 5:
+                break
+            data_len = length - 5
+            frame_len = 10 + data_len + 2 * ((data_len + 15) // 16)
+            frame = payload[pos:pos + frame_len]
+            pos += frame_len
+            # PRM set (from the initiating station) and a user-data function
+            # (3 confirmed, 4 unconfirmed); link status, resets and replies
+            # carry no command.
+            if len(frame) < frame_len or not control & 0x40 or control & 0x0F not in (3, 4):
+                continue
+            if dnp3_crc(frame[0:8]) != int.from_bytes(frame[8:10], "little"):
+                continue
+            user = bytearray()
+            ok = True
+            for start in range(10, frame_len, 18):
+                block = frame[start:min(start + 16, frame_len - 2)]
+                crc = frame[start + len(block):start + len(block) + 2]
+                if dnp3_crc(block) != int.from_bytes(crc, "little"):
+                    ok = False
+                    break
+                user += block
+            if not ok or len(user) < 3 or not user[0] & 0x40:
+                continue
+            function = user[2]
+            if function not in DNP3_CONTROL_FUNCTIONS:
+                continue
+            requests.append({
+                "function": function,
+                "function_name": DNP3_CONTROL_FUNCTIONS[function],
+                "link_dst": int.from_bytes(frame[4:6], "little"),
+                "link_src": int.from_bytes(frame[6:8], "little"),
+                # Application sequence number and a CRC-16/DNP of the raw
+                # object headers: an outstation runs an OPERATE (0x04) only
+                # when a SELECT with the previous sequence number and the
+                # same object bytes came first, and these two fields let a
+                # consumer pair them the same way.
+                "seq": user[1] & 0x0F,
+                "objects_crc": dnp3_crc(bytes(user[3:])),
+                "objects": _dnp3_objects(bytes(user[3:])),
+            })
+    except (IndexError, ValueError, struct.error):
+        return []
+    return requests
+
+
+def _describe_dnp3_request(request):
+    points = ", ".join(
+        f"g{o['group']}v{o['variation']} index {o['index']} = "
+        + (f"code 0x{o['code']:02X}" if "code" in o else f"{o['value']:g}")
+        for o in request["objects"]) or "no decoded points"
+    return (f"{request['function_name']} link {request['link_src']} -> "
+            f"{request['link_dst']}: {points}")

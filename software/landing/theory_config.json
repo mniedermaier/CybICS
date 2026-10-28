@@ -458,6 +458,23 @@
             "modbus",
             "attack-lifecycle"
           ]
+        },
+        {
+          "id": "dnp3_sidedoor",
+          "title": "DNP3 Side Door",
+          "summary": "Commanding the PLC over DNP3 on port 20000, a protocol the Modbus firewall and IDS rules never watch.",
+          "content": "training/theory/modules/dnp3_sidedoor.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "dnp3_sidedoor",
+              "label": "DNP3 Side Door"
+            }
+          ],
+          "prerequisites": [
+            "other-protocols",
+            "attack-lifecycle"
+          ]
         }
       ]
     },

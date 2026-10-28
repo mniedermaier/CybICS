@@ -600,6 +600,7 @@
         .protocol-badge.tcp { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
         .protocol-badge.arp { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
         .protocol-badge.opcua { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+        .protocol-badge.dnp3 { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
         .rule-hints {
             margin-top: 0.5rem;
@@ -1350,6 +1351,11 @@
           threshold: 'Any connection',
           attack_hint: 'Connect to opc.tcp://172.18.0.5:4840 from the attack machine',
           evasion_hint: 'Alert fires for any non-service host — no threshold to evade' },
+        { id: 'dnp3_operate', name: 'DNP3 Control', severity: 'high', mitre: 'T1692.001', protocol: 'dnp3',
+          desc: 'Detects DNP3 control requests (WRITE, SELECT, OPERATE, DIRECT OPERATE) to the OpenPLC outstation on port 20000 and reports the link addresses, points and values. Only frames with correct CRCs count. Reads, link status requests and responses do not trigger it.',
+          threshold: 'Every control request (exact repeats of the previous one: once per 30s)',
+          attack_hint: 'A Direct Operate (function 0x05) on an analog output (g41v2) to 172.18.0.3:20000',
+          evasion_hint: 'Any control request fires it -- a DNP3 command cannot stay under a threshold' },
     ];
 
     /* ===== API HELPERS ===== */

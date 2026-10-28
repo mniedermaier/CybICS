@@ -1,0 +1,76 @@
+diff --git a/webserver/core/dnp3.cpp b/webserver/core/dnp3.cpp
+index b49c8e3..5e9873f 100755
+--- a/webserver/core/dnp3.cpp
++++ b/webserver/core/dnp3.cpp
+@@ -104,6 +104,11 @@ public:
+         CommandStatus return_val;
+             
+            
++        // bool_output has BUFFER_SIZE * 8 points; a larger index read past the
++        // end of the array and wrote through whatever pointer it found there.
++        if(index >= BUFFER_SIZE * 8)
++            return CommandStatus::OUT_OF_RANGE;
++
+         if(code == ControlCode::LATCH_ON || code == ControlCode::LATCH_OFF) {
+             return_val = CommandStatus::SUCCESS;
+ 
+@@ -129,17 +134,22 @@ public:
+     virtual CommandStatus Operate(const AnalogOutputInt16& command, uint16_t index, OperateType opType) {
+         index = index + offset_ao;
+         auto ao_val = command.value;
++        // Range check before taking the lock. The out-of-range branch used to
++        // return with bufferLock still held, which froze the scan cycle and
++        // every other protocol until the runtime was restarted; an index below
++        // MIN_16B_RANGE whose output was unmapped fell through to
++        // int_memory[index - MIN_16B_RANGE], a negative index.
++        if(index >= MAX_16B_RANGE)
++            return CommandStatus::OUT_OF_RANGE;
++
+         pthread_mutex_lock(&bufferLock);
+-        if(index < MIN_16B_RANGE && int_output[index] != NULL) {
+-            *int_output[index] = ao_val;
++        if(index < MIN_16B_RANGE) {
++            if(int_output[index] != NULL)
++                *int_output[index] = ao_val;
+         }
+-        else if(index < MAX_16B_RANGE && 
+-                int_memory[index - MIN_16B_RANGE] != NULL) {
++        else if(int_memory[index - MIN_16B_RANGE] != NULL) {
+             *int_memory[index - MIN_16B_RANGE] = ao_val;
+         }
+-        else if(index > MAX_16B_RANGE) {
+-            return CommandStatus::OUT_OF_RANGE;
+-        }
+         pthread_mutex_unlock(&bufferLock);
+         return CommandStatus::SUCCESS;
+     }
+@@ -151,7 +161,8 @@ public:
+     virtual CommandStatus Operate(const AnalogOutputInt32& command, uint16_t index, OperateType opType) {
+         auto ao_val = command.value;
+ 
+-        if(index < MIN_32B_RANGE || index >= MAX_32B_RANGE)
++        // dint_memory holds BUFFER_SIZE entries, fewer than the range allows.
++        if(index < MIN_32B_RANGE || index >= MAX_32B_RANGE || index - MIN_32B_RANGE >= BUFFER_SIZE)
+             return CommandStatus::OUT_OF_RANGE;
+         
+         pthread_mutex_lock(&bufferLock);
+@@ -171,7 +182,8 @@ public:
+     virtual CommandStatus Operate(const AnalogOutputFloat32& command, uint16_t index, OperateType opType) {
+         auto ao_val = command.value;
+ 
+-        if(index < MIN_32B_RANGE || index >= MAX_32B_RANGE)
++        // dint_memory holds BUFFER_SIZE entries, fewer than the range allows.
++        if(index < MIN_32B_RANGE || index >= MAX_32B_RANGE || index - MIN_32B_RANGE >= BUFFER_SIZE)
+             return CommandStatus::OUT_OF_RANGE;
+         
+         pthread_mutex_lock(&bufferLock);
+@@ -190,7 +202,8 @@ public:
+     virtual CommandStatus Operate(const AnalogOutputDouble64& command, uint16_t index, OperateType opType) {
+         auto ao_val = command.value;
+ 
+-        if(index < MIN_64B_RANGE || index >= MAX_64B_RANGE)
++        // lint_memory holds BUFFER_SIZE entries, fewer than the range allows.
++        if(index < MIN_64B_RANGE || index >= MAX_64B_RANGE || index - MIN_64B_RANGE >= BUFFER_SIZE)
+             return CommandStatus::OUT_OF_RANGE;
+         
+         pthread_mutex_lock(&bufferLock);

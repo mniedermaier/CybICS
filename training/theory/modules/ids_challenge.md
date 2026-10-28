@@ -25,7 +25,7 @@ A single rule only covers a single behaviour. Real attacks have several stages: 
 
 ## How it looks on CybICS
 
-The IDS runs on the CybICS host and listens to all traffic on the plant network `172.18.0.0/24`. Its dashboard is on port **8443**. It has ten rules:
+The IDS runs on the CybICS host and listens to all traffic on the plant network `172.18.0.0/24`. Its dashboard is on port **8443**. It has eleven rules:
 
 | Rule | What sets it off | Severity |
 |---|---|---|
@@ -39,6 +39,7 @@ The IDS runs on the CybICS host and listens to all traffic on the plant network 
 | `arp_spoof` | one IP address seen with two different MAC addresses | critical |
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low |
 | `s7_write` | an S7comm write request to port 102 or 1102; the alert names the address and value written | high |
+| `dnp3_operate` | a DNP3 control request (operate, select or write) to port 20000 with correct CRCs; the alert names the points and values | high |
 
 Every alert records the rule, the source and target, a severity and a MITRE ATT&CK for ICS technique. The dashboard shows them live; the API at `/api/alerts`, `/api/summary` and `/api/rules/stats` returns the same data for scripts.
 

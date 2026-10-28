@@ -39,7 +39,7 @@ The CybICS IDS runs with host networking, so it can listen to the Docker bridge 
 | `/api/start`, `/api/stop` | start or stop capturing |
 | `/api/rules/stats` | how many alerts each rule has produced |
 
-There are ten rules. Each one watches for a different kind of activity: port scans, connection floods, Modbus write floods, unauthorised Modbus writes, Modbus diagnostic requests, S7comm access, S7comm writes, login brute force, ARP spoofing and OPC-UA access from unknown hosts. The Rules tab shows each rule's threshold and window.
+There are eleven rules. Each one watches for a different kind of activity: port scans, connection floods, Modbus write floods, unauthorised Modbus writes, Modbus diagnostic requests, S7comm access, S7comm writes, DNP3 control commands, login brute force, ARP spoofing and OPC-UA access from unknown hosts. The Rules tab shows each rule's threshold and window.
 
 The **Verify Defense** check tests the three links from the figure in order. The rule counts come from the alert buffer, so emptying the buffer also resets them.
 
