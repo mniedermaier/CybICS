@@ -103,6 +103,7 @@ After completing this challenge, consider:
 - What happens if the FUXA HMI is compromised? The attacker now has authorized Modbus access.
 - How would you implement deep packet inspection for Modbus to allow reads but block writes?
 - What are the trade-offs between host-based firewalls (iptables) and network firewalls?
+- OpenPLC also serves S7comm (102), DNP3 (20000) and EtherNet/IP (44818). Does your rule set stop an attacker who writes the same memory over one of those? The [S7 Side Door](../s7_sidedoor/README.md) challenge tries exactly that.
 - How would you make these rules persistent across container restarts?
 
 

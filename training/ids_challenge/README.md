@@ -60,7 +60,7 @@ client.close()
 
 ## Detection Rules
 
-The CybICS IDS implements 9 detection rules:
+The CybICS IDS implements 10 detection rules:
 
 1. **Port Scan** — Detects SYN packets to multiple ports on a single target
 2. **SYN Flood** — Detects excessive SYN packets from a single source
@@ -71,6 +71,7 @@ The CybICS IDS implements 9 detection rules:
 7. **HTTP Brute Force** — Detects repeated login attempts on OpenPLC/FUXA
 8. **ARP Spoofing** — Detects multiple MAC addresses for a single IP
 9. **OPC-UA Unauthorized Access** — Detects OPC-UA connections from unknown hosts
+10. **S7comm Write** — Detects S7comm write requests and reports what was written
 
 ## Security Framework References
 

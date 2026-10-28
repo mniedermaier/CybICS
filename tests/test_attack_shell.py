@@ -144,7 +144,7 @@ class TestTools:
 
     def test_python_libraries_import(self, shell):
         out = shell.run(
-            "python3 -c 'import pymodbus, asyncua, nmap, colorama, serial, requests, dotenv; "
+            "python3 -c 'import pymodbus, asyncua, nmap, colorama, serial, requests, dotenv, snap7; "
             "from scapy.layers.l2 import ARP; print(\"IMPORTS\", pymodbus.__version__)'",
             timeout=60)
         assert "IMPORTS 3.11.3" in out

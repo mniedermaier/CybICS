@@ -215,6 +215,11 @@
               "type": "ctf",
               "id": "scanning2",
               "label": "S7comm Scanning"
+            },
+            {
+              "type": "ctf",
+              "id": "s7_sidedoor",
+              "label": "S7 Side Door"
             }
           ],
           "prerequisites": [
@@ -346,6 +351,23 @@
           "prerequisites": [
             "s7comm",
             "scanning"
+          ]
+        },
+        {
+          "id": "s7_sidedoor",
+          "title": "The S7 side door",
+          "summary": "Writing the PLC's memory over S7comm when Modbus is firewalled: one memory, several protocols.",
+          "content": "training/theory/modules/s7_sidedoor.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "s7_sidedoor",
+              "label": "S7 Side Door"
+            }
+          ],
+          "prerequisites": [
+            "s7comm",
+            "scanning2"
           ]
         },
         {

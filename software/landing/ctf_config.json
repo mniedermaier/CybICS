@@ -123,6 +123,18 @@
           "flag": "CybICS(modbus_fuzzing_complete)",
           "hint": "Fuzz the Modbus server including diagnostic function codes, then click Verify.",
           "training_content": "training/fuzzingMB/README.md"
+        },
+        {
+          "id": "s7_sidedoor",
+          "title": "S7 Side Door",
+          "description": "The Modbus port can be firewalled, but the PLC also speaks S7comm. Stop the plant through OpenPLC's S7 server on port 102.",
+          "points": 250,
+          "type": "verify",
+          "verify_module": "check_s7_sidedoor",
+          "tag": "exploit",
+          "flag": "CybICS(s7_s1d3_d00r)",
+          "hint": "OpenPLC's Snap7 server maps the %MW memory words to data block DB1002, two bytes per word. Write 1 to the stop flag over S7comm, click Verify while the plant is stopped, then write 0 back.",
+          "training_content": "training/s7_sidedoor/README.md"
         }
       ]
     },

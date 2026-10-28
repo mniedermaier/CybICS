@@ -151,7 +151,7 @@ Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per r
 
 </details>
 
-## The nine CybICS rules
+## The ten CybICS rules
 
 *Signature* rules match something known to be bad, such as a diagnostic request; the counting *anomaly* rules flag far more of something than normal.
 
@@ -163,6 +163,7 @@ Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per r
 | `modbus_unauth_write` | 10 Modbus writes within 30 s, not from `hwio` or FUXA | a host that should never write |
 | `modbus_diagnostic` | any Modbus request with function code 0x08 or 0x2B | fingerprinting the PLC |
 | `s7_enumeration` | any S7comm data to port 102 or 1102 | probing with Siemens S7 |
+| `s7_write` | an S7comm write request to port 102 or 1102 | changing PLC memory over S7 |
 | `http_brute_force` | 5 POSTs mentioning `login` or `auth` within 30 s | password guessing |
 | `arp_spoof` | one IP address with two or more hardware (MAC) addresses | man-in-the-middle |
 | `opcua_access` | OPC-UA traffic from a host that is not a plant service | unexpected OPC-UA client |
@@ -178,6 +179,7 @@ Once a rule fires, a second timer starts: a **cooldown** of thirty seconds per r
 | `modbus_unauth_write` | 10 Modbus writes within 30 s from a host other than `hwio` or FUXA | high | a host that should never write is writing |
 | `modbus_diagnostic` | any Modbus diagnostic (0x08) or device-identification (0x2B) request | medium | someone is fingerprinting the PLC |
 | `s7_enumeration` | any S7comm data to port 102 or 1102 | medium | someone is talking Siemens S7 to the plant |
+| `s7_write` | an S7comm write request (function 0x05) to port 102 or 1102; once per distinct write every 30 s | high | someone is changing PLC memory past the Modbus rules, as in S7 Side Door |
 | `http_brute_force` | 5 POSTs mentioning `login` or `auth` to port 8080 or 1881 within 30 s (OpenPLC's login, not FUXA's `/api/signin`) | high | password guessing |
 | `arp_spoof` | one IP address shows up with more than one hardware (MAC) address | critical | a man-in-the-middle is redirecting traffic |
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low | an unexpected client is browsing the OPC-UA server |

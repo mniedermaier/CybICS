@@ -143,3 +143,133 @@ def test_dashboard_service_table_matches_the_rules_table():
         f"only in the page: {sorted(set(page_table) - set(rules.KNOWN_SERVICES))}, "
         f"only in rules.py: {sorted(set(rules.KNOWN_SERVICES) - set(page_table))}"
     )
+
+
+# ---- Rule 10: S7comm WriteVar (s7_write) ----
+#
+# The frames below are TCP payloads captured with tcpdump in the attack shell
+# while python-snap7 3.3.0 ran training/s7_sidedoor/s7_sidedoor.py against
+# OpenPLC's Snap7 server (172.18.0.3:102) on the virtual stack.
+
+OPENPLC = "172.18.0.3"
+# db_write(1002, 208, b"\x00\x01"): WriteVar, one item, DB1002 byte 208,
+# transport size 0x04 (bits), 16 bits of data.
+S7_WRITE_STOP = bytes.fromhex(
+    "0300002502f080320100000003000e00060501120a1002000203ea84000680000400100001")
+# db_read(1002, 208, 2): ReadVar (function 0x04) of the same word.
+S7_READ_STOP = bytes.fromhex(
+    "0300001f02f080320100000006000e00000401120a1002000203ea84000680")
+# The connection set-up a client sends first: COTP connect, Setup Communication.
+S7_COTP_CONNECT = bytes.fromhex("0300001611e00000000100c1020100c2020101c0010a")
+S7_SETUP = bytes.fromhex("0300001902f08032010000000100080000f0000001000101e0")
+# write_area(PA, 0, 0, b"\x04"): the process image of outputs, %QX0.0-0.7.
+S7_WRITE_OUTPUTS = bytes.fromhex(
+    "0300002402f080320100000007000e00050501120a100200010000820000000004000804")
+
+
+def _s7_packet(payload, src=ATTACK_MACHINE, dport=102):
+    return (src, OPENPLC, 51000, dport, "PA", 6, payload, None)
+
+
+def _s7_writes(alerts):
+    return [a for a in alerts if a["rule"] == "s7_write"]
+
+
+def test_parse_s7_write_decodes_a_captured_db_write():
+    assert rules.parse_s7_write(S7_WRITE_STOP) == [{
+        "area": "DB", "db": 1002, "start": 208, "bit": 0, "length": 2, "data": "0001"}]
+
+
+@pytest.mark.parametrize("payload", [S7_READ_STOP, S7_COTP_CONNECT, S7_SETUP],
+                         ids=["readvar", "cotp-connect", "setup"])
+def test_parse_s7_write_ignores_everything_but_writes(payload):
+    assert rules.parse_s7_write(payload) == []
+
+
+def test_s7_write_alerts_with_the_address_and_value():
+    alerts = rules.RuleEngine().check_packet(_s7_packet(S7_WRITE_STOP))
+    writes = _s7_writes(alerts)
+    assert len(writes) == 1
+    alert = writes[0]
+    assert alert["severity"] == "high"
+    assert alert["mitre"] == "T1692.001"
+    assert (alert["src"], alert["dst"], alert["dport"]) == (ATTACK_MACHINE, OPENPLC, 102)
+    assert "DB1002.DBB208" in alert["message"] and "0001" in alert["message"]
+    # Every S7comm payload is still also an s7_enumeration alert.
+    assert any(a["rule"] == "s7_enumeration" for a in alerts)
+
+
+def test_s7_read_raises_no_write_alert():
+    alerts = rules.RuleEngine().check_packet(_s7_packet(S7_READ_STOP))
+    assert not _s7_writes(alerts)
+    assert any(a["rule"] == "s7_enumeration" for a in alerts)
+
+
+def test_s7_write_to_the_outputs_is_named_as_such():
+    writes = _s7_writes(rules.RuleEngine().check_packet(_s7_packet(S7_WRITE_OUTPUTS)))
+    assert writes and writes[0]["s7_items"][0]["area"] == "PA"
+    assert "process outputs" in writes[0]["message"]
+
+
+def test_s7_write_on_the_gateway_port_alerts_too():
+    assert _s7_writes(rules.RuleEngine().check_packet(_s7_packet(S7_WRITE_STOP, dport=1102)))
+
+
+@pytest.mark.parametrize("cut", range(1, len(S7_WRITE_STOP)))
+def test_truncated_s7_write_never_raises(cut):
+    """The sniffer's snap length or a split segment can cut any frame short."""
+    payload = S7_WRITE_STOP[:cut]
+    items = rules.parse_s7_write(payload)
+    assert isinstance(items, list)
+    rules.RuleEngine().check_packet(_s7_packet(payload))
+
+
+@pytest.mark.parametrize("payload", [
+    b"\x03\x00\x00\x00" + b"\x00" * 20,              # TPKT length 0
+    b"\x03\x00\xff\xff\x02\xf0\x80\x32\x01",          # length beyond the payload
+    b"\x03\x00\x00\x25\x02\xf0\x80\x32\x01" + b"\xff" * 28,  # garbage lengths
+    b"\x03\x00\x00\x25\x7f\xf0" + b"\x00" * 31,       # COTP length past the frame
+    S7_WRITE_STOP[:24] + b"\x05\xff" + S7_WRITE_STOP[26:],   # 255 items announced
+    bytes(range(256)),
+], ids=["zero-length", "long-length", "garbage", "cotp", "item-count", "noise"])
+def test_malformed_s7_payload_never_raises(payload):
+    assert isinstance(rules.parse_s7_write(payload), list)
+    rules.RuleEngine().check_packet(_s7_packet(payload))
+
+
+def test_two_frames_in_one_segment_are_both_parsed():
+    items = rules.parse_s7_write(S7_READ_STOP + S7_WRITE_STOP)
+    assert [i["start"] for i in items] == [208]
+
+
+def test_s7_write_cooldown_suppresses_only_an_exact_repeat():
+    """Repeating one write is one alert; every change of value is another.
+
+    The S7 Side Door verify check lets the newest alert covering the stop flag
+    decide, so set, restore and set again must be three alerts even inside
+    the cooldown, or the second set would hide behind the restore.
+    """
+    engine = rules.RuleEngine()
+    restore = S7_WRITE_STOP[:-1] + b"\x00"
+    first = _s7_writes(engine.check_packet(_s7_packet(S7_WRITE_STOP)))
+    repeat = _s7_writes(engine.check_packet(_s7_packet(S7_WRITE_STOP)))
+    back = _s7_writes(engine.check_packet(_s7_packet(restore)))
+    again = _s7_writes(engine.check_packet(_s7_packet(S7_WRITE_STOP)))
+    other_host = _s7_writes(engine.check_packet(_s7_packet(S7_WRITE_STOP, src=OUTSIDE)))
+    assert len(first) == 1 and not repeat
+    assert len(back) == 1 and back[0]["s7_items"][0]["data"] == "0000"
+    assert len(again) == 1 and again[0]["s7_items"][0]["data"] == "0001"
+    assert len(other_host) == 1
+
+
+def test_every_rule_is_listed_by_the_server_and_the_dashboard():
+    """ALL_RULE_IDS (stats API) and the dashboard's rule table name every rule."""
+    with open(os.path.join(IDS_DIR, "rules.py"), encoding="utf-8") as fh:
+        emitted = set(re.findall(r'"rule": "(\w+)"', fh.read()))
+    with open(os.path.join(IDS_DIR, "ids_server.py"), encoding="utf-8") as fh:
+        block = re.search(r"ALL_RULE_IDS = \[(.*?)\]", fh.read(), re.S).group(1)
+    listed = set(re.findall(r'"(\w+)"', block))
+    with open(os.path.join(IDS_DIR, "templates", "index.html"), encoding="utf-8") as fh:
+        page = set(re.findall(r"\{ id: '(\w+)', name: '[^']*', severity:", fh.read()))
+    assert emitted == listed, f"ALL_RULE_IDS differs from rules.py: {emitted ^ listed}"
+    assert emitted <= page, f"rules missing on the dashboard: {emitted - page}"

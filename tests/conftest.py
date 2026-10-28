@@ -57,6 +57,8 @@ HWIO_PORT = _port("HWIO", 8090)
 NGINX_PROXY_PORT = _port("NGINX_PROXY", 8082)
 # The attack shell's browser terminal (ttyd), the attacker host 172.18.0.100.
 ATTACK_SHELL_PORT = _port("ATTACK_SHELL", 7681)
+# The IDS dashboard and API (plain HTTP; landing's verify modules use it too).
+IDS_PORT = _port("IDS", 8443)
 
 OPCUA_SERVER_URL = f"opc.tcp://{SERVER_IP}:{OPCUA_SERVER_PORT}"
 

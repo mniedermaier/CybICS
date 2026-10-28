@@ -2,5 +2,6 @@ colorama
 pymodbus
 python-dotenv
 python-nmap
+python-snap7
 pyserial
 requests

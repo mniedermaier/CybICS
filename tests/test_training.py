@@ -10,6 +10,7 @@ Tests include:
 - Attack detection and response verification
 """
 
+import json
 import pytest
 import time
 import os
@@ -17,7 +18,8 @@ import requests
 from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
-from conftest import SERVER_IP, CONNECTION_TIMEOUT, OPENPLC_PORT, FUXA_PORT, modbus_call
+from conftest import (SERVER_IP, CONNECTION_TIMEOUT, READ_TIMEOUT, OPENPLC_PORT, FUXA_PORT,
+                      S7_SERVER_PORT, NGINX_PROXY_PORT, IDS_PORT, modbus_call)
 from dotenv import load_dotenv
 
 # Test Configuration
@@ -299,6 +301,178 @@ class TestFloodOverwrite:
             pytest.fail(f"Modbus connection failed during the write test: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during write test: {e}")
+
+
+# ===============================================================================
+# S7 Side Door Training Tests
+# ===============================================================================
+
+# OpenPLC's Snap7 server: %MW memory is data block DB1002, two bytes per word.
+S7_MEMORY_DB = 1002
+S7_STOP_OFFSET = 208     # %MW104, Modbus holding register 1128
+S7_MANUAL_OFFSET = 212   # %MW106, Modbus holding register 1130
+STOP_REGISTER = 1128
+MANUAL_REGISTER = 1130
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestS7SideDoor:
+    """
+    The S7 Side Door challenge end to end: stop the plant with an S7comm
+    write to OpenPLC's port 102, see the IDS name the write, get the flag
+    from the landing page's verify route, and put the plant back.
+
+    Before the real solve it replays the hole an earlier version of the check
+    had: an S7 stop, an S7 restore, then a stop over Modbus. Verify must refuse
+    that, because only the newest S7 write of the flag counts.
+
+    The plant is restored in a finally block, whatever fails, because a
+    stopped plant would break the other challenges and later tests. The run
+    leaves its s7_write alerts in the IDS buffer; the last one that touches
+    the stop flag writes 0, so it does not pre-arm the challenge for anyone.
+
+    A successful POST /ctf/verify/<id> also records the solve, and on a
+    challenge that is already solved it answers "already solved" without
+    running the check. So the board's CTF progress is read first, the
+    challenge is taken out of it if needed, and afterwards the progress is put
+    back exactly as it was: /ctf/reset, then the recorded flags submitted again
+    in their original order. A board connected to a CybICS-mgmt event would
+    report those re-submissions; do not run the suite against one.
+    """
+
+    BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+
+    @staticmethod
+    def _s7_client():
+        import snap7  # tests/requirements.txt; a missing library is a failure, not a skip
+        client = snap7.client.Client()
+        client.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        return client
+
+    @staticmethod
+    def _s7_write(client, offset, value):
+        client.db_write(S7_MEMORY_DB, offset, bytearray(value.to_bytes(2, "big")))
+
+    @staticmethod
+    def _modbus_words():
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to check the plant state"
+            result = modbus_call(client, client.read_holding_registers, STOP_REGISTER, count=3)
+            assert not result.isError(), result
+            return result.registers[0], result.registers[2]   # stop, manual
+        finally:
+            client.close()
+
+    @staticmethod
+    def _modbus_write_stop(value):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to write the stop flag"
+            result = modbus_call(client, client.write_register, STOP_REGISTER, value)
+            assert not result.isError(), result
+        finally:
+            client.close()
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/s7_sidedoor", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _progress(self):
+        r = requests.get(f"{self.BASE}/ctf/progress", timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.text[:200]
+        return list(r.json()["solved_challenge_ids"]), r.json()["total_points"]
+
+    def _set_progress(self, solved):
+        """Make the board's solved list exactly `solved`, in that order."""
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        flags = {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                 for c in cat["challenges"]}
+        assert requests.post(f"{self.BASE}/ctf/reset", timeout=READ_TIMEOUT).json()["success"]
+        for challenge_id in solved:
+            r = requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
+                              json={"challenge_id": challenge_id, "flag": flags[challenge_id]})
+            assert r.json().get("success"), f"could not restore {challenge_id}: {r.text[:200]}"
+
+    def _ids_last_alert_id(self):
+        alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+        return max((a["id"] for a in alerts), default=0)
+
+    def test_stop_over_s7_is_detected_and_verified_then_restored(self):
+        progress_before = self._progress()
+        if "s7_sidedoor" in progress_before[0]:
+            self._set_progress([c for c in progress_before[0] if c != "s7_sidedoor"])
+        try:
+            self._stop_verify_restore()
+        finally:
+            if self._progress() != progress_before:
+                self._set_progress(progress_before[0])
+        assert self._progress() == progress_before, "the board's CTF progress was not restored"
+
+    def _stop_verify_restore(self):
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+        before = self._ids_last_alert_id()
+
+        client = self._s7_client()
+        try:
+            stop_before, manual_before = self._modbus_words()
+            assert (stop_before, manual_before) == (0, 0), (
+                "the plant was not in automatic operation before the test")
+
+            # A running plant does not pass.
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+
+            # An S7 stop that was restored over S7 does not cover a later
+            # stop by another route (here Modbus FC06 to HR1128).
+            self._s7_write(client, S7_STOP_OFFSET, 1)
+            self._s7_write(client, S7_STOP_OFFSET, 0)
+            time.sleep(2)   # let the IDS log both writes
+            self._modbus_write_stop(1)
+            assert self._modbus_words()[0] == 1
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "put 0 back" in json.dumps(result["checks"]), result
+            self._modbus_write_stop(0)
+
+            # The attack: one S7comm WriteVar of 1 to DB1002.DBW208.
+            self._s7_write(client, S7_STOP_OFFSET, 1)
+            assert self._modbus_words()[0] == 1, "the S7 write did not reach the PLC's %MW104"
+
+            # The IDS saw it as a write and decoded where it went. Every
+            # change of value is a new alert, so this one is after `before`.
+            deadline = time.time() + 10
+            writes = []
+            while time.time() < deadline and len(writes) < 2:
+                alerts = requests.get(f"{self.IDS}/api/alerts", params={"since_id": before},
+                                      timeout=READ_TIMEOUT).json()["alerts"]
+                writes = [a for a in alerts if a["rule"] == "s7_write"
+                          and any(i["db"] == S7_MEMORY_DB and i["start"] == S7_STOP_OFFSET
+                                  and i["data"] == "0001" for i in a.get("s7_items", []))]
+                time.sleep(0.5)
+            assert len(writes) == 2, f"expected two s7_write alerts setting the stop flag: {writes}"
+            assert writes[-1]["dst"] == "172.18.0.3" and writes[-1]["dport"] == 102
+
+            # The challenge: verify passes and hands out the flag.
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            # Restore whatever failed above, over S7 so the newest s7_write
+            # alert for the flag is a 0.
+            self._s7_write(client, S7_STOP_OFFSET, 0)
+            self._s7_write(client, S7_MANUAL_OFFSET, 0)
+            client.disconnect()
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert self._modbus_words() == (0, 0), "stop and manual are not back to 0"
 
 
 # ===============================================================================

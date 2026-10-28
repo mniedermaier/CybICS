@@ -38,6 +38,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [Password Attack](password_attack/README.md) | Initial Access, Persistence | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
 | [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts | T0859 |
 | [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
+| [S7 Side Door](s7_sidedoor/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T1692.001, T0831, T0826 |
 | [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Unauthorized Message: Reporting Message | T0830, T1692.002 |
 | [UART Training](uart_basic/README.md) | Initial Access | Insecure Credentials: Hardcoded Credentials | T1694.002 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
@@ -69,7 +70,7 @@ attacker either way.
 - **The attack shell** (the **WebShell** view of the landing page): a terminal
   in a small container, on the virtual stack and on a Raspberry Pi board. It
   has nmap with the ICS scripts, ffuf, hydra, socat, tcpdump, picocom, git, and
-  Python with pymodbus, asyncua and scapy. The modules are in
+  Python with pymodbus, asyncua, python-snap7 and scapy. The modules are in
   `/CybICS/training`, the dependencies are already installed, and
   `$DEVICE_IP` is preset to `172.18.0.1`, the host that publishes every
   service's port. There is no Metasploit, Wireshark or desktop, and no
@@ -98,23 +99,24 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 7. [Password attack](password_attack/README.md) - Practice password security testing
 8. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
 9. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
+10. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
 
 ### 🔐 Advanced Security
-10. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
-11. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
-12. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
-13. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+11. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
+12. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
+13. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
+14. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
 
 ### 🔍 IDS Challenges
-14. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
-15. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
-16. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+15. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+16. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+17. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
 
 ### 🛡️ Defense & Hardening
-17. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-18. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-19. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-20. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+18. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+19. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+20. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+21. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

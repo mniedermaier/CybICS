@@ -1,0 +1,91 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain why one PLC variable can be reached over several protocols",
+    "Convert a PLC memory word such as %MW104 into a Modbus register and an S7 data block offset",
+    "Explain why a firewall rule for Modbus alone does not stop an attacker",
+    "Name how a defender detects and prevents writes over S7comm"
+  ],
+  "takeaways": [
+    "Protocols are doors to the PLC's memory, not separate data: Modbus and S7comm reach the same variables.",
+    "Classic S7comm, like Modbus, lets any client that reaches the port write memory without a password.",
+    "A firewall rule for one protocol leaves every other enabled protocol open.",
+    "Turning off unused protocol servers removes attack surface that no rule has to cover.",
+    "The CybICS IDS decodes S7comm write requests and names the address and value in an s7_write alert."
+  ],
+  "checkpoints": [
+    {
+      "id": "offset",
+      "question": "OpenPLC's S7 server shows %MW as data block DB1002, two bytes per word. At which byte offset does manual (%MW106) start?",
+      "options": [
+        "106",
+        "212",
+        "1130"
+      ],
+      "answer": 1,
+      "explanation": "Each word is two bytes, so %MWn starts at byte 2n: 2 x 106 = 212. 106 is the word number, not a byte offset, and 1130 is the Modbus holding register for the same word (1024 + 106)."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "A defender drops all traffic to port 502 on OpenPLC except from the HMI and the I/O service. What can the attack shell still do?",
+      "options": [
+        "Nothing, the PLC is now unreachable from it",
+        "Only read values over Modbus, not write them",
+        "Write the stop flag over S7comm on port 102",
+        "Only change values the HMI does not display"
+      ],
+      "answer": 2,
+      "explanation": "The rule covers Modbus only. OpenPLC also serves S7comm on port 102, which reaches the same memory without a password, so the stop flag can still be written. Modbus reads are blocked too, because the rule drops the whole connection, not only writes."
+    },
+    {
+      "type": "single",
+      "question": "Why does a write to DB1002 at byte 208 change what a Modbus client reads from holding register 1128?",
+      "options": [
+        "OpenPLC copies S7 data to Modbus once a minute",
+        "Both are addresses of the same memory word, %MW104",
+        "The IDS forwards the S7 write to the Modbus server",
+        "The HMI translates between the two protocols"
+      ],
+      "answer": 1,
+      "explanation": "Each protocol server inside OpenPLC maps its own addresses onto the same %MW memory: register 1128 is 1024 + 104, and byte 208 is 2 x 104. There is no copying or translation step, which is why the change shows up immediately on both sides. The IDS only watches; it forwards nothing."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures stop or reveal the S7 side door?",
+      "options": [
+        "Filtering port 102 on the PLC like port 502",
+        "Disabling OpenPLC's S7 server if nothing uses it",
+        "Alerting on every S7comm write request",
+        "Moving Modbus to a non-standard port"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "Filtering 102 and turning the S7 server off both close the door, and an alert on S7 writes reveals its use. Moving Modbus to another port changes nothing about S7comm, and a scan finds the new Modbus port anyway."
+    },
+    {
+      "type": "single",
+      "question": "The IDS shows an s7_enumeration alert from the engineering workstation, but no s7_write alert. What has most likely happened?",
+      "options": [
+        "The workstation read data or identity records over S7comm",
+        "The workstation changed the stop flag over S7comm",
+        "The IDS missed a write because of its cooldown",
+        "The workstation wrote to the PLC over Modbus"
+      ],
+      "answer": 0,
+      "explanation": "s7_enumeration fires on any S7comm traffic, while s7_write needs a decoded Write Var request. Only an exact repeat of the previous write within 30 seconds is folded into an earlier alert, so a first write would have raised one. A Modbus write would not produce any S7comm alert at all, so it cannot explain the s7_enumeration alert."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS technique describes sending a forged write command to the PLC over S7comm?",
+      "options": [
+        "T0846 Remote System Discovery",
+        "T1692.001 Unauthorized Message: Command Message",
+        "T0888 Remote System Information Discovery",
+        "T0842 Network Sniffing"
+      ],
+      "answer": 1,
+      "explanation": "An unauthenticated write that makes the PLC act is a command message the operator never sent, T1692.001. Discovery techniques (T0846, T0888) cover finding the PLC and reading its identity, the steps before; sniffing is passive and sends nothing."
+    }
+  ]
+}

@@ -23,6 +23,9 @@ MITRE_FLOODING = "T0836"
 MITRE_MANIPULATION = "T0831"
 MITRE_SPOOF_REPORTING = "T0856"
 MITRE_BRUTE_FORCE = "T0812"
+# Unauthorized Message: Command Message.  The catalogue folded the older T0855
+# into this sub-technique; the Modbus rules above still carry T0855.
+MITRE_COMMAND_MESSAGE = "T1692.001"
 
 # CybICS network constants
 CYBICS_SUBNET = "172.18.0."
@@ -47,6 +50,13 @@ KNOWN_SERVICES = {
 # general.
 MODBUS_WRITE_FUNCTIONS = {0x05, 0x06, 0x0F, 0x10}
 MODBUS_DIAGNOSTIC = {0x08, 0x2B}
+
+# S7comm memory areas, as they appear in a read/write item's area byte.
+S7_AREAS = {0x81: "PE", 0x82: "PA", 0x83: "MK", 0x84: "DB", 0x1C: "CT", 0x1D: "TM"}
+# At most this many items of one WriteVar request are reported in an alert,
+# and at most this many data bytes of each item.
+S7_MAX_ITEMS = 8
+S7_MAX_DATA = 16
 
 # Services that legitimately write to Modbus at high rates
 _MODBUS_WRITERS = frozenset(("hwio", "fuxa", "openplc"))
@@ -101,6 +111,7 @@ class RuleEngine:
 
         # Deduplication: avoid repeating same alert
         self.recent_alerts = {}  # (rule, src) -> last_alert_time
+        self.s7_last_write = {}  # (dst, port) -> ((src, items), time) of the last write
         self.ALERT_COOLDOWN = 30
 
     def _should_alert(self, rule_name, source_ip, now):
@@ -272,10 +283,11 @@ class RuleEngine:
                     "message": f"Modbus diagnostic function 0x{func_code:02X} from {src_ip}",
                 })
 
-    # ---- Rule 6: S7comm ----
+    # ---- Rules 6 + 10: S7comm access and S7comm writes ----
 
     def _check_s7(self, pkt, src_ip, dport, alerts):
-        if len(pkt[_PAYLOAD]) < 4:
+        payload = pkt[_PAYLOAD]
+        if len(payload) < 4:
             return
         now = time.time()
         if self._should_alert("s7_enumeration", src_ip, now):
@@ -286,6 +298,35 @@ class RuleEngine:
                 "src": src_ip,
                 "dst": pkt[_DST_IP],
                 "message": f"S7comm access from {src_ip} to port {dport}",
+            })
+
+        # Rule 10: a WriteVar job changes controller memory.  No plant
+        # service speaks S7comm, so every write is worth an alert of its own.
+        # Only an exact repeat of the previous write to this server -- same
+        # host, same addresses, same value -- within the cooldown is
+        # suppressed: a script looping one write is one alert per cooldown,
+        # but every change -- set, restore, set again -- is an alert, so the
+        # newest alert that covers an address carries the value last written
+        # there.  The verify check of the S7 Side Door challenge relies on it.
+        items = parse_s7_write(payload)
+        if not items:
+            return
+        dst_ip = pkt[_DST_IP]
+        written = (src_ip, tuple((i["area"], i["db"], i["start"], i["bit"], i["data"])
+                                 for i in items))
+        last = self.s7_last_write.get((dst_ip, dport))
+        if last is None or last[0] != written or now - last[1] >= self.ALERT_COOLDOWN:
+            self.s7_last_write[(dst_ip, dport)] = (written, now)
+            where = ", ".join(_describe_s7_item(i) for i in items)
+            alerts.append({
+                "rule": "s7_write",
+                "severity": SEVERITY_HIGH,
+                "mitre": MITRE_COMMAND_MESSAGE,
+                "src": src_ip,
+                "dst": dst_ip,
+                "dport": dport,
+                "message": f"S7comm write from {src_ip} to {dst_ip}:{dport}: {where}",
+                "s7_items": items,
             })
 
     # ---- Rule 7: HTTP brute force ----
@@ -382,6 +423,10 @@ class RuleEngine:
             k: v for k, v in self.recent_alerts.items()
             if now - v < self.ALERT_COOLDOWN * 2
         }
+        self.s7_last_write = {
+            k: v for k, v in self.s7_last_write.items()
+            if now - v[1] < self.ALERT_COOLDOWN * 2
+        }
         for key in list(self.port_scan_tracker.keys()):
             cutoff = now - self.PORT_SCAN_WINDOW * 2
             self.port_scan_tracker[key] = {
@@ -390,3 +435,92 @@ class RuleEngine:
             }
             if not self.port_scan_tracker[key]:
                 del self.port_scan_tracker[key]
+
+
+# ---- S7comm WriteVar parsing (rule 10) ----
+
+def _describe_s7_item(item):
+    """Human-readable address of one write item, e.g. DB1002.DBB208 (2 bytes)."""
+    if item["area"] == "DB":
+        where = f"DB{item['db']}.DBB{item['start']}"
+    elif item["area"] == "PA":
+        # The process image of outputs: on OpenPLC the %QX coils that drive
+        # the compressor and the valves, written directly past the program.
+        where = f"PA (process outputs) byte {item['start']}.{item['bit']}"
+    else:
+        where = f"{item['area']} byte {item['start']}"
+    return f"{where} ({item['length']} bytes) = {item['data'] or '-'}"
+
+
+def _s7_write_items(pdu):
+    """Items of one S7comm PDU if it is a WriteVar job, else None.
+
+    pdu starts at the S7comm protocol id (0x32).  Layout of a job: header
+    (10 bytes: id, ROSCTR, reserved, PDU reference, parameter length, data
+    length), parameters (function 0x05, item count, 12 bytes per item) and
+    data (return code, transport size, length, value, padded to even length
+    between items).
+    """
+    if len(pdu) < 12 or pdu[0] != 0x32 or pdu[1] != 0x01:
+        return None
+    par_len = int.from_bytes(pdu[6:8], "big")
+    data_len = int.from_bytes(pdu[8:10], "big")
+    params = pdu[10:10 + par_len]
+    data = pdu[10 + par_len:10 + par_len + data_len]
+    if len(params) < 2 or params[0] != 0x05:
+        return None
+    count = params[1]
+    items = []
+    pos = 0
+    for n in range(count):
+        spec = params[2 + 12 * n:14 + 12 * n]
+        # Only the common "S7ANY" addressing (0x12 0x0A 0x10) is decoded.
+        if len(spec) < 12 or spec[0] != 0x12 or spec[2] != 0x10:
+            return items or None
+        area = spec[8]
+        bit_address = int.from_bytes(spec[9:12], "big")
+        value = b""
+        if len(data) >= pos + 4:
+            tsize = data[pos + 1]
+            length = int.from_bytes(data[pos + 2:pos + 4], "big")
+            # Transport sizes 3 (bit), 4 (byte/word/dword) count in bits.
+            nbytes = (length + 7) // 8 if tsize in (0x03, 0x04, 0x05) else length
+            value = data[pos + 4:pos + 4 + nbytes]
+            pos += 4 + nbytes + (nbytes % 2)
+        if len(items) < S7_MAX_ITEMS:
+            items.append({
+                "area": S7_AREAS.get(area, f"0x{area:02X}"),
+                "db": int.from_bytes(spec[6:8], "big") if area == 0x84 else 0,
+                "start": bit_address >> 3,
+                "bit": bit_address & 7,
+                "length": len(value),
+                "data": value[:S7_MAX_DATA].hex(),
+            })
+    return items or None
+
+
+def parse_s7_write(payload):
+    """WriteVar items in a TCP payload to an S7comm port, or [] if there are none.
+
+    The payload is one or more TPKT frames (RFC 1006: version 3, reserved,
+    16-bit length), each carrying a COTP data unit (length indicator, PDU type
+    0xF0) followed by the S7comm PDU.  Anything that does not parse is not a
+    write and yields [], so a malformed packet can never raise in the sniffer.
+    """
+    items = []
+    pos = 0
+    try:
+        while pos + 7 <= len(payload) and payload[pos] == 0x03:
+            frame_len = int.from_bytes(payload[pos + 2:pos + 4], "big")
+            if frame_len < 7:
+                break
+            frame = payload[pos:pos + frame_len]
+            cotp_len = frame[4]
+            if len(frame) > 5 and frame[5] == 0xF0:
+                found = _s7_write_items(frame[5 + cotp_len:])
+                if found:
+                    items.extend(found)
+            pos += frame_len
+    except (IndexError, ValueError):
+        return []
+    return items[:S7_MAX_ITEMS]

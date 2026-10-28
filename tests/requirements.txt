@@ -22,3 +22,6 @@ websocket-client==1.9.0
 # tests/test_sharky_filters.py builds packets to check Sharky's filters in
 # Python. Pinned to the landing container's version.
 scapy==2.7.0rc1
+# tests/test_training.py stops and restores the plant over S7comm (the S7 Side
+# Door challenge). Pinned to the attack shell's version.
+python-snap7==3.3.0

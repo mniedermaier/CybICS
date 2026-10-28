@@ -362,6 +362,9 @@ class Detector:
         """Get detector status"""
         return {
             "active": self.active,
+            # The clock alert timestamps are taken from, so a client can age
+            # them without trusting its own clock or time zone.
+            "now": datetime.now().isoformat(),
             "stats": {
                 **self.stats,
                 "alerts_in_buffer": len(self.alerts),
