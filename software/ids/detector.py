@@ -12,11 +12,13 @@ from collections import deque
 from datetime import datetime
 import logging
 
-from rules import RuleEngine, KNOWN_SERVICES, MODBUS_WRITE_FUNCTIONS
+from rules import RuleEngine, KNOWN_SERVICES, MODBUS_WRITE_FUNCTIONS, parse_modbus_writes
 
 logger = logging.getLogger("cybics-ids")
 
 MAX_ALERTS = 500
+# Modbus write requests kept in the write journal (GET /api/modbus/writes)
+MAX_MODBUS_WRITES = 200
 CLEANUP_PACKET_INTERVAL = 5000  # run cleanup every N packets
 
 # Ports the rule engine cares about
@@ -30,6 +32,16 @@ _KNOWN_MODBUS_PAIRS = [
     ("172.18.0.4", "172.18.0.3"),   # fuxa -> openplc
     ("172.18.0.3", "172.18.0.4"),   # openplc -> fuxa
 ]
+# Pairs whose Modbus *write* requests are still captured, for the write
+# journal only: FUXA polls with reads all the time but writes only when someone
+# operates the HMI, so its writes cost next to nothing.  The write rules exempt
+# FUXA as a trusted writer; the journal is what lets a defender (and the
+# Trusted Writer challenge) see what it wrote.  hwio writes every cycle and
+# stays excluded completely.
+_JOURNALED_WRITERS = frozenset((("172.18.0.4", "172.18.0.3"),))
+# Modbus function code of a TCP segment: byte 7 of the TCP payload.
+_BPF_MODBUS_WRITE = "(" + " or ".join(
+    f"tcp[((tcp[12:1]&0xf0)>>2)+7]&0x7f={fc}" for fc in sorted(MODBUS_WRITE_FUNCTIONS)) + ")"
 
 
 class Detector:
@@ -48,6 +60,8 @@ class Detector:
         }
         self._alert_id = 0
         self._tcpdump_proc = None
+        self.modbus_writes = deque(maxlen=MAX_MODBUS_WRITES)
+        self._write_id = 0
 
         # Evasion challenge state
         self.evasion_active = False
@@ -102,7 +116,14 @@ class Detector:
         port_filter = " or ".join(f"port {p}" for p in _IDS_PORTS)
 
         # Exclude known legitimate Modbus polling pairs (biggest traffic source)
+        # A journaled writer's pair is only dropped when the segment is not a
+        # write request.  The payload byte is read last, after the host and
+        # port tests, so packets of other pairs never reach that load; a
+        # segment of the pair too short to hold it (a bare ACK) is dropped.
         modbus_excludes = " and ".join(
+            f"not (src host {src} and dst host {dst} and dst port 502"
+            f" and not {_BPF_MODBUS_WRITE})"
+            if (src, dst) in _JOURNALED_WRITERS else
             f"not (src host {src} and dst host {dst} and port 502)"
             for src, dst in _KNOWN_MODBUS_PAIRS
         )
@@ -202,6 +223,9 @@ class Detector:
                 for alert in alerts:
                     self._add_alert(alert)
 
+            if pkt_info[3] == 502 and pkt_info[5] == 6 and len(pkt_info[6]) >= 8:
+                self._journal_modbus_writes(pkt_info)
+
             if self.evasion_active:
                 self._track_evasion_packet(pkt_info)
 
@@ -278,6 +302,37 @@ class Detector:
         self._alert_id = 0
         self.stats["alerts_total"] = 0
         logger.info("Alerts cleared")
+
+    # ========== MODBUS WRITE JOURNAL ==========
+
+    def _journal_modbus_writes(self, pkt_info):
+        """Record every Modbus write request seen, trusted writers included.
+
+        Not a rule: nothing here raises an alert.  It answers "who wrote what"
+        after the fact, which the write rules cannot, because they count
+        writes per source and skip the trusted writers entirely.
+        """
+        writes = parse_modbus_writes(pkt_info[6])
+        if not writes:
+            return
+        src, dst = pkt_info[0], pkt_info[1]
+        timestamp = datetime.now().isoformat()
+        with self.lock:
+            for write in writes:
+                self._write_id += 1
+                self.modbus_writes.append({
+                    "id": self._write_id,
+                    "timestamp": timestamp,
+                    "src": src,
+                    "service": KNOWN_SERVICES.get(src),
+                    "dst": dst,
+                    **write,
+                })
+
+    def get_modbus_writes(self, since_id=0):
+        """Journaled Modbus writes, oldest first, optionally newer than an id"""
+        with self.lock:
+            return [w for w in self.modbus_writes if w["id"] > since_id]
 
     # ========== EVASION CHALLENGE ==========
 

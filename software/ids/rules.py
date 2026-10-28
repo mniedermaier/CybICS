@@ -549,6 +549,63 @@ class RuleEngine:
                 del self.port_scan_tracker[key]
 
 
+# ---- Modbus write journal (no rule) ----
+
+# At most this many Modbus requests of one TCP segment, and this many values
+# of one request, are decoded for the write journal.
+MODBUS_MAX_ADUS = 8
+MODBUS_MAX_VALUES = 16
+
+
+def parse_modbus_writes(payload):
+    """Decode the Modbus TCP write requests in one TCP payload.
+
+    Returns a list of dicts with unit, function, address (0-based, as on the
+    wire), count and values (registers as integers, coils as 0/1), one per
+    write ADU; reads, responses and anything malformed are skipped.  Used for
+    the write journal the detector keeps next to its alerts: it records what
+    was written and by whom, including the trusted writers (FUXA) that the
+    write rules exempt.  Never raises.
+    """
+    writes = []
+    offset = 0
+    try:
+        for _ in range(MODBUS_MAX_ADUS):
+            if len(payload) - offset < 8:
+                break
+            proto, length = struct.unpack_from("!HH", payload, offset + 2)
+            if proto != 0 or length < 2:
+                break
+            unit = payload[offset + 6]
+            pdu = payload[offset + 7:offset + 6 + length]
+            offset += 6 + length
+            if len(pdu) < 5:
+                continue
+            func = pdu[0]
+            address, second = struct.unpack_from("!HH", pdu, 1)
+            if func == 0x06:
+                count, values = 1, [second]
+            elif func == 0x05:
+                if second not in (0x0000, 0xFF00):
+                    continue
+                count, values = 1, [1 if second else 0]
+            elif func in (0x0F, 0x10) and len(pdu) >= 6:
+                count, data = second, pdu[6:6 + pdu[5]]
+                if func == 0x10:
+                    n = min(count, len(data) // 2, MODBUS_MAX_VALUES)
+                    values = list(struct.unpack_from(f"!{n}H", data)) if n else []
+                else:
+                    n = min(count, len(data) * 8, MODBUS_MAX_VALUES)
+                    values = [(data[i // 8] >> (i % 8)) & 1 for i in range(n)]
+            else:
+                continue
+            writes.append({"unit": unit, "function": func,
+                           "address": address, "count": count, "values": values})
+    except (struct.error, IndexError, TypeError):
+        pass
+    return writes
+
+
 # ---- S7comm WriteVar parsing (rule 10) ----
 
 def _describe_s7_item(item):

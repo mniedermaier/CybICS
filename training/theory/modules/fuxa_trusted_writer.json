@@ -1,0 +1,91 @@
+{
+  "level": "advanced",
+  "objectives": [
+    "Explain why an allowlist of trusted hosts makes those hosts attractive relays for an attacker",
+    "Describe how a command sent through the HMI reaches the PLC from the HMI's address",
+    "Identify which detection and defence measures still work when the attacker uses a trusted writer"
+  ],
+  "takeaways": [
+    "An IDS rule that trusts a source trusts everyone who can make that source act.",
+    "The HMI relays commands: whatever client asks it to write, the PLC receives the write from the HMI.",
+    "A button greyed out in the browser protects nothing if the server accepts the write anyway.",
+    "Detection that still works looks at what is written and who asked the HMI, not only at the packet's sender.",
+    "Limiting who can reach the HMI's server removes the relay for everyone else."
+  ],
+  "checkpoints": [
+    {
+      "id": "who-writes",
+      "question": "Your script asks FUXA to set the stop tag. Which address does the PLC see as the sender of the Modbus write?",
+      "options": [
+        "The attack machine, 172.18.0.100",
+        "FUXA, 172.18.0.4",
+        "The IDS host, 172.18.0.1",
+        "No address: Modbus hides the sender"
+      ],
+      "answer": 1,
+      "explanation": "FUXA opens its own Modbus connection to the PLC and sends the write itself, so the PLC and the IDS see 172.18.0.4. Your machine only talked to FUXA on port 1881. Modbus runs over TCP/IP, so every request does carry a source address."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why does a single Modbus write from the attack machine fail this challenge, even though it raises no alert?",
+      "options": [
+        "Because the PLC refuses writes from the attack machine",
+        "Because the IDS write journal records the attack machine as the writer of the stop flag",
+        "Because one write is always above the alert threshold",
+        "Because Modbus writes need a password"
+      ],
+      "answer": 1,
+      "explanation": "One write stays far below the rate rule, so no alert fires, but the journal still names the host that wrote. The goal is that the stop comes from the HMI. The PLC accepts writes from anyone, and Modbus has no password."
+    },
+    {
+      "type": "single",
+      "question": "The IDS ignores Modbus writes from FUXA. Which statement describes the risk best?",
+      "options": [
+        "None: FUXA is part of the plant, so its writes are always legitimate",
+        "Anyone who can make FUXA write a tag gets writes the IDS never counts",
+        "FUXA's writes are encrypted, so the IDS could not read them anyway",
+        "The IDS cannot see FUXA because it is on a different network"
+      ],
+      "answer": 1,
+      "explanation": "The trust is placed in FUXA's address, and FUXA writes on behalf of its clients. Whoever can drive FUXA borrows that trust. Modbus is not encrypted, and FUXA sits on the same plant network the IDS watches."
+    },
+    {
+      "type": "single",
+      "question": "The STOP button is greyed out for a guest in the HMI page. Why does that not stop the attack?",
+      "options": [
+        "Because the greying out is decided in the browser, while the server still accepts the write message",
+        "Because guests can un-grey buttons in the settings",
+        "Because the button only stops the compressor, not the plant",
+        "Because grey buttons still work when you double-click them"
+      ],
+      "answer": 0,
+      "explanation": "The browser hides or disables what the user may not do, but the attacker does not need the browser. The server has to check every write itself; if it does not, a client can send the message directly. The other options describe features the HMI does not have."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures would detect or stop this attack?",
+      "options": [
+        "An IDS rule that alerts on any write to the stop flag, whoever sends it",
+        "Allowing only the operator stations to reach the HMI's server port",
+        "Lowering the threshold of the Modbus write rule for untrusted hosts",
+        "Correlating HMI writes with which operator was logged in"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Looking at what is written catches the stop even from a trusted source; restricting access to port 1881 removes the relay; the HMI's operator records show a command nobody gave. Lowering a threshold for untrusted hosts changes nothing, because the attack never sends a write from an untrusted host."
+    },
+    {
+      "type": "single",
+      "question": "How does this challenge differ from IDS Evasion?",
+      "options": [
+        "It is the same: both send writes slowly",
+        "IDS Evasion stays below a threshold; this challenge uses a source the rules never count",
+        "This challenge floods the PLC so the IDS cannot keep up",
+        "IDS Evasion uses the HMI, this challenge uses Modbus directly"
+      ],
+      "answer": 1,
+      "explanation": "In IDS Evasion your own writes are counted and you keep the count low. Here none of your packets are Modbus writes at all; the HMI sends the write, and its writes are not counted. Neither challenge relies on flooding."
+    }
+  ]
+}

@@ -68,6 +68,14 @@ def get_alerts():
     return jsonify({"alerts": alerts, "total": len(alerts)})
 
 
+@app.route("/api/modbus/writes")
+def get_modbus_writes():
+    """Modbus write requests the IDS saw, trusted writers included (no rule)"""
+    since_id = request.args.get("since_id", 0, type=int)
+    writes = detector.get_modbus_writes(since_id=since_id)
+    return jsonify({"writes": writes, "total": len(writes)})
+
+
 @app.route("/api/alerts/clear", methods=["POST"])
 def clear_alerts():
     """Clear all alerts"""

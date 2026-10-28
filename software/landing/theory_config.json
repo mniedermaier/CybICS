@@ -628,6 +628,23 @@
           ]
         },
         {
+          "id": "fuxa_trusted_writer",
+          "title": "Trusted writer",
+          "summary": "Making the HMI send the command, from the one address the IDS write rules never count.",
+          "content": "training/theory/modules/fuxa_trusted_writer.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "fuxa_trusted_writer",
+              "label": "Trusted Writer"
+            }
+          ],
+          "prerequisites": [
+            "ids_evasion",
+            "hmi_project_recon"
+          ]
+        },
+        {
           "id": "incident-response",
           "title": "Incident response in OT",
           "summary": "What to do when an alarm turns out to be real, without making the plant less safe.",

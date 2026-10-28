@@ -345,6 +345,18 @@
           "flag": "CybICS(st34lth_0p3r4t0r)",
           "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
           "training_content": "training/ids_evasion/README.md"
+        },
+        {
+          "id": "fuxa_trusted_writer",
+          "title": "Trusted Writer",
+          "description": "The IDS never counts Modbus writes from the HMI. Stop the plant so that the command reaches the PLC from FUXA, not from your host: make the HMI send it for you, raise no IDS alert, keep the plant stopped and click Verify.",
+          "points": 350,
+          "type": "verify",
+          "verify_module": "check_fuxa_trusted_writer",
+          "tag": "evasion",
+          "flag": "CybICS(trust3d_wr1t3r)",
+          "hint": "FUXA writes a tag for whoever asks it the right way. HMI Project Recon tells you the stop tag's ID; the HMI page in your browser shows you how it asks.",
+          "training_content": "training/fuxa_trusted_writer/README.md"
         }
       ]
     },

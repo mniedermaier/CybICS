@@ -157,3 +157,51 @@ def test_a_base_filter_narrows_rather_than_replaces():
     bpf = detector.Detector._build_bpf_filter("net 172.18.0.0/24")
     assert "net 172.18.0.0/24" in bpf
     assert "arp" in bpf, "the base filter must not drop the IDS's own clauses"
+
+
+# --- Modbus write journal --------------------------------------------------------
+#
+# FUXA polls OpenPLC with reads all the time, so the filter drops that pair --
+# except its write requests, which go into the write journal the Trusted
+# Writer challenge reads. hwio writes every cycle and stays dropped entirely.
+
+FUXA_STOP = bytes.fromhex("003300000006010604680001")   # captured: FUXA sets register 1128 to 1
+
+
+def test_the_filter_keeps_fuxa_writes_but_not_its_polling():
+    bpf = detector.Detector._build_bpf_filter("")
+    fuxa = "not (src host 172.18.0.4 and dst host 172.18.0.3 and dst port 502 and not ("
+    assert fuxa in bpf, "FUXA's write requests would be dropped before the journal sees them"
+    clause = bpf[bpf.index(fuxa):]
+    for fc in (5, 6, 15, 16):
+        assert f"tcp[((tcp[12:1]&0xf0)>>2)+7]&0x7f={fc}" in clause
+    assert "not (src host 172.18.0.2 and dst host 172.18.0.3 and port 502)" in bpf, \
+        "hwio's per-cycle writes must stay out of the capture"
+    # tcpdump gets the filter split on blanks and joins it again: no quoting allowed.
+    assert "'" not in bpf and '"' not in bpf
+
+
+def _modbus_pkt(src, payload, dport=502):
+    return (src, "172.18.0.3", 40000, dport, "PA", 6, payload, 0, None, None)
+
+
+def test_the_journal_records_a_trusted_writer_with_its_service():
+    d = detector.Detector()
+    d._journal_modbus_writes(_modbus_pkt("172.18.0.4", FUXA_STOP))
+    d._journal_modbus_writes(_modbus_pkt("172.18.0.100", bytes.fromhex("000100000006010304680001")))
+    writes = d.get_modbus_writes()
+    assert len(writes) == 1, "a read must not be journaled"
+    w = writes[0]
+    assert (w["src"], w["service"], w["dst"]) == ("172.18.0.4", "fuxa", "172.18.0.3")
+    assert (w["function"], w["address"], w["values"]) == (6, 1128, [1])
+    assert w["id"] == 1 and w["timestamp"]
+    assert d.get_modbus_writes(since_id=1) == []
+
+
+def test_the_journal_is_bounded():
+    d = detector.Detector()
+    for _ in range(detector.MAX_MODBUS_WRITES + 50):
+        d._journal_modbus_writes(_modbus_pkt("172.18.0.100", FUXA_STOP))
+    writes = d.get_modbus_writes()
+    assert len(writes) == detector.MAX_MODBUS_WRITES
+    assert writes[-1]["id"] == detector.MAX_MODBUS_WRITES + 50

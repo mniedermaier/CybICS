@@ -1320,6 +1320,148 @@ class TestHmiProjectRecon(_CtfProgress):
 
 
 # ===============================================================================
+# Trusted Writer (fuxa_trusted_writer)
+# ===============================================================================
+
+def _trusted_writer_script():
+    import importlib.util
+    path = Path(__file__).resolve().parent.parent / "training" / "fuxa_trusted_writer" / "trusted_writer.py"
+    spec = importlib.util.spec_from_file_location("trusted_writer", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestFuxaTrustedWriter(_CtfProgress):
+    """
+    The Trusted Writer challenge end to end, with the shipped solution script.
+
+    First the refusal: a stop written straight over Modbus from the test host
+    is journaled with that host's address, so verify must refuse it although
+    no alert fires. Then the solve: the script sends FUXA the HMI's own
+    socket.io 'device-values' set message as a guest, FUXA writes register
+    1128 from 172.18.0.4, the IDS journal shows it as service fuxa, and verify
+    hands out the flag. It also pins the REST route as the README describes
+    it: setTagValue refuses an operator token and takes a forged admin token,
+    which restores the plant.
+
+    The verify check needs an alert-free minute before FUXA's write, and
+    earlier tests in the suite raise alerts on purpose, so the test waits for
+    the IDS to fall quiet first. The plant is restored in a finally block
+    (through FUXA, then directly over Modbus as a fallback), the IDS is stopped
+    again if the test started it, and the CTF progress is put back.
+    """
+
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    QUIET = 65            # the check's QUIET_BEFORE plus a margin
+    QUIET_TIMEOUT = 240
+
+    _modbus_words = staticmethod(TestDnp3SideDoor._modbus_words)
+    _modbus_write_stop = staticmethod(TestDnp3SideDoor._modbus_write_stop)
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/fuxa_trusted_writer", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _wait_until_quiet(self):
+        """Wait until the IDS has captured for QUIET seconds without an alert but arp_spoof."""
+        from datetime import datetime, timedelta
+        deadline = time.time() + self.QUIET_TIMEOUT
+        while True:
+            status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+            now = datetime.fromisoformat(status["now"])
+            started = datetime.fromisoformat(status["stats"]["started_at"])
+            alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+            recent = [a for a in alerts if a.get("rule") != "arp_spoof"
+                      and datetime.fromisoformat(a["timestamp"]) > now - timedelta(seconds=self.QUIET)]
+            if not recent and started < now - timedelta(seconds=self.QUIET):
+                return
+            assert time.time() < deadline, f"the IDS did not fall quiet: {recent[-3:]}"
+            time.sleep(5)
+
+    def _newest_stop_write(self):
+        writes = requests.get(f"{self.IDS}/api/modbus/writes", timeout=READ_TIMEOUT).json()["writes"]
+        hits = [w for w in writes if w["address"] <= STOP_REGISTER < w["address"] + w["count"]
+                and w["function"] in (6, 16)]
+        return hits[-1] if hits else None
+
+    def test_stop_through_fuxa_is_silent_and_verified_then_restored(self):
+        script = _trusted_writer_script()
+        device_id, tag_id, wire = script.find_tag(self.FUXA, "stop")
+        assert wire == STOP_REGISTER
+
+        before = self._without("fuxa_trusted_writer")
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+        try:
+            assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
+            self._wait_until_quiet()
+
+            # A direct stop from this host: silent, but the journal names us.
+            self._modbus_write_stop(1)
+            time.sleep(2)
+            newest = self._newest_stop_write()
+            assert newest and newest["src"] != "172.18.0.4" and newest["values"][0] == 1, newest
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "not from the HMI" in json.dumps(result["checks"]), result
+            self._modbus_write_stop(0)
+
+            # The attack: a guest asks FUXA over socket.io, as the README shows.
+            script.write_socket(self.FUXA, device_id, tag_id, 1)
+            deadline = time.time() + 15
+            while self._modbus_words()[0] != 1:
+                assert time.time() < deadline, "FUXA did not write the stop flag"
+                time.sleep(1)
+            newest = self._newest_stop_write()
+            assert newest["src"] == "172.18.0.4" and newest["service"] == "fuxa", newest
+            assert newest["values"][STOP_REGISTER - newest["address"]] == 1
+
+            result = self._verify()
+            assert result["success"], result
+            config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+            flags = {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                     for c in cat["challenges"]}
+            assert result["flag"] == flags["fuxa_trusted_writer"]
+
+            # The REST route: an operator may not, an administrator token may.
+            operator = requests.post(f"{self.FUXA}/api/signin", timeout=READ_TIMEOUT,
+                                     json={"username": "operator", "password": "operator"})
+            token = operator.json()["data"]["token"]
+            refused = requests.post(f"{self.FUXA}/api/setTagValue", timeout=READ_TIMEOUT,
+                                    headers={"x-access-token": token},
+                                    json={"tags": [{"id": tag_id, "value": 0}]})
+            assert refused.status_code == 401, refused.text[:200]
+            restored = requests.post(f"{self.FUXA}/api/setTagValue", timeout=READ_TIMEOUT,
+                                     headers={"x-access-token": _fuxa_forge(
+                                         {"id": "cybics-test-ghost", "groups": -1})},
+                                     json={"tags": [{"id": tag_id, "value": 0}]})
+            assert restored.status_code == 200, restored.text[:200]
+            deadline = time.time() + 15
+            while self._modbus_words()[0] != 0:
+                assert time.time() < deadline, "setTagValue did not restore the stop flag"
+                time.sleep(1)
+        finally:
+            try:
+                if self._modbus_words()[0] != 0:
+                    script.write_socket(self.FUXA, device_id, tag_id, 0)
+                    time.sleep(3)
+                if self._modbus_words()[0] != 0:
+                    self._modbus_write_stop(0)
+            finally:
+                if not was_active:
+                    requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+                self._restore(before)
+
+        assert self._modbus_words() == (0, 0), "stop is not back to 0"
+
+
+# ===============================================================================
 # Close the Side Doors (defense_unused_protocols)
 # ===============================================================================
 

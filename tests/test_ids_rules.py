@@ -607,3 +607,37 @@ def test_malformed_s7_control_never_raises(payload):
 def test_two_controls_in_one_segment_are_both_seen():
     actions = [c["action"] for c in rules.parse_s7_control(S7_PLC_STOP + S7_PLC_HOT_START)]
     assert actions == ["stop", "warm_start"]
+
+
+# ---- Modbus write journal parser (no rule) ----
+
+def test_parse_modbus_writes_decodes_fuxas_captured_stop():
+    # FUXA 1.2.6 setting its "stop" tag, captured on the plant bridge.
+    assert rules.parse_modbus_writes(bytes.fromhex("003300000006010604680001")) == [
+        {"unit": 1, "function": 6, "address": 1128, "count": 1, "values": [1]}]
+
+
+def test_parse_modbus_writes_multiple_registers_and_coils():
+    fc16 = bytes.fromhex("00010000000b01100467000204" "00000005")
+    fc5 = bytes.fromhex("0002000000060105000" "1ff00")
+    fc15 = bytes.fromhex("000300000009010f0000000a020503")
+    out = rules.parse_modbus_writes(fc16 + fc5)
+    assert out[0]["function"] == 16 and out[0]["address"] == 1127 and out[0]["values"] == [0, 5]
+    assert out[1] == {"unit": 1, "function": 5, "address": 1, "count": 1, "values": [1]}
+    coils = rules.parse_modbus_writes(fc15)[0]
+    assert coils["count"] == 10 and coils["values"] == [1, 0, 1, 0, 0, 0, 0, 0, 1, 1]
+
+
+def test_parse_modbus_writes_ignores_reads_and_responses():
+    assert rules.parse_modbus_writes(bytes.fromhex("000100000006010304680001")) == []
+    assert rules.parse_modbus_writes(bytes.fromhex("000100000006018604680001")) == []
+
+
+@pytest.mark.parametrize("cut", range(0, 12))
+def test_truncated_modbus_write_never_raises(cut):
+    assert rules.parse_modbus_writes(bytes.fromhex("003300000006010604680001")[:cut]) == []
+
+
+@pytest.mark.parametrize("payload", [b"\xff" * 40, b"\x00" * 40, bytes(range(64)), b"GET / HTTP/1.1"])
+def test_malformed_modbus_payload_never_raises(payload):
+    rules.parse_modbus_writes(payload)
