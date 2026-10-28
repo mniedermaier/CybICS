@@ -89,6 +89,15 @@ _DNP3_OBJECT_SIZES = {(12, 1): 11, (41, 1): 5, (41, 2): 3, (41, 3): 5, (41, 4): 
 _DNP3_QUALIFIERS = {0x17: 1, 0x28: 2}
 DNP3_MAX_FRAMES = 16
 DNP3_MAX_POINTS = 8
+DNP3_RESPONSE = 0x81
+# The outstation's reply is credited to a request only within this many
+# seconds of it.  Connection state (DNP3_MAX_CONNECTIONS at most, each with
+# DNP3_MAX_WAITING requests) lives until the connection has been silent in
+# both directions for DNP3_CONNECTION_IDLE seconds.
+DNP3_REPLY_TIMEOUT = 10
+DNP3_MAX_CONNECTIONS = 256
+DNP3_MAX_WAITING = 8
+DNP3_CONNECTION_IDLE = 600
 
 # Services that legitimately write to Modbus at high rates
 _MODBUS_WRITERS = frozenset(("hwio", "fuxa", "openplc"))
@@ -111,6 +120,20 @@ _PAYLOAD = 6
 _ARP_OP = 7
 _ARP_SRC_MAC = 8
 _ARP_SRC_IP = 9
+# TCP only, appended by the detector.  Hand-built tuples in the unit tests
+# may lack them; the DNP3 rule then cannot follow the stream and judges each
+# segment on its own.
+_TCP_SEQ = 10
+_TCP_ACK = 11
+_PAYLOAD_LEN = 12
+_SEQ_MASK = 0xFFFFFFFF
+
+
+def _tcp_stream(pkt):
+    """(sequence number, acknowledgement number, payload length) or None."""
+    if len(pkt) > _PAYLOAD_LEN:
+        return pkt[_TCP_SEQ], pkt[_TCP_ACK], pkt[_PAYLOAD_LEN]
+    return None
 
 
 class RuleEngine:
@@ -144,7 +167,10 @@ class RuleEngine:
         # Deduplication: avoid repeating same alert
         self.recent_alerts = {}  # (rule, src) -> last_alert_time
         self.s7_last_write = {}  # (dst, port) -> ((src, items), time) of the last write
-        self.dnp3_last_request = {}  # (dst, port) -> ((src, requests), time), as for S7
+        self.dnp3_last_request = {}  # (dst, port) -> ((src, requests), time, alert), as for S7
+        # (master, master port, outstation) -> {"waiting": [(alert, time)],
+        # "opaque": bool, "seen": time, "next": next master sequence number}
+        self.dnp3_connections = {}
         self.s7_last_control = {}  # (dst, port) -> ((src, action, service, arg), time)
         self.ALERT_COOLDOWN = 30
 
@@ -216,6 +242,9 @@ class RuleEngine:
         elif dport == DNP3_PORT:
             # DNP3 rule 11
             self._check_dnp3(pkt, src_ip, dport, alerts)
+        elif sport == DNP3_PORT:
+            # The outstation's reply to a rule-11 request; raises nothing
+            self._check_dnp3_reply(pkt, src_ip)
 
         return alerts
 
@@ -485,25 +514,39 @@ class RuleEngine:
         # addresses, application sequence number, object bytes) within the
         # cooldown is folded, so the newest alert that covers a point carries
         # the value last sent to it, and a SELECT resent with a new sequence
-        # number is logged again.  The rule logs requests, not their outcome:
-        # an OPERATE without a matching SELECT is logged although the
-        # outstation refuses it.  The DNP3 Side Door verify check relies on
-        # both and pairs SELECT and OPERATE itself.
+        # number is logged again.  The alert records what was sent; whether
+        # the outstation acted on it is only known from its reply, which
+        # _check_dnp3_reply files under each request as "reply".
+        now = time.time()
+        dst_ip = pkt[_DST_IP]
+        connection = self._follow_dnp3_master(pkt, (src_ip, pkt[_SPORT], dst_ip), now)
+        if connection is None:
+            return
+        if pkt[_PAYLOAD] and dnp3_opaque(pkt[_PAYLOAD]):
+            # Something the IDS cannot read in full -- part of a frame, a
+            # message in several transport segments or application fragments,
+            # objects it does not decode, frames past the ones the rule reads:
+            # the outstation may act on a request the IDS never logs, so no
+            # reply on this connection is trusted to answer a logged one.
+            connection["opaque"] = True
         requests = parse_dnp3_requests(pkt[_PAYLOAD])
         if not requests:
             return
-        now = time.time()
-        dst_ip = pkt[_DST_IP]
         signature = (src_ip, tuple(
             (r["function"], r["link_dst"], r["link_src"], r["seq"], r["objects_crc"],
              tuple(tuple(sorted(o.items())) for o in r["objects"]))
             for r in requests))
         last = self.dnp3_last_request.get((dst_ip, dport))
         if last is not None and last[0] == signature and now - last[1] < self.ALERT_COOLDOWN:
+            # The repeat's reply belongs to the alert that logged it first.
+            self._await_dnp3_reply(connection, last[2], now)
             return
-        self.dnp3_last_request[(dst_ip, dport)] = (signature, now)
+        for request in requests:
+            # Created here, filled in later: the key set of a stored alert
+            # never changes while the API may be serialising it.
+            request["reply"] = None
         what = "; ".join(_describe_dnp3_request(r) for r in requests)
-        alerts.append({
+        alert = {
             "rule": "dnp3_operate",
             "severity": SEVERITY_HIGH,
             "mitre": MITRE_COMMAND_MESSAGE,
@@ -512,7 +555,136 @@ class RuleEngine:
             "dport": dport,
             "message": f"DNP3 control from {src_ip} to {dst_ip}:{dport}: {what}",
             "dnp3": requests,
-        })
+        }
+        self.dnp3_last_request[(dst_ip, dport)] = (signature, now, alert)
+        self._await_dnp3_reply(connection, alert, now)
+        alerts.append(alert)
+
+    def _follow_dnp3_master(self, pkt, key, now):
+        """The connection's state after this master-to-outstation packet, or None.
+
+        Clean state starts only at a SYN the IDS sees. The byte stream is
+        followed by sequence number: a segment that does not start where the
+        last one ended (one the capture lost, a retransmission, a connection
+        the IDS joined midway or forgot) means the outstation may have
+        received a request the IDS never read, so the connection is opaque.
+        """
+        stream = _tcp_stream(pkt)
+        flags = pkt[_FLAGS]
+        if stream is not None and "S" in flags and "A" not in flags:
+            # A SYN on a connection the IDS already follows with requests on
+            # it may be crafted to make it forget them while the outstation
+            # keeps the connection, so that state does not start clean.
+            old = self.dnp3_connections.get(key)
+            self._store_dnp3_connection(key, {
+                "waiting": [], "seen": now,
+                "opaque": old is not None and (old["opaque"] or bool(old["waiting"])),
+                "next": (stream[0] + 1) & _SEQ_MASK, "last": None})
+            return None
+        length = stream[2] if stream is not None else len(pkt[_PAYLOAD])
+        connection = self.dnp3_connections.pop(key, None)
+        if connection is None:
+            if not length:
+                return None   # a bare ACK or FIN: nothing to follow
+            connection = {"waiting": [], "opaque": stream is not None, "seen": now,
+                          "next": None, "last": None}
+            self._store_dnp3_connection(key, connection)
+        else:
+            self.dnp3_connections[key] = connection   # most recently used
+        connection["seen"] = now
+        if stream is not None and length:
+            segment = (stream[0], length, pkt[_PAYLOAD])
+            if segment == connection.get("last"):
+                return connection   # the same segment seen twice (capture on "any")
+            if (stream[0] != connection["next"] or length > len(pkt[_PAYLOAD])
+                    or "U" in flags):
+                # A gap, a retransmission with other bytes, bytes the capture
+                # cut off (tcpdump runs with a short snap length), or urgent
+                # data, which the outstation's TCP stack takes out of the
+                # stream while the IDS would read it in place.
+                connection["opaque"] = True
+            connection["next"] = (stream[0] + length) & _SEQ_MASK
+            connection["last"] = segment
+        return connection
+
+    def _store_dnp3_connection(self, key, connection):
+        self.dnp3_connections.pop(key, None)
+        if len(self.dnp3_connections) >= DNP3_MAX_CONNECTIONS:
+            # Forget a connection without requests first.  Forgetting one
+            # forgets its requests too, and a later segment on it starts
+            # opaque, so nothing on it can be credited afterwards.
+            idle = next((k for k, v in self.dnp3_connections.items() if not v["waiting"]),
+                        next(iter(self.dnp3_connections)))
+            del self.dnp3_connections[idle]
+        self.dnp3_connections[key] = connection
+
+    def _await_dnp3_reply(self, connection, alert, now):
+        # Every request on a connection stays on its list for as long as the
+        # connection lives, answered or not: a reply is only credited when it
+        # fits exactly one of them.  A request pushed off a full list could
+        # have been the one a reply answers, so that makes the connection
+        # opaque.
+        waiting = [w for w in connection["waiting"] if w[0] is not alert]
+        waiting.append((alert, now))
+        if len(waiting) > DNP3_MAX_WAITING:
+            connection["opaque"] = True
+            waiting = waiting[-DNP3_MAX_WAITING:]
+        connection["waiting"] = waiting
+
+    def _check_dnp3_reply(self, pkt, src_ip):
+        # An outstation answers every request it accepts at the link layer
+        # with a response (function 0x81) carrying the request's sequence
+        # number and echoing each control point with its status, 0 for
+        # success.  A frame it drops -- wrong addresses, wrong direction,
+        # a transport or application header it does not take -- gets no
+        # response at all, and a refused one gets a non-zero status.
+        #
+        # A response does not name the request it answers: a SELECT is
+        # answered with status 00 and writes nothing, and a frame the IDS
+        # could not read whole may be one the outstation acted on.  So a
+        # reply is filed only when the IDS followed the connection from its
+        # SYN without a gap, it carried nothing opaque, the reply acknowledges
+        # exactly the bytes the IDS read, it
+        # fits exactly one request seen on the connection (sequence number,
+        # swapped link addresses, the same points), and that request is
+        # unanswered and recent.  Otherwise the requests it fits are marked
+        # "unattributed" and are never credited.  None of this depends on
+        # when the reply arrives, which the master can delay by closing its
+        # TCP window.  What is left needs hand-crafted raw TCP: forging the
+        # outstation's reply, insertion packets the outstation discards but
+        # the IDS reads (bad checksum, PAWS) timed with a capture loss, or a
+        # forged SYN on a connection the IDS forgot -- each more work than
+        # the real DNP3 command.
+        key = (pkt[_DST_IP], pkt[_DPORT], src_ip)
+        connection = self.dnp3_connections.pop(key, None)
+        if connection is None:
+            return
+        self.dnp3_connections[key] = connection   # most recently used
+        now = time.time()
+        connection["seen"] = now
+        stream = _tcp_stream(pkt)
+        # The reply's acknowledgement number says how far the outstation has
+        # read the master's stream; anything beyond what the IDS followed is
+        # a request it never saw.
+        complete = stream is None or (connection["next"] is not None
+                                      and stream[1] == connection["next"])
+        for response in parse_dnp3_responses(pkt[_PAYLOAD]):
+            echoed = _dnp3_points(response["objects"])
+            matches = [(r, since) for alert, since in connection["waiting"]
+                       for r in alert["dnp3"]
+                       if r["seq"] == response["seq"]
+                       and r["link_dst"] == response["link_src"]
+                       and r["link_src"] == response["link_dst"]
+                       and _dnp3_points(r["objects"]) == echoed]
+            if (not connection["opaque"] and complete and len(matches) == 1
+                    and matches[0][0]["reply"] is None
+                    and now - matches[0][1] <= DNP3_REPLY_TIMEOUT):
+                matches[0][0]["reply"] = {"iin": response["iin"],
+                                          "objects": response["objects"]}
+                continue
+            for request, _ in matches:
+                if request["reply"] is None:
+                    request["reply"] = {"unattributed": True}
 
     # ---- Stats & cleanup ----
 
@@ -538,6 +710,14 @@ class RuleEngine:
         self.s7_last_write = {
             k: v for k, v in self.s7_last_write.items()
             if now - v[1] < self.ALERT_COOLDOWN * 2
+        }
+        self.dnp3_last_request = {
+            k: v for k, v in self.dnp3_last_request.items()
+            if now - v[1] < self.ALERT_COOLDOWN * 2
+        }
+        self.dnp3_connections = {
+            k: v for k, v in self.dnp3_connections.items()
+            if now - v["seen"] <= DNP3_CONNECTION_IDLE
         }
         for key in list(self.port_scan_tracker.keys()):
             cutoff = now - self.PORT_SCAN_WINDOW * 2
@@ -787,8 +967,12 @@ def dnp3_crc(data):
     return ~crc & 0xFFFF
 
 
-def _dnp3_objects(data):
-    """Control points in the object headers of a request, best effort.
+def _dnp3_objects(data, status=False):
+    return _dnp3_decode(data, status)[0]
+
+
+def _dnp3_decode(data, status=False):
+    """(control points, True if every byte was decoded) of a request's objects.
 
     Decodes g12v1 (CROB) and g41v1-4 (analog output) with qualifier 0x17 or
     0x28, the forms a control request uses.  Parsing stops at the first header
@@ -798,6 +982,7 @@ def _dnp3_objects(data):
     """
     objects = []
     pos = 0
+    complete = True
     while pos + 3 <= len(data) and len(objects) < DNP3_MAX_POINTS:
         group, variation, qualifier = data[pos], data[pos + 1], data[pos + 2]
         size = _DNP3_OBJECT_SIZES.get((group, variation))
@@ -827,53 +1012,123 @@ def _dnp3_objects(data):
                 obj["value"] = struct.unpack("<f", point[0:4])[0]
             else:
                 obj["value"] = struct.unpack("<d", point[0:8])[0]
+            if status:
+                obj["status"] = point[-1]   # control status, 0 = success
             if len(objects) < DNP3_MAX_POINTS:
                 objects.append(obj)
-    return objects
+            else:
+                complete = False
+    return objects, complete and pos == len(data)
+
+
+def _dnp3_frames(payload, limit=DNP3_MAX_FRAMES):
+    """(position, link control, destination, source, user data) of each intact frame.
+
+    The payload is one or more link-layer frames: 05 64, length, control,
+    destination and source address (little-endian), a CRC over those eight
+    bytes, then the user data in blocks of up to 16 bytes, each followed by its
+    own CRC.  Only frames carrying user data (function 3 confirmed, 4
+    unconfirmed) with every CRC correct are returned: a station drops anything
+    else, so the IDS must not read a command or an answer out of it either.
+    Position counts every frame, intact or not; only the first `limit` frames
+    are read (None for all).
+    """
+    pos = 0
+    index = -1
+    while limit is None or index + 1 < limit:
+        index += 1
+        if pos + 10 > len(payload) or payload[pos:pos + 2] != b"\x05\x64":
+            return
+        length, control = payload[pos + 2], payload[pos + 3]
+        if length < 5:
+            return
+        data_len = length - 5
+        frame_len = 10 + data_len + 2 * ((data_len + 15) // 16)
+        frame = payload[pos:pos + frame_len]
+        pos += frame_len
+        if len(frame) < frame_len or not control & 0x40 or control & 0x0F not in (3, 4):
+            continue
+        if dnp3_crc(frame[0:8]) != int.from_bytes(frame[8:10], "little"):
+            continue
+        user = bytearray()
+        for start in range(10, frame_len, 18):
+            block = frame[start:min(start + 16, frame_len - 2)]
+            crc = frame[start + len(block):start + len(block) + 2]
+            if dnp3_crc(block) != int.from_bytes(crc, "little"):
+                break
+            user += block
+        else:
+            yield (index, control, int.from_bytes(frame[4:6], "little"),
+                   int.from_bytes(frame[6:8], "little"), bytes(user))
+
+
+def dnp3_intact_frames(payload):
+    """True if a TCP payload is a run of complete link frames with every CRC correct.
+
+    A station cannot trust the length in a header that fails its CRC; it
+    searches for the next 05 64 instead, and so finds frames inside the bytes
+    the IDS would have skipped by that length.  A master never needs to send
+    a broken frame, so one makes the stream unreadable for the IDS.
+    """
+    pos = 0
+    while pos < len(payload):
+        if pos + 10 > len(payload) or payload[pos:pos + 2] != b"\x05\x64" or payload[pos + 2] < 5:
+            return False
+        data_len = payload[pos + 2] - 5
+        frame_len = 10 + data_len + 2 * ((data_len + 15) // 16)
+        frame = payload[pos:pos + frame_len]
+        if len(frame) < frame_len or dnp3_crc(frame[0:8]) != int.from_bytes(frame[8:10], "little"):
+            return False
+        for start in range(10, frame_len, 18):
+            block = frame[start:min(start + 16, frame_len - 2)]
+            crc = frame[start + len(block):start + len(block) + 2]
+            if dnp3_crc(block) != int.from_bytes(crc, "little"):
+                return False
+        pos += frame_len
+    return True
+
+
+def dnp3_opaque(payload):
+    """True if a TCP payload to an outstation holds anything the IDS cannot read in full.
+
+    That is a payload that is not a run of whole link frames with correct
+    CRCs, a frame from a
+    master with user data past the first DNP3_MAX_FRAMES, or one whose transport or application header is not a
+    single segment and fragment (FIR and FIN both set), or a control request
+    whose object headers do not decode to the last byte.  The outstation
+    reassembles messages the IDS reads frame by frame, so for any of these it
+    may act on a request the IDS never sees whole.
+    """
+    if not dnp3_intact_frames(payload):
+        return True
+    try:
+        for index, control, _, _, user in _dnp3_frames(payload, limit=None):
+            if control & 0xC0 != 0xC0:
+                continue
+            if index >= DNP3_MAX_FRAMES:
+                return True   # a request past the frames the rules read
+            if len(user) < 3 or user[0] & 0xC0 != 0xC0 or user[1] & 0xC0 != 0xC0:
+                return True
+            if user[2] in DNP3_CONTROL_FUNCTIONS and not _dnp3_decode(user[3:])[1]:
+                return True
+    except (IndexError, ValueError, struct.error):
+        return True
+    return False
 
 
 def parse_dnp3_requests(payload):
     """Control requests in a TCP payload to a DNP3 outstation, or [] if none.
 
-    The payload is one or more link-layer frames: 05 64, length, control,
-    destination and source address (little-endian), a CRC over those eight
-    bytes, then the user data in blocks of up to 16 bytes, each followed by its
-    own CRC.  Only frames from a master carrying user data, with every CRC
-    correct, are read -- the outstation drops anything else, so the IDS must
-    not count it as a command either.  The user data starts with the transport
-    header; the first segment of a message (FIR) carries the application
-    control byte and the function code, then the object headers.
+    Reads frames from a master (DIR and PRM set in the link control byte).
+    The user data starts with the transport header; the first segment of a
+    message (FIR) carries the application control byte and the function code,
+    then the object headers.  The rule logs what was sent, including requests
+    the outstation goes on to drop or refuse; its reply tells which.
     """
     requests = []
-    pos = 0
     try:
-        for _ in range(DNP3_MAX_FRAMES):
-            if pos + 10 > len(payload) or payload[pos:pos + 2] != b"\x05\x64":
-                break
-            length, control = payload[pos + 2], payload[pos + 3]
-            if length < 5:
-                break
-            data_len = length - 5
-            frame_len = 10 + data_len + 2 * ((data_len + 15) // 16)
-            frame = payload[pos:pos + frame_len]
-            pos += frame_len
-            # PRM set (from the initiating station) and a user-data function
-            # (3 confirmed, 4 unconfirmed); link status, resets and replies
-            # carry no command.
-            if len(frame) < frame_len or not control & 0x40 or control & 0x0F not in (3, 4):
-                continue
-            if dnp3_crc(frame[0:8]) != int.from_bytes(frame[8:10], "little"):
-                continue
-            user = bytearray()
-            ok = True
-            for start in range(10, frame_len, 18):
-                block = frame[start:min(start + 16, frame_len - 2)]
-                crc = frame[start + len(block):start + len(block) + 2]
-                if dnp3_crc(block) != int.from_bytes(crc, "little"):
-                    ok = False
-                    break
-                user += block
-            if not ok or len(user) < 3 or not user[0] & 0x40:
+        for _, control, link_dst, link_src, user in _dnp3_frames(payload):
+            if control & 0xC0 != 0xC0 or len(user) < 3 or not user[0] & 0x40:
                 continue
             function = user[2]
             if function not in DNP3_CONTROL_FUNCTIONS:
@@ -881,20 +1136,49 @@ def parse_dnp3_requests(payload):
             requests.append({
                 "function": function,
                 "function_name": DNP3_CONTROL_FUNCTIONS[function],
-                "link_dst": int.from_bytes(frame[4:6], "little"),
-                "link_src": int.from_bytes(frame[6:8], "little"),
+                "link_dst": link_dst,
+                "link_src": link_src,
                 # Application sequence number and a CRC-16/DNP of the raw
-                # object headers: an outstation runs an OPERATE (0x04) only
-                # when a SELECT with the previous sequence number and the
-                # same object bytes came first, and these two fields let a
-                # consumer pair them the same way.
+                # object headers: the outstation's response repeats the
+                # sequence number, and an OPERATE (0x04) is paired with its
+                # SELECT by both.
                 "seq": user[1] & 0x0F,
-                "objects_crc": dnp3_crc(bytes(user[3:])),
-                "objects": _dnp3_objects(bytes(user[3:])),
+                "objects_crc": dnp3_crc(user[3:]),
+                "objects": _dnp3_objects(user[3:]),
             })
     except (IndexError, ValueError, struct.error):
         return []
     return requests
+
+
+def parse_dnp3_responses(payload):
+    """Solicited responses in a TCP payload from a DNP3 outstation, or [].
+
+    Reads single-fragment responses (function 0x81) from an outstation (DIR
+    clear, PRM set): the sequence number, the internal indications and the
+    echoed control points, each with its control status (0 = success).
+    """
+    responses = []
+    try:
+        for _, control, link_dst, link_src, user in _dnp3_frames(payload):
+            if (control & 0xC0 != 0x40 or len(user) < 5 or user[0] & 0xC0 != 0xC0
+                    or user[1] & 0xC0 != 0xC0 or user[2] != DNP3_RESPONSE):
+                continue
+            responses.append({
+                "link_dst": link_dst,
+                "link_src": link_src,
+                "seq": user[1] & 0x0F,
+                "iin": int.from_bytes(user[3:5], "little"),
+                "objects": _dnp3_objects(user[5:], status=True),
+            })
+    except (IndexError, ValueError, struct.error):
+        return []
+    return responses
+
+
+def _dnp3_points(objects):
+    """The points of decoded objects without their status, for comparing an echo."""
+    return [tuple(sorted((k, v) for k, v in o.items() if k != "status")) for o in objects]
 
 
 def _describe_dnp3_request(request):

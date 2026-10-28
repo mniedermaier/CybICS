@@ -440,6 +440,7 @@ class Detector:
 
 _UNPACK_H = struct.Struct("!H").unpack
 _UNPACK_HH = struct.Struct("!HH").unpack
+_UNPACK_II = struct.Struct("!II").unpack
 
 # Pre-computed flags lookup table: byte value -> flags string
 _TCP_FLAGS = [None] * 256
@@ -450,6 +451,7 @@ for _i in range(256):
     if _i & 0x01: _f.append("F")
     if _i & 0x04: _f.append("R")
     if _i & 0x08: _f.append("P")
+    if _i & 0x20: _f.append("U")
     _TCP_FLAGS[_i] = "".join(_f)
 
 # SYN-only lookup: True if SYN set and ACK not set
@@ -460,7 +462,8 @@ def _parse_raw_packet(raw):
     """Parse raw Ethernet frame into a tuple for the rule engine.
 
     Returns a tuple: (src_ip, dst_ip, sport, dport, flags_str, proto_id, payload,
-                      arp_op, arp_src_mac, arp_src_ip)
+                      arp_op, arp_src_mac, arp_src_ip), and for TCP three more
+                      fields: (tcp_seq, tcp_ack, payload_len)
     proto_id: 6=TCP, 17=UDP, 0=ARP, -1=OTHER
     Returns None for packets we can't parse.
     """
@@ -514,10 +517,16 @@ def _parse_raw_packet(raw):
             return None
         sport, dport = _UNPACK_HH(transport[0:4])
         tcp_hdr_len = ((transport[12] >> 4) & 0x0F) * 4
+        # Sequence and acknowledgement numbers and the segment's real payload
+        # length (from the IP header, not the possibly truncated capture):
+        # the DNP3 rule follows the byte stream of a connection with them.
+        seq, ack = _UNPACK_II(transport[4:12])
+        payload_len = max(0, _UNPACK_H(ip_hdr[2:4])[0] - ihl - tcp_hdr_len)
+        # Cut at the IP length too, so Ethernet padding never reads as payload.
         return (src_ip, dst_ip, sport, dport,
                 _TCP_FLAGS[transport[13]], 6,
-                bytes(transport[tcp_hdr_len:tcp_hdr_len + 256]),
-                0, None, None)
+                bytes(transport[tcp_hdr_len:tcp_hdr_len + min(256, payload_len)]),
+                0, None, None, seq, ack, payload_len)
 
     # UDP (protocol 17)
     if protocol == 17:

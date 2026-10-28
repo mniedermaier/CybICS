@@ -322,7 +322,7 @@
           "type": "verify",
           "verify_module": "check_dnp3_sidedoor",
           "tag": "exploit",
-          "flag": "CybICS(dnp3_s1d3_d00r)",
+          "flag": "CybICS(d1r3ct_0p3r4t3_4ck)",
           "hint": "A DNP3 station only answers frames addressed to its own link address and coming from the master it is configured for. Link-layer requests are cheap: ask every pair in a small range and see which one answers. The README explains the frame format and the CRC.",
           "training_content": "training/dnp3_sidedoor/README.md"
         },

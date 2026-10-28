@@ -93,7 +93,10 @@ port 20000 with a rule of its own:
 
 The rule recognises the `05 64` start bytes, checks the CRCs, reads the
 application function code and decodes the points and values of an operate. A
-frame with a wrong CRC is ignored, because the outstation ignores it too. Plain
+frame with a wrong CRC is ignored, because the outstation ignores it too. The
+IDS also reads the outstation's reply and files it with the alert, so an
+analyst can tell an attempt the outstation refused or dropped from a command it
+actually carried out: only the reply says what happened to the process. Plain
 reads and link status requests raise nothing, the same way the Modbus rules
 ignore reads, so the address sweep itself goes unremarked.
 

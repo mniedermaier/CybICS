@@ -105,11 +105,16 @@ The flag has the format `CybICS(flag)`. It is revealed by **Verify** on the
 challenge page when two things hold at the same time:
 
 - the IDS saw a **DNP3 operate** reach OpenPLC's outstation that set the stop
-  flag, within the last five minutes, and no later DNP3 operate put 0 back. The
-  frame has to be one the outstation acts on: right link addresses, right CRCs,
-  a well-formed object header, and an `04` operate only as the second half of
-  a select-before-operate. Stopping the plant with the HMI's button or a
-  Modbus write does not count;
+  flag, within the last five minutes, the outstation **confirmed** it, and no
+  later DNP3 operate put 0 back. Confirmed means the outstation's reply to
+  your operate echoes the point with control status `00`; the IDS sees that
+  reply too, and only credits it when it can tell which request it answers. A frame
+  the outstation drops gets no reply, one it refuses gets another status, and
+  a Direct Operate No Ack (`06`) is never answered, so none of these count.
+  Send the operate as one frame on its own connection, so the IDS can tell
+  which request the reply answers.
+  Stopping the plant with the HMI's button or a Modbus write does not count
+  either;
 - the plant **is stopped** at the moment you click Verify.
 
 Then restore the plant (step 6). The plant is shared with everybody on the
@@ -174,13 +179,16 @@ board, so do not leave it stopped.
   It checks the CRCs, decodes the function code, the link addresses and every
   analog-output and relay-output point with its value, and names them in the
   alert. Only an exact repeat of the previous command is folded within 30
-  seconds, so stop, restore and stop again are three alerts. The rule records
-  what was *sent*, not what the outstation did with it: a lone `04` operate
-  that the outstation refused still raises an alert. An analyst (and this
-  challenge's Verify) has to pair an operate with its select, or read the
-  outstation's reply, before calling it a change to the process. Reads, link status
-  requests and the outstation's replies raise nothing, which is why your
-  address sweep went unremarked. A network monitor that spoke DNP3 could flag
+  seconds, so stop, restore and stop again are three alerts. The alert records
+  what was *sent*: a lone `04` operate the outstation refused, or a frame with
+  a header it drops, still raises one, because an attempt is worth knowing
+  about. What the outstation *did* is in its reply, which the IDS files under
+  the request (`reply`, with the control status of every echoed point; none
+  if it never answered, `unattributed` if it cannot tell which of several
+  requests on the connection a reply was for). Read that before calling an alert a change to the
+  process; this challenge's Verify does. Reads, link status requests and the
+  outstation's replies raise nothing themselves, which is why your address
+  sweep went unremarked. A network monitor that spoke DNP3 could flag
   that too: a burst of link status requests to dozens of addresses is not what
   a real master sends.
 

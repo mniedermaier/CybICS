@@ -81,6 +81,26 @@ def test_the_tcp_payload_reaches_the_rules_intact():
     assert pkt[6] == body
 
 
+def test_tcp_sequence_numbers_and_real_payload_length_are_passed_on():
+    """The DNP3 rule follows a connection's byte stream with these."""
+    body = bytes(300)
+    tcp = (b"\x9c\x40\x4e\x20" + (123456789).to_bytes(4, "big") + (987654321).to_bytes(4, "big")
+           + b"\x50\x18" + b"\x00" * 6 + body)
+    pkt = parse(_eth(b"\x08\x00", _ipv4(6, tcp)))
+    assert pkt[10:13] == (123456789, 987654321, 300)
+    assert len(pkt[6]) == 256   # the payload itself is cut off, its length is not
+
+
+def test_ethernet_padding_is_not_payload():
+    tcp = _tcp(51000, 20000, flags=0x18, payload=b"\x05\x64")
+    pkt = parse(_eth(b"\x08\x00", _ipv4(6, tcp) + bytes(20)))
+    assert pkt[6] == b"\x05\x64" and pkt[12] == 2
+
+
+def test_the_urgent_flag_is_visible():
+    assert "U" in parse(_eth(b"\x08\x00", _ipv4(6, _tcp(1, 20000, flags=0x38))))[4]
+
+
 # --- TCP flags ---------------------------------------------------------------
 
 def test_a_syn_is_distinguishable_from_an_established_connection():

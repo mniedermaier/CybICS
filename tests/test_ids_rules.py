@@ -285,6 +285,7 @@ def test_every_rule_is_listed_by_the_server_and_the_dashboard():
 # the outstation answered it with control status 0 (success).  The builder
 # below is an independent implementation used for the variations.
 import struct  # noqa: E402
+import time  # noqa: E402
 
 DNP3_STOP = bytes.fromhex(
     "056412c40a000100" "5686" "c0c105290228010068040100" "00" "0e1e")
@@ -487,6 +488,523 @@ def test_dnp3_cooldown_suppresses_only_an_exact_repeat():
     assert len(back) == 1 and back[0]["dnp3"][0]["objects"][0]["value"] == 0
     assert len(again) == 1 and again[0]["dnp3"][0]["objects"][0]["value"] == 1
     assert len(other_host) == 1
+
+
+# ---- The outstation's reply (no rule; filed under the request) ----
+#
+# The alert records what was sent.  Whether the outstation carried it out is
+# only in its reply: a response (0x81) with the request's sequence number that
+# echoes each point with its control status.  The DNP3 Side Door verify check
+# credits a stop only on status 0, so the pairing must not attach a reply to
+# the wrong request.
+
+
+def _dnp3_reply(points, seq=1, iin=0, control=0x44, app=None, func=0x81, dest=1, source=10):
+    """An outstation response echoing (index, value, status) analog-output points."""
+    body = bytes([41, 2, 0x28]) + len(points).to_bytes(2, "little")
+    for index, value, status in points:
+        body += index.to_bytes(2, "little") + struct.pack("<h", value) + bytes([status])
+    app = 0xC0 | seq if app is None else app
+    return _dnp3_frame(bytes([0xC0, app, func]) + iin.to_bytes(2, "little") + body,
+                       control=control, dest=dest, source=source)
+
+
+def _confirmed(request):
+    """True if the IDS filed a reply under the request (as opposed to none or unattributed)."""
+    return isinstance(request["reply"], dict) and "objects" in request["reply"]
+
+
+def _from_outstation(payload, dport=51000, dst=ATTACK_MACHINE):
+    return (OPENPLC, dst, 20000, dport, "PA", 6, payload, None)
+
+
+def _stop_with_reply(reply, engine=None, sport=51000):
+    engine = engine or rules.RuleEngine()
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    assert alert["dnp3"][0]["reply"] is None
+    assert engine.check_packet(_from_outstation(reply, dport=sport)) == []
+    return alert["dnp3"][0]["reply"]
+
+
+def test_dnp3_reply_is_filed_under_the_request():
+    reply = _stop_with_reply(_dnp3_reply([(1128, 1, 0)]))
+    assert reply == {"iin": 0, "objects": [
+        {"group": 41, "variation": 2, "index": 1128, "value": 1, "status": 0}]}
+
+
+def test_dnp3_refusal_keeps_its_status():
+    reply = _stop_with_reply(_dnp3_reply([(1128, 1, 2)]))
+    assert reply["objects"][0]["status"] == 2
+
+
+@pytest.mark.parametrize("payload,label", [
+    (_dnp3_reply([(1128, 1, 0)], seq=2), "other-sequence"),
+    (_dnp3_reply([(1128, 1, 0)], dest=2), "other-master"),
+    (_dnp3_reply([(1128, 1, 0)], source=11), "other-outstation"),
+    (_dnp3_reply([(1128, 1, 0)], control=0xC4), "dir-set"),
+    (_dnp3_reply([(1128, 1, 0)], func=0x82), "unsolicited"),
+    (_dnp3_reply([(1128, 1, 0)], app=0x81), "not-fir"),
+    (_dnp3_frame(b"", control=0x0B, dest=1, source=10), "link-status"),
+    (bytes(range(64)), "noise"),
+], ids=lambda v: v if isinstance(v, str) else "")
+def test_dnp3_only_the_matching_reply_is_filed(payload, label):
+    assert _stop_with_reply(payload) is None, label
+
+
+def test_dnp3_reply_on_another_connection_is_not_filed():
+    assert _stop_with_reply(_dnp3_reply([(1128, 1, 0)]), sport=51001) is None
+
+
+def test_dnp3_late_reply_is_not_filed(monkeypatch):
+    engine = rules.RuleEngine()
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    later = time.time() + rules.DNP3_REPLY_TIMEOUT + 1
+    monkeypatch.setattr(rules.time, "time", lambda: later)
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 1, 0)])))
+    assert alert["dnp3"][0]["reply"] == {"unattributed": True}
+
+
+def test_dnp3_connection_state_goes_once_idle(monkeypatch):
+    engine = rules.RuleEngine()
+    engine.check_packet(_dnp3_packet(DNP3_STOP))
+    idle = time.time() + rules.DNP3_CONNECTION_IDLE + 1
+    monkeypatch.setattr(rules.time, "time", lambda: idle)
+    engine.cleanup()
+    assert not engine.dnp3_connections
+
+
+def test_dnp3_reply_to_a_folded_repeat_goes_to_the_first_alert():
+    engine = rules.RuleEngine()
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    assert not _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 1, 0)])))
+    assert alert["dnp3"][0]["reply"]["objects"][0]["status"] == 0
+
+
+def test_dnp3_request_keys_never_change_after_the_alert():
+    """The API may serialise a stored alert while its reply arrives."""
+    engine = rules.RuleEngine()
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    keys = set(alert["dnp3"][0])
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 1, 0)])))
+    assert set(alert["dnp3"][0]) == keys
+
+
+def test_dnp3_connections_are_bounded():
+    engine = rules.RuleEngine()
+    for port in range(rules.DNP3_MAX_CONNECTIONS + 20):
+        engine.check_packet((ATTACK_MACHINE, OPENPLC, 40000 + port, 20000, "PA", 6,
+                             _dnp3_request(_ao_points((1128, port % 2))), None))
+    assert len(engine.dnp3_connections) <= rules.DNP3_MAX_CONNECTIONS
+
+
+def test_dnp3_reply_echoing_other_points_is_not_filed():
+    """Review bypass: a stop split across two TCP segments is never logged.
+
+    The student sends a frame the outstation drops (stop = 1) and, in the
+    same burst, a valid restore of 0 with its tail held back to the next
+    segment. The IDS logs only the dropped stop; the outstation writes 0 and
+    answers status 00 with the same sequence number. That reply echoes 0,
+    so it must not be filed under the logged stop.
+    """
+    engine = rules.RuleEngine()
+    dropped = _dnp3_frame(bytes([0xC0, 0xD7, 0x05]) + _ao_points((1128, 1)))
+    restore = _dnp3_frame(bytes([0xC0, 0xC7, 0x05]) + _ao_points((1128, 0)))
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(dropped + restore[:-3])))
+    assert engine.check_packet(_dnp3_packet(restore[-3:])) == []
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 0, 0)], seq=7)))
+    assert alert["dnp3"][0]["reply"] is None
+
+
+def test_dnp3_a_later_request_does_not_take_an_earlier_ones_reply():
+    """Review bypass: restore 0, then a dropped stop of 1 with the same sequence."""
+    engine = rules.RuleEngine()
+    restore = _dnp3_frame(bytes([0xC0, 0xC7, 0x05]) + _ao_points((1128, 0)))
+    dropped = _dnp3_frame(bytes([0xC0, 0xD7, 0x05]) + _ao_points((1128, 1)))
+    (first,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(restore)))
+    (second,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(dropped)))
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 0, 0)], seq=7)))
+    assert first["dnp3"][0]["reply"]["objects"][0]["value"] == 0
+    assert second["dnp3"][0]["reply"] is None
+
+
+# Review round 2: a response does not name the function it answers.  A
+# SELECT the outstation accepts is answered with status 00 and writes
+# nothing; its reply must not confirm a Direct Operate the outstation dropped
+# (UNS set) that carries the same sequence number and points.
+_DROPPED_DO = _dnp3_frame(bytes([0xC0, 0xD9, 0x05]) + _ao_points((1128, 1)))
+_SELECT_9 = _dnp3_frame(bytes([0xC0, 0xC9, 0x03]) + _ao_points((1128, 1)))
+_SELECT_9_REPLY = _dnp3_reply([(1128, 1, 0)], seq=9)
+
+
+def _requests_after(segments):
+    engine = rules.RuleEngine()
+    alerts = []
+    for segment in segments:
+        alerts += _dnp3_alerts(engine.check_packet(_dnp3_packet(segment)))
+    engine.check_packet(_from_outstation(_SELECT_9_REPLY))
+    return [r for a in alerts for r in a["dnp3"]]
+
+
+@pytest.mark.parametrize("segments,label", [
+    ([_DROPPED_DO, _SELECT_9], "two-segments"),
+    ([_DROPPED_DO + _SELECT_9], "one-segment"),
+    ([_DROPPED_DO + _SELECT_9[:-4], _SELECT_9[-4:]], "select-split"),
+    ([_DROPPED_DO, _SELECT_9[:7], _SELECT_9[7:]], "select-in-pieces"),
+])
+def test_dnp3_a_selects_reply_never_confirms_an_operate(segments, label):
+    operates = [r for r in _requests_after(segments) if r["function"] == 0x05]
+    assert operates and not any(_confirmed(r) for r in operates), label
+
+
+def test_dnp3_a_folded_answered_select_still_counts_as_a_match():
+    """Review round 3: a dropped DO on port P, a SELECT on Q, the same SELECT on P.
+
+    The repeat folds into the SELECT's alert, which already has its reply,
+    and waits on P next to the dropped DO; the second 00 must not go to it.
+    """
+    engine = rules.RuleEngine()
+
+    def send(payload, port):
+        return _dnp3_alerts(engine.check_packet(
+            (ATTACK_MACHINE, OPENPLC, port, 20000, "PA", 6, payload, None)))
+
+    (operate,) = send(_DROPPED_DO, 51000)
+    (select,) = send(_SELECT_9, 51001)
+    engine.check_packet(_from_outstation(_SELECT_9_REPLY, dport=51001))
+    assert select["dnp3"][0]["reply"] is not None
+    assert send(_SELECT_9, 51000) == []   # folded
+    engine.check_packet(_from_outstation(_SELECT_9_REPLY, dport=51000))
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_corrected_retry_is_credited():
+    """A dropped attempt, then the same request fixed: folds, and is confirmed."""
+    engine = rules.RuleEngine()
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(DNP3_STOP)))
+    engine.check_packet(_dnp3_packet(DNP3_STOP, src=ATTACK_MACHINE))
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 1, 0)])))
+    assert alert["dnp3"][0]["reply"]["objects"][0]["status"] == 0
+
+
+def test_dnp3_a_select_in_two_transport_segments_never_confirms_an_operate():
+    """Each frame is whole, but the SELECT's message spans two of them.
+
+    The IDS reads frame by frame and sees a SELECT with no decodable points;
+    the outstation reassembles the transport segments and answers 00. The
+    dropped DO must not take that reply.
+    """
+    message = bytes([0xC9, 0x03]) + _ao_points((1128, 1))
+    first = _dnp3_frame(bytes([0x40]) + message[:4])      # FIR, seq 0
+    second = _dnp3_frame(bytes([0x81]) + message[4:])     # FIN, seq 1
+    operates = [r for r in _requests_after([_DROPPED_DO, first, second])
+                if r["function"] == 0x05]
+    assert operates and not _confirmed(operates[0])
+
+
+@pytest.mark.parametrize("payload,opaque", [
+    (DNP3_STOP, False),
+    (DNP3_STOP + DNP3_STOP, False),
+    (_dnp3_frame(bytes([0xC0, 0x01, 0x05]) + _ao_points((1128, 1))), True),
+    (_dnp3_frame(bytes([0x40, 0xC1, 0x05]) + _ao_points((1128, 1))), True),
+    (_dnp3_frame(bytes([0x80, 0xC1, 0x05]) + _ao_points((1128, 1))), True),
+    (_dnp3_request(_ao_points((1128, 1)) + b"\x00"), True),
+    (_dnp3_request(bytes([41, 2, 0x28, 1]) + struct.pack("<Hh", 1128, 1) + b"\x00"), True),
+    (_dnp3_request(_ao_points(*[(1100 + i, 0) for i in range(rules.DNP3_MAX_POINTS + 1)])), True),
+    (_dnp3_request(bytes([60, 1, 0x06]), func=0x01), False),
+    (_dnp3_frame(b"", control=0xC9), False),
+    (DNP3_STOP[:-2], True),
+], ids=["stop", "two-stops", "app-not-fir-fin", "transport-fir-only",
+        "transport-fin-only", "trailing-byte", "short-count", "too-many-points",
+        "read", "link-status", "partial"])
+def test_dnp3_opaque(payload, opaque):
+    assert rules.dnp3_opaque(payload) is opaque
+
+
+def test_dnp3_a_select_past_the_frames_the_rules_read_never_confirms_an_operate():
+    """Review round 4: 15 link-status fillers, then the SELECT as frame 17."""
+    filler = _dnp3_frame(b"", control=0xC9) * (rules.DNP3_MAX_FRAMES - 1)
+    segment = _DROPPED_DO + filler + _SELECT_9
+    assert rules.dnp3_opaque(segment)
+    operates = [r for r in _requests_after([segment]) if r["function"] == 0x05]
+    assert operates and not _confirmed(operates[0])
+
+
+def test_dnp3_many_link_status_frames_are_not_opaque():
+    """The solution's address sweep sends one burst of link-status requests."""
+    assert not rules.dnp3_opaque(_dnp3_frame(b"", control=0xC9) * 100)
+
+
+def test_dnp3_a_held_back_select_reply_never_confirms_an_operate(monkeypatch):
+    """Review round 4: the master closes its TCP window to delay the SELECT's reply."""
+    engine = rules.RuleEngine()
+    start = time.time()
+    monkeypatch.setattr(rules.time, "time", lambda: start)
+    engine.check_packet(_dnp3_packet(_SELECT_9))
+    monkeypatch.setattr(rules.time, "time", lambda: start + rules.DNP3_REPLY_TIMEOUT - 1)
+    (operate,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(_DROPPED_DO)))
+    monkeypatch.setattr(rules.time, "time", lambda: start + 10 * rules.DNP3_REPLY_TIMEOUT)
+    engine.check_packet(_from_outstation(_SELECT_9_REPLY))
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_pushing_a_select_off_the_list_blocks_replies():
+    """Review round 4: enough other requests to push the SELECT off the list."""
+    engine = rules.RuleEngine()
+    engine.check_packet(_dnp3_packet(_SELECT_9))
+    (operate,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(_DROPPED_DO)))
+    for value in range(rules.DNP3_MAX_WAITING):
+        engine.check_packet(_dnp3_packet(_dnp3_request(_ao_points((1200, value)))))
+    engine.check_packet(_from_outstation(_SELECT_9_REPLY))
+    assert not _confirmed(operate["dnp3"][0])
+
+
+# Review round 5: state a connection gets from TCP itself.  These tests use
+# the detector's full tuple with sequence and acknowledgement numbers.
+
+class _Session:
+    """A master's TCP connection to the outstation, as the IDS sees it."""
+
+    def __init__(self, engine, port=52000, isn=1000, syn=True):
+        self.engine, self.port, self.next = engine, port, isn + 1
+        if syn:
+            engine.check_packet((ATTACK_MACHINE, OPENPLC, port, 20000, "S", 6, b"", None,
+                                 None, None, isn, 0, 0))
+
+    def send(self, payload, seen=True, length=None):
+        length = len(payload) if length is None else length
+        pkt = (ATTACK_MACHINE, OPENPLC, self.port, 20000, "PA", 6, payload, None,
+               None, None, self.next, 1, length)
+        self.next = (self.next + length) & 0xFFFFFFFF
+        return _dnp3_alerts(self.engine.check_packet(pkt)) if seen else []
+
+    def reply(self, payload, ack=None):
+        self.engine.check_packet((OPENPLC, ATTACK_MACHINE, 20000, self.port, "PA", 6,
+                                  payload, None, None, None, 1,
+                                  self.next if ack is None else ack, len(payload)))
+
+
+def test_dnp3_a_followed_connection_is_confirmed():
+    session = _Session(rules.RuleEngine())
+    (alert,) = session.send(DNP3_STOP)
+    session.reply(_dnp3_reply([(1128, 1, 0)]))
+    assert _confirmed(alert["dnp3"][0])
+
+
+def test_dnp3_a_syn_flood_cannot_make_the_ids_forget_a_select():
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    session.send(_SELECT_9)                 # its reply is held back
+    for port in range(rules.DNP3_MAX_CONNECTIONS + 10):
+        _Session(engine, port=30000 + port)
+    (operate,) = session.send(_DROPPED_DO)
+    session.reply(_SELECT_9_REPLY)
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_forgotten_connection_comes_back_opaque():
+    """Real connections, each with a request, push the target out after all."""
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    session.send(_SELECT_9)
+    for port in range(rules.DNP3_MAX_CONNECTIONS):
+        _Session(engine, port=30000 + port).send(_dnp3_request(_ao_points((1200, port))))
+    assert (ATTACK_MACHINE, session.port, OPENPLC) not in engine.dnp3_connections
+    (operate,) = session.send(_DROPPED_DO)
+    session.reply(_SELECT_9_REPLY)
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_select_the_capture_lost_is_noticed_by_the_reply():
+    session = _Session(rules.RuleEngine())
+    (operate,) = session.send(_DROPPED_DO)
+    session.send(_SELECT_9, seen=False)     # dropped by the capture
+    session.reply(_SELECT_9_REPLY)          # acknowledges it nonetheless
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_gap_in_the_stream_makes_the_connection_opaque():
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    session.send(_SELECT_9, seen=False)
+    (operate,) = session.send(_DROPPED_DO)
+    assert engine.dnp3_connections[(ATTACK_MACHINE, session.port, OPENPLC)]["opaque"]
+    session.reply(_SELECT_9_REPLY)
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_connection_joined_midway_is_opaque():
+    session = _Session(rules.RuleEngine(), syn=False)
+    (alert,) = session.send(DNP3_STOP)
+    session.reply(_dnp3_reply([(1128, 1, 0)]))
+    assert not _confirmed(alert["dnp3"][0])
+
+
+def test_dnp3_a_segment_cut_off_by_the_capture_is_opaque():
+    session = _Session(rules.RuleEngine())
+    (alert,) = session.send(DNP3_STOP, length=len(DNP3_STOP) + 40)
+    session.reply(_dnp3_reply([(1128, 1, 0)]))
+    assert not _confirmed(alert["dnp3"][0])
+
+
+def test_dnp3_a_segment_captured_twice_is_not_a_gap():
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    pkt = (ATTACK_MACHINE, OPENPLC, session.port, 20000, "PA", 6, DNP3_STOP, None,
+           None, None, session.next, 1, len(DNP3_STOP))
+    (alert,) = _dnp3_alerts(engine.check_packet(pkt))
+    engine.check_packet(pkt)
+    session.next += len(DNP3_STOP)
+    session.reply(_dnp3_reply([(1128, 1, 0)]))
+    assert _confirmed(alert["dnp3"][0])
+
+
+def test_dnp3_a_retransmission_with_other_bytes_is_opaque():
+    """TCP keeps the bytes it got first; the IDS may have seen only the second copy."""
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    start = session.next
+    session.send(_SELECT_9)
+    session.next = start
+    (operate,) = session.send(_DROPPED_DO[:len(_SELECT_9)])
+    assert engine.dnp3_connections[(ATTACK_MACHINE, session.port, OPENPLC)]["opaque"]
+
+
+# Review round 6: a station resyncs on 05 64 after a header that fails its
+# CRC, so a frame inside the bytes the IDS would skip by the declared length
+# reaches the outstation.
+
+def _hide(inner, header_crc=b"\x00\x00"):
+    """A frame header with a wrong CRC that declares room for `inner` and padding."""
+    data_len = 27
+    return (bytes([0x05, 0x64, 5 + data_len, 0xC4, 10, 0, 1, 0]) + header_crc + inner
+            + bytes(10 + data_len + 2 * ((data_len + 15) // 16) - 10 - len(inner)))
+
+
+def test_dnp3_a_select_inside_a_frame_with_a_bad_header_crc_is_opaque():
+    hidden = _hide(_SELECT_9)
+    assert rules.dnp3_opaque(hidden)
+    session = _Session(rules.RuleEngine())
+    (operate,) = session.send(_DROPPED_DO)
+    assert session.send(hidden) == []
+    session.reply(_SELECT_9_REPLY)
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_select_inside_a_frame_with_a_bad_block_crc_is_opaque():
+    frame = bytearray(_dnp3_frame(bytes([0xC0, 0xC1, 0x05]) + bytes(12) + _SELECT_9[:4]))
+    frame[-1] ^= 0xFF
+    assert rules.dnp3_opaque(bytes(frame) + _SELECT_9[4:])
+
+
+def test_dnp3_urgent_data_makes_the_connection_opaque():
+    """The outstation's TCP stack takes the urgent byte out of the stream."""
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    pkt = (ATTACK_MACHINE, OPENPLC, session.port, 20000, "PAU", 6, DNP3_STOP, None,
+           None, None, session.next, 1, len(DNP3_STOP))
+    engine.check_packet(pkt)
+    assert engine.dnp3_connections[(ATTACK_MACHINE, session.port, OPENPLC)]["opaque"]
+
+
+def test_dnp3_a_syn_in_the_middle_does_not_wipe_the_requests():
+    engine = rules.RuleEngine()
+    session = _Session(engine)
+    session.send(_SELECT_9)
+    engine.check_packet((ATTACK_MACHINE, OPENPLC, session.port, 20000, "S", 6, b"", None,
+                         None, None, session.next - 1, 0, 0))
+    (operate,) = session.send(_DROPPED_DO)
+    session.reply(_SELECT_9_REPLY)
+    assert not _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_new_connection_on_a_reused_port_without_requests_is_clean():
+    engine = rules.RuleEngine()
+    _Session(engine)
+    session = _Session(engine, isn=5000)
+    (alert,) = session.send(DNP3_STOP)
+    session.reply(_dnp3_reply([(1128, 1, 0)]))
+    assert _confirmed(alert["dnp3"][0])
+
+
+def test_dnp3_select_then_operate_on_one_connection_is_confirmed():
+    session = _Session(rules.RuleEngine())
+    session.send(_dnp3_frame(bytes([0xC0, 0xC2, 0x03]) + _ao_points((1128, 1))))
+    session.reply(_dnp3_reply([(1128, 1, 0)], seq=2))
+    (operate,) = session.send(_dnp3_frame(bytes([0xC0, 0xC3, 0x04]) + _ao_points((1128, 1))))
+    session.reply(_dnp3_reply([(1128, 1, 0)], seq=3))
+    assert _confirmed(operate["dnp3"][0])
+
+
+def test_dnp3_a_lone_select_still_gets_its_reply():
+    (select,) = _requests_after([_SELECT_9])
+    assert select["reply"]["objects"][0]["status"] == 0
+
+
+@pytest.mark.parametrize("payload,whole", [
+    (DNP3_STOP, True),
+    (DNP3_STOP + DNP3_STOP, True),
+    (DNP3_STOP[:-1], False),
+    (DNP3_STOP[3:], False),
+    (DNP3_STOP + b"\x05", False),
+    (b"\x05\x64\x02", False),
+])
+def test_dnp3_intact_frames(payload, whole):
+    assert rules.dnp3_intact_frames(payload) is whole
+
+
+@pytest.mark.parametrize("pos", [8, 9, 12, len(DNP3_STOP) - 1])
+def test_dnp3_a_broken_crc_is_not_intact(pos):
+    broken = bytearray(DNP3_STOP)
+    broken[pos] ^= 0x01
+    assert not rules.dnp3_intact_frames(bytes(broken))
+
+
+def test_dnp3_a_split_segment_blocks_replies_for_the_connection(monkeypatch):
+    """However long the reply is held back, the connection stays opaque."""
+    engine = rules.RuleEngine()
+    engine.check_packet(_dnp3_packet(DNP3_STOP[:5]))
+    (alert,) = _dnp3_alerts(engine.check_packet(_dnp3_packet(_dnp3_request(_ao_points((1128, 1))))))
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 1, 0)])))
+    assert alert["dnp3"][0]["reply"] == {"unattributed": True}
+    fresh = _dnp3_alerts(engine.check_packet(
+        (ATTACK_MACHINE, OPENPLC, 51009, 20000, "PA", 6, _dnp3_request(_ao_points((1128, 0))), None)))
+    engine.check_packet(_from_outstation(_dnp3_reply([(1128, 0, 0)]), dport=51009))
+    assert _confirmed(fresh[0]["dnp3"][0]), "a new connection starts clean"
+
+
+def test_dnp3_waiting_requests_per_connection_are_bounded():
+    engine = rules.RuleEngine()
+    for value in range(rules.DNP3_MAX_WAITING + 5):
+        engine.check_packet(_dnp3_packet(_dnp3_request(_ao_points((1128, value)))))
+    connection = engine.dnp3_connections[(ATTACK_MACHINE, 51000, OPENPLC)]
+    assert len(connection["waiting"]) == rules.DNP3_MAX_WAITING and connection["opaque"]
+
+
+def test_dnp3_frame_from_an_outstation_is_not_a_command():
+    """Review bypass (f): DIR clear claims the frame comes from an outstation."""
+    frame = _dnp3_frame(bytes([0xC0, 0xC1, 0x05]) + _ao_points((1128, 1)), control=0x44)
+    assert rules.parse_dnp3_requests(frame) == []
+
+
+@pytest.mark.parametrize("user,control,label", [
+    (bytes([0x40, 0xC1, 0x05]), 0xC4, "transport-fir-without-fin"),
+    (bytes([0xC0, 0x01, 0x05]), 0xC4, "app-without-fir-fin"),
+    (bytes([0xC0, 0xD1, 0x05]), 0xC4, "app-uns"),
+    (bytes([0xC0, 0xE1, 0x05]), 0xC4, "app-con"),
+    (bytes([0xC0, 0xC1, 0x05]), 0xF3, "confirmed-data-fcv"),
+    (bytes([0xC0, 0xC1, 0x05]), 0xD3, "confirmed-data"),
+])
+def test_dnp3_frames_the_outstation_drops_stay_unconfirmed(user, control, label):
+    """Review bypasses (a)-(e): logged as attempts, but nothing confirms them.
+
+    OpenPLC's outstation sends no reply to these, so their requests keep
+    reply None and the verify check does not credit them.
+    """
+    engine = rules.RuleEngine()
+    alerts = _dnp3_alerts(engine.check_packet(
+        _dnp3_packet(_dnp3_frame(user + _ao_points((1128, 1)), control=control))))
+    assert all(r["reply"] is None for a in alerts for r in a["dnp3"]), label
 
 
 def test_port_20000_is_captured():

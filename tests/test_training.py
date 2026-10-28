@@ -694,12 +694,14 @@ def _dnp3_operate_stop(value):
     return _dnp3_link_frame(0xC4, DNP3_OUTSTATION, DNP3_MASTER, user)
 
 
-def _dnp3_ao_request(func, value, seq=1, dest=DNP3_OUTSTATION, source=DNP3_MASTER):
+def _dnp3_ao_request(func, value, seq=1, dest=DNP3_OUTSTATION, source=DNP3_MASTER,
+                     control=0xC4, transport=0xC0, app=None):
     """A control request on Analog Output Int16 1128 with function code and app sequence."""
     import struct
-    user = bytes([0xC0, 0xC0 | seq, func, 41, 2, 0x28]) \
+    app = 0xC0 | seq if app is None else app
+    user = bytes([transport, app, func, 41, 2, 0x28]) \
         + struct.pack("<HHhB", 1, DNP3_STOP_INDEX, value, 0)
-    return _dnp3_link_frame(0xC4, dest, source, user)
+    return _dnp3_link_frame(control, dest, source, user)
 
 
 def _dnp3_control_status(reply):
@@ -878,9 +880,13 @@ class TestDnp3SideDoor(_CtfProgress):
 
         For each frame the outstation refuses or drops -- an OPERATE without a
         SELECT (status 02 NO_SELECT), a Direct Operate to the wrong link
-        address, one with a broken CRC -- %MW104 must stay 0, and a Modbus stop
-        afterwards must not earn the flag. Then select-before-operate, which
-        the outstation does carry out, must.
+        address, one with a broken CRC, and the six header variants review
+        found the IDS logged as operates (transport FIR without FIN,
+        application control without FIR/FIN or with UNS or CON set,
+        confirmed-data link control, DIR cleared) -- %MW104 must stay 0, and a
+        Modbus stop afterwards must not earn the flag: the outstation never
+        confirmed any of them. Then select-before-operate, which the
+        outstation does carry out, must.
         """
         before = self._without("dnp3_sidedoor")
         try:
@@ -902,16 +908,23 @@ class TestDnp3SideDoor(_CtfProgress):
             "operate-without-select": _dnp3_ao_request(0x04, 1),
             "wrong-outstation": _dnp3_ao_request(0x05, 1, dest=DNP3_OUTSTATION + 1),
             "bad-crc": bytes(bad_crc),
+            "transport-fir-without-fin": _dnp3_ao_request(0x05, 1, transport=0x40),
+            "app-without-fir-fin": _dnp3_ao_request(0x05, 1, app=0x01),
+            "app-uns": _dnp3_ao_request(0x05, 1, app=0xD1),
+            "app-con": _dnp3_ao_request(0x05, 1, app=0xE1),
+            "confirmed-data-fcv": _dnp3_ao_request(0x05, 1, control=0xF3),
+            "confirmed-data": _dnp3_ao_request(0x05, 1, control=0xD3),
+            "dir-cleared": _dnp3_ao_request(0x05, 1, control=0x44),
         }
+        answered = ("operate-without-select",)
         try:
             assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
             for label, frame in refused.items():
                 reply = _dnp3_send(frame)
-                if label == "operate-without-select":
-                    code = _dnp3_control_status(reply)
-                    assert code not in (None, 0), f"the outstation accepted a lone OPERATE: {reply.hex()}"
-                else:
-                    assert not reply, f"{label}: the outstation answered {reply.hex()}"
+                code = _dnp3_control_status(reply)
+                assert code != 0, f"{label}: the outstation confirmed it: {reply.hex()}"
+                if label in answered:
+                    assert code is not None, f"{label}: no control status in {reply.hex()}"
                 time.sleep(1)
                 assert self._modbus_words()[0] == 0, f"{label}: the refused frame wrote %MW104"
                 self._modbus_write_stop(1)

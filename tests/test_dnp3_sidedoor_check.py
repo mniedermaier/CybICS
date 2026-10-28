@@ -2,13 +2,14 @@
 
 software/landing/modules/defense_checks/check_dnp3_sidedoor.py passes only when
 the newest DNP3 operate on the stop flag (analog output 1128) that the IDS
-logged went to OpenPLC's outstation on port 20000 with the right link
-addresses, wrote a non-zero value within the last few minutes, and the flag is
-still set. These tests pin that it fails closed: a Modbus write or the HMI's
-button sets the same flag, a DNP3 read or an operate on another point shows up
-in the IDS too, and an old DNP3 stop -- restored or stale -- must not vouch for
-a later stop by another route. The IDS API and the PLC read are replaced by
-fakes.
+logged went to OpenPLC's outstation on port 20000, wrote a non-zero value
+within the last few minutes, the outstation confirmed it (the IDS filed its
+reply with control status 00 under the request), and the flag is still set.
+These tests pin that it fails closed: a Modbus write or the HMI's button sets
+the same flag, a frame the outstation dropped or refused shows up in the IDS
+too, and an old DNP3 stop -- restored or stale -- must not vouch for a later
+stop by another route. The IDS API and the PLC read are replaced by fakes;
+tests/test_ids_rules.py covers how the IDS pairs requests with replies.
 
 tests/test_training.py::TestDnp3SideDoor runs the real thing on a live stack.
 """
@@ -31,25 +32,15 @@ NOW = datetime(2026, 10, 28, 15, 0, 0)
 
 
 def _operate_alert(value=1, index=1128, group=41, variation=2, func=0x05,
-                   link_dst=10, link_src=1, dst=PLC, dport=20000, age=10, alert_id=1,
-                   seq=1, objects_crc=None):
+                   dst=PLC, dport=20000, age=10, alert_id=1, status=0):
+    """An IDS dnp3_operate alert; status is the outstation's reply, None for none."""
     objects = [{"group": group, "variation": variation, "index": index, "value": value}]
-    if objects_crc is None:   # stands in for the CRC of the raw object bytes
-        objects_crc = hash((group, variation, index, value)) & 0xFFFF
+    reply = None if status is None else {
+        "iin": 0, "objects": [dict(objects[0], status=status)]}
     return {"id": alert_id, "rule": "dnp3_operate", "src": "172.18.0.100", "dst": dst,
             "dport": dport, "timestamp": (NOW - timedelta(seconds=age)).isoformat(),
-            "dnp3": [{"function": func, "link_dst": link_dst, "link_src": link_src,
-                      "seq": seq, "objects_crc": objects_crc, "objects": objects}]}
-
-
-def _select_then_operate(value=1, age=10, first_id=1, gap=1, seq=4, operate=None):
-    """A SELECT and the OPERATE that follows it, as the outstation expects them."""
-    select = _operate_alert(value=value, func=0x03, age=age + gap, alert_id=first_id,
-                            seq=seq)
-    kwargs = {"value": value, "func": 0x04, "age": age, "alert_id": first_id + 1,
-              "seq": (seq + 1) & 0x0F}
-    kwargs.update(operate or {})
-    return [select, _operate_alert(**kwargs)]
+            "dnp3": [{"function": func, "link_dst": 10, "link_src": 1, "seq": 1,
+                      "objects_crc": 0, "objects": objects, "reply": reply}]}
 
 
 class _Response:
@@ -74,11 +65,17 @@ def plant(monkeypatch):
     return state
 
 
-def test_dnp3_operate_on_the_stop_flag_passes(plant):
+def test_a_confirmed_dnp3_operate_on_the_stop_flag_passes(plant):
     plant["alerts"] = [_operate_alert()]
     result = check.verify()
     assert result["success"], result
     assert all(c["passed"] for c in result["checks"])
+
+
+@pytest.mark.parametrize("func", [0x04, 0x05], ids=["select-before-operate", "direct"])
+def test_either_operate_counts_once_confirmed(plant, func):
+    plant["alerts"] = [_operate_alert(func=func)]
+    assert check.verify()["success"]
 
 
 @pytest.mark.parametrize("alert,label", [
@@ -86,13 +83,10 @@ def test_dnp3_operate_on_the_stop_flag_passes(plant):
     ({"rule": "s7_write", "src": "172.18.0.100", "dst": PLC, "dport": 102,
       "s7_items": [{"area": "DB", "db": 1002, "start": 208, "data": "0001"}]}, "s7"),
     (_operate_alert(value=0), "zero"),
-    (_operate_alert(index=1130), "manual-ish"),
+    (_operate_alert(index=1130), "other-point"),
     (_operate_alert(group=12, variation=1), "relay-output"),
     (_operate_alert(func=0x01), "read-function"),
     (_operate_alert(func=0x03), "select-alone"),
-    (_operate_alert(func=0x04), "operate-without-select"),
-    (_operate_alert(link_dst=11), "wrong-outstation"),
-    (_operate_alert(link_src=2), "wrong-master"),
     (_operate_alert(dport=20001), "wrong-port"),
     (_operate_alert(dst="172.18.0.6"), "wrong-host"),
 ])
@@ -104,6 +98,98 @@ def test_only_a_dnp3_operate_of_the_stop_flag_counts(plant, alert, label):
     assert [c["passed"] for c in result["checks"]] == [False, True], label
 
 
+# ---- The outstation's reply decides ----
+#
+# Review found frames the outstation drops or refuses -- a lone OPERATE, then
+# transport and application headers without FIR/FIN, UNS or CON set, a
+# confirmed-data link control, a cleared DIR bit -- each logged as an operate,
+# so a following Modbus stop earned the flag.  Replaying opendnp3's acceptance
+# rules in the check kept missing cases; its reply does not.
+
+
+@pytest.mark.parametrize("status,label", [
+    (None, "dropped"),
+    (2, "no-select"),
+    (1, "select-timeout"),
+    (12, "out-of-range"),
+    (0xFF, "no-echo"),
+])
+def test_an_unconfirmed_stop_followed_by_a_modbus_stop_is_refused(plant, status, label):
+    plant["alerts"] = [_operate_alert(status=status, alert_id=1),
+                       {"id": 2, "rule": "modbus_unauth_write", "src": "172.18.0.100",
+                        "dst": PLC}]
+    plant["stop"] = 1
+    result = check.verify()
+    assert not result["success"], label
+    assert [c["passed"] for c in result["checks"]] == [False, True], label
+
+
+def test_a_reply_without_the_point_is_not_a_confirmation(plant):
+    alert = _operate_alert()
+    alert["dnp3"][0]["reply"] = {"iin": 0x0400, "objects": []}
+    plant["alerts"] = [alert]
+    assert not check.verify()["success"]
+
+
+def test_the_echoed_value_decides_not_the_requested_one(plant):
+    """Defence in depth: a reply that echoes 0 under a request for 1 is no stop."""
+    alert = _operate_alert(value=1)
+    alert["dnp3"][0]["reply"]["objects"][0]["value"] = 0
+    plant["alerts"] = [alert]
+    assert not check.verify()["success"]
+
+
+@pytest.mark.parametrize("variation", [1, 3, 4])
+def test_an_echo_of_another_variation_is_not_a_confirmation(plant, variation):
+    alert = _operate_alert()
+    alert["dnp3"][0]["reply"]["objects"][0]["variation"] = variation
+    plant["alerts"] = [alert]
+    assert not check.verify()["success"]
+
+
+def test_an_unattributed_reply_is_not_a_confirmation(plant):
+    alert = _operate_alert()
+    alert["dnp3"][0]["reply"] = {"unattributed": True}
+    plant["alerts"] = [alert]
+    result = check.verify()
+    assert not result["success"]
+    assert "new connection" in result["checks"][0]["detail"]
+
+
+def test_an_unattributed_restore_cancels_the_stop(plant):
+    restore = _operate_alert(value=0, age=5, alert_id=2)
+    restore["dnp3"][0]["reply"] = {"unattributed": True}
+    plant["alerts"] = [_operate_alert(value=1, age=20, alert_id=1), restore]
+    assert not check.verify()["success"]
+
+
+def test_a_dropped_frame_is_explained(plant):
+    plant["alerts"] = [_operate_alert(status=None)]
+    assert "never answered" in check.verify()["checks"][0]["detail"]
+
+
+def test_a_refused_operate_names_the_status(plant):
+    plant["alerts"] = [_operate_alert(func=0x04, status=2)]
+    detail = check.verify()["checks"][0]["detail"]
+    assert "02 (NO_SELECT)" in detail and "SELECT" in detail
+
+
+def test_a_direct_operate_no_ack_cannot_be_confirmed(plant):
+    plant["alerts"] = [_operate_alert(func=0x06, status=None)]
+    result = check.verify()
+    assert not result["success"]
+    assert "(06)" in result["checks"][0]["detail"]
+
+
+def test_a_confirmed_stop_survives_a_later_dropped_one(plant):
+    plant["alerts"] = [_operate_alert(value=1, age=20, alert_id=1),
+                       _operate_alert(value=1, age=5, alert_id=2, status=None)]
+    assert check.verify()["success"]
+
+
+# ---- Newest write and window ----
+
+
 def test_a_dnp3_restore_cancels_an_earlier_dnp3_stop(plant):
     plant["alerts"] = [_operate_alert(value=1, age=60, alert_id=1),
                        _operate_alert(value=0, age=50, alert_id=2)]
@@ -111,6 +197,26 @@ def test_a_dnp3_restore_cancels_an_earlier_dnp3_stop(plant):
     result = check.verify()
     assert not result["success"]
     assert "put 0 back" in result["checks"][0]["detail"]
+
+
+def test_an_unanswered_restore_cancels_the_stop(plant):
+    """An 06 restore writes 0 without a reply, so it must cancel too."""
+    plant["alerts"] = [_operate_alert(value=1, age=60, alert_id=1),
+                       _operate_alert(value=0, func=0x06, age=50, alert_id=2, status=None)]
+    assert not check.verify()["success"]
+
+
+def test_a_refused_restore_does_not_cancel_the_stop(plant):
+    plant["alerts"] = [_operate_alert(value=1, age=20, alert_id=1),
+                       _operate_alert(value=0, func=0x04, age=5, alert_id=2, status=2)]
+    assert check.verify()["success"]
+
+
+def test_a_refused_stop_after_a_restore_is_not_enough(plant):
+    plant["alerts"] = [_operate_alert(value=1, age=90, alert_id=1),
+                       _operate_alert(value=0, age=80, alert_id=2),
+                       _operate_alert(value=1, age=5, alert_id=3, status=2)]
+    assert not check.verify()["success"]
 
 
 def test_stop_again_after_a_restore_passes(plant):
@@ -151,6 +257,9 @@ def test_an_alert_without_a_timestamp_fails_closed(plant):
     assert not check.verify()["success"]
 
 
+# ---- Plant, IDS and malformed input ----
+
+
 def test_the_plant_must_still_be_stopped(plant):
     plant["alerts"] = [_operate_alert()]
     plant["stop"] = 0
@@ -166,11 +275,19 @@ def test_a_stopped_ids_is_reported(plant):
     assert any(c["name"] == "IDS capturing" for c in result["checks"])
 
 
-def test_malformed_dnp3_payload_fails_closed(plant):
+@pytest.mark.parametrize("dnp3", [
+    [{"function": 0x05, "objects": [{"group": 41, "variation": 2}], "reply": None},
+     {"function": None, "objects": None}],
+    [{"function": 0x05, "objects": [{"group": 41, "variation": 2, "index": 1128,
+                                     "value": 1}],
+      "reply": {"objects": [{"group": 41, "index": 1128, "status": "0"}]}}],
+    [{"function": 0x05, "objects": [{"group": 41, "variation": 2, "index": 1128,
+                                     "value": 1}], "reply": "yes"}],
+    ["junk"],
+], ids=["no-point", "string-status", "string-reply", "junk"])
+def test_malformed_dnp3_payload_fails_closed(plant, dnp3):
     plant["alerts"] = [{"rule": "dnp3_operate", "dst": PLC, "dport": 20000,
-                        "dnp3": [{"function": 0x05, "link_dst": 10, "link_src": 1,
-                                  "objects": [{"group": 41, "variation": 2}]},
-                                 {"function": None, "objects": None}]}]
+                        "timestamp": NOW.isoformat(), "dnp3": dnp3}]
     assert not check.verify()["success"]
 
 
@@ -194,85 +311,3 @@ def test_an_unreadable_flag_fails(plant, monkeypatch):
 
     monkeypatch.setattr(check, "_read_stop_flag", unreadable)
     assert not check.verify()["success"]
-
-
-# ---- OPERATE (0x04) acts only after a matching SELECT ----
-#
-# opendnp3's ControlState::ValidateSelection runs an OPERATE only when the last
-# SELECT carried the previous application sequence number, byte-identical
-# objects, and came less than selectTimeout (10 s) earlier; otherwise the
-# outstation answers control status 02 (NO_SELECT) or 01 (TIMEOUT) and writes
-# nothing.  The IDS logs the refused OPERATE all the same, so the check has to
-# replay those rules, or a refused OPERATE plus a Modbus stop earns the flag.
-
-
-def test_a_lone_operate_followed_by_a_modbus_stop_is_refused(plant):
-    """The bypass found in review: FC 04 without SELECT, then HR1128 = 1 over Modbus."""
-    plant["alerts"] = [_operate_alert(func=0x04, alert_id=1),
-                       {"id": 2, "rule": "modbus_unauth_write", "src": "172.18.0.100",
-                        "dst": PLC}]
-    plant["stop"] = 1
-    result = check.verify()
-    assert not result["success"]
-    assert [c["passed"] for c in result["checks"]] == [False, True]
-    assert "NO_SELECT" in result["checks"][0]["detail"]
-
-
-def test_select_then_operate_passes(plant):
-    plant["alerts"] = _select_then_operate()
-    assert check.verify()["success"]
-
-
-def test_select_then_operate_wraps_the_sequence_number(plant):
-    plant["alerts"] = _select_then_operate(seq=15)   # the OPERATE carries 0
-    assert plant["alerts"][1]["dnp3"][0]["seq"] == 0
-    assert check.verify()["success"]
-
-
-@pytest.mark.parametrize("operate,gap,label", [
-    ({"seq": 9}, 1, "wrong-sequence"),
-    ({"seq": 4}, 1, "same-sequence"),
-    ({"objects_crc": 0x1234}, 1, "other-objects"),
-    ({}, check.SELECT_TIMEOUT, "select-timed-out"),
-    ({}, -1, "operate-before-select"),
-    ({"link_src": 2}, 1, "operate-wrong-master"),
-])
-def test_an_operate_the_outstation_refuses_does_not_count(plant, operate, gap, label):
-    alerts = _select_then_operate(gap=gap, operate=operate)
-    if gap < 0:   # the IDS logged the OPERATE first
-        alerts[0]["id"], alerts[1]["id"] = 2, 1
-    plant["alerts"] = alerts
-    result = check.verify()
-    assert not result["success"], label
-    assert [c["passed"] for c in result["checks"]] == [False, True], label
-
-
-def test_a_select_to_the_wrong_outstation_arms_nothing(plant):
-    alerts = _select_then_operate()
-    alerts[0]["dnp3"][0]["link_dst"] = 11
-    plant["alerts"] = alerts
-    assert not check.verify()["success"]
-
-
-def test_a_later_select_replaces_the_earlier_one(plant):
-    """The outstation keeps only the last selection, so the OPERATE must match it."""
-    alerts = _select_then_operate(seq=4)
-    other = _operate_alert(value=1, index=1130, func=0x03, age=10.5, alert_id=5, seq=6)
-    alerts[1]["id"] = 6
-    plant["alerts"] = [alerts[0], other, alerts[1]]
-    assert not check.verify()["success"]
-
-
-def test_a_refused_restore_does_not_cancel_a_direct_stop(plant):
-    """An OPERATE of 0 without SELECT wrote nothing, so the stop still stands."""
-    plant["alerts"] = [_operate_alert(value=1, age=20, alert_id=1),
-                       _operate_alert(value=0, func=0x04, age=5, alert_id=2)]
-    assert check.verify()["success"]
-
-
-def test_a_select_before_operate_restore_cancels_the_stop(plant):
-    plant["alerts"] = ([_operate_alert(value=1, age=30, alert_id=1)]
-                       + _select_then_operate(value=0, age=5, first_id=2))
-    result = check.verify()
-    assert not result["success"]
-    assert "put 0 back" in result["checks"][0]["detail"]
