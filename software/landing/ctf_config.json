@@ -155,6 +155,32 @@
             }
           ],
           "training_content": "training/fuxa_jwt/README.md"
+        },
+        {
+          "id": "openplc_restapi",
+          "title": "The Forgotten API",
+          "description": "The PLC's web login is not its only management interface. Find OpenPLC's second API, claim it with an account of your own and enter that account's credentials here.",
+          "points": 200,
+          "type": "verify",
+          "verify_module": "check_openplc_restapi",
+          "tag": "exploit",
+          "flag": "CybICS(cl41m3d_4p1)",
+          "hint": "The PLC has more than one web server. Scan beyond the well-known ports, and when you find one that speaks HTTPS, ask it how many users it has.",
+          "answers": [
+            {
+              "name": "username",
+              "label": "User name of your API account",
+              "placeholder": "student",
+              "max_length": 64
+            },
+            {
+              "name": "password",
+              "label": "Its password (at least 8 characters, a throwaway one)",
+              "placeholder": "training-only-42",
+              "max_length": 128
+            }
+          ],
+          "training_content": "training/openplc_restapi/README.md"
         }
       ]
     },

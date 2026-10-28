@@ -409,6 +409,24 @@
           ]
         },
         {
+          "id": "openplc_restapi",
+          "title": "The forgotten API",
+          "summary": "Claiming OpenPLC's unused REST API, which lets the first caller create an account.",
+          "content": "training/theory/modules/openplc_restapi.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "openplc_restapi",
+              "label": "The Forgotten API"
+            }
+          ],
+          "prerequisites": [
+            "scanning",
+            "password_attack",
+            "fuxa_jwt"
+          ]
+        },
+        {
           "id": "plc_programming",
           "title": "Programming the controller",
           "summary": "Modifying and downloading PLC logic, and why that is a top attack technique.",

@@ -357,6 +357,23 @@ class _CtfProgress:
             self._set_progress(before[0])
         assert self._progress() == before, "the board's CTF progress was not restored"
 
+    def _admin(self, command, timeout=90):
+        """Run command in the admin shell; return (exit code, output)."""
+        r = requests.post(f"{self.BASE}/api/webshell/execute", json={"command": command},
+                          timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and r.json().get("success"), r.text[:200]
+        job, output, offset = r.json()["job_id"], "", 0
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            state = requests.get(f"{self.BASE}/api/webshell/jobs/{job}", params={"offset": offset},
+                                 timeout=READ_TIMEOUT).json()
+            output += state["chunk"]
+            offset = state["offset"]
+            if not state["running"]:
+                return state["exit_code"], output
+            time.sleep(0.5)
+        pytest.fail(f"admin shell command did not finish: {command}")
+
 
 @pytest.mark.usefixtures("stack_ready")
 class TestS7SideDoor(_CtfProgress):
@@ -558,23 +575,6 @@ class TestFuxaJwt(_CtfProgress):
 
     # --- helpers ---------------------------------------------------------
 
-    def _admin(self, command, timeout=90):
-        """Run command in the admin shell; return (exit code, output)."""
-        r = requests.post(f"{self.BASE}/api/webshell/execute", json={"command": command},
-                          timeout=READ_TIMEOUT)
-        assert r.status_code == 200 and r.json().get("success"), r.text[:200]
-        job, output, offset = r.json()["job_id"], "", 0
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            state = requests.get(f"{self.BASE}/api/webshell/jobs/{job}", params={"offset": offset},
-                                 timeout=READ_TIMEOUT).json()
-            output += state["chunk"]
-            offset = state["offset"]
-            if not state["running"]:
-                return state["exit_code"], output
-            time.sleep(0.5)
-        pytest.fail(f"admin shell command did not finish: {command}")
-
     def _container(self):
         code, out = self._admin("docker ps --filter name=fuxa --format '{{.Names}}'")
         names = [n for n in out.split() if "fuxa" in n]
@@ -713,6 +713,109 @@ class TestFuxaJwt(_CtfProgress):
         ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
         assert self._users_status(ghost) == 200, "FUXA is not back on its default key"
         assert self._default_password_works() == password_state, "the FUXA admin password state changed"
+
+
+def _readme_block(module, heading):
+    """The first fenced bash block under `heading` in training/<module>/README.md."""
+    readme = (Path(__file__).resolve().parent.parent / "training" / module / "README.md").read_text(
+        encoding="utf-8")
+    section = readme.split(heading, 1)[1]
+    return section.split("```bash\n", 1)[1].split("```", 1)[0].strip()
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestOpenplcRestApi(_CtfProgress):
+    """
+    The Forgotten API: OpenPLC's REST API on 172.18.0.3:8443 lets the first
+    caller create an account while its user table is empty.
+
+    The PLC's port 8443 is not published on the host, so every request goes
+    through the landing page's admin shell, which runs on the host network
+    like the verify module. The claim and the release use the solution
+    script from landing's copy of training/, the same file the attack shell
+    has. The test needs the API unclaimed and leaves it unclaimed: the
+    account is deleted through the API in a finally block, and if that fails
+    the README's Reset command empties the user table. The PLC is never
+    stopped or reprogrammed.
+    """
+
+    API = "https://172.18.0.3:8443/api"
+    SCRIPT = "python3 /CybICS/training/openplc_restapi/openplc_restapi.py"
+    USER, PASSWORD = "cybics-test-claim", "cybics-test-pass-1"
+
+    def _curl(self, args):
+        code, out = self._admin(f"curl -sk --max-time 10 {args}")
+        assert code == 0, f"curl {args}: {out}"
+        return out
+
+    def _users_info(self):
+        return self._curl(f"{self.API}/get-users-info")
+
+    def _unclaimed(self):
+        return "No users found" in self._users_info()
+
+    def _reset(self):
+        code, out = self._admin(_readme_block("openplc_restapi", "### Reset"))
+        assert code == 0, f"the README's reset command failed: {out}"
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/openplc_restapi", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_claim_is_verified_and_given_back(self):
+        assert self._unclaimed(), (
+            "OpenPLC's REST API is already claimed, so the challenge cannot be solved; "
+            "empty it with the Reset command in training/openplc_restapi/README.md")
+        before = self._without("openplc_restapi")
+        try:
+            # README step 3: the web interface's login is not an API account.
+            out = self._curl(f"-X POST {self.API}/login -H 'Content-Type: application/json' "
+                             "-d '{\"username\":\"openplc\",\"password\":\"openplc\"}'")
+            assert "Wrong username or password" in out, out
+
+            code, out = self._admin(f"{self.SCRIPT} claim --user {self.USER} --password {self.PASSWORD}")
+            assert code == 0 and "User created" in out and "STATUS:" in out, out
+
+            # The race is over: a second unauthenticated claim is refused.
+            out = self._curl(f"-X POST {self.API}/create-user -H 'Content-Type: application/json' "
+                             "-d '{\"username\":\"cybics-test-late\",\"password\":\"late-pass-12\"}'")
+            assert "User already created" in out, out
+
+            for wrong in ({"username": self.USER, "password": "not-the-password"},
+                          {"username": "openplc", "password": "openplc"},
+                          {"username": self.USER, "password": "short"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+
+            result = self._verify({"username": self.USER, "password": self.PASSWORD})
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._admin(f"{self.SCRIPT} release --user {self.USER} --password {self.PASSWORD}")
+            if not self._unclaimed():
+                self._reset()
+            self._restore(before)
+        assert self._unclaimed(), "the REST API was not given back"
+
+    def test_readme_reset_empties_the_user_table(self):
+        assert self._unclaimed(), "OpenPLC's REST API is already claimed"
+        try:
+            out = self._curl(f"-X POST {self.API}/create-user -H 'Content-Type: application/json' "
+                             f"-d '{{\"username\":\"{self.USER}\",\"password\":\"{self.PASSWORD}\"}}'")
+            assert "User created" in out, out
+            assert not self._unclaimed()
+            self._reset()
+            assert self._unclaimed(), "the README's Reset command left a user behind"
+            # The running API works on the emptied table without a restart.
+            out = self._curl(f"-X POST {self.API}/create-user -H 'Content-Type: application/json' "
+                             f"-d '{{\"username\":\"{self.USER}\",\"password\":\"{self.PASSWORD}\"}}'")
+            assert "User created" in out, out
+        finally:
+            if not self._unclaimed():
+                self._reset()
+        assert self._unclaimed()
 
 
 # ===============================================================================
