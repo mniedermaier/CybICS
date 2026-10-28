@@ -48,15 +48,15 @@ The FUXA HMI runs on port **1881** and uses the default admin credentials:
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries use default credentials to gain initial access |
-| Persistence | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Compromised credentials enable persistent access |
+| Persistence, Lateral Movement | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries use default credentials to gain initial access |
+| Persistence, Lateral Movement | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Compromised credentials enable persistent access |
 
 ### MITRE D3FEND - Defensive Techniques Applied
 
 | Technique | ID | Description |
 |-----------|-----|-------------|
 | Strong Password Policy | [D3-SPP](https://d3fend.mitre.org/technique/d3f:StrongPasswordPolicy/) | Enforcing strong, non-default passwords |
-| Credential Rotation | [D3-CR](https://d3fend.mitre.org/technique/d3f:CredentialRotation/) | Changing default credentials to prevent unauthorized access |
+| Credential Rotation | [D3-CRO](https://d3fend.mitre.org/technique/d3f:CredentialRotation/) | Changing default credentials to prevent unauthorized access |
 | Authentication Event Monitoring | [D3-AEM](https://d3fend.mitre.org/technique/d3f:AuthenticationEventMonitoring/) | Monitoring for brute force and unauthorized login attempts |
 
 ### NIST SP 800-82r3 Reference

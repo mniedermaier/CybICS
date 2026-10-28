@@ -35,7 +35,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Remote System Information Discovery | T0846, T0888 |
 | [Wireshark Capture](wireshark_capture/README.md) | Collection | Network Sniffing | T0842 |
 | [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control, Evasion | Brute Force I/O, Unauthorized Message: Command Message, Manipulation of View | T0806, T1692.001, T0832 |
-| [Password Attack](password_attack/README.md) | Initial Access, Persistence | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
+| [Password Attack](password_attack/README.md) | Persistence, Lateral Movement | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
 | [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts | T0859 |
 | [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
 | [S7 Side Door](s7_sidedoor/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T1692.001, T0831, T0826 |
