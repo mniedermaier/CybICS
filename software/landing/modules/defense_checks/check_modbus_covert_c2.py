@@ -36,6 +36,14 @@ LABELS = {
 }
 
 
+# The matchers below are custom rather than one_of()/number() because every
+# answer here is free text a student types from Wireshark: one_of() compares
+# whole strings, so it would reject "172.18.0.5 port <n>", "<n> ms", a message
+# typed with different spacing or case, or a range written "a..b". Each
+# matcher still reduces the input to the exact expected value (number() is
+# used for the interval) and accepts nothing looser than that.
+
+
 def connection(ip, port):
     """Accept 172.18.0.5:50918, '172.18.0.5 50918', '172.18.0.5, port 50918'."""
     def check(value):
@@ -72,11 +80,20 @@ def text(expected):
 
 
 def register_range(first, last):
-    """Accept '1124-1134', '1124..1134', '1124 to 1134', 'HR 1124 - 1134'."""
+    """Accept 'a-b', 'a..b', 'a to b', 'HR a - HR b', in decimal or as 0x hex.
+
+    Addresses count from 0, as Wireshark's Reference Number does; a 1-based
+    or %MW-style range is a different set of registers and does not match.
+    """
+    num = r"(0x[0-9a-f]{1,4}|\d{1,5})"
+
     def check(value):
-        m = re.fullmatch(r"\s*(?:hr\s*)?(\d{1,5})\s*(?:-|–|\.\.|to)\s*(?:hr\s*)?(\d{1,5})\s*",
+        m = re.fullmatch(r"\s*(?:hr\s*)?" + num + r"\s*(?:-|–|\.\.|to)\s*(?:hr\s*)?" + num + r"\s*",
                          str(value), re.IGNORECASE)
-        return bool(m) and (int(m.group(1)), int(m.group(2))) == (first, last)
+        if not m:
+            return False
+        got = tuple(int(g, 16) if g.lower().startswith("0x") else int(g) for g in m.groups())
+        return got == (first, last)
     return check
 
 

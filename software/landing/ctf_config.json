@@ -551,8 +551,8 @@
             },
             {
               "name": "read_range",
-              "label": "Holding-register range (first-last) a read allowlist must permit for the plant's legitimate readers",
-              "placeholder": "e.g. 100-110",
+              "label": "Holding-register range (first-last) a read allowlist must permit for the plant's legitimate readers, in decimal as Wireshark's Reference Number shows it",
+              "placeholder": "decimal, e.g. 100-110",
               "max_length": 24
             }
           ],

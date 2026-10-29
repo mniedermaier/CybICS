@@ -307,6 +307,7 @@ RIGHT = {
     {"read_range": "1124..1134"},
     {"read_range": "HR 1124 - HR 1134"},
     {"read_range": "1124 to 1134"},
+    {"read_range": "0x0464-0x046E"},
 ])
 def test_right_answers_in_any_reasonable_spelling_pass(variant):
     result = check.verify({**RIGHT, **variant})
@@ -358,12 +359,13 @@ def test_the_config_declares_exactly_the_graded_fields():
         assert secret not in blob
 
 
-@pytest.mark.parametrize("path", [README, LESSON, SIDECAR])
+@pytest.mark.parametrize("path", [README, LESSON, SIDECAR, TOOL,
+                                  os.path.join(FOLDER, "allowlist.example.json")])
 def test_the_answers_are_not_handed_out(path):
     with open(path, encoding="utf-8") as f:
         text = f.read()
     text = text.split("## Solution", 1)[0] if path == README else text
-    for secret in ("50918", "stage 2", "ready for", "1134", "5.000 s", "every 5 s", "five seconds"):
+    for secret in ("50918", "stage 2", "ready for", "1124", "1134", "0x464", "0x0464", "5.000 s", "every 5 s", "five seconds"):
         assert secret not in text, (path, secret)
     with open(CTF_CONFIG, encoding="utf-8") as f:
         config = json.load(f)

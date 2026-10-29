@@ -14,8 +14,12 @@ mirror port on an ordinary afternoon: **`baseline.pcap`**.
 Nothing happened that afternoon. The plant ran, nobody wrote to the PLC,
 and the CybICS IDS raised no alert. Every request in the file is a read.
 
-One of those reads does not belong. An implant is sending data out of the
-plant network, hidden in Modbus requests that look exactly like polling.
+One of those reads does not belong. An implant on an allowed host is
+sending data hidden in Modbus requests that look exactly like polling. The
+requests themselves only reach the PLC, so the PLC is not the audience: the
+data is meant for whoever else sees this traffic, an accomplice with a tap
+on the mirror port or on a switch upstream. That is why the capture you are
+holding contains the message, too.
 Your job is to **find the reader that does not belong, measure its rhythm,
 decode what it is saying and work out the allowlist that would have made it
 loud**.
@@ -107,6 +111,24 @@ You need the file and a tool that reads captures.
   python3 read_allowlist.py baseline.pcap allowlist.example.json
   ```
 
+  The allowlist is a JSON list of rules. A request passes if at least one
+  rule matches it; a rule matches if every key it sets matches, and a key
+  it leaves out matches anything:
+
+  | Key | Matches |
+  |-----|---------|
+  | `client` | the source IP address of the request |
+  | `fc` | the function code (1 coils, 2 discrete inputs, 3 holding registers, 4 input registers) |
+  | `first`, `last` | the lowest and highest register address the request may touch, in decimal and counted from 0 as Wireshark's *Reference Number* shows them; a read of 11 registers from 100 touches 100-110 |
+  | `comment` | nothing, it is for you |
+
+  For example, this rule lets a made-up host 10.0.0.7 read holding
+  registers 100 to 110 and nothing else:
+
+  ```json
+  [{"client": "10.0.0.7", "fc": 3, "first": 100, "last": 110}]
+  ```
+
 ## Task
 
 Answer four questions on the challenge page:
@@ -118,7 +140,8 @@ Answer four questions on the challenge page:
    character that separates the repetitions.
 4. The **holding-register range** (first-last) that a read allowlist for
    function code 3 must permit so that the plant's legitimate readers keep
-   working.
+   working, in decimal as Wireshark's *Reference Number* shows it (counted
+   from 0), for example `100-110`.
 
 All four answers are graded together.
 

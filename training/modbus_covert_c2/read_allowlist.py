@@ -6,14 +6,14 @@
 The allowlist is a JSON list of rules. A request passes if any rule matches
 all of the keys that rule sets:
 
-    {"client": "172.18.0.4", "fc": 3, "first": 1124, "last": 1134}
+    {"client": "10.0.0.7", "fc": 3, "first": 100, "last": 110}
 
 - client: the source IP address of the request
 - fc:     the function code (1 coils, 2 inputs, 3 holding, 4 input registers, ...)
 - first, last: the lowest and highest address the request may touch; a
-          request for 11 registers from 1124 touches 1124-1134
+          request for 11 registers from 100 touches 100-110
 
-A key a rule leaves out matches anything, so {"client": "172.18.0.4"} lets
+A key a rule leaves out matches anything, so {"client": "10.0.0.7"} lets
 that host do whatever it likes.
 
 The script prints, per TCP connection, how many requests passed and how many
