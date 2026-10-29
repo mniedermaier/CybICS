@@ -521,6 +521,44 @@
           "training_content": "training/physics_forensics/README.md"
         },
         {
+          "id": "modbus_covert_c2",
+          "title": "Whispering PLC",
+          "description": "Before writing a read allowlist, the plant team recorded four minutes of Modbus at the PLC to learn who reads what. Every request is a harmless read and the IDS stayed silent, yet one of them is whispering. Find the reader that does not belong, its rhythm and what it says, and the range a real allowlist must permit.",
+          "points": 300,
+          "type": "verify",
+          "verify_module": "check_modbus_covert_c2",
+          "tag": "analysis",
+          "flag": "CybICS(wh1sp3r1ng_r34ds)",
+          "hint": "Regular polling is normal in a plant, so rhythm alone proves nothing. Group the reads by TCP connection, not by IP address, and look at which registers each connection asks for, in hex.",
+          "answers": [
+            {
+              "name": "implant",
+              "label": "Client IP address and TCP port of the implant's connection",
+              "placeholder": "e.g. 10.0.0.1:40000",
+              "max_length": 32
+            },
+            {
+              "name": "interval",
+              "label": "Seconds between two of the implant's reads",
+              "placeholder": "e.g. 0.5",
+              "max_length": 20
+            },
+            {
+              "name": "message",
+              "label": "The message the implant's read addresses spell (once, without the separator)",
+              "placeholder": "the decoded text",
+              "max_length": 60
+            },
+            {
+              "name": "read_range",
+              "label": "Holding-register range (first-last) a read allowlist must permit for the plant's legitimate readers",
+              "placeholder": "e.g. 100-110",
+              "max_length": 24
+            }
+          ],
+          "training_content": "training/modbus_covert_c2/README.md"
+        },
+        {
           "id": "ids_evasion",
           "title": "IDS Evasion",
           "description": "Perform a stealth Modbus write without triggering any IDS alerts",

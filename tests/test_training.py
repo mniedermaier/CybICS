@@ -1595,6 +1595,72 @@ class TestPhysicsForensics(_CtfProgress):
 
 
 # ===============================================================================
+# Whispering PLC (modbus_covert_c2)
+# ===============================================================================
+
+class TestModbusCovertC2(_CtfProgress):
+    """
+    Whispering PLC end to end: the landing page serves the capture the README
+    links to, byte for byte the committed file; the analysis in
+    tests/test_modbus_covert_c2.py (the README's steps, independent of the
+    generator) reads the four answers out of the download; verify refuses the
+    tempting wrong answers and hands out the flag for the right ones. One
+    check reads the live PLC the way the implant in the capture does, to keep
+    the README's claim true that such a read succeeds with zeros. Nothing is
+    written to the plant; only the CTF progress changes and it is put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/modbus_covert_c2", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_the_live_plc_answers_an_unused_word_with_zero(self):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable"
+            for address in (0x0520, 0x057E):          # the printable range the implant uses
+                result = modbus_call(client, client.read_holding_registers, address, count=1)
+                assert not result.isError(), (hex(address), result)
+                assert result.registers == [0], (hex(address), result.registers)
+        finally:
+            client.close()
+
+    def test_the_served_capture_yields_the_flag(self):
+        from test_modbus_covert_c2 import analyse
+        r = requests.get(f"{self.BASE}/ctf/challenge/modbus_covert_c2/baseline.pcap",
+                         timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        committed = (Path(__file__).resolve().parent.parent / "training" / "modbus_covert_c2"
+                     / "baseline.pcap").read_bytes()
+        assert r.content == committed, "landing serves a stale capture: rebuild landing"
+
+        found = analyse(r.content)
+        answers = {
+            "implant": "%s:%d" % found["implant"],
+            "interval": str(found["interval"]),
+            "message": found["message"],
+            "read_range": "%d-%d" % found["range"],
+        }
+        gateway = next(k for k in found["others"] if k[0] == found["implant"][0])
+        rotated = found["decoded"][:len(found["message"]) + 1]     # read from the first frame
+
+        before = self._without("modbus_covert_c2")
+        try:
+            for wrong in ({**answers, "implant": "%s:%d" % gateway},
+                          {**answers, "message": rotated},
+                          {**answers, "read_range": "%d-%d" % (found["range"][0], found["range"][1] + 1)}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
 # Trusted Writer (fuxa_trusted_writer)
 # ===============================================================================
 

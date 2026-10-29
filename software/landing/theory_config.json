@@ -750,6 +750,24 @@
             "mitm",
             "detection-monitoring"
           ]
+        },
+        {
+          "id": "modbus_covert_c2",
+          "title": "Covert channels in plant traffic",
+          "summary": "How an implant hides data in ordinary Modbus reads, why regular polling is no alarm in OT, and why an allowlist of who reads what catches it.",
+          "content": "training/theory/modules/modbus_covert_c2.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "modbus_covert_c2",
+              "label": "Whispering PLC"
+            }
+          ],
+          "prerequisites": [
+            "modbus",
+            "wireshark_capture",
+            "incident_pcap"
+          ]
         }
       ]
     },
