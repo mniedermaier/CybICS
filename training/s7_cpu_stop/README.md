@@ -200,6 +200,8 @@ the command is exactly what an attacker sends before replacing a program.
   ```bash
   iptables -A INPUT -p tcp --dport 102 -j DROP
   ```
+  The [Close the Side Doors](../defense_unused_protocols/README.md) challenge
+  closes this door and the PLC's other unused ones.
 - **Monitor the process, not only the controller.** An independent signal
   (a heartbeat, a pressure trend on the HMI or the historian) tells you what
   the plant is doing whatever the controller reports.

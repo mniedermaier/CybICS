@@ -164,6 +164,8 @@ running.
 - **Turn off what is not used.** CybICS needs no S7comm in operation. In
   OpenPLC's web interface (port 8080) *Settings*, untick *Enable S7 Protocol*
   and the server stops listening. Every enabled protocol is attack surface.
+  The [Close the Side Doors](../defense_unused_protocols/README.md) challenge
+  has you do exactly that, for S7comm and the PLC's other unused protocols.
 - **Allow-list by protocol and source** in a network firewall in front of the
   controller rather than per port on the host.
 - On real Siemens CPUs, use the protection levels (write or read/write

@@ -199,7 +199,9 @@ board, so do not leave it stopped.
   protocol is blind to every other protocol the device still answers. Where
   DNP3 is needed, DNP3 Secure Authentication (IEC 62351-5) makes the
   outstation challenge the master before it acts on a control request; link
-  addresses are not a security mechanism, as step 2 showed.
+  addresses are not a security mechanism, as step 2 showed. The
+  [Close the Side Doors](../defense_unused_protocols/README.md) challenge
+  switches DNP3 off together with the PLC's other unused protocols.
 
 ## Security Framework References
 

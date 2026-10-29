@@ -176,6 +176,8 @@ in OpenPLC's `config.py` writes the placeholder literally.
   rule on the PLC that drops port 8443 (as in
   [Modbus Firewall Rules](../defense_firewall/README.md) for port 502) or
   [Network Segmentation](../defense_network/README.md) keeps it out of reach.
+  The [Close the Side Doors](../defense_unused_protocols/README.md) challenge
+  blocks the API this way, together with the PLC's unused protocols.
 - **Inventory every interface.** Hardening the web interface's password did
   nothing here. A full port scan of each device during commissioning, compared
   with the list of interfaces you intend to use, finds the forgotten ones.
