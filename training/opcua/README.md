@@ -1,6 +1,6 @@
 # OPC UA Security & Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Initial Access` `Lateral Movement` | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/) | [T0866 - Exploitation of Remote Services](https://attack.mitre.org/techniques/T0866/)
+> **MITRE ATT&CK for ICS:** `Persistence` `Lateral Movement` | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
 
 ## Overview
 An OPC UA client is a software application that connects to an OPC UA server to read, write, and monitor data within industrial systems.
@@ -89,8 +89,7 @@ takes the **admin flag**, which only appears once an administrator has set
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Adversaries may use valid credentials (username/password or certificates) to gain access |
-| Lateral Movement | Exploitation of Remote Services | [T0866](https://attack.mitre.org/techniques/T0866/) | Adversaries may exploit OPC UA services for lateral movement |
+| Persistence, Lateral Movement | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | A guessed password or a leaked certificate is a real identity the server accepts; no software flaw is exploited |
 
 **Why this matters:** OPC UA is the modern successor to legacy protocols and includes security features like encryption and certificate-based authentication. However, misconfigured OPC UA servers, weak passwords, and leaked certificates can still enable unauthorized access. This training demonstrates that even "secure" protocols require proper implementation—security features don't help if they're disabled or misconfigured.
 
