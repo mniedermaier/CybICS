@@ -48,7 +48,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [The Forgotten API](openplc_restapi/README.md) | Discovery, Initial Access, Persistence, Lateral Movement | Remote System Discovery: Port Scan, Exploitation of Remote Services, Valid Accounts, Remote System Information Discovery | T0846.001, T0866, T0859, T0888 |
 | [DNP3 Side Door](dnp3_sidedoor/README.md) | Discovery, Impair Process Control, Impact | Remote System Discovery, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T0846, T1692.001, T0831, T0826 |
 | [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Unauthorized Message: Reporting Message | T0830, T1692.002 |
-| [UART Training](uart_basic/README.md) | Initial Access | Insecure Credentials: Hardcoded Credentials | T1694.002 |
+| [UART Training](uart_basic/README.md) | Persistence, Lateral Movement | Insecure Credentials: Hardcoded Credentials | T1694.002 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
 | [Detect Overwrite](detect_overwrite/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Operational Process Monitoring | D3-NTA, D3-OPM |
 | [Credential Hardening](defense_password/README.md) | *Defensive* | D3FEND: Strong Password Policy, Credential Rotation | D3-SPP |
