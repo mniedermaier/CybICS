@@ -49,8 +49,11 @@ With this flooding, the OpenPLC does not get the correct values and enables the 
 This is leading to a critical pressure value in the HPT.
 
 ### Configuration
-The script uses the `.dev.env` file in the root folder of the git.
-Check if these settings are correct, before executing the flooding script.
+The script takes the PLC's address as its first argument
+(`python3 flooding_hpt.py 172.18.0.3`). Without one it uses `DEVICE_IP`
+from the environment, which the attack shell sets, or from the `.dev.env`
+file in the root folder of the git checkout. Check that address before you
+start the flood.
 
 ### Prerequisites
 A basic understanding of Modbus/TCP is required for this example.
@@ -134,5 +137,5 @@ Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pr
   - Operator notifications for corrective measures
   - Potential actions: reducing heat or shutting down components
 
-Flood the HPT setpoint register with Modbus writes, then click **Verify** on the challenge page. The flag is revealed once the flood has been observed on the wire.
+Flood the HPT pressure register (holding register 1126, `%MW102`) with Modbus writes, then click **Verify** on the challenge page. The flag is revealed once the flood has been observed on the wire.
 

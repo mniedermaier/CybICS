@@ -195,7 +195,7 @@
           "verify_module": "check_flood_attack",
           "tag": "exploit",
           "flag": "CybICS(flood_attack_successful)",
-          "hint": "Flood the HPT setpoint register with Modbus writes, then click Verify.",
+          "hint": "Flood the register the PLC reads the HPT pressure from with Modbus writes, then click Verify.",
           "training_content": "training/flood_overwrite/README.md"
         },
         {
