@@ -69,7 +69,7 @@ The CybICS IDS implements 12 detection rules:
 5. **Modbus Diagnostic** — Detects use of diagnostic function codes
 6. **S7comm Enumeration** — Detects S7 protocol access attempts
 7. **HTTP Brute Force** — Detects repeated login attempts on OpenPLC/FUXA
-8. **ARP Spoofing** — Detects multiple MAC addresses for a single IP
+8. **ARP Spoofing** — Detects a second MAC address for an IP when that MAC also answers for another IP
 9. **OPC-UA Unauthorized Access** — Detects OPC-UA connections from unknown hosts
 10. **S7comm Write** — Detects S7comm write requests and reports what was written
 11. **DNP3 Control** — Detects DNP3 control requests (operate, select, write) and reports the points and values

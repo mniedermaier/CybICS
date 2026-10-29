@@ -384,7 +384,7 @@ class Detector:
             }
 
         elapsed = time.time() - self.evasion_start_time
-        # Count only attacker-relevant alerts (exclude background arp_spoof noise)
+        # Count only alerts about the evaded traffic (arp_spoof is about the link layer)
         evasion_alerts = self.get_alerts(since_id=self.evasion_start_alert_id)
         new_alerts = sum(1 for a in evasion_alerts if a.get("rule") != "arp_spoof")
 

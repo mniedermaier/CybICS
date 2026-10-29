@@ -20,8 +20,9 @@ The IDS keeps a journal of the Modbus write requests it sees, FUXA's included
   stop that something else wrote over afterwards;
 * the IDS was capturing for at least QUIET_BEFORE seconds before that write;
 * no alert from QUIET_BEFORE seconds before that write until now, except
-  arp_spoof, which container restarts raise on their own (the IDS Evasion
-  check ignores it for the same reason). Brute-forcing the FUXA login, a port
+  arp_spoof, which says nothing about who sent the stop and which older IDS
+  versions raised after every container restart (the IDS Evasion check
+  ignores it too). Brute-forcing the FUXA login, a port
   scan or a burst of direct Modbus writes all show up here;
 * the stop flag is set now, read over Modbus or, when 502 is firewalled, over
   S7comm, as the S7 Side Door check does.

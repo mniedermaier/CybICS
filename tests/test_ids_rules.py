@@ -1203,3 +1203,82 @@ def test_s7_control_folding_is_cleaned_up(monkeypatch):
     monkeypatch.setattr(rules.time, "time", lambda: later)
     engine.cleanup()
     assert not engine.s7_last_control
+
+
+# ---- Rule 8: ARP spoofing ----
+#
+# The rule used to keep every MAC an IP was ever announced with.  Containers
+# keep their fixed address but get a new random MAC when recreated, so after
+# any restart the set held two MACs for good and every later ARP packet raised
+# arp_spoof -- the Man-in-the-Middle challenge then passed with no attack.
+
+FUXA = "172.18.0.4"
+PLC = "172.18.0.3"
+PLC_MAC = "fa:78:dd:ce:9a:a8"
+FUXA_MAC = "b6:8d:1a:7b:3f:a2"
+ATTACKER_MAC = "1a:12:39:99:54:b1"
+
+
+def _arp(sender_ip, sender_mac, op=2):
+    return (sender_ip, "", 0, 0, "", 0, b"", op, sender_mac, sender_ip)
+
+
+def _arp_alerts(engine, *packets):
+    found = []
+    for pkt in packets:
+        found += [a for a in engine.check_packet(pkt) if a["rule"] == "arp_spoof"]
+    return found
+
+
+def test_arp_poisoning_both_ways_alerts_for_both_victims():
+    engine = rules.RuleEngine()
+    alerts = _arp_alerts(
+        engine,
+        _arp(PLC, PLC_MAC), _arp(FUXA, FUXA_MAC),
+        _arp(ATTACK_MACHINE, ATTACKER_MAC, op=1),  # the spoofer's own lookup
+        _arp(PLC, ATTACKER_MAC), _arp(FUXA, ATTACKER_MAC),
+    )
+    assert {a["src"] for a in alerts} == {PLC, FUXA}
+    assert all(ATTACKER_MAC in a["message"] for a in alerts)
+
+
+def test_recreated_container_with_a_new_mac_is_silent():
+    engine = rules.RuleEngine()
+    assert not _arp_alerts(
+        engine,
+        _arp(PLC, PLC_MAC), _arp(FUXA, FUXA_MAC),
+        _arp(PLC, "36:49:ff:54:37:51"),  # OpenPLC recreated on 172.18.0.3
+        _arp(PLC, "36:49:ff:54:37:51"), _arp(FUXA, FUXA_MAC),
+    )
+
+
+def test_attackers_own_address_is_not_reported():
+    engine = rules.RuleEngine()
+    alerts = _arp_alerts(
+        engine,
+        _arp(PLC, PLC_MAC), _arp(ATTACK_MACHINE, ATTACKER_MAC),
+        _arp(PLC, ATTACKER_MAC), _arp(ATTACK_MACHINE, ATTACKER_MAC),
+    )
+    assert [a["src"] for a in alerts] == [PLC]
+
+
+def test_arp_bindings_expire(monkeypatch):
+    engine = rules.RuleEngine()
+    _arp_alerts(engine, _arp(PLC, PLC_MAC), _arp(ATTACK_MACHINE, ATTACKER_MAC))
+    later = time.time() + rules.ARP_BINDING_WINDOW + 1
+    monkeypatch.setattr(rules.time, "time", lambda: later)
+    # Long after the real PLC was last heard, a new MAC alone proves nothing.
+    assert not _arp_alerts(engine, _arp(PLC, ATTACKER_MAC))
+    engine.cleanup()
+    assert set(engine.arp_tracker) == {PLC}
+    assert set(engine.arp_claims) == {ATTACKER_MAC}
+
+
+def test_arp_tables_stay_bounded_under_forged_macs():
+    engine = rules.RuleEngine()
+    for i in range(5000):
+        mac = f"02:00:00:00:{i // 256:02x}:{i % 256:02x}"
+        engine.check_packet(_arp(f"172.18.0.{i % 254 + 1}", mac))
+    assert len(engine.arp_tracker) <= rules.ARP_MAX_TRACKED
+    assert len(engine.arp_claims) <= rules.ARP_MAX_TRACKED
+    assert all(len(m) <= rules.ARP_MAX_MACS_PER_IP for m in engine.arp_tracker.values())

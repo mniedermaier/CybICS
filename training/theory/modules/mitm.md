@@ -137,7 +137,7 @@ The same trick works for coils, where each value is a single bit inside a byte.
 
 ## Detect and defend
 
-- **Watch ARP.** An IP address that suddenly changes its MAC is the classic sign of poisoning. The CybICS IDS rule `arp_spoof` does not see the interception itself; it notices one IP address announced with more than one MAC address.
+- **Watch ARP.** An IP address that suddenly changes its MAC is the classic sign of poisoning. The CybICS IDS rule `arp_spoof` does not see the interception itself; it notices one IP address announced with more than one MAC address, when one of those MACs also answers for a different address. A device that is replaced, and comes back on its old address with a new MAC, does not trigger it.
 - **Fix the mapping.** Static ARP entries for critical devices, or switches with Dynamic ARP Inspection, refuse forged replies.
 - **Segment the network.** If the attacker never shares a network segment with the HMI and the PLC, ARP tricks cannot reach them.
 - **Authenticate the messages.** Protocols that sign their messages, such as OPC-UA with a secure policy or Modbus/TCP Security over TLS, make a rewritten answer detectable.
@@ -164,7 +164,7 @@ In MITRE ATT&CK for ICS this is **T0830 Adversary-in-the-Middle**; forging the r
 }
 </style>
 <svg class="mm-a" viewBox="0 0 460 128" role="img"
-     aria-label="FUXA's ARP cache entry for the PLC's address is overwritten with the attacker's MAC. The IDS keeps a set of MACs per address; when the set for that address reaches two, the arp_spoof rule raises an alert.">
+     aria-label="FUXA's ARP cache entry for the PLC's address is overwritten with the attacker's MAC. The IDS keeps the MACs recently heard for each address; when that address has two and the new one also claims another address, the arp_spoof rule raises an alert.">
   <text x="14" y="28" font-size="13" opacity="0.8">FUXA's ARP cache for .0.3</text>
   <rect x="14" y="36" width="238" height="30" rx="4" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-opacity="0.6"/>
   <text class="old" x="26" y="56" font-size="13" font-family="monospace" opacity="0.85">d6:10:7c:61:8a:64</text>

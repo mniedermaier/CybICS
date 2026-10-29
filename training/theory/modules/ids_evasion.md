@@ -165,7 +165,7 @@ The technique you practise is Unauthorized Message: Command Message (T1692.001) 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>
 
-- The evasion check ignores `arp_spoof` alerts, because ARP alerts can reappear after container restarts and would otherwise spoil attempts.
+- The evasion check ignores `arp_spoof` alerts: they say nothing about the Modbus writes being evaded, and older IDS versions raised them after every container restart.
 - The `evasion.new_alerts` value in `/api/status` subtracts from a counter that is never set, so the dashboard can show the lifetime alert total while `/api/evasion/check` correctly reports zero. Point students to the check endpoint.
 - Alerts from other students' traffic during the window count too; run this one in a quiet lab.
 

@@ -106,6 +106,19 @@ DNP3_CONNECTION_IDLE = 600
 # keeps the alert) each, beyond the IDS's 32 MB on the board within a minute.
 # Forgetting a server only means its next repeat is alerted again.
 MAX_TRACKED_SERVERS = 64
+# ARP spoofing (rule 8).  A sender binding (IP claimed by a MAC) counts as
+# current for ARP_BINDING_WINDOW seconds.  The rule alerts when an IP has two
+# current MACs *and* the newer claimant also claims another IP: that is what a
+# poisoner looks like (one MAC answering for itself and for its victims).  An
+# IP with two MACs alone is not enough -- a container recreated on its fixed
+# address comes back with a new random MAC, and the old binding-forever set
+# raised arp_spoof after every restart, which made the MitM check pass with no
+# attack.  Both tables are capped, oldest binding dropped first, so a flood of
+# forged MACs cannot grow them between cleanups.
+ARP_BINDING_WINDOW = 300
+ARP_MAX_MACS_PER_IP = 8
+ARP_MAX_IPS_PER_MAC = 8
+ARP_MAX_TRACKED = 256
 
 # Services that legitimately write to Modbus at high rates
 _MODBUS_WRITERS = frozenset(("hwio", "fuxa", "openplc"))
@@ -145,6 +158,14 @@ def _remember(table, key, value):
     table[key] = value
 
 
+def _touch(table, key, value, cap):
+    """table[key] = value as the most recent entry, dropping the oldest beyond cap."""
+    table.pop(key, None)
+    if len(table) >= cap:
+        del table[next(iter(table))]
+    table[key] = value
+
+
 def _tcp_stream(pkt):
     """(sequence number, acknowledgement number, payload length) or None."""
     if len(pkt) > _PAYLOAD_LEN:
@@ -166,7 +187,8 @@ class RuleEngine:
         self.modbus_flood_tracker = {}
         self.http_login_tracker = {}
         self.syn_tracker = {}
-        self.arp_tracker = {}  # ip -> set of MAC addresses
+        self.arp_tracker = {}  # ip -> {mac: last seen}, oldest first
+        self.arp_claims = {}  # mac -> {ip: last seen}, oldest first
 
         # Thresholds
         self.PORT_SCAN_THRESHOLD = 5
@@ -487,21 +509,29 @@ class RuleEngine:
         if not arp_src_ip or not arp_src_mac:
             return []
 
-        if arp_src_ip not in self.arp_tracker:
-            self.arp_tracker[arp_src_ip] = set()
-        macs = self.arp_tracker[arp_src_ip]
-        macs.add(arp_src_mac)
-        if len(macs) > 1:
-            now = time.time()
-            if self._should_alert("arp_spoof", arp_src_ip, now):
-                return [{
-                    "rule": "arp_spoof",
-                    "severity": SEVERITY_CRITICAL,
-                    "mitre": MITRE_SPOOF_REPORTING,
-                    "src": arp_src_ip,
-                    "dst": "",
-                    "message": f"ARP spoofing: IP {arp_src_ip} seen with multiple MACs: {macs}",
-                }]
+        now = time.time()
+        macs = self.arp_tracker.pop(arp_src_ip, None) or {}
+        _touch(macs, arp_src_mac, now, ARP_MAX_MACS_PER_IP)
+        _touch(self.arp_tracker, arp_src_ip, macs, ARP_MAX_TRACKED)
+        claims = self.arp_claims.pop(arp_src_mac, None) or {}
+        _touch(claims, arp_src_ip, now, ARP_MAX_IPS_PER_MAC)
+        _touch(self.arp_claims, arp_src_mac, claims, ARP_MAX_TRACKED)
+
+        cutoff = now - ARP_BINDING_WINDOW
+        current = {m for m, t in macs.items() if t >= cutoff}
+        if len(current) < 2:
+            return []
+        if not any(ip != arp_src_ip and t >= cutoff for ip, t in claims.items()):
+            return []
+        if self._should_alert("arp_spoof", arp_src_ip, now):
+            return [{
+                "rule": "arp_spoof",
+                "severity": SEVERITY_CRITICAL,
+                "mitre": MITRE_SPOOF_REPORTING,
+                "src": arp_src_ip,
+                "dst": "",
+                "message": f"ARP spoofing: IP {arp_src_ip} seen with multiple MACs: {current}",
+            }]
         return []
 
     # ---- Rule 9: OPC-UA ----
@@ -739,6 +769,14 @@ class RuleEngine:
             k: v for k, v in self.dnp3_connections.items()
             if now - v["seen"] <= DNP3_CONNECTION_IDLE
         }
+        arp_cutoff = now - ARP_BINDING_WINDOW
+        for table in (self.arp_tracker, self.arp_claims):
+            for key in list(table):
+                fresh = {k: t for k, t in table[key].items() if t >= arp_cutoff}
+                if fresh:
+                    table[key] = fresh
+                else:
+                    del table[key]
         for key in list(self.port_scan_tracker.keys()):
             cutoff = now - self.PORT_SCAN_WINDOW * 2
             self.port_scan_tracker[key] = {
