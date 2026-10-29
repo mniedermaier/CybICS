@@ -34,6 +34,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [Service Scanning](scanning/README.md) | Discovery | Remote System Discovery, Network Connection Enumeration | T0846, T0840 |
 | [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Remote System Information Discovery | T0846, T0888 |
 | [HMI Project Recon](hmi_project_recon/README.md) | Collection | Data from Information Repositories, Point & Tag Identification, Monitor Process State | T0811, T0861, T0801 |
+| [Register Map Recon](register_map_recon/README.md) | Collection | Point & Tag Identification, Monitor Process State, Automated Collection | T0861, T0801, T0802 |
 | [Packet Anatomy](packet_anatomy/README.md) | Collection, Impair Process Control | Monitor Process State, Unauthorized Message: Command Message | T0801, T1692.001 |
 | [Wireshark Capture](wireshark_capture/README.md) | Collection | Network Sniffing | T0842 |
 | [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control, Evasion | Brute Force I/O, Unauthorized Message: Command Message, Manipulation of View | T0806, T1692.001, T0832 |
@@ -105,42 +106,43 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 3. [Service scanning](scanning/README.md) - Discover network services and open ports
 4. [S7comm scanning](scanning2/README.md) - Analyze Siemens S7 communication
 5. [HMI project recon](hmi_project_recon/README.md) - Download the HMI's project without a login and map every register and button of the plant
-6. [Packet anatomy](packet_anatomy/README.md) - Build Modbus/TCP frames byte by byte and take the PLC's answers and errors apart
-7. [Wireshark capture](wireshark_capture/README.md) - Learn network traffic analysis
+6. [Register map recon](register_map_recon/README.md) - Rebuild the PLC's memory map from reads alone and find the latches no screen shows
+7. [Packet anatomy](packet_anatomy/README.md) - Build Modbus/TCP frames byte by byte and take the PLC's answers and errors apart
+8. [Wireshark capture](wireshark_capture/README.md) - Learn network traffic analysis
 
 ### 🛡️ Security Testing
-8. [Flood & overwrite](flood_overwrite/README.md) - Test system resilience against flooding attacks
-9. [Plant physics sandbox](plant_physics_sandbox/README.md) - Predict what the plant does with frozen outputs and one forged reading, before you touch it
-10. [Password attack](password_attack/README.md) - Practice password security testing
-11. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
-12. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
-13. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
-14. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
-15. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
-16. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
-17. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
+9. [Flood & overwrite](flood_overwrite/README.md) - Test system resilience against flooding attacks
+10. [Plant physics sandbox](plant_physics_sandbox/README.md) - Predict what the plant does with frozen outputs and one forged reading, before you touch it
+11. [Password attack](password_attack/README.md) - Practice password security testing
+12. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
+13. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
+14. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
+15. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
+16. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
+17. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
+18. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
 
 ### 🔐 Advanced Security
-18. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
-19. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
-20. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
-21. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+19. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
+20. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
+21. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
+22. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
 
 ### 🔍 IDS Challenges
-22. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
-23. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
-24. [Incident PCAP](incident_pcap/README.md) - Rebuild a night of plant stops from a capture and unmask the device behind the borrowed addresses
-25. [Physics Never Lies](physics_forensics/README.md) - Catch a forged pressure reading in a historian export with nothing but the plant's physics
-26. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
-27. [Trusted writer](fuxa_trusted_writer/README.md) - Make the HMI stop the plant for you, from the one address the IDS never counts
+23. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+24. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+25. [Incident PCAP](incident_pcap/README.md) - Rebuild a night of plant stops from a capture and unmask the device behind the borrowed addresses
+26. [Physics Never Lies](physics_forensics/README.md) - Catch a forged pressure reading in a historian export with nothing but the plant's physics
+27. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+28. [Trusted writer](fuxa_trusted_writer/README.md) - Make the HMI stop the plant for you, from the one address the IDS never counts
 
 ### 🛡️ Defense & Hardening
-28. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-29. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
-30. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-31. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
-32. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-33. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+29. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+30. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
+31. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+32. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
+33. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+34. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

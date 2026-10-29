@@ -95,6 +95,44 @@
           "training_content": "training/hmi_project_recon/README.md"
         },
         {
+          "id": "register_map_recon",
+          "title": "Register Map Recon",
+          "description": "No register map, no program, no HMI project: only reads. Sample the PLC's memory over time, find the two hidden words that remember whether the compressor and the tank refill are running, and locate one of them in a second protocol.",
+          "points": 200,
+          "type": "verify",
+          "verify_module": "check_register_map_recon",
+          "tag": "recon",
+          "flag": "CybICS(s33_th3_l4tch3s)",
+          "hint": "One snapshot is not a map. Read the same block of holding registers again and again for a few minutes and look for words that only ever hold 0 or 1.",
+          "answers": [
+            {
+              "name": "compressor_latch",
+              "label": "Holding register of the compressor latch (wire address, from 0)",
+              "placeholder": "e.g. 1000",
+              "max_length": 16
+            },
+            {
+              "name": "refill_latch",
+              "label": "Holding register of the GST refill latch (wire address, from 0)",
+              "placeholder": "e.g. 1000",
+              "max_length": 16
+            },
+            {
+              "name": "release_hpt",
+              "label": "HPT value at which the compressor latch falls back to 0",
+              "placeholder": "e.g. 42",
+              "max_length": 16
+            },
+            {
+              "name": "s7_offset",
+              "label": "Byte offset of the compressor latch in S7comm data block DB1002",
+              "placeholder": "e.g. 208",
+              "max_length": 32
+            }
+          ],
+          "training_content": "training/register_map_recon/README.md"
+        },
+        {
           "id": "packet_anatomy",
           "title": "Packet Anatomy",
           "description": "No library, no Wireshark: build Modbus/TCP frames byte by byte, send the read-only ones to the PLC over a raw TCP connection and take its answers apart. Hand in four frames as hex.",

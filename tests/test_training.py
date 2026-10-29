@@ -1333,6 +1333,111 @@ class TestHmiProjectRecon(_CtfProgress):
 
 
 # ===============================================================================
+# Register Map Recon (register_map_recon)
+# ===============================================================================
+
+@pytest.mark.usefixtures("stack_ready")
+class TestRegisterMapRecon(_CtfProgress):
+    """
+    Register Map Recon end to end, with reads only: the sweep helper runs in
+    landing's admin shell (pymodbus 3.5, the oldest the README promises), the
+    live PLC shows the two latches where the verify module expects them -- each
+    one holds 0 or 1 and drives its coil, and S7comm DB1002 mirrors them --
+    the compressor latch is watched until it releases and the HPT at that read
+    must be the graded value, and verify refuses typical mistakes before it
+    hands out the flag. Nothing is written to the PLC; only the CTF progress
+    changes and it is put back.
+
+    The release wait is bounded: the compressor latch is on for about 35 s and
+    off for about 35 s, so a 1 -> 0 switch comes within 80 s in a running plant.
+    """
+
+    SCRIPT = ("python3 /CybICS/training/register_map_recon/map_registers.py "
+              "--host 172.18.0.3 --seconds 2 --interval 0.5")
+    COMPRESSOR_LATCH, REFILL_LATCH = 1224, 1226     # %MW200, %MW202
+    GST, HPT, STOP, MANUAL = 1124, 1126, 1128, 1130
+    RELEASE_HPT, S7_OFFSET = 90, 400
+    RELEASE_WAIT = 150
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/register_map_recon", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _words(self, client):
+        """One read of HR 1124..1226, so the latches and the pressures come from one scan."""
+        reply = modbus_call(client, client.read_holding_registers, self.GST,
+                            count=self.REFILL_LATCH - self.GST + 1)
+        assert not reply.isError(), reply
+        return {self.GST + i: v for i, v in enumerate(reply.registers)}
+
+    def test_the_helper_runs_and_translates(self):
+        code, out = self._admin(self.SCRIPT)
+        assert code == 0, out
+        # GST is never 0 in a running plant; its row carries every translation.
+        assert re.search(r"^\s*1124 \w+ .* 1125\s+%MW100\s+DB1002\.DBW200$", out, re.M), out
+        assert "holding registers stayed 0" in out, out
+
+    def test_the_latches_are_where_the_check_expects_them(self):
+        import snap7  # tests/requirements.txt; a missing library is a failure, not a skip
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        assert client.connect(), "cannot reach the PLC's Modbus server"
+        s7 = snap7.client.Client()
+        s7.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        try:
+            words = self._words(client)
+            assert words[self.STOP] == 0 and words[self.MANUAL] == 0, \
+                "the plant must run in automatic mode for its latches to drive the coils"
+            # Separate requests can straddle a 50 ms scan that switches a latch,
+            # so the pairs must agree in most of a few tries, not in every one.
+            coil_ok = s7_ok = 0
+            for _ in range(10):
+                words = self._words(client)
+                latches = (words[self.COMPRESSOR_LATCH], words[self.REFILL_LATCH])
+                assert set(latches) <= {0, 1} and words[self.COMPRESSOR_LATCH + 1] == 0, words
+                coils = modbus_call(client, client.read_coils, 0, count=4)
+                assert not coils.isError(), coils
+                coil_ok += (int(coils.bits[1]), int(coils.bits[3])) == latches
+                raw = s7.db_read(1002, self.S7_OFFSET, 6)
+                s7_ok += (int.from_bytes(raw[0:2], "big"), int.from_bytes(raw[4:6], "big")) == latches
+                time.sleep(0.2)
+            assert coil_ok >= 8 and s7_ok >= 8, (coil_ok, s7_ok)
+
+            # README step 5: the HPT at the read where the compressor latch falls back to 0.
+            previous, deadline, release = None, time.time() + self.RELEASE_WAIT, None
+            while time.time() < deadline and release is None:
+                words = self._words(client)
+                latch = words[self.COMPRESSOR_LATCH]
+                if previous == 1 and latch == 0:
+                    release = words[self.HPT]
+                previous = latch
+                time.sleep(0.1)
+            assert release is not None, f"the compressor latch did not release in {self.RELEASE_WAIT} s"
+            assert abs(release - self.RELEASE_HPT) <= 1, release
+        finally:
+            s7.disconnect()
+            client.close()
+
+    def test_the_observed_map_earns_the_flag(self):
+        answers = {"compressor_latch": str(self.COMPRESSOR_LATCH), "refill_latch": str(self.REFILL_LATCH),
+                   "release_hpt": str(self.RELEASE_HPT), "s7_offset": f"DB1002.DBW{self.S7_OFFSET}"}
+        before = self._without("register_map_recon")
+        try:
+            for wrong in ({**answers, "compressor_latch": answers["refill_latch"],
+                           "refill_latch": answers["compressor_latch"]},
+                          {**answers, "compressor_latch": str(self.COMPRESSOR_LATCH + 1)},
+                          {**answers, "s7_offset": str(self.S7_OFFSET // 2)}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
 # Packet Anatomy (packet_anatomy)
 # ===============================================================================
 

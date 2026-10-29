@@ -393,6 +393,25 @@
           ]
         },
         {
+          "id": "register_map_recon",
+          "title": "Register map recon",
+          "summary": "Mapping a PLC's memory from reads alone: finding the latches no screen shows and naming them in every protocol.",
+          "content": "training/theory/modules/register_map_recon.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "register_map_recon",
+              "label": "Register Map Recon"
+            }
+          ],
+          "prerequisites": [
+            "plc-fundamentals",
+            "modbus",
+            "s7comm",
+            "hmi_project_recon"
+          ]
+        },
+        {
           "id": "s7_sidedoor",
           "title": "The S7 side door",
           "summary": "Writing the PLC's memory over S7comm when Modbus is firewalled: one memory, several protocols.",

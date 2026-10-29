@@ -1,0 +1,107 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Classify a PLC's memory words from repeated reads, without documentation",
+    "Recognise a hysteresis latch by how and when it switches",
+    "Translate one PLC variable between its program, Modbus and S7comm addresses",
+    "Explain why a sweep of reads is hard to detect and how a defender limits it"
+  ],
+  "takeaways": [
+    "A PLC answers reads of its internal memory whether or not any screen shows those values.",
+    "One snapshot is a list of numbers; a time series over a full plant cycle tells you what each number means.",
+    "A latch is a word that only holds 0 or 1 and switches at the same process values every cycle, which reveals the plant's design thresholds.",
+    "The same variable has a different address in every protocol and tool; each translation is a chance to be off by one, by an area offset or by a factor of two.",
+    "Reads look like normal polling, so limiting who can reach the PLC matters more than hiding registers."
+  ],
+  "checkpoints": [
+    {
+      "id": "translate",
+      "question": "The PLC program keeps its stop flag in %MW104. Which holding register does a Modbus request carry to read it from OpenPLC?",
+      "options": [
+        "1104",
+        "1128",
+        "1129"
+      ],
+      "answer": 1,
+      "explanation": "OpenPLC maps %MWn to holding register 1024 + n, so %MW104 is 1128 on the wire. 1129 is the same word in a tool that counts from 1, such as FUXA; 1104 adds the wrong offset."
+    }
+  ],
+  "exercises": {
+    "kinds": {
+      "type": "sequence",
+      "order": false,
+      "title": "What kind of word is this?",
+      "intro": "Each line describes how one address behaved over five minutes of reads. Label it with what it most likely is.",
+      "labels": ["Unused", "Constant data", "Analog value", "Latch", "Heartbeat"],
+      "steps": [
+        {"text": "Read 0 in every one of the 600 samples.", "label": "Unused", "explain": "Nothing changed it during the window. It is either unused or used so rarely that the window missed it, which is why a longer window is safer."},
+        {"text": "Drifted between 55 and 95 and back, a few units per second.", "label": "Analog value", "explain": "Many different values that move smoothly are a process measurement, here a tank pressure."},
+        {"text": "Held only 0 or 1, went to 1 each time the pressure fell below the same low value and back to 0 at the same high value.", "label": "Latch", "explain": "Switching at fixed process values, and staying put in between, is the signature of a hysteresis latch: the program's memory of its last decision."},
+        {"text": "Flipped between 0 and 1 every second, whatever the tanks did.", "label": "Heartbeat", "explain": "A regular toggle that ignores the process is a timer or heartbeat, not a latch."},
+        {"text": "Held the same large number in every sample.", "label": "Constant data", "explain": "A value that never changes is configuration or stored data, not process state."}
+      ]
+    }
+  },
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You read the PLC's memory area once and a word reads 0. What can you conclude?",
+      "options": [
+        "The word is unused by the program",
+        "Nothing yet: it may be a flag that is 0 at the moment",
+        "The word is write-protected",
+        "The PLC hides the word from Modbus"
+      ],
+      "answer": 1,
+      "explanation": "A latch spends long stretches at 0. Only repeated reads over at least one full plant cycle tell an unused word from a flag that is currently off. Modbus has no per-word protection or hiding on OpenPLC."
+    },
+    {
+      "type": "single",
+      "question": "A word holds only 0 and 1. It switches to 1 whenever the HPT falls below 60 and back to 0 whenever the HPT reaches a higher value. What is it most likely?",
+      "options": [
+        "The heartbeat of the PLC",
+        "The compressor's latch: the program's memory that the compressor is running",
+        "The tank pressure itself",
+        "The stop flag the operator sets"
+      ],
+      "answer": 1,
+      "explanation": "Switching at fixed pressures in both directions is hysteresis, and the program needs a latch to remember which side of it it is on. The heartbeat ignores the process, and the stop flag only changes when someone presses STOP."
+    },
+    {
+      "type": "single",
+      "question": "On OpenPLC a variable is %MW150. Where do you read it over S7comm?",
+      "options": [
+        "Data block DB1002, byte offset 150",
+        "Data block DB1002, byte offset 300",
+        "Data block DB1002, byte offset 1174",
+        "Holding register 1174"
+      ],
+      "answer": 1,
+      "explanation": "OpenPLC shows the %MW area as DB1002 with two bytes per word, so word 150 starts at byte 300. Offset 150 forgets the factor of two; 1174 is the Modbus address, which is a different protocol."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these make a read-only sweep of the PLC harder or more visible?",
+      "options": [
+        "A firewall that lets only the plant's own clients reach port 502",
+        "A baseline of which hosts read which addresses, with an alert on new readers",
+        "Leaving the latch words off every HMI screen",
+        "Closing protocols the plant does not use, such as S7comm"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Limiting who can connect and closing extra protocols remove ways to read; a baseline makes an unusual reader visible. Leaving a word off the screen does not stop a read: the sweep finds it anyway."
+    },
+    {
+      "type": "single",
+      "question": "Why does the CybICS IDS raise nothing while you sweep the PLC with Modbus reads?",
+      "options": [
+        "The sweep is encrypted",
+        "Its Modbus rules only count writes and diagnostics, because reads are normal polling traffic",
+        "The IDS only watches the HMI",
+        "Reads below 100 per second are always allowed by Modbus"
+      ],
+      "answer": 1,
+      "explanation": "The HMI, the OPC-UA server and the hardware bridge read the PLC constantly, so the IDS rules ignore reads to avoid constant false alarms. Modbus is not encrypted and has no rate limit of its own."
+    }
+  ]
+}
