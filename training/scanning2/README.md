@@ -1,6 +1,6 @@
 # S7 Communication Scanning Guide
 
-> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T0861 - Point & Tag Identification](https://attack.mitre.org/techniques/T0861/)
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T0888 - Remote System Information Discovery](https://attack.mitre.org/techniques/T0888/)
 
 ## Overview
 Siemens **S7 Communication (S7comm)** typically operates on **port 102**, but can also run on custom ports. In this environment, the S7 service runs on **port 1102**. Nmap provides an **NSE script (`s7-info`)** to scan for and retrieve information from **S7 PLCs**.
@@ -62,7 +62,7 @@ The flag has the format `CybICS(flag)` and is found in the **Module Type** field
    ```
    Find the `portrule` section near the top and change it to:
    ```bash
-   portrule = shortport.port_or_service({102, 1102}, "iso-tsap", "tcp")
+   portrule = shortport.version_port_or_service({102, 1102}, "iso-tsap", "tcp")
    ```
 
 3. **Run the scan** against the target device with both ports:
@@ -103,7 +103,7 @@ Using Nmap's s7-info script, you can:
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Adversaries may attempt to identify ICS devices and their characteristics |
-| Discovery | Point & Tag Identification | [T0861](https://attack.mitre.org/techniques/T0861/) | Adversaries may collect information about I/O points, tags, and process variables |
+| Discovery | Remote System Information Discovery | [T0888](https://attack.mitre.org/techniques/T0888/) | Adversaries may read a device's make, model, firmware and configuration, as s7-info does with the PLC's SZL |
 
 **Why this matters:** S7comm protocol scanning reveals detailed information about Siemens PLCs including model numbers, firmware versions, and module types. This information is invaluable for attackers to identify specific vulnerabilities (e.g., CVEs affecting certain firmware versions) and plan targeted attacks. The TRITON/TRISIS attack relied on similar reconnaissance to understand the target safety systems.
 

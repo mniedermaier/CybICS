@@ -472,6 +472,6 @@ With no allowlist, both rules also fire on a legitimate engineering workstation.
 <summary>Instructor notes</summary>
 
 - Rule 6 has a 30-second cooldown per source and does not count suppressed packets, so two alerts cannot be told apart from a single probe or a full sweep. A good class discussion: how would you narrow this rule without missing an attacker?
-- `training/README.md` maps the S7comm Scanning challenge to T0846 and T0861 (Point &amp; Tag Identification). Reading the SZL is closer to T0888 Remote System Information Discovery, which this article uses.
+- Reading the SZL is T0888 Remote System Information Discovery, not T0861 Point &amp; Tag Identification: it names the device, not its process values. `training/README.md` and the S7comm Scanning module map the challenge to T0846 and T0888, as this article does.
 
 </details>
