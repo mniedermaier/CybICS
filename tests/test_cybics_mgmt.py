@@ -2,8 +2,8 @@
 
 modules/cybics_mgmt.py is the CybICS-mgmt reference client, vendored unchanged
 and tested in that repository. What is CybICS' own is the glue in
-utils/mgmt.py and modules/mgmt_routes.py: the strict progress read the join
-baseline depends on, the device description, the heartbeat status, the job
+utils/mgmt.py and modules/mgmt_routes.py: the strict progress read the
+heartbeat's reconciliation depends on, the device description, the heartbeat status, the job
 handlers and their banners, the enrolment on the default network cybics-mgmt,
 the settings routes and the file exchange with hwio-raspberry. That is tested
 here, plus one round trip of the vendored client against a minimal in-process
@@ -81,23 +81,11 @@ def test_progress_is_read(tmp_path):
 
 @pytest.mark.parametrize("content", ['{"solved_chall', '[]', '{}'])
 def test_unreadable_progress_raises(tmp_path, content):
-    """An empty list here would become the join baseline, and every old
-    solve on a reused board would be reported as new."""
+    """A half-written file must not look like a board without progress."""
     path = tmp_path / "ctf_progress.json"
     path.write_text(content)
     with pytest.raises(Exception):
         mgmt.read_progress_strict(str(path))
-
-
-def test_joining_refuses_unreadable_progress(tmp_path):
-    progress = tmp_path / "ctf_progress.json"
-    progress.write_text('{"half')
-    client = MgmtClient(str(tmp_path / "cybics_mgmt.json"),
-                        local_solves=lambda: mgmt.read_progress_strict(str(progress)))
-    client.state.update({"enabled": True, "token": "tok", "server_url": "http://127.0.0.1:9"})
-    with pytest.raises(MgmtClientError) as error:
-        client.join_event("CODE", "Team", "password1")
-    assert error.value.code == "progress_unreadable"
 
 
 # ---------- device description ----------
@@ -850,8 +838,8 @@ def server(signing_key):
 
 
 def test_round_trip(tmp_path, server, signing_key):
-    """Old progress stays local, new solves are reported with their flag, a
-    signed job runs only once allowed, and the token never reaches the page."""
+    """Solves from before joining and new ones are reported with their flag,
+    a signed job runs only once allowed, and the token never reaches the page."""
     progress = tmp_path / "ctf_progress.json"
     progress.write_text(json.dumps({"solved_challenges": ["physical_process"], "total_points": 100}))
     flags = {"physical_process": "CybICS(Bl0w0ut)", "scanning": "CybICS(scanning_d0ne)"}
@@ -887,8 +875,8 @@ def test_round_trip(tmp_path, server, signing_key):
     client.report_solve("scanning", flags["scanning"])
     assert client.sync_once() is True
     solves = [body for path, body, _ in FakeServer.received if path == "/api/v1/solves"]
-    assert [s["challenge_id"] for s in solves] == ["scanning"]
-    assert solves[0]["flag"] == "CybICS(scanning_d0ne)"
+    assert sorted(s["challenge_id"] for s in solves) == ["physical_process", "scanning"]
+    assert {s["challenge_id"]: s["flag"] for s in solves}["scanning"] == "CybICS(scanning_d0ne)"
     heartbeat = next(body for path, body, _ in FakeServer.received if path == "/api/v1/heartbeat")
     assert heartbeat["status"]["host"] is not None and "local_solved" in heartbeat["status"]
 
