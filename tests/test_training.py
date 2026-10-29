@@ -2568,3 +2568,79 @@ class TestPlantPhysicsSandbox(_CtfProgress):
             assert result.get("flag", "").startswith("CybICS(")
         finally:
             self._restore(before)
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestAdvancedSecurity(_CtfProgress):
+    """
+    The Advanced Security category end to end from the attack shell, with the
+    shipped scripts and the commands the READMEs give: the ARP man-in-the-
+    middle earns the MitM flag through Verify, and the port scan and Modbus
+    flood make the IDS rule stats reveal their flags. UART needs the board.
+
+    Verify must refuse MitM before the poisoning when the IDS has no
+    arp_spoof alert yet. It used to pass with no attack at all: the IDS kept
+    every MAC an address was ever announced with, so recreating a container
+    was enough to raise arp_spoof forever. The ARP spoofer restores both
+    caches on SIGINT; the flood only overwrites GST, which hwio writes again
+    every cycle. CTF progress is put back.
+    """
+
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+    FIND_ATTACKER = TestDefenseUnusedProtocols.FIND_ATTACKER
+
+    def _attack(self, module, command, timeout=120):
+        code, out = self._admin(self.FIND_ATTACKER)
+        assert code == 0 and out.strip(), out
+        return self._admin(f"docker exec -w /CybICS/training/{module} {out.strip()} "
+                           f"sh -c {shlex.quote(command)}", timeout=timeout)
+
+    def _stats(self):
+        return requests.get(f"{self.IDS}/api/rules/stats", timeout=READ_TIMEOUT).json()
+
+    def _flag(self, challenge_id):
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        return next(c["flag"] for c in
+                    json.loads(config.read_text())["categories"]["advanced_security"]["challenges"]
+                    if c["id"] == challenge_id)
+
+    def _submit(self, challenge_id, flag):
+        return requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
+                             json={"challenge_id": challenge_id, "flag": flag}).json()
+
+    def test_arp_poisoning_earns_the_mitm_flag(self):
+        before = self._without("mitm")
+        try:
+            if not self._stats()["arp_spoof"]["count"]:
+                r = requests.post(f"{self.BASE}/ctf/verify/mitm", json={}, timeout=30).json()
+                assert not r["success"] and "flag" not in r, r
+            code, out = self._attack("mitm", "timeout -s INT 10 python3 arp_spoof.py "
+                                             "172.18.0.4 172.18.0.3")
+            assert code == 0 and "Restoring the ARP caches" in out, out[-500:]
+            r = requests.post(f"{self.BASE}/ctf/verify/mitm", json={}, timeout=30).json()
+            assert r["success"] and r.get("flag") == self._flag("mitm"), r
+        finally:
+            self._restore(before)
+
+    @pytest.mark.parametrize("challenge_id,rule,module,command", [
+        ("detect_basic", "port_scan", "detect_basic", "python3 recon.py 172.18.0.3"),
+        ("detect_overwrite", "modbus_flood", "detect_overwrite",
+         "timeout 5 python3 override.py 172.18.0.3 >/dev/null 2>&1; true"),
+    ])
+    def test_attack_reveals_the_rule_flag(self, challenge_id, rule, module, command):
+        before = self._without(challenge_id)
+        try:
+            code, out = self._attack(module, command, timeout=180)
+            assert code == 0, out[-500:]
+            if rule == "port_scan":
+                assert "Port: 502\tState: open" in out, out[-800:]
+            deadline = time.time() + 15
+            while "flag" not in self._stats()[rule] and time.time() < deadline:
+                time.sleep(1)
+            flag = self._stats()[rule].get("flag")
+            assert flag == self._flag(challenge_id), self._stats()[rule]
+            wrong = self._submit(challenge_id, flag.replace("3", "e"))
+            assert not wrong["success"], wrong
+            assert self._submit(challenge_id, flag)["success"]
+        finally:
+            self._restore(before)
