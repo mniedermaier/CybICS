@@ -39,8 +39,9 @@ nmap -sS 172.18.0.3
 
 #### Modbus Write Flood (Rule: modbus_flood)
 ```bash
-# Use the flooding script from the training materials
-python3 /usr/local/bin/flooding_hpt.py
+# The flooding script from the training materials; without --duration it
+# floods until you press Ctrl+C
+python3 /usr/local/bin/flooding_hpt.py 172.18.0.3 --duration 5
 ```
 
 #### S7comm Enumeration (Rule: s7_enumeration)
@@ -85,10 +86,10 @@ The CybICS IDS implements 12 detection rules:
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scan, S7 enumeration, OPC-UA access |
-| Impact | Denial of Service | [T0836](https://attack.mitre.org/techniques/T0836/) | SYN flood, Modbus write flood |
+| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | SYN flood, Modbus write flood |
 | Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
-| Collection | Unauthorized Message: Reporting Message | [T1692.002](https://attack.mitre.org/techniques/T1692/002/) | ARP spoofing |
-| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against OpenPLC/FUXA |
+| Collection | Adversary-in-the-Middle | [T0830](https://attack.mitre.org/techniques/T0830/) | ARP spoofing |
+| Lateral Movement | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against the default logins of OpenPLC/FUXA |
 
 ### NIST SP 800-82r3 Reference
 

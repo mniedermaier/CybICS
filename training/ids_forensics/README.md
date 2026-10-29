@@ -26,7 +26,6 @@ The CybICS IDS exposes a REST API that provides alert data, summary statistics, 
 | Technique | ID | Description |
 |---|---|---|
 | Network Traffic Analysis | D3-NTA | Analyzing captured network alert data |
-| Alert Triage | D3-AT | Prioritizing and classifying security alerts |
 
 ## Prerequisites
 
@@ -35,7 +34,7 @@ Before starting this challenge, you need alert data in the IDS. Complete the **I
 - **Port scan**: `nmap -sS 172.18.0.3` (triggers `port_scan` rule)
 - **Modbus writes**: Send unauthorized writes to port 502 (triggers `modbus_unauth_write` rule)
 - **S7comm access**: `nmap --script s7-info -p 102 172.18.0.3` (triggers `s7_enumeration` rule)
-- **HTTP brute force**: Multiple login attempts on OpenPLC (triggers `http_brute_force` rule)
+- **HTTP brute force**: Five or more login attempts on OpenPLC or FUXA within 30 seconds (triggers `http_brute_force` rule)
 
 You need at least **5 alerts** from at least **3 different rule types**.
 
@@ -157,7 +156,7 @@ print(result)
 |--------|-----------|-----|-----------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Identifying reconnaissance patterns |
 | Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Detecting unauthorized Modbus writes |
-| Impact | Denial of Service | [T0836](https://attack.mitre.org/techniques/T0836/) | Identifying flooding attacks |
+| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Identifying flooding attacks |
 
 ### MITRE D3FEND — Defensive Techniques Applied
 
