@@ -22,7 +22,7 @@ WIDGETS = {
     "plant-live", "modbus-frame", "s7-layers", "register-decoder",
     "purdue-explorer", "scan-cycle", "ids-threshold", "firewall-rules",
     "arp-spoof", "keyspace", "alert-log", "opcua-security", "sequence",
-    "rate-planner", "uart-frame", "plant-predict",
+    "rate-planner", "uart-frame", "plant-predict", "plant-sandbox",
     "checkpoint",
 }
 LEVELS = {"beginner", "intermediate", "advanced"}

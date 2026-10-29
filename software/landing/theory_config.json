@@ -532,6 +532,26 @@
             "other-protocols",
             "attack-lifecycle"
           ]
+        },
+        {
+          "id": "plant_physics_sandbox",
+          "title": "Plant physics sandbox",
+          "summary": "Predicting what the plant does before touching it: a model of the CybICS plant in the browser, frozen outputs, one forged reading and the race between the I/O service and an attacker.",
+          "content": "training/theory/modules/plant_physics_sandbox.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "plant_physics_sandbox",
+              "label": "Plant Physics Sandbox"
+            }
+          ],
+          "prerequisites": [
+            "plc-fundamentals",
+            "physical_process",
+            "modbus",
+            "flood_overwrite",
+            "hmi_project_recon"
+          ]
         }
       ]
     },

@@ -37,6 +37,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [Packet Anatomy](packet_anatomy/README.md) | Collection, Impair Process Control | Monitor Process State, Unauthorized Message: Command Message | T0801, T1692.001 |
 | [Wireshark Capture](wireshark_capture/README.md) | Collection | Network Sniffing | T0842 |
 | [Flood & Overwrite](flood_overwrite/README.md) | Impair Process Control, Evasion | Brute Force I/O, Unauthorized Message: Command Message, Manipulation of View | T0806, T1692.001, T0832 |
+| [Plant Physics Sandbox](plant_physics_sandbox/README.md) | Impair Process Control, Impact | Unauthorized Message: Reporting Message, Manipulation of Control, Loss of Safety | T1692.002, T0831, T0880 |
 | [Password Attack](password_attack/README.md) | Persistence, Lateral Movement | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
 | [OPC-UA](opcua/README.md) | Initial Access, Lateral Movement | Valid Accounts | T0859 |
 | [Fuzzing Modbus](fuzzingMB/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
@@ -109,36 +110,37 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 
 ### 🛡️ Security Testing
 8. [Flood & overwrite](flood_overwrite/README.md) - Test system resilience against flooding attacks
-9. [Password attack](password_attack/README.md) - Practice password security testing
-10. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
-11. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
-12. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
-13. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
-14. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
-15. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
-16. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
+9. [Plant physics sandbox](plant_physics_sandbox/README.md) - Predict what the plant does with frozen outputs and one forged reading, before you touch it
+10. [Password attack](password_attack/README.md) - Practice password security testing
+11. [OPC-UA](opcua/README.md) - Explore OPC-UA protocol security
+12. [Fuzzing Modbus](fuzzingMB/README.md) - Test Modbus protocol robustness
+13. [S7 side door](s7_sidedoor/README.md) - Stop the plant through the PLC's S7comm server when Modbus is closed
+14. [Forged HMI token](fuxa_jwt/README.md) - Sign your own FUXA administrator session with the HMI's default key
+15. [The forgotten API](openplc_restapi/README.md) - Claim OpenPLC's unused REST API on port 8443 before its owner does
+16. [DNP3 side door](dnp3_sidedoor/README.md) - Find OpenPLC's forgotten DNP3 outstation and stop the plant with a frame you build by hand
+17. [Stop means stop?](s7_cpu_stop/README.md) - Send the PLC an S7comm CPU STOP and prove from the plant what it really did
 
 ### 🔐 Advanced Security
-17. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
-18. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
-19. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
-20. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
+18. [Man-in-the-Middle (MitM)](mitm/README.md) - Learn about network interception
+19. [UART Training Guide (Hardware Required)](uart_basic/README.md) - Hardware-level communication
+20. [Detect Basic](detect_basic/README.md) - Basic intrusion detection
+21. [Detect Overwrite](detect_overwrite/README.md) - Advanced detection techniques
 
 ### 🔍 IDS Challenges
-21. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
-22. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
-23. [Incident PCAP](incident_pcap/README.md) - Rebuild a night of plant stops from a capture and unmask the device behind the borrowed addresses
-24. [Physics Never Lies](physics_forensics/README.md) - Catch a forged pressure reading in a historian export with nothing but the plant's physics
-25. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
-26. [Trusted writer](fuxa_trusted_writer/README.md) - Make the HMI stop the plant for you, from the one address the IDS never counts
+22. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
+23. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
+24. [Incident PCAP](incident_pcap/README.md) - Rebuild a night of plant stops from a capture and unmask the device behind the borrowed addresses
+25. [Physics Never Lies](physics_forensics/README.md) - Catch a forged pressure reading in a historian export with nothing but the plant's physics
+26. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+27. [Trusted writer](fuxa_trusted_writer/README.md) - Make the HMI stop the plant for you, from the one address the IDS never counts
 
 ### 🛡️ Defense & Hardening
-27. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-28. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
-29. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-30. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
-31. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-32. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+28. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+29. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
+30. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+31. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
+32. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+33. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

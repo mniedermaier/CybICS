@@ -1219,4 +1219,212 @@
             }).catch(function () { out.textContent = 'The plant is not reachable; this needs the running CybICS stack.'; });
         });
     });
+
+    // ------------------------------------------------------------------
+    // plant-sandbox: the plant model in the browser, with attack knobs
+    // ------------------------------------------------------------------
+    // A third copy of the plant model, next to thread_physical() in
+    // software/stm32/src/main.c (the reference) and physical_process_thread()
+    // in software/hwio-virtual/hardwareAbstraction.py.
+    // tests/test_plant_model_parity.py reads PLANT_MODEL and plantTick() and
+    // fails when they drift from the firmware; change all three together.
+    const PLANT_MODEL = {
+        compressorGstDraw: 2,     // bar out of the GST per compressor tick
+        compressorHptGain: 1,     // bar into the HPT per compressor tick
+        compressorMinGst: 50,     // the compressor moves gas only while GST >= this
+        hptMax: 255,              // ... and while HPT < this (top of the sensor range)
+        consumptionMax: 2,        // compressor off, valve open: 0..2 bar out of the HPT
+        refillMax: 3,             // refill on: 0..3 bar into the GST
+        refillBelow: 251,         // ... while GST < this
+        blowoutOpenAbove: 220,    // the blow-out valve opens above this
+        blowoutCloseAt: 200,      // ... and stays open while HPT > this
+        ventMax: 1,               // open blow-out valve: 0..1 bar out of the HPT
+        sensorMax: 255,           // both values are clamped to 0..255
+        scansPerTick: 20,         // the PLC scans every 50 ms; a tick is about 1 s
+    };
+    // rnd(n) is a whole number from 0 to n, like random.randint(0, n) in hwio.
+    const randInt = n => Math.floor(Math.random() * (n + 1));
+    // One tick of the plant, in the order of the firmware and hwio: compressor
+    // or consumption, then the refill, then the blow-out valve.
+    function plantTick(s, coils, rnd) {
+        const M = PLANT_MODEL;
+        let moved = false;
+        if (coils.compressor) {
+            if (s.hpt < M.hptMax && s.gst >= M.compressorMinGst) {
+                s.gst = s.gst - M.compressorGstDraw;
+                s.hpt = s.hpt + M.compressorHptGain;
+                moved = true;
+            }
+        } else {
+            const use = rnd(M.consumptionMax);
+            if (coils.systemValve && s.hpt - use >= 0) s.hpt = s.hpt - use;
+        }
+        if (coils.gstSig && s.gst < M.refillBelow) s.gst = s.gst + rnd(M.refillMax);
+        if (s.hpt > M.blowoutOpenAbove || (s.boSen && s.hpt > M.blowoutCloseAt)) {
+            s.boSen = 1;
+            const vent = rnd(M.ventMax);
+            if (s.hpt - vent >= 0) s.hpt = s.hpt - vent;
+        } else {
+            s.boSen = 0;
+        }
+        // hwio checks the valve again on every loop, after the tick.
+        s.boSen = s.hpt > M.blowoutOpenAbove || (s.boSen && s.hpt > M.blowoutCloseAt) ? 1 : 0;
+        s.gst = Math.min(M.sensorMax, Math.max(0, s.gst));
+        s.hpt = Math.min(M.sensorMax, Math.max(0, s.hpt));
+        return moved;
+    }
+    register('plant-sandbox', function (node) {
+        const { body } = frame(node, 'Plant sandbox: what if?',
+            'A copy of the CybICS plant that runs in your browser, one tick (about one second of the real plant) at a time. Set the start, choose how the plant is run and what an attacker does, then step or run it. Nothing here touches the real plant.');
+        const form = el('div');
+        form.innerHTML = `
+            <div class="w-row"><label>Start GST <input type="number" min="0" max="255" value="180" data-k="gst"> bar</label>
+              <label>Start HPT <input type="number" min="0" max="255" value="75" data-k="hpt"> bar</label></div>
+            <div class="w-row"><label>Plant mode <select data-k="mode">
+              <option value="auto">automatic (the PLC decides every scan)</option>
+              <option value="manual">manual (the PLC leaves the outputs as they are)</option>
+              <option value="stop">stop (the PLC switches everything off)</option></select></label></div>
+            <div class="w-row" data-coils>Outputs:
+              <label><input type="checkbox" data-c="compressor"> compressor</label>
+              <label><input type="checkbox" data-c="systemValve"> system valve</label>
+              <label><input type="checkbox" data-c="gstSig"> GST refill</label></div>
+            <div class="w-row"><label>Attacker forges the HPT the PLC reads <select data-k="spoof">
+              <option value="off">no</option>
+              <option value="once">in one single scan</option>
+              <option value="share">in a share of the scans</option></select></label>
+              <label>forged value <input type="number" min="0" max="255" value="40" data-k="spoofValue"> bar</label>
+              <label data-share>share <input type="range" min="0" max="100" value="50" data-k="share"> <b data-o="share">50</b> %</label></div>`;
+        const actions = el('div', { class: 'w-row' });
+        const buttons = [[1, 'Step 1 tick'], [10, 'Run 10'], [60, 'Run 60'], [300, 'Run 300']].map(function ([n, label], i) {
+            const b = el('button', { class: `t-btn${i ? '' : ' primary'}`, type: 'button', 'data-n': n }, label);
+            actions.appendChild(b); return b;
+        });
+        const resetBtn = el('button', { class: 't-btn', type: 'button' }, 'Reset to start');
+        actions.appendChild(resetBtn);
+        const score = el('div', { class: 'score', 'aria-live': 'polite' });
+        const chart = el('div', { class: 'sbx-chart' });
+        const legend = el('div', { class: 'legend' },
+            '<span><i style="background:var(--accent)"></i>HPT</span><span><i style="background:var(--info)"></i>GST</span>' +
+            '<span><i style="background:var(--ok)"></i>compressor moving gas</span><span><i style="background:var(--bad)"></i>blow-out valve open</span>');
+        const log = el('ol', { class: 'sbx-log', 'aria-live': 'polite' });
+        body.append(form, actions, score, chart, legend, log);
+
+        const q = k => form.querySelector(`[data-k=${k}]`);
+        const coilBox = c => form.querySelector(`[data-c=${c}]`);
+        const COILS = ['compressor', 'systemValve', 'gstSig'];
+        let s, coils, plc, tick, moves, runMoves, history, spoofUsed, lastEvents;
+        const num = (k, fallback) => clampInt(q(k).value, 0, 255, fallback);
+
+        function note(text) {
+            const li = el('li', {}, `<b>tick ${tick}</b> ${escapeHtml(text)}`);
+            log.appendChild(li);
+            while (log.children.length > 40) log.removeChild(log.firstChild);
+        }
+        function reset() {
+            s = { gst: num('gst', 180), hpt: num('hpt', 75), boSen: 0 };
+            q('gst').value = s.gst; q('hpt').value = s.hpt;
+            plc = { compressorState: 0, gstState: 0 };
+            tick = 0; moves = 0; runMoves = 0; history = [{ ...s, moved: false }]; spoofUsed = false;
+            log.innerHTML = '';
+            const mode = q('mode').value;
+            if (mode === 'manual') coils = Object.fromEntries(COILS.map(c => [c, coilBox(c).checked]));
+            else coils = { compressor: false, systemValve: false, gstSig: false };
+            // Start from the outputs as they are, so a change on tick 1 is logged too.
+            lastEvents = { ...coils, boSen: 0, starved: false, full: false };
+            const on = COILS.filter(c => coils[c]).map(c => ({ compressor: 'compressor', systemValve: 'system valve', gstSig: 'GST refill' })[c]);
+            note(`start: GST ${s.gst} bar, HPT ${s.hpt} bar, ${({ auto: 'automatic', manual: 'manual', stop: 'stop' })[mode]} mode, ` +
+                 (mode === 'manual' ? `outputs on: ${on.length ? on.join(', ') : 'none'}` : 'all outputs off until the first scan'));
+            paint();
+        }
+        // The PLC's part of one tick: it scans 20 times on the pressures it
+        // holds. The coil the plant sees is the one the last scan wrote.
+        function control() {
+            const mode = q('mode').value;
+            if (mode === 'manual') return;   // cybICS.st has an empty manual branch
+            if (mode === 'stop') {
+                const r = plcScan({ stop: true }, plc);
+                plc = r.state; coils = r.outputs; return;
+            }
+            const spoof = q('spoof').value, forged = num('spoofValue', 40), share = Number(q('share').value) / 100;
+            for (let i = 0; i < PLANT_MODEL.scansPerTick; i++) {
+                let seen = s.hpt;
+                if (spoof === 'once' && !spoofUsed) { seen = forged; spoofUsed = true; }
+                else if (spoof === 'share' && Math.random() < share) seen = forged;
+                const r = plcScan({ hpt: seen, gst: s.gst, stop: false }, plc);
+                plc = r.state; coils = r.outputs;
+            }
+        }
+        function advance() {
+            control();
+            const before = { ...s };
+            tick += 1;
+            // A new compressor run starts its own count; the last one stays readable.
+            if (coils.compressor && !lastEvents.compressor) runMoves = 0;
+            const moved = plantTick(s, coils, randInt);
+            if (moved) { moves += 1; runMoves += 1; }
+            history.push({ ...s, moved });
+            if (history.length > 601) history.shift();
+            // Say what changed, so the reader can find the moment again.
+            [['compressor', 'compressor switched on', 'compressor switched off'],
+             ['systemValve', 'system valve opened', 'system valve closed'],
+             ['gstSig', 'GST refill switched on', 'GST refill switched off']].forEach(function ([k, on, off]) {
+                if (lastEvents[k] !== coils[k]) {
+                    note(coils[k] ? on : k === 'compressor' ? `${off} after ${runMoves} ticks of moving gas in this run` : off);
+                }
+                lastEvents[k] = coils[k];
+            });
+            const starved = coils.compressor && !moved && before.gst < PLANT_MODEL.compressorMinGst;
+            if (starved && !lastEvents.starved) note(`the compressor is on, but the GST holds ${before.gst} bar, too little to push against: no gas moves`);
+            lastEvents.starved = starved;
+            // Once at the top, the HPT flickers between 254 and 255; say it once.
+            const full = coils.compressor && !moved && before.hpt >= PLANT_MODEL.hptMax;
+            if (full && !lastEvents.full) note('the HPT is at the top of its range: the compressor cannot push more in');
+            lastEvents.full = lastEvents.full || full;
+            if (s.boSen !== lastEvents.boSen) note(s.boSen ? `blow-out valve opens (HPT ${s.hpt} bar)` : `blow-out valve closes (HPT ${s.hpt} bar)`);
+            lastEvents.boSen = s.boSen;
+        }
+        function drawChart() {
+            const W = 600, H = 160, n = Math.max(history.length - 1, 1);
+            const x = i => (i / n * W).toFixed(1), y = v => (H - v / 255 * H).toFixed(1);
+            const line = k => history.map((p, i) => `${x(i)},${y(p[k])}`).join(' ');
+            const bars = (k, cls) => history.map((p, i) => p[k] ? `<rect class="${cls}" x="${x(i)}" y="${k === 'moved' ? H - 4 : 0}" width="${Math.max(W / n, 1).toFixed(1)}" height="4"/>` : '').join('');
+            const guide = (v, label) => `<line class="g" x1="0" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text x="4" y="${Number(y(v)) - 3}">${label}</text>`;
+            chart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="HPT and GST over the last ${history.length - 1} ticks">` +
+                guide(220, 'blow-out 220') + guide(90, 'PLC stops compressor 90') + guide(60, 'PLC starts compressor 60') +
+                bars('moved', 'mv') + bars('boSen', 'bo') +
+                `<polyline class="gst" points="${line('gst')}"/><polyline class="hpt" points="${line('hpt')}"/></svg>`;
+        }
+        function paint() {
+            const pill = (on, a, b, alert) => `<span class="w-pill ${on ? (alert ? 'alert' : 'on') : 'off'}">${on ? a : b}</span>`;
+            score.innerHTML = `<div><b>${tick}</b>tick</div><div><b>${s.gst} bar</b>GST</div><div><b>${s.hpt} bar</b>HPT</div>` +
+                `<div><b>${runMoves}</b>ticks the compressor moved gas in this (or its last) run</div>` +
+                `<div><b>${moves}</b>ticks the compressor moved gas since the start</div>` +
+                `<div><b>${pill(coils.compressor, 'on', 'off')}</b>compressor</div><div><b>${pill(coils.systemValve, 'open', 'closed')}</b>system valve</div>` +
+                `<div><b>${pill(coils.gstSig, 'on', 'off')}</b>GST refill</div><div><b>${pill(s.boSen, 'OPEN', 'closed', true)}</b>blow-out valve</div>`;
+            const manual = q('mode').value === 'manual';
+            COILS.forEach(function (c) { coilBox(c).checked = Boolean(coils[c]); coilBox(c).disabled = !manual; });
+            form.querySelector('[data-share]').style.display = q('spoof').value === 'share' ? '' : 'none';
+            q('spoofValue').disabled = q('spoof').value === 'off';
+            drawChart();
+        }
+        actions.addEventListener('click', function (e) {
+            const n = Number(e.target.dataset && e.target.dataset.n);
+            if (!n) return;
+            for (let i = 0; i < n; i++) advance();
+            paint();
+        });
+        resetBtn.addEventListener('click', reset);
+        form.addEventListener('change', function (e) {
+            const t = e.target;
+            if (t.dataset.c) { coils[t.dataset.c] = t.checked; paint(); return; }
+            if (t.dataset.k === 'gst' || t.dataset.k === 'hpt') { reset(); return; }
+            if (t.dataset.k === 'spoof') spoofUsed = false;
+            // Switching to manual freezes the outputs where the PLC left them.
+            paint();
+        });
+        form.addEventListener('input', function (e) {
+            if (e.target.dataset.k === 'share') form.querySelector('[data-o=share]').textContent = e.target.value;
+        });
+        reset();
+    });
 })();

@@ -2331,3 +2331,56 @@ class TestFlagsOffTheHmi(_CtfProgress):
             finally:
                 client.close()
                 self._restore(before)
+
+
+# ===============================================================================
+# Plant Physics Sandbox (plant_physics_sandbox)
+# ===============================================================================
+
+class TestPlantPhysicsSandbox(_CtfProgress):
+    """
+    Plant Physics Sandbox end to end on the running landing page: the Theory
+    lesson the README sends the student to renders with the sandbox, the page
+    loads the widget script byte for byte as committed (so the model the
+    student runs is the one test_plant_model_parity.py checked), verify
+    refuses the tempting wrong predictions without a flag and hands it out
+    for the answers tests/test_plant_physics_sandbox_check.py derived from
+    the real hwio tick. Nothing touches the plant; only the CTF progress
+    changes and it is put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/plant_physics_sandbox", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_lesson_serves_the_committed_sandbox(self):
+        r = requests.get(f"{self.BASE}/theory/plant_physics_sandbox", timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        assert 'data-widget="plant-sandbox"' in r.text
+        assert "CybICS(" not in r.text
+        script = re.search(r'src="([^"]*theory-widgets\.js[^"]*)"', r.text)
+        assert script, "the lesson does not load theory-widgets.js"
+        js = requests.get(f"{self.BASE}{script.group(1)}", timeout=READ_TIMEOUT)
+        assert js.status_code == 200
+        committed = (Path(__file__).resolve().parent.parent / "software" / "landing" / "static"
+                     / "js" / "theory-widgets.js").read_bytes()
+        assert js.content == committed, "landing serves a stale theory-widgets.js: rebuild landing"
+
+    def test_predictions_earn_the_flag(self):
+        from test_plant_physics_sandbox_check import RIGHT
+        before = self._without("plant_physics_sandbox")
+        try:
+            for wrong in ({**RIGHT, "settle_hpt": "110"},      # the PLC's guard, not the plant's
+                          {**RIGHT, "blowout_tick": "130"},
+                          {**RIGHT, "spoof_ticks": "1"},       # "one scan, one tick"
+                          {**RIGHT, "spoof_ticks": "31"},      # the normal cycle after it
+                          {**RIGHT, "freeze_register": "1128"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify({**RIGHT, "freeze_register": "%MW106"})
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)

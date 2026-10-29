@@ -313,6 +313,17 @@ html.light-mode .article figure svg path[fill="#ff6b00"] { fill: #b34700; }
 .score div { background: var(--inset); border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 0.8rem; color: var(--muted); }
 .score b { display: block; font-size: 1.2rem; color: var(--text); }
 
+/* Plant sandbox */
+.sbx-chart svg { width: 100%; height: auto; display: block; background: var(--inset); border: 1px solid var(--border); border-radius: 0.4rem; margin-top: 0.6rem; }
+.sbx-chart polyline { fill: none; stroke-width: 2; }
+.sbx-chart .hpt { stroke: var(--accent); }
+.sbx-chart .gst { stroke: var(--info); }
+.sbx-chart .g { stroke: currentColor; stroke-opacity: 0.25; stroke-dasharray: 4 4; }
+.sbx-chart text { font-size: 10px; fill: var(--muted); }
+.sbx-chart .mv { fill: var(--ok); }
+.sbx-chart .bo { fill: var(--bad); }
+.sbx-log { font-size: 0.8rem; color: var(--muted); max-height: 12rem; overflow: auto; padding-left: 1.4rem; margin-top: 0.6rem; }
+
 /* Firewall rules */
 .rules { list-style: none; display: grid; gap: 0.35rem; margin: 0.5rem 0; }
 .rule { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; background: var(--inset); border: 1px solid var(--border-strong); border-radius: 0.4rem; padding: 0.35rem 0.5rem; font-size: 0.84rem; }

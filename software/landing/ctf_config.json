@@ -161,6 +161,44 @@
           "training_content": "training/flood_overwrite/README.md"
         },
         {
+          "id": "plant_physics_sandbox",
+          "title": "Plant Physics Sandbox",
+          "description": "Know what the plant will do before you touch it. Use the plant sandbox in the Theory Path to predict three situations an attacker can create: the outputs frozen with and without the refill, and one forged pressure reading. Then name the register that takes the PLC out of the game with a single write.",
+          "points": 150,
+          "type": "verify",
+          "verify_module": "check_plant_physics_sandbox",
+          "tag": "analysis",
+          "flag": "CybICS(s1mulat3_f1rst)",
+          "hint": "The sandbox counts the ticks in which the compressor really moved gas, and its log says why it stopped. The plant's guard on the GST and the PLC's guard are not the same.",
+          "answers": [
+            {
+              "name": "settle_hpt",
+              "label": "Situation 1: HPT at which the plant comes to rest (bar)",
+              "placeholder": "e.g. 95",
+              "max_length": 10
+            },
+            {
+              "name": "blowout_tick",
+              "label": "Situation 2: tick on which the blow-out valve opens",
+              "placeholder": "e.g. 64",
+              "max_length": 10
+            },
+            {
+              "name": "spoof_ticks",
+              "label": "Situation 3: ticks the compressor moves gas before the PLC stops it",
+              "placeholder": "e.g. 7",
+              "max_length": 10
+            },
+            {
+              "name": "freeze_register",
+              "label": "Holding register an attacker writes once to freeze the outputs",
+              "placeholder": "e.g. 1124",
+              "max_length": 40
+            }
+          ],
+          "training_content": "training/plant_physics_sandbox/README.md"
+        },
+        {
           "id": "password_attack",
           "title": "FUXA Password Attack",
           "description": "Brute-force the FUXA HMI login and enter the administrator credentials you recovered",
