@@ -119,7 +119,7 @@
         {
           "text": "The PLCs ordered the centrifuge drives to speeds far above and far below normal.",
           "label": "Impair Process Control",
-          "explain": "Only the code inside the PLC could command the drives. Changing setpoints with Modify Parameter (T0836) and Manipulation of Control (T0831) is Impair Process Control."
+          "explain": "Only the code inside the PLC could command the drives. Changing the drives' setpoints with Modify Parameter (T0836) is Impair Process Control."
         },
         {
           "text": "Iran removed a large number of centrifuges at Natanz, which most researchers link to the worm.",

@@ -156,7 +156,7 @@ print(result)
 |--------|-----------|-----|-----------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Identifying reconnaissance patterns |
 | Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Detecting unauthorized Modbus writes |
-| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Identifying flooding attacks |
+| Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Identifying flooding attacks |
 
 ### MITRE D3FEND — Defensive Techniques Applied
 

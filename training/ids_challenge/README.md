@@ -86,7 +86,7 @@ The CybICS IDS implements 12 detection rules:
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scan, S7 enumeration, OPC-UA access |
-| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | SYN flood, Modbus write flood |
+| Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | SYN flood, Modbus write flood |
 | Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
 | Collection | Adversary-in-the-Middle | [T0830](https://attack.mitre.org/techniques/T0830/) | ARP spoofing |
 | Lateral Movement | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against the default logins of OpenPLC/FUXA |

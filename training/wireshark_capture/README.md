@@ -1,6 +1,6 @@
 # Network Traffic Analysis Guide
 
-> **MITRE ATT&CK for ICS:** `Collection` | [T0842 - Network Sniffing](https://attack.mitre.org/techniques/T0842/)
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0842 - Network Sniffing](https://attack.mitre.org/techniques/T0842/)
 
 ## Overview
 In the context of industrial security, network traffic analysis is crucial for safeguarding industrial control systems (ICS) and Supervisory Control and Data Acquisition (SCADA) networks.
@@ -136,7 +136,7 @@ Examine the **data values** being written to registers — in a CTF context, fla
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Collection | Network Sniffing | [T0842](https://attack.mitre.org/techniques/T0842/) | Adversaries may sniff network traffic to capture information about the ICS environment |
+| Discovery | Network Sniffing | [T0842](https://attack.mitre.org/techniques/T0842/) | Adversaries may sniff network traffic to capture information about the ICS environment |
 
 **Why this matters:** Industrial protocols like Modbus TCP transmit data in plaintext without authentication or encryption. An attacker with network access can passively capture all process data, operator commands, and system configurations. This training demonstrates why network visibility cuts both ways—defenders need traffic analysis capabilities, but so do attackers.
 

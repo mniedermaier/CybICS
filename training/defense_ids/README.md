@@ -70,7 +70,7 @@ Check the IDS dashboard to confirm alerts have been generated from at least 3 di
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scanning and service enumeration |
 | Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Unauthorized Modbus write commands |
-| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Flooding attacks against ICS protocols |
+| Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Flooding attacks against ICS protocols |
 
 ### MITRE D3FEND - Defensive Techniques Applied
 
