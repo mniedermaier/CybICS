@@ -265,3 +265,19 @@ def test_the_status_says_when_the_alert_log_was_cleared():
     d.clear_alerts()
     assert d.get_status()["stats"]["alerts_cleared_at"]
 
+
+def test_the_detection_flag_needs_three_different_rules():
+    flask = pytest.importorskip("flask")  # noqa: F841
+    import ids_server
+    client = ids_server.app.test_client()
+    d = ids_server.detector
+    d.clear_alerts()
+    try:
+        for _ in range(5):
+            d._add_alert(_alert("port_scan"))
+        d._add_alert(_alert("syn_flood"))
+        assert client.get("/api/flag").get_json()["flag"] is None
+        d._add_alert(_alert("s7_enumeration"))
+        assert client.get("/api/flag").get_json()["flag"] == ids_server.CTF_FLAG_DETECTION
+    finally:
+        d.clear_alerts()

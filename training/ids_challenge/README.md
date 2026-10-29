@@ -23,7 +23,7 @@ The flag has the format `CybICS(flag)`.
 2. Ensure the IDS is running (it auto-starts by default)
 3. **Trigger at least 3 different detection rules** using the attack machine or webshell
 4. **Observe the alerts** on the IDS dashboard
-5. Once you have triggered at least 3 alerts, retrieve the flag:
+5. Once at least 3 different rules have fired, retrieve the flag:
    ```bash
    curl http://localhost:8443/api/flag
    ```
@@ -118,7 +118,7 @@ You need to trigger at least 3 different IDS rules. Try a port scan (nmap), Modb
 
 ## Solution
 
-After triggering 3 or more detection rules (e.g., port scan, Modbus writes, S7 enumeration), retrieve the flag:
+After triggering 3 or more different detection rules (e.g., port scan, Modbus writes, S7 enumeration), retrieve the flag. The IDS counts rules, not alerts: repeating one attack does not unlock it, and clearing the alerts starts the count again.
 
 ```bash
 curl http://localhost:8443/api/flag

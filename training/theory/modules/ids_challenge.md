@@ -9,18 +9,18 @@ An **intrusion detection system** is the security camera of a network. It does n
 A single rule only covers a single behaviour. Real attacks have several stages: first discovery, then access, then manipulation. A useful IDS therefore has rules for each stage, so that an attacker who slips past one is caught by the next. This idea is called **defence in depth**.
 
 <figure>
-<svg viewBox="0 0 520 120" role="img" aria-label="A bar chart of alerts accumulating over time in the IDS buffer. When the bars pass a dashed threshold line, the IDS reports an intrusion and the flag is unlocked.">
+<svg viewBox="0 0 520 120" role="img" aria-label="A bar chart of different IDS rules firing over time. When the bars pass a dashed threshold line, the IDS reports an intrusion and the flag is unlocked.">
   <g fill="#ff6b00" opacity="0.8">
     <rect x="30" y="70" width="24" height="20"/><rect x="64" y="60" width="24" height="30"/>
     <rect x="98" y="52" width="24" height="38"/><rect x="132" y="40" width="24" height="50"/>
   </g>
   <line x1="20" y1="50" x2="300" y2="50" stroke="currentColor" stroke-dasharray="5 4" opacity="0.5"/>
-  <text x="304" y="53" font-size="11">alert threshold</text>
-  <text x="20" y="108" font-size="11" opacity="0.7">alerts accumulating in the buffer</text>
+  <text x="304" y="53" font-size="11">three rules</text>
+  <text x="20" y="108" font-size="11" opacity="0.7">different rules that have fired</text>
   <rect x="360" y="45" width="150" height="30" rx="4" fill="#ff6b00" opacity="0.6"/>
   <text x="435" y="64" text-anchor="middle" font-size="11" fill="#1a1a1a">flag unlocked</text>
 </svg>
-<figcaption>Once enough alerts have accumulated, the IDS confirms an intrusion and releases the flag.</figcaption>
+<figcaption>Once three different rules have fired, the IDS confirms an intrusion and releases the flag.</figcaption>
 </figure>
 
 ## How it looks on CybICS
@@ -60,7 +60,7 @@ Click a host in the network map below to see which IDS rules watch it.
 2. **Pick three attacks from different stages.** The challenge asks you to set off at least three different rules. Good candidates are a port scan, a handful of Modbus writes from the attack machine, and an S7comm or OPC-UA connection. You have done all of them in earlier modules.
 3. **Run them one at a time** and watch which alert each one produces. Write down the rule name, severity and source.
 4. **Note what stays silent.** Did any attack raise nothing? Why not, judging by the table above?
-5. **Ask the IDS for the flag** at its `/api/flag` endpoint. It tells you how many alerts it has counted so far if you are not there yet.
+5. **Ask the IDS for the flag** at its `/api/flag` endpoint. It counts different rules, not alerts, and tells you which rules it has seen so far if you are not there yet.
 
 ## Detect and defend
 

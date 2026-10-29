@@ -1170,7 +1170,7 @@
                         </div>
                         <div class="ch-progress">
                             <div class="ch-progress-bar"><div class="ch-progress-fill" id="det-progress" style="width:0%"></div></div>
-                            <span class="ch-progress-text" id="det-progress-text">0 / 3 alerts</span>
+                            <span class="ch-progress-text" id="det-progress-text">0 / 3 rules</span>
                         </div>
                         <div id="det-status"></div>
                         <div class="ch-actions">
@@ -1756,10 +1756,11 @@
     }
 
     function updateDetectionProgress() {
-        const count = Math.min(allAlerts.length, 3);
+        // The flag needs three different rules, not three alerts.
+        const count = Math.min(new Set(allAlerts.map(a => a.rule)).size, 3);
         const pct = (count / 3) * 100;
         document.getElementById('det-progress').style.width = `${pct}%`;
-        document.getElementById('det-progress-text').textContent = `${Math.min(allAlerts.length, 3)} / 3 alerts`;
+        document.getElementById('det-progress-text').textContent = `${count} / 3 rules`;
         if (count >= 3 && !detectionSolved) {
             document.getElementById('det-status').innerHTML =
                 '<span class="ch-status ready">Threshold reached - check flag!</span>';
