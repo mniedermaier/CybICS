@@ -22,9 +22,12 @@ The flag has the format `CybICS(flag)`.
 
 ### Phase 1: Launch the Scan
 
-Run the provided reconnaissance script against the OpenPLC target:
+Run the provided reconnaissance script against the OpenPLC target (in the
+attack shell it is in `/CybICS/training/detect_basic`). It takes about a minute
+and then lists each port with its state:
 
 ```bash
+cd /CybICS/training/detect_basic
 python3 recon.py 172.18.0.3
 ```
 
