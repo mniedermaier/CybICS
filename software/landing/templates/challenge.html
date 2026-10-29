@@ -565,13 +565,8 @@
             {% if challenge.get('tag') %}
             <span class="badge badge-tag-{{ challenge.tag }}">{{ challenge.tag }}</span>
             {% endif %}
-            {% if challenge.points <= 150 %}
-            <span class="badge badge-easy">Easy</span>
-            {% elif challenge.points <= 250 %}
-            <span class="badge badge-medium">Medium</span>
-            {% else %}
-            <span class="badge badge-hard">Hard</span>
-            {% endif %}
+            {% set difficulty = challenge.get('difficulty', 'medium') %}
+            <span class="badge badge-{{ difficulty }}">{{ difficulty|capitalize }}</span>
             <span class="badge badge-points">{{ challenge.points }} pts</span>
             {% if solved %}
             <span class="badge badge-solved">&#10003; Solved</span>

@@ -205,6 +205,13 @@ fork PRs fall back to anonymous pulls. Keep it that way.
   `software/ids/ids_server.py`, `software/landing/app.py` and the firmware. A new
   challenge needs its `ctf_config.json` entry and a place where the flag is
   actually obtainable. Watch for `0` versus `O`.
+- `ctf_config.json` is the learning path: seven stages (categories) from the
+  plant to its defense, easy to hard inside each, and that order is what the
+  CTF page, `training/README.md` and CybICS-mgmt show. A challenge's
+  `difficulty` sets its points (easy 100, medium 200, hard 300), `theory`
+  names its Theory Path briefing, and an attack's `defended_by` names the
+  defense challenge that stops it. `tests/test_ctf_overview.py` pins all of
+  that. Never rename a challenge id: progress files and CybICS-mgmt key on it.
 - A challenge that ends in a fact the student found (a register, a port, a
   function code) rather than a state the stack can check is answer-graded:
   give its `verify` entry an `answers` list in `ctf_config.json` (`name`,
