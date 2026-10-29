@@ -95,6 +95,44 @@
           "training_content": "training/hmi_project_recon/README.md"
         },
         {
+          "id": "packet_anatomy",
+          "title": "Packet Anatomy",
+          "description": "No library, no Wireshark: build Modbus/TCP frames byte by byte, send the read-only ones to the PLC over a raw TCP connection and take its answers apart. Hand in four frames as hex.",
+          "points": 150,
+          "type": "verify",
+          "verify_module": "check_packet_anatomy",
+          "tag": "analysis",
+          "flag": "CybICS(byt3_by_byt3)",
+          "hint": "Every frame is a 7-byte MBAP header plus the PDU. The length field counts only what follows it, and a read or write always covers one contiguous block of registers.",
+          "answers": [
+            {
+              "name": "read_request",
+              "label": "Read request: GST and HPT in one frame, no more than needed (hex)",
+              "placeholder": "00 01 00 00 ...",
+              "max_length": 120
+            },
+            {
+              "name": "read_response",
+              "label": "The PLC's response to exactly that request (hex)",
+              "placeholder": "00 01 00 00 ...",
+              "max_length": 120
+            },
+            {
+              "name": "write_request",
+              "label": "Write request: STOP and MANUAL to 0 in one frame, not sent (hex)",
+              "placeholder": "00 02 00 00 ...",
+              "max_length": 120
+            },
+            {
+              "name": "exception",
+              "label": "The PLC's answer to a read of a holding register it does not have (hex)",
+              "placeholder": "00 03 00 00 ...",
+              "max_length": 120
+            }
+          ],
+          "training_content": "training/packet_anatomy/README.md"
+        },
+        {
           "id": "wireshark_capture",
           "title": "Wireshark Capture",
           "description": "Learn network traffic analysis",

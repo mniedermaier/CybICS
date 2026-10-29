@@ -1,0 +1,106 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Name the fields of a Modbus/TCP frame and the bytes each one takes",
+    "Build a read or write request by hand, including the length field",
+    "Decode a response and an exception response and match them to their request"
+  ],
+  "takeaways": [
+    "On the wire a Modbus message is only bytes; the protocol is the agreement about which byte means what.",
+    "The length field counts the unit ID and the PDU, not the transaction ID, the protocol ID or itself.",
+    "Reads and writes cover a contiguous block of registers given as a start address and a quantity.",
+    "A refused request comes back with the top bit of the function code set and an exception code.",
+    "No field says who sent a frame, so anyone who reaches port 502 can send the same bytes as the HMI."
+  ],
+  "checkpoints": [
+    {
+      "id": "length",
+      "question": "A request reads holding registers: function 03, a 2-byte start address and a 2-byte quantity. What goes into its length field?",
+      "options": [
+        "5, the size of the PDU",
+        "6, the unit ID plus the PDU",
+        "12, the whole frame"
+      ],
+      "answer": 1,
+      "explanation": "The length counts every byte after the length field: the unit ID (1) and the PDU (function 1, address 2, quantity 2), so 6. Counting only the PDU forgets the unit ID; counting the whole frame includes the six header bytes in front of it."
+    }
+  ],
+  "exercises": {
+    "protocols": {
+      "type": "sequence",
+      "order": false,
+      "title": "Which protocol is this?",
+      "intro": "Each line shows the first bytes of a TCP payload from a capture. Label each one with its protocol.",
+      "labels": ["Modbus/TCP", "S7comm", "OPC UA", "DNP3", "EtherNet/IP"],
+      "steps": [
+        {"text": "00 2a 00 00 00 06 01 03 ...", "label": "Modbus/TCP", "explain": "Bytes 3 and 4 are the protocol ID, always 00 00 for Modbus; the transaction ID before it can be anything."},
+        {"text": "03 00 00 19 02 f0 80 32 ...", "label": "S7comm", "explain": "03 00 is a TPKT header; after the three COTP bytes the S7comm part starts with 32."},
+        {"text": "48 45 4c 46 ...", "label": "OPC UA", "explain": "The ASCII letters HEL start the OPC UA Hello message; F marks the final chunk."},
+        {"text": "05 64 05 c9 ...", "label": "DNP3", "explain": "05 64 are the fixed start bytes of every DNP3 link-layer frame."},
+        {"text": "63 00 00 00 ...", "label": "EtherNet/IP", "explain": "Command 0x0063, ListIdentity, written low byte first, as EtherNet/IP writes all its numbers."}
+      ]
+    }
+  },
+  "quiz": [
+    {
+      "type": "single",
+      "question": "You want registers 1132 and 1134 in a single read request. Which start address and quantity do you send?",
+      "options": [
+        "Start 1132, quantity 2",
+        "Start 1132, quantity 3",
+        "Start 1133, quantity 2",
+        "Two requests are always needed"
+      ],
+      "answer": 1,
+      "explanation": "A read covers a contiguous block. Start 1132 with quantity 2 returns 1132 and 1133 and misses 1134; quantity 3 returns 1132, 1133 and 1134, and you ignore the middle one. One request is enough."
+    },
+    {
+      "type": "single",
+      "question": "A response starts with 00 2a 00 00 00 09 01 03 06. What does the 06 tell you?",
+      "options": [
+        "The PLC refused the request with exception 6",
+        "Six bytes of register values follow, so three registers",
+        "The request was function 06",
+        "The response is six bytes long in total"
+      ],
+      "answer": 1,
+      "explanation": "After the function code 03 a read response carries a byte count: 06 means six bytes, which is three 16-bit registers. An exception would have the function code 83, not 03, and the 06 is not the whole length: the length field 00 09 counts unit, function, byte count and the six value bytes."
+    },
+    {
+      "type": "single",
+      "question": "The PLC answers 00 07 00 00 00 03 01 82 02. What happened?",
+      "options": [
+        "The read worked and returned the value 2",
+        "The PLC refused a read of discrete inputs because the address does not exist",
+        "The PLC refused because the client has no permission",
+        "The PLC asks the client to wait and retry"
+      ],
+      "answer": 1,
+      "explanation": "82 is function 02 (read discrete inputs) with the top bit set, so this is an exception to that read, and code 02 means illegal data address. Modbus has no permissions at all, so there is no 'access denied' exception; 'busy, retry' would be code 06."
+    },
+    {
+      "type": "single",
+      "question": "You send a request whose length field is two bytes too large. What do you expect?",
+      "options": [
+        "The PLC ignores the extra length and answers normally",
+        "The PLC waits for bytes that never come, and your tool sees no answer",
+        "The PLC answers with exception 01, illegal function",
+        "The PLC closes the TCP connection immediately with an error message"
+      ],
+      "answer": 1,
+      "explanation": "The length tells the receiver how many bytes still belong to this message. If it is too large, the PLC keeps waiting for the rest, so nothing comes back before your tool times out. An illegal function exception would need a wrong function code, not a wrong length."
+    },
+    {
+      "type": "multi",
+      "question": "Which parts of a Modbus/TCP request tell the PLC who sent it?",
+      "options": [
+        "The transaction ID",
+        "The unit ID",
+        "The function code",
+        "None of them"
+      ],
+      "answer": [3],
+      "explanation": "No field identifies the sender. The transaction ID only matches answers to questions and is chosen freely; the unit ID addresses a device behind a gateway, not a user. The only hint of the sender is the IP address, which lies outside Modbus and is easy to borrow."
+    }
+  ]
+}

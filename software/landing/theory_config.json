@@ -157,6 +157,22 @@
           "core": true
         },
         {
+          "id": "packet_anatomy",
+          "title": "Packet anatomy",
+          "summary": "Building Modbus/TCP frames byte by byte and taking the PLC's answers and errors apart.",
+          "content": "training/theory/modules/packet_anatomy.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "packet_anatomy",
+              "label": "Packet Anatomy"
+            }
+          ],
+          "prerequisites": [
+            "modbus"
+          ]
+        },
+        {
           "id": "wireshark_capture",
           "title": "Capturing Modbus traffic",
           "summary": "Reading plaintext Modbus writes off the wire to recover data.",

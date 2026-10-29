@@ -1320,6 +1320,60 @@ class TestHmiProjectRecon(_CtfProgress):
 
 
 # ===============================================================================
+# Packet Anatomy (packet_anatomy)
+# ===============================================================================
+
+class TestPacketAnatomy(_CtfProgress):
+    """
+    Packet Anatomy end to end: the solution script (landing's copy of
+    training/, run in the admin shell, which reaches the PLC at 172.18.0.3
+    like the attack shell) builds the frames with struct, sends the two reads
+    over a raw TCP connection and prints the PLC's answers; verify refuses
+    typical mistakes without a flag and returns the flag for the script's
+    frames. The script never sends its write frame, so nothing is written to
+    the PLC; only the CTF progress changes and it is put back.
+    """
+
+    SCRIPT = "python3 /CybICS/training/packet_anatomy/frames.py --tid 0x5151 --unit 7"
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/packet_anatomy", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_hand_built_frames_earn_the_flag(self):
+        code, out = self._admin(self.SCRIPT)
+        assert code == 0, out
+        answers = {name: re.search(rf"^{name}\s*:\s*([0-9a-f ]+?)\s*(?:\(not sent\))?$", out, re.M)
+                   for name in ("read_request", "read_response", "write_request", "exception")}
+        assert all(answers.values()), out
+        answers = {name: m.group(1) for name, m in answers.items()}
+        assert "(not sent)" in out
+
+        # The PLC copied transaction and unit ID and answered three registers.
+        response = bytes.fromhex(answers["read_response"].replace(" ", ""))
+        assert response[:2] == b"\x51\x51" and response[6] == 7 and response[7:9] == b"\x03\x06", out
+        assert answers["exception"].replace(" ", "").endswith("8302"), out
+
+        before = self._without("packet_anatomy")
+        try:
+            off_by_one = answers["read_request"].replace("04 64 00 03", "04 65 00 03")
+            other_tid = "00 01" + answers["read_response"][5:]
+            for wrong in ({**answers, "read_request": off_by_one},
+                          {**answers, "read_response": other_tid},
+                          {**answers, "exception": answers["exception"][:-2] + "03"}):
+                assert wrong != answers
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
 # Incident PCAP (incident_pcap)
 # ===============================================================================
 
