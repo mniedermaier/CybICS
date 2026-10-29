@@ -62,3 +62,22 @@ def test_flags_only_in_solution_sections(readme):
     assert not leaks, (
         f"{readme} shows a flag in a section the challenge page opens by default; "
         f"move it under a '## Solution' heading:\n" + "\n".join(leaks))
+
+
+def test_links_between_modules_open_the_challenge_page():
+    """The READMEs link each other as ../<module>/README.md, which works on
+    GitHub but is a 404 under /ctf/challenge/<id>; the landing page points
+    such a link at the module's challenge."""
+    import sys
+    sys.path.insert(0, str(ROOT / "software" / "landing"))
+    cm = pytest.importorskip("modules.ctf_manager")
+    manager = cm.CTFManager()
+    # load_markdown_content reads the copy of training/ inside the landing
+    # image; render the repository's README the same way
+    html = manager._link_challenge_readmes(
+        cm.markdown.markdown((ROOT / "training" / "fuxa_jwt" / "README.md").read_text(), extensions=["extra"]))
+    assert 'href="/ctf/challenge/defense_fuxa_jwt"' in html
+    assert 'href="../defense_fuxa_jwt/README.md"' not in html
+    # A README no challenge uses keeps its link
+    other = '<a href="../theory/README.md">x</a>'
+    assert manager._link_challenge_readmes(other) == other

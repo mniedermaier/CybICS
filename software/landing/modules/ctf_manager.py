@@ -132,6 +132,10 @@ def _clean_result(result):
             'checks': checks}
 
 
+# A link from one module's README to another's, as markdown renders it
+_README_LINK = re.compile(r'href="\.\./([A-Za-z0-9_-]+)/README\.md(?:#[^"]*)?"')
+
+
 class CTFManager:
     """Manage CTF challenges and user progress"""
 
@@ -340,6 +344,23 @@ class CTFManager:
             return hint_html, cleaned
         return None, html
 
+    def _link_challenge_readmes(self, html):
+        """Point links to another module's README at that module's challenge page.
+
+        The READMEs link each other as ../<module>/README.md, which works on
+        GitHub; on the challenge page (/ctf/challenge/<id>) that path is a 404.
+        Links to a README no challenge uses are left as they are.
+        """
+        by_dir = {}
+        for cat in self.challenges.values():
+            for chall in cat['challenges']:
+                m = re.fullmatch(r'training/([A-Za-z0-9_-]+)/README\.md', chall.get('training_content', ''))
+                if m:
+                    by_dir.setdefault(m.group(1), chall['id'])
+        return _README_LINK.sub(
+            lambda m: f'href="/ctf/challenge/{by_dir[m.group(1)]}"' if m.group(1) in by_dir else m.group(0),
+            html)
+
     def load_markdown_content(self, relative_path):
         """Load and convert markdown content to HTML"""
         if not relative_path:
@@ -382,7 +403,7 @@ class CTFManager:
                 ])
 
                 logger.debug(f"Loaded markdown content from {relative_path}")
-                return html
+                return self._link_challenge_readmes(html)
         except FileNotFoundError:
             logger.warning(f"Training content file not found: {full_path}")
             return f"<p><em>Training content not available at: {relative_path}</em></p>"
