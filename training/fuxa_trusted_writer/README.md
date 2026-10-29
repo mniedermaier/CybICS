@@ -43,7 +43,8 @@ The flag has the format `CybICS(flag)`. Stop the plant so that
 - the newest write of the stop flag the IDS saw came **from FUXA**
   (`172.18.0.4`), not from your host;
 - the IDS raised **no alert** from one minute before that write until you
-  verify (ARP noise from restarted containers does not count);
+  verify (ARP noise from restarted containers does not count), and nobody
+  cleared its alert log in that time;
 - the plant is **still stopped** when you click **Verify** on the challenge
   page, at most five minutes after the write.
 

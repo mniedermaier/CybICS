@@ -138,3 +138,21 @@ def test_an_alert_inside_the_window_fails():
 def test_an_ids_started_after_the_window_opened_fails():
     status = dict(STATUS, stats={"started_at": (NOW - timedelta(seconds=30)).isoformat()})
     assert not check._quiet_check(status, [], NOW - timedelta(seconds=10))["passed"]
+
+
+def _cleared(ago):
+    return dict(STATUS, stats=dict(STATUS["stats"],
+                                   alerts_cleared_at=(NOW - timedelta(seconds=ago)).isoformat()))
+
+
+def test_a_log_cleared_inside_the_window_fails():
+    """Clearing the alert log after a brute force must not make the IDS look silent."""
+    when = NOW - timedelta(seconds=10)
+    for ago in (5, 10 + check.QUIET_BEFORE - 1):
+        row = check._quiet_check(_cleared(ago), [], when)
+        assert not row["passed"] and "cleared" in row["detail"]
+
+
+def test_a_log_cleared_before_the_window_is_quiet():
+    when = NOW - timedelta(seconds=10)
+    assert check._quiet_check(_cleared(10 + check.QUIET_BEFORE + 5), [], when)["passed"]

@@ -135,6 +135,13 @@ def _quiet_check(status, alerts, when):
                 "detail": f"The IDS started capturing less than {QUIET_BEFORE} s before "
                           "FUXA's write, so it cannot vouch for the time before it. "
                           "Keep it running and stop the plant again."}
+    # A log cleared after `since` may have held the alerts this check looks for.
+    cleared = _timestamp({"timestamp": (status.get("stats") or {}).get("alerts_cleared_at")})
+    if cleared is not None and cleared >= since:
+        return {"name": name, "passed": False,
+                "detail": "The IDS alert log was cleared after the quiet period began, "
+                          "so it cannot show that the IDS stayed silent. Wait a minute "
+                          "without clearing it, then stop the plant through FUXA again."}
     loud = [a for a in alerts if isinstance(a, dict)
             and a.get("rule") not in IGNORED_RULES
             and (_timestamp(a) or datetime.min) >= since]
