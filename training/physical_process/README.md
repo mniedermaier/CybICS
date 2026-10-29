@@ -85,5 +85,3 @@ After login on the FUXA dashboard switch to the "System" view.
   shows BLOW-OUT. Click **Verify** on the challenge page while it does.
 
 **Flag:** revealed by **Verify** on the challenge page while the blowout lasts.
-
-  ![Flag OpenPLC Password](doc/flag.png)
