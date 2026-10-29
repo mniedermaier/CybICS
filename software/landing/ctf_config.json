@@ -631,7 +631,7 @@
           "type": "defense",
           "verify_module": "check_firewall",
           "flag": "CybICS(f1r3w4ll_h4rd3n3d)",
-          "hint": "Use iptables on the OpenPLC container to only allow 172.18.0.4 (FUXA) to access port 502",
+          "hint": "Use iptables on the OpenPLC container so that only hwio (172.18.0.2), FUXA (172.18.0.4) and the OPC-UA gateway (172.18.0.5) reach port 502",
           "training_content": "training/defense_firewall/README.md"
         },
         {

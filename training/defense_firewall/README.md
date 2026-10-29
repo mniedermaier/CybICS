@@ -5,7 +5,7 @@
 ## Overview
 Modbus TCP (port 502) is an unauthenticated protocol — any device on the network can read and write PLC registers without credentials. In the previous attack challenges, you exploited this to flood registers and overwrite process values.
 
-This challenge requires you to apply **firewall rules** on the OpenPLC container to restrict Modbus access, ensuring only the authorized HMI (FUXA at 172.18.0.4) can communicate with the PLC.
+This challenge requires you to apply **firewall rules** on the OpenPLC container to restrict Modbus access, ensuring only the plant's own Modbus clients (hwio, the FUXA HMI and the OPC-UA gateway) can communicate with the PLC.
 
 ## Network Architecture
 
@@ -13,7 +13,7 @@ This challenge requires you to apply **firewall rules** on the OpenPLC container
 172.18.0.2  (hwio)       ──── Authorized (sensor data)
 172.18.0.3  (OpenPLC)    ──── TARGET: Apply firewall here
 172.18.0.4  (FUXA HMI)   ──── Authorized (HMI control)
-172.18.0.5  (OPC-UA)     ──── May need access
+172.18.0.5  (OPC-UA)     ──── Authorized (reads plant values)
 172.18.0.100 (Attacker)  ──── BLOCK this
 ```
 
@@ -43,10 +43,12 @@ The flag has the format `CybICS(flag)`.
    command instead, for example
    `docker exec <openplc_container_name> iptables -L INPUT -n`.
 
-2. Allow Modbus access from the hardware I/O service (172.18.0.2) and FUXA HMI (172.18.0.4):
+2. Allow Modbus access from the hardware I/O service (172.18.0.2), the FUXA
+   HMI (172.18.0.4) and the OPC-UA gateway (172.18.0.5):
    ```bash
    iptables -A INPUT -p tcp --dport 502 -s 172.18.0.2 -j ACCEPT
    iptables -A INPUT -p tcp --dport 502 -s 172.18.0.4 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 502 -s 172.18.0.5 -j ACCEPT
    ```
 
 3. Block Modbus access from all other sources:
@@ -59,11 +61,24 @@ The flag has the format `CybICS(flag)`.
    iptables -L INPUT -n
    ```
 
-5. Click **Verify Defense** on this challenge page to confirm.
+5. Click **Verify Defense** on this challenge page to confirm. The check
+   tries port 502 from the board (172.18.0.1) and from the attack shell
+   (172.18.0.100), which must both fail, and from inside hwio, FUXA and the
+   OPC-UA gateway, which must all still get through.
+
+### Undoing it
+
+```bash
+docker exec <openplc_container_name> iptables -F INPUT
+```
+
+This removes every rule in the PLC container's INPUT chain, including those
+from the Network Segmentation and Close the Side Doors challenges.
 
 ### Important Notes
 - The `hwio` service (172.18.0.2) must be able to write sensor values to OpenPLC via Modbus. Do not block it.
 - The `FUXA` HMI (172.18.0.4) needs Modbus access for process monitoring and control. Do not block it.
+- The OPC-UA gateway (172.18.0.5) reads the plant values over Modbus to publish them on port 4840. Block it and the OPC-UA server serves stale values.
 - These rules are **not persistent** — they will be lost when the container restarts. In production, you would save them with `iptables-save`.
 
 ## Security Framework References
@@ -109,7 +124,7 @@ After completing this challenge, consider:
 
 ## Hints
 
-Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. Then use `iptables -A INPUT` rules to ACCEPT traffic from authorized IPs (FUXA and hwio) on port 502 first, and DROP everything else to that port last. Remember: iptables processes rules top to bottom, first match wins.
+Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. Then use `iptables -A INPUT` rules to ACCEPT traffic from authorized IPs (hwio, FUXA and the OPC-UA gateway) on port 502 first, and DROP everything else to that port last. Remember: iptables processes rules top to bottom, first match wins.
 
 ## Solution
 
@@ -121,6 +136,7 @@ Use `docker exec -it <container> bash` to get a shell in the OpenPLC container. 
    ```bash
    iptables -A INPUT -p tcp --dport 502 -s 172.18.0.2 -j ACCEPT
    iptables -A INPUT -p tcp --dport 502 -s 172.18.0.4 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 502 -s 172.18.0.5 -j ACCEPT
    iptables -A INPUT -p tcp --dport 502 -j DROP
    ```
 3. Click **Verify Defense** in the CTF interface to receive the flag.

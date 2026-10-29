@@ -2031,6 +2031,72 @@ class TestDefenseUnusedProtocols(_CtfProgress):
         assert code == 0 and sorted(out.split()) == ["Dnp3_port=20000", "Enip_port=44818", "snap7=true"], out
 
 
+@pytest.mark.usefixtures("stack_ready")
+class TestDefenseFirewalls(_CtfProgress):
+    """
+    Modbus Firewall Rules end to end, with the README's own commands in the
+    admin shell. The check probes the real connections: a rule set that cuts
+    the OPC-UA gateway off from Modbus (what the README once said) must be
+    refused, the README's rules must pass. The PLC's INPUT chain is empty on
+    a shipped stack and is emptied again in a finally block.
+    """
+
+    PLC = "docker ps --filter name=openplc --format '{{.Names}}' | head -n1"
+
+    def _name(self, find):
+        code, out = self._admin(find)
+        assert code == 0 and out.strip(), out
+        return out.strip()
+
+    def _in(self, container, command):
+        code, out = self._admin(f"docker exec {container} {command}")
+        assert code == 0, out
+        return out
+
+    def _verify(self, challenge_id):
+        r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json={}, timeout=90)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    @staticmethod
+    def _failed(result):
+        return {c["name"] for c in result.get("checks", []) if not c["passed"]}
+
+    def _empty_chains(self, *containers):
+        for container in containers:
+            self._in(container, "iptables -F INPUT")
+            assert self._in(container, "iptables -S INPUT").strip() == "-P INPUT ACCEPT"
+
+    def test_modbus_firewall_must_keep_the_plant_clients(self):
+        plc = self._name(self.PLC)
+        assert self._in(plc, "iptables -S INPUT").strip() == "-P INPUT ACCEPT", \
+            "the PLC's INPUT chain is not empty; this test expects a shipped stack"
+        before = self._without("defense_firewall")
+        try:
+            # Only hwio and FUXA: the OPC-UA gateway is cut off.
+            for source in ("172.18.0.2", "172.18.0.4"):
+                self._in(plc, f"iptables -A INPUT -p tcp --dport 502 -s {source} -j ACCEPT")
+            self._in(plc, "iptables -A INPUT -p tcp --dport 502 -j DROP")
+            result = self._verify("defense_firewall")
+            assert not result["success"]
+            assert self._failed(result) == {"Plant's Modbus clients still allowed"}, result
+            self._empty_chains(plc)
+
+            readme = (Path(__file__).resolve().parent.parent / "training" / "defense_firewall"
+                      / "README.md").read_text(encoding="utf-8")
+            rules = [line.strip() for line in readme.split("## Solution", 1)[1].splitlines()
+                     if line.strip().startswith("iptables ")]
+            assert any("172.18.0.5" in r for r in rules), rules
+            for rule in rules:
+                self._in(plc, rule)
+            result = self._verify("defense_firewall")
+            assert result["success"], result
+            assert result.get("flag") == "CybICS(f1r3w4ll_h4rd3n3d)"
+        finally:
+            self._empty_chains(plc)
+            self._restore(before)
+
+
 # ===============================================================================
 # Password Attack Training Tests
 # ===============================================================================
