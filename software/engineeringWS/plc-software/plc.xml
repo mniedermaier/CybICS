@@ -20,17 +20,17 @@
       <pou name="CybICS" pouType="program">
         <interface>
           <localVars>
-            <variable name="systemSen" address="%IX0.1">
+            <variable name="systemSen" address="%MW108">
               <type>
-                <BOOL/>
+                <UINT/>
               </type>
               <initialValue>
                 <simpleValue value="0"/>
               </initialValue>
             </variable>
-            <variable name="boSen" address="%IX0.2">
+            <variable name="boSen" address="%MW110">
               <type>
-                <BOOL/>
+                <UINT/>
               </type>
               <initialValue>
                 <simpleValue value="0"/>
@@ -40,38 +40,32 @@
               <type>
                 <BOOL/>
               </type>
-              <initialValue>
-                <simpleValue value="0"/>
-              </initialValue>
+              <documentation>
+                <xhtml:p><![CDATA[heartbeat LED on the PCB]]></xhtml:p>
+              </documentation>
             </variable>
             <variable name="compressor" address="%QX0.1">
               <type>
                 <BOOL/>
               </type>
-              <initialValue>
-                <simpleValue value="0"/>
-              </initialValue>
             </variable>
             <variable name="systemValve" address="%QX0.2">
               <type>
                 <BOOL/>
               </type>
-              <initialValue>
-                <simpleValue value="0"/>
-              </initialValue>
             </variable>
             <variable name="gstSig" address="%QX0.3">
               <type>
                 <BOOL/>
               </type>
-              <initialValue>
-                <simpleValue value="0"/>
-              </initialValue>
             </variable>
             <variable name="gst" address="%MW100">
               <type>
                 <UINT/>
               </type>
+              <initialValue>
+                <simpleValue value="0"/>
+              </initialValue>
             </variable>
             <variable name="hpt" address="%MW102">
               <type>
@@ -101,17 +95,24 @@
               <type>
                 <UINT/>
               </type>
-              <initialValue>
-                <simpleValue value="0"/>
-              </initialValue>
             </variable>
-            <variable name="countHeartbeat" address="%MW400">
+            <variable name="gstState" address="%MW202">
+              <type>
+                <UINT/>
+              </type>
+            </variable>
+          </localVars>
+          <localVars>
+            <variable name="countHeartbeat">
               <type>
                 <UINT/>
               </type>
               <initialValue>
                 <simpleValue value="0"/>
               </initialValue>
+              <documentation>
+                <xhtml:p><![CDATA[Counter LED heartbeat]]></xhtml:p>
+              </documentation>
             </variable>
           </localVars>
         </interface>
@@ -131,12 +132,12 @@
     (* System running in automatic mode *)
     IF manual < 1 THEN
       (* Refill GST, when below 60 and fill it up to 254 *)
-      IF gst < 60 AND countHeartbeat = 0 THEN
-        countHeartbeat := 1;
-      ELSIF gst < 240 AND countHeartbeat = 1 THEN
-        countHeartbeat := 1;
+      IF gst < 60 AND gstState = 0 THEN
+        gstState := 1;
+      ELSIF gst < 240 AND gstState = 1 THEN
+        gstState := 1;
       ELSE
-        countHeartbeat := 0;
+        gstState := 0;
       END_IF;      
 
       (* Run compressor when below 60 and fill it up to 89 *)
@@ -162,7 +163,7 @@
         compressor := FALSE;
       END_IF;
 
-      IF countHeartbeat = 1 THEN
+      IF gstState = 1 THEN
         gstSig := TRUE;
       ELSE
         gstSig := FALSE;
@@ -174,14 +175,12 @@
     compressorState := 0;
     compressor := FALSE;
     systemValve := FALSE;
-    countHeartbeat := 0;
+    gstState := 0;
     gstSig := FALSE;
   END_IF;
   
   (* Increase the counters *)
   countHeartbeat := countHeartbeat + 1;
-
-
 ]]></xhtml:p>
           </ST>
         </body>
@@ -192,8 +191,8 @@
     <configurations>
       <configuration name="Config0">
         <resource name="Res0">
-          <task name="task0" priority="0" interval="T#20ms">
-            <pouInstance name="instance0" typeName="CybICS"/>
+          <task name="TaskMain" priority="0" interval="T#50ms">
+            <pouInstance name="Inst0" typeName="CybICS"/>
           </task>
         </resource>
       </configuration>
