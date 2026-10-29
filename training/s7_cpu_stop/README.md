@@ -1,6 +1,6 @@
 # Stop Means Stop?
 
-> **MITRE ATT&CK for ICS:** `Execution`, `Evasion` | [T0858 - Change Operating Mode](https://attack.mitre.org/techniques/T0858/) | `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Collection` | [T0868 - Detect Operating Mode](https://attack.mitre.org/techniques/T0868/)
+> **MITRE ATT&CK for ICS:** `Execution`, `Evasion` | [T0858 - Change Operating Mode](https://attack.mitre.org/techniques/T0858/) | `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Collection` | [T0868 - Detect Operating Mode](https://attack.mitre.org/techniques/T0868/)
 
 ## Overview
 A PLC has an **operating mode**. In **RUN** it executes its program in a
@@ -214,7 +214,7 @@ the command is exactly what an attacker sends before replacing a program.
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Execution, Evasion | Change Operating Mode | [T0858](https://attack.mitre.org/techniques/T0858/) | An S7comm PLC STOP puts the CPU into STOP, a warm restart back into RUN |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | The STOP is an unauthenticated command no operator sent |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | The STOP is an unauthenticated command no operator sent |
 | Collection | Detect Operating Mode | [T0868](https://attack.mitre.org/techniques/T0868/) | Reading the CPU's operating mode from its status list (SZL 0x0424) |
 
 **Why this matters:** an operating mode change is one of the most consequential commands a controller accepts, and on many devices it needs nothing but network access. Monitoring has to catch the command itself and check it against what the process does, because the controller's own report is not proof.

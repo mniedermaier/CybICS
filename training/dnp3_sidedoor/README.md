@@ -1,6 +1,6 @@
 # DNP3 Side Door
 
-> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) | [T0826 - Loss of Availability](https://attack.mitre.org/techniques/T0826/)
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) | [T0826 - Loss of Availability](https://attack.mitre.org/techniques/T0826/)
 
 ## Overview
 
@@ -211,7 +211,7 @@ board, so do not leave it stopped.
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Sweeping link addresses to find the outstation's logical identifier and the master it accepts |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Sending a hand-built DNP3 Direct Operate to the outstation |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Sending a hand-built DNP3 Direct Operate to the outstation |
 | Impact | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Setting the PLC's stop flag over DNP3 |
 | Impact | Loss of Availability | [T0826](https://attack.mitre.org/techniques/T0826/) | The gas plant stops producing until it is restored |
 

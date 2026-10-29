@@ -143,7 +143,7 @@ Connect your findings across all three data sources:
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Impair Process Control | Modify Parameter | [T0836](https://attack.mitre.org/techniques/T0836/) | Modifying process parameters to affect operation |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Sending unauthorized commands to ICS devices |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Sending unauthorized commands to ICS devices |
 | Impair Process Control | Brute Force I/O | [T0806](https://attack.mitre.org/techniques/T0806/) | Repeatedly overwriting I/O values |
 
 ### MITRE D3FEND — Defensive Techniques

@@ -1,6 +1,6 @@
 # Intrusion Detection System Challenge
 
-> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
 > **From the attack shell:** the IDS runs on the host, so `localhost` in the
 > commands below does not reach it there; use `$DEVICE_IP` (`172.18.0.1`)
@@ -87,7 +87,7 @@ The CybICS IDS implements 12 detection rules:
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scan, S7 enumeration, OPC-UA access |
 | Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | SYN flood, Modbus write flood |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
 | Collection | Adversary-in-the-Middle | [T0830](https://attack.mitre.org/techniques/T0830/) | ARP spoofing |
 | Lateral Movement | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against the default logins of OpenPLC/FUXA |
 

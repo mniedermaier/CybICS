@@ -1,6 +1,6 @@
 # Plant Physics Sandbox
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T1692.002 - Unauthorized Message: Reporting Message](https://attack.mitre.org/techniques/T1692/002/) | `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) | [T0880 - Loss of Safety](https://attack.mitre.org/techniques/T0880/)
+> **MITRE ATT&CK for ICS:** `Evasion` `Impair Process Control` | [T1692.002 - Unauthorized Message: Reporting Message](https://attack.mitre.org/techniques/T1692/002/) | `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) | [T0880 - Loss of Safety](https://attack.mitre.org/techniques/T0880/)
 >
 > **MITRE D3FEND:** [D3-OPM - Operational Process Monitoring](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/) | [D3-OLV - Operational Logic Validation](https://d3fend.mitre.org/technique/d3f:OperationalLogicValidation/)
 
@@ -213,7 +213,7 @@ address, as you would use it with pymodbus.)
 
 | Tactic | Technique | ID | In this challenge |
 |--------|-----------|-----|-------------------|
-| Impair Process Control | Unauthorized Message: Reporting Message | [T1692.002](https://attack.mitre.org/techniques/T1692/002/) | A forged HPT reading reaches the PLC (situation 3) |
+| Evasion, Impair Process Control | Unauthorized Message: Reporting Message | [T1692.002](https://attack.mitre.org/techniques/T1692/002/) | A forged HPT reading reaches the PLC (situation 3) |
 | Impact | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Frozen outputs and a latch tricked into running the compressor |
 | Impact | Loss of Safety | [T0880](https://attack.mitre.org/techniques/T0880/) | The relief valve cannot keep up with a compressor held on (situation 2) |
 

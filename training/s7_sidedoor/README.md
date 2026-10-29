@@ -1,6 +1,6 @@
 # S7 Side Door
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) | [T0826 - Loss of Availability](https://attack.mitre.org/techniques/T0826/)
+> **MITRE ATT&CK for ICS:** `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) | [T0826 - Loss of Availability](https://attack.mitre.org/techniques/T0826/)
 
 ## Overview
 In the [Modbus Firewall Rules](../defense_firewall/README.md) challenge the
@@ -187,7 +187,7 @@ Try it, watch the IDS name the write `PA (process outputs)`, and restore
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | An unauthenticated S7comm write command to the PLC's memory |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | An unauthenticated S7comm write command to the PLC's memory |
 | Impact | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Setting the stop flag takes control of the compressor and valve away from the program |
 | Impact | Loss of Availability | [T0826](https://attack.mitre.org/techniques/T0826/) | The stopped plant no longer delivers gas pressure |
 

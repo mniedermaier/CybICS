@@ -35,18 +35,18 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Remote System Information Discovery | T0846, T0888 |
 | [HMI Project Recon](hmi_project_recon/README.md) | Collection | Data from Information Repositories, Point & Tag Identification, Monitor Process State | T0811, T0861, T0801 |
 | [Register Map Recon](register_map_recon/README.md) | Collection | Point & Tag Identification, Monitor Process State, Automated Collection | T0861, T0801, T0802 |
-| [Packet Anatomy](packet_anatomy/README.md) | Collection, Impair Process Control | Monitor Process State, Unauthorized Message: Command Message | T0801, T1692.001 |
+| [Packet Anatomy](packet_anatomy/README.md) | Collection, Evasion, Impair Process Control | Monitor Process State, Unauthorized Message: Command Message | T0801, T1692.001 |
 | [Wireshark Capture](wireshark_capture/README.md) | Discovery | Network Sniffing | T0842 |
 | [Flood & Overwrite](flood_overwrite/README.md) | Evasion, Impair Process Control, Impact | Brute Force I/O, Unauthorized Message: Command Message, Manipulation of View | T0806, T1692.001, T0832 |
-| [Plant Physics Sandbox](plant_physics_sandbox/README.md) | Impair Process Control, Impact | Unauthorized Message: Reporting Message, Manipulation of Control, Loss of Safety | T1692.002, T0831, T0880 |
+| [Plant Physics Sandbox](plant_physics_sandbox/README.md) | Evasion, Impair Process Control, Impact | Unauthorized Message: Reporting Message, Manipulation of Control, Loss of Safety | T1692.002, T0831, T0880 |
 | [Password Attack](password_attack/README.md) | Persistence, Lateral Movement | Insecure Credentials: Default Credentials, Valid Accounts | T1694.001, T0859 |
 | [OPC-UA](opcua/README.md) | Persistence, Lateral Movement | Valid Accounts | T0859 |
 | [Fuzzing Modbus](fuzzingMB/README.md) | Evasion, Impair Process Control, Inhibit Response Function | Unauthorized Message: Command Message, Denial of Service | T1692.001, T0814 |
-| [S7 Side Door](s7_sidedoor/README.md) | Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T1692.001, T0831, T0826 |
+| [S7 Side Door](s7_sidedoor/README.md) | Evasion, Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T1692.001, T0831, T0826 |
 | [Stop Means Stop?](s7_cpu_stop/README.md) | Execution, Evasion, Impair Process Control, Collection | Change Operating Mode, Unauthorized Message: Command Message, Detect Operating Mode | T0858, T1692.001, T0868 |
 | [Forged HMI Token](fuxa_jwt/README.md) | Persistence, Lateral Movement, Collection | Insecure Credentials: Default Credentials, Data from Information Repositories | T1694.001, T0811 |
 | [The Forgotten API](openplc_restapi/README.md) | Discovery, Initial Access, Persistence, Lateral Movement | Remote System Discovery: Port Scan, Exploitation of Remote Services, Valid Accounts, Remote System Information Discovery | T0846.001, T0866, T0859, T0888 |
-| [DNP3 Side Door](dnp3_sidedoor/README.md) | Discovery, Impair Process Control, Impact | Remote System Discovery, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T0846, T1692.001, T0831, T0826 |
+| [DNP3 Side Door](dnp3_sidedoor/README.md) | Discovery, Evasion, Impair Process Control, Impact | Remote System Discovery, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T0846, T1692.001, T0831, T0826 |
 | [MitM Attack](mitm/README.md) | Collection, Evasion | Adversary-in-the-Middle, Unauthorized Message: Reporting Message | T0830, T1692.002 |
 | [UART Training](uart_basic/README.md) | Persistence, Lateral Movement | Insecure Credentials: Hardcoded Credentials | T1694.002 |
 | [Detect Basic](detect_basic/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection | D3-NTA |
@@ -61,7 +61,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [IDS Evasion](ids_evasion/README.md) | Evasion, Impair Process Control, Impact | Unauthorized Message: Command Message, Manipulation of Control | T1692.001, T0831 |
 | [Trusted Writer](fuxa_trusted_writer/README.md) | Execution, Evasion, Impair Process Control, Impact | Execution through API, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T0871, T1692.001, T0831, T0826 |
 | [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis | D3-NTA |
-| [Incident PCAP](incident_pcap/README.md) | *Defensive* (reconstructs Discovery, Collection, Impair Process Control, Impact) | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection, Application Protocol Command Analysis; ATT&CK for ICS: Remote System Discovery, Port Scan, Adversary-in-the-Middle, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | D3-NTA, D3-PMAD, D3-APCA; T0846, T0846.001, T0830, T1692.001, T0831, T0826 |
+| [Incident PCAP](incident_pcap/README.md) | *Defensive* (reconstructs Discovery, Collection, Evasion, Impair Process Control, Impact) | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection, Application Protocol Command Analysis; ATT&CK for ICS: Remote System Discovery, Port Scan, Adversary-in-the-Middle, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | D3-NTA, D3-PMAD, D3-APCA; T0846, T0846.001, T0830, T1692.001, T0831, T0826 |
 | [Physics Never Lies](physics_forensics/README.md) | *Defensive* (reconstructs Collection, Evasion, Impair Process Control, Impact) | D3FEND: Operational Process Monitoring, Domain Logic Validation, Operational Logic Validation; ATT&CK for ICS: Adversary-in-the-Middle, Unauthorized Message: Reporting Message, Manipulation of View, Manipulation of Control | D3-OPM, D3-DLV, D3-OLV; T0830, T1692.002, T0832, T0831 |
 | [Whispering PLC](modbus_covert_c2/README.md) | *Defensive* (reconstructs Command and Control) | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection, Application Protocol Command Analysis; ATT&CK for ICS: Standard Application Layer Protocol, Commonly Used Port | D3-NTA, D3-PMAD, D3-APCA; T0869, T0885 |
 

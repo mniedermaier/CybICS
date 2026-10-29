@@ -90,7 +90,7 @@ from the Network Segmentation and Close the Side Doors challenges.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Blocking unauthorized Modbus write commands |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Blocking unauthorized Modbus write commands |
 | Impair Process Control | Brute Force I/O | [T0806](https://attack.mitre.org/techniques/T0806/) | Preventing register flooding from unauthorized hosts |
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Blocking port scanning of Modbus services |
 

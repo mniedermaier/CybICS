@@ -120,7 +120,7 @@ read. `--seed` repeats a run exactly.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send malformed or unexpected commands to disrupt control |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send malformed or unexpected commands to disrupt control |
 | Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Adversaries may crash or disrupt services through malformed input |
 
 **Why this matters:** Protocol fuzzing reveals how ICS devices handle unexpected or malformed input. Many PLCs and industrial devices have limited error handling and can crash or behave unpredictably when receiving invalid data. Understanding these weaknesses helps both attackers (to find exploitable bugs) and defenders (to test device resilience before deployment).

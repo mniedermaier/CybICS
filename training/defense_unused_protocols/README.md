@@ -192,7 +192,7 @@ lesson.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Stop commands over S7comm (S7 Side Door) or DNP3 (DNP3 Side Door) no longer reach the PLC |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Stop commands over S7comm (S7 Side Door) or DNP3 (DNP3 Side Door) no longer reach the PLC |
 | Execution, Evasion | Change Operating Mode | [T0858](https://attack.mitre.org/techniques/T0858/) | No S7comm CPU STOP is possible once the S7 server is off (Stop Means Stop?) |
 | Initial Access, Lateral Movement | Exploitation of Remote Services | [T0866](https://attack.mitre.org/techniques/T0866/) | The REST API that anyone could claim (The Forgotten API) is unreachable |
 

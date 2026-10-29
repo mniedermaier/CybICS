@@ -122,7 +122,7 @@ If successful, the flag will be included in the response.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Writing to PLC registers |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Writing to PLC registers |
 | Impact | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Modifying PLC register values |
 
 ### MITRE D3FEND — Defensive Techniques Tested
