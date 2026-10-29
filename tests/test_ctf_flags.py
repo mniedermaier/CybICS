@@ -167,3 +167,18 @@ def test_case_matters(manager):
                                  {"solved_challenges": []})
     if challenge["flag"].upper() != challenge["flag"]:
         assert result["success"] is False
+
+
+@needs_manager
+def test_a_saved_score_follows_the_current_points(manager, tmp_path, monkeypatch):
+    """A progress file outlives a change of a challenge's points; the score
+    shown is recomputed from the solved ids, and unknown ids count nothing."""
+    import modules.ctf_manager as cm
+    first, second = [c for cat in manager.challenges.values() for c in cat["challenges"]][:2]
+    progress = tmp_path / "progress.json"
+    progress.write_text(json.dumps({"solved_challenges": [first["id"], second["id"], "gone"],
+                                    "total_points": 12345}))
+    monkeypatch.setattr(cm, "PROGRESS_FILE", str(progress))
+    loaded = manager.load_progress()
+    assert loaded["total_points"] == first["points"] + second["points"]
+    assert loaded["solved_challenges"] == [first["id"], second["id"], "gone"]

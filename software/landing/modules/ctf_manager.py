@@ -167,11 +167,20 @@ class CTFManager:
                 with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
                     progress = json.load(f)
                     logger.info(f"Loaded progress: {len(progress.get('solved_challenges', []))} challenges solved")
+                    # The score follows the current points, not the ones a
+                    # challenge was worth when it was solved: a progress file
+                    # outlives a regrouping of the catalogue.
+                    progress['total_points'] = self.points_for(progress.get('solved_challenges', []))
                     return progress
         except (FileNotFoundError, json.JSONDecodeError) as e:
             logger.warning(f"Could not load progress file: {e}")
 
         return {'solved_challenges': [], 'total_points': 0}
+
+    def points_for(self, solved_ids):
+        """Points for these solved challenges at today's values; unknown ids count 0."""
+        points = {c['id']: c['points'] for cat in self.challenges.values() for c in cat['challenges']}
+        return sum(points.get(cid, 0) for cid in set(solved_ids))
 
     def save_progress(self, progress):
         """Save CTF progress to file"""
