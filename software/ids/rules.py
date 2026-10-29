@@ -98,6 +98,14 @@ DNP3_REPLY_TIMEOUT = 10
 DNP3_MAX_CONNECTIONS = 256
 DNP3_MAX_WAITING = 8
 DNP3_CONNECTION_IDLE = 600
+# Servers (destination address and port) whose last S7 write, S7 control
+# request and DNP3 request are remembered for the exact-repeat folding.  The
+# plant has a handful; the cap only matters when a flood sprays requests at
+# many addresses, which would otherwise grow these maps by one entry per
+# packet until the next cleanup -- about 0.5 KB (S7) to 2 KB (DNP3, which
+# keeps the alert) each, beyond the IDS's 32 MB on the board within a minute.
+# Forgetting a server only means its next repeat is alerted again.
+MAX_TRACKED_SERVERS = 64
 
 # Services that legitimately write to Modbus at high rates
 _MODBUS_WRITERS = frozenset(("hwio", "fuxa", "openplc"))
@@ -127,6 +135,14 @@ _TCP_SEQ = 10
 _TCP_ACK = 11
 _PAYLOAD_LEN = 12
 _SEQ_MASK = 0xFFFFFFFF
+
+
+def _remember(table, key, value):
+    """table[key] = value, dropping the least recently stored key beyond MAX_TRACKED_SERVERS."""
+    table.pop(key, None)
+    if len(table) >= MAX_TRACKED_SERVERS:
+        del table[next(iter(table))]
+    table[key] = value
 
 
 def _tcp_stream(pkt):
@@ -386,7 +402,7 @@ class RuleEngine:
                                  for i in items))
         last = self.s7_last_write.get((dst_ip, dport))
         if last is None or last[0] != written or now - last[1] >= self.ALERT_COOLDOWN:
-            self.s7_last_write[(dst_ip, dport)] = (written, now)
+            _remember(self.s7_last_write, (dst_ip, dport), (written, now))
             where = ", ".join(_describe_s7_item(i) for i in items)
             alerts.append({
                 "rule": "s7_write",
@@ -417,7 +433,7 @@ class RuleEngine:
             last = self.s7_last_control.get(key)
             if last is not None and last[0] == sent and now - last[1] < self.ALERT_COOLDOWN:
                 continue
-            self.s7_last_control[key] = (sent, now)
+            _remember(self.s7_last_control, key, (sent, now))
             label = S7_CONTROL_LABELS.get(control["action"],
                                           f"PI service {control['pi_service'] or '?'}")
             alerts.append({
@@ -556,7 +572,7 @@ class RuleEngine:
             "message": f"DNP3 control from {src_ip} to {dst_ip}:{dport}: {what}",
             "dnp3": requests,
         }
-        self.dnp3_last_request[(dst_ip, dport)] = (signature, now, alert)
+        _remember(self.dnp3_last_request, (dst_ip, dport), (signature, now, alert))
         self._await_dnp3_reply(connection, alert, now)
         alerts.append(alert)
 
@@ -713,6 +729,10 @@ class RuleEngine:
         }
         self.dnp3_last_request = {
             k: v for k, v in self.dnp3_last_request.items()
+            if now - v[1] < self.ALERT_COOLDOWN * 2
+        }
+        self.s7_last_control = {
+            k: v for k, v in self.s7_last_control.items()
             if now - v[1] < self.ALERT_COOLDOWN * 2
         }
         self.dnp3_connections = {

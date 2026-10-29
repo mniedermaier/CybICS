@@ -1159,3 +1159,47 @@ def test_truncated_modbus_write_never_raises(cut):
 @pytest.mark.parametrize("payload", [b"\xff" * 40, b"\x00" * 40, bytes(range(64)), b"GET / HTTP/1.1"])
 def test_malformed_modbus_payload_never_raises(payload):
     rules.parse_modbus_writes(payload)
+
+
+# ---- Memory bounds of the per-server repeat folding ----
+#
+# s7_last_write, s7_last_control and dnp3_last_request are keyed by the
+# destination address and port.  A flood that sprays requests at many
+# addresses (any destination passes the capture filter while the source is on
+# the plant network) grew them by one entry per packet until the next
+# cleanup, beyond the 32 MB the IDS container has on the board.
+
+def _sprayed(payload, n, dport):
+    return [(ATTACK_MACHINE, f"10.{i >> 16 & 255}.{i >> 8 & 255}.{i & 255}", 51000 + i % 1000,
+             dport, "PA", 6, payload, None) for i in range(n)]
+
+
+@pytest.mark.parametrize("payload, dport, table", [
+    (S7_WRITE_STOP, 102, "s7_last_write"),
+    (S7_PLC_STOP, 102, "s7_last_control"),
+    (DNP3_STOP, 20000, "dnp3_last_request"),
+], ids=["s7-write", "s7-control", "dnp3"])
+def test_repeat_folding_tracks_a_bounded_number_of_servers(payload, dport, table):
+    engine = rules.RuleEngine()
+    packets = _sprayed(payload, rules.MAX_TRACKED_SERVERS * 4, dport)
+    for pkt in packets:
+        engine.check_packet(pkt)
+    assert len(getattr(engine, table)) == rules.MAX_TRACKED_SERVERS
+    # The newest servers are the ones kept, so a repeat to one of them is still folded.
+    newest = packets[-1]
+    assert (newest[1], dport) in getattr(engine, table)
+    rule = {"s7_last_write": "s7_write", "s7_last_control": "s7_cpu_control",
+            "dnp3_last_request": "dnp3_operate"}[table]
+    assert not [a for a in engine.check_packet(newest) if a["rule"] == rule]
+    # A forgotten server's repeat is alerted again rather than lost.
+    assert [a for a in engine.check_packet(packets[0]) if a["rule"] == rule]
+
+
+def test_s7_control_folding_is_cleaned_up(monkeypatch):
+    engine = rules.RuleEngine()
+    engine.check_packet(_s7_packet(S7_PLC_STOP))
+    assert engine.s7_last_control
+    later = time.time() + engine.ALERT_COOLDOWN * 2 + 1
+    monkeypatch.setattr(rules.time, "time", lambda: later)
+    engine.cleanup()
+    assert not engine.s7_last_control
