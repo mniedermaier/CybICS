@@ -225,3 +225,43 @@ def test_the_journal_is_bounded():
     writes = d.get_modbus_writes()
     assert len(writes) == detector.MAX_MODBUS_WRITES
     assert writes[-1]["id"] == detector.MAX_MODBUS_WRITES + 50
+
+
+# --- CTF state that clearing the alert log must not reset --------------------
+
+def _alert(rule):
+    return {"rule": rule, "severity": "high", "src": "172.18.0.100", "message": rule}
+
+
+def test_clearing_the_alert_log_does_not_hide_an_evasion_alert():
+    """The dashboard's Clear button used to turn a detected attempt into a pass."""
+    d = detector.Detector()
+    d.active = True
+    d.start_evasion()
+    for _ in range(3):
+        d._track_evasion_packet(_modbus_pkt("172.18.0.100", FUXA_STOP))
+    d._add_alert(_alert("modbus_unauth_write"))
+    d.clear_alerts()
+    result = d.check_evasion()
+    assert result["new_alerts"] == 1 and not result["success"]
+    assert d.get_status()["evasion"]["new_alerts"] == 1
+
+
+def test_an_arp_alert_does_not_fail_an_evasion_attempt():
+    d = detector.Detector()
+    d.active = True
+    d._add_alert(_alert("port_scan"))  # before the window: not counted
+    d.start_evasion()
+    for _ in range(3):
+        d._track_evasion_packet(_modbus_pkt("172.18.0.100", FUXA_STOP))
+    d._add_alert(_alert("arp_spoof"))
+    result = d.check_evasion()
+    assert result["new_alerts"] == 0 and result["success"]
+
+
+def test_the_status_says_when_the_alert_log_was_cleared():
+    d = detector.Detector()
+    assert d.get_status()["stats"]["alerts_cleared_at"] is None
+    d.clear_alerts()
+    assert d.get_status()["stats"]["alerts_cleared_at"]
+

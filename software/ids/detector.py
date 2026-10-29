@@ -66,8 +66,14 @@ class Detector:
         # Evasion challenge state
         self.evasion_active = False
         self.evasion_start_time = 0
-        self.evasion_start_alert_count = 0
         self.evasion_modbus_writes = 0
+        # Alerts raised during the window, counted as they are raised, so
+        # clearing the alert log cannot hide them (arp_spoof is about the
+        # link layer, not the evaded traffic).
+        self.evasion_alerts = 0
+        # When the alert log was last cleared: a check that reads the log
+        # cannot vouch for the time before it.
+        self.alerts_cleared_at = None
         self.evasion_timeout = 120  # 2 minute window
 
         logger.info(f"Detector initialized (max {MAX_ALERTS} alerts in memory)")
@@ -284,6 +290,8 @@ class Detector:
         with self.lock:
             self.alerts.append(alert)
         self.stats["alerts_total"] += 1
+        if self.evasion_active and alert.get("rule") != "arp_spoof":
+            self.evasion_alerts += 1
         logger.warning(
             f"ALERT [{alert['severity'].upper()}] {alert['rule']}: {alert['message']}"
         )
@@ -301,6 +309,7 @@ class Detector:
             self.alerts.clear()
         self._alert_id = 0
         self.stats["alerts_total"] = 0
+        self.alerts_cleared_at = datetime.now().isoformat()
         logger.info("Alerts cleared")
 
     # ========== MODBUS WRITE JOURNAL ==========
@@ -366,8 +375,8 @@ class Detector:
             }
         self.evasion_active = True
         self.evasion_start_time = time.time()
-        self.evasion_start_alert_id = self._alert_id
         self.evasion_modbus_writes = 0
+        self.evasion_alerts = 0
         logger.info("Evasion challenge started")
         return {
             "success": True,
@@ -384,9 +393,7 @@ class Detector:
             }
 
         elapsed = time.time() - self.evasion_start_time
-        # Count only alerts about the evaded traffic (arp_spoof is about the link layer)
-        evasion_alerts = self.get_alerts(since_id=self.evasion_start_alert_id)
-        new_alerts = sum(1 for a in evasion_alerts if a.get("rule") != "arp_spoof")
+        new_alerts = self.evasion_alerts
 
         if elapsed > self.evasion_timeout:
             self.evasion_active = False
@@ -422,6 +429,7 @@ class Detector:
             "now": datetime.now().isoformat(),
             "stats": {
                 **self.stats,
+                "alerts_cleared_at": self.alerts_cleared_at,
                 "alerts_in_buffer": len(self.alerts),
                 "max_alerts": MAX_ALERTS,
             },
@@ -429,9 +437,7 @@ class Detector:
             "evasion": {
                 "active": self.evasion_active,
                 "modbus_writes": self.evasion_modbus_writes if self.evasion_active else 0,
-                "new_alerts": (
-                    self.stats["alerts_total"] - self.evasion_start_alert_count
-                ) if self.evasion_active else 0,
+                "new_alerts": self.evasion_alerts if self.evasion_active else 0,
             },
         }
 

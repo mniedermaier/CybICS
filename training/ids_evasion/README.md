@@ -111,6 +111,7 @@ If successful, the flag will be included in the response.
 2. **Port scanning first**: If you nmap the target during the evasion window, `port_scan` fires
 3. **Connecting to multiple ports**: Stick to port 502 only
 4. **Running flooding scripts**: Scripts like `flooding_hpt.py` send writes in tight loops, triggering `modbus_flood`
+5. **Clearing the alerts**: the window counts alerts as the IDS raises them, so clearing the alert log afterwards does not undo a detection. Start a new window instead
 
 ## Security Framework References
 
