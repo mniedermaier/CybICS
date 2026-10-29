@@ -210,8 +210,10 @@ fork PRs fall back to anonymous pulls. Keep it that way.
   give its `verify` entry an `answers` list in `ctf_config.json` (`name`,
   `label`, `placeholder`, `max_length`) and grade in its verify module with
   `grade()` from `software/landing/modules/defense_checks/_answers.py`, using
-  `number()`/`one_of()` rather than bare ints. Expected values live only in
-  that module, never in the config, the README or a Theory lesson. Keep the
+  `number()`/`one_of()` rather than bare ints. Expected values live in
+  that module and, like a static flag, in the README's collapsed `## Solution`
+  section; never in the config, a README's other sections or a Theory lesson.
+  The challenge page opens every other section on load. Keep the
   default `feedback=False`; per-field feedback lets a student solve a field
   with few possible values one at a time. A graded module must not touch the
   stack; `tests/test_ctf_answers.py` grades every one with a wrong answer.
