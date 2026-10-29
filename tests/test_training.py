@@ -1320,6 +1320,59 @@ class TestHmiProjectRecon(_CtfProgress):
 
 
 # ===============================================================================
+# Incident PCAP (incident_pcap)
+# ===============================================================================
+
+class TestIncidentPcap(_CtfProgress):
+    """
+    Incident PCAP end to end: the landing page serves the capture the README
+    links to, byte for byte the committed file; the analysis in
+    tests/test_incident_pcap.py (the README's steps, independent of the
+    generator) reads the four answers out of the downloaded bytes; verify
+    refuses the tempting wrong timelines and hands out the flag for the right
+    one. Nothing touches the plant; only the CTF progress changes and it is
+    put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/incident_pcap", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_the_served_capture_yields_the_flag(self):
+        from test_incident_pcap import analyse
+        r = requests.get(f"{self.BASE}/ctf/challenge/incident_pcap/incident.pcap",
+                         timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        committed = (Path(__file__).resolve().parent.parent / "training" / "incident_pcap"
+                     / "incident.pcap").read_bytes()
+        assert r.content == committed, "landing serves a stale capture: rebuild landing"
+
+        found = analyse(r.content)
+        answers = {
+            "attacker_mac": found["rogue"],
+            "attacker_ips": ", ".join(sorted(found["ips"])),
+            "poison_frame": str(found["poison"]),
+            "stop_frames": ", ".join(str(n) for n, *_ in found["stops"]),
+        }
+        hmi_writes = sorted([n for n, *_ in found["stops"]][:1] + [n for n, _, _ in found["runs"]])
+
+        before = self._without("incident_pcap")
+        try:
+            for wrong in ({**answers, "attacker_mac": "02:42:ac:12:00:04"},
+                          {**answers, "attacker_ips": found["own_ip"]},
+                          {**answers, "stop_frames": ", ".join(map(str, hmi_writes))}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
 # Trusted Writer (fuxa_trusted_writer)
 # ===============================================================================
 

@@ -144,7 +144,8 @@ Nine workflows in `.github/workflows/` must stay green. Two are unusual:
 
 `software/build/`, `software/stm32/proto/cybics.pb.{c,h}` (nanopb, from
 `cybics.proto`), `hardware/pcb/docs/` and `hardware/pcb/pcb/` (KiBot),
-`software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`.
+`software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`,
+`training/incident_pcap/incident.pcap` (`software/scripts/generate_incident_pcap.py`).
 
 `hardware/pcb/CybICS.kicad_pro` is in the KiCad 10 project format, like the
 board, the schematic and the project libraries. It used to be held back: KiBot

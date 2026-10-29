@@ -659,6 +659,24 @@
           "prerequisites": [
             "detection-monitoring"
           ]
+        },
+        {
+          "id": "incident_pcap",
+          "title": "Reading an incident capture",
+          "summary": "Rebuilding an attack from the frames at the PLC, and why the MAC address outranks the IP address.",
+          "content": "training/theory/modules/incident_pcap.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "incident_pcap",
+              "label": "Incident PCAP"
+            }
+          ],
+          "prerequisites": [
+            "mitm",
+            "ids_forensics",
+            "incident-response"
+          ]
         }
       ]
     },

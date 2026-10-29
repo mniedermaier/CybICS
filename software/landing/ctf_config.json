@@ -337,6 +337,44 @@
           "training_content": "training/ids_forensics/README.md"
         },
         {
+          "id": "incident_pcap",
+          "title": "Incident PCAP",
+          "description": "Someone stopped the plant three times in one night. A capture from the PLC's mirror port is all you have. Find the device behind it, even where it wore other hosts' addresses, and rebuild the timeline.",
+          "points": 300,
+          "type": "verify",
+          "verify_module": "check_incident_pcap",
+          "tag": "analysis",
+          "flag": "CybICS(1nc1d3nt_t1m3l1n3)",
+          "hint": "An IP address is just a claim. Look one layer lower: which Ethernet address sent the frames that claim to come from the HMI, and did that change during the night?",
+          "answers": [
+            {
+              "name": "attacker_mac",
+              "label": "MAC address of the rogue device",
+              "placeholder": "aa:bb:cc:dd:ee:ff",
+              "max_length": 32
+            },
+            {
+              "name": "attacker_ips",
+              "label": "Every IP address the rogue device used or impersonated (comma separated)",
+              "placeholder": "e.g. 10.0.0.1, 10.0.0.2",
+              "max_length": 120
+            },
+            {
+              "name": "poison_frame",
+              "label": "Frame number of the first frame in which the rogue device claims another host's IP address",
+              "placeholder": "e.g. 17",
+              "max_length": 10
+            },
+            {
+              "name": "stop_frames",
+              "label": "Frame numbers of the three requests that stopped the plant (comma separated)",
+              "placeholder": "e.g. 101, 202, 303",
+              "max_length": 40
+            }
+          ],
+          "training_content": "training/incident_pcap/README.md"
+        },
+        {
           "id": "ids_evasion",
           "title": "IDS Evasion",
           "description": "Perform a stealth Modbus write without triggering any IDS alerts",

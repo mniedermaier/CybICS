@@ -1,0 +1,132 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain why the source MAC address identifies a device on the local network better than the source IP address",
+    "Recognise ARP poisoning in a capture from IP-to-MAC contradictions",
+    "Find a command such as a stop in Modbus, S7comm and DNP3 traffic and tie it to the device that sent it",
+    "Build an incident timeline in which every step is backed by a frame number"
+  ],
+  "takeaways": [
+    "The source IP address is a claim the sender writes itself; the source MAC address shows which network card sent the frame.",
+    "Two MAC addresses claiming one IP address on a plant network is a strong sign of ARP poisoning.",
+    "One command can arrive over several protocols, so look for its effect on every door, not only on Modbus.",
+    "Separate the attacker's commands from the operator's by value and by sender, not by IP address alone.",
+    "A timeline is only useful if every step points to evidence that someone else can check."
+  ],
+  "checkpoints": [
+    {
+      "id": "witness",
+      "question": "Two Modbus writes in a capture both come from 172.18.0.4. How can you tell whether one device sent both?",
+      "options": [
+        "Compare their source MAC addresses",
+        "Compare their Modbus unit IDs",
+        "Compare their destination ports",
+        "Compare their IP time-to-live values"
+      ],
+      "answer": 0,
+      "explanation": "The source MAC address belongs to the card that sent the frame, so two different MACs mean two devices. The unit ID and the destination port are the same for every client of the PLC, and the time-to-live is the same for any Linux host on the same segment."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why can an attacker on the plant network put the HMI's IP address in its packets so easily?",
+      "options": [
+        "Nothing checks the source IP that a host writes",
+        "The HMI shares its IP address with every client",
+        "Switches forward frames by IP address only",
+        "Modbus replaces the IP address with the unit ID"
+      ],
+      "answer": 0,
+      "explanation": "The sender fills in the source IP address itself and nothing on the segment verifies it. Switches forward by MAC address, not by IP address, which is why the MAC address is the better witness for who sent a frame."
+    },
+    {
+      "type": "single",
+      "question": "In a capture, the PLC suddenly sends its answers for 172.18.0.4 to a MAC address that is not the HMI's. What most likely happened just before?",
+      "options": [
+        "The HMI was restarted and got a new IP address",
+        "Someone poisoned the PLC's ARP cache",
+        "The switch ran out of space in its MAC table",
+        "The PLC changed its Modbus port"
+      ],
+      "answer": 1,
+      "explanation": "The PLC sends to whatever MAC its ARP cache holds for an IP address. A forged ARP reply changes that entry, so the answers go to the attacker. A restarted HMI keeps its MAC address, and a full MAC table makes a switch flood frames, not deliver them to a new MAC."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these requests set the CybICS stop flag (%MW104) to stop the plant?",
+      "options": [
+        "Modbus function 6 on register 1128 with value 1",
+        "S7comm Write Var to DB1002 byte 208 with data 00 01",
+        "DNP3 Direct Operate on object 41 index 1128 with value 1",
+        "Modbus function 6 on register 1128 with value 0"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "All three doors reach the same word: Modbus holding register 1128, DB1002 byte 208 in S7comm and analog output 1128 in DNP3. A write of 0 to register 1128 is what the HMI sends when the operator switches the plant back on, so it restarts the plant instead of stopping it."
+    },
+    {
+      "type": "single",
+      "question": "You found a Modbus stop from 172.18.0.4 and want to know whether the operator sent it. Which evidence settles it?",
+      "options": [
+        "The register number of the write",
+        "The source MAC of the frame",
+        "The time of day of the write",
+        "The Modbus transaction ID"
+      ],
+      "answer": 1,
+      "explanation": "The register is the same for the operator and the attacker, and an attacker can choose any time or transaction ID. The source MAC shows whether the HMI's own network card sent the frame or another device did."
+    },
+    {
+      "type": "single",
+      "question": "Which change at the switch would have stopped this attack before any stop command was sent?",
+      "options": [
+        "A higher Modbus timeout on the PLC",
+        "Dynamic ARP Inspection with port security",
+        "A longer IDS alert cooldown",
+        "A second HMI polling the PLC"
+      ],
+      "answer": 1,
+      "explanation": "Dynamic ARP Inspection drops forged ARP replies, and port security keeps an unknown device off the port, so the poisoning and the forged connections fail. Timeouts, alert cooldowns and a second HMI do not stop a device from claiming another host's address."
+    }
+  ],
+  "exercises": {
+    "incident": {
+      "type": "sequence",
+      "title": "Rebuild the night",
+      "intro": "A rogue device joined the plant network and stopped the plant. Put its steps in order and give each one its ATT&CK for ICS tactic.",
+      "labels": [
+        "Discovery",
+        "Collection",
+        "Impair Process Control",
+        "Lateral Movement"
+      ],
+      "steps": [
+        {
+          "text": "The device asks who owns each address of the subnet with ARP requests.",
+          "label": "Discovery",
+          "explain": "Before it can attack anything, the device has to learn which hosts exist. An ARP sweep is Remote System Discovery."
+        },
+        {
+          "text": "The device probes the PLC's TCP ports and finds, among others, 102, 502 and 20000 open.",
+          "label": "Discovery",
+          "explain": "Knowing the hosts, it looks for the doors into the PLC. A port scan is also Discovery, and it tells the attacker which protocols it can use."
+        },
+        {
+          "text": "The device tells the PLC that the HMI's and the workstation's IP addresses are at its own MAC address.",
+          "label": "Collection",
+          "explain": "ARP poisoning puts the device in the middle, so the PLC's answers to those addresses reach it. ATT&CK for ICS files Adversary-in-the-Middle under Collection."
+        },
+        {
+          "text": "A Modbus write from the HMI's IP address sets the stop flag.",
+          "label": "Impair Process Control",
+          "explain": "With the poisoned cache the forged connection works, and the command stops the process. An unauthorized command message impairs process control."
+        },
+        {
+          "text": "An S7comm and a DNP3 request set the stop flag again after the operator restarts the plant.",
+          "label": "Impair Process Control",
+          "explain": "Restarting the plant does not remove the attacker, so it simply uses other doors to the same flag. These are more unauthorized command messages."
+        }
+      ]
+    }
+  }
+}
