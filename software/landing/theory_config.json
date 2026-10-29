@@ -971,6 +971,28 @@
           "prerequisites": [
             "risk-assessment"
           ]
+        },
+        {
+          "id": "jaguar-land-rover",
+          "title": "Jaguar Land Rover (2025)",
+          "summary": "An IT attack stopped JLR's factories for five weeks and cost the UK economy an estimated £1.9 billion.",
+          "content": "training/theory/case-studies/jaguar-land-rover.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "defense_network_segmentation",
+              "label": "Network Segmentation"
+            },
+            {
+              "type": "ctf",
+              "id": "incident_pcap",
+              "label": "Incident PCAP"
+            }
+          ],
+          "prerequisites": [
+            "colonial-pipeline",
+            "incident-response"
+          ]
         }
       ]
     }

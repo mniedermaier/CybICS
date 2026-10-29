@@ -1,0 +1,168 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain how switching off IT stopped a just-in-time car factory whose machines are not known to have been attacked",
+    "Describe how the outage spread through the supply chain and why most of the cost fell outside JLR",
+    "Separate what is confirmed about the incident from claims and reports",
+    "Apply the dependency and containment lessons to the CybICS hosts"
+  ],
+  "takeaways": [
+    "JLR shut down its IT to contain the attack, and its factories stopped for about five weeks.",
+    "In just-in-time manufacturing, ordering and scheduling systems are part of production.",
+    "Most of the estimated £1.9 billion UK loss fell on JLR's output and its suppliers, not on repair costs.",
+    "Who did it and how they got in were still unclear months later; you have to decide what to switch off without knowing.",
+    "Segmentation and a planned restart order decide whether you can contain an attack without stopping the plant."
+  ],
+  "checkpoints": [
+    {
+      "id": "stopped",
+      "question": "As far as is known, the robots and conveyors in JLR's plants were not damaged. Why could the plants still not build cars?",
+      "options": [
+        "Without IT there were no build orders and no parts",
+        "The attackers had locked the robot controllers",
+        "The UK government ordered the plants closed"
+      ],
+      "answer": 0,
+      "explanation": "A just-in-time plant needs its IT to know which car to build next and to order the parts that arrive hours before they are fitted. There is no public evidence that the attackers reached the production machines, and the shutdown was JLR's own decision; the government only stepped in later with a loan guarantee."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Where did most of the Cyber Monitoring Centre's estimated £1.9 billion UK loss come from?",
+      "options": [
+        "Lost output at JLR and its suppliers",
+        "A ransom paid to the attackers",
+        "Fines for the leaked customer data",
+        "Replacing damaged factory robots"
+      ],
+      "answer": 0,
+      "explanation": "The CMC put most of the loss down to manufacturing output that never happened, at JLR and along its supply chain. No ransom payment has been reported, data protection fines are not what the estimate measures, and no factory equipment is known to have been damaged."
+    },
+    {
+      "type": "single",
+      "question": "Which ATT&CK for ICS technique best describes five weeks without car production?",
+      "options": [
+        "T0828 Loss of Productivity and Revenue",
+        "T0831 Manipulation of Control",
+        "T0882 Theft of Operational Information",
+        "T0816 Device Restart/Shutdown"
+      ],
+      "answer": 0,
+      "explanation": "The plants could not produce, so the company and its suppliers lost output and revenue. Nobody is known to have manipulated the control of a machine or restarted a device; data was affected, but stolen data is not what stopped the lines. JLR's own shutdown of its IT systems is not T0816 either, which describes an adversary restarting or shutting down control devices."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are confirmed, rather than claimed or reported by anonymous sources?",
+      "options": [
+        "JLR shut down its systems and production stopped",
+        "Some data was affected",
+        "The attackers got in by phoning staff",
+        "A foreign state directed the attack"
+      ],
+      "answer": [
+        0,
+        1
+      ],
+      "explanation": "JLR itself announced the shutdown and later said some data was affected. The phone-call story came from press reports and was contradicted by JLR's own security chief; the Russian link rests on anonymous sources, and a former minister's statement that the attack was state-sponsored was, by his own account, not an official assessment."
+    },
+    {
+      "type": "single",
+      "question": "Why did it make sense to restart with the engine and battery plants?",
+      "options": [
+        "The vehicle lines depend on what they supply",
+        "They were the only plants the attackers never reached",
+        "Engines and batteries need no IT systems to produce",
+        "They had the smallest backlog of all the plants"
+      ],
+      "answer": 0,
+      "explanation": "JLR's engine and battery plants in the West Midlands feed the vehicle lines, so they restarted first and vehicle assembly followed. Restarting is a dependency chain too: the upstream steps come first. The engine plant needed its IT like every other plant, and there is no public evidence about which systems the attackers reached."
+    },
+    {
+      "type": "single",
+      "question": "You have to contain an attacker on CybICS by switching hosts off. Which pair must keep running for the gas plant itself to stay in control?",
+      "options": [
+        "The PLC and the hwio container",
+        "The FUXA HMI and the OPC-UA server",
+        "The landing page and the IDS",
+        "The OPC-UA server and the PLC"
+      ],
+      "answer": 0,
+      "explanation": "The PLC makes the decisions and hwio plays the sensors and actuators; together they keep the pressures in range. Without FUXA the operators lose their view, and without OPC-UA other systems lose their data feed, which hurts, but the plant keeps running. That is the kind of map JLR needed for its own systems."
+    }
+  ],
+  "exercises": {
+    "cascade": {
+      "type": "sequence",
+      "title": "Put the cascade in order",
+      "intro": "Put the events in the order they happened and say who acted at each step.",
+      "labels": [
+        "Attackers",
+        "JLR",
+        "Suppliers",
+        "UK government"
+      ],
+      "steps": [
+        {
+          "text": "Intruders get into JLR's IT network around the end of August 2025.",
+          "label": "Attackers",
+          "explain": "Everything that follows starts here. How they got in is still not public."
+        },
+        {
+          "text": "JLR switches off its IT systems to contain the attack, and its plants stop.",
+          "label": "JLR",
+          "explain": "This was JLR's own decision, taken to stop the attack spreading. Without IT, the just-in-time plants had no build orders and no parts."
+        },
+        {
+          "text": "Parts makers with no orders and no payments send their workers home.",
+          "label": "Suppliers",
+          "explain": "The outage spread down the supply chain within days. Most of the estimated UK loss came from lost output like this."
+        },
+        {
+          "text": "A £1.5 billion loan guarantee is announced to keep the supply chain alive.",
+          "label": "UK government",
+          "explain": "On 28 September, after weeks of standstill, the government guaranteed a commercial loan so JLR could keep paying its suppliers."
+        },
+        {
+          "text": "The engine and battery plants start up again, ahead of vehicle assembly.",
+          "label": "JLR",
+          "explain": "The phased restart began on 8 October. The vehicle lines depend on engines and batteries, so the dependency chain decides the restart order."
+        }
+      ]
+    },
+    "defend": {
+      "type": "sequence",
+      "order": false,
+      "title": "Where would a defence have helped?",
+      "intro": "Each line is one moment of the JLR incident. Give each one the defence from the lesson that would most directly have shortened or limited the outage at that point.",
+      "labels": [
+        "Map production's IT dependencies",
+        "Segment to contain without stopping",
+        "Plan and practise the restart",
+        "Include suppliers in continuity plans"
+      ],
+      "steps": [
+        {
+          "text": "Nobody can build cars, because the line no longer knows what to build next or when parts arrive.",
+          "label": "Map production's IT dependencies",
+          "explain": "Knowing in advance which IT systems the lines need, and how to run without them, even slowly, is what lets a plant keep going when IT is down."
+        },
+        {
+          "text": "To be safe, JLR switches off its IT systems as a whole.",
+          "label": "Segment to contain without stopping",
+          "explain": "If the business network can be isolated and the production systems shown to be untouched, a company has an option besides switching everything off."
+        },
+        {
+          "text": "Weeks pass while systems are checked and restored before the plants can run again.",
+          "label": "Plan and practise the restart",
+          "explain": "Clean backups and a tested restore order, critical systems first, decide how long the outage lasts."
+        },
+        {
+          "text": "Small parts makers run out of money after a few weeks without orders.",
+          "label": "Include suppliers in continuity plans",
+          "explain": "Suppliers depend on the carmaker's systems and payments. Agreeing in advance how orders and payments continue in an outage limits how far it spreads."
+        }
+      ]
+    }
+  }
+}
