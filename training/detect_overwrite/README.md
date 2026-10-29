@@ -42,8 +42,9 @@ The flag has the format `CybICS(flag)`.
    tcpdump -i any -w modbus_attack.pcap 'tcp port 502' &
    ```
 
-3. Run the attack script:
+3. Run the attack script (in the attack shell it is in `/CybICS/training/detect_overwrite`):
    ```bash
+   cd /CybICS/training/detect_overwrite
    python3 override.py 172.18.0.3
    ```
 
@@ -108,7 +109,7 @@ Analyze the captured traffic to understand the attack pattern:
    | What is the attacker's source IP? | Source column in Wireshark |
 
 4. Use Wireshark's **IO Graph** (Statistics -> IO Graphs) to visualize the write rate spike:
-   - Display filter: `modbus.func_code == 16`
+   - Display filter: `modbus.func_code == 6` (`override.py` sends Write Single Register)
    - This shows the dramatic spike during the flooding attack
 
 ### Phase 4: Correlation
@@ -175,7 +176,7 @@ After completing this challenge, consider:
 
 ## Hints
 
-Run `override.py` against the PLC, then query `http://localhost:8443/api/rules/stats`. Look at the `modbus_flood` entry — when `count > 0`, a `flag` field appears in the JSON response. For the PCAP analysis, use Wireshark filter `modbus.func_code == 16` to isolate the write commands.
+Run `override.py` against the PLC, then query `http://localhost:8443/api/rules/stats`. Look at the `modbus_flood` entry — when `count > 0`, a `flag` field appears in the JSON response. For the PCAP analysis, use Wireshark filter `modbus.func_code == 6` to isolate the write commands: `override.py` uses Write Single Register, not Write Multiple Registers (16).
 
 ## Solution
 
