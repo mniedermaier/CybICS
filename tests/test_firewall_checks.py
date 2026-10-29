@@ -1,4 +1,4 @@
-"""The Modbus Firewall verify module, without a stack.
+"""The Modbus Firewall and Network Segmentation verify modules, without a stack.
 
 software/landing/modules/defense_checks/check_firewall.py passes only when
 the PLC has a DROP/REJECT rule, port 502 is closed to the board (172.18.0.1)
@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(ROOT, "software", "landing"))
 try:
     from modules.defense_checks import _reach
     from modules.defense_checks import check_firewall as firewall
+    from modules.defense_checks import check_network_segmentation as segmentation
 except ImportError as error:  # requests missing on this host
     pytest.skip(f"defense checks not importable here ({error})", allow_module_level=True)
 
@@ -80,6 +81,7 @@ def net(monkeypatch):
     monkeypatch.setattr(subprocess, "run", fake.run)
     here = lambda host, port: fake.connects(BOARD, host, port)  # noqa: E731
     monkeypatch.setattr(firewall, "tcp_open_here", here)
+    monkeypatch.setattr(segmentation, "tcp_open_here", here)
     return fake
 
 
@@ -141,3 +143,53 @@ def test_firewall_skips_a_client_that_is_not_running(net):
     net.containers.remove("virtual-fuxa-1")
     assert firewall.verify()["success"]
     assert not any(c[2] == "virtual-fuxa-1" for c in net.commands if c[1] == "exec")
+
+
+# -- Network Segmentation ----------------------------------------------------
+
+def _segment(net):
+    for host, port in ((PLC, 8080), (PLC, 502), (OPCUA, 4840)):
+        net.block({ATTACKER}, host, port)
+
+
+def test_segmentation_unhardened_fails(net):
+    result = segmentation.verify()
+    assert failed(result) == {"Block OpenPLC Web UI (172.18.0.3:8080)",
+                              "Block Modbus TCP (172.18.0.3:502)",
+                              "Block OPC-UA Server (172.18.0.5:4840)"}
+
+
+def test_segmentation_passes(net):
+    _segment(net)
+    assert segmentation.verify()["success"]
+
+
+def test_segmentation_rule_on_an_unrelated_port_fails(net):
+    # A DROP for 172.18.0.100 on port 102 used to pass every check.
+    net.block({ATTACKER}, PLC, 102)
+    net.block({ATTACKER}, OPCUA, 102)
+    assert not segmentation.verify()["success"]
+
+
+def test_segmentation_that_blocks_the_board_too_fails(net):
+    _segment(net)
+    net.block({BOARD}, OPCUA, 4840)
+    assert failed(segmentation.verify()) == {"Services still reachable from the board"}
+
+
+def test_segmentation_that_cuts_the_plant_fails(net):
+    _segment(net)
+    net.block(ALLOWED, PLC, 502)
+    assert failed(segmentation.verify()) == {"Plant's Modbus clients still allowed"}
+
+
+def test_segmentation_works_together_with_the_modbus_firewall(net):
+    _segment(net)
+    net.block(EVERYONE - ALLOWED, PLC, 502)
+    assert segmentation.verify()["success"]
+
+
+def test_segmentation_without_attack_shell_fails(net):
+    _segment(net)
+    net.containers.remove("virtual-attack-shell-1")
+    assert failed(segmentation.verify()) == {"Attack shell running"}

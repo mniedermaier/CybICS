@@ -2034,14 +2034,17 @@ class TestDefenseUnusedProtocols(_CtfProgress):
 @pytest.mark.usefixtures("stack_ready")
 class TestDefenseFirewalls(_CtfProgress):
     """
-    Modbus Firewall Rules end to end, with the README's own commands in the
-    admin shell. The check probes the real connections: a rule set that cuts
-    the OPC-UA gateway off from Modbus (what the README once said) must be
-    refused, the README's rules must pass. The PLC's INPUT chain is empty on
-    a shipped stack and is emptied again in a finally block.
+    Modbus Firewall Rules and Network Segmentation end to end, with the
+    README's own commands in the admin shell. Both checks probe the real
+    connections: a rule set that cuts the OPC-UA gateway off from Modbus
+    (what the README once said) and a DROP for the attacker on an unrelated
+    port must be refused, the README's rules must pass. The PLC's and the
+    OPC-UA server's INPUT chains are empty on a shipped stack and are emptied
+    again in a finally block.
     """
 
     PLC = "docker ps --filter name=openplc --format '{{.Names}}' | head -n1"
+    OPCUA = "docker ps --filter name=opcua --format '{{.Names}}' | head -n1"
 
     def _name(self, find):
         code, out = self._admin(find)
@@ -2094,6 +2097,36 @@ class TestDefenseFirewalls(_CtfProgress):
             assert result.get("flag") == "CybICS(f1r3w4ll_h4rd3n3d)"
         finally:
             self._empty_chains(plc)
+            self._restore(before)
+
+    def test_network_segmentation_is_probed_not_read(self):
+        plc, opcua = self._name(self.PLC), self._name(self.OPCUA)
+        for container in (plc, opcua):
+            assert self._in(container, "iptables -S INPUT").strip() == "-P INPUT ACCEPT", \
+                f"{container}'s INPUT chain is not empty; this test expects a shipped stack"
+        before = self._without("defense_network_segmentation")
+        try:
+            for container in (plc, opcua):
+                self._in(container, "iptables -A INPUT -s 172.18.0.100 -p tcp --dport 102 -j DROP")
+            result = self._verify("defense_network_segmentation")
+            assert not result["success"], result
+            self._empty_chains(plc, opcua)
+
+            for container in (plc, opcua):
+                self._in(container, "iptables -A INPUT -s 172.18.0.100 -j DROP")
+            result = self._verify("defense_network_segmentation")
+            assert result["success"], result
+            assert result.get("flag") == "CybICS(n3tw0rk_s3gm3nt3d)"
+
+            undo = _readme_block("defense_network", "### Undoing it")
+            for line in undo.splitlines():
+                line = line.replace("<openplc_container>", plc).replace("<opcua_container>", opcua)
+                code, out = self._admin(line)
+                assert code == 0, out
+            for container in (plc, opcua):
+                assert self._in(container, "iptables -S INPUT").strip() == "-P INPUT ACCEPT"
+        finally:
+            self._empty_chains(plc, opcua)
             self._restore(before)
 
 

@@ -43,7 +43,7 @@ The challenge asks you to keep the attack machine (`172.18.0.100`) away from thr
 | Modbus TCP | `172.18.0.3:502` |
 | OPC-UA server | `172.18.0.5:4840` |
 
-Real segmentation would put a firewall between two separate networks. In the lab you simulate that boundary with `iptables` rules on the target containers themselves. The check looks at the `INPUT` chain of both the OpenPLC and the OPC-UA container for a `DROP` or `REJECT` rule that names the attack machine's address.
+Real segmentation would put a firewall between two separate networks. In the lab you simulate that boundary with `iptables` rules on the target containers themselves. The check does not read your rules, it tries them: from the attack machine, the web interface, Modbus and OPC-UA must all stay silent, while the CybICS host still reaches the web interface and the OPC-UA server and the plant's own services still reach Modbus.
 
 ## How to approach it
 
