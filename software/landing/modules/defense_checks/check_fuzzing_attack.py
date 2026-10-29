@@ -1,4 +1,4 @@
-"""CTF check: the Modbus fuzzer exercised non-standard function codes."""
+"""CTF check: the Modbus fuzzer exercised non-standard function codes in the last 10 minutes."""
 from modules.defense_checks._ids_rule import rule_fired
 
 
@@ -11,7 +11,8 @@ def verify():
         "passed": fired,
         "detail": "The plant received diagnostic or non-standard Modbus function codes."
         if fired else
-        "No fuzzing traffic detected yet. Run the Modbus fuzzer against the plant and try again.",
+        "No fuzzing traffic detected in the last 10 minutes. Run the Modbus fuzzer against the "
+        "plant and verify right after.",
     }]
     return {
         "success": fired,

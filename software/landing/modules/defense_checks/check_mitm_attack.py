@@ -3,6 +3,7 @@
 The challenge asks for ARP poisoning (arpspoof or arp_spoof.py), which the IDS
 raises as arp_spoof: an address announced by a second MAC that also answers
 for another address. A container recreated with a new MAC does not raise it.
+Only an alert from the last 10 minutes counts (see _ids_rule.py).
 """
 from modules.defense_checks._ids_rule import rule_fired
 
@@ -16,7 +17,8 @@ def verify():
         "passed": fired,
         "detail": "ARP poisoning between FUXA and the PLC was seen on the wire."
         if fired else
-        "No ARP poisoning detected yet. Run the arpspoof man-in-the-middle, then try again.",
+        "No ARP poisoning detected in the last 10 minutes. Run the arpspoof man-in-the-middle "
+        "and verify while it runs.",
     }]
     return {
         "success": fired,

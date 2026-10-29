@@ -37,7 +37,7 @@ The flag has the format `CybICS(flag)`.
 2. Install Python dependencies with pip
 3. Run the fuzzer against the OpenPLC Modbus service on port 502
 4. Select a fuzzing mode from the menu and let the fuzzer run to completion
-5. Include the diagnostic function-code fuzzing (Modbus FC 0x08) in your run, then click **Verify** on the challenge page. It confirms the fuzzer reached the PLC and reveals the flag.
+5. Include the diagnostic function-code fuzzing (Modbus FC 0x08) in your run, then click **Verify** on the challenge page within 10 minutes. It confirms the fuzzer reached the PLC and reveals the flag. An older run does not count, so run the fuzzer again if you took a break.
 
 ## Using the Modbus Fuzzer
 
