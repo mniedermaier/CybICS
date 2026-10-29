@@ -1373,6 +1373,56 @@ class TestIncidentPcap(_CtfProgress):
 
 
 # ===============================================================================
+# Physics Never Lies (physics_forensics)
+# ===============================================================================
+
+class TestPhysicsForensics(_CtfProgress):
+    """
+    Physics Never Lies end to end: the landing page serves the historian
+    export the README links to, byte for byte the committed file; the
+    analysis in tests/test_physics_forensics.py (the README's rules,
+    independent of the generator) reads the three answers out of the
+    download; verify refuses the tempting wrong answers (the later sysSen
+    contradiction, the value the HMI showed, the GST) and hands out the flag
+    for the right ones. Nothing touches the plant; only the CTF progress
+    changes and it is put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/physics_forensics", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_the_served_export_yields_the_flag(self):
+        from test_physics_forensics import analyse
+        r = requests.get(f"{self.BASE}/ctf/challenge/physics_forensics/historian.csv",
+                         timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        committed = (Path(__file__).resolve().parent.parent / "training" / "physics_forensics"
+                     / "historian.csv").read_bytes()
+        assert r.content == committed, "landing serves a stale export: rebuild landing"
+
+        found = analyse(r.content.decode("utf-8"))
+        answers = {"forged_value": found["forged"],
+                   "first_forged": found["first"].split()[1],
+                   "true_hpt": str(found["true_hpt"])}
+
+        before = self._without("physics_forensics")
+        try:
+            for wrong in ({**answers, "first_forged": found["sensor_lie"]},
+                          {**answers, "true_hpt": str(found["shown_last"])},
+                          {**answers, "forged_value": "gst"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
 # Trusted Writer (fuxa_trusted_writer)
 # ===============================================================================
 

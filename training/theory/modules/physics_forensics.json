@@ -1,0 +1,109 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Write the physics of the CybICS plant as invariants that must hold from one tick to the next",
+    "Tell an unusual but physically possible record from one the plant cannot have produced",
+    "Find when a forged sensor value began and reconstruct the real value from a conservation law"
+  ],
+  "takeaways": [
+    "A forged value can look normal on its own; it gives itself away when it disagrees with physics.",
+    "The compressor takes 2 bar from the GST for every bar it puts into the HPT, so the GST is a witness for the HPT.",
+    "A signal computed from the real process, like sysSen, contradicts a value forged on its way to the PLC.",
+    "The first broken rule marks the start of the forgery; later contradictions only show how far it went.",
+    "Live invariant checks, independent measurements and interlocks on the real process keep one false value from driving a plant."
+  ],
+  "checkpoints": [
+    {
+      "id": "balance",
+      "question": "The compressor ran for 10 ticks with the refill off and the blow-out valve shut. The GST fell from 200 to 180. How much did the real HPT rise?",
+      "options": [
+        "By 10 bar",
+        "By 20 bar",
+        "By 5 bar",
+        "It depends on the HPT the screen showed"
+      ],
+      "answer": 0,
+      "explanation": "Each compressor tick moves 2 bar out of the GST and 1 bar into the HPT: 20 bar out means 10 bar in. 20 would forget the 2-to-1 exchange rate, and what the screen showed is exactly the value that cannot be trusted."
+    }
+  ],
+  "exercises": {
+    "verdict": {
+      "type": "sequence",
+      "order": false,
+      "title": "Physics or forgery?",
+      "intro": "Each line is the change from one historian row to the next, with the coils of the first row. Label it Physics if the plant can do it, Forgery if it cannot.",
+      "labels": ["Physics", "Forgery"],
+      "steps": [
+        {"text": "Compressor on, refill off: GST 180 to 178, HPT 70 to 71", "label": "Physics", "explain": "Exactly the compressor's exchange: 2 bar out of the GST, 1 bar into the HPT."},
+        {"text": "Compressor on, refill on: GST 180 to 181, HPT 70 to 71", "label": "Physics", "explain": "The compressor took 2 bar, the refill added 3 in the same tick. The GST may rise while the compressor runs."},
+        {"text": "Compressor on, refill off: GST 180 to 178, HPT stays at 70", "label": "Forgery", "explain": "The gas left the GST but never arrived in the HPT. A running compressor always adds exactly 1 bar."},
+        {"text": "Compressor off, valve closed, refill off: both pressures unchanged for five minutes", "label": "Physics", "explain": "Nothing moves gas in or out, so nothing changes. A stopped plant looks frozen, and that is physics."},
+        {"text": "Compressor off, valve open: HPT 70 to 72", "label": "Forgery", "explain": "With the compressor off, nothing fills the HPT; the open valve can only lower it."},
+        {"text": "HPT reads 80 with the valve open, but sysSen is 0", "label": "Forgery", "explain": "sysSen comes from the real HPT. With the valve open it is 1 whenever the real HPT is between 51 and 99, so the real tank is outside that band."},
+        {"text": "Compressor off, valve open: HPT 80 to 78", "label": "Physics", "explain": "The downstream system used 2 bar, the most it can use in one tick."}
+      ]
+    }
+  },
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why is a process invariant a good way to catch a forged sensor value?",
+      "options": [
+        "The forged value must also agree with every related value",
+        "Forged values always stay perfectly flat over time",
+        "The PLC refuses values that change too slowly",
+        "Modbus marks every value that an attacker has written into a register"
+      ],
+      "answer": 0,
+      "explanation": "To pass an invariant check the attacker has to forge every related signal consistently, which is much harder than forging one. Forged values need not be flat: the one in this challenge creeps upward to look normal. The PLC accepts any value, and Modbus carries no marks of who wrote what."
+    },
+    {
+      "type": "single",
+      "question": "In a historian export the GST rises by 1 in a tick while the compressor runs. What does that tell you?",
+      "options": [
+        "Nothing suspicious if the refill was on in that tick",
+        "The GST value must be forged, since a running compressor always takes 2 bar",
+        "The compressor must have been off",
+        "The HPT must have fallen by 1 bar"
+      ],
+      "answer": 0,
+      "explanation": "The compressor takes 2 bar, but the refill can add up to 3 in the same tick, so a net +1 is possible. Calling it forgery would be a false alarm; that is why the rule has to include the refill."
+    },
+    {
+      "type": "single",
+      "question": "During an attack the gas balance breaks at 02:10 and sysSen first contradicts the valve at 02:12. When did the forgery most likely start?",
+      "options": [
+        "At 02:10, when the first rule broke",
+        "At 02:12, when sysSen contradicted the valve",
+        "Halfway between the two contradictions",
+        "At the last row of the historian export"
+      ],
+      "answer": 0,
+      "explanation": "sysSen only reacts once the real HPT leaves its band, which takes time while the forged value stays inside it. The earliest broken rule is the best estimate of the start."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these would have warned the operators while the HPT was being forged?",
+      "options": [
+        "An alarm when the compressor runs but the HPT does not rise",
+        "A mechanical pressure gauge read on the operator's rounds",
+        "A compressor run-time alarm",
+        "A faster refresh rate on the HMI screen"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "The invariant alarm, an independent gauge and a run-time alarm all compare the forged value with something the attacker does not control. Refreshing the HMI faster only shows the forged value more often."
+    },
+    {
+      "type": "single",
+      "question": "The HPT was 65 bar in the last trusted row. Since then the compressor ran every tick, the refill was off, the blow-out valve stayed shut and the GST fell by 60 bar. What is the real HPT now?",
+      "options": [
+        "95 bar",
+        "125 bar",
+        "65 bar",
+        "185 bar"
+      ],
+      "answer": 0,
+      "explanation": "60 bar out of the GST is 30 bar into the HPT: 65 + 30 = 95. Adding the full 60 forgets the 2-to-1 exchange rate."
+    }
+  ]
+}

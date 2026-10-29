@@ -59,6 +59,7 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 | [Trusted Writer](fuxa_trusted_writer/README.md) | Execution, Evasion, Impair Process Control, Impact | Execution through API, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | T0871, T1692.001, T0831, T0826 |
 | [IDS Forensics](ids_forensics/README.md) | *Defensive* | D3FEND: Network Traffic Analysis, Alert Triage | D3-NTA, D3-AT |
 | [Incident PCAP](incident_pcap/README.md) | *Defensive* (reconstructs Discovery, Collection, Impair Process Control, Impact) | D3FEND: Network Traffic Analysis, Protocol Metadata Anomaly Detection, Application Protocol Command Analysis; ATT&CK for ICS: Remote System Discovery, Port Scan, Adversary-in-the-Middle, Unauthorized Message: Command Message, Manipulation of Control, Loss of Availability | D3-NTA, D3-PMAD, D3-APCA; T0846, T0846.001, T0830, T1692.001, T0831, T0826 |
+| [Physics Never Lies](physics_forensics/README.md) | *Defensive* (reconstructs Collection, Evasion, Impair Process Control, Impact) | D3FEND: Operational Process Monitoring, Domain Logic Validation, Operational Logic Validation; ATT&CK for ICS: Adversary-in-the-Middle, Unauthorized Message: Reporting Message, Manipulation of View, Manipulation of Control | D3-OPM, D3-DLV, D3-OLV; T0830, T1692.002, T0832, T0831 |
 
 ## 📦 Prerequisites
 
@@ -125,16 +126,17 @@ shell (WebShell view, *Admin shell*), not from the attack shell.
 20. [IDS Challenge](ids_challenge/README.md) - Trigger IDS detection rules and retrieve the flag
 21. [IDS Forensics](ids_forensics/README.md) - Analyze IDS alert data for incident investigation
 22. [Incident PCAP](incident_pcap/README.md) - Rebuild a night of plant stops from a capture and unmask the device behind the borrowed addresses
-23. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
-24. [Trusted writer](fuxa_trusted_writer/README.md) - Make the HMI stop the plant for you, from the one address the IDS never counts
+23. [Physics Never Lies](physics_forensics/README.md) - Catch a forged pressure reading in a historian export with nothing but the plant's physics
+24. [IDS Evasion](ids_evasion/README.md) - Perform stealth Modbus writes without triggering alerts
+25. [Trusted writer](fuxa_trusted_writer/README.md) - Make the HMI stop the plant for you, from the one address the IDS never counts
 
 ### 🛡️ Defense & Hardening
-25. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
-26. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
-27. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
-28. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
-29. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
-30. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
+26. [Credential Hardening](defense_password/README.md) - Change default passwords on OpenPLC and FUXA
+27. [Rotate the FUXA token key](defense_fuxa_jwt/README.md) - Give the HMI a signing key of its own so forged sessions are refused
+28. [Modbus Firewall Rules](defense_firewall/README.md) - Restrict Modbus access with iptables
+29. [Close the Side Doors](defense_unused_protocols/README.md) - Switch off the PLC protocols the plant does not use and firewall the one without a switch
+30. [Network Segmentation](defense_network/README.md) - Block attack machine from critical services
+31. [IDS Monitoring & Tuning](defense_ids/README.md) - Ensure IDS is running and detecting threats
 
 ---
 

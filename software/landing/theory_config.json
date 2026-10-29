@@ -677,6 +677,24 @@
             "ids_forensics",
             "incident-response"
           ]
+        },
+        {
+          "id": "physics_forensics",
+          "title": "Physics as a witness",
+          "summary": "Catching a forged sensor value with the plant's own physics: invariants, the gas balance and signals the attacker could not reach.",
+          "content": "training/theory/modules/physics_forensics.md",
+          "related": [
+            {
+              "type": "ctf",
+              "id": "physics_forensics",
+              "label": "Physics Never Lies"
+            }
+          ],
+          "prerequisites": [
+            "physical_process",
+            "mitm",
+            "detection-monitoring"
+          ]
         }
       ]
     },

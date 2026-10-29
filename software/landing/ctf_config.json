@@ -375,6 +375,38 @@
           "training_content": "training/incident_pcap/README.md"
         },
         {
+          "id": "physics_forensics",
+          "title": "Physics Never Lies",
+          "description": "One night the compressor ran for minutes on end while the HMI showed a calm, normal tank. The historian export is all you have. Use the plant's physics to find the forged value, the moment it started to lie and the real pressure it was hiding.",
+          "points": 300,
+          "type": "verify",
+          "verify_module": "check_physics_forensics",
+          "tag": "analysis",
+          "flag": "CybICS(phys1cs_n3v3r_l13s)",
+          "hint": "Write down what the plant can do in one cycle: how much gas the compressor takes from the GST and how much it puts into the HPT. Then find the first row that breaks that rule, not the first row that looks odd.",
+          "answers": [
+            {
+              "name": "forged_value",
+              "label": "Which recorded value was forged? (column name or register)",
+              "placeholder": "e.g. gst or 1124",
+              "max_length": 40
+            },
+            {
+              "name": "first_forged",
+              "label": "Time stamp of the first row the plant cannot have produced",
+              "placeholder": "e.g. 01:42:17.3",
+              "max_length": 32
+            },
+            {
+              "name": "true_hpt",
+              "label": "Real HPT pressure in the last row of the export, in bar",
+              "placeholder": "e.g. 120",
+              "max_length": 10
+            }
+          ],
+          "training_content": "training/physics_forensics/README.md"
+        },
+        {
           "id": "ids_evasion",
           "title": "IDS Evasion",
           "description": "Perform a stealth Modbus write without triggering any IDS alerts",
