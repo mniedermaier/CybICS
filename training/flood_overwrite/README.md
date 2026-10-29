@@ -137,5 +137,5 @@ Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pr
   - Operator notifications for corrective measures
   - Potential actions: reducing heat or shutting down components
 
-Flood the HPT pressure register (holding register 1126, `%MW102`) with Modbus writes, then click **Verify** on the challenge page. The flag is revealed once the flood has been observed on the wire.
+Flood the HPT pressure register (holding register 1126, `%MW102`) with Modbus writes, then click **Verify** on the challenge page while the flood runs or within 10 minutes after it. The flag is revealed once the IDS has seen the flood in that window; an older flood does not count.
 

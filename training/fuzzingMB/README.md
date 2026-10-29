@@ -152,4 +152,4 @@ Run the cloned fuzzer with `python3 modbus.py`, enter the target IP and port 502
 
 ## Solution
 
-Fuzz the OpenPLC Modbus service on port 502, including the diagnostic function codes, then click **Verify** on the challenge page. The flag is revealed once the fuzzing traffic has been observed.
+Fuzz the OpenPLC Modbus service on port 502, including the diagnostic function codes, then click **Verify** on the challenge page within 10 minutes. The flag is revealed once the IDS has seen the diagnostic fuzzing in that window; an older run does not count.
