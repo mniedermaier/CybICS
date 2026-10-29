@@ -105,9 +105,10 @@ Capture and analyze network traffic to find the flag hidden in Modbus register w
 The flag has the format `CybICS(flag)`.
 
 ### Steps
-1. Set up SSH key authentication and start a remote packet capture using tcpdump
+1. Set up SSH key authentication and start a remote packet capture using tcpdump,
+   or start a capture on the plant network in the landing page's **Sharky** view
 2. Let the capture run for 30-60 seconds to collect Modbus traffic
-3. Open the capture file in Wireshark
+3. Open the capture in Wireshark (from Sharky, export it as a pcap file first)
 4. Filter for Modbus write operations (function codes 06 and 16)
 5. Inspect the register data in write packets for ASCII-encoded flag content
 
@@ -145,7 +146,7 @@ Examine the **data values** being written to registers — in a CTF context, fla
 |-----------|-----|-------------|
 | Network Traffic Analysis | [D3-NTA](https://d3fend.mitre.org/technique/d3f:NetworkTrafficAnalysis/) | Using the same techniques defensively to detect anomalies |
 | Encrypted Tunnels | [D3-ET](https://d3fend.mitre.org/technique/d3f:EncryptedTunnels/) | Encrypting industrial protocol traffic to prevent sniffing |
-| Network Segmentation | [D3-NI](https://d3fend.mitre.org/technique/d3f:NetworkIsolation/) | Isolating OT networks to limit sniffing opportunities |
+| Network Isolation | [D3-NI](https://d3fend.mitre.org/technique/d3f:NetworkIsolation/) | Isolating OT networks to limit sniffing opportunities |
 
 ### NIST SP 800-82r3 Reference
 
