@@ -289,6 +289,16 @@
               "type": "ctf",
               "id": "scanning",
               "label": "Service Scanning"
+            },
+            {
+              "type": "ctf",
+              "id": "dnp3_sidedoor",
+              "label": "DNP3 Side Door"
+            },
+            {
+              "type": "ctf",
+              "id": "openplc_restapi",
+              "label": "The Forgotten API"
             }
           ],
           "prerequisites": [
