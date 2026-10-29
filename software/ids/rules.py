@@ -52,6 +52,9 @@ KNOWN_SERVICES = {
 # general.
 MODBUS_WRITE_FUNCTIONS = {0x05, 0x06, 0x0F, 0x10}
 MODBUS_DIAGNOSTIC = {0x08, 0x2B}
+# Request-line words of a login POST: OpenPLC's /login, FUXA's /api/signin
+# and any .../auth... route.  Matched lower-cased in the first 200 bytes.
+_HTTP_LOGIN_WORDS = (b"login", b"signin", b"auth")
 
 # S7comm memory areas, as they appear in a read/write item's area byte.
 S7_AREAS = {0x81: "PE", 0x82: "PA", 0x83: "MK", 0x84: "DB", 0x1C: "CT", 0x1D: "TM"}
@@ -480,7 +483,7 @@ class RuleEngine:
         if b"POST" not in payload[:200]:
             return
         payload_lower = payload[:200].lower()
-        if b"login" not in payload_lower and b"auth" not in payload_lower:
+        if not any(word in payload_lower for word in _HTTP_LOGIN_WORDS):
             return
         now = time.time()
         count = self._track_event(

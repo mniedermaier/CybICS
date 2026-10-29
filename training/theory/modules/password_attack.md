@@ -65,7 +65,7 @@ Each target is its own challenge. For OpenPLC you read the flag in the account y
 
 ## Detect and defend
 
-Guessing is noisy: it produces many failed logins from one source in a short time. The CybICS IDS has an `http_brute_force` rule that counts POST requests to port 8080 or 1881 whose first bytes mention `login` or `auth`. Five within thirty seconds from one source raise a high-severity alert. OpenPLC's login form matches; FUXA's `/api/signin` contains neither word, so guessing at FUXA raises no alert from this rule. Web servers usually log failed logins too, which gives a second place to look.
+Guessing is noisy: it produces many failed logins from one source in a short time. The CybICS IDS has an `http_brute_force` rule that counts POST requests to port 8080 or 1881 whose first bytes mention `login`, `signin` or `auth`. Five within thirty seconds from one source raise a high-severity alert, for OpenPLC's login form and for FUXA's `/api/signin` alike. Web servers usually log failed logins too, which gives a second place to look.
 
 Defences, roughly from most to least important:
 

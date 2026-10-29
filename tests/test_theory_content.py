@@ -496,21 +496,24 @@ def test_before_you_start_points_back(topic):
         assert TOPIC_IDS.index(target) < here, f"{topic['id']} asks to read {target} first, which comes later"
 
 
-def test_fuxa_password_guessing_is_not_claimed_as_detected():
-    """http_brute_force only counts requests that mention login or auth, and
-    FUXA's /api/signin mentions neither. Claims about the rule must say so."""
+def test_lessons_match_what_http_brute_force_detects():
+    """http_brute_force counts POSTs that mention one of _HTTP_LOGIN_WORDS.
+    It once missed FUXA's /api/signin and the lessons said so; now it matches
+    both login forms, and the lessons must not claim FUXA guessing is silent."""
     with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
         rules = f.read()
-    keywords = re.findall(r'b"(\w+)" not in payload_lower', rules)
-    assert keywords and not any(k in "/api/signin" for k in keywords), "the rule now matches FUXA; update this test and the lessons"
+    words = re.search(r"_HTTP_LOGIN_WORDS = \(([^)]*)\)", rules).group(1)
+    keywords = re.findall(r'b"(\w+)"', words)
+    for path in ("/login", "/api/signin"):
+        assert any(k in path for k in keywords), f"the rule no longer matches {path}; update the lessons"
     for topic in TOPICS:
         for row in table_rows(article(topic)):
             text = " ".join(row)
             if "http_brute_force" in text and ("1881" in text or "FUXA" in text):
-                assert "signin" in text, f"{topic['id']}: {text}"
+                assert "signin" in text and "does not" not in text, f"{topic['id']}: {text}"
     with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
         fuxa = re.search(r"\{ id: 'fuxa',.*?ids: '((?:[^'\\]|\\.)*)' \}", f.read(), re.S).group(1)
-    assert "brute" not in fuxa or "no alert" in fuxa, fuxa
+    assert "raises http_brute_force" in fuxa, fuxa
 
 
 MAX_MINUTES = 8

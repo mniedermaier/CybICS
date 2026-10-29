@@ -403,7 +403,7 @@
         { level: 'Level 2', name: 'Supervisory control', hint: 'HMI, SCADA, gateways', hosts: [
             { id: 'fuxa', name: 'FUXA HMI', ip: '172.18.0.4', ports: '1881 (web HMI)',
               role: 'The operators\' screen. It polls the PLC over Modbus and writes set points when an operator presses a button.',
-              attacks: ['password_attack', 'mitm'], ids: 'Expected Modbus writer: its writes raise no alert. Its sign-in (/api/signin) does not match the http_brute_force rule, so password guessing against it raises no alert.' },
+              attacks: ['password_attack', 'mitm'], ids: 'Expected Modbus writer: its writes raise no alert. Password guessing against its sign-in (/api/signin) raises http_brute_force.' },
             { id: 'opcua', name: 'OPC-UA server', ip: '172.18.0.5', ports: '4840 (OPC-UA)',
               role: 'A gateway that offers the plant values to other systems over OPC-UA, a modern protocol with built-in security options.',
               attacks: ['opcua'], ids: 'OPC-UA sessions from hosts that are not expected clients raise an alert.' },

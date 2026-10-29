@@ -35,7 +35,7 @@ The IDS runs on the CybICS host and listens to all traffic on the plant network 
 | `modbus_unauth_write` | 10 or more Modbus writes in 30 s from a host other than hwio or FUXA | high |
 | `modbus_diagnostic` | Modbus function code 8 or 43 | medium |
 | `s7_enumeration` | any S7comm traffic to port 102 or 1102 | medium |
-| `http_brute_force` | 5 or more POSTs in 30 s to port 8080 or 1881 that mention `login` or `auth` (OpenPLC's login does, FUXA's `/api/signin` does not) | high |
+| `http_brute_force` | 5 or more POSTs in 30 s to port 8080 or 1881 that mention `login`, `signin` or `auth` (OpenPLC's `/login`, FUXA's `/api/signin`) | high |
 | `arp_spoof` | one IP address seen with two different MAC addresses within 5 minutes, where the newer MAC also claims another address | critical |
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low |
 | `s7_write` | an S7comm write request to port 102 or 1102; the alert names the address and value written | high |

@@ -192,6 +192,6 @@ The habit to build: when an alert or a report cites a technique ID, look it up o
 <summary>Instructor notes</summary>
 
 - The IDS (`software/ids/rules.py`) still labels its alerts with the older IDs T0855, T0856 and T0812. Students who look them up will be redirected to the T1692/T1694 entries; the deep dive above prepares them for that.
-- The `http_brute_force` rule only counts POSTs whose request contains `login` or `auth`. OpenPLC's `/login` matches; FUXA's sign-in route (`/api/signin` on port 1881) does not, so a FUXA password attack raises no brute-force alert. A good class discussion on how signature rules fail.
+- The `http_brute_force` rule only counts POSTs whose request contains `login`, `signin` or `auth`. That covers OpenPLC's `/login` and FUXA's `/api/signin` (port 1881), which it missed until the word `signin` was added; a login route with any other name would still raise no alert. A good class discussion on how signature rules fail.
 
 </details>

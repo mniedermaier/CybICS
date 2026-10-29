@@ -1282,3 +1282,34 @@ def test_arp_tables_stay_bounded_under_forged_macs():
     assert len(engine.arp_tracker) <= rules.ARP_MAX_TRACKED
     assert len(engine.arp_claims) <= rules.ARP_MAX_TRACKED
     assert all(len(m) <= rules.ARP_MAX_MACS_PER_IP for m in engine.arp_tracker.values())
+
+
+# --- Rule 7: HTTP brute force ------------------------------------------------
+
+def _login_post(path, dport):
+    payload = (f"POST {path} HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\n"
+               "\r\n").encode()
+    return (ATTACK_MACHINE, OPENPLC if dport == 8080 else "172.18.0.4",
+            51000, dport, "PA", 6, payload, None)
+
+
+@pytest.mark.parametrize("path, dport, target", [
+    ("/login", 8080, "OpenPLC"),
+    ("/api/signin", 1881, "FUXA"),
+])
+def test_http_brute_force_fires_on_both_login_forms(path, dport, target):
+    """FUXA's login is POST /api/signin: no "login" in it, and it went unseen."""
+    engine = rules.RuleEngine()
+    alerts = []
+    for _ in range(engine.HTTP_BRUTE_THRESHOLD):
+        alerts += engine.check_packet(_login_post(path, dport))
+    brute = [a for a in alerts if a["rule"] == "http_brute_force"]
+    assert len(brute) == 1 and target in brute[0]["message"]
+
+
+def test_http_brute_force_ignores_the_hmi_socket_io_polling():
+    engine = rules.RuleEngine()
+    alerts = []
+    for _ in range(3 * engine.HTTP_BRUTE_THRESHOLD):
+        alerts += engine.check_packet(_login_post("/socket.io/?EIO=3&transport=polling", 1881))
+    assert not [a for a in alerts if a["rule"] == "http_brute_force"]
