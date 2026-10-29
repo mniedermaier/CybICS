@@ -1,6 +1,6 @@
 # PLC Programming Guide
 
-> **MITRE ATT&CK for ICS:** `Execution` `Persistence` | [T0889 - Modify Program](https://attack.mitre.org/techniques/T0889/) | [T0843 - Program Download](https://attack.mitre.org/techniques/T0843/)
+> **MITRE ATT&CK for ICS:** `Persistence` `Lateral Movement` | [T0889 - Modify Program](https://attack.mitre.org/techniques/T0889/) | [T0843 - Program Download](https://attack.mitre.org/techniques/T0843/)
 
 ## Overview
 This module introduces the concept of programming the PLC in the CybICS testbed.
@@ -111,8 +111,8 @@ This mirrors the real attacker workflow of downloading modified logic to a contr
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Execution | Modify Program | [T0889](https://attack.mitre.org/techniques/T0889/) | Adversaries may modify or add programs on controllers to affect how they interact with physical processes |
-| Persistence | Program Download | [T0843](https://attack.mitre.org/techniques/T0843/) | Adversaries may download programs to controllers to establish persistence or modify process behavior |
+| Persistence | Modify Program | [T0889](https://attack.mitre.org/techniques/T0889/) | Adversaries may modify or add programs on controllers to affect how they interact with physical processes |
+| Lateral Movement | Program Download | [T0843](https://attack.mitre.org/techniques/T0843/) | Adversaries may download programs to controllers to establish persistence or modify process behavior |
 
 **Why this matters:** PLC program modification is one of the most impactful attack vectors in ICS environments. Attacks like Stuxnet used modified PLC code to cause centrifuge damage while hiding the manipulation from operators. Understanding legitimate PLC programming helps you recognize unauthorized changes and implement proper change management controls.
 
@@ -121,7 +121,7 @@ This mirrors the real attacker workflow of downloading modified logic to a contr
 | Technique | ID | Description |
 |-----------|-----|-------------|
 | Firmware Verification | [D3-FV](https://d3fend.mitre.org/technique/d3f:FirmwareVerification/) | Verifying firmware integrity to detect unauthorized modifications |
-| File Hash Checking | [D3-FHC](https://d3fend.mitre.org/technique/d3f:FileHashChecking/) | Comparing file hashes to detect unauthorized program changes |
+| File Hashing | [D3-FH](https://d3fend.mitre.org/technique/d3f:FileHashing/) | Comparing file hashes to detect unauthorized program changes |
 | Operational Logic Validation | [D3-OLV](https://d3fend.mitre.org/technique/d3f:OperationalLogicValidation/) | Validating that operational logic matches expected behavior |
 
 ### NIST SP 800-82r3 Reference

@@ -29,8 +29,8 @@ The technique IDs follow the current ATT&CK for ICS catalogue. Several older IDs
 
 | Module | Tactic | Techniques | IDs |
 |--------|--------|------------|-----|
-| [Physical Process](physical_process/README.md) | Impair Process Control | Manipulation of Control | T0831 |
-| [PLC Programming](plc_programming/README.md) | Execution, Persistence | Modify Program, Program Download | T0889, T0843 |
+| [Physical Process](physical_process/README.md) | Impact | Manipulation of Control | T0831 |
+| [PLC Programming](plc_programming/README.md) | Persistence, Lateral Movement | Modify Program, Program Download | T0889, T0843 |
 | [Service Scanning](scanning/README.md) | Discovery | Remote System Discovery, Network Connection Enumeration | T0846, T0840 |
 | [S7comm Scanning](scanning2/README.md) | Discovery | Remote System Discovery, Remote System Information Discovery | T0846, T0888 |
 | [HMI Project Recon](hmi_project_recon/README.md) | Collection | Data from Information Repositories, Point & Tag Identification, Monitor Process State | T0811, T0861, T0801 |

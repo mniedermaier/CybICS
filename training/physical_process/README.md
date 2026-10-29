@@ -1,6 +1,6 @@
 # Understanding the Physical Process
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/)
+> **MITRE ATT&CK for ICS:** `Impact` | [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/)
 
 ## Overview
 Every attack on an industrial facility ends in the physical world: a tank that overfills, a valve that opens at the wrong time, a machine that stops. Before attacking CybICS, learn what it controls.
@@ -47,7 +47,7 @@ Afterwards, put the plant back: open the system valve, switch the compressor off
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Adversaries may manipulate physical process control within the industrial environment to cause a disruption |
+| Impact | Manipulation of Control | [T0831](https://attack.mitre.org/techniques/T0831/) | Adversaries may manipulate physical process control within the industrial environment to cause a disruption |
 
 **Why this matters:** This training demonstrates how an operator (or attacker with operator access) can manipulate process control parameters to cause unsafe conditions. In real-world attacks like Stuxnet or TRITON, adversaries manipulated control systems to cause physical damage or safety incidents. Understanding normal process operation is essential before learning to detect malicious manipulation.
 
@@ -56,7 +56,6 @@ Afterwards, put the plant back: open the system valve, switch the compressor off
 | Technique | ID | Description |
 |-----------|-----|-------------|
 | Operational Process Monitoring | [D3-OPM](https://d3fend.mitre.org/technique/d3f:OperationalProcessMonitoring/) | Monitoring operational processes for anomalies that may indicate compromise |
-| Physical Environment Monitoring | [D3-PEM](https://d3fend.mitre.org/technique/d3f:PhysicalEnvironmentMonitoring/) | Monitoring physical environment conditions to detect abnormal states |
 
 ### NIST SP 800-82r3 Reference
 
