@@ -250,10 +250,32 @@ def test_the_shipped_keyfile_matches_the_fallback_profile():
     assert sections['connection']['id'] == ctf_uplink.UPLINK_CONNECTION
     assert sections['connection']['interface-name'] == ctf_uplink.UPLINK_INTERFACE
     assert sections['connection']['autoconnect'] == ('true' if ctf_uplink.PROFILE_AUTOCONNECT else 'false')
+    assert sections['connection']['autoconnect-retries'] == \
+        ctf_uplink.PROFILE_OPTIONS['connection.autoconnect-retries'] == '0'
     assert sections['ipv4']['never-default'] == 'true'
     assert sections['ipv6']['method'] == ctf_uplink.PROFILE_OPTIONS['ipv6.method']
     assert sections['wifi']['ssid'] == ctf_uplink.PROFILE_OPTIONS['wifi.ssid']
     assert sections['wifi-security']['psk'] == ctf_uplink.PROFILE_OPTIONS['wifi-sec.psk']
+
+
+@pytest.mark.parametrize('retries, changed', [(None, True), ('-1 (default)', True), ('4', True),
+                                              ('0 (forever)', False), ('0', False)])
+def test_a_profile_from_an_older_image_keeps_retrying(retries, changed):
+    nmcli = FakeNmcli()
+    if retries is not None:
+        nmcli.profile['connection.autoconnect-retries'] = retries
+    ctf_uplink.Uplink(nmcli).keep_retrying()
+    expected = [('modify', ctf_uplink.UPLINK_CONNECTION, {'connection.autoconnect-retries': '0'})]
+    assert nmcli.calls == (expected if changed else [])
+
+
+def test_keeping_retrying_needs_a_profile_and_never_raises():
+    nmcli = FakeNmcli(profile=False)
+    ctf_uplink.Uplink(nmcli).keep_retrying()
+    assert nmcli.calls == []
+    nmcli = FakeNmcli()
+    nmcli.fail = 'nmcli is gone'
+    ctf_uplink.Uplink(nmcli).keep_retrying()   # logged, not raised
 
 
 def test_the_default_network_matches_the_landing_page():

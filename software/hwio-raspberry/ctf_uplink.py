@@ -39,6 +39,10 @@ STATUS_REFRESH = 15
 # installRPI.sh before this existed.
 PROFILE_AUTOCONNECT = True
 PROFILE_OPTIONS = {
+    # Keep trying for good. NetworkManager's default gives up after four
+    # failed attempts, and a board that lost cybics-mgmt (the access point
+    # full, out of range for a while) then stayed off the server.
+    'connection.autoconnect-retries': '0',
     'wifi.mode': 'infrastructure',
     # The default network of the CybICS-mgmt Raspberry Pi image.
     'wifi.ssid': 'cybics-mgmt',
@@ -97,6 +101,20 @@ class Uplink:
         logger.info('Uplink  : creating the %s profile', UPLINK_CONNECTION)
         self.nmcli.connection.add('wifi', PROFILE_OPTIONS, self.interface,
                                   UPLINK_CONNECTION, PROFILE_AUTOCONNECT)
+
+    def keep_retrying(self):
+        """Give a profile from an older image the retries of PROFILE_OPTIONS. Never raises."""
+        key = 'connection.autoconnect-retries'
+        try:
+            if not self._profile_exists():
+                return   # ensure_profile() creates it with them
+            # nmcli adds a gloss to the value, e.g. '-1 (default)' or '0 (forever)'.
+            current = (self.nmcli.connection.show(UPLINK_CONNECTION).get(key) or '').split()
+            if current[:1] != ['0']:
+                self.nmcli.connection.modify(UPLINK_CONNECTION, {key: PROFILE_OPTIONS[key]})
+                logger.info('Uplink  : %s retries for good now', UPLINK_CONNECTION)
+        except Exception as error:
+            logger.error('Uplink  : cannot set the retries: %s', error)
 
     def apply(self, request):
         """Configure the profile as asked. Raises on an nmcli failure."""
@@ -188,6 +206,7 @@ class Uplink:
             logger.info('Uplink  : %s is not mounted, CTF uplink support is off', self.directory)
             return
         logger.info('Uplink  : watching %s for the CTF uplink on %s', self.directory, self.interface)
+        self.keep_retrying()
         last_status = None
         while True:
             try:

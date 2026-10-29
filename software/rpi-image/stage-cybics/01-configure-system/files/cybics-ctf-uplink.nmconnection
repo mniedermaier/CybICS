@@ -13,6 +13,9 @@
 # psk and autoconnect) or switches the uplink off. hwio never brings this
 # profile up on wlan0: it skips every profile named cybics-ctf-*.
 #
+# autoconnect-retries=0 keeps trying for good; NetworkManager's default gives
+# up after four failed attempts, and the board then stayed off the server.
+#
 # never-default keeps the uplink from becoming the default route. Otherwise the
 # AP's NAT (ipv4.method=shared in cybics-ap) would carry participants' traffic
 # into the event network. The server has to be on the event network's own
@@ -24,6 +27,7 @@ id=cybics-ctf-uplink
 type=wifi
 interface-name=ctfwlan0
 autoconnect=true
+autoconnect-retries=0
 
 [wifi]
 mode=infrastructure
