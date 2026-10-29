@@ -83,7 +83,4 @@ Serial attacks are hard to detect from the network, because they never touch it.
 
 - [What is an ICS?](/theory/ics-basics): what the microcontroller does in the plant.
 - [PLCs and the scan cycle](/theory/plc-fundamentals): controllers and their I/O.
-
-Later on the path:
-
 - [Password attacks](/theory/password_attack): how keyspace size decides the time a guess takes.

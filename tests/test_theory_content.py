@@ -638,3 +638,45 @@ def test_ids_threshold_widget_states_the_real_rules():
     text = article(next(t for t in TOPICS if t["id"] == "flood_overwrite"))
     mount = re.search(r'<div data-widget="ids-threshold"([^>]*)>', text).group(1)
     assert f'data-n="{real["MODBUS_FLOOD_THRESHOLD"]}"' in mount and f'data-w="{real["MODBUS_FLOOD_WINDOW"]}"' in mount
+
+
+# The Theory Path follows the CTF page: ctf_config.json orders the challenges
+# in seven stages, and a student who works through them in order should
+# always find the briefing of the next challenge already read.
+CTF_STAGES = load_json(CTF_CONFIG)["categories"]
+SECTION_OF = {t["id"]: key for key, s in CONFIG_DATA["sections"].items() for t in s["topics"]}
+
+
+def test_briefings_follow_the_ctf_order():
+    position = {topic_id: i for i, topic_id in enumerate(TOPIC_IDS)}
+    last, last_challenge = -1, None
+    for stage in CTF_STAGES.values():
+        for challenge in stage["challenges"]:
+            here = position[challenge["theory"]]
+            assert here >= last, (
+                f"{challenge['id']} is briefed in {challenge['theory']}, "
+                f"which comes before the briefing of {last_challenge}")
+            last, last_challenge = here, challenge["id"]
+
+
+def test_each_ctf_stage_has_its_own_section_in_order():
+    sections = list(CONFIG_DATA["sections"])
+    seen = []
+    for key, stage in CTF_STAGES.items():
+        found = {SECTION_OF[c["theory"]] for c in stage["challenges"]}
+        assert len(found) == 1, f"the briefings of stage {key} are spread over {found}"
+        seen.append(found.pop())
+    assert len(set(seen)) == len(seen), seen
+    assert seen == sorted(seen, key=sections.index), seen
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_later_on_the_path_points_forward(topic):
+    """A link under "Later on the path:" must not lead back to a lesson already read."""
+    section = re.search(r"^## Before you start\n(.*?)(?=^## |\Z)", article(topic), re.S | re.M)
+    if not section or "Later on the path:" not in section.group(1):
+        return
+    here = TOPIC_IDS.index(topic["id"])
+    later = section.group(1).split("Later on the path:", 1)[1]
+    for target in re.findall(r"\]\(/theory/([^)#\s]+)", later):
+        assert TOPIC_IDS.index(target) > here, f"{topic['id']} lists {target} as later, but it comes earlier"

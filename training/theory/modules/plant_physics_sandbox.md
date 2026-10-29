@@ -66,19 +66,21 @@ The program also has a manual mode in which it writes no outputs at all. An atta
 - **Make safety independent of the PLC.** On CybICS the relief valve vents more slowly than the compressor fills, so a compressor held on wins. A pressure switch wired to the compressor's power, or a valve sized for the full flow, would hold whatever the PLC believes.
 
 <div class="callout cybics" markdown="1">
-**In CybICS:** the Flood & Overwrite challenge forges values by brute force, and Physics Never Lies catches a forged reading afterwards. This challenge sits in between: it shows what such a forgery does to the plant. A single forged scan hides inside a normal cycle and changes little; a lasting effect takes a flood of writes, or a single write to the mode register.
+**In CybICS:** later on the path, the Flood & Overwrite challenge forges values on the live plant by brute force, and Physics Never Lies catches a forged reading afterwards. This challenge comes first: it shows what such a forgery would do to the plant, without touching it. A single forged scan hides inside a normal cycle and changes little; a lasting effect takes a flood of writes, or a single write to the mode register.
 </div>
 
 ## Before you start
 
-- [PLCs and the scan cycle](/theory/plc-fundamentals)
-- [The gas pressure process](/theory/physical_process)
-- [Modbus TCP](/theory/modbus)
-- [Flood & Overwrite](/theory/flood_overwrite)
-- [HMI project recon](/theory/hmi_project_recon)
+- [PLCs and the scan cycle](/theory/plc-fundamentals) for the scan, the latch and manual mode.
+- [HMI and SCADA](/theory/hmi-scada) for how a PLC variable becomes a register number.
+- [The gas pressure process](/theory/physical_process) for the tanks, the valves and their limits.
+- [Programming the controller](/theory/plc_programming) for the program that switches the outputs.
 
 Later on the path:
 
+- [Modbus TCP](/theory/modbus) for the writes that forge a reading.
+- [HMI project recon](/theory/hmi_project_recon) for reading the register map out of the HMI.
+- [Flood & Overwrite](/theory/flood_overwrite) for forging a reading on the live plant.
 - [Physics as a witness](/theory/physics_forensics)
 - [Stuxnet (2010)](/theory/stuxnet)
 

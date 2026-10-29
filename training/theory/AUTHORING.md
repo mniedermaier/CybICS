@@ -24,6 +24,19 @@ The topic itself (id, title, summary, level, prerequisites, related
 challenges, order) is registered in `software/landing/theory_config.json`.
 `tests/test_theory_content.py` checks all of it without a running stack.
 
+## Where a lesson goes
+
+The sections of the Theory Path follow the seven stages of the CTF page
+(`software/landing/ctf_config.json`), from the plant to its defence, with the
+case studies at the end. Each challenge names its briefing in `theory`. The
+briefings sit in the section of their stage and in the same order as the
+challenges, so a student who works through the CTF in order has always read
+the briefing of the next challenge already. A foundation lesson (Modbus,
+OPC-UA, detection) goes right before the first briefing that needs it, and a
+lesson's prerequisites always come earlier. Move a lesson, not a challenge,
+when the two disagree; topic ids never change, because the quiz progress is
+keyed on them.
+
 ## Audience and tone
 
 - Write for a first-year student. Explain every acronym at first use

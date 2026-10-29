@@ -89,9 +89,5 @@ The challenge grades four hex frames all or nothing in `check_packet_anatomy.py`
 ## Before you start
 
 - [Modbus TCP](/theory/modbus)
-
-Later on the path:
-
 - [Capturing Modbus traffic](/theory/wireshark_capture)
-- [S7comm](/theory/s7comm)
-- [DNP3, EtherNet/IP and friends](/theory/other-protocols)
+- [S7comm](/theory/s7comm) and [DNP3, EtherNet/IP and friends](/theory/other-protocols) (optional) for the other frames on the wire

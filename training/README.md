@@ -14,7 +14,9 @@ Inside a stage the challenges go from easy to hard; easy ones are worth 100 poin
 On the CTF page every attack names the defense challenge that stops it, and every challenge links to its Theory Path briefing.
 
 New to industrial control systems? Start with the **Theory Path** in the landing page (`/theory`, or the 📚 button in the dashboard).
-It is a numbered course of short, illustrated lessons for students with little IT or OT background: what a PLC is, how Modbus, S7comm and OPC-UA work, how attacks unfold and how defenders respond, plus four real-world case studies.
+It is a numbered course of short, illustrated lessons for students with little IT or OT background: what a PLC is, how Modbus, S7comm and OPC-UA work, how attacks unfold and how defenders respond, plus five real-world case studies.
+Its sections follow the same seven stages as the modules below, with the case studies at the end: each foundation lesson comes right before the first challenge that needs it, so if you read on to a challenge's briefing before you start it, you have already read everything it builds on.
+A short core path of eleven lessons covers the essentials in a little over an hour.
 Every lesson has interactive examples (some read the live plant) and a short quiz, and every challenge has a briefing there that explains the idea behind it without giving the solution away.
 The lessons live in [`theory/`](theory/); [`theory/AUTHORING.md`](theory/AUTHORING.md) explains how to write one.
 

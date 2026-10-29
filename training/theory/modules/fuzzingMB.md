@@ -83,8 +83,8 @@ A good fuzzer also needs a way to notice failure. Network fuzzers usually send a
 ## Before you start
 
 - [Modbus TCP](/theory/modbus): the frame layout and the function codes.
+- [Network scanning](/theory/scanning): finding port 502 in the first place.
 
 Later on the path:
 
-- [Network scanning](/theory/scanning): finding port 502 in the first place.
 - [Detection and monitoring](/theory/detection-monitoring): how rule-based detection works.

@@ -86,7 +86,7 @@ So defenders try to **detect as far left in the chain as possible**, within two 
 - Some stages cannot be seen on the network at all. A host that only *listens* (passive sniffing, T0842) sends nothing for an IDS to notice.
 - Some stages look like normal work: an engineer and an attacker uploading a PLC program produce nearly the same traffic.
 
-That is why one control is never enough, and why the next lessons cover [detection](/theory/detection-monitoring) and [Defence in depth](/theory/defense-hardening). On the CybICS Intrusion Detection System (IDS), most stages above raise alerts; the program download stays quiet.
+That is why one control is never enough, and why later lessons cover [detection](/theory/detection-monitoring) and [Defence in depth](/theory/defense-hardening). On the CybICS Intrusion Detection System (IDS), most stages above raise alerts; the program download stays quiet.
 
 <details class="deep-dive" markdown="1">
 <summary>Deep dive: which alert each stage raises on the CybICS IDS</summary>
