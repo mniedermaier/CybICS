@@ -66,7 +66,7 @@ For more info, run `ffuf` without parameters.
 ## Task
 This module covers two scored challenges, both solved with an ffuf dictionary attack. Flags have the format `CybICS(flag)`:
 
-- **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the user account. Flag: `CybICS(0penPLC)`.
+- **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the admin account's details on the **Users** page, then submit it on the challenge page.
 - **FUXA Password Attack** — brute-force the FUXA HMI login (port 1881), then enter the user name and password you recovered on the challenge page and click **Verify**, which reveals the flag.
 
 ### Steps
