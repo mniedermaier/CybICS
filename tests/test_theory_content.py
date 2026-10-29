@@ -680,3 +680,30 @@ def test_later_on_the_path_points_forward(topic):
     later = section.group(1).split("Later on the path:", 1)[1]
     for target in re.findall(r"\]\(/theory/([^)#\s]+)", later):
         assert TOPIC_IDS.index(target) > here, f"{topic['id']} lists {target} as later, but it comes earlier"
+
+
+CTF_CHALLENGES = {c["id"]: c for stage in CTF_STAGES.values() for c in stage["challenges"]}
+LESSONS = {t["id"]: t for t in TOPICS}
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_paired_links_are_marked(topic):
+    """"Defend it:" and "Stops:" links name the other half of a pair, never the lesson's own challenge."""
+    for related in topic.get("related", []):
+        role = related.get("role")
+        assert role in (None, "defense", "attack"), f"{topic['id']}: role {role!r}"
+        if role:
+            assert CTF_CHALLENGES[related["id"]]["theory"] != topic["id"], f"{topic['id']}: {related['id']}"
+
+
+ATTACKS = [c for c in CTF_CHALLENGES.values() if c.get("defended_by")]
+
+
+@pytest.mark.parametrize("attack", ATTACKS, ids=[c["id"] for c in ATTACKS])
+def test_attack_and_defence_briefings_link_each_other(attack):
+    """The briefing of an attack names the defence that stops it, and the other way round."""
+    links = {(r["id"], r.get("role")) for r in LESSONS[attack["theory"]]["related"]}
+    for defense in attack["defended_by"]:
+        assert (defense, "defense") in links, f"{attack['theory']} does not name {defense}"
+        back = {(r["id"], r.get("role")) for r in LESSONS[CTF_CHALLENGES[defense]["theory"]]["related"]}
+        assert (attack["id"], "attack") in back, f"{CTF_CHALLENGES[defense]['theory']} does not name {attack['id']}"

@@ -33,7 +33,12 @@ briefings sit in the section of their stage and in the same order as the
 challenges, so a student who works through the CTF in order has always read
 the briefing of the next challenge already. A foundation lesson (Modbus,
 OPC-UA, detection) goes right before the first briefing that needs it, and a
-lesson's prerequisites always come earlier. Move a lesson, not a challenge,
+lesson's prerequisites always come earlier. `related` lists the challenges a lesson prepares
+for. The briefing of an attack also lists the defence challenge that stops
+it, with `"role": "defense"`, and a defence briefing lists the attacks it
+stops, with `"role": "attack"`; the page labels them "Defend it:" and
+"Stops:", as the CTF page does, and only the lesson's own challenges count
+for its "Challenge solved" mark. Move a lesson, not a challenge,
 when the two disagree; topic ids never change, because the quiz progress is
 keyed on them.
 

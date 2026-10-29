@@ -391,6 +391,18 @@
               "type": "ctf",
               "id": "password_openplc",
               "label": "OpenPLC Password Attack"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_fuxa_password",
+              "label": "Harden FUXA Credentials",
+              "role": "defense"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_openplc_password",
+              "label": "Harden OpenPLC Credentials",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -423,6 +435,12 @@
               "type": "ctf",
               "id": "opcua",
               "label": "OPC-UA"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_network_segmentation",
+              "label": "Network Segmentation",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -440,6 +458,12 @@
               "type": "ctf",
               "id": "fuxa_jwt",
               "label": "Forged HMI Token"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_fuxa_jwt",
+              "label": "Rotate the FUXA Token Key",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -457,6 +481,12 @@
               "type": "ctf",
               "id": "openplc_restapi",
               "label": "The Forgotten API"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_unused_protocols",
+              "label": "Close the Side Doors",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -498,6 +528,12 @@
               "type": "ctf",
               "id": "flood_overwrite",
               "label": "Flood & Overwrite"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_firewall",
+              "label": "Modbus Firewall Rules",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -515,6 +551,12 @@
               "type": "ctf",
               "id": "s7_sidedoor",
               "label": "S7 Side Door"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_unused_protocols",
+              "label": "Close the Side Doors",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -532,6 +574,12 @@
               "type": "ctf",
               "id": "s7_cpu_stop",
               "label": "Stop Means Stop?"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_unused_protocols",
+              "label": "Close the Side Doors",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -550,6 +598,12 @@
               "type": "ctf",
               "id": "fuzzingMB",
               "label": "Fuzzing Modbus"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_firewall",
+              "label": "Modbus Firewall Rules",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -583,6 +637,12 @@
               "type": "ctf",
               "id": "dnp3_sidedoor",
               "label": "DNP3 Side Door"
+            },
+            {
+              "type": "ctf",
+              "id": "defense_unused_protocols",
+              "label": "Close the Side Doors",
+              "role": "defense"
             }
           ],
           "prerequisites": [
@@ -838,6 +898,18 @@
               "type": "ctf",
               "id": "defense_fuxa_password",
               "label": "Harden FUXA Credentials"
+            },
+            {
+              "type": "ctf",
+              "id": "password_attack",
+              "label": "FUXA Password Attack",
+              "role": "attack"
+            },
+            {
+              "type": "ctf",
+              "id": "password_openplc",
+              "label": "OpenPLC Password Attack",
+              "role": "attack"
             }
           ],
           "prerequisites": [
@@ -855,6 +927,12 @@
               "type": "ctf",
               "id": "defense_fuxa_jwt",
               "label": "Rotate the FUXA Token Key"
+            },
+            {
+              "type": "ctf",
+              "id": "fuxa_jwt",
+              "label": "Forged HMI Token",
+              "role": "attack"
             }
           ],
           "prerequisites": [
@@ -872,6 +950,18 @@
               "type": "ctf",
               "id": "defense_firewall",
               "label": "Modbus Firewall Rules"
+            },
+            {
+              "type": "ctf",
+              "id": "flood_overwrite",
+              "label": "Flood & Overwrite",
+              "role": "attack"
+            },
+            {
+              "type": "ctf",
+              "id": "fuzzingMB",
+              "label": "Fuzzing Modbus",
+              "role": "attack"
             }
           ],
           "prerequisites": [
@@ -904,6 +994,30 @@
               "type": "ctf",
               "id": "defense_unused_protocols",
               "label": "Close the Side Doors"
+            },
+            {
+              "type": "ctf",
+              "id": "openplc_restapi",
+              "label": "The Forgotten API",
+              "role": "attack"
+            },
+            {
+              "type": "ctf",
+              "id": "s7_sidedoor",
+              "label": "S7 Side Door",
+              "role": "attack"
+            },
+            {
+              "type": "ctf",
+              "id": "s7_cpu_stop",
+              "label": "Stop Means Stop?",
+              "role": "attack"
+            },
+            {
+              "type": "ctf",
+              "id": "dnp3_sidedoor",
+              "label": "DNP3 Side Door",
+              "role": "attack"
             }
           ],
           "prerequisites": [
@@ -923,6 +1037,12 @@
               "type": "ctf",
               "id": "defense_network_segmentation",
               "label": "Network Segmentation"
+            },
+            {
+              "type": "ctf",
+              "id": "opcua",
+              "label": "OPC-UA",
+              "role": "attack"
             }
           ],
           "prerequisites": [
