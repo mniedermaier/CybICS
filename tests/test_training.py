@@ -17,6 +17,7 @@ import shlex
 import time
 import os
 import requests
+from datetime import datetime
 from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
@@ -2672,17 +2673,21 @@ class TestPlantPhysicsSandbox(_CtfProgress):
 @pytest.mark.usefixtures("stack_ready")
 class TestAdvancedSecurity(_CtfProgress):
     """
-    The Advanced Security category end to end from the attack shell, with the
+    The IDS-backed challenges end to end from the attack shell, with the
     shipped scripts and the commands the READMEs give: the ARP man-in-the-
-    middle earns the MitM flag through Verify, and the port scan and Modbus
-    flood make the IDS rule stats reveal their flags. UART needs the board.
+    middle, the HPT write flood (Flood & Overwrite) and the diagnostic
+    fuzzing (Fuzzing Modbus) earn their flags through Verify, and the port
+    scan and Modbus flood make the IDS rule stats reveal the Detect flags.
+    UART needs the board.
 
-    Verify must refuse MitM before the poisoning when the IDS has no
-    arp_spoof alert yet. It used to pass with no attack at all: the IDS kept
+    Verify must refuse before the attack when the rule has no alert from the
+    last 10 minutes. MitM used to pass with no attack at all: the IDS kept
     every MAC an address was ever announced with, so recreating a container
-    was enough to raise arp_spoof forever. The ARP spoofer restores both
-    caches on SIGINT; the flood only overwrites GST, which hwio writes again
-    every cycle. CTF progress is put back.
+    was enough to raise arp_spoof forever; and all three passed on any alert
+    still in the IDS buffer, however old. The ARP spoofer restores both
+    caches on SIGINT; the floods only overwrite HPT and GST readings, which
+    hwio writes again every cycle; the fuzzer sends 40 diagnostic requests.
+    CTF progress is put back.
     """
 
     IDS = f"http://{SERVER_IP}:{IDS_PORT}"
@@ -2699,25 +2704,57 @@ class TestAdvancedSecurity(_CtfProgress):
 
     def _flag(self, challenge_id):
         config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
-        return next(c["flag"] for c in
-                    json.loads(config.read_text())["categories"]["advanced_security"]["challenges"]
-                    if c["id"] == challenge_id)
+        return next(c["flag"]
+                    for cat in json.loads(config.read_text())["categories"].values()
+                    for c in cat["challenges"] if c["id"] == challenge_id)
 
     def _submit(self, challenge_id, flag):
         return requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
                              json={"challenge_id": challenge_id, "flag": flag}).json()
 
-    def test_arp_poisoning_earns_the_mitm_flag(self):
-        before = self._without("mitm")
+    def _recent(self, rule, window=600):
+        """Whether the IDS raised rule within window seconds, on the IDS's own clock."""
+        entry = self._stats().get(rule, {})
+        if not entry.get("count"):
+            return False
+        now = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()["now"]
+        age = (datetime.fromisoformat(now) - datetime.fromisoformat(entry["last_seen"]))
+        return age.total_seconds() <= window
+
+    @pytest.mark.parametrize("challenge_id,rule,module,command", [
+        ("mitm", "arp_spoof", "mitm",
+         "timeout -s INT 10 python3 arp_spoof.py 172.18.0.4 172.18.0.3"),
+        ("flood_overwrite", "modbus_flood", "flood_overwrite",
+         "python3 flooding_hpt.py 172.18.0.3 -d 8 >/dev/null 2>&1; true"),
+        ("fuzzingMB", "modbus_diagnostic", "fuzzingMB",
+         "python3 modbus_fuzzer.py 172.18.0.3 --fc 0x08 --count 40"),
+    ])
+    def test_attack_earns_the_verify_flag(self, challenge_id, rule, module, command):
+        """
+        The IDS-backed checks credit an alert only from the last 10 minutes.
+        Before the attack, Verify must refuse whenever the rule has not fired
+        in that window -- never, or only long ago (an older alert the IDS
+        still keeps across CTF resets). If an earlier test fired it moments
+        ago the refusal cannot be shown here; tests/test_ids_rule_window.py
+        covers that case with a fake IDS.
+        """
+        before = self._without(challenge_id)
         try:
-            if not self._stats()["arp_spoof"]["count"]:
-                r = requests.post(f"{self.BASE}/ctf/verify/mitm", json={}, timeout=30).json()
+            if not self._recent(rule):
+                r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json={},
+                                  timeout=30).json()
                 assert not r["success"] and "flag" not in r, r
-            code, out = self._attack("mitm", "timeout -s INT 10 python3 arp_spoof.py "
-                                             "172.18.0.4 172.18.0.3")
-            assert code == 0 and "Restoring the ARP caches" in out, out[-500:]
-            r = requests.post(f"{self.BASE}/ctf/verify/mitm", json={}, timeout=30).json()
-            assert r["success"] and r.get("flag") == self._flag("mitm"), r
+                assert "10 minutes" in json.dumps(r), r
+            code, out = self._attack(module, command, timeout=180)
+            assert code == 0, out[-500:]
+            if rule == "arp_spoof":
+                assert "Restoring the ARP caches" in out, out[-500:]
+            deadline = time.time() + 15
+            while not self._recent(rule, window=60) and time.time() < deadline:
+                time.sleep(1)
+            r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json={},
+                              timeout=30).json()
+            assert r["success"] and r.get("flag") == self._flag(challenge_id), r
         finally:
             self._restore(before)
 

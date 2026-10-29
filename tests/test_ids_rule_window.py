@@ -5,7 +5,7 @@ count an alert the IDS raised in the last ATTACK_WINDOW seconds.
 The IDS keeps its alert buffer across CTF resets, so an attack run once -- by
 the test suite, an instructor's demo or another student -- used to pass these
 checks for everyone afterwards. The IDS API is replaced by a fake; the live
-solves are in tests/test_training.py.
+solves of all three are in TestAdvancedSecurity in tests/test_training.py.
 """
 import os
 import sys
@@ -16,11 +16,11 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "software", "landing"))
 
-try:
-    from modules.defense_checks import _ids_rule
-    from modules.defense_checks import check_flood_attack, check_fuzzing_attack, check_mitm_attack
-except ImportError as error:  # requests missing on this host
-    pytest.skip(f"defense checks not importable here ({error})", allow_module_level=True)
+# No skip when requests is missing: tests/requirements.txt pins it, and a
+# module that silently skips on a bare host is how a check goes untested.
+from modules.defense_checks import _ids_rule  # noqa: E402
+from modules.defense_checks import (  # noqa: E402
+    check_flood_attack, check_fuzzing_attack, check_mitm_attack)
 
 NOW = datetime(2026, 10, 29, 12, 0, 0)
 
