@@ -9,195 +9,201 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: var(--brand-font);
+        /* Dark is the default; html.light-mode (theme_head.html) swaps the tokens */
+        :root {
+            --bg: #1a1a1a; --surface: #232323; --surface-2: #2d2d2d; --surface-3: #282828;
+            --border: #333; --border-strong: #4a4a4a; --hover: #2f2f2f;
+            --text: #e5e5e5; --text-2: #a3a3a3; --muted: #8a8a8a;
+            --accent: var(--brand-accent); --accent-text: var(--brand-accent);
+            --accent-soft: rgba(255, 107, 0, 0.15);
+            --ok: #22c55e; --ok-soft: rgba(34, 197, 94, 0.08);
+            --easy: #22c55e; --medium: #f59e0b; --hard: #ef4444; --meter-off: #4a4a4a;
+            --neutral-bg: rgba(255, 255, 255, 0.08); --neutral-text: #d1d5db;
+        }
+        html.light-mode {
+            --bg: #f3f5f8; --surface: #ffffff; --surface-2: #ffffff; --surface-3: #f7f8fa;
+            --border: #d8dde6; --border-strong: #b7bfcc; --hover: #eef1f5;
+            --text: #172033; --text-2: #4b5563; --muted: #5b6472;
+            --accent-text: var(--brand-accent-text-light); --accent-soft: rgba(255, 107, 0, 0.12);
+            --ok: #15803d; --ok-soft: rgba(34, 197, 94, 0.10);
+            --easy: #15803d; --medium: #a16207; --hard: #b91c1c; --meter-off: #d1d5db;
+            --neutral-bg: #eef1f5; --neutral-text: #394355;
         }
 
+        body { background: var(--bg); color: var(--text); font-family: var(--brand-font); }
+
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1a1a1a; }
-        ::-webkit-scrollbar-thumb { background: #404040; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #ff6b00; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
         /* ── Header ── */
         header {
-            background-color: #2d2d2d;
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #ff6b00;
+            background: var(--surface-2); padding: 0.75rem 1.5rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+            border-bottom: 2px solid var(--accent);
         }
-
-        header h1 { font-size: 1.25rem; font-weight: bold; color: #ff6b00; }
-
+        header h1 { font-size: 1.25rem; font-weight: 700; color: var(--accent-text); }
         .header-stats { display: flex; align-items: center; gap: 1.5rem; }
         .stat-item { text-align: center; }
-        .stat-value { font-size: 1.25rem; font-weight: bold; color: #ff6b00; }
-        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; }
-
-        .progress-bar-mini { width: 120px; height: 6px; background: #404040; border-radius: 3px; overflow: hidden; }
-        .progress-bar-mini .fill { height: 100%; background: #ff6b00; border-radius: 3px; transition: width 0.3s; }
-
+        .stat-value { font-size: 1.25rem; font-weight: 700; color: var(--accent-text); }
+        .stat-value small { font-size: 0.7rem; color: var(--muted); font-weight: 400; }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+        .progress-bar-mini { width: 120px; height: 6px; background: var(--meter-off); border-radius: 3px; overflow: hidden; }
+        .progress-bar-mini .fill { height: 100%; background: var(--accent); border-radius: 3px; }
         .reset-btn {
-            background: none; border: 1px solid #606060; color: #999;
-            padding: 0.35rem 0.75rem; border-radius: 0.25rem; font-size: 0.75rem;
-            cursor: pointer; transition: all 0.2s;
+            background: none; border: 1px solid var(--border-strong); color: var(--muted);
+            padding: 0.35rem 0.75rem; border-radius: 0.25rem; font: inherit; font-size: 0.75rem; cursor: pointer;
         }
-        .reset-btn:hover { border-color: #ef4444; color: #ef4444; }
+        .reset-btn:hover { border-color: var(--hard); color: var(--hard); }
 
-        /* ── Main Layout ── */
-        main { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+        main { max-width: 1400px; margin: 0 auto; padding: 1.25rem 1.5rem 2rem; }
 
-        /* ── Category Tiles Grid ── */
-        .categories-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
-            gap: 1.25rem;
+        /* ── Path overview: one chip per stage ── */
+        .intro { color: var(--text-2); font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem; max-width: 70rem; }
+        .intro a { color: var(--accent-text); }
+        .path { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; margin-bottom: 1rem; counter-reset: stage; }
+        .path a {
+            display: flex; align-items: center; gap: 0.45rem; text-decoration: none; color: var(--text);
+            background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+            padding: 0.3rem 0.7rem 0.3rem 0.3rem; font-size: 0.78rem; font-weight: 600;
         }
-
-        @media (max-width: 900px) {
-            .categories-grid { grid-template-columns: 1fr; }
-        }
-
-        /* ── Category Tile ── */
-        .category-tile {
-            background: #232323; border: 1px solid #333;
-            border-radius: 0.75rem; overflow: hidden; transition: border-color 0.2s;
-        }
-        .category-tile:hover { border-color: #555; }
-
-        .category-header {
-            padding: 0.85rem 1.25rem 0.65rem;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #333; background: #282828;
-        }
-
-        .category-title-group { display: flex; align-items: center; gap: 0.6rem; }
-
+        .path a:hover { border-color: var(--accent); }
+        .path .count { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .path li.done a { border-color: var(--ok); }
+        .path li.done .count { color: var(--ok); }
         .step-badge {
-            width: 22px; height: 22px; border-radius: 50%;
-            background: rgba(255, 107, 0, 0.15); color: #ff6b00;
-            font-size: 0.7rem; font-weight: 700;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
+            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+            background: var(--accent-soft); color: var(--accent-text);
+            font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
         }
 
-        .category-title { font-size: 1rem; font-weight: 700; color: #ff6b00; }
-
-        .category-progress {
-            font-size: 0.75rem; color: #888;
-            display: flex; align-items: center; gap: 0.5rem;
+        /* ── Toolbar: search, difficulty, solved, compact ── */
+        .toolbar {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 0.6rem;
+            padding: 0.55rem 0.75rem; margin-bottom: 1.25rem;
+            position: sticky; top: 0; z-index: 5;
         }
-
-        .category-progress-bar { width: 60px; height: 4px; background: #404040; border-radius: 2px; overflow: hidden; }
-        .category-progress-bar .fill { height: 100%; background: #22c55e; border-radius: 2px; }
-
-        .category-body { padding: 0.5rem; }
-
-        /* ── Challenge Row ── */
-        .challenge-row {
-            display: flex; align-items: center; gap: 0.75rem;
-            color: inherit; text-decoration: none;
-            padding: 0.6rem 0.75rem; border-radius: 0.5rem;
-            cursor: pointer; transition: background 0.15s;
+        .toolbar input[type="search"] {
+            flex: 1 1 14rem; min-width: 0; font: inherit; font-size: 0.85rem; color: var(--text);
+            background: var(--bg); border: 1px solid var(--border-strong); border-radius: 0.35rem; padding: 0.4rem 0.6rem;
         }
-        .challenge-row:hover { background: #333; }
-        .challenge-row.solved { background: rgba(34, 197, 94, 0.08); }
-        .challenge-row.solved:hover { background: rgba(34, 197, 94, 0.15); }
+        .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 0.35rem; overflow: hidden; }
+        .seg button {
+            font: inherit; font-size: 0.75rem; font-weight: 600; color: var(--text-2);
+            background: none; border: 0; padding: 0.35rem 0.6rem; cursor: pointer;
+        }
+        .seg button + button { border-left: 1px solid var(--border-strong); }
+        .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); }
+        .toggle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+        .toggle input { accent-color: var(--brand-accent); }
+        .legend { font-size: 0.72rem; color: var(--muted); display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+        .no-match { display: none; color: var(--text-2); font-size: 0.9rem; padding: 1rem 0; }
 
+        /* ── Stage ── */
+        .stage { margin-bottom: 1.5rem; scroll-margin-top: 4.5rem; }
+        .stage-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.6rem; }
+        .stage-title-group { display: flex; gap: 0.6rem; align-items: flex-start; }
+        .stage-title-group .step-badge { margin-top: 0.1rem; }
+        .category-title { font-size: 1.05rem; font-weight: 700; color: var(--accent-text); }
+        .stage-desc { font-size: 0.8rem; color: var(--text-2); margin-top: 0.15rem; line-height: 1.45; }
+        .category-progress { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; padding-top: 0.25rem; }
+        .category-progress-bar { width: 60px; height: 4px; background: var(--meter-off); border-radius: 2px; overflow: hidden; }
+        .category-progress-bar .fill { height: 100%; background: var(--ok); border-radius: 2px; }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 0.6rem; }
+
+        /* ── Challenge card: the title link covers the card, the small links sit above it ── */
+        .challenge-card {
+            position: relative; display: flex; flex-direction: column; gap: 0.4rem;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 0.6rem;
+            padding: 0.7rem 0.8rem;
+        }
+        .challenge-card:hover { border-color: var(--border-strong); background: var(--hover); }
+        .challenge-card.solved { background: var(--ok-soft); }
+        .challenge-card.next { box-shadow: inset 3px 0 0 var(--accent); }
+        .challenge-card[hidden] { display: none; }
+        .card-top { display: flex; align-items: flex-start; gap: 0.6rem; flex: 1; }
         .challenge-status {
-            width: 28px; height: 28px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; font-size: 0.75rem; font-weight: bold;
+            width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; margin-top: 0.05rem;
+            display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;
         }
-        .challenge-status.unsolved { border: 2px solid #555; color: #555; }
-        .challenge-status.done { background: #22c55e; color: #fff; border: none; }
-
+        .challenge-status.unsolved { border: 2px solid var(--border-strong); }
+        .challenge-status.done { background: var(--ok); color: #fff; }
         .challenge-info { flex: 1; min-width: 0; }
-        .challenge-name {
-            font-size: 0.875rem; font-weight: 600; color: #e5e5e5;
-        }
-        .challenge-row.solved .challenge-name { color: #aaa; }
+        .challenge-name { font-size: 0.9rem; font-weight: 650; line-height: 1.3; }
+        .challenge-link { color: var(--text); text-decoration: none; }
+        .challenge-link::after { content: ""; position: absolute; inset: 0; border-radius: 0.6rem; }
+        .challenge-link:focus-visible { outline: none; }
+        .challenge-link:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .challenge-card.solved .challenge-link { color: var(--text-2); }
         .challenge-desc {
-            font-size: 0.75rem; color: #a3a3a3; margin-top: 1px;
+            font-size: 0.78rem; color: var(--text-2); margin-top: 0.15rem; line-height: 1.4;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-        .challenge-row:focus-visible { outline: 2px solid #ff6b00; outline-offset: 2px; }
-        .challenge-row.next { box-shadow: inset 3px 0 0 #ff6b00; }
         .next-badge, .board-badge {
-            display: inline-block; margin-left: 0.5rem; padding: 0.05rem 0.4rem; border-radius: 0.2rem;
+            display: inline-block; margin-left: 0.4rem; padding: 0.05rem 0.4rem; border-radius: 0.2rem;
             font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; vertical-align: 0.1em;
         }
-        .next-badge { background: #ff6b00; color: #1a1a1a; }
-        .board-badge { background: rgba(255,255,255,0.08); color: #d1d5db; }
-        .challenge-row.board-only .challenge-name, .challenge-row.board-only .challenge-desc { opacity: 0.6; }
-        html.light-mode .board-badge { background: #eef1f5; color: #394355; }
-        /* Phones: the badges go under the title instead of squeezing it */
+        .next-badge { background: var(--brand-accent); color: var(--brand-ink); }
+        .board-badge { background: var(--neutral-bg); color: var(--neutral-text); }
+        .challenge-card.board-only .challenge-info { opacity: 0.65; }
+
+        .challenge-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem 0.6rem; padding-left: calc(24px + 0.6rem); }
+        .difficulty { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+        .meter { display: inline-flex; gap: 2px; align-items: flex-end; }
+        .meter i { display: block; width: 4px; border-radius: 1px; background: var(--meter-off); }
+        .meter i:nth-child(1) { height: 6px; } .meter i:nth-child(2) { height: 9px; } .meter i:nth-child(3) { height: 12px; }
+        .difficulty.easy { color: var(--easy); } .difficulty.medium { color: var(--medium); } .difficulty.hard { color: var(--hard); }
+        .difficulty.easy .meter i:nth-child(-n+1), .difficulty.medium .meter i:nth-child(-n+2), .difficulty.hard .meter i { background: currentColor; }
+        .badge-points { font-size: 0.7rem; font-weight: 700; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+        .badge-tag {
+            font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 0.15rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.04em; background: var(--neutral-bg); color: var(--neutral-text);
+        }
+
+        .card-links { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 0.2rem 0.9rem; font-size: 0.74rem; padding-left: calc(24px + 0.6rem); }
+        .card-links a { color: var(--accent-text); text-decoration: none; }
+        .card-links a:hover { text-decoration: underline; }
+        .card-links .lbl { color: var(--muted); }
+        .card-links .read { color: var(--ok); }
+
+        /* Compact: one line per challenge */
+        body.compact .challenge-desc, body.compact .card-links { display: none; }
+        body.compact .cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 0.35rem; }
+        body.compact .challenge-card { flex-direction: row; align-items: center; justify-content: space-between; padding: 0.45rem 0.65rem; }
+        body.compact .challenge-meta { padding-left: 0; flex-wrap: nowrap; }
+        body.compact .badge-tag, body.compact .difficulty .word { display: none; }
+        body.compact .challenge-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        body.compact .next-badge, body.compact .board-badge { display: none; }
+
         @media (max-width: 600px) {
             header { flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1rem; }
             .header-stats { flex-wrap: wrap; gap: 0.75rem; }
             main { padding: 1rem; }
-            .challenge-row { flex-wrap: wrap; }
-            .challenge-info { flex-basis: calc(100% - 40px); }
-            .challenge-meta { padding-left: 40px; }
+            .toolbar { position: static; }
+            .stage-header { flex-direction: column; gap: 0.3rem; }
+            .category-progress { padding-left: calc(22px + 0.6rem); padding-top: 0; }
         }
-
-        .challenge-meta { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
-
-        .badge {
-            display: inline-block; padding: 0.15rem 0.5rem;
-            border-radius: 0.2rem; font-size: 0.65rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.03em;
-        }
-
-        .badge-points { background: rgba(255,107,0,0.15); color: #ff6b00; border: 1px solid rgba(255,107,0,0.3); }
-        .badge-easy { background: rgba(34,197,94,0.15); color: #22c55e; }
-        .badge-medium { background: rgba(245,158,11,0.15); color: #f59e0b; }
-        .badge-hard { background: rgba(239,68,68,0.15); color: #ef4444; }
-        html.light-mode .badge-points { color: #b34700; }
-        html.light-mode .badge-easy { color: #166534; }
-        html.light-mode .step-badge { color: #b34700; }
-        html.light-mode .badge-medium { color: #8a5a00; }
-        html.light-mode .badge-hard { color: #b91c1c; }
-
-        .badge-tag {
-            font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 0.15rem;
-            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-        }
-        /* Tags are labels, not signals: one neutral style (doc/brand/README.md) */
-        .tag-recon, .tag-exploit, .tag-analysis, .tag-evasion, .tag-defense, .tag-hardware { background: rgba(255,255,255,0.08); color: #d1d5db; }
-        html.light-mode .tag-recon, html.light-mode .tag-exploit, html.light-mode .tag-analysis,
-        html.light-mode .tag-evasion, html.light-mode .tag-defense, html.light-mode .tag-hardware { background: #eef1f5; color: #394355; }
-
-        /* Shared dashboard theme */
-        :root { --ctf-bg: #1a1a1a; --ctf-surface: #232323; --ctf-surface-2: #2d2d2d; --ctf-surface-3: #282828; --ctf-border: #333; --ctf-row-hover: #333; --ctf-text: #e5e5e5; --ctf-muted: #777; }
-        html.light-mode, html.light-mode body { --ctf-bg: #f3f5f8; --ctf-surface: #ffffff; --ctf-surface-2: #ffffff; --ctf-surface-3: #f7f8fa; --ctf-border: #d8dde6; --ctf-row-hover: #eef1f5; --ctf-text: #172033; --ctf-muted: #5b6472; background-color: var(--ctf-bg) !important; color: var(--ctf-text) !important; }
-        html.light-mode header { background-color: var(--ctf-surface-2) !important; border-bottom-color: #d45a00; }
-        html.light-mode .category-tile { background: var(--ctf-surface); border-color: var(--ctf-border); box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08); }
-        html.light-mode .category-header { background: var(--ctf-surface-3); border-bottom-color: var(--ctf-border); }
-        html.light-mode .category-title, html.light-mode .stat-value, html.light-mode header h1 { color: #b34700; }
-        html.light-mode .stat-label, html.light-mode .category-progress, html.light-mode .challenge-desc { color: var(--ctf-muted); }
-        html.light-mode .challenge-name { color: var(--ctf-text); }
-        html.light-mode .challenge-row:hover { background: var(--ctf-row-hover); }
-        html.light-mode .challenge-row.solved .challenge-name { color: #687386; }
-        html.light-mode .progress-bar-mini, html.light-mode .category-progress-bar { background: #d9dee7; }
-        html.light-mode .reset-btn { border-color: #b7bfcc; color: #596273; }
-        html.light-mode .reset-btn:hover { border-color: #dc2626; color: #dc2626; }
-        html.light-mode .challenge-status.unsolved { border-color: #9aa4b2; color: #9aa4b2; }
-        html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
-        html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
+        .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     </style>
 </head>
+{% set all_challenges = challenges.values()|map(attribute='challenges')|sum(start=[]) %}
+{% set total = all_challenges|length %}
+{% set titles = {} %}{% for c in all_challenges %}{% set _ = titles.update({c.id: c.title}) %}{% endfor %}
+{# Defences list the attacks they close: the inverse of each attack's defended_by #}
+{% set closes = {} %}{% for c in all_challenges %}{% for d in c.get('defended_by', []) %}{% set _ = closes.setdefault(d, []).append(c.id) %}{% endfor %}{% endfor %}
+{% set ns = namespace(next_id=none) %}
+{# The recommended next challenge: the first unsolved one, in path order, that can be done on this setup #}
+{% for c in all_challenges %}{% if ns.next_id is none and c.id not in solved and (on_board or c.get('tag') != 'hardware') %}{% set ns.next_id = c.id %}{% endif %}{% endfor %}
 <body>
     <header>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <h1>{{ config.title or 'CybICS CTF Training' }}</h1>
-        </div>
+        <h1>{{ config.title or 'CybICS CTF Training' }}</h1>
         <div class="header-stats">
             <div class="stat-item">
-                <div class="stat-value">{{ solved|length }}<span style="font-size: 0.7rem; color: #888; font-weight: normal;">/{{ challenges.values()|map(attribute='challenges')|map('length')|sum }}</span></div>
+                <div class="stat-value">{{ solved|length }}<small>/{{ total }}</small></div>
                 <div class="stat-label">Solved</div>
             </div>
             <div class="stat-item">
@@ -205,91 +211,160 @@
                 <div class="stat-label">Points</div>
             </div>
             <div class="stat-item">
-                <div class="progress-bar-mini">
-                    <div class="fill" style="width: {{ (solved|length / (challenges.values()|map(attribute='challenges')|map('length')|sum) * 100)|round(1) if challenges else 0 }}%"></div>
-                </div>
-                <div class="stat-label">{{ (solved|length / (challenges.values()|map(attribute='challenges')|map('length')|sum) * 100)|round(0)|int if challenges else 0 }}% complete</div>
+                <div class="progress-bar-mini"><div class="fill" style="width: {{ (solved|length / total * 100)|round(1) if total else 0 }}%"></div></div>
+                <div class="stat-label">{{ (solved|length / total * 100)|round(0)|int if total else 0 }}% complete</div>
             </div>
             <button class="reset-btn" onclick="resetProgress()">Reset</button>
         </div>
     </header>
 
     <main>
-        <div class="categories-grid" id="categories-grid">
-            {% set ns = namespace(step=1, next_id=none) %}
-            {# The recommended next challenge: the first unsolved one that can be done on this setup #}
-            {% for category_id, category in challenges.items() %}{% for c in category.challenges|sort(attribute='points') %}{% if ns.next_id is none and c.id not in solved and (on_board or c.get('tag') != 'hardware') %}{% set ns.next_id = c.id %}{% endif %}{% endfor %}{% endfor %}
+        <p class="intro">The challenges follow one path: understand the plant, explore its network, attack it, catch the attacks and then defend against them. Work through the stages in order or jump to one. Each challenge has a <strong>briefing</strong> in the <a href="/theory" data-nav="theory">Theory Path</a> that explains the idea behind it; read it first when a term is new to you.</p>
+
+        <ol class="path" aria-label="Stages">
             {% for category_id, category in challenges.items() %}
             {% set cat_solved = category.challenges|selectattr('id', 'in', solved)|list|length %}
-            {% set cat_total = category.challenges|length %}
-            <div class="category-tile" data-category="{{ category_id }}" id="cat-{{ category_id }}">
-                <div class="category-header">
-                    <div class="category-title-group">
-                        <div class="step-badge">{{ ns.step }}</div>
-                        <div class="category-title">{{ category.name }}</div>
-                    </div>
-                    <div class="category-progress">
-                        <span>{{ cat_solved }}/{{ cat_total }}</span>
-                        <div class="category-progress-bar">
-                            <div class="fill" style="width: {{ (cat_solved / cat_total * 100)|round(0) if cat_total else 0 }}%"></div>
-                        </div>
+            <li class="{{ 'done' if cat_solved == category.challenges|length }}"><a href="#cat-{{ category_id }}"><span class="step-badge">{{ loop.index }}</span>{{ category.name }} <span class="count">{{ cat_solved }}/{{ category.challenges|length }}</span></a></li>
+            {% endfor %}
+        </ol>
+
+        <div class="toolbar" role="search">
+            <label class="visually-hidden" for="ctf-search">Search challenges</label>
+            <input type="search" id="ctf-search" placeholder="Search challenges, e.g. modbus, password, S7" autocomplete="off">
+            <div class="seg" role="group" aria-label="Difficulty">
+                <button type="button" data-diff="all" aria-pressed="true">All</button>
+                <button type="button" data-diff="easy" aria-pressed="false">Easy</button>
+                <button type="button" data-diff="medium" aria-pressed="false">Medium</button>
+                <button type="button" data-diff="hard" aria-pressed="false">Hard</button>
+            </div>
+            <label class="toggle"><input type="checkbox" id="hide-solved"> Hide solved</label>
+            <label class="toggle"><input type="checkbox" id="compact"> Compact</label>
+            <div class="legend" aria-label="Points per difficulty">
+                <span><span class="difficulty easy"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span></span>Easy 100</span>
+                <span><span class="difficulty medium"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span></span>Medium 200</span>
+                <span><span class="difficulty hard"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span></span>Hard 300</span>
+            </div>
+        </div>
+        <p class="no-match" id="no-match" role="status">No challenge matches. Clear the search or the filters.</p>
+
+        {% for category_id, category in challenges.items() %}
+        {% set cat_solved = category.challenges|selectattr('id', 'in', solved)|list|length %}
+        {% set cat_total = category.challenges|length %}
+        <section class="stage category-tile" data-category="{{ category_id }}" id="cat-{{ category_id }}" aria-labelledby="title-{{ category_id }}">
+            <div class="stage-header">
+                <div class="stage-title-group">
+                    <div class="step-badge">{{ loop.index }}</div>
+                    <div>
+                        <h2 class="category-title" id="title-{{ category_id }}">{{ category.name }}</h2>
+                        {% if category.description %}<p class="stage-desc">{{ category.description }}</p>{% endif %}
                     </div>
                 </div>
-                <div class="category-body">
-                    {% for challenge in category.challenges|sort(attribute='points') %}
-                    {% set is_solved = challenge.id in solved %}
-                    {% set board_only = challenge.get('tag') == 'hardware' and not on_board %}
-                    {% set difficulty = 'easy' if challenge.points <= 150 else ('medium' if challenge.points <= 250 else 'hard') %}
-                    <a class="challenge-row {% if is_solved %}solved{% endif %}{% if board_only %} board-only{% endif %}{% if challenge.id == ns.next_id %} next{% endif %}"
-                         href="/ctf/challenge/{{ challenge.id }}"
+                <div class="category-progress">
+                    <span>{{ cat_solved }}/{{ cat_total }} solved</span>
+                    <div class="category-progress-bar"><div class="fill" style="width: {{ (cat_solved / cat_total * 100)|round(0) if cat_total else 0 }}%"></div></div>
+                </div>
+            </div>
+            <div class="cards">
+                {% for challenge in category.challenges %}
+                {% set is_solved = challenge.id in solved %}
+                {% set board_only = challenge.get('tag') == 'hardware' and not on_board %}
+                {% set difficulty = challenge.get('difficulty', 'medium') %}
+                {% set lesson = lessons.get(challenge.get('theory')) %}
+                <article class="challenge-card{% if is_solved %} solved{% endif %}{% if board_only %} board-only{% endif %}{% if challenge.id == ns.next_id %} next{% endif %}"
+                         id="ch-{{ challenge.id }}"
+                         data-id="{{ challenge.id }}"
                          data-tag="{{ challenge.get('tag', '') }}"
                          data-difficulty="{{ difficulty }}"
                          data-solved="{{ 'true' if is_solved else 'false' }}"
-                         onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ challenge.id }}' }, window.location.origin); }">
-
-                        <div class="challenge-status {% if is_solved %}done{% else %}unsolved{% endif %}">
-                            {% if is_solved %}✓{% endif %}
-                        </div>
-
+                         data-search="{{ [challenge.title, challenge.description, challenge.get('tag', ''), category.name, lesson.title if lesson else '']|join(' ')|lower }}">
+                    <div class="card-top">
+                        <div class="challenge-status {% if is_solved %}done{% else %}unsolved{% endif %}" aria-hidden="true">{% if is_solved %}✓{% endif %}</div>
                         <div class="challenge-info">
-                            <div class="challenge-name">{{ challenge.title }}{% if challenge.id == ns.next_id %}<span class="next-badge">Next up</span>{% endif %}{% if board_only %}<span class="board-badge" title="Needs the physical CybICS board">Board only</span>{% endif %}</div>
-                            <div class="challenge-desc">{{ challenge.description }}</div>
+                            <h3 class="challenge-name"><a class="challenge-link" href="/ctf/challenge/{{ challenge.id }}" data-nav="ctf">{{ challenge.title }}</a>{% if is_solved %}<span class="visually-hidden"> (solved)</span>{% endif %}{% if challenge.id == ns.next_id %}<span class="next-badge">Next up</span>{% endif %}{% if board_only %}<span class="board-badge" title="Needs the physical CybICS board">Board only</span>{% endif %}</h3>
+                            <p class="challenge-desc">{{ challenge.description }}</p>
                         </div>
-
-                        <div class="challenge-meta">
-                            {% if challenge.get('tag') %}
-                            <span class="badge badge-tag tag-{{ challenge.tag }}">{{ challenge.tag }}</span>
-                            {% endif %}
-                            {% if difficulty == 'easy' %}
-                            <span class="badge badge-easy">Easy</span>
-                            {% elif difficulty == 'medium' %}
-                            <span class="badge badge-medium">Medium</span>
-                            {% else %}
-                            <span class="badge badge-hard">Hard</span>
-                            {% endif %}
-                            <span class="badge badge-points">{{ challenge.points }}</span>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
+                    </div>
+                    <div class="challenge-meta">
+                        <span class="difficulty {{ difficulty }}" title="Difficulty: {{ difficulty }}"><span class="meter" aria-hidden="true"><i></i><i></i><i></i></span><span class="word">{{ difficulty }}</span></span>
+                        <span class="badge-points">{{ challenge.points }} pts</span>
+                        {% if challenge.get('tag') %}<span class="badge-tag">{{ challenge.tag }}</span>{% endif %}
+                    </div>
+                    {% set attacks = closes.get(challenge.id, []) %}
+                    {% if lesson or challenge.get('defended_by') or attacks %}
+                    <div class="card-links">
+                        {% if lesson %}<span><span class="lbl">Briefing:</span> <a href="/theory/{{ lesson.id }}" data-nav="theory">{{ lesson.title }}</a>{% if theory_progress.get(lesson.id, {}).get('passed') %} <span class="read" title="Quiz passed">✓</span>{% endif %}</span>{% endif %}
+                        {% if challenge.get('defended_by') %}<span><span class="lbl">Defend it:</span> {% for d in challenge.defended_by %}<a href="/ctf/challenge/{{ d }}" data-nav="ctf">{{ titles.get(d, d) }}</a>{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}
+                        {% if attacks %}<span><span class="lbl">Stops:</span> {% for a in attacks %}<a href="/ctf/challenge/{{ a }}" data-nav="ctf">{{ titles.get(a, a) }}</a>{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}
+                    </div>
+                    {% endif %}
+                </article>
+                {% endfor %}
             </div>
-            {% set ns.step = ns.step + 1 %}
-            {% endfor %}
-        </div>
+        </section>
+        {% endfor %}
     </main>
 
     <script>
-        function applyTheme(theme) {
-            document.documentElement.classList.toggle('light-mode', theme === 'light');
-        }
-
-        // The initial theme comes from theme_head.html, rendered by the server
-
-        window.addEventListener('message', function(event) {
-            if (event.source === window.parent && event.data && event.data.type === 'theme') {
-                applyTheme(event.data.theme);
-            }
+        // Embedded in the dashboard, links ask the dashboard to navigate: a
+        // challenge opens in the CTF view, a briefing in the Theory view.
+        document.addEventListener('click', function (event) {
+            var a = event.target.closest && event.target.closest('a[data-nav]');
+            if (!a || window.parent === window) return;
+            event.preventDefault();
+            var url = a.getAttribute('href');
+            var type = a.dataset.nav === 'theory' ? 'open-theory' : 'navigate';
+            window.parent.postMessage({ type: type, url: url }, window.location.origin);
         });
+
+        // Search and filters: a few dozen cards, filtered in place
+        (function () {
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.challenge-card'));
+            var stages = Array.prototype.slice.call(document.querySelectorAll('.stage'));
+            var search = document.getElementById('ctf-search');
+            var hideSolved = document.getElementById('hide-solved');
+            var compact = document.getElementById('compact');
+            var segButtons = Array.prototype.slice.call(document.querySelectorAll('.seg button'));
+            var noMatch = document.getElementById('no-match');
+            // Only the view is remembered (this browser only); a difficulty
+            // filter left on would hide challenges on the next visit.
+            var state = { diff: 'all', hideSolved: false, compact: false };
+            try {
+                var saved = JSON.parse(localStorage.getItem('ctf-view') || '{}');
+                state.hideSolved = saved.hideSolved === true;
+                state.compact = saved.compact === true;
+            } catch (e) {}
+
+            function save() {
+                try { localStorage.setItem('ctf-view', JSON.stringify({ hideSolved: state.hideSolved, compact: state.compact })); } catch (e) {}
+            }
+            function apply() {
+                var words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+                var shown = 0;
+                cards.forEach(function (card) {
+                    var ok = (state.diff === 'all' || card.dataset.difficulty === state.diff)
+                        && !(state.hideSolved && card.dataset.solved === 'true')
+                        && words.every(function (w) { return card.dataset.search.indexOf(w) !== -1; });
+                    card.hidden = !ok;
+                    if (ok) shown++;
+                });
+                stages.forEach(function (stage) {
+                    stage.hidden = !stage.querySelector('.challenge-card:not([hidden])');
+                });
+                noMatch.style.display = shown ? 'none' : 'block';
+                segButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.diff === state.diff)); });
+                hideSolved.checked = state.hideSolved;
+                compact.checked = state.compact;
+                document.body.classList.toggle('compact', state.compact);
+            }
+            search.addEventListener('input', apply);
+            segButtons.forEach(function (b) {
+                b.addEventListener('click', function () { state.diff = b.dataset.diff; apply(); });
+            });
+            hideSolved.addEventListener('change', function () { state.hideSolved = hideSolved.checked; save(); apply(); });
+            compact.addEventListener('change', function () { state.compact = compact.checked; save(); apply(); });
+            apply();
+        })();
+
         function resetProgress() {
             if (confirm('Are you sure you want to reset all CTF progress? This action cannot be undone.')) {
                 fetch('/ctf/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' } })

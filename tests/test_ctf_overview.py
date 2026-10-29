@@ -11,13 +11,17 @@ Every challenge names its Theory Path briefing ("theory"); an attack names
 the defense challenge that stops it ("defended_by"), and the overview shows
 the reverse on the defense.
 
-None of this needs a stack.
+Most of this needs no stack. The last test renders /ctf on the live landing
+page and reads nothing but the page.
 """
 import json
 import os
 import re
 
 import pytest
+import requests
+
+from conftest import NGINX_PROXY_PORT, READ_TIMEOUT, SERVER_IP
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LANDING = os.path.join(ROOT, "software", "landing")
@@ -118,3 +122,23 @@ def test_training_readme_lists_the_modules_in_path_order():
     headings = re.findall(r"^### (.+)$", modules.split("\n---\n")[0], re.M)
     assert headings == [cat["name"] for cat in CATEGORIES.values()]
 
+
+@pytest.mark.usefixtures("stack_ready")
+def test_overview_shows_the_path_briefings_and_pairs():
+    html = requests.get(f"http://{SERVER_IP}:{NGINX_PROXY_PORT}/ctf", timeout=READ_TIMEOUT).text
+    sections = re.findall(r'<section class="stage[^"]*" data-category="([a-z_]+)"', html)
+    assert sections == STAGES
+    shown = re.findall(r'<article class="challenge-card[^"]*"\s+id="ch-([A-Za-z0-9_]+)"', html)
+    assert shown == [c["id"] for c in CHALLENGES]
+    for c in CHALLENGES:
+        card = html[html.index(f'id="ch-{c["id"]}"'):]
+        card = card[:card.index("</article>")]
+        assert f'data-difficulty="{c["difficulty"]}"' in card, c["id"]
+        assert f'href="/theory/{c["theory"]}" data-nav="theory"' in card, c["id"]
+        for defense in c.get("defended_by", []):
+            assert f'href="/ctf/challenge/{defense}" data-nav="ctf"' in card, c["id"]
+    side = html[html.index('id="ch-defense_unused_protocols"'):]
+    side = side[:side.index("</article>")]
+    for attack in ("s7_sidedoor", "s7_cpu_stop", "openplc_restapi", "dnp3_sidedoor"):
+        assert f'href="/ctf/challenge/{attack}"' in side, attack
+    assert html.count('class="next-badge"') <= 1

@@ -426,6 +426,8 @@ def ctf_page():
                          challenges=ctf_manager.challenges,
                          solved=session['solved_challenges'],
                          total_points=session['total_points'],
+                         lessons={t['id']: t for t in theory_manager.topics},
+                         theory_progress=theory_manager.progress.load(),
                          on_board=read_hardware_version().get('detected', False))
 
 @app.route('/theory')
@@ -559,6 +561,7 @@ def challenge_detail(challenge_id):
                          training_content=training_content,
                          solved=challenge_id in session['solved_challenges'],
                          challenge_type=challenge.get('type', 'offensive'),
+                         lesson=theory_manager.get_topic(challenge.get('theory', ''))[0],
                          answer_fields=_answer_fields_or_empty(challenge))
 
 

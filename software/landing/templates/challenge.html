@@ -147,6 +147,9 @@
             transition: all 0.15s;
         }
         .sidebar-action:hover { background: rgba(255,107,0,0.15); }
+        .sidebar-briefing { display: block; font-size: 0.78rem; line-height: 1.4; color: #ff6b00; text-decoration: none; margin-bottom: 0.75rem; }
+        .sidebar-briefing:hover { text-decoration: underline; }
+        html.light-mode body .sidebar-briefing { color: #b34700; }
 
         /* --- Main content area --- */
         .main-content {
@@ -583,6 +586,9 @@
                 <!-- Populated by JS -->
             </ul>
             <hr class="sidebar-divider">
+            {% if lesson %}
+            <a href="/theory/{{ lesson.id }}" class="sidebar-briefing" title="The Theory Path lesson behind this challenge" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({type:'open-theory',url:'/theory/{{ lesson.id }}'},window.location.origin); }">Briefing: {{ lesson.title }}</a>
+            {% endif %}
             <a href="#submit-section" class="sidebar-action" onclick="event.preventDefault(); document.getElementById('submit-section').scrollIntoView({behavior:'smooth'});">
                 {% if challenge_type in ['defense', 'verify'] %}{% if challenge_type == 'defense' %}Verify Defense{% else %}Verify{% endif %}{% else %}Submit Flag{% endif %} &#8595;
             </a>
