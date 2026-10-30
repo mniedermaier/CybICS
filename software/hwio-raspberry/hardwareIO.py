@@ -23,6 +23,7 @@ import threading
 from cybics_pb2 import PressureData, DeviceInfo, IPAddress
 import hw_version
 import ctf_uplink
+import training_ap
 import log_throttle
 
 GPIO.setmode(GPIO.BCM)
@@ -277,9 +278,12 @@ def thread_network():
   station_connection = None
 
   current_ssid = None
+  current_channel = None
   try:
-    current_ssid = nmcli.connection.show(AP_CONNECTION)["802-11-wireless.ssid"]
-    logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}")
+    ap = nmcli.connection.show(AP_CONNECTION)
+    current_ssid = ap["802-11-wireless.ssid"]
+    current_channel = ap.get("802-11-wireless.channel")
+    logging.info(f"Current connection: {current_connection}, ap ssid: {current_ssid}, channel: {current_channel}")
   except Exception as e:
     logging.error("No current connection " + str(e))
 
@@ -338,6 +342,16 @@ def thread_network():
         except Exception as e:
           logging.error("Configure ssid failed - " + str(e))
           time.sleep(1)
+      # Takes effect the next time the AP comes up (boot or mode switch), so
+      # participants on the training network are not dropped for it.
+      channel = training_ap.channel_for(id)
+      if current_channel != channel:
+        try:
+          logging.info(f"Configure ap channel {channel}")
+          nmcli.connection.modify(AP_CONNECTION, {'wifi.band': 'bg', 'wifi.channel': channel})
+          current_channel = channel
+        except Exception as e:
+          logging.error("Configure ap channel failed - " + str(e))
 
     connection = AP_CONNECTION if dataID[12] == '1' else station_connection
     if connection and current_connection != connection:

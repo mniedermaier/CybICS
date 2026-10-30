@@ -32,7 +32,7 @@ def register_mgmt_routes(app, client, banners):
     """Register the /api/settings/mgmt routes for one MgmtClient, and the banner poll."""
 
     def snapshot():
-        view = client.snapshot()   # never contains the token, the key or the baseline
+        view = client.snapshot()   # never contains the token or the key
         view['platform'] = CYBICS_PLATFORM
         view['opted_out'] = opted_out()
         if CYBICS_PLATFORM == 'physical':

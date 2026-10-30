@@ -45,10 +45,9 @@ def read_progress_strict(path=None):
     """Solved challenge ids, raising when the progress file cannot be read.
 
     CTFManager.load_progress turns a half-written file into empty progress,
-    which is right for the CTF page but wrong here: the client stores the
-    local solves as a never-reported baseline at enrolment, and an empty
-    baseline on a reused board would report every old solve as new. Raising
-    makes the enrolment fail with progress_unreadable instead.
+    which is right for the CTF page but wrong here: the client reconciles
+    the local solves with the server's at every heartbeat, and raising
+    makes it skip that round instead of acting on a list that is not true.
     """
     path = path or PROGRESS_FILE
     if not os.path.exists(path):

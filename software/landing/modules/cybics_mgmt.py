@@ -18,8 +18,9 @@ Design rules, all following from "the server is optional":
 * Reports survive outages. Solves sit in a persistent outbox until the server
   answers with a final result, and every heartbeat reconciles the local solve
   list with the server's, so nothing is lost if the outbox file is.
-* Solves that existed locally before joining an event (old progress on a
-  reused Pi) are not reported: the client snapshots them as a baseline.
+* Every local solve counts, including those made before the device joined
+  its team or while it was offline: the heartbeat reconciles the full local
+  list. Old progress on a reused Pi counts too; reset it before an event.
 * The client runs a job only when it is signed with the key pinned at
   enrolment, carries a higher sequence number than every job before, names
   this device, and asks for an action the user allowed here (none by
@@ -235,7 +236,6 @@ def _empty_ctf():
         "instance_id": None,
         "event": None,
         "team": None,
-        "baseline": [],          # local solves from before joining, never reported
         "outbox": [],            # [{challenge_id, flag, solved_at, while_running}]
         "rejected": [],          # challenge ids the server refused for good
         "held": {},              # challenge id -> catalog_version it was refused in
@@ -245,7 +245,6 @@ def _empty_ctf():
         "standing": None,        # {score, rank, teams, banned}
         "announcements": [],
         "last_announcement_id": 0,
-        "left_local": None,      # local solves when the user left; see _adopt()
         "leaving": None,         # instance the user left that the server may not know yet about
     }
 
@@ -253,7 +252,7 @@ def _empty_ctf():
 # Carried over when the device joins the same team of the same event again
 # (after the organiser removed it, a re-enrolment, or leave + join), so
 # nothing that was queued, held or decided is lost.
-CARRY_OVER = ("baseline", "outbox", "rejected", "held", "held_paused", "server_solved",
+CARRY_OVER = ("outbox", "rejected", "held", "held_paused", "server_solved",
               "announcements", "last_announcement_id", "catalog_version")
 
 
@@ -474,14 +473,6 @@ class MgmtClient:
             if not self.state["enabled"]:
                 raise MgmtClientError("not_enrolled", "Connect to a CybICS-mgmt server first.")
             token = self.state["token"]
-        # Read the baseline strictly, before talking to the server: joining
-        # with an empty baseline because the progress file was unreadable
-        # would report all old progress as new solves.
-        try:
-            baseline = sorted(set(self.local_solves() or []))
-        except Exception as exc:
-            raise MgmtClientError("progress_unreadable",
-                                  f"Cannot read the local CTF progress, try again: {exc}") from None
         _, resp = self._request("POST", "/ctf/join", timeout=ENROLL_TIMEOUT, token=token, body={
             "join_code": join_code, "team_name": team_name, "team_password": team_password})
         if not (isinstance(resp.get("instance_id"), str) and isinstance(resp.get("event"), dict)
@@ -490,7 +481,7 @@ class MgmtClient:
         with self._lock:
             if self.state["token"] != token:
                 raise MgmtClientError("stale", "The device was enrolled again meanwhile. Try again.")
-            self._adopt(resp["instance_id"], resp["event"], resp["team"], baseline)
+            self._adopt(resp["instance_id"], resp["event"], resp["team"])
             self._save_or_raise()
         self._wake.set()
         return resp
@@ -530,12 +521,11 @@ class MgmtClient:
         left = _empty_ctf()
         left.update({k: ctf[k] for k in CARRY_OVER if k in ctf})
         left.update({"event": ctf.get("event"), "team": ctf.get("team"),
-                     "left_local": sorted(set(self._safe_local_solves())),
                      "leaving": ctf.get("instance_id") if ctf.get("joined") else ctf.get("leaving")})
         self._ctf_gen += 1
         return left
 
-    def _adopt(self, instance_id, event, team, baseline):
+    def _adopt(self, instance_id, event, team):
         """
         The device is now in `team` of `event`, by joining or because the
         organiser put it there (call with the lock held). Same event and same
@@ -552,13 +542,6 @@ class MgmtClient:
         ctf = _empty_ctf()
         if same:
             ctf.update({k: prev[k] for k in CARRY_OVER if k in prev})
-            if prev.get("left_local") is not None:
-                # Solves made while the user had left stay unreported, like
-                # any solve from before joining.
-                made_while_left = set(baseline) - set(prev["left_local"])
-                ctf["baseline"] = sorted(set(prev["baseline"]) | made_while_left)
-        else:
-            ctf["baseline"] = sorted(set(baseline))
         ctf.update({"joined": True, "instance_id": instance_id, "event": event,
                     "team": {k: team.get(k) for k in ("id", "name")}})
         self.state["ctf"] = ctf
@@ -588,11 +571,11 @@ class MgmtClient:
             log.exception("cybics-mgmt: report_solve failed")
 
     def snapshot(self):
-        """State for the landing page, without the token, the key or the baseline."""
+        """State for the landing page, without the token or the key."""
         with self._lock:
             view = {k: v for k, v in self.state.items() if k not in ("token", "signing_key", "results", "ctf")}
             ctf = self.state["ctf"]
-            view["ctf"] = {k: v for k, v in ctf.items() if k not in ("baseline", "left_local", "outbox", "leaving")}
+            view["ctf"] = {k: v for k, v in ctf.items() if k not in ("outbox", "leaving")}
             view["ctf"]["pending"] = len(ctf["outbox"])
             view["ctf"]["outbox"] = [item["challenge_id"] for item in ctf["outbox"]]
             view["queue"] = [j["action"] for j in self.state["queue"]]
@@ -812,11 +795,7 @@ class MgmtClient:
             return   # the user left it; the sync loop tells the server again
         if not ctf["joined"] or block["instance_id"] != ctf["instance_id"]:
             # The organiser put the device into a team (or moved it).
-            try:
-                baseline = list(self.local_solves() or [])
-            except Exception:
-                return   # the progress file is unreadable right now: adopt it next round
-            self._adopt(block["instance_id"], event, team, baseline)
+            self._adopt(block["instance_id"], event, team)
             ctf = self.state["ctf"]
         ctf["event"] = event
         ctf["team"] = {k: team.get(k) for k in ("id", "name")}
@@ -840,10 +819,10 @@ class MgmtClient:
             ctf["announcements"] = (ctf["announcements"] + news)[-20:]
             ctf["last_announcement_id"] = max(a["id"] for a in news)
         # Reconcile: a local solve the server does not know about (lost
-        # outbox, removed by the organiser, solved while offline) is queued
-        # again. Only while running, otherwise it would just bounce.
+        # outbox, removed by the organiser, solved while offline or before
+        # joining) is queued. Only while running, otherwise it would just bounce.
         if event.get("state") == "running":
-            known = (set(ctf["server_solved"]) | set(ctf["baseline"]) | set(ctf["rejected"])
+            known = (set(ctf["server_solved"]) | set(ctf["rejected"])
                      | set(ctf["held"]) | set(ctf["held_paused"]) | {i["challenge_id"] for i in ctf["outbox"]})
             for cid in self._safe_local_solves():
                 if cid in known:

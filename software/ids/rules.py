@@ -176,6 +176,21 @@ def _tcp_stream(pkt):
     return None
 
 
+# Most keys each tracker holds. Trackers are keyed by source address, which
+# an attacker can spoof: one packet per made-up address used to add one entry
+# for good, and 100,000 spoofed SYNs held about 118 MB, far over the 32 MB the
+# IDS gets on a board. The plant has a dozen hosts, so 256 leaves room for
+# every real one; when full, the key that has been quiet longest goes. A
+# spoofed flood can push out a real host's count that way, so its next
+# packets start from zero again: detection gets weaker under such a flood,
+# memory stays bounded.
+MAX_TRACKED_KEYS = 256
+# The same for the ports one scan pair touched: the rule fires at 5; the cap
+# only keeps a sweep of every port from growing one entry. (ARP has its own
+# caps, ARP_MAX_MACS_PER_IP and ARP_MAX_IPS_PER_MAC.)
+MAX_VALUES_PER_KEY = 64
+
+
 class RuleEngine:
     """Lightweight ICS-focused rule engine with sliding window counters.
 
@@ -221,14 +236,26 @@ class RuleEngine:
         last = self.recent_alerts.get(key, 0)
         if now - last < self.ALERT_COOLDOWN:
             return False
+        # Single-packet rules (OPC-UA, S7) alert once per spoofed source.
+        self._lru_get(self.recent_alerts, key, lambda: now)
         self.recent_alerts[key] = now
         return True
 
+    @staticmethod
+    def _lru_get(tracker, key, factory):
+        """Return tracker[key], creating it with factory(); keep the tracker
+        in least recently used order and at most MAX_TRACKED_KEYS long."""
+        value = tracker.pop(key, None)
+        if value is None:
+            if len(tracker) >= MAX_TRACKED_KEYS:
+                del tracker[next(iter(tracker))]
+            value = factory()
+        tracker[key] = value
+        return value
+
     def _track_event(self, tracker, key, window, now):
         """Add timestamp to sliding window tracker, prune old entries"""
-        if key not in tracker:
-            tracker[key] = deque(maxlen=200)
-        dq = tracker[key]
+        dq = self._lru_get(tracker, key, lambda: deque(maxlen=200))
         dq.append(now)
         cutoff = now - window
         while dq[0] < cutoff:
@@ -297,9 +324,9 @@ class RuleEngine:
         # Rule 1: Port scan — track unique dst ports per src->dst pair
         port_key = (src_ip, dst_ip)
         tracker = self.port_scan_tracker
-        if port_key not in tracker:
-            tracker[port_key] = {}
-        ports = tracker[port_key]
+        ports = self._lru_get(tracker, port_key, dict)
+        if dport not in ports and len(ports) >= MAX_VALUES_PER_KEY:
+            del ports[next(iter(ports))]
         ports[dport] = now
         # Prune expired entries before checking threshold
         cutoff = now - self.PORT_SCAN_WINDOW
@@ -788,6 +815,15 @@ class RuleEngine:
             }
             if not self.port_scan_tracker[key]:
                 del self.port_scan_tracker[key]
+        # A source that sent nothing for a whole window has nothing left to
+        # count. The ARP tables age out above, by ARP_BINDING_WINDOW.
+        for tracker, window in ((self.syn_tracker, self.SYN_FLOOD_WINDOW),
+                                (self.modbus_flood_tracker, self.MODBUS_FLOOD_WINDOW),
+                                (self.modbus_write_tracker, self.MODBUS_WRITE_WINDOW),
+                                (self.http_login_tracker, self.HTTP_BRUTE_WINDOW)):
+            cutoff = now - window
+            for key in [k for k, dq in tracker.items() if not dq or dq[-1] < cutoff]:
+                del tracker[key]
 
 
 # ---- Modbus write journal (no rule) ----

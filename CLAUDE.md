@@ -81,7 +81,7 @@ Do not open a PR with a suite you did not run.
   once silently never ran in CI.
 - `TEST_SERVER_IP` and `TEST_<SERVICE>_PORT` point the suite at a remote or
   relocated stack. `test_ids_rules.py`, `test_plant_model_parity.py`,
-  `test_cybics_mgmt.py`, `test_ctf_uplink.py`, `test_landing_restart.py`,
+  `test_cybics_mgmt.py`, `test_ctf_uplink.py`, `test_training_ap.py`, `test_landing_restart.py`,
   `test_theory_content.py` and `test_register_map.py` need no stack and are a
   quick check, not a substitute.
 
