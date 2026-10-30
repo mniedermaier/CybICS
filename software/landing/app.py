@@ -222,6 +222,32 @@ def get_stats_history():
         logger.error(f"Error getting stats history: {e}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/stats/containers/<service>/restart', methods=['POST'])
+def restart_stats_container(service):
+    """Restart one container from the stats page.
+
+    Only containers of landing's own compose project, one restart at a time;
+    see restart_service() in utils/restart.py. The answer comes once docker
+    is done, except for landing itself, which restarts in the background:
+    `self` tells the page to wait for a new boot ID and reload.
+    """
+    try:
+        message = restart_service(service)
+    except RestartError as e:
+        logger.warning(f'Restart of {service!r} refused: {e}')
+        code = 404 if e.reason == 'unknown_service' else 409
+        return jsonify({'success': False, 'error': public_message(e)}), code
+    except subprocess.TimeoutExpired:
+        logger.error(f'Restart of {service!r} timed out')
+        return jsonify({'success': False, 'error': 'Docker did not finish the restart in time.'}), 504
+    except Exception as e:
+        logger.error(f'Error restarting {service!r}: {e}', exc_info=True)
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+    status = restart_status()
+    # Only landing's own restart is still holding the lock when this returns.
+    return jsonify({'success': True, 'message': message, 'self': status['running'],
+                    'boot_id': status['boot_id']})
+
 # ========== NETWORK ANALYZER ROUTES ==========
 
 @app.route('/network')
