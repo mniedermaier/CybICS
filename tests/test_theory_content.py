@@ -496,6 +496,19 @@ def test_before_you_start_points_back(topic):
         assert TOPIC_IDS.index(target) < here, f"{topic['id']} asks to read {target} first, which comes later"
 
 
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_before_you_start_lists_the_prerequisites(topic):
+    """A lesson's "Before you start" may suggest more than its config
+    prerequisites, but never fewer: the page and the text must not disagree."""
+    section = re.search(r"^## Before you start\n(.*?)(?=^## |\Z)", article(topic), re.S | re.M)
+    if not section:
+        return
+    first = section.group(1).split("Later on the path:", 1)[0]
+    linked = set(re.findall(r"\]\(/theory/([^)#\s]+)", first))
+    missing = set(topic.get("prerequisites", [])) - linked
+    assert not missing, f"{topic['id']}: prerequisites {sorted(missing)} are not under Before you start"
+
+
 def test_lessons_match_what_http_brute_force_detects():
     """http_brute_force counts POSTs that mention one of _HTTP_LOGIN_WORDS.
     It once missed FUXA's /api/signin and the lessons said so; now it matches
