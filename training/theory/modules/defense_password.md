@@ -42,7 +42,7 @@ When you press **Verify Defense**, the CybICS landing page logs in with the old 
 
 ## How to approach it
 
-1. **List the accounts.** Log in to each web interface and find where users are managed. In OpenPLC that is the Users page; in FUXA it is the Users settings page (`/users`) behind the editor's gear icon.
+1. **List the accounts.** Log in to each web interface and find where users are managed. In OpenPLC that is the Users page; in FUXA it is the Users settings page (`/users`), reached through the editor (round button at the bottom left, then the gear icon), not from the user name at the top right.
 2. **Pick a strong password.** Length beats cleverness: a passphrase of four or five unrelated words resists the wordlist attacks you used earlier. Never reuse a password across systems.
 3. **Change it, keep the username.** The checks expect the same usernames.
 4. **Write it down safely.** If you forget it, the only way back in the lab is to reset the container. In a plant, store it in a password manager or a sealed record.

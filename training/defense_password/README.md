@@ -33,9 +33,18 @@ The FUXA HMI runs on port **1881** and uses the default admin credentials:
 ### Steps
 1. Open a web browser and navigate to `http://<DEVICE_IP>:1881`
 2. Log in with the default admin credentials
-3. Open the **Users settings** page, `http://<DEVICE_IP>:1881/users` (in the
-   editor it sits behind the gear icon at the top left, under **Users**)
-4. Click the pencil next to `admin`, type a new password and confirm with **OK**
+3. Open the user management. FUXA has no account menu at the top right (the
+   `admin` name there only shows who is logged in); users are managed in the
+   editor:
+   - click the round blue menu button at the **bottom left** and choose
+     **Editor**,
+   - in the editor, click the **gear icon** at the top left; the **Setup**
+     dialog opens,
+   - under **Misc**, click **Users**. This opens the **Users settings** page,
+     which you can also reach directly at `http://<DEVICE_IP>:1881/users`.
+4. Click the pencil next to `admin`, type a new password into **Password** and
+   confirm with **OK**. The new password is active at once; the editor's save
+   icon is not needed for it
 5. Click **Verify Defense** on this challenge page to confirm
 
 ## Important Notes
@@ -86,12 +95,12 @@ After completing this challenge, consider:
 
 ## Hints
 
-For OpenPLC, navigate to the web UI at port 8080, log in with `openplc`/`openplc`, then go to **Users** in the sidebar to find the password change option. For FUXA, log in at port 1881 and open the **Users settings** page (`/users`), then edit the `admin` user.
+For OpenPLC, navigate to the web UI at port 8080, log in with `openplc`/`openplc`, then go to **Users** in the sidebar to find the password change option. For FUXA, log in at port 1881 and look in the editor, not at the top right: the round button at the bottom left leads to **Editor**, its gear icon opens **Setup**, and **Users** there is the **Users settings** page (`/users`). Edit the `admin` user.
 
 ## Solution
 
 1. **OpenPLC** — Navigate to `http://<DEVICE_IP>:8080`, log in with the default credentials (`openplc`/`openplc`), click **Users** in the left-hand menu, open the `openplc` user and change its password to something non-default (**Save changes**).
-2. **FUXA** — Navigate to `http://<DEVICE_IP>:1881`, log in with the default credentials (`admin`/`123456`), open `http://<DEVICE_IP>:1881/users` (**Users settings**), click the pencil next to `admin` and set a new password.
+2. **FUXA** — Navigate to `http://<DEVICE_IP>:1881`, log in with the default credentials (`admin`/`123456`), open **Editor** from the round button at the bottom left, then the gear icon at the top left (**Setup**) and **Users** (or go straight to `http://<DEVICE_IP>:1881/users`), click the pencil next to `admin`, set a new password and confirm with **OK**.
 3. Click **Verify Defense** in the CTF interface for each task to receive the flag.
 
 **Flag (OpenPLC):** `CybICS(0penPLC_h4rd3n3d)`

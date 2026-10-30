@@ -706,7 +706,7 @@
           "type": "defense",
           "verify_module": "check_fuxa_password",
           "flag": "CybICS(FUXA_s3cur3d)",
-          "hint": "Access FUXA at port 1881 and change the admin password from its default value",
+          "hint": "FUXA manages users in its editor, not at the top right: round button at the bottom left, Editor, gear icon at the top left, Users (or open /users). Edit admin and confirm with OK.",
           "training_content": "training/defense_password/README.md",
           "theory": "defense_password"
         },
