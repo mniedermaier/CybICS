@@ -82,8 +82,9 @@ def main():
 
     print("[+] FUXA treats the forged token as an administrator. Its user list:")
     for user in users:
-        print(f"    {user.get('username'):<10} groups={user.get('groups'):<4} "
-              f"password hash={user.get('password', '')[:20]}...")
+        # Only say that the hash came along; the point is that it leaks, not its value.
+        leaked = "included" if user.get("password") else "not included"
+        print(f"    {user.get('username'):<10} groups={user.get('groups'):<4} password hash {leaked}")
     print(f"\n[+] Token ({len(token)} characters), paste it on the challenge page:\n{token}")
     if args.lifetime in (900, 3600, 10800, 86400):
         print("[!] FUXA issues tokens with exactly this lifetime itself, so the challenge cannot "
