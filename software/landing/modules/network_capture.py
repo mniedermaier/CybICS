@@ -103,7 +103,30 @@ _PAYLOAD_PREVIEW = 64
 
 
 class CaptureError(ValueError):
-    """A capture request that names an interface or filter it may not."""
+    """A capture request that was refused or could not start.
+
+    The message is for the log. `reason` picks the fixed text a browser
+    gets, see public_message(): the message of a failed start carries
+    Scapy's or the kernel's own words, which name paths and interfaces.
+    """
+
+    def __init__(self, message, reason):
+        super().__init__(message)
+        self.reason = reason
+
+
+# What a browser is told for each reason. Fixed strings only.
+PUBLIC_MESSAGES = {
+    'bad_request': 'Interface and filter must be strings.',
+    'unknown_filter': 'Unknown capture filter.',
+    'bad_interface': 'This interface cannot be captured.',
+    'start_failed': 'The capture could not start; the landing log has the details.',
+}
+
+
+def public_message(error):
+    """The fixed text for a CaptureError that may be shown in the browser."""
+    return PUBLIC_MESSAGES.get(getattr(error, 'reason', None), PUBLIC_MESSAGES['start_failed'])
 
 
 def _is_ethernet(name):
@@ -139,11 +162,11 @@ def all_interfaces():
 
 def _check_request(interface, filter_name):
     if not isinstance(interface, str) or not isinstance(filter_name, str):
-        raise CaptureError('interface and filter must be strings')
+        raise CaptureError('interface and filter must be strings', 'bad_request')
     if filter_name not in CAPTURE_FILTERS:
-        raise CaptureError(f"unknown capture filter '{filter_name}'")
+        raise CaptureError(f"unknown capture filter {filter_name!r}", 'unknown_filter')
     if interface != 'all' and interface not in capturable_interfaces():
-        raise CaptureError(f"interface '{interface}' cannot be captured")
+        raise CaptureError(f"interface {interface!r} cannot be captured", 'bad_interface')
 
 
 class _PcapFile:
@@ -283,7 +306,10 @@ class NetworkCapture:
                 # A filter or interface the kernel refuses ends the thread.
                 thread = sniffer.thread
                 if (thread is not None and not thread.is_alive()) or time.monotonic() > deadline:
-                    self.error = str(sniffer.exception or 'capture did not start')
+                    detail = str(sniffer.exception or 'capture did not start')
+                    # /api/network/stats shows self.error in the page; the
+                    # detail stays in the log.
+                    self.error = PUBLIC_MESSAGES['start_failed']
                     self.sniffer = None
                     try:
                         sniffer.stop(join=False)
@@ -291,7 +317,7 @@ class NetworkCapture:
                         pass  # ended already, or not far enough to be told
                     with self.lock:
                         self.generation += 1
-                    raise CaptureError(f'capture could not start: {self.error}')
+                    raise CaptureError(f'capture on {iface} could not start: {detail}', 'start_failed')
 
         threading.Thread(target=self._watch, args=(sniffer,), daemon=True).start()
         logger.info(f"Started capture on {iface}, BPF '{bpf}'")

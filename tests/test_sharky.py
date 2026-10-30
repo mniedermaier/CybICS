@@ -63,7 +63,10 @@ def start(body):
 def test_a_capture_request_cannot_leave_the_lab(body):
     response = start(body)
     assert response.status_code == 400, response.text
-    assert "error" in response.json()
+    # Fixed texts only: nothing of the request or of an exception comes back.
+    assert response.json()["error"] in {
+        "Interface and filter must be strings.", "Unknown capture filter.",
+        "This interface cannot be captured."}
 
 
 def test_the_capture_filter_presets_are_offered():
