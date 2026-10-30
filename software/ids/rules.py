@@ -70,6 +70,20 @@ _ARP_OP = 7
 _ARP_SRC_MAC = 8
 _ARP_SRC_IP = 9
 
+# Most keys each tracker holds. Trackers are keyed by source address, which
+# an attacker can spoof: one packet per made-up address used to add one entry
+# for good, and 100,000 spoofed SYNs held about 118 MB, far over the 32 MB the
+# IDS gets on a board. The plant has a dozen hosts, so 256 leaves room for
+# every real one; when full, the key that has been quiet longest goes. A
+# spoofed flood can push out a real host's count that way, so its next
+# packets start from zero again: detection gets weaker under such a flood,
+# memory stays bounded.
+MAX_TRACKED_KEYS = 256
+# The same for what one key holds: ports a scan touched, MACs an IP used.
+# Both rules fire long before (5 ports, 2 MACs); the cap only keeps a sweep
+# of every port, or a stream of made-up MACs, from growing one entry.
+MAX_VALUES_PER_KEY = 64
+
 
 class RuleEngine:
     """Lightweight ICS-focused rule engine with sliding window counters.
@@ -109,14 +123,26 @@ class RuleEngine:
         last = self.recent_alerts.get(key, 0)
         if now - last < self.ALERT_COOLDOWN:
             return False
+        # Single-packet rules (OPC-UA, S7) alert once per spoofed source.
+        self._touch(self.recent_alerts, key, lambda: now)
         self.recent_alerts[key] = now
         return True
 
+    @staticmethod
+    def _touch(tracker, key, factory):
+        """Return tracker[key], creating it with factory(); keep the tracker
+        in least recently used order and at most MAX_TRACKED_KEYS long."""
+        value = tracker.pop(key, None)
+        if value is None:
+            if len(tracker) >= MAX_TRACKED_KEYS:
+                del tracker[next(iter(tracker))]
+            value = factory()
+        tracker[key] = value
+        return value
+
     def _track_event(self, tracker, key, window, now):
         """Add timestamp to sliding window tracker, prune old entries"""
-        if key not in tracker:
-            tracker[key] = deque(maxlen=200)
-        dq = tracker[key]
+        dq = self._touch(tracker, key, lambda: deque(maxlen=200))
         dq.append(now)
         cutoff = now - window
         while dq[0] < cutoff:
@@ -179,9 +205,9 @@ class RuleEngine:
         # Rule 1: Port scan — track unique dst ports per src->dst pair
         port_key = (src_ip, dst_ip)
         tracker = self.port_scan_tracker
-        if port_key not in tracker:
-            tracker[port_key] = {}
-        ports = tracker[port_key]
+        ports = self._touch(tracker, port_key, dict)
+        if dport not in ports and len(ports) >= MAX_VALUES_PER_KEY:
+            del ports[next(iter(ports))]
         ports[dport] = now
         # Prune expired entries before checking threshold
         cutoff = now - self.PORT_SCAN_WINDOW
@@ -327,10 +353,9 @@ class RuleEngine:
         if not arp_src_ip or not arp_src_mac:
             return []
 
-        if arp_src_ip not in self.arp_tracker:
-            self.arp_tracker[arp_src_ip] = set()
-        macs = self.arp_tracker[arp_src_ip]
-        macs.add(arp_src_mac)
+        macs = self._touch(self.arp_tracker, arp_src_ip, set)
+        if len(macs) < MAX_VALUES_PER_KEY:
+            macs.add(arp_src_mac)
         if len(macs) > 1:
             now = time.time()
             if self._should_alert("arp_spoof", arp_src_ip, now):
@@ -390,3 +415,12 @@ class RuleEngine:
             }
             if not self.port_scan_tracker[key]:
                 del self.port_scan_tracker[key]
+        # A source that sent nothing for a whole window has nothing left to
+        # count; the ARP table is kept, it remembers MACs on purpose.
+        for tracker, window in ((self.syn_tracker, self.SYN_FLOOD_WINDOW),
+                                (self.modbus_flood_tracker, self.MODBUS_FLOOD_WINDOW),
+                                (self.modbus_write_tracker, self.MODBUS_WRITE_WINDOW),
+                                (self.http_login_tracker, self.HTTP_BRUTE_WINDOW)):
+            cutoff = now - window
+            for key in [k for k, dq in tracker.items() if not dq or dq[-1] < cutoff]:
+                del tracker[key]
