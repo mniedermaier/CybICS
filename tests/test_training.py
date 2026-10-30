@@ -1351,6 +1351,8 @@ class TestRegisterMapRecon(_CtfProgress):
 
     The release wait is bounded: the compressor latch is on for about 35 s and
     off for about 35 s, so a 1 -> 0 switch comes within 80 s in a running plant.
+    A release while the GST is at 50 or below is the low-gas guard, not the
+    HPT threshold, and is skipped; on a slow CI runner one came at HPT 79.
     """
 
     SCRIPT = ("python3 /CybICS/training/register_map_recon/map_registers.py "
@@ -1410,7 +1412,9 @@ class TestRegisterMapRecon(_CtfProgress):
             while time.time() < deadline and release is None:
                 words = self._words(client)
                 latch = words[self.COMPRESSOR_LATCH]
-                if previous == 1 and latch == 0:
+                # The latch also lets go early when the GST drops to 50 (cybICS.st);
+                # only a release with gas left is the HPT threshold the README asks for.
+                if previous == 1 and latch == 0 and words[self.GST] > 50:
                     release = words[self.HPT]
                 previous = latch
                 time.sleep(0.1)

@@ -129,7 +129,9 @@ All four have to be right at once; the page does not say which one is wrong.
    values every cycle, and those values are its thresholds. The compressor
    latch switches on when the HPT is low and lets go when the HPT is high;
    the refill latch follows the GST. Also check which coil changes at the
-   same moment: a latch usually drives an output.
+   same moment: a latch usually drives an output. Now and then a latch lets
+   go at an odd value because a different condition ended the cycle early;
+   the threshold is the value that repeats, so watch more than one cycle.
 
 6. **Translate.** Turn the compressor latch's wire address into its `%MW`
    index, then into the S7comm data block and byte offset with the table in
