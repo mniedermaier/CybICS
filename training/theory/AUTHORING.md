@@ -24,6 +24,24 @@ The topic itself (id, title, summary, level, prerequisites, related
 challenges, order) is registered in `software/landing/theory_config.json`.
 `tests/test_theory_content.py` checks all of it without a running stack.
 
+## Where a lesson goes
+
+The sections of the Theory Path follow the seven stages of the CTF page
+(`software/landing/ctf_config.json`), from the plant to its defence, with the
+case studies at the end. Each challenge names its briefing in `theory`. The
+briefings sit in the section of their stage and in the same order as the
+challenges, so a student who works through the CTF in order has always read
+the briefing of the next challenge already. A foundation lesson (Modbus,
+OPC-UA, detection) goes right before the first briefing that needs it, and a
+lesson's prerequisites always come earlier. `related` lists the challenges a lesson prepares
+for. The briefing of an attack also lists the defence challenge that stops
+it, with `"role": "defense"`, and a defence briefing lists the attacks it
+stops, with `"role": "attack"`; the page labels them "Defend it:" and
+"Stops:", as the CTF page does, and only the lesson's own challenges count
+for its "Challenge solved" mark. Move a lesson, not a challenge,
+when the two disagree; topic ids never change, because the quiz progress is
+keyed on them.
+
 ## Audience and tone
 
 - Write for a first-year student. Explain every acronym at first use
@@ -179,6 +197,7 @@ reached.
 | OPC-UA security | `<div data-widget="opcua-security"></div>` | Choose the channel policy and the identity; shows what the CybICS server accepts, the role, what a listener sees and what the IDS reports. |
 | Sequence | `<div data-widget="sequence" data-id="attack"></div>` | Put the steps of a story in order and label each one (an ATT&CK tactic, an incident-response phase). The steps come from `exercises` in the sidecar. |
 | Plant prediction | `<div data-widget="plant-predict"></div>` | The reader predicts from the live compressor and valve state whether the HPT will rise, fall or stay over 20 seconds, then the live plant answers. Read-only; needs the stack. |
+| Plant sandbox | `<div data-widget="plant-sandbox"></div>` | The plant model (the same rules as hwio and the firmware) and the PLC's automatic mode in the browser, one tick at a time. The reader sets the start pressures, the mode (automatic, manual with frozen outputs, stop) and an attacker who forges the HPT the PLC reads in one scan or in a share of the scans, and sees the pressures, the ticks in which the compressor really moved gas (in the current run and since the start), a chart and a log of what changed on which tick, from the start state on. `tests/test_plant_model_parity.py` keeps its constants in step with the firmware. |
 | Rate planner | `<div data-widget="rate-planner"></div>` | Plan a number of Modbus writes and their spacing against the two write rules of the IDS over a two-minute window, with imprecise timing and a stray scan as options. |
 | UART frame | `<div data-widget="uart-frame"></div>` | One character as start bit, eight data bits (lowest first) and stop bit, and what a receiver at the wrong baud rate reads instead. |
 | Checkpoint | `<div data-widget="checkpoint" data-id="frame"></div>` | One question in the middle of the text, taken from `checkpoints` in the sidecar. |

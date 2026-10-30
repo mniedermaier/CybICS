@@ -1,4 +1,4 @@
-"""CTF check: the Modbus write flood against the plant actually happened."""
+"""CTF check: the Modbus write flood against the plant happened in the last 10 minutes."""
 from modules.defense_checks._ids_rule import rule_fired
 
 
@@ -11,7 +11,8 @@ def verify():
         "passed": fired,
         "detail": "A high-rate burst of Modbus writes to the plant was seen on the wire."
         if fired else
-        "No write flood detected yet. Run the flood against the HPT register and try again.",
+        "No write flood detected in the last 10 minutes. Run the flood against the HPT register "
+        "and verify while it runs or right after.",
     }]
     return {
         "success": fired,

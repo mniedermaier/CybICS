@@ -1,0 +1,91 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain what a PLC's RUN and STOP modes mean for the scan cycle and the outputs",
+    "Read a controller's operating mode from its S7 system status list",
+    "Tell apart a command's acknowledgement, a device's reported state and the process behaviour",
+    "Name how a defender detects and prevents remote mode changes"
+  ],
+  "takeaways": [
+    "Changing a PLC's operating mode (T0858) is one command, and classic S7comm accepts it from anyone who reaches port 102.",
+    "An acknowledgement only says the command arrived; a status report only says what the device claims.",
+    "Judge the plant by the process itself: outputs, sensors, a heartbeat.",
+    "Client libraries can be wrong too: check what a function actually sends before trusting its answer.",
+    "The CybICS IDS raises a critical s7_cpu_control alert for every S7comm STOP and a high one for every restart."
+  ],
+  "checkpoints": [
+    {
+      "id": "evidence",
+      "question": "After a STOP, the PLC reports STOP. Which observation proves that its program is still running?",
+      "options": [
+        "The STOP command returned 0",
+        "The heartbeat output keeps changing",
+        "The S7comm connection is still open"
+      ],
+      "answer": 1,
+      "explanation": "Only the running program toggles the heartbeat, so a changing heartbeat is evidence from the process. The return value 0 just acknowledges that the command arrived, and an open connection says nothing about the program."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "On a real Siemens S7 controller, what happens to the plant when the CPU goes from RUN to STOP?",
+      "options": [
+        "Nothing until the operator confirms it on the HMI",
+        "The program halts and the outputs go to their safe state",
+        "The program keeps running but stops answering the network",
+        "The controller reboots and starts the program again"
+      ],
+      "answer": 1,
+      "explanation": "In STOP the scan cycle no longer runs, and the controller sets its outputs to a safe state, which on a gas plant switches the compressor off. There is no operator confirmation on a classic S7 controller, which is what makes a remote STOP so powerful. On CybICS the program keeps running only because OpenPLC ignores the mode its S7 server reports."
+    },
+    {
+      "type": "single",
+      "question": "You send a STOP. The command returns 0 and the status list reports STOP, but the heartbeat keeps blinking and the HPT pressure keeps changing. What do you tell the operators?",
+      "options": [
+        "The process is halted, because the controller confirmed it twice",
+        "The process is still running; the controller only claims to be stopped",
+        "The heartbeat output is broken",
+        "The IDS must have blocked the command"
+      ],
+      "answer": 1,
+      "explanation": "The acknowledgement and the status report both come from the controller. The heartbeat and the pressure come from the process, and they show the program still running. Two confirmations from the same source are not two independent proofs. The IDS only watches traffic; it never blocks anything."
+    },
+    {
+      "type": "single",
+      "question": "Where does an S7 controller publish its operating mode for clients to read?",
+      "options": [
+        "In data block DB1002",
+        "In Modbus holding register 1128",
+        "In the system status list 0x0424",
+        "In the identity list 0x0011"
+      ],
+      "answer": 2,
+      "explanation": "System status list 0x0424 holds the mode byte (0x08 RUN, 0x04 STOP). List 0x0011 is the identity record read in the S7comm enumeration challenge. DB1002 and register 1128 are the program's stop flag, a variable of the program and a different thing from the controller's mode."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures prevent or reveal a remote STOP?",
+      "options": [
+        "A key switch locked in RUN",
+        "A password protection level on the controller",
+        "An IDS alert on S7comm STOP and PLC Control requests",
+        "Polling the mode with get_cpu_state() in python-snap7 3.3.0"
+      ],
+      "answer": [0, 1, 2],
+      "explanation": "The key switch and the protection level make the controller refuse the change, and the IDS alert reveals the attempt. get_cpu_state() in python-snap7 3.3.0 never asks the controller for its mode, so polling it would report RUN forever."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS technique describes sending a PLC STOP to halt a controller?",
+      "options": [
+        "T0868 Detect Operating Mode",
+        "T0858 Change Operating Mode",
+        "T0816 Device Restart/Shutdown",
+        "T0846 Remote System Discovery"
+      ],
+      "answer": 1,
+      "explanation": "Putting the controller into STOP changes its operating mode, T0858. Reading the mode without changing it is T0868. T0816 is restarting or shutting down the device itself, while a STOP leaves the controller powered and reachable. T0846 is finding hosts on the network."
+    }
+  ]
+}

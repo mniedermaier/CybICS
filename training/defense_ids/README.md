@@ -34,7 +34,7 @@ curl -X POST http://localhost:8443/api/start
 > **Important:** You must start the IDS **before** triggering any attacks. The IDS can only detect attacks that occur while it is actively capturing traffic. If you run attacks first and start the IDS afterward, those attacks will not be detected.
 
 #### Step 3: Trigger Detection Rules
-The IDS has 9 detection rules. You need to trigger at least 3 different ones. Execute the following attacks from the **webshell or attack machine** (172.18.0.100). Some examples:
+The IDS has 12 detection rules. You need to trigger at least 3 different ones. Execute the following attacks from the **webshell or attack machine** (172.18.0.100). Some examples:
 
 **Port Scan** (Rule: `port_scan`):
 ```bash
@@ -69,8 +69,8 @@ Check the IDS dashboard to confirm alerts have been generated from at least 3 di
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scanning and service enumeration |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Unauthorized Modbus write commands |
-| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Flooding attacks against ICS protocols |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Unauthorized Modbus write commands |
+| Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Flooding attacks against ICS protocols |
 
 ### MITRE D3FEND - Defensive Techniques Applied
 

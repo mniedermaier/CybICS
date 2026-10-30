@@ -45,7 +45,7 @@ OpenPLC runs at `172.18.0.3` and listens for Modbus TCP on port 502. Before you 
 
 Everything else, including the attack machine at `172.18.0.100`, has no business on port 502. You work inside the OpenPLC container with `docker exec`, which reaches the container without going over the network, so a wrong rule cannot lock you out.
 
-When you press **Verify Defense**, the check looks for a `DROP` or `REJECT` rule on the container and then tries to connect to port 502 from the CybICS host itself. That host is not on your list, so the connection has to fail.
+When you press **Verify Defense**, the check looks for a `DROP` or `REJECT` rule on the container and then tries to connect to port 502 from the CybICS host itself and from the attack machine. Neither is on your list, so both connections have to fail. It also connects from inside `hwio`, `fuxa` and `opcua`: those three must still get through.
 
 One side effect: the live plant views in these lessons also read the PLC from the CybICS host (`172.18.0.1`). Once your firewall is in place they show "plant not reachable". That is the firewall working, and a good reminder to list every reader before you block port 502 in a real plant.
 
@@ -72,7 +72,7 @@ Try the order of rules here first. Move the rules around and watch which CybICS 
 The firewall is the defense here; detection confirms it works.
 
 - **Watch the drops.** Run a Modbus write from the attack machine. It should hang until it times out. Counters in `iptables -L -v` show how many packets each rule matched.
-- **Mind the other doors.** OpenPLC also serves S7comm on port 102, DNP3 on 20000 and EtherNet/IP on 44818. A rule for 502 leaves those open; the next module, [Network segmentation](/theory/defense_network), closes the gap per host.
+- **Mind the other doors.** OpenPLC also serves S7comm on port 102, DNP3 on 20000 and EtherNet/IP on 44818. A rule for 502 leaves those open, which the [S7 Side Door](/ctf/challenge/s7_sidedoor) challenge exploits; the next module, [Network segmentation](/theory/defense_network), closes the gap per host.
 - **Remember what remains.** If the HMI itself is taken over, the attacker inherits its place on the allow list. That is why firewalls are combined with monitoring, as described in [Defence in depth](/theory/defense-hardening).
 
 The attacks this blocks include Unauthorized Message: Command Message (T1692.001) and Brute Force I/O (T0806) from MITRE ATT&CK for ICS. NIST SP 800-82 calls the measure Boundary Protection (SC-7); D3FEND calls it Inbound Traffic Filtering (D3-ITF).

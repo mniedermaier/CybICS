@@ -1,0 +1,4 @@
+[
+  {"client": "172.18.0.4", "comment": "FUXA, the HMI"},
+  {"client": "172.18.0.5", "comment": "the OPC-UA gateway"}
+]

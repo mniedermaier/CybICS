@@ -100,3 +100,85 @@ def test_vent_rate_is_below_compressor_rate(firmware, virtual):
     implicit: mean vent (0.5 bar/tick) < compressor delivery (1 bar/tick)."""
     for src, hi in ((firmware, "rand() % 2"), (virtual, "random.randint(0, 1)")):
         assert hi in src, "vent rate changed; check it still trails the compressor"
+
+
+# ---------------------------------------------------------------------------
+# The third copy: the plant sandbox in the Theory Path
+# ---------------------------------------------------------------------------
+# software/landing/static/js/theory-widgets.js carries the model as
+# PLANT_MODEL (the numbers) and plantTick() (the order and the guards) for
+# the plant-sandbox widget. The numbers are compared with the ones read out
+# of the firmware, the reference, so a rate changed there without the
+# sandbox fails here.
+WIDGETS_JS = os.path.join(ROOT, "software", "landing", "static", "js", "theory-widgets.js")
+PLC_PROGRAM = os.path.join(ROOT, "software", "OpenPLC", "cybICS.st")
+
+
+@pytest.fixture(scope="module")
+def sandbox():
+    src = _read(WIDGETS_JS)
+    start = src.index("const PLANT_MODEL = {")
+    return src[start:src.index("register('plant-sandbox'", start)]
+
+
+def _one(pattern, text):
+    m = re.search(pattern, text)
+    assert m, f"pattern {pattern!r} no longer matches; update this test with the model"
+    return int(m.group(1))
+
+
+def test_sandbox_constants_match_the_firmware(firmware, virtual, sandbox):
+    obj = sandbox[:sandbox.index("};")]
+    js = {k: int(v) for k, v in re.findall(r"^\s*(\w+):\s*(\d+),", obj, re.M)}
+    # rand() % n draws 0..n-1: consumption, refill and vent, in that order.
+    draws = [int(n) for n in re.findall(r"rand\(\)\s*%\s*(\d+)", firmware)]
+    assert len(draws) == 3, draws
+    expected = {
+        "compressorGstDraw": _one(r"GSTpressure = GSTpressure - (\d+)", firmware),
+        "compressorHptGain": 1 if "HPTpressure++" in firmware
+        else _one(r"HPTpressure = HPTpressure \+ (\d+)", firmware),
+        "compressorMinGst": _one(r"GSTpressure >= (\d+)", firmware),
+        "hptMax": _one(r"HPTpressure < (\d+)", firmware),
+        "consumptionMax": draws[0] - 1,
+        "refillMax": draws[1] - 1,
+        "ventMax": draws[2] - 1,
+        "refillBelow": _one(r"GSTpressure < (\d+)", firmware),
+        "blowoutOpenAbove": _one(r"HPTpressure > (\d+)\)\s*\|\|", firmware),
+        "blowoutCloseAt": _one(r"\(HPTpressure > (\d+)\)\s*&\s*\(BO_sen", firmware),
+        # hwio clamps both pressures to the sensor range.
+        "sensorMax": _one(r"if hpt\s*>\s*(\d+):", virtual),
+    }
+    # The PLC scans every T#50ms; hwio ticks every 51 loops of 20 ms.
+    with open(PLC_PROGRAM, encoding="utf-8") as f:
+        scan_ms = _one(r"INTERVAL\s*:=\s*T#(\d+)ms", f.read())
+    loops = _one(r"if delay > (\d+):", virtual) + 1
+    # The loop's own pause is the last sleep in the thread (the others wait for a reconnect).
+    loop_ms = round(float(re.findall(r"time\.sleep\((0\.\d+)\)", virtual)[-1]) * 1000)
+    expected["scansPerTick"] = round(loops * loop_ms / scan_ms)
+    assert js == expected
+
+
+def test_sandbox_tick_order_and_guards(sandbox):
+    """Same structure as the firmware and hwio: consumption is the else-branch
+    of the compressor, then the refill, then the blow-out valve, which is
+    evaluated right before it vents."""
+    tick = sandbox[sandbox.index("function plantTick("):]
+    assert re.search(r"if \(coils\.compressor\) \{.*?\} else \{.*?rnd\(M\.consumptionMax\)", tick, re.S)
+    assert "s.hpt < M.hptMax && s.gst >= M.compressorMinGst" in tick
+    assert "coils.systemValve && s.hpt - use >= 0" in tick
+    assert "coils.gstSig && s.gst < M.refillBelow" in tick
+    assert "s.hpt > M.blowoutOpenAbove || (s.boSen && s.hpt > M.blowoutCloseAt)" in tick
+    assert "s.hpt - vent >= 0" in tick
+    order = [tick.index(f"rnd(M.{k})") for k in ("consumptionMax", "refillMax", "ventMax")]
+    assert order == sorted(order)
+    assert tick.index("M.compressorGstDraw") < tick.index("rnd(M.refillMax)")
+
+
+def test_sandbox_drives_the_plc_rules_of_the_scan_cycle_widget():
+    """The sandbox's automatic mode is plcScan(), which test_theory_content.py
+    compares with cybICS.st; it must not grow rules of its own."""
+    src = _read(WIDGETS_JS)
+    widget = src[src.index("register('plant-sandbox'"):]
+    assert "plcScan({ hpt: seen, gst: s.gst, stop: false }, plc)" in widget
+    assert "plcScan({ stop: true }, plc)" in widget
+    assert not re.search(r"\b(60|90|240)\b", widget.split("function control()", 1)[1].split("function advance()", 1)[0])

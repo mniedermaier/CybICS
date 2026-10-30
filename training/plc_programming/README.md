@@ -1,6 +1,6 @@
 # PLC Programming Guide
 
-> **MITRE ATT&CK for ICS:** `Execution` `Persistence` | [T0889 - Modify Program](https://attack.mitre.org/techniques/T0889/) | [T0843 - Program Download](https://attack.mitre.org/techniques/T0843/)
+> **MITRE ATT&CK for ICS:** `Persistence` `Lateral Movement` | [T0889 - Modify Program](https://attack.mitre.org/techniques/T0889/) | [T0843 - Program Download](https://attack.mitre.org/techniques/T0843/)
 
 ## Overview
 This module introduces the concept of programming the PLC in the CybICS testbed.
@@ -83,7 +83,12 @@ The countHeartbeat variable is used for timing purposes, and the program is conf
 
 ## ⬆️ Uploading the Program
 Upload the program to the OpenPLC via the web interface on port 8080.
-Do not forget to delete the previous CybICS ST code.
+Uploading a file compiles it and makes it the active program; the shipped
+`cybics` program stays in the list, so do not remove it. When the compilation
+has finished, go to the dashboard and press **Start PLC**.
+
+To put the lab back afterwards, open **Programs**, click **List all programs**,
+select `cybics`, press **Launch program** and then **Start PLC** again.
 
 ## Task
 Your objective is to modify the PLC program, compile it, upload it to the OpenPLC runtime, and make the controller run **your** program.
@@ -93,8 +98,8 @@ This mirrors the real attacker workflow of downloading modified logic to a contr
 ### Steps
 1. Open the CybICS project in OpenPLC Editor (using either the Engineering Workstation or a local installation as described above).
 2. Review the program logic and make a modification, for example add a comment or a new rung. What you change does not matter; the point is to compile and download your own program.
-3. In OpenPLC Editor, compile the project.
-4. Open the OpenPLC web interface on port 8080, go to **Programs**, upload your compiled `.st` file, then **Launch** it so the dashboard shows it as *Running*.
+3. In OpenPLC Editor, press **Generate program for OpenPLC Runtime** in the toolbar and save the `.st` file it produces.
+4. Open the OpenPLC web interface on port 8080 (login `openplc:openplc`), go to **Programs**, press **Upload Program**, choose your `.st` file, give it a name and press **Upload program**. OpenPLC compiles it; when the compilation has finished, press **Go to Dashboard** and then **Start PLC** so the dashboard shows your file with *Status: Running*.
 5. Back on the challenge page, click **Verify**. It confirms the controller is running your program and reveals the flag.
 
 ## Security Framework References
@@ -106,8 +111,8 @@ This mirrors the real attacker workflow of downloading modified logic to a contr
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Execution | Modify Program | [T0889](https://attack.mitre.org/techniques/T0889/) | Adversaries may modify or add programs on controllers to affect how they interact with physical processes |
-| Persistence | Program Download | [T0843](https://attack.mitre.org/techniques/T0843/) | Adversaries may download programs to controllers to establish persistence or modify process behavior |
+| Persistence | Modify Program | [T0889](https://attack.mitre.org/techniques/T0889/) | Adversaries may modify or add programs on controllers to affect how they interact with physical processes |
+| Lateral Movement | Program Download | [T0843](https://attack.mitre.org/techniques/T0843/) | Adversaries may download programs to controllers to establish persistence or modify process behavior |
 
 **Why this matters:** PLC program modification is one of the most impactful attack vectors in ICS environments. Attacks like Stuxnet used modified PLC code to cause centrifuge damage while hiding the manipulation from operators. Understanding legitimate PLC programming helps you recognize unauthorized changes and implement proper change management controls.
 
@@ -116,7 +121,7 @@ This mirrors the real attacker workflow of downloading modified logic to a contr
 | Technique | ID | Description |
 |-----------|-----|-------------|
 | Firmware Verification | [D3-FV](https://d3fend.mitre.org/technique/d3f:FirmwareVerification/) | Verifying firmware integrity to detect unauthorized modifications |
-| File Hash Checking | [D3-FHC](https://d3fend.mitre.org/technique/d3f:FileHashChecking/) | Comparing file hashes to detect unauthorized program changes |
+| File Hashing | [D3-FH](https://d3fend.mitre.org/technique/d3f:FileHashing/) | Comparing file hashes to detect unauthorized program changes |
 | Operational Logic Validation | [D3-OLV](https://d3fend.mitre.org/technique/d3f:OperationalLogicValidation/) | Validating that operational logic matches expected behavior |
 
 ### NIST SP 800-82r3 Reference
@@ -136,8 +141,10 @@ This mirrors the real attacker workflow of downloading modified logic to a contr
 
 If Verify says the lab program is still running, your upload did not become the
 active program. In the OpenPLC web UI under **Programs**, select your uploaded
-file and **Launch** it, then confirm the dashboard shows *Status: Running* with
-your program before verifying again. Do this challenge before hardening the
+file and press **Launch program**. If Verify says the controller is stopped,
+press **Start PLC** on the dashboard: after a compilation OpenPLC stays stopped
+until you start it. Confirm the dashboard shows your file with *Status: Running*
+before verifying again. Do this challenge before hardening the
 OpenPLC password, since the check signs in with the default credentials to read
 the controller state.
 

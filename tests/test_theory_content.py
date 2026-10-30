@@ -22,7 +22,7 @@ WIDGETS = {
     "plant-live", "modbus-frame", "s7-layers", "register-decoder",
     "purdue-explorer", "scan-cycle", "ids-threshold", "firewall-rules",
     "arp-spoof", "keyspace", "alert-log", "opcua-security", "sequence",
-    "rate-planner", "uart-frame", "plant-predict",
+    "rate-planner", "uart-frame", "plant-predict", "plant-sandbox",
     "checkpoint",
 }
 LEVELS = {"beginner", "intermediate", "advanced"}
@@ -496,21 +496,37 @@ def test_before_you_start_points_back(topic):
         assert TOPIC_IDS.index(target) < here, f"{topic['id']} asks to read {target} first, which comes later"
 
 
-def test_fuxa_password_guessing_is_not_claimed_as_detected():
-    """http_brute_force only counts requests that mention login or auth, and
-    FUXA's /api/signin mentions neither. Claims about the rule must say so."""
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_before_you_start_lists_the_prerequisites(topic):
+    """A lesson's "Before you start" may suggest more than its config
+    prerequisites, but never fewer: the page and the text must not disagree."""
+    section = re.search(r"^## Before you start\n(.*?)(?=^## |\Z)", article(topic), re.S | re.M)
+    if not section:
+        return
+    first = section.group(1).split("Later on the path:", 1)[0]
+    linked = set(re.findall(r"\]\(/theory/([^)#\s]+)", first))
+    missing = set(topic.get("prerequisites", [])) - linked
+    assert not missing, f"{topic['id']}: prerequisites {sorted(missing)} are not under Before you start"
+
+
+def test_lessons_match_what_http_brute_force_detects():
+    """http_brute_force counts POSTs that mention one of _HTTP_LOGIN_WORDS.
+    It once missed FUXA's /api/signin and the lessons said so; now it matches
+    both login forms, and the lessons must not claim FUXA guessing is silent."""
     with open(os.path.join(ROOT, "software", "ids", "rules.py"), encoding="utf-8") as f:
         rules = f.read()
-    keywords = re.findall(r'b"(\w+)" not in payload_lower', rules)
-    assert keywords and not any(k in "/api/signin" for k in keywords), "the rule now matches FUXA; update this test and the lessons"
+    words = re.search(r"_HTTP_LOGIN_WORDS = \(([^)]*)\)", rules).group(1)
+    keywords = re.findall(r'b"(\w+)"', words)
+    for path in ("/login", "/api/signin"):
+        assert any(k in path for k in keywords), f"the rule no longer matches {path}; update the lessons"
     for topic in TOPICS:
         for row in table_rows(article(topic)):
             text = " ".join(row)
             if "http_brute_force" in text and ("1881" in text or "FUXA" in text):
-                assert "signin" in text, f"{topic['id']}: {text}"
+                assert "signin" in text and "does not" not in text, f"{topic['id']}: {text}"
     with open(os.path.join(LANDING, "static", "js", "theory-widgets.js"), encoding="utf-8") as f:
         fuxa = re.search(r"\{ id: 'fuxa',.*?ids: '((?:[^'\\]|\\.)*)' \}", f.read(), re.S).group(1)
-    assert "brute" not in fuxa or "no alert" in fuxa, fuxa
+    assert "raises http_brute_force" in fuxa, fuxa
 
 
 MAX_MINUTES = 8
@@ -635,3 +651,72 @@ def test_ids_threshold_widget_states_the_real_rules():
     text = article(next(t for t in TOPICS if t["id"] == "flood_overwrite"))
     mount = re.search(r'<div data-widget="ids-threshold"([^>]*)>', text).group(1)
     assert f'data-n="{real["MODBUS_FLOOD_THRESHOLD"]}"' in mount and f'data-w="{real["MODBUS_FLOOD_WINDOW"]}"' in mount
+
+
+# The Theory Path follows the CTF page: ctf_config.json orders the challenges
+# in seven stages, and a student who works through them in order should
+# always find the briefing of the next challenge already read.
+CTF_STAGES = load_json(CTF_CONFIG)["categories"]
+SECTION_OF = {t["id"]: key for key, s in CONFIG_DATA["sections"].items() for t in s["topics"]}
+
+
+def test_briefings_follow_the_ctf_order():
+    position = {topic_id: i for i, topic_id in enumerate(TOPIC_IDS)}
+    last, last_challenge = -1, None
+    for stage in CTF_STAGES.values():
+        for challenge in stage["challenges"]:
+            here = position[challenge["theory"]]
+            assert here >= last, (
+                f"{challenge['id']} is briefed in {challenge['theory']}, "
+                f"which comes before the briefing of {last_challenge}")
+            last, last_challenge = here, challenge["id"]
+
+
+def test_each_ctf_stage_has_its_own_section_in_order():
+    sections = list(CONFIG_DATA["sections"])
+    seen = []
+    for key, stage in CTF_STAGES.items():
+        found = {SECTION_OF[c["theory"]] for c in stage["challenges"]}
+        assert len(found) == 1, f"the briefings of stage {key} are spread over {found}"
+        seen.append(found.pop())
+    assert len(set(seen)) == len(seen), seen
+    assert seen == sorted(seen, key=sections.index), seen
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_later_on_the_path_points_forward(topic):
+    """A link under "Later on the path:" must not lead back to a lesson already read."""
+    section = re.search(r"^## Before you start\n(.*?)(?=^## |\Z)", article(topic), re.S | re.M)
+    if not section or "Later on the path:" not in section.group(1):
+        return
+    here = TOPIC_IDS.index(topic["id"])
+    later = section.group(1).split("Later on the path:", 1)[1]
+    for target in re.findall(r"\]\(/theory/([^)#\s]+)", later):
+        assert TOPIC_IDS.index(target) > here, f"{topic['id']} lists {target} as later, but it comes earlier"
+
+
+CTF_CHALLENGES = {c["id"]: c for stage in CTF_STAGES.values() for c in stage["challenges"]}
+LESSONS = {t["id"]: t for t in TOPICS}
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=TOPIC_IDS)
+def test_paired_links_are_marked(topic):
+    """"Defend it:" and "Stops:" links name the other half of a pair, never the lesson's own challenge."""
+    for related in topic.get("related", []):
+        role = related.get("role")
+        assert role in (None, "defense", "attack"), f"{topic['id']}: role {role!r}"
+        if role:
+            assert CTF_CHALLENGES[related["id"]]["theory"] != topic["id"], f"{topic['id']}: {related['id']}"
+
+
+ATTACKS = [c for c in CTF_CHALLENGES.values() if c.get("defended_by")]
+
+
+@pytest.mark.parametrize("attack", ATTACKS, ids=[c["id"] for c in ATTACKS])
+def test_attack_and_defence_briefings_link_each_other(attack):
+    """The briefing of an attack names the defence that stops it, and the other way round."""
+    links = {(r["id"], r.get("role")) for r in LESSONS[attack["theory"]]["related"]}
+    for defense in attack["defended_by"]:
+        assert (defense, "defense") in links, f"{attack['theory']} does not name {defense}"
+        back = {(r["id"], r.get("role")) for r in LESSONS[CTF_CHALLENGES[defense]["theory"]]["related"]}
+        assert (attack["id"], "attack") in back, f"{CTF_CHALLENGES[defense]['theory']} does not name {attack['id']}"

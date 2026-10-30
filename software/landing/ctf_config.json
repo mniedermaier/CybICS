@@ -2,277 +2,783 @@
   "title": "CybICS CTF Training",
   "description": "Industrial Control Systems Security Training Platform",
   "categories": {
-    "basic_understanding": {
-      "name": "Basic Understanding",
-      "description": "Fundamental understanding of industrial processes and control systems",
+    "plant_basics": {
+      "name": "Plant Basics",
+      "description": "Start here: what the plant does, how the PLC controls it and what the physics does when control goes wrong.",
       "challenges": [
         {
           "id": "physical_process",
           "title": "Understanding the Physical Process",
           "description": "Learn about industrial processes and control systems",
           "points": 100,
+          "difficulty": "easy",
           "tag": "analysis",
+          "type": "verify",
+          "verify_module": "check_physical_process",
           "flag": "CybICS(Bl0w0ut)",
-          "hint": "Examine the physical process simulation and look for anomalies",
-          "training_content": "training/physical_process/README.md"
+          "hint": "Log in to the FUXA HMI as operator, switch the plant to manual and give the gas nowhere to go. Click Verify while the HMI shows BLOW-OUT.",
+          "training_content": "training/physical_process/README.md",
+          "theory": "physical_process"
         },
         {
           "id": "plc_programming",
           "title": "PLC Programming",
           "description": "Introduction to PLC programming and control logic",
-          "points": 150,
+          "points": 200,
+          "difficulty": "medium",
           "tag": "analysis",
           "type": "verify",
           "verify_module": "check_plc_program",
           "flag": "CybICS(ladder_logic_modified)",
           "hint": "Modify the CybICS program in OpenPLC Editor, compile it, then upload and start it via the web UI on port 8080. Then click Verify.",
-          "training_content": "training/plc_programming/README.md"
+          "training_content": "training/plc_programming/README.md",
+          "theory": "plc_programming"
+        },
+        {
+          "id": "plant_physics_sandbox",
+          "title": "Plant Physics Sandbox",
+          "description": "Know what the plant will do before you touch it. Use the plant sandbox in the Theory Path to predict three situations an attacker can create: the outputs frozen with and without the refill, and one forged pressure reading. Then name the register that takes the PLC out of the game with a single write.",
+          "points": 200,
+          "difficulty": "medium",
+          "type": "verify",
+          "verify_module": "check_plant_physics_sandbox",
+          "tag": "analysis",
+          "flag": "CybICS(s1mulat3_f1rst)",
+          "hint": "The sandbox counts the ticks in which the compressor really moved gas, and its log says why it stopped. The plant's guard on the GST and the PLC's guard are not the same.",
+          "answers": [
+            {
+              "name": "settle_hpt",
+              "label": "Situation 1: HPT at which the plant comes to rest (bar)",
+              "placeholder": "e.g. 95",
+              "max_length": 10
+            },
+            {
+              "name": "blowout_tick",
+              "label": "Situation 2: tick on which the blow-out valve opens",
+              "placeholder": "e.g. 64",
+              "max_length": 10
+            },
+            {
+              "name": "spoof_ticks",
+              "label": "Situation 3: ticks the compressor moves gas before the PLC stops it",
+              "placeholder": "e.g. 7",
+              "max_length": 10
+            },
+            {
+              "name": "freeze_register",
+              "label": "Holding register an attacker writes once to freeze the outputs",
+              "placeholder": "e.g. 1124",
+              "max_length": 40
+            }
+          ],
+          "training_content": "training/plant_physics_sandbox/README.md",
+          "theory": "plant_physics_sandbox"
         }
       ]
     },
-    "network_analysis": {
-      "name": "Network Analysis",
-      "description": "Network reconnaissance and traffic analysis techniques",
+    "recon": {
+      "name": "Reconnaissance & Traffic",
+      "description": "Find out what is on the network, look inside its packets and map the plant's registers before you change anything.",
       "challenges": [
         {
           "id": "scanning",
           "title": "Service Scanning",
           "description": "Discover network services and open ports",
           "points": 100,
+          "difficulty": "easy",
           "tag": "recon",
           "flag": "CybICS(scanning_d0ne)",
           "hint": "Use network scanning tools to discover open ports and services",
-          "training_content": "training/scanning/README.md"
+          "training_content": "training/scanning/README.md",
+          "theory": "scanning"
         },
         {
           "id": "scanning2",
           "title": "S7comm Scanning",
           "description": "Analyze Siemens S7 communication",
-          "points": 150,
+          "points": 100,
+          "difficulty": "easy",
           "tag": "recon",
           "flag": "CybICS(s7comm_analysis_complete)",
           "hint": "Focus on Siemens S7 protocol communication patterns",
-          "training_content": "training/scanning2/README.md"
+          "training_content": "training/scanning2/README.md",
+          "theory": "scanning2"
+        },
+        {
+          "id": "hmi_project_recon",
+          "title": "HMI Project Recon",
+          "description": "The HMI knows every register of the plant and which button writes which one. Get its project without logging in, map the plant from it and enter what you found.",
+          "points": 100,
+          "difficulty": "easy",
+          "type": "verify",
+          "verify_module": "check_hmi_project_recon",
+          "tag": "recon",
+          "flag": "CybICS(hm1_bluepr1nt)",
+          "hint": "An HMI page in a browser has to get its screens from somewhere. Watch the requests it makes while it loads, then repeat the big one yourself without a token.",
+          "answers": [
+            {
+              "name": "plc",
+              "label": "PLC endpoint the HMI polls (host:port)",
+              "placeholder": "name-or-ip:port",
+              "max_length": 64
+            },
+            {
+              "name": "stop_register",
+              "label": "Holding register the STOP / SHUTDOWN button writes (wire address, from 0)",
+              "placeholder": "e.g. 1000",
+              "max_length": 16
+            },
+            {
+              "name": "compressor_coil",
+              "label": "Coil the SystemView \"Comp.\" button toggles (wire address, from 0)",
+              "placeholder": "e.g. 7",
+              "max_length": 16
+            },
+            {
+              "name": "hpt_tag_id",
+              "label": "FUXA tag ID of the HPT tag",
+              "placeholder": "t_...",
+              "max_length": 64
+            }
+          ],
+          "training_content": "training/hmi_project_recon/README.md",
+          "theory": "hmi_project_recon"
         },
         {
           "id": "wireshark_capture",
           "title": "Wireshark Capture",
           "description": "Learn network traffic analysis",
           "points": 200,
+          "difficulty": "medium",
           "tag": "analysis",
           "flag": "CybICS(m0dbu$)",
           "hint": "Look for unusual protocols or data patterns in network traffic",
-          "training_content": "training/wireshark_capture/README.md"
+          "training_content": "training/wireshark_capture/README.md",
+          "theory": "wireshark_capture"
+        },
+        {
+          "id": "packet_anatomy",
+          "title": "Packet Anatomy",
+          "description": "No library, no Wireshark: build Modbus/TCP frames byte by byte, send the read-only ones to the PLC over a raw TCP connection and take its answers apart. Hand in four frames as hex.",
+          "points": 200,
+          "difficulty": "medium",
+          "type": "verify",
+          "verify_module": "check_packet_anatomy",
+          "tag": "analysis",
+          "flag": "CybICS(byt3_by_byt3)",
+          "hint": "Every frame is a 7-byte MBAP header plus the PDU. The length field counts only what follows it, and a read or write always covers one contiguous block of registers.",
+          "answers": [
+            {
+              "name": "read_request",
+              "label": "Read request: GST and HPT in one frame, no more than needed (hex)",
+              "placeholder": "00 01 00 00 ...",
+              "max_length": 120
+            },
+            {
+              "name": "read_response",
+              "label": "The PLC's response to exactly that request (hex)",
+              "placeholder": "00 01 00 00 ...",
+              "max_length": 120
+            },
+            {
+              "name": "write_request",
+              "label": "Write request: STOP and MANUAL to 0 in one frame, not sent (hex)",
+              "placeholder": "00 02 00 00 ...",
+              "max_length": 120
+            },
+            {
+              "name": "exception",
+              "label": "The PLC's answer to a read of a holding register it does not have (hex)",
+              "placeholder": "00 03 00 00 ...",
+              "max_length": 120
+            }
+          ],
+          "training_content": "training/packet_anatomy/README.md",
+          "theory": "packet_anatomy"
+        },
+        {
+          "id": "register_map_recon",
+          "title": "Register Map Recon",
+          "description": "No register map, no program, no HMI project: only reads. Sample the PLC's memory over time, find the two hidden words that remember whether the compressor and the tank refill are running, and locate one of them in a second protocol.",
+          "points": 200,
+          "difficulty": "medium",
+          "type": "verify",
+          "verify_module": "check_register_map_recon",
+          "tag": "recon",
+          "flag": "CybICS(s33_th3_l4tch3s)",
+          "hint": "One snapshot is not a map. Read the same block of holding registers again and again for a few minutes and look for words that only ever hold 0 or 1.",
+          "answers": [
+            {
+              "name": "compressor_latch",
+              "label": "Holding register of the compressor latch (wire address, from 0)",
+              "placeholder": "e.g. 1000",
+              "max_length": 16
+            },
+            {
+              "name": "refill_latch",
+              "label": "Holding register of the GST refill latch (wire address, from 0)",
+              "placeholder": "e.g. 1000",
+              "max_length": 16
+            },
+            {
+              "name": "release_hpt",
+              "label": "HPT value at which the compressor latch falls back to 0",
+              "placeholder": "e.g. 42",
+              "max_length": 16
+            },
+            {
+              "name": "s7_offset",
+              "label": "Byte offset of the compressor latch in S7comm data block DB1002",
+              "placeholder": "e.g. 208",
+              "max_length": 32
+            }
+          ],
+          "training_content": "training/register_map_recon/README.md",
+          "theory": "register_map_recon"
         }
       ]
     },
-    "security_testing": {
-      "name": "Security Testing",
-      "description": "Test system resilience and security mechanisms",
+    "access_attacks": {
+      "name": "Access Attacks",
+      "description": "Get in where you should not: default passwords, a forged session, a forgotten interface and a debug port.",
       "challenges": [
-        {
-          "id": "flood_overwrite",
-          "title": "Flood & Overwrite",
-          "description": "Test system resilience against flooding attacks",
-          "points": 200,
-          "type": "verify",
-          "verify_module": "check_flood_attack",
-          "tag": "exploit",
-          "flag": "CybICS(flood_attack_successful)",
-          "hint": "Flood the HPT setpoint register with Modbus writes, then click Verify.",
-          "training_content": "training/flood_overwrite/README.md"
-        },
         {
           "id": "password_attack",
           "title": "FUXA Password Attack",
-          "description": "Brute-force the FUXA HMI login and recover the flag shown after login",
-          "points": 150,
+          "description": "Brute-force the FUXA HMI login and enter the administrator credentials you recovered",
+          "points": 100,
+          "difficulty": "easy",
+          "type": "verify",
+          "verify_module": "check_fuxa_login",
           "tag": "exploit",
           "flag": "CybICS(FU##A)",
-          "hint": "Look for common passwords in authentication attempts",
-          "training_content": "training/password_attack/README.md"
+          "hint": "FUXA logs in with JSON at /api/signin. Run ffuf with a JSON body and filter out the answers that contain an error, then enter the user name and password that worked.",
+          "answers": [
+            {
+              "name": "username",
+              "label": "FUXA user name",
+              "placeholder": "user name",
+              "max_length": 64
+            },
+            {
+              "name": "password",
+              "label": "Password",
+              "placeholder": "password",
+              "max_length": 64
+            }
+          ],
+          "training_content": "training/password_attack/README.md",
+          "theory": "password_attack",
+          "defended_by": [
+            "defense_fuxa_password"
+          ]
         },
         {
           "id": "password_openplc",
           "title": "OpenPLC Password Attack",
           "description": "Brute-force the OpenPLC web login and recover the flag from the user account",
-          "points": 150,
+          "points": 100,
+          "difficulty": "easy",
           "tag": "exploit",
           "flag": "CybICS(0penPLC)",
           "hint": "Brute-force the OpenPLC admin login at port 8080 with ffuf, then read the flag from the user account details on the Users page.",
-          "training_content": "training/password_attack/README.md"
+          "training_content": "training/password_attack/README.md",
+          "theory": "password_attack",
+          "defended_by": [
+            "defense_openplc_password"
+          ]
         },
         {
           "id": "opcua",
           "title": "OPC-UA",
           "description": "Explore OPC-UA protocol security",
-          "points": 250,
+          "points": 200,
+          "difficulty": "medium",
           "tag": "exploit",
           "flag": "CybICS(OPC-UA-$ADMIN)",
           "hint": "Check for default credentials or weak authentication",
-          "training_content": "training/opcua/README.md"
+          "training_content": "training/opcua/README.md",
+          "theory": "opcua-challenge",
+          "defended_by": [
+            "defense_network_segmentation"
+          ]
         },
         {
-          "id": "fuzzingMB",
-          "title": "Fuzzing Modbus",
-          "description": "Test Modbus protocol robustness",
-          "points": 300,
+          "id": "fuxa_jwt",
+          "title": "Forged HMI Token",
+          "description": "FUXA trusts any session token signed with its key, and the default key is in its public source code. Forge an administrator token for a user that does not exist and paste it here.",
+          "points": 200,
+          "difficulty": "medium",
           "type": "verify",
-          "verify_module": "check_fuzzing_attack",
+          "verify_module": "check_fuxa_jwt",
           "tag": "exploit",
-          "flag": "CybICS(modbus_fuzzing_complete)",
-          "hint": "Fuzz the Modbus server including diagnostic function codes, then click Verify.",
-          "training_content": "training/fuzzingMB/README.md"
-        }
-      ]
-    },
-    "advanced_security": {
-      "name": "Advanced Security",
-      "description": "Advanced attack and detection techniques",
-      "challenges": [
+          "flag": "CybICS(f0rg3d_s3ss10n)",
+          "hint": "FUXA is open source. When nobody sets a signing key in its settings, which key does it fall back to, and where in its code is that written down?",
+          "answers": [
+            {
+              "name": "token",
+              "label": "Forged FUXA token (JWT)",
+              "placeholder": "eyJhbGciOiJIUzI1NiIs...",
+              "max_length": 200
+            }
+          ],
+          "training_content": "training/fuxa_jwt/README.md",
+          "theory": "fuxa_jwt",
+          "defended_by": [
+            "defense_fuxa_jwt"
+          ]
+        },
         {
-          "id": "mitm",
-          "title": "Man-in-the-Middle (MitM)",
-          "description": "Learn about network interception",
-          "points": 350,
+          "id": "openplc_restapi",
+          "title": "The Forgotten API",
+          "description": "The PLC's web login is not its only management interface. Find OpenPLC's second API, claim it with an account of your own and enter that account's credentials here.",
+          "points": 200,
+          "difficulty": "medium",
           "type": "verify",
-          "verify_module": "check_mitm_attack",
+          "verify_module": "check_openplc_restapi",
           "tag": "exploit",
-          "flag": "CybICS(mitm_attack_successful)",
-          "hint": "Run the arpspoof man-in-the-middle between FUXA and the PLC, then click Verify.",
-          "training_content": "training/mitm/README.md"
+          "flag": "CybICS(cl41m3d_4p1)",
+          "hint": "The PLC has more than one web server. Scan beyond the well-known ports, and when you find one that speaks HTTPS, ask it how many users it has.",
+          "answers": [
+            {
+              "name": "username",
+              "label": "User name of your API account",
+              "placeholder": "student",
+              "max_length": 64
+            },
+            {
+              "name": "password",
+              "label": "Its password (at least 8 characters, a throwaway one)",
+              "placeholder": "training-only-42",
+              "max_length": 128
+            }
+          ],
+          "training_content": "training/openplc_restapi/README.md",
+          "theory": "openplc_restapi",
+          "defended_by": [
+            "defense_unused_protocols"
+          ]
         },
         {
           "id": "uart_basic",
           "title": "UART Training Guide",
           "description": "Hardware-level communication (requires hardware)",
           "points": 300,
+          "difficulty": "hard",
           "tag": "hardware",
           "flag": "CybICS(U#RT)",
           "hint": "Monitor serial communications for credentials or commands",
-          "training_content": "training/uart_basic/README.md"
+          "training_content": "training/uart_basic/README.md",
+          "theory": "uart_basic"
+        }
+      ]
+    },
+    "process_attacks": {
+      "name": "Process Attacks",
+      "description": "Change what the plant does: overwrite values, stop the PLC through its side doors and sit between the HMI and the PLC.",
+      "challenges": [
+        {
+          "id": "flood_overwrite",
+          "title": "Flood & Overwrite",
+          "description": "Test system resilience against flooding attacks",
+          "points": 200,
+          "difficulty": "medium",
+          "type": "verify",
+          "verify_module": "check_flood_attack",
+          "tag": "exploit",
+          "flag": "CybICS(flood_attack_successful)",
+          "hint": "Flood the register the PLC reads the HPT pressure from with Modbus writes, then click Verify.",
+          "training_content": "training/flood_overwrite/README.md",
+          "theory": "flood_overwrite",
+          "defended_by": [
+            "defense_firewall"
+          ]
         },
+        {
+          "id": "s7_sidedoor",
+          "title": "S7 Side Door",
+          "description": "The Modbus port can be firewalled, but the PLC also speaks S7comm. Stop the plant through OpenPLC's S7 server on port 102.",
+          "points": 200,
+          "difficulty": "medium",
+          "type": "verify",
+          "verify_module": "check_s7_sidedoor",
+          "tag": "exploit",
+          "flag": "CybICS(s7_s1d3_d00r)",
+          "hint": "OpenPLC's Snap7 server maps the %MW memory words to data block DB1002, two bytes per word. Write 1 to the stop flag over S7comm, click Verify while the plant is stopped, then write 0 back.",
+          "training_content": "training/s7_sidedoor/README.md",
+          "theory": "s7_sidedoor",
+          "defended_by": [
+            "defense_unused_protocols"
+          ]
+        },
+        {
+          "id": "s7_cpu_stop",
+          "title": "Stop Means Stop?",
+          "description": "Send the PLC an S7comm CPU STOP. It will acknowledge it and swear it has stopped. Prove from the plant whether that is true, then start the CPU again.",
+          "points": 200,
+          "difficulty": "medium",
+          "type": "verify",
+          "verify_module": "check_s7_cpu_stop",
+          "tag": "exploit",
+          "flag": "CybICS(st0p_m34ns_g0)",
+          "hint": "Do not trust a status your client library reports without asking the PLC: read the CPU's status list (SZL 0x0424) yourself. Verify while the PLC says STOP, then warm-restart it.",
+          "training_content": "training/s7_cpu_stop/README.md",
+          "theory": "s7_cpu_stop",
+          "defended_by": [
+            "defense_unused_protocols"
+          ]
+        },
+        {
+          "id": "fuzzingMB",
+          "title": "Fuzzing Modbus",
+          "description": "Test Modbus protocol robustness",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_fuzzing_attack",
+          "tag": "exploit",
+          "flag": "CybICS(modbus_fuzzing_complete)",
+          "hint": "Fuzz the Modbus server including diagnostic function codes, then click Verify.",
+          "training_content": "training/fuzzingMB/README.md",
+          "theory": "fuzzingMB",
+          "defended_by": [
+            "defense_firewall"
+          ]
+        },
+        {
+          "id": "mitm",
+          "title": "Man-in-the-Middle (MitM)",
+          "description": "Learn about network interception",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_mitm_attack",
+          "tag": "exploit",
+          "flag": "CybICS(mitm_attack_successful)",
+          "hint": "Run the arpspoof man-in-the-middle between FUXA and the PLC, then click Verify.",
+          "training_content": "training/mitm/README.md",
+          "theory": "mitm"
+        },
+        {
+          "id": "dnp3_sidedoor",
+          "title": "DNP3 Side Door",
+          "description": "OpenPLC also runs a DNP3 outstation that nothing in the plant uses. Find it, learn its link addresses, and stop the plant with a DNP3 frame you build yourself.",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_dnp3_sidedoor",
+          "tag": "exploit",
+          "flag": "CybICS(d1r3ct_0p3r4t3_4ck)",
+          "hint": "A DNP3 station only answers frames addressed to its own link address and coming from the master it is configured for. Link-layer requests are cheap: ask every pair in a small range and see which one answers. The README explains the frame format and the CRC.",
+          "training_content": "training/dnp3_sidedoor/README.md",
+          "theory": "dnp3_sidedoor",
+          "defended_by": [
+            "defense_unused_protocols"
+          ]
+        }
+      ]
+    },
+    "detection": {
+      "name": "Detection & Evasion",
+      "description": "Watch your own attacks show up in the IDS, then find out what it cannot see.",
+      "challenges": [
         {
           "id": "detect_basic",
           "title": "Detect Port Scan",
-          "description": "Perform a port scan and verify the IDS detected it \u2014 find the flag in the IDS rule stats",
-          "points": 250,
+          "description": "Perform a port scan and verify the IDS detected it — find the flag in the IDS rule stats",
+          "points": 100,
+          "difficulty": "easy",
           "tag": "analysis",
           "flag": "CybICS(sc4n_d3tect3d)",
-          "hint": "Run a port scan, then query the IDS at /api/rules/stats \u2014 the flag appears when the port_scan rule has fired",
-          "training_content": "training/detect_basic/README.md"
+          "hint": "Run a port scan, then query the IDS at /api/rules/stats — the flag appears when the port_scan rule has fired",
+          "training_content": "training/detect_basic/README.md",
+          "theory": "detect_basic"
+        },
+        {
+          "id": "ids_challenge",
+          "title": "IDS Challenge",
+          "description": "Trigger the intrusion detection system by performing attacks and retrieve the flag",
+          "points": 200,
+          "difficulty": "medium",
+          "tag": "exploit",
+          "flag": "CybICS(1ntrusi0n_d3tect3d)",
+          "hint": "Perform multiple different attacks and check the IDS flag endpoint",
+          "training_content": "training/ids_challenge/README.md",
+          "theory": "ids_challenge"
         },
         {
           "id": "detect_overwrite",
           "title": "Detect Modbus Flooding",
           "description": "Launch a Modbus flooding attack, analyze it with the IDS, and find the flag in the rule stats",
-          "points": 400,
+          "points": 200,
+          "difficulty": "medium",
           "tag": "analysis",
           "flag": "CybICS(m0dbus_fl00d_d3tect3d)",
-          "hint": "Run the override script, then query /api/rules/stats \u2014 the flag appears when the modbus_flood rule fires",
-          "training_content": "training/detect_overwrite/README.md"
-        }
-      ]
-    },
-    "ids_challenges": {
-      "name": "IDS Challenges",
-      "description": "Interact with the Intrusion Detection System \u2014 trigger alerts, analyze incidents, and evade detection",
-      "challenges": [
-        {
-          "id": "ids_challenge",
-          "title": "IDS Challenge",
-          "description": "Trigger the intrusion detection system by performing attacks and retrieve the flag",
-          "points": 300,
-          "tag": "exploit",
-          "flag": "CybICS(1ntrusi0n_d3tect3d)",
-          "hint": "Perform multiple different attacks and check the IDS flag endpoint",
-          "training_content": "training/ids_challenge/README.md"
-        },
-        {
-          "id": "ids_forensics",
-          "title": "IDS Forensics",
-          "description": "Analyze IDS alert data to investigate a security incident",
-          "points": 250,
-          "tag": "analysis",
-          "flag": "CybICS(f0r3ns1c_4n4lyst)",
-          "hint": "Use the /api/summary and /api/alerts endpoints to gather data about the incident",
-          "training_content": "training/ids_forensics/README.md"
+          "hint": "Run the override script, then query /api/rules/stats — the flag appears when the modbus_flood rule fires",
+          "training_content": "training/detect_overwrite/README.md",
+          "theory": "detect_overwrite"
         },
         {
           "id": "ids_evasion",
           "title": "IDS Evasion",
           "description": "Perform a stealth Modbus write without triggering any IDS alerts",
-          "points": 400,
+          "points": 300,
+          "difficulty": "hard",
           "tag": "evasion",
           "flag": "CybICS(st34lth_0p3r4t0r)",
           "hint": "Study the IDS detection thresholds on the Rules tab and send writes slowly",
-          "training_content": "training/ids_evasion/README.md"
+          "training_content": "training/ids_evasion/README.md",
+          "theory": "ids_evasion"
+        },
+        {
+          "id": "fuxa_trusted_writer",
+          "title": "Trusted Writer",
+          "description": "The IDS never counts Modbus writes from the HMI. Stop the plant so that the command reaches the PLC from FUXA, not from your host: make the HMI send it for you, raise no IDS alert, keep the plant stopped and click Verify.",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_fuxa_trusted_writer",
+          "tag": "evasion",
+          "flag": "CybICS(trust3d_wr1t3r)",
+          "hint": "FUXA writes a tag for whoever asks it the right way. HMI Project Recon tells you the stop tag's ID; the HMI page in your browser shows you how it asks.",
+          "training_content": "training/fuxa_trusted_writer/README.md",
+          "theory": "fuxa_trusted_writer"
+        }
+      ]
+    },
+    "forensics": {
+      "name": "Forensics",
+      "description": "After the fact: rebuild what happened from IDS alerts, a packet capture and the plant's own history.",
+      "challenges": [
+        {
+          "id": "ids_forensics",
+          "title": "IDS Forensics",
+          "description": "Analyze IDS alert data to investigate a security incident",
+          "points": 200,
+          "difficulty": "medium",
+          "tag": "analysis",
+          "flag": "CybICS(f0r3ns1c_4n4lyst)",
+          "hint": "Use the /api/summary and /api/alerts endpoints to gather data about the incident",
+          "training_content": "training/ids_forensics/README.md",
+          "theory": "ids_forensics"
+        },
+        {
+          "id": "incident_pcap",
+          "title": "Incident PCAP",
+          "description": "Someone stopped the plant three times in one night. A capture from the PLC's mirror port is all you have. Find the device behind it, even where it wore other hosts' addresses, and rebuild the timeline.",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_incident_pcap",
+          "tag": "analysis",
+          "flag": "CybICS(1nc1d3nt_t1m3l1n3)",
+          "hint": "An IP address is just a claim. Look one layer lower: which Ethernet address sent the frames that claim to come from the HMI, and did that change during the night?",
+          "answers": [
+            {
+              "name": "attacker_mac",
+              "label": "MAC address of the rogue device",
+              "placeholder": "aa:bb:cc:dd:ee:ff",
+              "max_length": 32
+            },
+            {
+              "name": "attacker_ips",
+              "label": "Every IP address the rogue device used or impersonated (comma separated)",
+              "placeholder": "e.g. 10.0.0.1, 10.0.0.2",
+              "max_length": 120
+            },
+            {
+              "name": "poison_frame",
+              "label": "Frame number of the first frame in which the rogue device claims another host's IP address",
+              "placeholder": "e.g. 17",
+              "max_length": 10
+            },
+            {
+              "name": "stop_frames",
+              "label": "Frame numbers of the three requests that stopped the plant (comma separated)",
+              "placeholder": "e.g. 101, 202, 303",
+              "max_length": 40
+            }
+          ],
+          "training_content": "training/incident_pcap/README.md",
+          "theory": "incident_pcap"
+        },
+        {
+          "id": "physics_forensics",
+          "title": "Physics Never Lies",
+          "description": "One night the compressor ran for minutes on end while the HMI showed a calm, normal tank. The historian export is all you have. Use the plant's physics to find the forged value, the moment it started to lie and the real pressure it was hiding.",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_physics_forensics",
+          "tag": "analysis",
+          "flag": "CybICS(phys1cs_n3v3r_l13s)",
+          "hint": "Write down what the plant can do in one cycle: how much gas the compressor takes from the GST and how much it puts into the HPT. Then find the first row that breaks that rule, not the first row that looks odd.",
+          "answers": [
+            {
+              "name": "forged_value",
+              "label": "Which recorded value was forged? (column name or register)",
+              "placeholder": "e.g. gst or 1124",
+              "max_length": 40
+            },
+            {
+              "name": "first_forged",
+              "label": "Time stamp of the first row the plant cannot have produced",
+              "placeholder": "e.g. 01:42:17.3",
+              "max_length": 32
+            },
+            {
+              "name": "true_hpt",
+              "label": "Real HPT pressure in the last row of the export, in bar",
+              "placeholder": "e.g. 120",
+              "max_length": 10
+            }
+          ],
+          "training_content": "training/physics_forensics/README.md",
+          "theory": "physics_forensics"
+        },
+        {
+          "id": "modbus_covert_c2",
+          "title": "Whispering PLC",
+          "description": "Before writing a read allowlist, the plant team recorded four minutes of Modbus at the PLC to learn who reads what. Every request is a harmless read and the IDS stayed silent, yet one of them is whispering. Find the reader that does not belong, its rhythm and what it says, and the range a real allowlist must permit.",
+          "points": 300,
+          "difficulty": "hard",
+          "type": "verify",
+          "verify_module": "check_modbus_covert_c2",
+          "tag": "analysis",
+          "flag": "CybICS(wh1sp3r1ng_r34ds)",
+          "hint": "Regular polling is normal in a plant, so rhythm alone proves nothing. Group the reads by TCP connection, not by IP address, and look at which registers each connection asks for, in hex.",
+          "answers": [
+            {
+              "name": "implant",
+              "label": "Client IP address and TCP port of the implant's connection",
+              "placeholder": "e.g. 10.0.0.1:40000",
+              "max_length": 32
+            },
+            {
+              "name": "interval",
+              "label": "Seconds between two of the implant's reads",
+              "placeholder": "e.g. 0.5",
+              "max_length": 20
+            },
+            {
+              "name": "message",
+              "label": "The message the implant's read addresses spell (once, without the separator)",
+              "placeholder": "the decoded text",
+              "max_length": 60
+            },
+            {
+              "name": "read_range",
+              "label": "Holding-register range (first-last) a read allowlist must permit for the plant's legitimate readers, in decimal as Wireshark's Reference Number shows it",
+              "placeholder": "decimal, e.g. 100-110",
+              "max_length": 24
+            }
+          ],
+          "training_content": "training/modbus_covert_c2/README.md",
+          "theory": "modbus_covert_c2"
         }
       ]
     },
     "defense": {
       "name": "Defense & Hardening",
-      "description": "Harden the ICS environment by applying defensive security measures",
+      "description": "Close the doors the attacks used: change passwords, rotate a key, filter traffic and segment the network.",
       "challenges": [
         {
           "id": "defense_openplc_password",
           "title": "Harden OpenPLC Credentials",
           "description": "Change the default OpenPLC password to prevent unauthorized access",
-          "points": 150,
+          "points": 100,
+          "difficulty": "easy",
           "tag": "defense",
           "type": "defense",
           "verify_module": "check_openplc_password",
           "flag": "CybICS(0penPLC_h4rd3n3d)",
           "hint": "Log into the OpenPLC web UI at port 8080 and change the default password from 'openplc'",
-          "training_content": "training/defense_password/README.md"
+          "training_content": "training/defense_password/README.md",
+          "theory": "defense_password"
         },
         {
           "id": "defense_fuxa_password",
           "title": "Harden FUXA Credentials",
           "description": "Change the default FUXA admin password to prevent unauthorized HMI access",
-          "points": 150,
+          "points": 100,
+          "difficulty": "easy",
           "tag": "defense",
           "type": "defense",
           "verify_module": "check_fuxa_password",
           "flag": "CybICS(FUXA_s3cur3d)",
-          "hint": "Access FUXA at port 1881 and change the admin password from its default value",
-          "training_content": "training/defense_password/README.md"
+          "hint": "FUXA manages users in its editor, not at the top right: round button at the bottom left, Editor, gear icon at the top left, Users (or open /users). Edit admin and confirm with OK.",
+          "training_content": "training/defense_password/README.md",
+          "theory": "defense_password"
+        },
+        {
+          "id": "defense_fuxa_jwt",
+          "title": "Rotate the FUXA Token Key",
+          "description": "Give FUXA a signing key of its own so tokens forged with the published default key are refused",
+          "points": 200,
+          "difficulty": "medium",
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_fuxa_jwt_secret",
+          "flag": "CybICS(k3y_r0t4t3d)",
+          "hint": "The key lives in /_appdata/settings.js inside the FUXA container (admin shell, docker exec). Put it on its own line straight after 'module.exports = {' rather than uncommenting the example further down, check the file still loads with node, then restart FUXA.",
+          "training_content": "training/defense_fuxa_jwt/README.md",
+          "theory": "defense_fuxa_jwt"
         },
         {
           "id": "defense_firewall",
           "title": "Modbus Firewall Rules",
           "description": "Restrict Modbus (port 502) access so only authorized systems can communicate with the PLC",
-          "points": 250,
+          "points": 200,
+          "difficulty": "medium",
           "tag": "defense",
           "type": "defense",
           "verify_module": "check_firewall",
           "flag": "CybICS(f1r3w4ll_h4rd3n3d)",
-          "hint": "Use iptables on the OpenPLC container to only allow 172.18.0.4 (FUXA) to access port 502",
-          "training_content": "training/defense_firewall/README.md"
-        },
-        {
-          "id": "defense_network_segmentation",
-          "title": "Network Segmentation",
-          "description": "Block the attack machine from reaching critical ICS services",
-          "points": 300,
-          "tag": "defense",
-          "type": "defense",
-          "verify_module": "check_network_segmentation",
-          "flag": "CybICS(n3tw0rk_s3gm3nt3d)",
-          "hint": "Block the attack machine (172.18.0.100) from accessing the PLC and OPC-UA server",
-          "training_content": "training/defense_network/README.md"
+          "hint": "Use iptables on the OpenPLC container so that only hwio (172.18.0.2), FUXA (172.18.0.4) and the OPC-UA gateway (172.18.0.5) reach port 502",
+          "training_content": "training/defense_firewall/README.md",
+          "theory": "defense_firewall"
         },
         {
           "id": "defense_ids_tuning",
           "title": "IDS Monitoring & Tuning",
           "description": "Ensure the IDS is running and actively detecting multiple types of attacks",
           "points": 200,
+          "difficulty": "medium",
           "tag": "defense",
           "type": "defense",
           "verify_module": "check_ids_tuning",
           "flag": "CybICS(1ds_tun3d)",
           "hint": "Start the IDS, ensure it is capturing packets, and trigger at least 3 different detection rules",
-          "training_content": "training/defense_ids/README.md"
+          "training_content": "training/defense_ids/README.md",
+          "theory": "defense_ids"
+        },
+        {
+          "id": "defense_unused_protocols",
+          "title": "Close the Side Doors",
+          "description": "The PLC speaks six protocols and the plant needs two. Find out which ones are really used, switch off S7, DNP3 and EtherNet/IP, block the REST API that has no switch, and keep the plant running.",
+          "points": 300,
+          "difficulty": "hard",
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_unused_protocols",
+          "flag": "CybICS(s1d3_d00rs_cl0s3d)",
+          "hint": "Three of the unused services have a checkbox on OpenPLC's Settings page. The REST API on 8443 has none: block it with an iptables rule at the top of the PLC container's INPUT chain. Keep Modbus (502) and the web interface (8080) on.",
+          "training_content": "training/defense_unused_protocols/README.md",
+          "theory": "defense_unused_protocols"
+        },
+        {
+          "id": "defense_network_segmentation",
+          "title": "Network Segmentation",
+          "description": "Block the attack machine from reaching critical ICS services",
+          "points": 300,
+          "difficulty": "hard",
+          "tag": "defense",
+          "type": "defense",
+          "verify_module": "check_network_segmentation",
+          "flag": "CybICS(n3tw0rk_s3gm3nt3d)",
+          "hint": "Block the attack machine (172.18.0.100) from accessing the PLC and OPC-UA server",
+          "training_content": "training/defense_network/README.md",
+          "theory": "defense_network"
         }
       ]
     }

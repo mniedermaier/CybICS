@@ -89,6 +89,29 @@ sudo systemctl start fuxa.service
 sudo systemctl enable fuxa.service
 ```
 
+## Changing the HMI project
+`fuxa-project.json` is exported from FUXA, never edited by hand. Change the
+views in the FUXA editor (`http://<DEVICE_IP>:1881/editor`, logged in as
+admin), save, then export the project as admin and format it with `jq`:
+
+```sh
+TOKEN=$(curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"123456"}' http://localhost:1881/api/signin | jq -r .data.token)
+curl -s -H "x-access-token: $TOKEN" http://localhost:1881/api/project | jq . > fuxa-project.json
+```
+
+Export as admin: without a token FUXA marks the items a guest may not see
+as hidden, and that copy differs from the stored project. An unchanged
+project exported this way is byte-identical to the committed file.
+
+**Never put a flag or a secret in the project.** FUXA answers
+`GET /api/project` without a login, and the answer holds every view,
+including admin-only views and hidden items. `tests/test_hmi_flags.py` fails if a flag ends up in it.
+
+A board keeps its FUXA data in the `fuxa_data` volume and imports the project
+only on the first start, so a changed project reaches an existing board only
+after that volume is removed.
+
 ## Format fuxa-project.json to be pretty
 
 Install jq

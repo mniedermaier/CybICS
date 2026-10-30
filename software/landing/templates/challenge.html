@@ -147,6 +147,9 @@
             transition: all 0.15s;
         }
         .sidebar-action:hover { background: rgba(255,107,0,0.15); }
+        .sidebar-briefing { display: block; font-size: 0.78rem; line-height: 1.4; color: #ff6b00; text-decoration: none; margin-bottom: 0.75rem; }
+        .sidebar-briefing:hover { text-decoration: underline; }
+        html.light-mode body .sidebar-briefing { color: #b34700; }
 
         /* --- Main content area --- */
         .main-content {
@@ -430,6 +433,8 @@
             transition: background 0.15s;
         }
         .verify-btn:hover { background: #2563eb; }
+        .answer-fields { margin-bottom: 0.75rem; }
+        .answer-label { display: block; font-size: 0.9rem; margin: 0.5rem 0 0.25rem; }
         .verify-btn:disabled { background: #555; cursor: not-allowed; color: #999; }
         .verify-spinner {
             display: inline-block;
@@ -563,13 +568,8 @@
             {% if challenge.get('tag') %}
             <span class="badge badge-tag-{{ challenge.tag }}">{{ challenge.tag }}</span>
             {% endif %}
-            {% if challenge.points <= 150 %}
-            <span class="badge badge-easy">Easy</span>
-            {% elif challenge.points <= 250 %}
-            <span class="badge badge-medium">Medium</span>
-            {% else %}
-            <span class="badge badge-hard">Hard</span>
-            {% endif %}
+            {% set difficulty = challenge.get('difficulty', 'medium') %}
+            <span class="badge badge-{{ difficulty }}">{{ difficulty|capitalize }}</span>
             <span class="badge badge-points">{{ challenge.points }} pts</span>
             {% if solved %}
             <span class="badge badge-solved">&#10003; Solved</span>
@@ -586,6 +586,9 @@
                 <!-- Populated by JS -->
             </ul>
             <hr class="sidebar-divider">
+            {% if lesson %}
+            <a href="/theory/{{ lesson.id }}" class="sidebar-briefing" title="The Theory Path lesson behind this challenge" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({type:'open-theory',url:'/theory/{{ lesson.id }}'},window.location.origin); }">Briefing: {{ lesson.title }}</a>
+            {% endif %}
             <a href="#submit-section" class="sidebar-action" onclick="event.preventDefault(); document.getElementById('submit-section').scrollIntoView({behavior:'smooth'});">
                 {% if challenge_type in ['defense', 'verify'] %}{% if challenge_type == 'defense' %}Verify Defense{% else %}Verify{% endif %}{% else %}Submit Flag{% endif %} &#8595;
             </a>
@@ -616,6 +619,14 @@
                 {% set verify_word = 'Verify Defense' if challenge_type == 'defense' else 'Verify' %}
                 <h2>{{ verify_word }}</h2>
                 <p style="color:#999; font-size:0.9rem; margin-bottom:0.75rem;">{% if challenge_type == 'defense' %}Complete the defensive actions above, then verify your work.{% else %}Complete the task above, then verify your work.{% endif %}</p>
+                {% if answer_fields %}
+                <div class="answer-fields" id="answer-fields">
+                    {% for field in answer_fields %}
+                    <label class="answer-label" for="answer-{{ field.name }}">{{ field.label }}</label>
+                    <input type="text" id="answer-{{ field.name }}" class="flag-input answer-input" data-answer-name="{{ field.name }}" data-answer-label="{{ field.label }}" maxlength="{{ field.max_length }}" placeholder="{{ field.placeholder }}" autocomplete="off" spellcheck="false">
+                    {% endfor %}
+                </div>
+                {% endif %}
                 <button id="verify-button" class="verify-btn" data-label="{{ verify_word }}">{{ verify_word }}</button>
                 <div id="verify-results"></div>
                 <div id="message-container"></div>
@@ -935,25 +946,46 @@
         }).catch(() => { showMsg('Error. Try again.', false); submitButton.disabled = false; submitButton.textContent = 'Submit Flag'; });
     }
 
+    // Verify results come from server-side checks, and for answer-graded
+    // challenges may describe what the student typed: render them as text.
+    function esc(text) {
+        const d = document.createElement('div');
+        d.textContent = text == null ? '' : String(text);
+        return d.innerHTML;
+    }
+
+    const answerInputs = Array.from(document.querySelectorAll('[data-answer-name]'));
+
     function verifyDefense() {
         const results = document.getElementById('verify-results');
+        const opts = { method:'POST', headers:{'Content-Type':'application/json'} };
+        if (answerInputs.length) {
+            const answers = {};
+            for (const input of answerInputs) {
+                const value = input.value.trim();
+                if (!value) { showMsg('Please fill in \'' + esc(input.dataset.answerLabel) + '\'', false); input.focus(); return; }
+                answers[input.dataset.answerName] = value;
+            }
+            opts.body = JSON.stringify({ answers: answers });
+        }
         verifyButton.disabled = true;
         verifyButton.innerHTML = '<span class="verify-spinner"></span> Verifying...';
         results.innerHTML = '';
-        fetch('/ctf/verify/' + challengeId, { method:'POST', headers:{'Content-Type':'application/json'} })
+        fetch('/ctf/verify/' + challengeId, opts)
         .then(r => r.json()).then(d => {
             if (d.checks && d.checks.length) {
                 let h = '';
-                d.checks.forEach(c => { h += '<div class="verify-check ' + (c.passed?'passed':'failed') + '">' + (c.passed?'✓':'✕') + ' <strong>' + c.name + '</strong>: ' + c.detail + '</div>'; });
+                d.checks.forEach(c => { h += '<div class="verify-check ' + (c.passed?'passed':'failed') + '">' + (c.passed?'✓':'✕') + ' <strong>' + esc(c.name) + '</strong>: ' + esc(c.detail) + '</div>'; });
                 results.innerHTML = h;
             }
-            if (d.success) { showMsg(d.message, true); verifyButton.innerHTML = '✓ Verified!'; showSuccess(); setTimeout(backToList, 4000); }
-            else { showMsg(d.message, false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; }
+            if (d.success) { showMsg(esc(d.message), true); verifyButton.innerHTML = '✓ Verified!'; answerInputs.forEach(i => { i.disabled = true; }); showSuccess(); setTimeout(backToList, 4000); }
+            else { showMsg(esc(d.message), false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; }
         }).catch(() => { showMsg('Error. Try again.', false); verifyButton.disabled = false; verifyButton.innerHTML = verifyButton.dataset.label || '&#128737; Verify'; });
     }
 
     if (submitButton) { submitButton.addEventListener('click', submitFlag); }
     if (verifyButton) { verifyButton.addEventListener('click', verifyDefense); }
+    answerInputs.forEach(i => i.addEventListener('keypress', e => { if (e.key === 'Enter' && !verifyButton.disabled) verifyDefense(); }));
     if (flagInput) { flagInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitFlag(); }); }
     </script>
 </body>

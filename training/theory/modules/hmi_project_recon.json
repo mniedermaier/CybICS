@@ -1,0 +1,91 @@
+{
+  "level": "beginner",
+  "objectives": [
+    "Explain why an HMI project is a map of the plant for an attacker",
+    "Turn an HMI tag address into the address a Modbus request uses",
+    "Trace an HMI button to the PLC value it writes",
+    "Name how a defender limits who can read the HMI project"
+  ],
+  "takeaways": [
+    "An HMI project names every process value, its address and the buttons that change it, which is exactly what an attacker needs to aim.",
+    "FUXA sends its whole project to every browser that opens the HMI, logged in or not.",
+    "Hidden or permission-restricted screen elements are still in the file the browser receives.",
+    "Engineering tools often count Modbus addresses from 1, the protocol from 0: check the convention before you copy a number.",
+    "A project download looks like an operator opening the HMI, so prevention (network limits, a login in front) matters more than detection."
+  ],
+  "checkpoints": [
+    {
+      "id": "offset",
+      "question": "FUXA lists a tag at holding register address 1131. Which address does the Modbus request that reads it carry?",
+      "options": [
+        "1131",
+        "1130",
+        "1132"
+      ],
+      "answer": 1,
+      "explanation": "FUXA counts from 1 and subtracts one before it sends a request, so the wire address is 1130. Typing 1131 into a Modbus client reads the neighbouring word, which often holds a plausible value and so hides the mistake."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "A port scan already showed that the PLC answers Modbus on port 502. What does the HMI project add for an attacker?",
+      "options": [
+        "The PLC's password",
+        "What each register and coil means, and which ones the operators' buttons change",
+        "A way to switch off the IDS",
+        "Nothing, the scan already lists every register"
+      ],
+      "answer": 1,
+      "explanation": "A scan finds the service, not the meaning of its numbers. The project names the values and binds buttons to them, which turns 'some register' into 'the shutdown register'. Modbus has no password to find, and a scan does not list registers with their meaning."
+    },
+    {
+      "type": "single",
+      "question": "FUXA's authentication is switched on in CybICS. Why can a visitor who never logs in still download the project?",
+      "options": [
+        "The visitor guessed the admin password",
+        "The browser needs the project to draw the screens, and FUXA answers that request without a login",
+        "The project is published on the IDS dashboard",
+        "Authentication only applies to the PLC, not to the HMI"
+      ],
+      "answer": 1,
+      "explanation": "FUXA protects some requests, such as the user list, but not the one that delivers the project, because its viewer page needs it before anyone logs in. No password is involved, which is why the download works for anyone who can reach port 1881."
+    },
+    {
+      "type": "multi",
+      "question": "Which measures keep the project away from an attacker on the plant network?",
+      "options": [
+        "A firewall that lets only operator stations reach port 1881",
+        "An authenticating proxy in front of the HMI",
+        "FUXA permissions that hide the sensitive screen elements",
+        "A longer password for the FUXA admin account"
+      ],
+      "answer": [0, 1],
+      "explanation": "Both stop the request before FUXA answers it. FUXA's permissions only hide or disable elements on the screen; the elements are still sent. The admin password does not protect a request that needs no login."
+    },
+    {
+      "type": "single",
+      "question": "In the project, a button on the SystemView screen has a click event that toggles the tag 'systemValve', FUXA coil address 3. What does a click send to the PLC?",
+      "options": [
+        "A write to coil 3",
+        "A write to coil 2",
+        "A write to holding register 3",
+        "A read of coil 3"
+      ],
+      "answer": 1,
+      "explanation": "The tag is in the coil area and FUXA subtracts one from its address, so the click writes coil 2. Coil 3 is the neighbouring output, which is the tempting mistake. A toggle changes the value, so it is a write, not a read."
+    },
+    {
+      "type": "single",
+      "question": "Why does the CybICS IDS not report a project download?",
+      "options": [
+        "The download is encrypted",
+        "It is ordinary web traffic to the HMI that every operator's browser also makes, and the IDS watches industrial protocols",
+        "The IDS is switched off while FUXA starts",
+        "FUXA blocks the IDS from seeing port 1881"
+      ],
+      "answer": 1,
+      "explanation": "The request is plain HTTP and identical to a normal page load. The IDS rules look at Modbus, S7comm and similar traffic, so there is nothing for them to match. The traffic is not encrypted at all."
+    }
+  ]
+}

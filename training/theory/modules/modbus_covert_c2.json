@@ -1,0 +1,108 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain how a Modbus read request can carry data in its start address or quantity",
+    "Separate the connections in a capture and describe each one's normal polling pattern",
+    "Decode data hidden in a sequence of register addresses",
+    "Design a read allowlist by client, function code and address range"
+  ],
+  "takeaways": [
+    "A read request is chosen by the client, so its address and quantity can carry data.",
+    "In a plant every poller is regular, so timing alone does not reveal a beacon.",
+    "Look at TCP connections, not only hosts: an implant can share an allowed host's address.",
+    "Only an allowlist that includes the address range catches an implant that reads from an allowed host.",
+    "A learned baseline is only trustworthy if someone checked what it learned."
+  ],
+  "checkpoints": [
+    {
+      "id": "channel",
+      "question": "An implant sends one Modbus read per character, using the low byte of the start address. Which part of the PLC's answer does the implant need?",
+      "options": [
+        "None: the data travels in the request",
+        "The register values in the answer",
+        "The answer's transaction ID",
+        "An exception code from the PLC"
+      ],
+      "answer": 0,
+      "explanation": "The message is already in the request the implant sends; whoever sees that request can read it. The PLC's answer only has to look normal, which is why OpenPLC answering 0 for an unused word is enough."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Why does the CybICS IDS raise no alert for a covert channel in Modbus reads?",
+      "options": [
+        "Its Modbus rules look at writes and diagnostics, not at reads",
+        "Reads are encrypted on port 502",
+        "The IDS ignores traffic from the OPC-UA gateway",
+        "The PLC answers the reads with an error"
+      ],
+      "answer": 0,
+      "explanation": "The IDS counts and inspects writes and diagnostic function codes; reads are what HMIs do all day, so they are not inspected. Modbus is never encrypted, and OpenPLC answers reads of unused words with 0, not with an error."
+    },
+    {
+      "type": "single",
+      "question": "In a plant capture, three connections all send requests at very regular intervals. What does that tell you?",
+      "options": [
+        "All three are beacons of malware",
+        "Nothing on its own: pollers run on timers",
+        "The PLC is overloaded",
+        "Only the fastest one is legitimate"
+      ],
+      "answer": 1,
+      "explanation": "HMIs, gateways and historians poll on fixed timers, so regular traffic is the normal case in OT. Timing helps to confirm a suspect connection, for example an interval no configured poll uses, but it does not find one by itself."
+    },
+    {
+      "type": "single",
+      "question": "An implant runs on the OPC-UA gateway and only reads holding registers. Which allowlist flags it?",
+      "options": [
+        "Gateway host allowed",
+        "Gateway host allowed for function code 3",
+        "Gateway host allowed for function code 3 on the plant's register range",
+        "Any allowlist, because it is a second connection"
+      ],
+      "answer": 2,
+      "explanation": "The implant uses the gateway's address and the gateway's function code, so the first two lists pass it. Only the address range differs from what the gateway really needs. A second connection is suspicious, but an allowlist does not look at connection counts."
+    },
+    {
+      "type": "single",
+      "question": "The start addresses of a suspicious connection are 0x0548, 0x0569, 0x0521. What do they spell?",
+      "options": [
+        "Hi!",
+        "05H",
+        "HI1",
+        "Nothing, they are random"
+      ],
+      "answer": 0,
+      "explanation": "The high byte 0x05 is the same in every address; the low bytes 0x48, 0x69 and 0x21 are the ASCII characters H, i and !. Reading the high byte as text gives a control character, not a letter."
+    },
+    {
+      "type": "multi",
+      "question": "Which steps make such a channel harder to use?",
+      "options": [
+        "A Modbus-aware firewall that drops reads outside the allowlist",
+        "Hardening and monitoring the OPC-UA gateway",
+        "Raising the IDS write-flood threshold",
+        "Restricting who can mirror or capture plant traffic"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Dropping out-of-list reads stops the channel at the PLC, a hardened gateway keeps the implant out, and if nobody outside can see the requests the hidden data reaches nobody. The write-flood threshold has nothing to do with reads."
+    }
+  ],
+  "exercises": {
+    "normal": {
+      "type": "sequence",
+      "order": false,
+      "title": "Normal or suspicious?",
+      "intro": "Each line is something you could see in a plant capture. Label each one.",
+      "labels": ["Normal", "Suspicious"],
+      "steps": [
+        {"text": "The HMI reads the same block of registers about once a second.", "label": "Normal", "explain": "An HMI refreshes its screens on a timer; the same block every time is exactly what polling looks like."},
+        {"text": "The gateway reads six single registers every two seconds, always the same six.", "label": "Normal", "explain": "Single-register reads are less efficient than one block, but a stable set on a stable timer is still polling."},
+        {"text": "A second connection from the gateway reads a different address each time.", "label": "Suspicious", "explain": "A poller has no reason to keep changing its addresses, and the gateway already has a connection of its own."},
+        {"text": "Reads of memory words that no HMI screen or gateway node uses.", "label": "Suspicious", "explain": "Nobody needs those values, so the reads exist for another reason, such as carrying data."},
+        {"text": "A connection whose requests arrive at a regular interval.", "label": "Normal", "explain": "On its own, regular timing is how every poller behaves in a plant. It only becomes evidence together with other signs."}
+      ]
+    }
+  }
+}

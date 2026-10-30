@@ -1,6 +1,6 @@
 # Intrusion Detection System Challenge
 
-> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
+> **MITRE ATT&CK for ICS:** `Discovery` | [T0846 - Remote System Discovery](https://attack.mitre.org/techniques/T0846/) | `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/)
 
 > **From the attack shell:** the IDS runs on the host, so `localhost` in the
 > commands below does not reach it there; use `$DEVICE_IP` (`172.18.0.1`)
@@ -23,7 +23,7 @@ The flag has the format `CybICS(flag)`.
 2. Ensure the IDS is running (it auto-starts by default)
 3. **Trigger at least 3 different detection rules** using the attack machine or webshell
 4. **Observe the alerts** on the IDS dashboard
-5. Once you have triggered at least 3 alerts, retrieve the flag:
+5. Once at least 3 different rules have fired, retrieve the flag:
    ```bash
    curl http://localhost:8443/api/flag
    ```
@@ -39,8 +39,9 @@ nmap -sS 172.18.0.3
 
 #### Modbus Write Flood (Rule: modbus_flood)
 ```bash
-# Use the flooding script from the training materials
-python3 /usr/local/bin/flooding_hpt.py
+# The flooding script from the training materials; without --duration it
+# floods until you press Ctrl+C
+python3 /usr/local/bin/flooding_hpt.py 172.18.0.3 --duration 5
 ```
 
 #### S7comm Enumeration (Rule: s7_enumeration)
@@ -60,7 +61,7 @@ client.close()
 
 ## Detection Rules
 
-The CybICS IDS implements 9 detection rules:
+The CybICS IDS implements 12 detection rules:
 
 1. **Port Scan** — Detects SYN packets to multiple ports on a single target
 2. **SYN Flood** — Detects excessive SYN packets from a single source
@@ -69,8 +70,11 @@ The CybICS IDS implements 9 detection rules:
 5. **Modbus Diagnostic** — Detects use of diagnostic function codes
 6. **S7comm Enumeration** — Detects S7 protocol access attempts
 7. **HTTP Brute Force** — Detects repeated login attempts on OpenPLC/FUXA
-8. **ARP Spoofing** — Detects multiple MAC addresses for a single IP
+8. **ARP Spoofing** — Detects a second MAC address for an IP when that MAC also answers for another IP
 9. **OPC-UA Unauthorized Access** — Detects OPC-UA connections from unknown hosts
+10. **S7comm Write** — Detects S7comm write requests and reports what was written
+11. **DNP3 Control** — Detects DNP3 control requests (operate, select, write) and reports the points and values
+12. **S7comm CPU Control** — Detects S7comm requests that change the CPU operating mode (PLC STOP, warm or cold restart)
 
 ## Security Framework References
 
@@ -82,10 +86,10 @@ The CybICS IDS implements 9 detection rules:
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
 | Discovery | Remote System Discovery | [T0846](https://attack.mitre.org/techniques/T0846/) | Port scan, S7 enumeration, OPC-UA access |
-| Impact | Denial of Service | [T0836](https://attack.mitre.org/techniques/T0836/) | SYN flood, Modbus write flood |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
-| Collection | Unauthorized Message: Reporting Message | [T1692.002](https://attack.mitre.org/techniques/T1692/002/) | ARP spoofing |
-| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against OpenPLC/FUXA |
+| Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | SYN flood, Modbus write flood |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Modbus writes from unexpected sources |
+| Collection | Adversary-in-the-Middle | [T0830](https://attack.mitre.org/techniques/T0830/) | ARP spoofing |
+| Lateral Movement | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | HTTP brute force against the default logins of OpenPLC/FUXA |
 
 ### NIST SP 800-82r3 Reference
 
@@ -115,7 +119,7 @@ You need to trigger at least 3 different IDS rules. Try a port scan (nmap), Modb
 
 ## Solution
 
-After triggering 3 or more detection rules (e.g., port scan, Modbus writes, S7 enumeration), retrieve the flag:
+After triggering 3 or more different detection rules (e.g., port scan, Modbus writes, S7 enumeration), retrieve the flag. The IDS counts rules, not alerts: repeating one attack does not unlock it, and clearing the alerts starts the count again.
 
 ```bash
 curl http://localhost:8443/api/flag

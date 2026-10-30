@@ -1,6 +1,6 @@
 # OPC UA Security & Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Initial Access` `Lateral Movement` | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/) | [T0866 - Exploitation of Remote Services](https://attack.mitre.org/techniques/T0866/)
+> **MITRE ATT&CK for ICS:** `Persistence` `Lateral Movement` | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
 
 ## Overview
 An OPC UA client is a software application that connects to an OPC UA server to read, write, and monitor data within industrial systems.
@@ -65,7 +65,10 @@ object, and replaces the opcua-client GUI.
 ## Task
 Brute-force OPC-UA credentials, explore the server security configuration, and use leaked certificates to gain admin access.
 
-The flag has the format `CybICS(flag)`.
+The flag has the format `CybICS(flag)`. The server holds two: the user flag,
+readable with the brute-forced login, is a waypoint; the *OPC-UA* challenge
+takes the **admin flag**, which only appears once an administrator has set
+`Set > 0 to obtain flag!` above zero.
 
 ### Steps
 1. Set up Metasploit and load the opcua_login module
@@ -74,6 +77,8 @@ The flag has the format `CybICS(flag)`.
 4. Connect to the OPC-UA server with the discovered credentials and read the user flag
 5. Use the opcua_server_config module to investigate the server's security configuration
 6. Locate the leaked certificates and use them to authenticate as admin
+7. As admin, set `Set > 0 to obtain flag!` to 1, read `adminFLAG` and submit it on the challenge page
+8. Set `Set > 0 to obtain flag!` back to 0, so the next student does not find the admin flag already showing
 
 ## Security Framework References
 
@@ -84,8 +89,7 @@ The flag has the format `CybICS(flag)`.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Adversaries may use valid credentials (username/password or certificates) to gain access |
-| Lateral Movement | Exploitation of Remote Services | [T0866](https://attack.mitre.org/techniques/T0866/) | Adversaries may exploit OPC UA services for lateral movement |
+| Persistence, Lateral Movement | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | A guessed password or a leaked certificate is a real identity the server accepts; no software flaw is exploited |
 
 **Why this matters:** OPC UA is the modern successor to legacy protocols and includes security features like encryption and certificate-based authentication. However, misconfigured OPC UA servers, weak passwords, and leaked certificates can still enable unauthorized access. This training demonstrates that even "secure" protocols require proper implementation—security features don't help if they're disabled or misconfigured.
 
@@ -113,7 +117,7 @@ The flag has the format `CybICS(flag)`.
 
 ## Hints
 
-The flag is readable on the OPC UA system of the user, which you need to brute force.
+The user flag is readable with the login you brute-force. The admin flag, the one the challenge takes, needs a write the user is not allowed to make: look for another way to log in.
 
 ## Solution (User Flag)
 
@@ -227,3 +231,10 @@ can write the variable in the same call:
 **Flag:** `CybICS(OPC-UA-$ADMIN)`
 
   ![Flag opcua](doc/opcua_admin.png)
+
+Then put the trigger back, so the admin flag is hidden again for the next
+student (the server keeps the value until it restarts):
+  ```sh
+  python3 opcua_login.py read 172.18.0.5 --cert $C/cert_admin.der --key $C/key_admin.pem \
+          --write "Set > 0 to obtain flag!=0"
+  ```

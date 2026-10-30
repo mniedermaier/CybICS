@@ -242,7 +242,7 @@ Protocol emulators often work this way. It is worth knowing before you spend tim
 
 Classic S7comm has no authentication on the identity functions. An optional "protection level" password guards some others, but it is off by default and weak. The newer S7-1200 and S7-1500 controllers speak **S7comm-Plus**, which protects against replayed and modified messages, but many plants still run the older ones.
 
-The CybICS IDS handles S7comm with one blunt rule. **Rule 6** alerts on any TCP message of four bytes or more sent to port 102 or 1102, from any source, without reading the content. To avoid a thousand alerts for one scan, it reports each source at most once every 30 seconds:
+The CybICS IDS has two S7comm rules. The blunt one, **Rule 6** (`s7_enumeration`), alerts on any TCP message of four bytes or more sent to port 102 or 1102, from any source, without reading the content. To avoid a thousand alerts for one scan, it reports each source at most once every 30 seconds:
 
 <figure class="wide">
 <style>
@@ -464,12 +464,14 @@ The CybICS IDS handles S7comm with one blunt rule. **Rule 6** alerts on any TCP 
 <figcaption>Sixty seconds of non-stop scanning produce just two alerts: one at the first packet and one when the 30-second cooldown ends. The alerts tell you a host is talking S7comm, not how much it sent.</figcaption>
 </figure>
 
-With no allowlist, the rule also fires on a legitimate engineering workstation. A real plant would exempt known engineering hosts and, better, block port 102 from everywhere else with a firewall. [Detection and monitoring](/theory/detection-monitoring) explains this trade-off between catching everything and drowning in false alarms.
+The second rule, **Rule 10** (`s7_write`), does read the content: it decodes the S7 header and raises a high-severity alert for every write request, naming the memory address and the value written; only an exact repeat of the previous write, within 30 seconds, is folded into the first alert. Reads stay silent for it.
+
+With no allowlist, both rules also fire on a legitimate engineering workstation. A real plant would exempt known engineering hosts and, better, block port 102 from everywhere else with a firewall. [Detection and monitoring](/theory/detection-monitoring) explains this trade-off between catching everything and drowning in false alarms.
 
 <details class="instructor" markdown="1">
 <summary>Instructor notes</summary>
 
 - Rule 6 has a 30-second cooldown per source and does not count suppressed packets, so two alerts cannot be told apart from a single probe or a full sweep. A good class discussion: how would you narrow this rule without missing an attacker?
-- `training/README.md` maps the S7comm Scanning challenge to T0846 and T0861 (Point &amp; Tag Identification). Reading the SZL is closer to T0888 Remote System Information Discovery, which this article uses.
+- Reading the SZL is T0888 Remote System Information Discovery, not T0861 Point &amp; Tag Identification: it names the device, not its process values. `training/README.md` and the S7comm Scanning module map the challenge to T0846 and T0888, as this article does.
 
 </details>

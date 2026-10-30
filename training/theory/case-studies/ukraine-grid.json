@@ -98,6 +98,7 @@
         "Lateral Movement",
         "Impair Process Control",
         "Inhibit Response Function",
+        "Impact",
         "Collection"
       ],
       "steps": [
@@ -113,8 +114,8 @@
         },
         {
           "text": "Remotely controlled operator HMIs opened breakers, and about 225,000 customers lost power.",
-          "label": "Impair Process Control",
-          "explain": "With operator access in hand, the attackers clicked the breakers open on 23 December 2015. Manipulation of Control (T0831) belongs to Impair Process Control."
+          "label": "Impact",
+          "explain": "With operator access in hand, the attackers clicked the breakers open on 23 December 2015. Taking over the operators' own controls is Manipulation of Control (T0831), and ATT&CK files it under Impact: customers lost power."
         },
         {
           "text": "Broken converter firmware and wiped computers kept operators from switching power back on remotely.",

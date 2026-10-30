@@ -90,7 +90,8 @@ The compressor has an exchange rate, and it matters. Each tick it takes two bar 
 2. Open the system view and switch from automatic to manual. Three buttons appear: compressor, system valve and GST supply. Each one writes its coil directly.
 3. Before you press anything, ask three questions. What adds gas to the HPT? What takes gas out of it? What can stop the thing that adds gas?
 4. Make your changes and watch the HPT, the GST and the blow-out indicator. The plant moves about one bar a second, so be patient.
-5. When the blow-out valve opens, the HMI rewards you. Switch back to automatic afterwards.
+5. When the blow-out valve opens, the HMI shows BLOW-OUT. Click Verify on the challenge page while it is still open: the check reads the plant itself.
+6. Then bring the plant back: open the system valve, stop the compressor and switch back to automatic once the HPT is under 100. Automatic mode keeps the system valve shut above 100, so it would leave the tank full.
 
 The blow-out valve is not a ceiling but a latch: it opens above 220 and stays open until the pressure is back at 200. It vents about half a bar per tick, slower than a running compressor fills. Once it closes, nothing drains the tank while the system valve is shut.
 

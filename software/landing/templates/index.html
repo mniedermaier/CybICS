@@ -2945,6 +2945,12 @@
         // Handle postMessage from CTF iframe for navigation
         window.addEventListener("message", (event) => {
             if (event.origin !== window.location.origin || !event.data) return;
+            // A challenge's briefing link on the CTF overview
+            if (event.data.type === "open-theory") {
+                const lesson = safeTheoryPath(event.data.url);
+                if (lesson) openTheoryLesson(lesson);
+                return;
+            }
             if (event.data.type === "navigate") {
                 const url = safeCtfPath(event.data.url);
                 const ctfIframe = document.getElementById("ctf-iframe");

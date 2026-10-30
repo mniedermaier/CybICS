@@ -1,6 +1,6 @@
 # Network Fuzzing Guide
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` `Impact` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0814 - Denial of Service](https://attack.mitre.org/techniques/T0814/)
+> **MITRE ATT&CK for ICS:** `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | `Inhibit Response Function` | [T0814 - Denial of Service](https://attack.mitre.org/techniques/T0814/)
 
 ## Introduction
 Network fuzzing is a security testing technique used to identify vulnerabilities in network protocols, services, and applications by sending malformed or unexpected data. The goal is to discover security flaws such as buffer overflows, denial-of-service (DoS) vulnerabilities, and other unintended behaviors.
@@ -37,7 +37,7 @@ The flag has the format `CybICS(flag)`.
 2. Install Python dependencies with pip
 3. Run the fuzzer against the OpenPLC Modbus service on port 502
 4. Select a fuzzing mode from the menu and let the fuzzer run to completion
-5. Include the diagnostic function-code fuzzing (Modbus FC 0x08) in your run, then click **Verify** on the challenge page. It confirms the fuzzer reached the PLC and reveals the flag.
+5. Include the diagnostic function-code fuzzing (Modbus FC 0x08) in your run, then click **Verify** on the challenge page within 10 minutes. It confirms the fuzzer reached the PLC and reveals the flag. An older run does not count, so run the fuzzer again if you took a break.
 
 ## Using the Modbus Fuzzer
 
@@ -120,8 +120,8 @@ read. `--seed` repeats a run exactly.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send malformed or unexpected commands to disrupt control |
-| Impact | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Adversaries may crash or disrupt services through malformed input |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send malformed or unexpected commands to disrupt control |
+| Inhibit Response Function | Denial of Service | [T0814](https://attack.mitre.org/techniques/T0814/) | Adversaries may crash or disrupt services through malformed input |
 
 **Why this matters:** Protocol fuzzing reveals how ICS devices handle unexpected or malformed input. Many PLCs and industrial devices have limited error handling and can crash or behave unpredictably when receiving invalid data. Understanding these weaknesses helps both attackers (to find exploitable bugs) and defenders (to test device resilience before deployment).
 
@@ -152,4 +152,4 @@ Run the cloned fuzzer with `python3 modbus.py`, enter the target IP and port 502
 
 ## Solution
 
-Fuzz the OpenPLC Modbus service on port 502, including the diagnostic function codes, then click **Verify** on the challenge page. The flag is revealed once the fuzzing traffic has been observed.
+Fuzz the OpenPLC Modbus service on port 502, including the diagnostic function codes, then click **Verify** on the challenge page within 10 minutes. The flag is revealed once the IDS has seen the diagnostic fuzzing in that window; an older run does not count.

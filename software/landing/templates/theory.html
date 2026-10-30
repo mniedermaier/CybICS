@@ -74,7 +74,7 @@
                             {% if card.questions %}<span>{{ card.questions }}-question quiz</span>{% endif %}
                             {% if p.get('passed') %}<span class="t-solved">&#10003; Quiz {{ (p.best * 100)|round|int }}%</span>
                             {% elif p.get('attempts') %}<span>Best {{ (p.best * 100)|round|int }}%</span>{% endif %}
-                            {% for r in topic.related if r.id in solved %}{% if loop.first %}<span class="t-solved">Challenge solved</span>{% endif %}{% endfor %}
+                            {% for r in topic.related if r.id in solved and not r.role %}{% if loop.first %}<span class="t-solved">Challenge solved</span>{% endif %}{% endfor %}
                         </div>
                     </div>
                 </a>

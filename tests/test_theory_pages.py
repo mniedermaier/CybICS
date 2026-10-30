@@ -106,6 +106,21 @@ def test_lesson_links_onwards_and_to_its_challenges():
         assert f"postMessage({{ type: 'navigate', url: '/ctf/challenge/{related['id']}' }}" in html
 
 
+def test_paired_challenges_are_labelled():
+    """An attack's briefing names its defence, a defence's briefing the attacks it stops."""
+    for topic in TOPICS:
+        paired = [r for r in topic.get("related", []) if r.get("role")]
+        if not paired:
+            continue
+        html = get(f"/theory/{topic['id']}").text
+        box = html[html.index("Put it into practice"):]
+        box = box[:box.index("</section>")]
+        for related in paired:
+            label = "Defend it:" if related["role"] == "defense" else "Stops:"
+            link = re.search(r'<a [^>]*href="/ctf/challenge/%s"[^>]*>(.*?)</a>' % re.escape(related["id"]), box, re.S)
+            assert link and label in link.group(1), f"{topic['id']}: {related['id']}"
+
+
 def test_challenge_back_button_asks_for_the_previous_view():
     """The dashboard sends Back to the lesson a challenge was opened from."""
     html = get("/ctf/challenge/scanning").text

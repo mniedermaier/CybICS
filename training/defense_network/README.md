@@ -62,7 +62,19 @@ Apply iptables rules on each **target container** to drop inbound traffic from t
    iptables -L INPUT -n
    ```
 
-4. Click **Verify Defense** on this challenge page to confirm.
+4. Click **Verify Defense** on this challenge page to confirm. The check
+   does not read the rules, it tries them: from the attack shell
+   (172.18.0.100) ports 8080 and 502 on the PLC and 4840 on the OPC-UA server
+   must not answer, while the board (172.18.0.1) still reaches 8080 and 4840
+   and hwio, FUXA and the OPC-UA gateway still reach Modbus. A rule that names
+   the attacker but matches some other port does not pass.
+
+### Undoing it
+
+```bash
+docker exec <openplc_container> iptables -D INPUT -s 172.18.0.100 -j DROP
+docker exec <opcua_container> iptables -D INPUT -s 172.18.0.100 -j DROP
+```
 
 ## Important Notes
 - Do not block legitimate traffic between authorized services (hwio, FUXA, etc.)

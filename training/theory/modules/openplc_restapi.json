@@ -1,0 +1,91 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain why a service in setup mode is open to whoever connects first",
+    "Find a device's second management interface with a service scan",
+    "Explain why hardening one interface does not protect another one on the same device",
+    "Name how a defender detects and prevents the takeover of an unused interface"
+  ],
+  "takeaways": [
+    "An interface with an empty user database that lets the first caller create an account belongs to whoever finds it first.",
+    "OpenPLC's REST API on port 8443 has its own users; the web interface's password does not protect it.",
+    "A device is only as hardened as its least known interface, so inventory every open port.",
+    "Unused services should be switched off or blocked; needed ones are claimed by the owner during commissioning.",
+    "Encrypted management traffic hides from a network IDS; the service's own log is where the takeover shows."
+  ],
+  "checkpoints": [
+    {
+      "id": "separate",
+      "question": "An operator changed the OpenPLC web interface password on port 8080 to a strong one. What does that change on the REST API on port 8443?",
+      "options": [
+        "The API now needs the new password too",
+        "Nothing: the API has its own user database",
+        "The API is switched off with the old password"
+      ],
+      "answer": 1,
+      "explanation": "The two interfaces keep separate users. The web interface's password is not consulted by the API, so an empty API database stays open to the first caller. Nothing about the password change switches the API off either."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Without any login, the REST API answers \"No users found\" to a request for its user list. What does that tell an attacker?",
+      "options": [
+        "The API is disabled and can be ignored",
+        "The API is still in setup mode and can be claimed",
+        "The API accepts the web interface's login",
+        "The API only allows read requests for now"
+      ],
+      "answer": 1,
+      "explanation": "An empty user database is the state in which OpenPLC lets anyone create the first account. A disabled API would not answer at all, and the web interface's login is not in the API's database, so it would be refused."
+    },
+    {
+      "type": "single",
+      "question": "Which step would have prevented the takeover on a plant that needs the REST API?",
+      "options": [
+        "A longer password on the 8080 web interface",
+        "Moving the web interface to another port",
+        "Creating the API's first account at commissioning",
+        "Asking the IDS to decrypt the API's traffic"
+      ],
+      "answer": 2,
+      "explanation": "Once the owner has created an account, create-user requires a login, so the race is over before it starts. The web interface's password and port do not touch the API, and an IDS that cannot read TLS would at best notice the takeover, not stop it."
+    },
+    {
+      "type": "multi",
+      "question": "Which of these would reveal or stop the claim of the API on CybICS?",
+      "options": [
+        "A firewall rule on the PLC that drops port 8443",
+        "Reading OpenPLC's log for create-user requests",
+        "The IDS rule that watches Modbus writes",
+        "A full port scan compared with the intended interfaces"
+      ],
+      "answer": [0, 1, 3],
+      "explanation": "Dropping 8443 makes the API unreachable, the log records every API request with its source, and an inventory scan shows the unexpected port. The Modbus write rule only looks at port 502; the API traffic never touches it."
+    },
+    {
+      "type": "single",
+      "question": "The challenge account was created with the role \"user\". What can it do?",
+      "options": [
+        "Read the PLC's status only",
+        "Everything the API offers, including stopping the PLC",
+        "Nothing until an administrator approves it",
+        "Change its own password, but no PLC commands"
+      ],
+      "answer": 1,
+      "explanation": "OpenPLC stores the role but no route checks it, so every account can call every command, stop-plc and upload-file included. There is no approval step: the account works as soon as it is created."
+    },
+    {
+      "type": "single",
+      "question": "Which MITRE ATT&CK for ICS technique describes getting an account through a remote service that skips authentication by mistake?",
+      "options": [
+        "T0866 Exploitation of Remote Services",
+        "T1694.001 Insecure Credentials: Default Credentials",
+        "T0842 Network Sniffing",
+        "T0846.001 Remote System Discovery: Port Scan"
+      ],
+      "answer": 0,
+      "explanation": "The missing check is a flaw in the service, and abusing it is T0866. There is no default password involved, so T1694.001 does not fit; the port scan (T0846.001) only finds the service, and sniffing is passive."
+    }
+  ]
+}

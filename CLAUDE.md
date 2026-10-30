@@ -144,7 +144,10 @@ Nine workflows in `.github/workflows/` must stay green. Two are unusual:
 
 `software/build/`, `software/stm32/proto/cybics.pb.{c,h}` (nanopb, from
 `cybics.proto`), `hardware/pcb/docs/` and `hardware/pcb/pcb/` (KiBot),
-`software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`.
+`software/FUXA/fuxa-project.json` (export from the FUXA UI), `software/OpenPLC/openplc.db`,
+`training/incident_pcap/incident.pcap` (`software/scripts/generate_incident_pcap.py`),
+`training/physics_forensics/historian.csv` (`software/scripts/generate_physics_historian.py`),
+`training/modbus_covert_c2/baseline.pcap` (`software/scripts/generate_covert_c2_pcap.py`).
 
 `hardware/pcb/CybICS.kicad_pro` is in the KiCad 10 project format, like the
 board, the schematic and the project libraries. It used to be held back: KiBot
@@ -202,6 +205,25 @@ fork PRs fall back to anonymous pulls. Keep it that way.
   `software/ids/ids_server.py`, `software/landing/app.py` and the firmware. A new
   challenge needs its `ctf_config.json` entry and a place where the flag is
   actually obtainable. Watch for `0` versus `O`.
+- `ctf_config.json` is the learning path: seven stages (categories) from the
+  plant to its defense, easy to hard inside each, and that order is what the
+  CTF page, `training/README.md` and CybICS-mgmt show. A challenge's
+  `difficulty` sets its points (easy 100, medium 200, hard 300), `theory`
+  names its Theory Path briefing, and an attack's `defended_by` names the
+  defense challenge that stops it. `tests/test_ctf_overview.py` pins all of
+  that. Never rename a challenge id: progress files and CybICS-mgmt key on it.
+- A challenge that ends in a fact the student found (a register, a port, a
+  function code) rather than a state the stack can check is answer-graded:
+  give its `verify` entry an `answers` list in `ctf_config.json` (`name`,
+  `label`, `placeholder`, `max_length`) and grade in its verify module with
+  `grade()` from `software/landing/modules/defense_checks/_answers.py`, using
+  `number()`/`one_of()` rather than bare ints. Expected values live in
+  that module and, like a static flag, in the README's collapsed `## Solution`
+  section; never in the config, a README's other sections or a Theory lesson.
+  The challenge page opens every other section on load. Keep the
+  default `feedback=False`; per-field feedback lets a student solve a field
+  with few possible values one at a time. A graded module must not touch the
+  stack; `tests/test_ctf_answers.py` grades every one with a wrong answer.
 - `tests/test_training.py` exercises the attack scenarios; add a test when a
   module has a verifiable effect.
 - Every challenge also has a briefing in the Theory Path

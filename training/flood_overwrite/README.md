@@ -1,6 +1,6 @@
 # Flood & Overwrite Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Impair Process Control` | [T0836 - Modify Parameter](https://attack.mitre.org/techniques/T0836/) | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0806 - Brute Force I/O](https://attack.mitre.org/techniques/T0806/)
+> **MITRE ATT&CK for ICS:** `Evasion` `Impair Process Control` | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/) | [T0806 - Brute Force I/O](https://attack.mitre.org/techniques/T0806/) | `Impact` | [T0832 - Manipulation of View](https://attack.mitre.org/techniques/T0832/)
 
 ## Overview
 A flooding attack in an industrial security context can have devastating consequences, disrupting critical operations and compromising safety.
@@ -49,8 +49,11 @@ With this flooding, the OpenPLC does not get the correct values and enables the 
 This is leading to a critical pressure value in the HPT.
 
 ### Configuration
-The script uses the `.dev.env` file in the root folder of the git.
-Check if these settings are correct, before executing the flooding script.
+The script takes the PLC's address as its first argument
+(`python3 flooding_hpt.py 172.18.0.3`). Without one it uses `DEVICE_IP`
+from the environment, which the attack shell sets, or from the `.dev.env`
+file in the root folder of the git checkout. Check that address before you
+start the flood.
 
 ### Prerequisites
 A basic understanding of Modbus/TCP is required for this example.
@@ -61,7 +64,7 @@ The flag has the format `CybICS(flag)`.
 1. Run the provided `flooding_hpt.py` script to flood Modbus registers on the PLC
 2. While the attack is running, open the **FUXA HMI** and observe how the physical process responds to the manipulated register values
 3. You should see the high pressure tank (HPT) register values being overwritten, causing the compressor (C) to remain enabled continuously, which drives the HPT toward a critical pressure value
-4. After the flood, click **Verify** on the challenge page. It confirms the IDS saw the write flood and reveals the flag.
+4. While the flood runs or within 10 minutes after it, click **Verify** on the challenge page. It confirms the IDS saw the write flood and reveals the flag. An older flood does not count, so run it again if you took a break.
 
 ## Security Framework References
 
@@ -72,9 +75,9 @@ The flag has the format `CybICS(flag)`.
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Impair Process Control | Modify Parameter | [T0836](https://attack.mitre.org/techniques/T0836/) | Adversaries may modify parameters to disrupt normal process operation |
-| Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send unauthorized commands to ICS devices |
+| Evasion, Impair Process Control | Unauthorized Message: Command Message | [T1692.001](https://attack.mitre.org/techniques/T1692/001/) | Adversaries may send unauthorized commands to ICS devices |
 | Impair Process Control | Brute Force I/O | [T0806](https://attack.mitre.org/techniques/T0806/) | Adversaries may repeatedly write to I/O points to override legitimate control |
+| Impact | Manipulation of View | [T0832](https://attack.mitre.org/techniques/T0832/) | The HMI shows the flooded pressure value instead of the real one |
 
 **Why this matters:** This attack demonstrates how an adversary can take control of a physical process by flooding Modbus registers faster than legitimate controllers can update them. The Ukrainian power grid attacks in 2015-2016 used similar techniques to manipulate breaker controls. This is a direct path from cyber access to physical impact—the core concern in ICS security.
 
@@ -134,5 +137,5 @@ Run `python3 flooding_hpt.py` and check the FUXA HMI dashboard for changes in pr
   - Operator notifications for corrective measures
   - Potential actions: reducing heat or shutting down components
 
-Flood the HPT setpoint register with Modbus writes, then click **Verify** on the challenge page. The flag is revealed once the flood has been observed on the wire.
+Flood the HPT pressure register (holding register 1126, `%MW102`) with Modbus writes, then click **Verify** on the challenge page while the flood runs or within 10 minutes after it. The flag is revealed once the IDS has seen the flood in that window; an older flood does not count.
 

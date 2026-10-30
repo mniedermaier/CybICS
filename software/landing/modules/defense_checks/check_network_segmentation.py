@@ -1,83 +1,75 @@
 """
-Defense check: Verify that target containers have iptables rules blocking the attack machine.
+Defense check: the attack machine is cut off from the PLC and the OPC-UA server.
+
+The check does not read the rule text, it tries the connections: from inside
+the attack shell (172.18.0.100, the attack machine's network namespace) the
+OpenPLC web interface (172.18.0.3:8080), Modbus (172.18.0.3:502) and the
+OPC-UA server (172.18.0.5:4840) must all refuse or drop a TCP connection. A
+DROP rule for 172.18.0.100 on an unrelated port, or after an ACCEPT that
+matches first, therefore does not pass.
+
+Segmentation must not cut the plant's own paths either: the web interface
+and the OPC-UA server still answer from this board (172.18.0.1), and hwio,
+FUXA and the OPC-UA gateway still reach Modbus.
+
+Everything it does is a TCP connect; it changes nothing.
 """
-import subprocess
+from modules.defense_checks._reach import container, tcp_open_from, tcp_open_here
+from modules.defense_checks.check_firewall import _clients_check
 from utils.logger import logger
 
 ATTACK_IP = "172.18.0.100"
 
-# (container keyword, ip, port, service name)
-TARGETS = [
-    ("openplc", "172.18.0.3", 8080, "OpenPLC Web UI"),
-    ("openplc", "172.18.0.3", 502, "Modbus TCP"),
-    ("opcua", "172.18.0.5", 4840, "OPC-UA Server"),
-]
-
-
-def _find_container(keyword):
-    """Find a container name containing the keyword."""
-    try:
-        result = subprocess.run(
-            ["docker", "ps", "--format", "{{.Names}}"],
-            capture_output=True, text=True, timeout=5
-        )
-        for name in result.stdout.strip().split('\n'):
-            if keyword in name.lower():
-                return name
-    except Exception as e:
-        logger.error(f"Error finding container '{keyword}': {e}")
-    return None
-
-
-def _check_iptables_rule(container, source_ip):
-    """Check if the container has an iptables DROP/REJECT rule for the given source IP."""
-    try:
-        result = subprocess.run(
-            ["docker", "exec", container, "iptables", "-L", "INPUT", "-n"],
-            capture_output=True, text=True, timeout=10
-        )
-        for line in result.stdout.split('\n'):
-            if source_ip in line and ('DROP' in line or 'REJECT' in line):
-                return True
-    except Exception as e:
-        logger.error(f"Error checking iptables on {container}: {e}")
-    return False
+# (ip, port, service name)
+TARGETS = (
+    ("172.18.0.3", 8080, "OpenPLC Web UI"),
+    ("172.18.0.3", 502, "Modbus TCP"),
+    ("172.18.0.5", 4840, "OPC-UA Server"),
+)
+# Paths from this board that must stay open (the board is not the attacker).
+KEEP_OPEN = (
+    ("172.18.0.3", 8080, "OpenPLC Web UI"),
+    ("172.18.0.5", 4840, "OPC-UA Server"),
+)
 
 
 def verify():
-    """Check that target containers have firewall rules blocking the attack machine."""
+    """Check that the attack shell reaches none of the targets and the plant still runs."""
+    attacker = container("attack-shell")
+    if not attacker:
+        return {"success": False,
+                "message": "The attack shell is not running, so there is nothing to test the "
+                           "segmentation from. Start it again and verify.",
+                "checks": [{"name": "Attack shell running", "passed": False,
+                            "detail": f"No running container for the attack machine ({ATTACK_IP})"}]}
+
     checks = []
+    for ip, port, service in TARGETS:
+        name = f"Block {service} ({ip}:{port})"
+        try:
+            reachable = tcp_open_from(attacker, ip, port)
+            checks.append({"name": name, "passed": not reachable,
+                           "detail": f"{ATTACK_IP} can no longer connect to {ip}:{port}"
+                           if not reachable
+                           else f"{ATTACK_IP} still connects to {ip}:{port}"})
+        except Exception as e:
+            logger.error(f"segmentation: probe of {ip}:{port} failed: {e}")
+            checks.append({"name": name, "passed": False,
+                           "detail": "Could not probe from the attack shell, see the landing log"})
 
-    # Group targets by container keyword to avoid repeated lookups
-    containers = {}
-    for keyword, ip, port, service_name in TARGETS:
-        if keyword not in containers:
-            containers[keyword] = _find_container(keyword)
-
-    for keyword, ip, port, service_name in TARGETS:
-        container = containers.get(keyword)
-        if not container:
-            checks.append({
-                "name": f"Block {service_name} ({ip}:{port})",
-                "passed": False,
-                "detail": f"Container '{keyword}' not found or not running"
-            })
-            continue
-
-        has_rule = _check_iptables_rule(container, ATTACK_IP)
-        checks.append({
-            "name": f"Block {service_name} ({ip}:{port})",
-            "passed": has_rule,
-            "detail": f"iptables DROP rule for {ATTACK_IP} found on {container}"
-            if has_rule
-            else f"No iptables rule blocking {ATTACK_IP} on {container}"
-        })
+    cut = [f"{service} ({ip}:{port})" for ip, port, service in KEEP_OPEN
+           if not tcp_open_here(ip, port)]
+    checks.append({"name": "Services still reachable from the board", "passed": not cut,
+                   "detail": "The web interface and the OPC-UA server still answer this board "
+                             "(172.18.0.1)" if not cut
+                   else "Blocked for this board (172.18.0.1) too: " + ", ".join(cut)
+                        + ". Block the attack machine's address, not everyone"})
+    checks.append(_clients_check())
 
     success = all(c["passed"] for c in checks)
     message = ("Network segmentation correctly applied! "
-               "The target containers block traffic from the attack machine."
+               "The attack machine reaches none of the targets and the plant runs on."
                if success
-               else "Network segmentation incomplete. "
-                    "Add iptables rules on the target containers to block the attack machine.")
-
+               else "Network segmentation incomplete. Block the attack machine (172.18.0.100) "
+                    "on the OpenPLC and OPC-UA containers, and nothing else.")
     return {"success": success, "message": message, "checks": checks}

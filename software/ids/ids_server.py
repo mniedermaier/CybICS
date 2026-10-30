@@ -29,7 +29,7 @@ CTF_FLAG_DETECTION = "CybICS(1ntrusi0n_d3tect3d)"
 CTF_FLAG_FORENSICS = "CybICS(f0r3ns1c_4n4lyst)"
 CTF_FLAG_EVASION = "CybICS(st34lth_0p3r4t0r)"
 
-CTF_ALERT_THRESHOLD = 3  # minimum alerts needed for detection challenge
+CTF_DETECTION_MIN_RULES = 3  # distinct rules needed for the detection challenge
 FORENSICS_MIN_ALERTS = 5  # minimum alerts for forensics challenge
 FORENSICS_MIN_RULES = 3  # minimum distinct rule types for forensics
 
@@ -66,6 +66,14 @@ def get_alerts():
     since_id = request.args.get("since_id", 0, type=int)
     alerts = detector.get_alerts(since_id=since_id)
     return jsonify({"alerts": alerts, "total": len(alerts)})
+
+
+@app.route("/api/modbus/writes")
+def get_modbus_writes():
+    """Modbus write requests the IDS saw, trusted writers included (no rule)"""
+    since_id = request.args.get("since_id", 0, type=int)
+    writes = detector.get_modbus_writes(since_id=since_id)
+    return jsonify({"writes": writes, "total": len(writes)})
 
 
 @app.route("/api/alerts/clear", methods=["POST"])
@@ -129,7 +137,8 @@ def summary():
 ALL_RULE_IDS = [
     "port_scan", "syn_flood", "modbus_flood", "modbus_unauth_write",
     "modbus_diagnostic", "s7_enumeration", "http_brute_force",
-    "arp_spoof", "opcua_access",
+    "arp_spoof", "opcua_access", "s7_write", "dnp3_operate",
+    "s7_cpu_control",
 ]
 
 
@@ -175,18 +184,21 @@ def rules_stats():
 
 @app.route("/api/flag")
 def get_flag():
-    """CTF flag endpoint - only returns flag when IDS has detected enough alerts"""
-    alert_count = detector.stats["alerts_total"]
-    if alert_count >= CTF_ALERT_THRESHOLD:
+    """CTF flag endpoint - returns the flag once enough different rules have fired"""
+    rules = sorted({a.get("rule") for a in detector.get_alerts()} - {None})
+    if len(rules) >= CTF_DETECTION_MIN_RULES:
         return jsonify({
             "flag": CTF_FLAG_DETECTION,
-            "message": f"IDS detected {alert_count} intrusion alerts. Flag unlocked!"
+            "rules": rules,
+            "message": f"IDS detected {len(rules)} different attacks. Flag unlocked!"
         })
     else:
         return jsonify({
             "flag": None,
-            "message": f"IDS has detected {alert_count}/{CTF_ALERT_THRESHOLD} alerts. "
-                       "Trigger more attacks to unlock the flag."
+            "rules": rules,
+            "message": f"IDS has detected {len(rules)}/{CTF_DETECTION_MIN_RULES} different "
+                       "attacks (detection rules). Trigger other kinds of attack to "
+                       "unlock the flag."
         })
 
 

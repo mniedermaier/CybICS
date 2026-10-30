@@ -1,0 +1,92 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Explain why rotating a signing key invalidates forged and stolen tokens",
+    "Change FUXA's signing key without breaking its configuration file",
+    "Describe what makes a signing key strong and how to keep it secret",
+    "Name the attack a new key does not stop and the control that does"
+  ],
+  "takeaways": [
+    "Rotating the signing key makes every token signed with the old key worthless, forged or real.",
+    "A key must be long and random, because a captured token lets attackers guess it offline.",
+    "Configuration files can be programs: check that the file still loads before restarting a service.",
+    "Anyone who can read the file that holds the key can forge tokens again.",
+    "A new key stops forged tokens, not flaws in the server's own code: FUXA 1.2.6 still hands out admin tokens through its token refresh, so limit who can reach the HMI."
+  ],
+  "checkpoints": [
+    {
+      "id": "restart",
+      "question": "You saved a new key in settings.js. Why does your old forged token still work?",
+      "options": [
+        "FUXA has not been restarted yet",
+        "The key must be entered twice",
+        "Forged tokens never expire",
+        "The browser cached the old key"
+      ],
+      "answer": 0,
+      "explanation": "FUXA reads settings.js once, at start-up, and keeps checking tokens with the key it loaded then. Only a restart makes it load the new key. The browser never sees the key at all."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "After the key rotation, what happens to the operators who were logged in?",
+      "options": [
+        "Nothing, their sessions continue",
+        "They must log in again",
+        "Their passwords are reset",
+        "They lose their user accounts"
+      ],
+      "answer": 1,
+      "explanation": "Their tokens were signed with the old key and fail the check now. Accounts and passwords are untouched, so a new login gives them a token signed with the new key. That is why a rotation should be announced."
+    },
+    {
+      "type": "single",
+      "question": "Which new key best resists an attacker who captured one token?",
+      "options": [
+        "frangoteam752",
+        "CybICS-HMI-key",
+        "48 random hex characters",
+        "the admin password"
+      ],
+      "answer": 2,
+      "explanation": "Offline guessing tries variations of known defaults, names and passwords first. A long random key is outside any such list. Reusing the admin password would also tie two secrets together, so one leak opens both."
+    },
+    {
+      "type": "single",
+      "question": "You remove the comment marks in front of the example key line and restart FUXA. The HMI disappears. Why?",
+      "options": [
+        "The example key is blocked by FUXA",
+        "The entry before it lacks a comma, so the file no longer loads",
+        "FUXA needs a new password first",
+        "Comment lines cannot be changed"
+      ],
+      "answer": 1,
+      "explanation": "settings.js is a JavaScript object literal; entries need commas between them, and the last active entry has none. The syntax error makes FUXA exit at start-up, and Docker restarts it in a loop. Restore the backup, and add the key as the first entry instead."
+    },
+    {
+      "type": "multi",
+      "question": "In the virtual lab, which of these undo your new key?",
+      "options": [
+        "docker restart of the FUXA container",
+        "Recreating the FUXA container from its image",
+        "Updating CybICS so FUXA starts from a new image",
+        "Logging out of the HMI"
+      ],
+      "answer": [1, 2],
+      "explanation": "The key lives in the container's own file system. A restart keeps that file system, a recreate or an update starts from the image again with the default settings. Logging out only drops your token."
+    },
+    {
+      "type": "multi",
+      "question": "The check passed. Which risks remain?",
+      "options": [
+        "Tokens signed with the old default key",
+        "Someone who reads settings.js forging tokens",
+        "Any client that reaches port 1881 asking FUXA's token refresh for an administrator token",
+        "Common words as signing keys"
+      ],
+      "answer": [1, 2],
+      "explanation": "The check proves the default and guessable keys are refused. The new key is still only as secret as the file that holds it. And FUXA 1.2.6 signs a refreshed token for whatever user the client names when the old token is invalid, with the new key; only limiting who reaches port 1881, or a FUXA fix, closes that."
+    }
+  ]
+}

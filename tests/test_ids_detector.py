@@ -81,6 +81,26 @@ def test_the_tcp_payload_reaches_the_rules_intact():
     assert pkt[6] == body
 
 
+def test_tcp_sequence_numbers_and_real_payload_length_are_passed_on():
+    """The DNP3 rule follows a connection's byte stream with these."""
+    body = bytes(300)
+    tcp = (b"\x9c\x40\x4e\x20" + (123456789).to_bytes(4, "big") + (987654321).to_bytes(4, "big")
+           + b"\x50\x18" + b"\x00" * 6 + body)
+    pkt = parse(_eth(b"\x08\x00", _ipv4(6, tcp)))
+    assert pkt[10:13] == (123456789, 987654321, 300)
+    assert len(pkt[6]) == 256   # the payload itself is cut off, its length is not
+
+
+def test_ethernet_padding_is_not_payload():
+    tcp = _tcp(51000, 20000, flags=0x18, payload=b"\x05\x64")
+    pkt = parse(_eth(b"\x08\x00", _ipv4(6, tcp) + bytes(20)))
+    assert pkt[6] == b"\x05\x64" and pkt[12] == 2
+
+
+def test_the_urgent_flag_is_visible():
+    assert "U" in parse(_eth(b"\x08\x00", _ipv4(6, _tcp(1, 20000, flags=0x38))))[4]
+
+
 # --- TCP flags ---------------------------------------------------------------
 
 def test_a_syn_is_distinguishable_from_an_established_connection():
@@ -157,3 +177,107 @@ def test_a_base_filter_narrows_rather_than_replaces():
     bpf = detector.Detector._build_bpf_filter("net 172.18.0.0/24")
     assert "net 172.18.0.0/24" in bpf
     assert "arp" in bpf, "the base filter must not drop the IDS's own clauses"
+
+
+# --- Modbus write journal --------------------------------------------------------
+#
+# FUXA polls OpenPLC with reads all the time, so the filter drops that pair --
+# except its write requests, which go into the write journal the Trusted
+# Writer challenge reads. hwio writes every cycle and stays dropped entirely.
+
+FUXA_STOP = bytes.fromhex("003300000006010604680001")   # captured: FUXA sets register 1128 to 1
+
+
+def test_the_filter_keeps_fuxa_writes_but_not_its_polling():
+    bpf = detector.Detector._build_bpf_filter("")
+    fuxa = "not (src host 172.18.0.4 and dst host 172.18.0.3 and dst port 502 and not ("
+    assert fuxa in bpf, "FUXA's write requests would be dropped before the journal sees them"
+    clause = bpf[bpf.index(fuxa):]
+    for fc in (5, 6, 15, 16):
+        assert f"tcp[((tcp[12:1]&0xf0)>>2)+7]&0x7f={fc}" in clause
+    assert "not (src host 172.18.0.2 and dst host 172.18.0.3 and port 502)" in bpf, \
+        "hwio's per-cycle writes must stay out of the capture"
+    # tcpdump gets the filter split on blanks and joins it again: no quoting allowed.
+    assert "'" not in bpf and '"' not in bpf
+
+
+def _modbus_pkt(src, payload, dport=502):
+    return (src, "172.18.0.3", 40000, dport, "PA", 6, payload, 0, None, None)
+
+
+def test_the_journal_records_a_trusted_writer_with_its_service():
+    d = detector.Detector()
+    d._journal_modbus_writes(_modbus_pkt("172.18.0.4", FUXA_STOP))
+    d._journal_modbus_writes(_modbus_pkt("172.18.0.100", bytes.fromhex("000100000006010304680001")))
+    writes = d.get_modbus_writes()
+    assert len(writes) == 1, "a read must not be journaled"
+    w = writes[0]
+    assert (w["src"], w["service"], w["dst"]) == ("172.18.0.4", "fuxa", "172.18.0.3")
+    assert (w["function"], w["address"], w["values"]) == (6, 1128, [1])
+    assert w["id"] == 1 and w["timestamp"]
+    assert d.get_modbus_writes(since_id=1) == []
+
+
+def test_the_journal_is_bounded():
+    d = detector.Detector()
+    for _ in range(detector.MAX_MODBUS_WRITES + 50):
+        d._journal_modbus_writes(_modbus_pkt("172.18.0.100", FUXA_STOP))
+    writes = d.get_modbus_writes()
+    assert len(writes) == detector.MAX_MODBUS_WRITES
+    assert writes[-1]["id"] == detector.MAX_MODBUS_WRITES + 50
+
+
+# --- CTF state that clearing the alert log must not reset --------------------
+
+def _alert(rule):
+    return {"rule": rule, "severity": "high", "src": "172.18.0.100", "message": rule}
+
+
+def test_clearing_the_alert_log_does_not_hide_an_evasion_alert():
+    """The dashboard's Clear button used to turn a detected attempt into a pass."""
+    d = detector.Detector()
+    d.active = True
+    d.start_evasion()
+    for _ in range(3):
+        d._track_evasion_packet(_modbus_pkt("172.18.0.100", FUXA_STOP))
+    d._add_alert(_alert("modbus_unauth_write"))
+    d.clear_alerts()
+    result = d.check_evasion()
+    assert result["new_alerts"] == 1 and not result["success"]
+    assert d.get_status()["evasion"]["new_alerts"] == 1
+
+
+def test_an_arp_alert_does_not_fail_an_evasion_attempt():
+    d = detector.Detector()
+    d.active = True
+    d._add_alert(_alert("port_scan"))  # before the window: not counted
+    d.start_evasion()
+    for _ in range(3):
+        d._track_evasion_packet(_modbus_pkt("172.18.0.100", FUXA_STOP))
+    d._add_alert(_alert("arp_spoof"))
+    result = d.check_evasion()
+    assert result["new_alerts"] == 0 and result["success"]
+
+
+def test_the_status_says_when_the_alert_log_was_cleared():
+    d = detector.Detector()
+    assert d.get_status()["stats"]["alerts_cleared_at"] is None
+    d.clear_alerts()
+    assert d.get_status()["stats"]["alerts_cleared_at"]
+
+
+def test_the_detection_flag_needs_three_different_rules():
+    flask = pytest.importorskip("flask")  # noqa: F841
+    import ids_server
+    client = ids_server.app.test_client()
+    d = ids_server.detector
+    d.clear_alerts()
+    try:
+        for _ in range(5):
+            d._add_alert(_alert("port_scan"))
+        d._add_alert(_alert("syn_flood"))
+        assert client.get("/api/flag").get_json()["flag"] is None
+        d._add_alert(_alert("s7_enumeration"))
+        assert client.get("/api/flag").get_json()["flag"] == ids_server.CTF_FLAG_DETECTION
+    finally:
+        d.clear_alerts()

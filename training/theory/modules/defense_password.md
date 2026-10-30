@@ -42,7 +42,7 @@ When you press **Verify Defense**, the CybICS landing page logs in with the old 
 
 ## How to approach it
 
-1. **List the accounts.** Log in to each web interface and find where users are managed. In OpenPLC that is the Users page; in FUXA it is in the user settings of the top-right menu.
+1. **List the accounts.** Log in to each web interface and find where users are managed. In OpenPLC that is the Users page; in FUXA it is the Users settings page (`/users`), reached through the editor (round button at the bottom left, then the gear icon), not from the user name at the top right.
 2. **Pick a strong password.** Length beats cleverness: a passphrase of four or five unrelated words resists the wordlist attacks you used earlier. Never reuse a password across systems.
 3. **Change it, keep the username.** The checks expect the same usernames.
 4. **Write it down safely.** If you forget it, the only way back in the lab is to reset the container. In a plant, store it in a password manager or a sealed record.
@@ -60,7 +60,7 @@ Try it: compare an eight-character password of random letters with a passphrase 
 
 A changed password stops the easy guess. These measures stop the rest:
 
-- **Monitor logins.** The CybICS IDS rule `http_brute_force` counts POST requests to ports 8080 and 1881 that mention `login` or `auth`, and alerts when one source sends five within 30 seconds. OpenPLC's login matches; FUXA's sign-in (`/api/signin`) does not, so guessing at FUXA stays invisible to this rule. A signature that misses one login form is a reason to also read the web server's own log of failed logins.
+- **Monitor logins.** The CybICS IDS rule `http_brute_force` counts POST requests to ports 8080 and 1881 that mention `login`, `signin` or `auth`, and alerts when one source sends five within 30 seconds. That covers OpenPLC's login and FUXA's sign-in (`/api/signin`). A signature only knows the login forms someone listed, which is a reason to also read the web server's own log of failed logins.
 - **Slow guessing down.** Rate limits or short delays after failed attempts make wordlist attacks impractical. Full account lockout is used carefully in OT, because it can lock out an operator during an emergency.
 - **Remove what you do not need.** Delete unused accounts and give each person their own login, so actions can be traced back.
 - **Limit who can reach the login.** A web interface that only the engineering network can reach cannot be guessed at from elsewhere; see [Host firewalling](/theory/defense_firewall).

@@ -395,6 +395,10 @@ async def test_opcua_certificate_auth():
         print(f"  CWD: {os.getcwd()}")
         print(f"  Cert path (absolute): {CLIENT_CERT_PATH.absolute()}")
 
+    # The admin flag trigger this test sets; put back to 0 afterwards, or
+    # the server keeps showing adminFLAG to every login, user1 included,
+    # and the opcua challenge's admin step is solved for the next student.
+    trigger_node = None
     try:
         # Load client certificate for user authentication (not secure channel)
         # The certificate is used for user identification, not for encrypting the channel
@@ -456,6 +460,7 @@ async def test_opcua_certificate_auth():
                             # Try to write to this variable (requires admin permissions)
                             try:
                                 await var.write_value(ua.UInt16(1))
+                                trigger_node = var
                                 print(f"Successfully wrote to admin control variable")
                                 admin_access_verified = True
 
@@ -521,6 +526,11 @@ async def test_opcua_certificate_auth():
             pytest.fail(f"OPC-UA server timed out: {e}")
         pytest.fail(f"Unexpected error during certificate authentication: {e}")
     finally:
+        if trigger_node is not None:
+            try:
+                await trigger_node.write_value(ua.UInt16(0))
+            except Exception as e:
+                print(f"Could not reset the admin flag trigger: {e}")
         try:
             await client.disconnect()
         except Exception:

@@ -78,7 +78,9 @@ The OpenPLC runtime at `172.18.0.3` does not only speak Modbus. It runs four ind
 | 20000/tcp | DNP3 | An outstation built on the OpenDNP3 library, DNP3 address 10, expecting master address 1 |
 | 44818/tcp | EtherNet/IP | Session registration and Allen-Bradley PCCC messages carried inside it, a small subset of the full standard |
 
-All of them map onto the same PLC memory. Blocking port 502 therefore does not protect the HPT pressure value: the same memory is reachable through the next port along.
+All of them map onto the same PLC memory. Blocking port 502 therefore does not protect the HPT pressure value: the same memory is reachable through the next port along. The *DNP3 side door* challenge stops the plant through port 20000.
+
+OpenPLC also starts a management **REST API** on 8443/tcp (HTTPS). It is not an industrial protocol, but it is one more door into the same controller that the plant never uses. The challenge *The forgotten API* walks through it.
 
 **Spotting them with nmap.** A service scan of the PLC from the attack machine, as in the *Service scanning* challenge, shows lines like `20000/tcp open dnp?` and `44818/tcp open EtherNetIP-2?`. The question mark means nmap is guessing from the port number, because it could not confirm the protocol from the reply. That is normal for industrial services.
 

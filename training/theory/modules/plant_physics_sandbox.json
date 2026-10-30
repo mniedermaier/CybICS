@@ -1,0 +1,105 @@
+{
+  "level": "intermediate",
+  "objectives": [
+    "Predict how the CybICS pressures change in a situation from the plant's rules for one tick",
+    "Explain how the PLC's latch turns one forged reading into a compressor run, and why the honest readings still decide when it stops",
+    "Judge whether a safety layer can keep up with a manipulated output, and which defences hold whatever the PLC believes"
+  ],
+  "takeaways": [
+    "A process model answers \"what if?\" without touching the plant; attackers use it to plan, defenders to know their consequences, always against a control run without the attack.",
+    "An output that is on is not the same as gas that moves: the compressor needs at least 50 bar in the GST to push against.",
+    "One forged scan below 60 bar latches the compressor on, but the honest readings stop it at 90: the run looks like a normal cycle started a little early, and it cannot push the HPT past the cut-out.",
+    "On CybICS the relief valve vents more slowly than the compressor fills, so a compressor held on beats it.",
+    "Manual mode ends the race between the I/O service and an attacker with one write, so it deserves an alarm of its own."
+  ],
+  "checkpoints": [
+    {
+      "id": "latch",
+      "question": "Automatic mode. The PLC reads an HPT of 75 bar and a full GST. Is the compressor on?",
+      "options": [
+        "Yes, 75 is below 90",
+        "No, 75 is above 60",
+        "It depends on whether it was running in the scan before"
+      ],
+      "answer": 2,
+      "explanation": "Between 60 and 90 the PLC keeps doing what it did: a running compressor keeps running up to 90, a stopped one stays off until the HPT falls below 60. Both single-number answers forget the latch."
+    }
+  ],
+  "quiz": [
+    {
+      "type": "single",
+      "question": "Manual mode, outputs frozen with the compressor on, the refill off and the system valve closed. The GST holds 30 bar. What does the HPT do?",
+      "options": [
+        "It rises by 1 bar every tick",
+        "It stays where it is",
+        "It falls, because the consumer draws gas",
+        "It rises until the blow-out valve opens"
+      ],
+      "answer": 1,
+      "explanation": "Below 50 bar in the GST the compressor has nothing to push against, so no gas moves although its output is on. The consumer only draws gas when the compressor is off and the valve open, which is not the case here."
+    },
+    {
+      "type": "single",
+      "question": "The compressor is held on with the refill running, and the blow-out valve has opened. Why does the HPT not fall back below 200?",
+      "options": [
+        "The valve closes again as soon as it opens",
+        "The valve vents 0 or 1 bar a tick while the compressor adds 1, so the tank never loses",
+        "The PLC closes the valve in manual mode",
+        "The GST runs empty first"
+      ],
+      "answer": 1,
+      "explanation": "On average the valve vents half a bar a tick and the compressor adds a whole one; the HPT climbs to the top of its range and the valve stays open. The valve is mechanical, so the PLC has no say, and with the refill on the GST lasts."
+    },
+    {
+      "type": "single",
+      "question": "Automatic mode, the real HPT is 150 bar. An attacker makes about a third of the PLC's scans read 40 bar. What does the compressor do?",
+      "options": [
+        "It never runs, the real pressure is far above 90",
+        "It runs all the time, one forged scan latches it",
+        "It runs for roughly a third of the time, switched on and off again and again",
+        "It runs once and then stops for good"
+      ],
+      "answer": 2,
+      "explanation": "Above 90 every honest scan switches the compressor off and every forged scan below 60 switches it back on, so it runs for about the share of scans the attacker wins. The latch only holds it on while the real reading stays below 90."
+    },
+    {
+      "type": "single",
+      "question": "Automatic mode, compressor off, real HPT 62 bar, system valve open. An attacker makes the PLC read exactly 60 bar in one scan. What happens?",
+      "options": [
+        "That scan does not latch it; it starts a few ticks later, as with no attacker",
+        "That scan latches it, and the honest readings then keep it running up to 90",
+        "Nothing at all: the real 62 is above 60, so the compressor stays off for good",
+        "The system valve closes, because 60 lies outside its open band"
+      ],
+      "answer": 0,
+      "explanation": "The start rule is \"below 60\", and 60 is not below 60, so the forged scan changes nothing. But the plant does not stand still: the valve stays open, the consumer drains the HPT, and once the real reading falls below 60 the PLC starts the compressor itself, exactly as it would without the attacker."
+    },
+    {
+      "type": "single",
+      "question": "Which attacker action keeps a running compressor on without racing the I/O service at all?",
+      "options": [
+        "Writing a low HPT as fast as possible",
+        "Writing a low HPT once a second",
+        "Switching the PLC to manual mode while the compressor runs",
+        "Writing a high GST"
+      ],
+      "answer": 2,
+      "explanation": "In manual mode the program writes no outputs, so the compressor stays as it was and the PLC ignores every reading. Forged readings, fast or slow, are overwritten by the I/O service and have to keep winning; a high GST does not start the compressor."
+    },
+    {
+      "type": "multi",
+      "question": "The compressor is held on by an attacker. Which of these stop the HPT from climbing to the top of its range?",
+      "options": [
+        "A pressure switch that cuts the compressor's power directly",
+        "A relief valve big enough to vent the compressor's full flow",
+        "A louder alarm on the HMI",
+        "A faster PLC scan"
+      ],
+      "answer": [
+        0,
+        1
+      ],
+      "explanation": "Both work on the real pressure and do not depend on the PLC. An alarm only helps if someone acts on it in time, and a faster scan does nothing when the PLC is in manual mode or believes a forged value."
+    }
+  ]
+}

@@ -9,5 +9,5 @@
   host/gateway  172.18.0.1   IDS 8443, landing page 80
 
   Training material: /CybICS/training   Wordlists: /usr/share/wordlists
-  Tools: nmap, hydra, ffuf, curl, nc, socat, tcpdump, scapy, pymodbus, asyncua
+  Tools: nmap, hydra, ffuf, curl, nc, socat, tcpdump, scapy, pymodbus, asyncua, snap7
 

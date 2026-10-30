@@ -81,7 +81,4 @@ Passive sniffing is almost impossible to detect, because the attacker sends noth
 ## Before you start
 
 - [Modbus TCP](/theory/modbus) for the frame, the function codes and the registers.
-
-Later on the path:
-
 - [The ICS attack lifecycle](/theory/attack-lifecycle) for where collection fits.

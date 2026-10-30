@@ -39,7 +39,7 @@ def verify():
         message = ("OpenPLC password has been changed!"
                    if success
                    else "OpenPLC still uses default credentials. "
-                        "Change the password via the OpenPLC web UI at port 8080 under Settings > Users.")
+                        "Change the password via the OpenPLC web UI at port 8080 under Users (left-hand menu).")
 
         return {"success": success, "message": message, "checks": checks}
 

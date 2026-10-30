@@ -23,7 +23,7 @@ Two web interfaces have a login:
 | OpenPLC | 172.18.0.3, port 8080, `/login` | An HTML form, sent as a form-encoded POST |
 | FUXA HMI | 172.18.0.4, port 1881, `/api/signin` | A JSON request to the HMI's API |
 
-Each challenge has its own flag, shown once you are logged in with the right account. The Kali attack machine already has `ffuf` and the `rockyou` wordlist in `/usr/share/wordlists/`; the attack shell has `ffuf` and a shorter list of common passwords, `/usr/share/wordlists/passwords.txt`.
+Each target is its own challenge. For OpenPLC you read the flag in the account you broke into; for FUXA you enter the user name and password you found on the challenge page, which checks them. The Kali attack machine already has `ffuf` and the `rockyou` wordlist in `/usr/share/wordlists/`; the attack shell has `ffuf` and a shorter list of common passwords, `/usr/share/wordlists/passwords.txt`.
 
 <figure class="wide">
 <svg viewBox="0 0 520 150" role="img" aria-label="ffuf takes one password after another from a wordlist and sends each as a login request to the OpenPLC or FUXA login. Most answers are failures and look the same; the one answer that differs in size or content marks the correct password.">
@@ -65,7 +65,7 @@ Each challenge has its own flag, shown once you are logged in with the right acc
 
 ## Detect and defend
 
-Guessing is noisy: it produces many failed logins from one source in a short time. The CybICS IDS has an `http_brute_force` rule that counts POST requests to port 8080 or 1881 whose first bytes mention `login` or `auth`. Five within thirty seconds from one source raise a high-severity alert. OpenPLC's login form matches; FUXA's `/api/signin` contains neither word, so guessing at FUXA raises no alert from this rule. Web servers usually log failed logins too, which gives a second place to look.
+Guessing is noisy: it produces many failed logins from one source in a short time. The CybICS IDS has an `http_brute_force` rule that counts POST requests to port 8080 or 1881 whose first bytes mention `login`, `signin` or `auth`. Five within thirty seconds from one source raise a high-severity alert, for OpenPLC's login form and for FUXA's `/api/signin` alike. Web servers usually log failed logins too, which gives a second place to look.
 
 Defences, roughly from most to least important:
 

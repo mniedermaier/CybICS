@@ -83,7 +83,7 @@
             <section class="t-box t-related">
                 <h2>Put it into practice</h2>
                 {% for r in topic.related %}
-                <a class="{{ 'solved' if r.id in solved }}" href="/ctf/challenge/{{ r.id }}" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ r.id }}' }, window.location.origin); }">{{ '✓ ' if r.id in solved }}{{ r.label }}</a>
+                <a class="{{ 'solved' if r.id in solved }}" href="/ctf/challenge/{{ r.id }}" onclick="if (window.parent !== window) { event.preventDefault(); window.parent.postMessage({ type: 'navigate', url: '/ctf/challenge/{{ r.id }}' }, window.location.origin); }">{% if r.role == 'defense' %}<span class="t-pair">Defend it:</span> {% elif r.role == 'attack' %}<span class="t-pair">Stops:</span> {% endif %}{{ '✓ ' if r.id in solved }}{{ r.label }}</a>
                 {% endfor %}
             </section>
             {% endif %}

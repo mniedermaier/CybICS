@@ -9,23 +9,23 @@ An **intrusion detection system** is the security camera of a network. It does n
 A single rule only covers a single behaviour. Real attacks have several stages: first discovery, then access, then manipulation. A useful IDS therefore has rules for each stage, so that an attacker who slips past one is caught by the next. This idea is called **defence in depth**.
 
 <figure>
-<svg viewBox="0 0 520 120" role="img" aria-label="A bar chart of alerts accumulating over time in the IDS buffer. When the bars pass a dashed threshold line, the IDS reports an intrusion and the flag is unlocked.">
+<svg viewBox="0 0 520 120" role="img" aria-label="A bar chart of different IDS rules firing over time. When the bars pass a dashed threshold line, the IDS reports an intrusion and the flag is unlocked.">
   <g fill="#ff6b00" opacity="0.8">
     <rect x="30" y="70" width="24" height="20"/><rect x="64" y="60" width="24" height="30"/>
     <rect x="98" y="52" width="24" height="38"/><rect x="132" y="40" width="24" height="50"/>
   </g>
   <line x1="20" y1="50" x2="300" y2="50" stroke="currentColor" stroke-dasharray="5 4" opacity="0.5"/>
-  <text x="304" y="53" font-size="11">alert threshold</text>
-  <text x="20" y="108" font-size="11" opacity="0.7">alerts accumulating in the buffer</text>
+  <text x="304" y="53" font-size="11">three rules</text>
+  <text x="20" y="108" font-size="11" opacity="0.7">different rules that have fired</text>
   <rect x="360" y="45" width="150" height="30" rx="4" fill="#ff6b00" opacity="0.6"/>
   <text x="435" y="64" text-anchor="middle" font-size="11" fill="#1a1a1a">flag unlocked</text>
 </svg>
-<figcaption>Once enough alerts have accumulated, the IDS confirms an intrusion and releases the flag.</figcaption>
+<figcaption>Once three different rules have fired, the IDS confirms an intrusion and releases the flag.</figcaption>
 </figure>
 
 ## How it looks on CybICS
 
-The IDS runs on the CybICS host and listens to all traffic on the plant network `172.18.0.0/24`. Its dashboard is on port **8443**. It has nine rules:
+The IDS runs on the CybICS host and listens to all traffic on the plant network `172.18.0.0/24`. Its dashboard is on port **8443**. It has twelve rules:
 
 | Rule | What sets it off | Severity |
 |---|---|---|
@@ -35,14 +35,17 @@ The IDS runs on the CybICS host and listens to all traffic on the plant network 
 | `modbus_unauth_write` | 10 or more Modbus writes in 30 s from a host other than hwio or FUXA | high |
 | `modbus_diagnostic` | Modbus function code 8 or 43 | medium |
 | `s7_enumeration` | any S7comm traffic to port 102 or 1102 | medium |
-| `http_brute_force` | 5 or more POSTs in 30 s to port 8080 or 1881 that mention `login` or `auth` (OpenPLC's login does, FUXA's `/api/signin` does not) | high |
-| `arp_spoof` | one IP address seen with two different MAC addresses | critical |
+| `http_brute_force` | 5 or more POSTs in 30 s to port 8080 or 1881 that mention `login`, `signin` or `auth` (OpenPLC's `/login`, FUXA's `/api/signin`) | high |
+| `arp_spoof` | one IP address seen with two different MAC addresses within 5 minutes, where the newer MAC also claims another address | critical |
 | `opcua_access` | OPC-UA traffic to port 4840 from a host that is not a plant service | low |
+| `s7_write` | an S7comm write request to port 102 or 1102; the alert names the address and value written | high |
+| `dnp3_operate` | a DNP3 control request (operate, select or write) to port 20000 with correct CRCs; the alert names the points and values | high |
+| `s7_cpu_control` | an S7comm request that changes the CPU's operating mode: PLC STOP or a warm or cold restart | critical (STOP), high (restart) |
 
 Every alert records the rule, the source and target, a severity and a MITRE ATT&CK for ICS technique. The dashboard shows them live; the API at `/api/alerts`, `/api/summary` and `/api/rules/stats` returns the same data for scripts.
 
 <div class="callout cybics" markdown="1">
-**On CybICS:** the IDS raises at most one alert per rule and source every 30 seconds. Repeating the same scan ten times in a row therefore gives you one alert, not ten. Different attacks are the faster way to more alerts.
+**On CybICS:** the IDS raises at most one alert per rule and source every 30 seconds (for `s7_write` and `s7_cpu_control`, only an exact repeat of the previous request is folded). Repeating the same scan ten times in a row therefore gives you one alert, not ten. Different attacks are the faster way to more alerts.
 </div>
 
 <div data-widget="checkpoint" data-id="cooldown"></div>
@@ -57,7 +60,7 @@ Click a host in the network map below to see which IDS rules watch it.
 2. **Pick three attacks from different stages.** The challenge asks you to set off at least three different rules. Good candidates are a port scan, a handful of Modbus writes from the attack machine, and an S7comm or OPC-UA connection. You have done all of them in earlier modules.
 3. **Run them one at a time** and watch which alert each one produces. Write down the rule name, severity and source.
 4. **Note what stays silent.** Did any attack raise nothing? Why not, judging by the table above?
-5. **Ask the IDS for the flag** at its `/api/flag` endpoint. It tells you how many alerts it has counted so far if you are not there yet.
+5. **Ask the IDS for the flag** at its `/api/flag` endpoint. It counts different rules, not alerts, and tells you which rules it has seen so far if you are not there yet.
 
 ## Detect and defend
 

@@ -600,6 +600,7 @@
         .protocol-badge.tcp { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
         .protocol-badge.arp { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
         .protocol-badge.opcua { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+        .protocol-badge.dnp3 { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
         .rule-hints {
             margin-top: 0.5rem;
@@ -1169,7 +1170,7 @@
                         </div>
                         <div class="ch-progress">
                             <div class="ch-progress-bar"><div class="ch-progress-fill" id="det-progress" style="width:0%"></div></div>
-                            <span class="ch-progress-text" id="det-progress-text">0 / 3 alerts</span>
+                            <span class="ch-progress-text" id="det-progress-text">0 / 3 rules</span>
                         </div>
                         <div id="det-status"></div>
                         <div class="ch-actions">
@@ -1330,21 +1331,36 @@
           threshold: 'Any connection',
           attack_hint: 'nmap -p 102 172.18.0.6 or use snap7 client to connect',
           evasion_hint: 'Alert fires on any S7 traffic — no threshold to stay under' },
+        { id: 's7_write', name: 'S7comm Write', severity: 'high', mitre: 'T1692.001', protocol: 's7comm',
+          desc: 'Detects S7comm WriteVar jobs (function 0x05) to ports 102 or 1102 and reports the memory area, data block, byte offset and value written. Reads do not trigger it.',
+          threshold: 'Every write (exact repeats of the previous write: once per 30s)',
+          attack_hint: 'snap7: client.db_write(db, start, data) against 172.18.0.3:102',
+          evasion_hint: 'Any write fires it -- an S7 write cannot stay under a threshold' },
+        { id: 's7_cpu_control', name: 'S7comm CPU Control', severity: 'critical', mitre: 'T0858', protocol: 's7comm',
+          desc: 'Detects S7comm jobs that change the CPU operating mode on ports 102 or 1102: PLC STOP (function 0x29, critical) and PLC Control (function 0x28: warm or cold restart, high). Reads, including the CPU status list, do not trigger it.',
+          threshold: 'Every request (exact repeats of the previous one: once per 30s)',
+          attack_hint: 'snap7: client.plc_stop() against 172.18.0.3:102',
+          evasion_hint: 'Any mode change fires it -- a STOP cannot stay under a threshold' },
         { id: 'http_brute_force', name: 'HTTP Brute Force', severity: 'high', mitre: 'T0812', protocol: 'http',
           desc: 'Detects repeated HTTP POST requests to login endpoints on OpenPLC (8080) or FUXA (1881), indicating password attacks.',
           threshold: '5 attempts / 30s',
           attack_hint: 'hydra -l admin -P wordlist.txt 172.18.0.3 http-post-form "/login:..."',
           evasion_hint: 'Space login attempts >6s apart to stay under 5 per 30s' },
         { id: 'arp_spoof', name: 'ARP Spoofing Detection', severity: 'critical', mitre: 'T0856', protocol: 'arp',
-          desc: 'Detects multiple MAC addresses associated with a single IP address, indicating ARP cache poisoning for man-in-the-middle attacks.',
-          threshold: '2+ MACs per IP',
+          desc: 'Detects an IP address announced by a second MAC that also answers for another address within 5 minutes, indicating ARP cache poisoning for man-in-the-middle attacks. A container recreated with a new MAC on its old address is not flagged.',
+          threshold: '2+ MACs per IP, one claiming 2+ IPs (5 min)',
           attack_hint: 'arpspoof -i eth0 -t 172.18.0.3 172.18.0.1',
-          evasion_hint: 'Use your real MAC — any second MAC for an IP triggers the alert' },
+          evasion_hint: 'Poisoning needs your MAC to answer for the victim as well as for yourself, which is exactly what the rule looks for' },
         { id: 'opcua_access', name: 'OPC-UA Unauthorized Access', severity: 'low', mitre: 'T0846', protocol: 'opcua',
           desc: 'Detects OPC-UA connections from hosts not in the known service list, flagging potential unauthorized protocol access.',
           threshold: 'Any connection',
           attack_hint: 'Connect to opc.tcp://172.18.0.5:4840 from the attack machine',
           evasion_hint: 'Alert fires for any non-service host — no threshold to evade' },
+        { id: 'dnp3_operate', name: 'DNP3 Control', severity: 'high', mitre: 'T1692.001', protocol: 'dnp3',
+          desc: 'Detects DNP3 control requests (WRITE, SELECT, OPERATE, DIRECT OPERATE) to the OpenPLC outstation on port 20000 and reports the link addresses, points and values. Only frames with correct CRCs count. Reads, link status requests and responses do not trigger it.',
+          threshold: 'Every control request (exact repeats of the previous one: once per 30s)',
+          attack_hint: 'A Direct Operate (function 0x05) on an analog output (g41v2) to 172.18.0.3:20000',
+          evasion_hint: 'Any control request fires it -- a DNP3 command cannot stay under a threshold' },
     ];
 
     /* ===== API HELPERS ===== */
@@ -1740,10 +1756,11 @@
     }
 
     function updateDetectionProgress() {
-        const count = Math.min(allAlerts.length, 3);
+        // The flag needs three different rules, not three alerts.
+        const count = Math.min(new Set(allAlerts.map(a => a.rule)).size, 3);
         const pct = (count / 3) * 100;
         document.getElementById('det-progress').style.width = `${pct}%`;
-        document.getElementById('det-progress-text').textContent = `${Math.min(allAlerts.length, 3)} / 3 alerts`;
+        document.getElementById('det-progress-text').textContent = `${count} / 3 rules`;
         if (count >= 3 && !detectionSolved) {
             document.getElementById('det-status').innerHTML =
                 '<span class="ch-status ready">Threshold reached - check flag!</span>';

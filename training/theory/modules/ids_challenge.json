@@ -8,7 +8,7 @@
   ],
   "takeaways": [
     "An IDS watches and alerts; it does not block anything by itself.",
-    "The CybICS IDS has nine rules covering discovery, access and manipulation of the plant.",
+    "The CybICS IDS has twelve rules covering discovery, access and manipulation of the plant.",
     "At most one alert per rule and source is raised every 30 seconds, so different attacks produce more alerts than repeated ones.",
     "Mapping attacks to the alerts they cause shows where a defender is blind.",
     "Rule-based detection is predictable but cannot see an attack nobody wrote a rule for."

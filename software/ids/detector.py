@@ -12,15 +12,17 @@ from collections import deque
 from datetime import datetime
 import logging
 
-from rules import RuleEngine, KNOWN_SERVICES, MODBUS_WRITE_FUNCTIONS
+from rules import RuleEngine, KNOWN_SERVICES, MODBUS_WRITE_FUNCTIONS, parse_modbus_writes
 
 logger = logging.getLogger("cybics-ids")
 
 MAX_ALERTS = 500
+# Modbus write requests kept in the write journal (GET /api/modbus/writes)
+MAX_MODBUS_WRITES = 200
 CLEANUP_PACKET_INTERVAL = 5000  # run cleanup every N packets
 
 # Ports the rule engine cares about
-_IDS_PORTS = (502, 102, 1102, 8080, 1881, 4840)
+_IDS_PORTS = (502, 102, 1102, 8080, 1881, 4840, 20000)
 
 # Known legitimate Modbus polling pairs (src, dst) to exclude in BPF.
 # These generate ~99% of traffic but never trigger any rule.
@@ -30,6 +32,16 @@ _KNOWN_MODBUS_PAIRS = [
     ("172.18.0.4", "172.18.0.3"),   # fuxa -> openplc
     ("172.18.0.3", "172.18.0.4"),   # openplc -> fuxa
 ]
+# Pairs whose Modbus *write* requests are still captured, for the write
+# journal only: FUXA polls with reads all the time but writes only when someone
+# operates the HMI, so its writes cost next to nothing.  The write rules exempt
+# FUXA as a trusted writer; the journal is what lets a defender (and the
+# Trusted Writer challenge) see what it wrote.  hwio writes every cycle and
+# stays excluded completely.
+_JOURNALED_WRITERS = frozenset((("172.18.0.4", "172.18.0.3"),))
+# Modbus function code of a TCP segment: byte 7 of the TCP payload.
+_BPF_MODBUS_WRITE = "(" + " or ".join(
+    f"tcp[((tcp[12:1]&0xf0)>>2)+7]&0x7f={fc}" for fc in sorted(MODBUS_WRITE_FUNCTIONS)) + ")"
 
 
 class Detector:
@@ -48,12 +60,20 @@ class Detector:
         }
         self._alert_id = 0
         self._tcpdump_proc = None
+        self.modbus_writes = deque(maxlen=MAX_MODBUS_WRITES)
+        self._write_id = 0
 
         # Evasion challenge state
         self.evasion_active = False
         self.evasion_start_time = 0
-        self.evasion_start_alert_count = 0
         self.evasion_modbus_writes = 0
+        # Alerts raised during the window, counted as they are raised, so
+        # clearing the alert log cannot hide them (arp_spoof is about the
+        # link layer, not the evaded traffic).
+        self.evasion_alerts = 0
+        # When the alert log was last cleared: a check that reads the log
+        # cannot vouch for the time before it.
+        self.alerts_cleared_at = None
         self.evasion_timeout = 120  # 2 minute window
 
         logger.info(f"Detector initialized (max {MAX_ALERTS} alerts in memory)")
@@ -102,7 +122,14 @@ class Detector:
         port_filter = " or ".join(f"port {p}" for p in _IDS_PORTS)
 
         # Exclude known legitimate Modbus polling pairs (biggest traffic source)
+        # A journaled writer's pair is only dropped when the segment is not a
+        # write request.  The payload byte is read last, after the host and
+        # port tests, so packets of other pairs never reach that load; a
+        # segment of the pair too short to hold it (a bare ACK) is dropped.
         modbus_excludes = " and ".join(
+            f"not (src host {src} and dst host {dst} and dst port 502"
+            f" and not {_BPF_MODBUS_WRITE})"
+            if (src, dst) in _JOURNALED_WRITERS else
             f"not (src host {src} and dst host {dst} and port 502)"
             for src, dst in _KNOWN_MODBUS_PAIRS
         )
@@ -202,6 +229,9 @@ class Detector:
                 for alert in alerts:
                     self._add_alert(alert)
 
+            if pkt_info[3] == 502 and pkt_info[5] == 6 and len(pkt_info[6]) >= 8:
+                self._journal_modbus_writes(pkt_info)
+
             if self.evasion_active:
                 self._track_evasion_packet(pkt_info)
 
@@ -260,6 +290,8 @@ class Detector:
         with self.lock:
             self.alerts.append(alert)
         self.stats["alerts_total"] += 1
+        if self.evasion_active and alert.get("rule") != "arp_spoof":
+            self.evasion_alerts += 1
         logger.warning(
             f"ALERT [{alert['severity'].upper()}] {alert['rule']}: {alert['message']}"
         )
@@ -277,7 +309,39 @@ class Detector:
             self.alerts.clear()
         self._alert_id = 0
         self.stats["alerts_total"] = 0
+        self.alerts_cleared_at = datetime.now().isoformat()
         logger.info("Alerts cleared")
+
+    # ========== MODBUS WRITE JOURNAL ==========
+
+    def _journal_modbus_writes(self, pkt_info):
+        """Record every Modbus write request seen, trusted writers included.
+
+        Not a rule: nothing here raises an alert.  It answers "who wrote what"
+        after the fact, which the write rules cannot, because they count
+        writes per source and skip the trusted writers entirely.
+        """
+        writes = parse_modbus_writes(pkt_info[6])
+        if not writes:
+            return
+        src, dst = pkt_info[0], pkt_info[1]
+        timestamp = datetime.now().isoformat()
+        with self.lock:
+            for write in writes:
+                self._write_id += 1
+                self.modbus_writes.append({
+                    "id": self._write_id,
+                    "timestamp": timestamp,
+                    "src": src,
+                    "service": KNOWN_SERVICES.get(src),
+                    "dst": dst,
+                    **write,
+                })
+
+    def get_modbus_writes(self, since_id=0):
+        """Journaled Modbus writes, oldest first, optionally newer than an id"""
+        with self.lock:
+            return [w for w in self.modbus_writes if w["id"] > since_id]
 
     # ========== EVASION CHALLENGE ==========
 
@@ -311,8 +375,8 @@ class Detector:
             }
         self.evasion_active = True
         self.evasion_start_time = time.time()
-        self.evasion_start_alert_id = self._alert_id
         self.evasion_modbus_writes = 0
+        self.evasion_alerts = 0
         logger.info("Evasion challenge started")
         return {
             "success": True,
@@ -329,9 +393,7 @@ class Detector:
             }
 
         elapsed = time.time() - self.evasion_start_time
-        # Count only attacker-relevant alerts (exclude background arp_spoof noise)
-        evasion_alerts = self.get_alerts(since_id=self.evasion_start_alert_id)
-        new_alerts = sum(1 for a in evasion_alerts if a.get("rule") != "arp_spoof")
+        new_alerts = self.evasion_alerts
 
         if elapsed > self.evasion_timeout:
             self.evasion_active = False
@@ -362,8 +424,12 @@ class Detector:
         """Get detector status"""
         return {
             "active": self.active,
+            # The clock alert timestamps are taken from, so a client can age
+            # them without trusting its own clock or time zone.
+            "now": datetime.now().isoformat(),
             "stats": {
                 **self.stats,
+                "alerts_cleared_at": self.alerts_cleared_at,
                 "alerts_in_buffer": len(self.alerts),
                 "max_alerts": MAX_ALERTS,
             },
@@ -371,9 +437,7 @@ class Detector:
             "evasion": {
                 "active": self.evasion_active,
                 "modbus_writes": self.evasion_modbus_writes if self.evasion_active else 0,
-                "new_alerts": (
-                    self.stats["alerts_total"] - self.evasion_start_alert_count
-                ) if self.evasion_active else 0,
+                "new_alerts": self.evasion_alerts if self.evasion_active else 0,
             },
         }
 
@@ -382,6 +446,7 @@ class Detector:
 
 _UNPACK_H = struct.Struct("!H").unpack
 _UNPACK_HH = struct.Struct("!HH").unpack
+_UNPACK_II = struct.Struct("!II").unpack
 
 # Pre-computed flags lookup table: byte value -> flags string
 _TCP_FLAGS = [None] * 256
@@ -392,6 +457,7 @@ for _i in range(256):
     if _i & 0x01: _f.append("F")
     if _i & 0x04: _f.append("R")
     if _i & 0x08: _f.append("P")
+    if _i & 0x20: _f.append("U")
     _TCP_FLAGS[_i] = "".join(_f)
 
 # SYN-only lookup: True if SYN set and ACK not set
@@ -402,7 +468,8 @@ def _parse_raw_packet(raw):
     """Parse raw Ethernet frame into a tuple for the rule engine.
 
     Returns a tuple: (src_ip, dst_ip, sport, dport, flags_str, proto_id, payload,
-                      arp_op, arp_src_mac, arp_src_ip)
+                      arp_op, arp_src_mac, arp_src_ip), and for TCP three more
+                      fields: (tcp_seq, tcp_ack, payload_len)
     proto_id: 6=TCP, 17=UDP, 0=ARP, -1=OTHER
     Returns None for packets we can't parse.
     """
@@ -456,10 +523,16 @@ def _parse_raw_packet(raw):
             return None
         sport, dport = _UNPACK_HH(transport[0:4])
         tcp_hdr_len = ((transport[12] >> 4) & 0x0F) * 4
+        # Sequence and acknowledgement numbers and the segment's real payload
+        # length (from the IP header, not the possibly truncated capture):
+        # the DNP3 rule follows the byte stream of a connection with them.
+        seq, ack = _UNPACK_II(transport[4:12])
+        payload_len = max(0, _UNPACK_H(ip_hdr[2:4])[0] - ihl - tcp_hdr_len)
+        # Cut at the IP length too, so Ethernet padding never reads as payload.
         return (src_ip, dst_ip, sport, dport,
                 _TCP_FLAGS[transport[13]], 6,
-                bytes(transport[tcp_hdr_len:tcp_hdr_len + 256]),
-                0, None, None)
+                bytes(transport[tcp_hdr_len:tcp_hdr_len + min(256, payload_len)]),
+                0, None, None, seq, ack, payload_len)
 
     # UDP (protocol 17)
     if protocol == 17:

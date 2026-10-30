@@ -1,6 +1,6 @@
 # Password Attack Guide
 
-> **MITRE ATT&CK for ICS:** `Initial Access` `Persistence` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
+> **MITRE ATT&CK for ICS:** `Persistence` `Lateral Movement` | [T1694.001 - Insecure Credentials: Default Credentials](https://attack.mitre.org/techniques/T1694/001/) | [T0859 - Valid Accounts](https://attack.mitre.org/techniques/T0859/)
 
 ## Overview
 A dictionary attack is a common method used to crack passwords by systematically attempting all the words in a pre-defined list, or "dictionary," until the correct one is found.
@@ -66,8 +66,8 @@ For more info, run `ffuf` without parameters.
 ## Task
 This module covers two scored challenges, both solved with an ffuf dictionary attack. Flags have the format `CybICS(flag)`:
 
-- **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the user account. Flag: `CybICS(0penPLC)`.
-- **FUXA Password Attack** — brute-force the FUXA HMI login (port 1881) and read the flag shown after login. Flag: `CybICS(FU##A)`.
+- **OpenPLC Password Attack** — brute-force the OpenPLC web login (port 8080) and read the flag from the admin account's details on the **Users** page, then submit it on the challenge page.
+- **FUXA Password Attack** — brute-force the FUXA HMI login (port 1881), then enter the user name and password you recovered on the challenge page and click **Verify**, which reveals the flag.
 
 ### Steps
 1. Analyze the OpenPLC login page at port 8080 (examine the request and response in the browser developer console)
@@ -75,7 +75,7 @@ This module covers two scored challenges, both solved with an ffuf dictionary at
 3. Run ffuf against the OpenPLC login to brute-force the admin password
 4. Log in with the discovered credentials and find the flag in the user information
 5. Apply the same approach to the FUXA HMI at port 1881
-6. Log in to FUXA and find the flag
+6. Log in to FUXA with the recovered credentials to confirm them (the admin-only **Flag** view says the admin login works), then enter them on the *FUXA Password Attack* challenge page and click **Verify**
 
 ## Solution: OpenPLC Password Attack
 
@@ -100,8 +100,8 @@ FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 
 | Tactic | Technique | ID | Description |
 |--------|-----------|-----|-------------|
-| Initial Access | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries may use default credentials to gain access to ICS systems |
-| Persistence | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Adversaries may use compromised credentials for persistence |
+| Persistence, Lateral Movement | Insecure Credentials: Default Credentials | [T1694.001](https://attack.mitre.org/techniques/T1694/001/) | Adversaries may use default credentials to gain access to ICS systems |
+| Persistence, Lateral Movement | Valid Accounts | [T0859](https://attack.mitre.org/techniques/T0859/) | Adversaries may use compromised credentials for persistence |
 
 **Why this matters:** Weak and default credentials remain one of the most common vulnerabilities in ICS environments. Many operators never change default passwords, and password policies are often weaker in OT than IT environments. Once an attacker has valid credentials, they can access HMI and engineering workstations to monitor and manipulate processes—often without triggering security alerts.
 
@@ -130,7 +130,7 @@ FUXA is running at [http://<DEVICE_IP>:1881](http://<DEVICE_IP>:1881).
 ## Hints
 
 - **OpenPLC**: The flag is part of the user information.
-- **FUXA**: The flag appears after successful login on the HMI.
+- **FUXA**: A failed login answers with an error message, a successful one with a token. The challenge page asks for the user name and password that worked.
 
 ## Solution: FUXA Password Attack
 
@@ -140,6 +140,4 @@ Run the attack:
   ```
   From the attack shell, use `-w /usr/share/wordlists/passwords.txt`.
 
-**Flag:** `CybICS(FU##A)` (submit for the *FUXA Password Attack* challenge)
-
-  ![Flag FUXA Password](doc/flag2.png)
+ffuf prints the one password whose answer carries no error. Enter `admin` and that password on the *FUXA Password Attack* challenge page and click **Verify**; it reveals the flag.
