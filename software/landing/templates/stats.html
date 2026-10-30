@@ -108,6 +108,39 @@
             font-weight: bold;
         }
 
+        .container-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .restart-button {
+            background: transparent;
+            color: #ff6b00;
+            border: 1px solid #ff6b00;
+            border-radius: 0.25rem;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .restart-button:hover:not(:disabled) { background: #ff6b00; color: #1a1a1a; }
+        .restart-button.danger { background: #ef4444; border-color: #ef4444; color: #1a1a1a; }
+        .restart-button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .restart-button:focus-visible { outline: 2px solid #ffb37a; outline-offset: 2px; }
+
+        .restart-note {
+            font-size: 0.8rem;
+            color: #b0b0b0;
+            margin-bottom: 0.5rem;
+        }
+
+        .restart-note.error { color: #f87171; }
+        .restart-note.ok { color: #22c55e; }
+
         .status-running {
             background-color: #22c55e;
             color: #ffffff;
@@ -380,6 +413,12 @@
         html.light-mode [class*="text-white"] { color: #172033 !important; }
         html.light-mode .nav-button { background: #f7f8fa; color: #b34700; border-color: #d45a00; }
         html.light-mode .nav-button:hover { background: #d45a00; color: #ffffff; }
+        html.light-mode .restart-button { color: #b34700; border-color: #b34700; }
+        html.light-mode .restart-button:hover:not(:disabled) { background: #b34700; color: #ffffff; }
+        html.light-mode .restart-button.danger { background: #b91c1c; border-color: #b91c1c; color: #ffffff; }
+        html.light-mode .restart-note { color: #4a5260; }
+        html.light-mode .restart-note.error { color: #b91c1c; }
+        html.light-mode .restart-note.ok { color: #15803d; }
         html.light-mode .progress-bar { background: #d9dee7; }
         html.light-mode ::-webkit-scrollbar-track { background: #e7eaf0; }
         html.light-mode ::-webkit-scrollbar-thumb { background: #b7bfcc; }
@@ -782,6 +821,143 @@
                 });
         }
 
+        // Restarting one container. The list is redrawn every 3 s, so what
+        // the buttons show lives here and each redraw reads it back.
+        const restart = { confirm: null, busy: null, notes: {} };
+
+        function escapeHtml(text) {
+            return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        }
+
+        function restartControls(name) {
+            const n = escapeHtml(name);
+            if (restart.busy === name) {
+                return `<button type="button" class="restart-button" disabled>Restarting…</button>`;
+            }
+            if (restart.confirm === name) {
+                return `<button type="button" class="restart-button danger" data-restart="go" data-name="${n}" aria-label="Confirm restart of ${n}">Restart now</button>
+                        <button type="button" class="restart-button" data-restart="cancel" data-name="${n}">Cancel</button>`;
+            }
+            return `<button type="button" class="restart-button" data-restart="ask" data-name="${n}" aria-label="Restart ${n}"${restart.busy ? ' disabled' : ''}>Restart</button>`;
+        }
+
+        function restartNote(name) {
+            if (restart.confirm === name) {
+                return `<p class="restart-note">Restart ${escapeHtml(name)}? It is unavailable for a moment, and changes made inside it that were not saved to its configuration are lost.</p>`;
+            }
+            const note = restart.notes[name];
+            return note ? `<p class="restart-note ${note.kind}" role="status">${escapeHtml(note.text)}</p>` : '';
+        }
+
+        // Landing restarted itself: wait for a new process, then reload.
+        function reloadWhenBack(bootId) {
+            const poll = () => fetch('/api/settings/containers/restart', { cache: 'no-store' })
+                .then(r => r.json())
+                .then(d => { if (d.boot_id && d.boot_id !== bootId) location.reload(); else setTimeout(poll, 2000); })
+                .catch(() => setTimeout(poll, 2000));
+            setTimeout(poll, 2000);
+        }
+
+        document.addEventListener('click', event => {
+            const button = event.target.closest('[data-restart]');
+            if (!button || button.disabled) return;
+            const name = button.dataset.name;
+            const action = button.dataset.restart;
+            if (action === 'ask') { restart.confirm = name; delete restart.notes[name]; }
+            if (action === 'cancel') restart.confirm = null;
+            if (action === 'go') {
+                restart.confirm = null;
+                restart.busy = name;
+                fetch(`/api/stats/containers/${encodeURIComponent(name)}/restart`, { method: 'POST' })
+                    .then(r => r.json().catch(() => ({ success: false, error: `HTTP ${r.status}` })))
+                    .then(d => {
+                        if (d.success && d.self) {
+                            restart.notes[name] = { kind: 'ok', text: 'The landing page is restarting; this page reloads when it is back.' };
+                            reloadWhenBack(d.boot_id);
+                            return;
+                        }
+                        restart.busy = null;
+                        restart.notes[name] = d.success
+                            ? { kind: 'ok', text: `Done: ${d.message}.` }
+                            : { kind: 'error', text: d.error || 'The restart failed.' };
+                    })
+                    .catch(() => {
+                        restart.busy = null;
+                        restart.notes[name] = { kind: 'error', text: 'No answer from the landing page.' };
+                    })
+                    .finally(() => { if (lastContainers) renderContainers(lastContainers); });
+            }
+            if (lastContainers) renderContainers(lastContainers);
+        });
+
+        let lastContainers = null;
+
+        function renderContainers(containers) {
+            lastContainers = containers;
+            const containersList = document.getElementById('containers-list');
+            // The redraw replaces the buttons; keep the keyboard focus on the same one.
+            const focused = document.activeElement && document.activeElement.closest
+                ? document.activeElement.closest('[data-restart]') : null;
+            const focusKey = focused ? [focused.dataset.restart, focused.dataset.name] : null;
+            if (containers && containers.length > 0) {
+                containersList.innerHTML = containers.map(container => `
+                    <div class="container-card">
+                        <div class="container-header">
+                            <div class="container-name">${escapeHtml(container.name)}</div>
+                            <div class="container-actions">
+                                <div class="status-badge status-${container.status}">
+                                    ${container.status.toUpperCase()}
+                                </div>
+                                ${restartControls(container.name)}
+                            </div>
+                        </div>
+                        ${restartNote(container.name)}
+                        <div class="text-xs text-gray-400 mb-2">
+                            ID: ${container.id} | Image: ${container.image} | Uptime: ${container.uptime}
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-item">
+                                <span class="text-gray-400">CPU:</span>
+                                <span class="text-[#ff6b00] font-bold">${container.cpu_percent}%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="text-gray-400">Memory:</span>
+                                <span class="text-[#ff6b00] font-bold">${container.memory_usage_mb.toFixed(0)} MB / ${container.memory_limit_mb.toFixed(0)} MB</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="text-gray-400">Memory %:</span>
+                                <span class="text-[#ff6b00] font-bold">${container.memory_percent.toFixed(1)}%</span>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-item">
+                                <span class="text-gray-400">Network RX:</span>
+                                <span class="text-[#ff6b00] font-bold">${container.network_rx_mb.toFixed(2)} MB</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="text-gray-400">Network TX:</span>
+                                <span class="text-[#ff6b00] font-bold">${container.network_tx_mb.toFixed(2)} MB</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                containersList.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        No CybICS containers found
+                    </div>
+                `;
+            }
+            if (focusKey) {
+                // After "Restart" the confirm button takes the focus, after "Cancel" the restart button.
+                const next = { ask: 'go', cancel: 'ask' }[focusKey[0]] || focusKey[0];
+                const target = [...containersList.querySelectorAll('[data-restart]')]
+                    .find(b => b.dataset.name === focusKey[1] && b.dataset.restart === next)
+                    || [...containersList.querySelectorAll('[data-restart]')].find(b => b.dataset.name === focusKey[1]);
+                if (target) target.focus();
+            }
+        }
+
         function updateStats() {
             fetch('/api/stats')
                 .then(response => response.json())
@@ -816,53 +992,7 @@
                     document.getElementById('network-packets-rx').textContent = data.network.packets_recv.toLocaleString();
                     document.getElementById('network-packets-tx').textContent = data.network.packets_sent.toLocaleString();
 
-                    // Update containers list
-                    const containersList = document.getElementById('containers-list');
-                    if (data.containers && data.containers.length > 0) {
-                        containersList.innerHTML = data.containers.map(container => `
-                            <div class="container-card">
-                                <div class="container-header">
-                                    <div class="container-name">${container.name}</div>
-                                    <div class="status-badge status-${container.status}">
-                                        ${container.status.toUpperCase()}
-                                    </div>
-                                </div>
-                                <div class="text-xs text-gray-400 mb-2">
-                                    ID: ${container.id} | Image: ${container.image} | Uptime: ${container.uptime}
-                                </div>
-                                <div class="stat-row">
-                                    <div class="stat-item">
-                                        <span class="text-gray-400">CPU:</span>
-                                        <span class="text-[#ff6b00] font-bold">${container.cpu_percent}%</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="text-gray-400">Memory:</span>
-                                        <span class="text-[#ff6b00] font-bold">${container.memory_usage_mb.toFixed(0)} MB / ${container.memory_limit_mb.toFixed(0)} MB</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="text-gray-400">Memory %:</span>
-                                        <span class="text-[#ff6b00] font-bold">${container.memory_percent.toFixed(1)}%</span>
-                                    </div>
-                                </div>
-                                <div class="stat-row">
-                                    <div class="stat-item">
-                                        <span class="text-gray-400">Network RX:</span>
-                                        <span class="text-[#ff6b00] font-bold">${container.network_rx_mb.toFixed(2)} MB</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="text-gray-400">Network TX:</span>
-                                        <span class="text-[#ff6b00] font-bold">${container.network_tx_mb.toFixed(2)} MB</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('');
-                    } else {
-                        containersList.innerHTML = `
-                            <div class="text-center text-gray-400 py-8">
-                                No CybICS containers found
-                            </div>
-                        `;
-                    }
+                    renderContainers(data.containers);
                 })
                 .catch(error => {
                     console.error('Error fetching stats:', error);
