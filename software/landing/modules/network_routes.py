@@ -6,7 +6,7 @@ import netifaces
 from flask import Response, jsonify, request
 from datetime import datetime
 
-from modules.network_capture import CAPTURE_FILTERS, CaptureError, capturable_interfaces
+from modules.network_capture import CAPTURE_FILTERS, CaptureError, capturable_interfaces, public_message
 from utils.config import UPLINK_INTERFACE
 from utils.logger import logger
 
@@ -80,7 +80,7 @@ def register_network_routes(app, network_capture):
             network_capture.start(interface, filter_name)
         except CaptureError as e:
             logger.warning(f"Capture refused: {e}")
-            return jsonify({'error': str(e)}), 400
+            return jsonify({'error': public_message(e)}), 400
         except Exception as e:
             logger.error(f"Error starting network capture: {e}", exc_info=True)
             return jsonify({'error': 'An internal error occurred'}), 500
